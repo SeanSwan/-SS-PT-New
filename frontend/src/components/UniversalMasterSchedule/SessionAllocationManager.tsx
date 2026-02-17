@@ -1,10 +1,10 @@
 /**
  * Session Allocation Manager - Enterprise Financial Command Center
  * =============================================================
- * 
+ *
  * Critical business component that manages client session balances,
  * payment integration, and package allocation in real-time.
- * 
+ *
  * Key Features:
  * - Real-time session balance tracking
  * - Stripe payment integration monitoring
@@ -12,7 +12,7 @@
  * - Package management with expiration tracking
  * - Revenue analytics with forecasting
  * - Admin override capabilities
- * 
+ *
  * Master Blueprint Alignment:
  * - True admin control over session economy
  * - Integrated payment and gamification flow
@@ -21,33 +21,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled, { ThemeProvider } from 'styled-components';
-
-// Material-UI Components
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Chip,
-  Avatar,
-  LinearProgress,
-  IconButton,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Divider,
-  Alert,
-  Stack,
-  Tooltip,
-  Badge,
-  CircularProgress
-} from '@mui/material';
+import styled, { ThemeProvider, keyframes } from 'styled-components';
 
 // Icons
 import {
@@ -145,7 +119,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
     expiringPackages: 0,
     newPurchasesToday: 0
   });
-  
+
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [allocationDialogOpen, setAllocationDialogOpen] = useState(false);
@@ -168,8 +142,8 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   }, [allocations, selectedClient]);
 
   const criticalAllocations = useMemo(() => {
-    return allocations.filter(allocation => 
-      allocation.remainingSessions <= 2 || 
+    return allocations.filter(allocation =>
+      allocation.remainingSessions <= 2 ||
       new Date(allocation.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     );
   }, [allocations]);
@@ -184,10 +158,10 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
   useEffect(() => {
     loadAllocationData();
-    
+
     // Set up auto-refresh every 5 minutes
     const interval = setInterval(loadAllocationData, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -196,7 +170,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   const loadAllocationData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Simulate API calls - replace with actual service calls
       const mockAllocations: SessionAllocation[] = [
         {
@@ -277,7 +251,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
       ];
 
       setAllocations(mockAllocations);
-      
+
       // Calculate stats
       const calculatedStats: AllocationStats = {
         totalActiveClients: mockAllocations.filter(a => a.status === 'active').length,
@@ -289,9 +263,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
         expiringPackages: mockAllocations.filter(a => new Date(a.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length,
         newPurchasesToday: 1
       };
-      
+
       setStats(calculatedStats);
-      
+
     } catch (error) {
       console.error('Error loading allocation data:', error);
       toast({
@@ -308,7 +282,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
     setRefreshing(true);
     await loadAllocationData();
     setRefreshing(false);
-    
+
     toast({
       title: 'Data Refreshed',
       description: 'Session allocation data has been updated',
@@ -334,10 +308,10 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
         packagePrice: manualAllocation.packagePrice,
         sessionValue: manualAllocation.packagePrice / manualAllocation.totalSessions
       };
-      
+
       setAllocations(prev => [...prev, newAllocation]);
       setAllocationDialogOpen(false);
-      
+
       // Reset form
       setManualAllocation({
         clientId: '',
@@ -346,17 +320,17 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
         packagePrice: 1250,
         expiryMonths: 6
       });
-      
+
       toast({
         title: 'Allocation Created',
         description: 'New session allocation has been created successfully',
         variant: 'default'
       });
-      
+
       if (onAllocationUpdate) {
         onAllocationUpdate(newAllocation);
       }
-      
+
     } catch (error) {
       console.error('Error creating allocation:', error);
       toast({
@@ -369,8 +343,8 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
   const handleAdjustSessions = useCallback(async (allocationId: string, adjustment: number) => {
     try {
-      setAllocations(prev => prev.map(allocation => 
-        allocation.id === allocationId 
+      setAllocations(prev => prev.map(allocation =>
+        allocation.id === allocationId
           ? {
               ...allocation,
               remainingSessions: Math.max(0, allocation.remainingSessions + adjustment),
@@ -378,13 +352,13 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
             }
           : allocation
       ));
-      
+
       toast({
         title: 'Sessions Adjusted',
         description: `${adjustment > 0 ? 'Added' : 'Removed'} ${Math.abs(adjustment)} session(s)`,
         variant: 'default'
       });
-      
+
     } catch (error) {
       console.error('Error adjusting sessions:', error);
       toast({
@@ -397,175 +371,143 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
   // ==================== RENDER FUNCTIONS ====================
 
+  const getProgressColor = (percentage: number) => {
+    if (percentage > 80) return '#ff6b35';
+    if (percentage > 60) return '#ffd700';
+    return '#00ffff';
+  };
+
   const renderStatsCards = () => (
-    <Grid container spacing={2} sx={{ mb: 3 }}>
-      <Grid item xs={12} sm={6} md={3}>
-        <StatsCard>
-          <StatsIcon>
-            <Users size={24} />
-          </StatsIcon>
-          <StatsContent>
-            <StatsValue>{stats.totalActiveClients}</StatsValue>
-            <StatsLabel>Active Clients</StatsLabel>
-          </StatsContent>
-        </StatsCard>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <StatsCard>
-          <StatsIcon>
-            <Calendar size={24} />
-          </StatsIcon>
-          <StatsContent>
-            <StatsValue>{stats.totalAllocatedSessions}</StatsValue>
-            <StatsLabel>Total Sessions</StatsLabel>
-          </StatsContent>
-        </StatsCard>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <StatsCard>
-          <StatsIcon>
-            <DollarSign size={24} />
-          </StatsIcon>
-          <StatsContent>
-            <StatsValue>${stats.totalRevenue.toLocaleString()}</StatsValue>
-            <StatsLabel>Total Revenue</StatsLabel>
-          </StatsContent>
-        </StatsCard>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <StatsCard>
-          <StatsIcon>
-            <Target size={24} />
-          </StatsIcon>
-          <StatsContent>
-            <StatsValue>{stats.utilizationRate}%</StatsValue>
-            <StatsLabel>Utilization</StatsLabel>
-          </StatsContent>
-        </StatsCard>
-      </Grid>
-    </Grid>
+    <StatsGrid>
+      <StatsCard>
+        <StatsIcon>
+          <Users size={24} />
+        </StatsIcon>
+        <StatsContent>
+          <StatsValue>{stats.totalActiveClients}</StatsValue>
+          <StatsLabel>Active Clients</StatsLabel>
+        </StatsContent>
+      </StatsCard>
+
+      <StatsCard>
+        <StatsIcon>
+          <Calendar size={24} />
+        </StatsIcon>
+        <StatsContent>
+          <StatsValue>{stats.totalAllocatedSessions}</StatsValue>
+          <StatsLabel>Total Sessions</StatsLabel>
+        </StatsContent>
+      </StatsCard>
+
+      <StatsCard>
+        <StatsIcon>
+          <DollarSign size={24} />
+        </StatsIcon>
+        <StatsContent>
+          <StatsValue>${stats.totalRevenue.toLocaleString()}</StatsValue>
+          <StatsLabel>Total Revenue</StatsLabel>
+        </StatsContent>
+      </StatsCard>
+
+      <StatsCard>
+        <StatsIcon>
+          <Target size={24} />
+        </StatsIcon>
+        <StatsContent>
+          <StatsValue>{stats.utilizationRate}%</StatsValue>
+          <StatsLabel>Utilization</StatsLabel>
+        </StatsContent>
+      </StatsCard>
+    </StatsGrid>
   );
 
   const renderAllocationCard = (allocation: SessionAllocation) => {
     const usagePercentage = (allocation.usedSessions / allocation.totalSessions) * 100;
     const isExpiringSoon = new Date(allocation.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     const isLowSessions = allocation.remainingSessions <= 2;
-    
+
     return (
-      <AllocationCard key={allocation.id}>
-        <AllocationHeader>
+      <AllocationCardStyled key={allocation.id}>
+        <AllocationHeaderRow>
           <ClientInfo>
-            <Avatar 
-              src={allocation.client?.photo} 
-              sx={{ width: 48, height: 48, mr: 2 }}
-            >
-              {allocation.client?.firstName?.[0]}{allocation.client?.lastName?.[0]}
-            </Avatar>
+            <AvatarStyled>
+              {allocation.client?.photo ? (
+                <AvatarImg src={allocation.client.photo} alt="" />
+              ) : (
+                <>{allocation.client?.firstName?.[0]}{allocation.client?.lastName?.[0]}</>
+              )}
+            </AvatarStyled>
             <div>
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+              <ClientName>
                 {allocation.client?.firstName} {allocation.client?.lastName}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              </ClientName>
+              <PackageName>
                 {allocation.packageName}
-              </Typography>
+              </PackageName>
             </div>
           </ClientInfo>
-          
+
           <AllocationActions>
             {(isExpiringSoon || isLowSessions) && (
-              <Tooltip title={isExpiringSoon ? 'Package expiring soon' : 'Low session count'}>
-                <IconButton size="small" sx={{ color: '#ff6b35' }}>
-                  <AlertTriangle size={20} />
-                </IconButton>
-              </Tooltip>
-            )}
-            
-            <Tooltip title="Edit Allocation">
-              <IconButton 
-                size="small" 
-                sx={{ color: 'white' }}
-                onClick={() => {
-                  setSelectedClient(allocation.clientId);
-                  setDialogOpen(true);
-                }}
+              <IconBtn
+                title={isExpiringSoon ? 'Package expiring soon' : 'Low session count'}
+                $variant="warning"
               >
-                <Edit size={20} />
-              </IconButton>
-            </Tooltip>
+                <AlertTriangle size={20} />
+              </IconBtn>
+            )}
+
+            <IconBtn
+              title="Edit Allocation"
+              onClick={() => {
+                setSelectedClient(allocation.clientId);
+                setDialogOpen(true);
+              }}
+            >
+              <Edit size={20} />
+            </IconBtn>
           </AllocationActions>
-        </AllocationHeader>
-        
+        </AllocationHeaderRow>
+
         <AllocationProgress>
           <ProgressInfo>
-            <Typography variant="body2" sx={{ color: 'white', fontWeight: 500 }}>
+            <ProgressText>
               {allocation.remainingSessions} / {allocation.totalSessions} sessions remaining
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-              ${allocation.sessionValue}/session • Expires {new Date(allocation.expiryDate).toLocaleDateString()}
-            </Typography>
+            </ProgressText>
+            <ProgressSubText>
+              ${allocation.sessionValue}/session &bull; Expires {new Date(allocation.expiryDate).toLocaleDateString()}
+            </ProgressSubText>
           </ProgressInfo>
-          
-          <LinearProgress 
-            variant="determinate" 
-            value={usagePercentage}
-            sx={{
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              '& .MuiLinearProgress-bar': {
-                backgroundColor: usagePercentage > 80 ? '#ff6b35' : usagePercentage > 60 ? '#ffd700' : '#00ffff',
-                borderRadius: 4
-              }
-            }}
-          />
+
+          <ProgressBarTrack>
+            <ProgressBarFill
+              $percentage={usagePercentage}
+              $color={getProgressColor(usagePercentage)}
+            />
+          </ProgressBarTrack>
         </AllocationProgress>
-        
+
         <AllocationFooter>
-          <Chip 
-            label={allocation.status}
-            size="small"
-            sx={{
-              backgroundColor: allocation.status === 'active' ? '#22c55e' : '#6c757d',
-              color: 'white',
-              fontWeight: 500
-            }}
-          />
-          
+          <StatusChip $status={allocation.status}>
+            {allocation.status}
+          </StatusChip>
+
           <SessionActions>
-            <Button
-              size="small"
-              variant="outlined"
-              sx={{ 
-                color: 'white', 
-                borderColor: 'rgba(255,255,255,0.3)',
-                minWidth: 'auto',
-                px: 1
-              }}
+            <AdjustButton
               onClick={() => handleAdjustSessions(allocation.id, -1)}
               disabled={allocation.remainingSessions <= 0}
             >
               -1
-            </Button>
-            
-            <Button
-              size="small"
-              variant="outlined"
-              sx={{ 
-                color: 'white', 
-                borderColor: 'rgba(255,255,255,0.3)',
-                minWidth: 'auto',
-                px: 1
-              }}
+            </AdjustButton>
+
+            <AdjustButton
               onClick={() => handleAdjustSessions(allocation.id, 1)}
             >
               +1
-            </Button>
+            </AdjustButton>
           </SessionActions>
         </AllocationFooter>
-      </AllocationCard>
+      </AllocationCardStyled>
     );
   };
 
@@ -574,10 +516,10 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   if (loading) {
     return (
       <LoadingContainer>
-        <CircularProgress size={40} sx={{ color: '#00ffff' }} />
-        <Typography variant="body1" sx={{ color: 'white', mt: 2 }}>
+        <Spinner />
+        <LoadingText>
           Loading session allocations...
-        </Typography>
+        </LoadingText>
       </LoadingContainer>
     );
   }
@@ -591,60 +533,47 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <AllocationHeader>
+          <AllocationHeaderSection>
             <div>
-              <Typography variant="h5" sx={{ color: 'white', fontWeight: 600 }}>
+              <SectionTitle>
                 Session Allocation Manager
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              </SectionTitle>
+              <SectionSubtitle>
                 Manage client session balances and package allocations
-              </Typography>
+              </SectionSubtitle>
             </div>
-            
+
             {showControls && (
               <HeaderActions>
-                <Button
-                  variant="outlined"
-                  startIcon={<Plus size={16} />}
+                <OutlineButton
                   onClick={() => setAllocationDialogOpen(true)}
-                  sx={{ 
-                    color: 'white', 
-                    borderColor: 'rgba(255,255,255,0.3)',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.5)' }
-                  }}
                 >
+                  <Plus size={16} />
                   Create Allocation
-                </Button>
-                
-                <IconButton
+                </OutlineButton>
+
+                <IconBtn
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  sx={{ color: 'white' }}
+                  title="Refresh data"
                 >
-                  <RefreshCw 
-                    size={20} 
-                    style={{ 
-                      animation: refreshing ? 'spin 1s linear infinite' : 'none' 
-                    }} 
+                  <RefreshCw
+                    size={20}
+                    style={{
+                      animation: refreshing ? 'spin 1s linear infinite' : 'none'
+                    }}
                   />
-                </IconButton>
+                </IconBtn>
               </HeaderActions>
             )}
-          </AllocationHeader>
+          </AllocationHeaderSection>
 
           {/* Critical Alerts */}
           {criticalAllocations.length > 0 && (
-            <Alert 
-              severity="warning" 
-              sx={{ 
-                mb: 3,
-                backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                border: '1px solid rgba(255, 107, 53, 0.3)',
-                '& .MuiAlert-message': { color: 'white' }
-              }}
-            >
+            <AlertBanner>
+              <AlertTriangle size={18} />
               {criticalAllocations.length} client(s) need attention - low sessions or expiring packages
-            </Alert>
+            </AlertBanner>
           )}
 
           {/* Stats Cards */}
@@ -652,167 +581,109 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
           {/* Revenue Projection */}
           {!compactView && (
-            <ProjectionCard sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+            <ProjectionCard>
+              <ProjectionTitle>
                 Revenue Projection
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={4}>
-                  <ProjectionMetric>
-                    <ProjectionValue>${revenueProjection.toLocaleString()}</ProjectionValue>
-                    <ProjectionLabel>Monthly Projected</ProjectionLabel>
-                  </ProjectionMetric>
-                </Grid>
-                <Grid item xs={4}>
-                  <ProjectionMetric>
-                    <ProjectionValue>{stats.averagePackageSize.toFixed(1)}</ProjectionValue>
-                    <ProjectionLabel>Avg Package Size</ProjectionLabel>
-                  </ProjectionMetric>
-                </Grid>
-                <Grid item xs={4}>
-                  <ProjectionMetric>
-                    <ProjectionValue>{stats.newPurchasesToday}</ProjectionValue>
-                    <ProjectionLabel>New Today</ProjectionLabel>
-                  </ProjectionMetric>
-                </Grid>
-              </Grid>
+              </ProjectionTitle>
+              <ProjectionGrid>
+                <ProjectionMetric>
+                  <ProjectionValue>${revenueProjection.toLocaleString()}</ProjectionValue>
+                  <ProjectionLabel>Monthly Projected</ProjectionLabel>
+                </ProjectionMetric>
+                <ProjectionMetric>
+                  <ProjectionValue>{stats.averagePackageSize.toFixed(1)}</ProjectionValue>
+                  <ProjectionLabel>Avg Package Size</ProjectionLabel>
+                </ProjectionMetric>
+                <ProjectionMetric>
+                  <ProjectionValue>{stats.newPurchasesToday}</ProjectionValue>
+                  <ProjectionLabel>New Today</ProjectionLabel>
+                </ProjectionMetric>
+              </ProjectionGrid>
             </ProjectionCard>
           )}
 
           {/* Allocations Grid */}
-          <Grid container spacing={2}>
+          <AllocationsGrid>
             {filteredAllocations.map(renderAllocationCard)}
-          </Grid>
+          </AllocationsGrid>
 
           {/* Create Allocation Dialog */}
-          <Dialog 
-            open={allocationDialogOpen} 
-            onClose={() => setAllocationDialogOpen(false)}
-            maxWidth="md"
-            fullWidth
-            PaperProps={{
-              sx: {
-                backgroundColor: 'rgba(10, 10, 15, 0.95)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(20px)'
-              }
-            }}
-          >
-            <DialogTitle sx={{ color: 'white' }}>
-              Create Session Allocation
-            </DialogTitle>
-            <DialogContent>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Client"
-                    select
-                    value={manualAllocation.clientId}
-                    onChange={(e) => setManualAllocation(prev => ({ ...prev, clientId: e.target.value }))}
-                    sx={{ 
-                      '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                      '& .MuiOutlinedInput-root': { 
-                        color: 'white',
-                        '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                      }
-                    }}
+          {allocationDialogOpen && (
+            <DialogOverlay onClick={() => setAllocationDialogOpen(false)}>
+              <DialogPanel onClick={(e) => e.stopPropagation()}>
+                <DialogTitleStyled>
+                  Create Session Allocation
+                </DialogTitleStyled>
+                <DialogContentStyled>
+                  <FormGrid>
+                    <FormField $fullWidth>
+                      <FormLabel>Client</FormLabel>
+                      <FormSelect
+                        value={manualAllocation.clientId}
+                        onChange={(e) => setManualAllocation(prev => ({ ...prev, clientId: e.target.value }))}
+                      >
+                        <option value="">Select a client...</option>
+                        {allocations.map(allocation => (
+                          <option key={allocation.clientId} value={allocation.clientId}>
+                            {allocation.client?.firstName} {allocation.client?.lastName}
+                          </option>
+                        ))}
+                      </FormSelect>
+                    </FormField>
+
+                    <FormField>
+                      <FormLabel>Package Name</FormLabel>
+                      <FormInput
+                        type="text"
+                        value={manualAllocation.packageName}
+                        onChange={(e) => setManualAllocation(prev => ({ ...prev, packageName: e.target.value }))}
+                        placeholder="e.g. Premium Training Package"
+                      />
+                    </FormField>
+
+                    <FormField>
+                      <FormLabel>Total Sessions</FormLabel>
+                      <FormInput
+                        type="number"
+                        value={manualAllocation.totalSessions}
+                        onChange={(e) => setManualAllocation(prev => ({ ...prev, totalSessions: parseInt(e.target.value) }))}
+                      />
+                    </FormField>
+
+                    <FormField>
+                      <FormLabel>Package Price</FormLabel>
+                      <FormInput
+                        type="number"
+                        value={manualAllocation.packagePrice}
+                        onChange={(e) => setManualAllocation(prev => ({ ...prev, packagePrice: parseInt(e.target.value) }))}
+                      />
+                    </FormField>
+
+                    <FormField>
+                      <FormLabel>Expiry (Months)</FormLabel>
+                      <FormInput
+                        type="number"
+                        value={manualAllocation.expiryMonths}
+                        onChange={(e) => setManualAllocation(prev => ({ ...prev, expiryMonths: parseInt(e.target.value) }))}
+                      />
+                    </FormField>
+                  </FormGrid>
+                </DialogContentStyled>
+                <DialogActionsStyled>
+                  <CancelButton
+                    onClick={() => setAllocationDialogOpen(false)}
                   >
-                    {allocations.map(allocation => (
-                      <MenuItem key={allocation.clientId} value={allocation.clientId}>
-                        {allocation.client?.firstName} {allocation.client?.lastName}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Package Name"
-                    value={manualAllocation.packageName}
-                    onChange={(e) => setManualAllocation(prev => ({ ...prev, packageName: e.target.value }))}
-                    sx={{ 
-                      '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                      '& .MuiOutlinedInput-root': { 
-                        color: 'white',
-                        '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                      }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Total Sessions"
-                    type="number"
-                    value={manualAllocation.totalSessions}
-                    onChange={(e) => setManualAllocation(prev => ({ ...prev, totalSessions: parseInt(e.target.value) }))}
-                    sx={{ 
-                      '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                      '& .MuiOutlinedInput-root': { 
-                        color: 'white',
-                        '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                      }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Package Price"
-                    type="number"
-                    value={manualAllocation.packagePrice}
-                    onChange={(e) => setManualAllocation(prev => ({ ...prev, packagePrice: parseInt(e.target.value) }))}
-                    sx={{ 
-                      '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                      '& .MuiOutlinedInput-root': { 
-                        color: 'white',
-                        '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                      }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Expiry (Months)"
-                    type="number"
-                    value={manualAllocation.expiryMonths}
-                    onChange={(e) => setManualAllocation(prev => ({ ...prev, expiryMonths: parseInt(e.target.value) }))}
-                    sx={{ 
-                      '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                      '& .MuiOutlinedInput-root': { 
-                        color: 'white',
-                        '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                      }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button 
-                onClick={() => setAllocationDialogOpen(false)}
-                sx={{ color: 'rgba(255,255,255,0.7)' }}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCreateAllocation}
-                variant="contained"
-                sx={{ 
-                  backgroundColor: '#3b82f6',
-                  '&:hover': { backgroundColor: '#2563eb' }
-                }}
-              >
-                Create Allocation
-              </Button>
-            </DialogActions>
-          </Dialog>
+                    Cancel
+                  </CancelButton>
+                  <PrimaryButton
+                    onClick={handleCreateAllocation}
+                  >
+                    Create Allocation
+                  </PrimaryButton>
+                </DialogActionsStyled>
+              </DialogPanel>
+            </DialogOverlay>
+          )}
         </motion.div>
       </AllocationContainer>
     </ThemeProvider>
@@ -821,31 +692,51 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
 export default SessionAllocationManager;
 
+// ==================== KEYFRAMES ====================
+
+const spinAnimation = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
 // ==================== STYLED COMPONENTS ====================
 
 const AllocationContainer = styled.div`
   padding: 1.5rem;
-  background: linear-gradient(135deg, 
-    rgba(10, 10, 15, 0.95) 0%, 
-    rgba(30, 58, 138, 0.1) 50%, 
+  background: linear-gradient(135deg,
+    rgba(15, 23, 42, 0.95) 0%,
+    rgba(30, 58, 138, 0.1) 50%,
     rgba(14, 165, 233, 0.05) 100%
   );
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   backdrop-filter: blur(10px);
 `;
 
-const AllocationHeader = styled.div`
+const AllocationHeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
+`;
+
+const SectionTitle = styled.h2`
+  color: #e2e8f0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const SectionSubtitle = styled.p`
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0 0;
 `;
 
 const HeaderActions = styled.div`
@@ -854,9 +745,93 @@ const HeaderActions = styled.div`
   align-items: center;
 `;
 
+const OutlineButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  background: transparent;
+  color: #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(226, 232, 240, 0.5);
+    background: rgba(226, 232, 240, 0.05);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const IconBtn = styled.button<{ $variant?: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  color: ${({ $variant }) => $variant === 'warning' ? '#ff6b35' : '#e2e8f0'};
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(226, 232, 240, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const AlertBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+
+  svg {
+    color: #ff6b35;
+    flex-shrink: 0;
+  }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const StatsCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(226, 232, 240, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -864,10 +839,10 @@ const StatsCard = styled.div`
   gap: 1rem;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  
+
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(226, 232, 240, 0.08);
+    border-color: rgba(14, 165, 233, 0.35);
     transform: translateY(-2px);
   }
 `;
@@ -876,7 +851,7 @@ const StatsIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #0ea5e9, #1d4ed8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -893,22 +868,41 @@ const StatsContent = styled.div`
 const StatsValue = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: #e2e8f0;
   line-height: 1;
 `;
 
 const StatsLabel = styled.div`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(226, 232, 240, 0.7);
   font-weight: 500;
 `;
 
 const ProjectionCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(226, 232, 240, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
+  margin-bottom: 1.5rem;
+`;
+
+const ProjectionTitle = styled.h3`
+  color: #e2e8f0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+`;
+
+const ProjectionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 `;
 
 const ProjectionMetric = styled.div`
@@ -924,33 +918,91 @@ const ProjectionValue = styled.div`
 
 const ProjectionLabel = styled.div`
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(226, 232, 240, 0.7);
   margin-top: 0.25rem;
 `;
 
-const AllocationCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+const AllocationsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const AllocationCardStyled = styled.div`
+  background: rgba(226, 232, 240, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  
+
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(226, 232, 240, 0.08);
+    border-color: rgba(14, 165, 233, 0.35);
     transform: translateY(-2px);
+  }
+`;
+
+const AllocationHeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  @media (max-width: 430px) {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
   }
 `;
 
 const ClientInfo = styled.div`
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+`;
+
+const AvatarStyled = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #7851A9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+`;
+
+const AvatarImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const ClientName = styled.span`
+  display: block;
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+`;
+
+const PackageName = styled.span`
+  display: block;
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.875rem;
 `;
 
 const AllocationActions = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   align-items: center;
 `;
 
@@ -963,12 +1015,39 @@ const ProgressInfo = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
   }
+`;
+
+const ProgressText = styled.span`
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const ProgressSubText = styled.span`
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.875rem;
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(226, 232, 240, 0.1);
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $percentage: number; $color: string }>`
+  height: 100%;
+  width: ${({ $percentage }) => $percentage}%;
+  background-color: ${({ $color }) => $color};
+  border-radius: 4px;
+  transition: width 0.4s ease;
 `;
 
 const AllocationFooter = styled.div`
@@ -978,9 +1057,47 @@ const AllocationFooter = styled.div`
   margin-top: 1rem;
 `;
 
+const StatusChip = styled.span<{ $status: string }>`
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  text-transform: capitalize;
+  background-color: ${({ $status }) => $status === 'active' ? '#22c55e' : '#6c757d'};
+`;
+
 const SessionActions = styled.div`
   display: flex;
   gap: 0.5rem;
+`;
+
+const AdjustButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  color: #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: rgba(226, 232, 240, 0.5);
+    background: rgba(226, 232, 240, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 
 const LoadingContainer = styled.div`
@@ -990,4 +1107,172 @@ const LoadingContainer = styled.div`
   justify-content: center;
   min-height: 200px;
   text-align: center;
+`;
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: #00ffff;
+  border-radius: 50%;
+  animation: ${spinAnimation} 0.8s linear infinite;
+`;
+
+const LoadingText = styled.p`
+  color: #e2e8f0;
+  font-size: 1rem;
+  margin-top: 1rem;
+`;
+
+// ==================== DIALOG STYLED COMPONENTS ====================
+
+const DialogOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const DialogPanel = styled.div`
+  width: 100%;
+  max-width: 600px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  max-height: 90vh;
+  overflow-y: auto;
+`;
+
+const DialogTitleStyled = styled.h2`
+  color: #e2e8f0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 1.5rem 1.5rem 0.5rem;
+`;
+
+const DialogContentStyled = styled.div`
+  padding: 1rem 1.5rem;
+`;
+
+const DialogActionsStyled = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormField = styled.div<{ $fullWidth?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  grid-column: ${({ $fullWidth }) => $fullWidth ? '1 / -1' : 'auto'};
+`;
+
+const FormLabel = styled.label`
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.8125rem;
+  font-weight: 500;
+`;
+
+const formElementStyles = `
+  width: 100%;
+  padding: 0.75rem 1rem;
+  min-height: 44px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+
+  &::placeholder {
+    color: rgba(226, 232, 240, 0.4);
+  }
+`;
+
+const FormInput = styled.input`
+  ${formElementStyles}
+`;
+
+const FormSelect = styled.select`
+  ${formElementStyles}
+  cursor: pointer;
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const CancelButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.7);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #e2e8f0;
+    background: rgba(226, 232, 240, 0.05);
+  }
+`;
+
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #0284c7;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;

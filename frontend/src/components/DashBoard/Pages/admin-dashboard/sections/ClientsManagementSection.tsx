@@ -36,15 +36,82 @@ import {
   BarChart3, Zap, Heart, Gift, User
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import {
-  CircularProgress,
-  Alert,
-  Button,
-  Typography,
-  Box
-} from '@mui/material';
 
 // === STYLED COMPONENTS ===
+
+const SpinnerWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0;
+`;
+
+const Spinner = styled.div`
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const MiniSpinner = styled(Spinner)`
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+`;
+
+const SpinnerMessage = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.6);
+`;
+
+const AlertBox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.875rem;
+`;
+
+const RetryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.15);
+  }
+
+  &:focus {
+    outline: 2px solid #ef4444;
+    outline-offset: 2px;
+  }
+`;
+
 const ManagementContainer = styled.div`
   padding: 0;
 `;
@@ -81,6 +148,7 @@ const SearchContainer = styled.div`
 
 const SearchInput = styled.input`
   flex: 1;
+  min-height: 44px;
   padding: 0.75rem 1rem;
   padding-left: 2.5rem;
   background: rgba(59, 130, 246, 0.1);
@@ -88,11 +156,11 @@ const SearchInput = styled.input`
   border-radius: 8px;
   color: #ffffff;
   font-size: 0.875rem;
-  
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.6);
   }
-  
+
   &:focus {
     outline: none;
     border-color: #00ffff;
@@ -109,6 +177,7 @@ const SearchIcon = styled.div`
 `;
 
 const FilterSelect = styled.select`
+  min-height: 44px;
   padding: 0.75rem 1rem;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -116,12 +185,12 @@ const FilterSelect = styled.select`
   color: #ffffff;
   font-size: 0.875rem;
   min-width: 150px;
-  
+
   &:focus {
     outline: none;
     border-color: #00ffff;
   }
-  
+
   option {
     background: #1e3a8a;
     color: #ffffff;
@@ -132,6 +201,7 @@ const CommandButton = styled(motion.button)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 44px;
   padding: 0.75rem 1rem;
   background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -141,18 +211,18 @@ const CommandButton = styled(motion.button)`
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: linear-gradient(45deg, #2563eb 0%, #00e6ff 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
-  
+
   &:focus {
     outline: 2px solid #00ffff;
     outline-offset: 2px;
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -193,7 +263,7 @@ const ClientHeader = styled.div`
   margin-bottom: 1rem;
 `;
 
-const ClientAvatar = styled.div`
+const ClientAvatar = styled.div<{ $status?: string }>`
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -206,7 +276,7 @@ const ClientAvatar = styled.div`
   color: #0a0a0f;
   margin-right: 1rem;
   position: relative;
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -215,8 +285,8 @@ const ClientAvatar = styled.div`
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: ${props => props.status === 'active' ? '#10b981' : 
-                           props.status === 'inactive' ? '#6b7280' : '#f59e0b'};
+    background: ${props => props.$status === 'active' ? '#10b981' :
+                           props.$status === 'inactive' ? '#6b7280' : '#f59e0b'};
     border: 2px solid #0a0a0f;
   }
 `;
@@ -245,37 +315,37 @@ const ClientTags = styled.div`
   margin: 0.5rem 0;
 `;
 
-const ClientTag = styled.span`
+const ClientTag = styled.span<{ $status?: string; $variant?: 'status' | 'tier' }>`
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  
-  &.status {
-    background: ${props => 
-      props.status === 'active' ? 'rgba(16, 185, 129, 0.2)' :
-      props.status === 'inactive' ? 'rgba(107, 114, 128, 0.2)' :
+
+  ${props => props.$variant === 'status' && `
+    background: ${
+      props.$status === 'active' ? 'rgba(16, 185, 129, 0.2)' :
+      props.$status === 'inactive' ? 'rgba(107, 114, 128, 0.2)' :
       'rgba(245, 158, 11, 0.2)'
     };
-    color: ${props => 
-      props.status === 'active' ? '#10b981' :
-      props.status === 'inactive' ? '#6b7280' :
+    color: ${
+      props.$status === 'active' ? '#10b981' :
+      props.$status === 'inactive' ? '#6b7280' :
       '#f59e0b'
     };
-    border: 1px solid ${props => 
-      props.status === 'active' ? 'rgba(16, 185, 129, 0.3)' :
-      props.status === 'inactive' ? 'rgba(107, 114, 128, 0.3)' :
+    border: 1px solid ${
+      props.$status === 'active' ? 'rgba(16, 185, 129, 0.3)' :
+      props.$status === 'inactive' ? 'rgba(107, 114, 128, 0.3)' :
       'rgba(245, 158, 11, 0.3)'
     };
-  }
-  
-  &.tier {
+  `}
+
+  ${props => props.$variant === 'tier' && `
     background: rgba(0, 255, 255, 0.2);
     color: #00ffff;
     border: 1px solid rgba(0, 255, 255, 0.3);
-  }
+  `}
 `;
 
 const ClientMetrics = styled.div`
@@ -354,8 +424,8 @@ const ActionMenu = styled.div`
 `;
 
 const ActionButton = styled(motion.button)`
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -365,10 +435,15 @@ const ActionButton = styled(motion.button)`
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: rgba(59, 130, 246, 0.2);
     border-color: rgba(59, 130, 246, 0.6);
+  }
+
+  &:focus {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
   }
 `;
 
@@ -387,30 +462,28 @@ const ActionDropdown = styled(motion.div)`
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 `;
 
-const ActionItem = styled(motion.button)`
+const ActionItem = styled(motion.button)<{ $danger?: boolean }>`
   width: 100%;
+  min-height: 44px;
   padding: 0.75rem 1rem;
   text-align: left;
   background: none;
   border: none;
-  color: #ffffff;
+  color: ${props => props.$danger ? '#ef4444' : '#ffffff'};
   font-size: 0.875rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
-  
+
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
+    background: ${props => props.$danger ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)'};
   }
-  
-  &.danger {
-    color: #ef4444;
-    
-    &:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
+
+  &:focus {
+    outline: 2px solid #0ea5e9;
+    outline-offset: -2px;
   }
 `;
 
@@ -445,7 +518,7 @@ const StatTitle = styled.div`
 `;
 
 // === INTERFACES ===
-interface Client {
+export interface Client {
   id: string;
   name: string;
   email: string;
@@ -478,7 +551,7 @@ interface Client {
   };
 }
 
-interface ClientStats {
+export interface ClientStats {
   totalClients: number;
   activeClients: number;
   newClients: number;
@@ -519,25 +592,21 @@ const ClientsManagementSection: React.FC = () => {
 
   // Helper component for loading states
   const LoadingSpinner = ({ message = 'Loading data...' }) => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
-      <CircularProgress sx={{ color: '#00ffff' }} />
-      <Typography variant="body2" color="text.secondary">{message}</Typography>
-    </Box>
+    <SpinnerWrapper>
+      <Spinner />
+      <SpinnerMessage>{message}</SpinnerMessage>
+    </SpinnerWrapper>
   );
 
   // Helper component for error states
   const ErrorMessage = ({ error, onRetry, dataType }: { error: string; onRetry: () => void; dataType: string }) => (
-    <Alert 
-      severity="error" 
-      action={
-        <Button color="inherit" size="small" onClick={onRetry} startIcon={<RefreshCw />}>
-          Retry
-        </Button>
-      }
-      sx={{ mb: 2, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
-    >
-      Failed to load {dataType}: {error}
-    </Alert>
+    <AlertBox>
+      <span>Failed to load {dataType}: {error}</span>
+      <RetryButton onClick={onRetry}>
+        <RefreshCw size={14} />
+        Retry
+      </RetryButton>
+    </AlertBox>
   );
 
   // Fetch clients from backend with real API integration
@@ -975,17 +1044,17 @@ const ClientsManagementSection: React.FC = () => {
             >
               <ClientHeader>
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <ClientAvatar status={client.status}>
+                  <ClientAvatar $status={client.status}>
                     {getUserInitials(client.name)}
                   </ClientAvatar>
                   <ClientInfo>
                     <ClientName>{client.name}</ClientName>
                     <ClientEmail>{client.email}</ClientEmail>
                     <ClientTags>
-                      <ClientTag className="status" status={client.status}>
+                      <ClientTag $variant="status" $status={client.status}>
                         {client.status}
                       </ClientTag>
-                      <ClientTag className="tier">
+                      <ClientTag $variant="tier">
                         {client.tier}
                       </ClientTag>
                     </ClientTags>
@@ -1001,8 +1070,8 @@ const ClientsManagementSection: React.FC = () => {
                     )}
                     disabled={isLoadingData('operations')}
                   >
-                    {isLoadingData('operations') ? 
-                      <CircularProgress size={16} sx={{ color: '#3b82f6' }} /> :
+                    {isLoadingData('operations') ?
+                      <MiniSpinner /> :
                       <MoreVertical size={16} />
                     }
                   </ActionButton>
@@ -1051,7 +1120,7 @@ const ClientsManagementSection: React.FC = () => {
                           Promote to Trainer
                         </ActionItem>
                         <ActionItem
-                          className="danger"
+                          $danger
                           whileHover={{ x: 4 }}
                           onClick={() => handleDeactivateClient(client.id)}
                         >
