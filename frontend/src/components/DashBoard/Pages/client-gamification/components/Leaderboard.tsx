@@ -1,14 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Avatar,
-  Chip,
-  Paper,
-  Skeleton,
-  Button,
-  Badge
-} from '@mui/material';
+import styled, { keyframes } from 'styled-components';
 import {
   Star,
   Trophy,
@@ -22,8 +13,216 @@ import { motion } from 'framer-motion';
 import { useGamificationData, LeaderboardEntry } from '../../../../../hooks/gamification/useGamificationData';
 import { useAuth } from '../../../../../context/AuthContext';
 
-// Create styled components using framer-motion
-const MotionBox = motion.create(Box);
+const shimmer = keyframes`
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const PanelContainer = styled.div<{ $compact?: boolean }>`
+  padding: ${props => props.$compact ? '16px' : '24px'};
+  border-radius: 12px;
+  background: rgba(29, 31, 43, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const HeaderTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+`;
+
+const UsersChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(0, 255, 255, 0.1);
+  color: #00ffff;
+`;
+
+const LeaderboardRow = styled(motion.div)<{ $isCurrentUser: boolean; $isLast: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: ${props => props.$isCurrentUser ? 'rgba(0, 255, 255, 0.06)' : 'transparent'};
+  border-bottom: ${props => props.$isLast ? 'none' : '1px solid rgba(255, 255, 255, 0.06)'};
+  position: relative;
+
+  ${props => props.$isCurrentUser && `
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background-color: #00ffff;
+    }
+  `}
+`;
+
+const PositionBadge = styled.div<{ $color: string; $textColor: string }>`
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: ${props => props.$color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: ${props => props.$textColor};
+  margin-right: 8px;
+  position: relative;
+`;
+
+const CrownWrapper = styled.span`
+  position: absolute;
+  top: -8px;
+  right: -4px;
+`;
+
+const PositionCol = styled.div`
+  display: flex;
+  align-items: center;
+  min-width: 56px;
+`;
+
+const ChangeIndicator = styled.div<{ $color: string }>`
+  display: flex;
+  align-items: center;
+  color: ${props => props.$color};
+  font-size: 0.75rem;
+  margin-left: 4px;
+`;
+
+const UserAvatar = styled.div<{ $src?: string }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(0, 255, 255, 0.2)'};
+  color: #00ffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-right: 12px;
+`;
+
+const UserInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const UserNameText = styled.span<{ $bold?: boolean }>`
+  font-size: 1rem;
+  font-weight: ${props => props.$bold ? '700' : '400'};
+  color: white;
+  display: block;
+`;
+
+const LevelText = styled.span`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const PointsCol = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+`;
+
+const PointsValue = styled.span`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
+`;
+
+const ErrorText = styled.p`
+  text-align: center;
+  color: #ef5350;
+  font-size: 0.875rem;
+  margin: 0 0 16px;
+`;
+
+const EmptyText = styled.p`
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  margin: 0;
+`;
+
+const RetryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  min-height: 36px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: transparent;
+  color: #00ffff;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover { background: rgba(0, 255, 255, 0.1); }
+`;
+
+const ViewAllBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  min-height: 36px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: transparent;
+  color: #00ffff;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover { background: rgba(0, 255, 255, 0.1); }
+`;
+
+const FooterRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+`;
+
+const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $borderRadius?: string }>`
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 2s infinite linear;
+  width: ${props => props.$width || '100%'};
+  height: ${props => props.$height || '20px'};
+  border-radius: ${props => props.$borderRadius || '4px'};
+`;
 
 interface LeaderboardProps {
   compact?: boolean;
@@ -35,7 +234,6 @@ interface LeaderboardProps {
 /**
  * Enhanced Leaderboard Component
  * Displays the top users in the gamification system
- * Optimized for performance with animations and loading states
  */
 const Leaderboard: React.FC<LeaderboardProps> = ({
   compact = false,
@@ -45,15 +243,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
 }) => {
   const { user } = useAuth();
   const { leaderboard, isLoading, error } = useGamificationData();
-  
-  // Process leaderboard data - compare ranks with previous data if available
+
   const processedLeaderboard = useMemo(() => {
     if (!leaderboard.data) return [];
-    
-    // Get the previous leaderboard from localStorage if available
+
     const previousData = localStorage.getItem('previousLeaderboard');
     let previousLeaderboard: LeaderboardEntry[] = [];
-    
+
     if (previousData) {
       try {
         previousLeaderboard = JSON.parse(previousData);
@@ -61,14 +257,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         console.error('Error parsing previous leaderboard data:', e);
       }
     }
-    
-    // Calculate position changes
+
     return leaderboard.data.slice(0, limit).map((entry, index) => {
       const previousIndex = previousLeaderboard.findIndex(prev => prev.userId === entry.userId);
-      
+
       let positionChange: 'up' | 'down' | 'same' = 'same';
       let positionDiff = 0;
-      
+
       if (previousIndex !== -1) {
         if (previousIndex > index) {
           positionChange = 'up';
@@ -78,7 +273,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
           positionDiff = index - previousIndex;
         }
       }
-      
+
       return {
         ...entry,
         position: index + 1,
@@ -87,260 +282,152 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       };
     });
   }, [leaderboard.data, limit]);
-  
-  // Save current leaderboard to localStorage when it changes
+
   React.useEffect(() => {
     if (leaderboard.data) {
       localStorage.setItem('previousLeaderboard', JSON.stringify(leaderboard.data));
     }
   }, [leaderboard.data]);
-  
-  // Render loading state
-  if (isLoading) {
-    return (
-      <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2, overflow: 'hidden' }}>
-        {showHeader && (
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Trophy size={20} />
-            <Typography variant="h6" component="h3">
-              Leaderboard
-            </Typography>
-          </Box>
-        )}
-        
-        {Array(limit).fill(0).map((_, index) => (
-          <Box 
-            key={index}
-            sx={{ 
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              borderBottom: index < limit - 1 ? '1px solid rgba(0, 0, 0, 0.12)' : 'none'
-            }}
-          >
-            <Box 
-              sx={{ 
-                minWidth: 36,
-                height: 36,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mr: 2,
-                bgcolor: 'background.paper'
-              }}
-            >
-              <Skeleton variant="circular" width={36} height={36} />
-            </Box>
-            
-            <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
-            
-            <Box sx={{ flexGrow: 1 }}>
-              <Skeleton variant="text" width="60%" />
-              <Skeleton variant="text" width="40%" />
-            </Box>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <Skeleton variant="text" width={60} />
-              <Skeleton variant="rectangular" width={60} height={24} sx={{ mt: 0.5, borderRadius: 1 }} />
-            </Box>
-          </Box>
-        ))}
-      </Paper>
-    );
-  }
-  
-  // Render error state
-  if (error) {
-    return (
-      <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2, overflow: 'hidden', textAlign: 'center' }}>
-        <Typography color="error" sx={{ mb: 2 }}>
-          Error loading leaderboard data
-        </Typography>
-        <Button 
-          variant="outlined" 
-          color="primary"
-          onClick={() => leaderboard.refetch()}
-          size="small"
-        >
-          Retry
-        </Button>
-      </Paper>
-    );
-  }
-  
-  // Render empty state
-  if (!processedLeaderboard.length) {
-    return (
-      <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2, overflow: 'hidden', textAlign: 'center' }}>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          No leaderboard data available
-        </Typography>
-      </Paper>
-    );
-  }
-  
-  // Component for position change indicator
+
   const PositionIndicator = ({ change, diff }: { change: 'up' | 'down' | 'same', diff: number }) => {
     if (change === 'same' || diff === 0) {
-      return <Minus size={16} color="#9e9e9e" />;
+      return <Minus size={16} color="rgba(255,255,255,0.3)" />;
     }
-    
     if (change === 'up') {
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', color: 'success.main' }}>
+        <ChangeIndicator $color="#66bb6a">
           <ChevronUp size={16} />
-          {diff > 0 && (
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              {diff}
-            </Typography>
-          )}
-        </Box>
+          {diff > 0 && <span style={{ marginLeft: 2 }}>{diff}</span>}
+        </ChangeIndicator>
       );
     }
-    
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', color: 'error.main' }}>
+      <ChangeIndicator $color="#ef5350">
         <ChevronDown size={16} />
-        {diff > 0 && (
-          <Typography variant="caption" sx={{ ml: 0.5 }}>
-            {diff}
-          </Typography>
-        )}
-      </Box>
+        {diff > 0 && <span style={{ marginLeft: 2 }}>{diff}</span>}
+      </ChangeIndicator>
     );
   };
-  
+
+  if (isLoading) {
+    return (
+      <PanelContainer $compact={compact}>
+        {showHeader && (
+          <HeaderRow>
+            <HeaderLeft>
+              <Trophy size={20} color="rgba(255,255,255,0.7)" />
+              <HeaderTitle>Leaderboard</HeaderTitle>
+            </HeaderLeft>
+          </HeaderRow>
+        )}
+        {Array(limit).fill(0).map((_, index) => (
+          <div key={index} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: index < limit - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            <SkeletonBlock $width="36px" $height="36px" $borderRadius="50%" />
+            <div style={{ marginLeft: 8, marginRight: 12 }}>
+              <SkeletonBlock $width="40px" $height="40px" $borderRadius="50%" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <SkeletonBlock $width="60%" $height="16px" />
+              <SkeletonBlock $width="40%" $height="14px" style={{ marginTop: 4 }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <SkeletonBlock $width="60px" $height="16px" />
+              <SkeletonBlock $width="60px" $height="24px" $borderRadius="6px" style={{ marginTop: 4 }} />
+            </div>
+          </div>
+        ))}
+      </PanelContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PanelContainer $compact={compact} style={{ textAlign: 'center' }}>
+        <ErrorText>Error loading leaderboard data</ErrorText>
+        <RetryButton onClick={() => leaderboard.refetch()}>Retry</RetryButton>
+      </PanelContainer>
+    );
+  }
+
+  if (!processedLeaderboard.length) {
+    return (
+      <PanelContainer $compact={compact} style={{ textAlign: 'center' }}>
+        <EmptyText>No leaderboard data available</EmptyText>
+      </PanelContainer>
+    );
+  }
+
   return (
-    <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2, overflow: 'hidden' }}>
+    <PanelContainer $compact={compact}>
       {showHeader && (
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <HeaderRow>
+          <HeaderLeft>
             <Trophy size={20} color="#FFD700" />
-            <Typography variant="h6" component="h3">
-              Fitness Leaderboard
-            </Typography>
-          </Box>
-          
-          <Chip 
-            label={`${leaderboard.data?.length || 0} Users`} 
-            size="small"
-            icon={<Users size={14} />}
-          />
-        </Box>
+            <HeaderTitle>Fitness Leaderboard</HeaderTitle>
+          </HeaderLeft>
+          <UsersChip>
+            <Users size={14} />
+            {leaderboard.data?.length || 0} Users
+          </UsersChip>
+        </HeaderRow>
       )}
-      
+
       {processedLeaderboard.map((entry, index) => {
         const isCurrentUser = entry.userId === (highlightUserId || user?.id);
         const isTopThree = index < 3;
-        
-        // Get position color
-        const positionColor = index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : 'rgba(0, 0, 0, 0.08)';
-        const positionTextColor = index <= 2 ? '#000' : 'text.secondary';
-        
+        const positionColor = index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : 'rgba(255, 255, 255, 0.08)';
+        const positionTextColor = index <= 2 ? '#000' : 'rgba(255, 255, 255, 0.5)';
+
         return (
-          <MotionBox 
+          <LeaderboardRow
             key={entry.userId}
+            $isCurrentUser={isCurrentUser}
+            $isLast={index === processedLeaderboard.length - 1}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
-            sx={{ 
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: isCurrentUser ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
-              borderBottom: index < processedLeaderboard.length - 1 ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
-              position: 'relative',
-              overflow: 'hidden',
-              '&::after': isCurrentUser ? {
-                content: '""',
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: '4px',
-                height: '100%',
-                backgroundColor: 'primary.main'
-              } : {}
-            }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 48 }}>
-              <Box 
-                sx={{ 
-                  minWidth: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  backgroundColor: positionColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  mr: 2,
-                  color: positionTextColor,
-                  position: 'relative'
-                }}
-              >
+            <PositionCol>
+              <PositionBadge $color={positionColor} $textColor={positionTextColor}>
                 {index === 0 && (
-                  <Badge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    badgeContent={
-                      <Crown size={16} color="#FFD700" />
-                    }
-                  >
-                    {entry.position}
-                  </Badge>
+                  <CrownWrapper>
+                    <Crown size={16} color="#FFD700" />
+                  </CrownWrapper>
                 )}
-                
-                {index !== 0 && entry.position}
-              </Box>
-              
+                {entry.position}
+              </PositionBadge>
               <PositionIndicator change={entry.positionChange} diff={entry.positionDiff} />
-            </Box>
-            
-            <Avatar 
-              src={entry.client.photo || undefined}
-              sx={{ width: 40, height: 40, mr: 2 }}
-              alt={`${entry.client.firstName} ${entry.client.lastName}`}
-            >
-              {entry.client.firstName[0]}{entry.client.lastName[0]}
-            </Avatar>
-            
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="body1" fontWeight={isCurrentUser ? 'bold' : 'normal'}>
+            </PositionCol>
+
+            <UserAvatar $src={entry.client.photo || undefined}>
+              {!entry.client.photo && `${entry.client.firstName[0]}${entry.client.lastName[0]}`}
+            </UserAvatar>
+
+            <UserInfo>
+              <UserNameText $bold={isCurrentUser}>
                 {entry.client.firstName} {entry.client.lastName} {isCurrentUser && '(You)'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Level {entry.overallLevel}
-              </Typography>
-            </Box>
-            
+              </UserNameText>
+              <LevelText>Level {entry.overallLevel}</LevelText>
+            </UserInfo>
+
             {!compact && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', mr: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Star size={16} color="#FFC107" style={{ marginRight: 4 }} />
-                  <Typography variant="body2" fontWeight="bold">
-                    {entry.client.points?.toLocaleString() || '0'}
-                  </Typography>
-                </Box>
-              </Box>
+              <PointsCol>
+                <Star size={16} color="#FFC107" />
+                <PointsValue>{entry.client.points?.toLocaleString() || '0'}</PointsValue>
+              </PointsCol>
             )}
-          </MotionBox>
+          </LeaderboardRow>
         );
       })}
-      
+
       {!compact && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Users size={16} />}
-            onClick={() => {/* View full leaderboard */}}
-          >
-            View Full Leaderboard
-          </Button>
-        </Box>
+        <FooterRow>
+          <ViewAllBtn onClick={() => {/* View full leaderboard */}}>
+            <Users size={16} /> View Full Leaderboard
+          </ViewAllBtn>
+        </FooterRow>
       )}
-    </Paper>
+    </PanelContainer>
   );
 };
 
