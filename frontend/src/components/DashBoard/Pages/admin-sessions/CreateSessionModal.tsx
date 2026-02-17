@@ -1,22 +1,19 @@
 import React from 'react';
 import {
+  Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Grid,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Stack,
-  Avatar,
   Typography,
   TextField,
-} from '@mui/material';
+  Box
+} from '../../../ui/primitives/components';
 import { Plus } from 'lucide-react';
 import GlowButton from '../../../Button/glowButton';
-import { StyledDialog } from './styled-admin-sessions';
 
 interface Client {
   id: string;
@@ -57,6 +54,12 @@ interface CreateSessionModalProps {
   isProcessing?: boolean;
 }
 
+const DIALOG_PAPER_STYLE = {
+  background: 'linear-gradient(135deg, #1e3a8a, #0a0a0f)',
+  border: '1px solid rgba(59, 130, 246, 0.2)',
+  borderRadius: '12px'
+};
+
 const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   open,
   onClose,
@@ -82,69 +85,54 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   isProcessing = false,
 }) => {
   return (
-    <StyledDialog
+    <Dialog
       open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      PaperProps={{ style: DIALOG_PAPER_STYLE }}
     >
-      <DialogTitle>
-        <Stack direction="row" spacing={1.5} alignItems="center">
+      <DialogTitle style={{ background: 'rgba(30, 58, 138, 0.3)', borderBottom: '1px solid rgba(59, 130, 246, 0.15)' }}>
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Plus size={20} />
           <Typography variant="h6">Schedule New Session Slot</Typography>
-        </Stack>
+        </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+        <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 16 }}>
           Create a new available time slot. You can assign a client or trainer now, or leave it as generally available.
-        </DialogContentText>
-        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+        </Typography>
+        <Grid container spacing={2} style={{ marginTop: 4 }}>
           {/* Client Select */}
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" size="small">
-              <InputLabel id="new-client-select-label">Assign Client (Optional)</InputLabel>
+            <FormControl fullWidth>
+              <InputLabel>Assign Client (Optional)</InputLabel>
               <Select
-                labelId="new-client-select-label"
                 value={client}
-                onChange={(e) => onClientChange(e.target.value as string)}
-                label="Assign Client (Optional)"
+                onChange={(e) => onClientChange(e.target.value)}
                 disabled={loadingClients || isProcessing}
+                fullWidth
               >
-                <MenuItem value=""><em>Not Assigned</em></MenuItem>
+                <option value="">Not Assigned</option>
                 {clients.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar src={c.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>
-                        {c.firstName?.[0]}{c.lastName?.[0]}
-                      </Avatar>
-                      <span>{c.firstName} {c.lastName}</span>
-                    </Stack>
-                  </MenuItem>
+                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
                 ))}
               </Select>
             </FormControl>
           </Grid>
           {/* Trainer Select */}
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" size="small">
-              <InputLabel id="new-trainer-select-label">Assign Trainer (Optional)</InputLabel>
+            <FormControl fullWidth>
+              <InputLabel>Assign Trainer (Optional)</InputLabel>
               <Select
-                labelId="new-trainer-select-label"
                 value={trainer}
-                onChange={(e) => onTrainerChange(e.target.value as string)}
-                label="Assign Trainer (Optional)"
+                onChange={(e) => onTrainerChange(e.target.value)}
                 disabled={loadingTrainers || isProcessing}
+                fullWidth
               >
-                <MenuItem value=""><em>Not Assigned</em></MenuItem>
+                <option value="">Not Assigned</option>
                 {trainers.map((t) => (
-                  <MenuItem key={t.id} value={t.id}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar src={t.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>
-                        {t.firstName?.[0]}{t.lastName?.[0]}
-                      </Avatar>
-                      <span>{t.firstName} {t.lastName}</span>
-                    </Stack>
-                  </MenuItem>
+                  <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
                 ))}
               </Select>
             </FormControl>
@@ -154,13 +142,9 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             <TextField
               label="Date"
               type="date"
-              size="small"
-              fullWidth
-              variant="outlined"
+              style={{ width: '100%' }}
               value={date}
               onChange={(e) => onDateChange(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ min: new Date().toISOString().slice(0, 10) }}
               disabled={isProcessing}
             />
           </Grid>
@@ -169,12 +153,9 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             <TextField
               label="Time"
               type="time"
-              size="small"
-              fullWidth
-              variant="outlined"
+              style={{ width: '100%' }}
               value={time}
               onChange={(e) => onTimeChange(e.target.value)}
-              InputLabelProps={{ shrink: true }}
               disabled={isProcessing}
             />
           </Grid>
@@ -183,12 +164,9 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             <TextField
               label="Duration (min)"
               type="number"
-              size="small"
-              fullWidth
-              variant="outlined"
+              style={{ width: '100%' }}
               value={duration}
               onChange={(e) => onDurationChange(parseInt(e.target.value, 10) || 0)}
-              InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
               disabled={isProcessing}
             />
           </Grid>
@@ -196,9 +174,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           <Grid item xs={12} sm={6}>
             <TextField
               label="Location"
-              size="small"
-              fullWidth
-              variant="outlined"
+              style={{ width: '100%' }}
               value={location}
               onChange={(e) => onLocationChange(e.target.value)}
               placeholder="e.g., Main Studio"
@@ -209,11 +185,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           <Grid item xs={12}>
             <TextField
               label="Notes (Optional)"
-              size="small"
-              fullWidth
-              multiline
-              rows={3}
-              variant="outlined"
+              style={{ width: '100%' }}
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
               placeholder="e.g., Open slot for new clients, Focus on beginners"
@@ -222,7 +194,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions>
+      <DialogActions style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <GlowButton
           text="Cancel"
           theme="cosmic"
@@ -239,7 +211,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           isLoading={isProcessing}
         />
       </DialogActions>
-    </StyledDialog>
+    </Dialog>
   );
 };
 

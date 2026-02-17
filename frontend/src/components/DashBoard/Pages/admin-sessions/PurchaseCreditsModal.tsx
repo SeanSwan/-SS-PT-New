@@ -1,23 +1,19 @@
 import React from 'react';
 import {
+  Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Grid,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Stack,
-  Avatar,
   Typography,
   TextField,
   Box
-} from '@mui/material';
+} from '../../../ui/primitives/components';
 import { Zap } from 'lucide-react';
 import GlowButton from '../../../Button/glowButton';
-import { StyledDialog } from './styled-admin-sessions';
 
 interface Client {
   id: string;
@@ -42,6 +38,12 @@ interface PurchaseCreditsModalProps {
   isProcessing?: boolean;
 }
 
+const DIALOG_PAPER_STYLE = {
+  background: 'linear-gradient(135deg, #1e3a8a, #0a0a0f)',
+  border: '1px solid rgba(59, 130, 246, 0.2)',
+  borderRadius: '12px'
+};
+
 const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   open,
   onClose,
@@ -57,49 +59,39 @@ const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
   isProcessing = false
 }) => {
   return (
-    <StyledDialog
+    <Dialog
       open={open}
       onClose={onClose}
       maxWidth="xs"
       fullWidth
+      PaperProps={{ style: DIALOG_PAPER_STYLE }}
     >
-      <DialogTitle>
-        <Stack direction="row" spacing={1.5} alignItems="center">
+      <DialogTitle style={{ background: 'rgba(30, 58, 138, 0.3)', borderBottom: '1px solid rgba(59, 130, 246, 0.15)' }}>
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Zap size={20} />
           <Typography variant="h6">Add Sessions to Client</Typography>
-        </Stack>
+        </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2.5 }}>
+        <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 20 }}>
           Manually add purchased or complimentary sessions to a client's account.
-        </DialogContentText>
+        </Typography>
         <Grid container spacing={2}>
           {/* Client Select */}
           <Grid item xs={12}>
-            <FormControl fullWidth variant="outlined" size="small">
-              <InputLabel id="add-client-select-label">Select Client</InputLabel>
+            <FormControl fullWidth>
+              <InputLabel>Select Client</InputLabel>
               <Select
-                labelId="add-client-select-label"
                 value={selectedClient}
-                onChange={(e) => onClientChange(e.target.value as string)}
-                label="Select Client"
+                onChange={(e) => onClientChange(e.target.value)}
                 disabled={loadingClients || isProcessing}
+                fullWidth
               >
-                <MenuItem value=""><em>-- Select a Client --</em></MenuItem>
+                <option value="">-- Select a Client --</option>
                 {clients.map(client => (
-                  <MenuItem key={client.id} value={client.id}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>
-                        {client.firstName?.[0]}{client.lastName?.[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2">{client.firstName} {client.lastName}</Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                          ({client.availableSessions || 0} current sessions)
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </MenuItem>
+                  <option key={client.id} value={client.id}>
+                    {client.firstName} {client.lastName} ({client.availableSessions || 0} sessions)
+                  </option>
                 ))}
               </Select>
             </FormControl>
@@ -109,12 +101,9 @@ const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
             <TextField
               label="Number of Sessions to Add"
               type="number"
-              size="small"
-              fullWidth
-              variant="outlined"
+              style={{ width: '100%' }}
               value={sessionsToAdd}
               onChange={(e) => onSessionsChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              InputProps={{ inputProps: { min: 1, max: 100 } }}
               disabled={isProcessing}
             />
           </Grid>
@@ -122,11 +111,7 @@ const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
           <Grid item xs={12}>
             <TextField
               label="Admin Notes (Optional)"
-              size="small"
-              fullWidth
-              multiline
-              rows={3}
-              variant="outlined"
+              style={{ width: '100%' }}
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
               placeholder="Reason for adding sessions (e.g., purchased package, referral bonus)"
@@ -135,7 +120,7 @@ const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions>
+      <DialogActions style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <GlowButton
           text="Cancel"
           theme="cosmic"
@@ -153,7 +138,7 @@ const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({
           isLoading={isProcessing}
         />
       </DialogActions>
-    </StyledDialog>
+    </Dialog>
   );
 };
 
