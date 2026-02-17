@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import styled from 'styled-components';
 import { Star, Award, Gift, TrendingUp, Trophy, Heart, Target, Zap, Calendar, Clock, Dumbbell, Medal, CheckCircle, Users, Edit } from 'lucide-react';
 import {
   AchievementGrid as StyledAchievementGrid,
@@ -10,6 +10,22 @@ import {
   AchievementReward,
   AchievementBadge
 } from '../../admin-gamification/styled-gamification-system';
+
+const RequirementChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+`;
+
+const AutoMarginWrapper = styled.div`
+  margin-top: auto;
+  margin-bottom: 8px;
+`;
 
 interface Achievement {
   id: string;
@@ -57,10 +73,10 @@ const AchievementGrid: React.FC<AchievementGridProps> = ({ achievements }) => {
   return (
     <StyledAchievementGrid>
       {achievements.map((achievement) => (
-        <AchievementItem 
+        <AchievementItem
           key={achievement.id}
           tier={achievement.tier}
-          whileHover={{ 
+          whileHover={{
             y: -5,
             transition: { duration: 0.2 }
           }}
@@ -68,25 +84,23 @@ const AchievementGrid: React.FC<AchievementGridProps> = ({ achievements }) => {
           <AchievementBadge tier={achievement.tier}>
             {achievement.tier.toUpperCase()}
           </AchievementBadge>
-          
+
           <AchievementIcon tier={achievement.tier}>
             {getIconComponent(achievement.icon)}
           </AchievementIcon>
-          
+
           <AchievementName>{achievement.name}</AchievementName>
-          
+
           <AchievementDescription>
             {achievement.description}
           </AchievementDescription>
-          
-          <Box sx={{ mt: 'auto', mb: 1 }}>
-            <Chip 
-              label={`${achievement.requirementValue} ${achievement.requirementType.replace('_', ' ')}`} 
-              size="small" 
-              sx={{ mb: 1 }}
-            />
-          </Box>
-          
+
+          <AutoMarginWrapper>
+            <RequirementChip>
+              {achievement.requirementValue} {achievement.requirementType.replace('_', ' ')}
+            </RequirementChip>
+          </AutoMarginWrapper>
+
           <AchievementReward>
             <Star size={18} /> {achievement.pointValue} points
           </AchievementReward>

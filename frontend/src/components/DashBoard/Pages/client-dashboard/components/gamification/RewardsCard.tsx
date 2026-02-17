@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Box, Typography, Button, Chip } from '@mui/material';
+import styled from 'styled-components';
 import { Gift, Award, Unlock, Lock, Check } from 'lucide-react';
 
-import { 
-  StyledCard, 
-  CardHeader, 
-  CardTitle, 
+import {
+  StyledCard,
+  CardHeader,
+  CardTitle,
   CardContent,
   RewardsContainer,
   RewardCard,
@@ -14,6 +14,96 @@ import {
 } from '../styled-components';
 
 import { Reward } from '../../types';
+
+const PointsBadge = styled.div`
+  background: rgba(0, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: white;
+`;
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 16px;
+`;
+
+const RewardFooter = styled.div`
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const PointsChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const ClaimedChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+`;
+
+const ClaimButton = styled.button<{ $canClaim: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  min-height: 32px;
+  border-radius: 6px;
+  border: 1px solid ${props => props.$canClaim ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)'};
+  background: transparent;
+  color: ${props => props.$canClaim ? 'white' : 'rgba(255, 255, 255, 0.4)'};
+  font-size: 0.7rem;
+  cursor: ${props => props.$canClaim ? 'pointer' : 'default'};
+  opacity: ${props => props.$canClaim ? 1 : 0.5};
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: ${props => props.$canClaim ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
+const ViewAllButton = styled.button`
+  width: 100%;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 81, 169, 0.4);
+  background: rgba(120, 81, 169, 0.05);
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(120, 81, 169, 0.15);
+    border-color: rgba(120, 81, 169, 0.6);
+  }
+`;
 
 interface RewardsCardProps {
   rewards: Reward[];
@@ -25,7 +115,7 @@ interface RewardsCardProps {
 /**
  * Component displaying available rewards that can be claimed with points
  */
-const RewardsCard: React.FC<RewardsCardProps> = ({ 
+const RewardsCard: React.FC<RewardsCardProps> = ({
   rewards,
   points,
   onClaimReward,
@@ -38,80 +128,54 @@ const RewardsCard: React.FC<RewardsCardProps> = ({
           <Gift size={22} />
           Rewards Shop
         </CardTitle>
-        <Box sx={{ bgcolor: 'rgba(0, 255, 255, 0.1)', px: 1.5, py: 0.5, borderRadius: 2 }}>
-          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Award size={16} /> {points} Points
-          </Typography>
-        </Box>
+        <PointsBadge>
+          <Award size={16} /> {points} Points
+        </PointsBadge>
       </CardHeader>
       <CardContent>
-        <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" mb={2}>
+        <Subtitle>
           Use your earned points to unlock exclusive rewards and perks
-        </Typography>
-        
+        </Subtitle>
+
         <RewardsContainer>
           {rewards.slice(0, 4).map((reward) => (
             <RewardCard key={reward.id} unlocked={reward.unlocked}>
               <div className="icon">{reward.icon}</div>
               <div className="title">{reward.title}</div>
               <div className="description">{reward.description}</div>
-              
-              <Box sx={{ mt: 'auto', pt: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <Chip 
-                  icon={<Award size={14} />} 
-                  label={reward.requiredPoints} 
-                  size="small"
-                  sx={{ bgcolor: 'rgba(0, 0, 0, 0.2)', fontSize: '0.7rem' }}
-                />
-                
+
+              <RewardFooter>
+                <PointsChip>
+                  <Award size={14} />
+                  {reward.requiredPoints}
+                </PointsChip>
+
                 {reward.unlocked ? (
-                  <Chip 
-                    icon={<Check size={14} />} 
-                    label="Claimed" 
-                    size="small"
-                    color="success"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
+                  <ClaimedChip>
+                    <Check size={14} />
+                    Claimed
+                  </ClaimedChip>
                 ) : (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color={points >= reward.requiredPoints ? "primary" : "inherit"}
-                    startIcon={points >= reward.requiredPoints ? <Unlock size={14} /> : <Lock size={14} />}
-                    onClick={() => onClaimReward(reward.id)}
+                  <ClaimButton
+                    $canClaim={points >= reward.requiredPoints}
                     disabled={points < reward.requiredPoints}
-                    sx={{ 
-                      opacity: points >= reward.requiredPoints ? 1 : 0.5,
-                      borderColor: points >= reward.requiredPoints ? 'primary.main' : 'rgba(255, 255, 255, 0.2)',
-                      fontSize: '0.7rem',
-                      py: 0.5
-                    }}
+                    onClick={() => onClaimReward(reward.id)}
                   >
+                    {points >= reward.requiredPoints ? <Unlock size={14} /> : <Lock size={14} />}
                     Claim
-                  </Button>
+                  </ClaimButton>
                 )}
-              </Box>
+              </RewardFooter>
             </RewardCard>
           ))}
         </RewardsContainer>
-        
+
         {rewards.length > 4 && (
-          <Box mt={2}>
-            <Button 
-              variant="outlined" 
-              color="secondary" 
-              fullWidth
-              onClick={onViewAllRewards}
-              sx={{ 
-                borderRadius: '10px', 
-                py: 1.2, 
-                textTransform: 'none',
-                background: 'rgba(120, 81, 169, 0.05)'
-              }}
-            >
+          <div style={{ marginTop: 16 }}>
+            <ViewAllButton onClick={onViewAllRewards}>
               View All Rewards
-            </Button>
-          </Box>
+            </ViewAllButton>
+          </div>
         )}
       </CardContent>
     </StyledCard>

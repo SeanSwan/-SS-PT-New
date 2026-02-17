@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Box, Typography, Button } from '@mui/material';
+import styled from 'styled-components';
 import { Trophy, Calendar } from 'lucide-react';
 
-import { 
-  StyledCard, 
-  CardHeader, 
-  CardTitle, 
+import {
+  StyledCard,
+  CardHeader,
+  CardTitle,
   CardContent,
   ChallengeCard,
   StyledLinearProgress,
@@ -14,6 +14,74 @@ import {
 } from '../styled-components';
 
 import { Challenge } from '../../types';
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 16px;
+`;
+
+const ChallengeTitle = styled.h6`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px;
+`;
+
+const ChallengeDescription = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 16px;
+`;
+
+const ProgressRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+`;
+
+const ProgressPercent = styled.span`
+  font-size: 0.875rem;
+  color: #00c6ff;
+`;
+
+const DateLabel = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const ProgressFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+`;
+
+const ProgressCaption = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const ViewAllButton = styled.button`
+  width: 100%;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 81, 169, 0.4);
+  background: rgba(120, 81, 169, 0.05);
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(120, 81, 169, 0.15);
+    border-color: rgba(120, 81, 169, 0.6);
+  }
+`;
 
 interface ChallengesCardProps {
   challenges: Challenge[];
@@ -23,7 +91,7 @@ interface ChallengesCardProps {
 /**
  * Component displaying active fitness challenges
  */
-const ChallengesCard: React.FC<ChallengesCardProps> = ({ 
+const ChallengesCard: React.FC<ChallengesCardProps> = ({
   challenges,
   onViewAllChallenges
 }) => {
@@ -42,66 +110,53 @@ const ChallengesCard: React.FC<ChallengesCardProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" mb={2}>
+        <Subtitle>
           Complete challenges to earn points and special achievements
-        </Typography>
-        
+        </Subtitle>
+
         {challenges.slice(0, 2).map((challenge) => (
-          <ChallengeCard key={challenge.id} active={challenge.active} sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
+          <ChallengeCard key={challenge.id} active={challenge.active} style={{ marginBottom: 16 }}>
+            <ChallengeTitle>
               {challenge.title}
-            </Typography>
-            <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" sx={{ mb: 2 }}>
+            </ChallengeTitle>
+            <ChallengeDescription>
               {challenge.description}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
-              <Typography variant="body2" color="primary">
+            </ChallengeDescription>
+
+            <ProgressRow>
+              <ProgressPercent>
                 {Math.round((challenge.progress / challenge.goal) * 100)}% Complete
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              </ProgressPercent>
+              <DateLabel>
                 <Calendar size={14} />
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                  Ends: {formatDate(challenge.endDate)}
-                </Typography>
-              </Box>
-            </Box>
-            
-            <Box sx={{ width: '100%', mb: 1 }}>
-              <StyledLinearProgress 
-                variant="determinate" 
-                value={(challenge.progress / challenge.goal) * 100} 
+                Ends: {formatDate(challenge.endDate)}
+              </DateLabel>
+            </ProgressRow>
+
+            <div style={{ width: '100%', marginBottom: 8 }}>
+              <StyledLinearProgress
+                variant="determinate"
+                value={(challenge.progress / challenge.goal) * 100}
                 color="primary"
               />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                <Typography variant="caption" color="rgba(255, 255, 255, 0.5)">
+              <ProgressFooter>
+                <ProgressCaption>
                   {challenge.progress} of {challenge.goal}
-                </Typography>
-                <Typography variant="caption" color="rgba(255, 255, 255, 0.5)">
+                </ProgressCaption>
+                <ProgressCaption>
                   Reward: {challenge.reward}
-                </Typography>
-              </Box>
-            </Box>
+                </ProgressCaption>
+              </ProgressFooter>
+            </div>
           </ChallengeCard>
         ))}
-        
+
         {challenges.length > 2 && (
-          <Box mt={2}>
-            <Button 
-              variant="outlined" 
-              color="secondary" 
-              fullWidth
-              onClick={onViewAllChallenges}
-              sx={{ 
-                borderRadius: '10px', 
-                py: 1.2, 
-                textTransform: 'none',
-                background: 'rgba(120, 81, 169, 0.05)'
-              }}
-            >
+          <div style={{ marginTop: 16 }}>
+            <ViewAllButton onClick={onViewAllChallenges}>
               View All Challenges ({challenges.length})
-            </Button>
-          </Box>
+            </ViewAllButton>
+          </div>
         )}
       </CardContent>
     </StyledCard>

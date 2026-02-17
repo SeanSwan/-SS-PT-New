@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Box, Button, Typography } from '@mui/material';
+import styled from 'styled-components';
 import { Target, Repeat, Plus } from 'lucide-react';
 
-import { 
-  StyledCard, 
-  CardHeader, 
-  CardTitle, 
+import {
+  StyledCard,
+  CardHeader,
+  CardTitle,
   CardContent,
   ExerciseRow,
   ExerciseIcon,
@@ -19,6 +19,34 @@ import {
 
 import { Exercise } from '../../types';
 
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 16px;
+`;
+
+const ViewAllButton = styled.button`
+  width: 100%;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 81, 169, 0.4);
+  background: rgba(120, 81, 169, 0.05);
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(120, 81, 169, 0.15);
+    border-color: rgba(120, 81, 169, 0.6);
+  }
+`;
+
 interface RecommendedExercisesProps {
   exercises: Exercise[];
   onViewAll?: () => void;
@@ -27,7 +55,7 @@ interface RecommendedExercisesProps {
 /**
  * Component displaying personalized recommended exercises
  */
-const RecommendedExercises: React.FC<RecommendedExercisesProps> = ({ 
+const RecommendedExercises: React.FC<RecommendedExercisesProps> = ({
   exercises,
   onViewAll
 }) => {
@@ -40,10 +68,10 @@ const RecommendedExercises: React.FC<RecommendedExercisesProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" mb={2}>
+        <Subtitle>
           Personalized exercises based on your NASM protocol progression
-        </Typography>
-        
+        </Subtitle>
+
         {exercises.map((exercise) => (
           <ExerciseRow key={exercise.id}>
             <ExerciseIcon>
@@ -61,24 +89,13 @@ const RecommendedExercises: React.FC<RecommendedExercisesProps> = ({
             </ExerciseLevel>
           </ExerciseRow>
         ))}
-        
-        <Box mt={2}>
-          <Button 
-            variant="outlined" 
-            color="secondary" 
-            fullWidth
-            startIcon={<Plus size={18} />}
-            onClick={onViewAll}
-            sx={{ 
-              borderRadius: '10px', 
-              py: 1.2, 
-              textTransform: 'none',
-              background: 'rgba(120, 81, 169, 0.05)'
-            }}
-          >
+
+        <div style={{ marginTop: 16 }}>
+          <ViewAllButton onClick={onViewAll}>
+            <Plus size={18} />
             View All Exercises
-          </Button>
-        </Box>
+          </ViewAllButton>
+        </div>
       </CardContent>
     </StyledCard>
   );
