@@ -77,6 +77,7 @@ import {
   // Cosmic Fitness Metaphors
   Orbit,
   Rocket,
+  Radar,
   Search,
   Compass,
   TrendingUp,
@@ -1946,7 +1947,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Telescope size={20} />
+            <Radar size={20} />
             Journey Weave
           </JourneyWeaveButton>
         </FeedHeader>
@@ -2207,7 +2208,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <h3 style={{ color: theme.text.primary, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Telescope size={24} />
+          <Radar size={24} />
           Cosmic Fitness Missions
         </h3>
         

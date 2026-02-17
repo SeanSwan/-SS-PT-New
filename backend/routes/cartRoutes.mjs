@@ -21,7 +21,8 @@ import cartHelpers from '../utils/cartHelpers.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import {
   normalizeAuthenticatedUserId,
-  safeFindOrCreateActiveCart
+  safeFindOrCreateActiveCart,
+  safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
 const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
@@ -142,15 +143,12 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
     const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
 
-    // Get cart items with storefront item details - CRITICAL QUERY
-    const cartItems = await CartItem.findAll({
-      where: { cartId: cart.id },
-      include: [{
-        model: StorefrontItem,
-        as: 'storefrontItem',
-        attributes: storefrontAttributes,
-        required: false // Make it LEFT JOIN to avoid filtering out items
-      }]
+    const cartItems = await safeLoadCartItemsWithStorefront({
+      CartItem,
+      StorefrontItem,
+      cartId: cart.id,
+      storefrontAttributes,
+      logger
     });
 
     // 🚀 ENHANCED DEBUG: Log the coordinated query results
@@ -269,13 +267,12 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
 
     // Get updated cart with items
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
-    const updatedCartItems = await CartItem.findAll({
-      where: { cartId: cart.id },
-      include: [{
-        model: StorefrontItem,
-        as: 'storefrontItem',
-        attributes: storefrontAttributes
-      }]
+    const updatedCartItems = await safeLoadCartItemsWithStorefront({
+      CartItem,
+      StorefrontItem,
+      cartId: cart.id,
+      storefrontAttributes,
+      logger
     });
     
     logger.info('🔗 P0 DEBUG: Cart items after ADD operation', {
@@ -389,13 +386,12 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
 
     // Get updated cart with items
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
-    const updatedCartItems = await CartItem.findAll({
-      where: { cartId: cartItem.cartId },
-      include: [{
-        model: StorefrontItem,
-        as: 'storefrontItem',
-        attributes: storefrontAttributes
-      }]
+    const updatedCartItems = await safeLoadCartItemsWithStorefront({
+      CartItem,
+      StorefrontItem,
+      cartId: cartItem.cartId,
+      storefrontAttributes,
+      logger
     });
 
     // Use persisted totals or calculate as fallback
@@ -474,13 +470,12 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
 
     // Get updated cart with items
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
-    const updatedCartItems = await CartItem.findAll({
-      where: { cartId },
-      include: [{
-        model: StorefrontItem,
-        as: 'storefrontItem',
-        attributes: storefrontAttributes
-      }]
+    const updatedCartItems = await safeLoadCartItemsWithStorefront({
+      CartItem,
+      StorefrontItem,
+      cartId,
+      storefrontAttributes,
+      logger
     });
 
     // Use persisted totals or calculate as fallback
