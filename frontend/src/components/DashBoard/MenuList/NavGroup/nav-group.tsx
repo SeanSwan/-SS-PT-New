@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 
-// material-ui
-import { useTheme } from '@mui/material/styles';
-import Divider from '@mui/material/Divider';
-import List from '@mui/material/List';
-import Typography from '@mui/material/Typography';
+// Swan primitives
+import { Divider, List, Typography } from '../../../ui/primitives/components';
 
 // project imports - corrected paths to match directory structure
 import NavCollapse from '../NavCollapse/nav-collapse';
 import NavItem from '../NavItem/nav-item';
-import { useMenuStates } from '../../../../hooks/useMenuState';
+import { useMenuState as useMenuStates } from '../../../../hooks/useMenuState';
 
 /**
  * Types for NavGroup component props and menu items
@@ -36,12 +33,11 @@ interface NavGroupProps {
 
 /**
  * NavGroup Component
- * 
+ *
  * Renders a group of navigation items, which can include regular items and collapsible sections.
  * Handles active item detection and menu expansion.
  */
 const NavGroup = ({ item, lastItem = null, remItems = [], lastItemId, setSelectedID }: NavGroupProps) => {
-  const theme = useTheme();
   const { pathname } = useLocation();
   const { isDashboardDrawerOpened: drawerOpen } = useMenuStates();
   const [currentItem, setCurrentItem] = useState<MenuItem>(item);
@@ -103,37 +99,34 @@ const NavGroup = ({ item, lastItem = null, remItems = [], lastItemId, setSelecte
     switch (menu?.type) {
       case 'collapse':
         return (
-          <NavCollapse 
-            key={menu.id} 
-            menu={menu} 
-            level={1} 
+          <NavCollapse
+            key={menu.id}
+            menu={menu}
+            level={1}
             parentId={currentItem.id}
-            // Removed setSelectedID prop as it's not part of NavCollapseProps
           />
         );
       case 'item':
         return (
-          <NavItem 
-            key={menu.id} 
-            item={menu} 
+          <NavItem
+            key={menu.id}
+            item={menu}
             level={1}
-            // Only pass setSelectedID if NavItem expects it
           />
         );
       default:
         return (
-          <Typography 
-            key={menu?.id} 
-            variant="h6" 
-            color="error" 
-            align="center"
-            sx={{ 
-              p: 1, 
-              borderRadius: 1,
-              bgcolor: theme.palette.mode === 'dark' ? 'error.dark' : 'error.light',
-              color: theme.palette.mode === 'dark' ? 'error.light' : 'error.dark',
+          <Typography
+            key={menu?.id}
+            variant="h6"
+            style={{
+              padding: 8,
+              borderRadius: 4,
+              background: 'rgba(244, 67, 54, 0.2)',
+              color: '#f44336',
               opacity: 0.8,
-              my: 0.5
+              margin: '4px 0',
+              textAlign: 'center'
             }}
           >
             Menu Items Error: {menu?.title || 'Unknown Item'}
@@ -146,65 +139,43 @@ const NavGroup = ({ item, lastItem = null, remItems = [], lastItemId, setSelecte
     <>
       <List
         disablePadding={!drawerOpen}
-        subheader={
-          currentItem.title &&
-          drawerOpen && (
-            <Typography 
-              variant="caption" 
-              gutterBottom 
-              sx={{ 
-                display: 'block', 
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: 'text.primary',
-                padding: '12px 0 5px 12px',
-                letterSpacing: '0.3px',
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              {currentItem.title}
-              {currentItem.caption && (
-                <Typography 
-                  variant="caption" 
-                  gutterBottom 
-                  sx={{ 
-                    display: 'block', 
-                    fontSize: '0.75rem',
-                    fontWeight: 400,
-                    color: 'text.secondary',
-                    mt: 0.5
-                  }}
-                >
-                  {currentItem.caption}
-                </Typography>
-              )}
-            </Typography>
-          )
-        }
-        sx={{
-          '& .MuiListItemButton-root': {
-            borderRadius: 1,
-            mb: 0.5,
-            alignItems: 'flex-start',
-            backgroundColor: theme.palette.mode === 'dark' ? 'transparent' : 'inherit',
-            py: 1,
-            pl: 2
-          },
-          '& .MuiListItemIcon-root': {
-            minWidth: 28,
-            color: theme.palette.mode === 'dark' ? 'primary.light' : 'inherit'
-          },
-          '& .MuiListItemText-primary': {
-            fontSize: '0.875rem',
-            color: theme.palette.mode === 'dark' ? 'text.primary' : 'inherit'
-          }
-        }}
+        style={{ position: 'relative' }}
       >
+        {currentItem.title && drawerOpen && (
+          <Typography
+            variant="caption"
+            style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: '#FFFFFF',
+              padding: '12px 0 5px 12px',
+              letterSpacing: '0.3px',
+              transition: 'all 0.2s ease-in-out'
+            }}
+          >
+            {currentItem.title}
+            {currentItem.caption && (
+              <Typography
+                variant="caption"
+                style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 400,
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  marginTop: 4
+                }}
+              >
+                {currentItem.caption}
+              </Typography>
+            )}
+          </Typography>
+        )}
         {items}
       </List>
 
       {/* group divider - only show when drawer is open */}
-      {drawerOpen && <Divider sx={{ mt: 0.25, mb: 1.25 }} />}
+      {drawerOpen && <Divider style={{ marginTop: 2, marginBottom: 10 }} />}
     </>
   );
 };
