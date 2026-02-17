@@ -102,7 +102,7 @@ const ChallengesCard: React.FC<ChallengesCardProps> = ({
   };
 
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Trophy size={22} />
@@ -135,9 +135,8 @@ const ChallengesCard: React.FC<ChallengesCardProps> = ({
 
             <div style={{ width: '100%', marginBottom: 8 }}>
               <StyledLinearProgress
-                variant="determinate"
                 value={(challenge.progress / challenge.goal) * 100}
-                color="primary"
+                $color="primary"
               />
               <ProgressFooter>
                 <ProgressCaption>

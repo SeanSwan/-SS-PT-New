@@ -107,7 +107,7 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
   };
 
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Trophy size={22} />
@@ -138,9 +138,8 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
             <LevelDescription>{overallLevel.description}</LevelDescription>
             <LevelProgress>
               <StyledLinearProgress
-                variant="determinate"
                 value={overallProgressPercentage}
-                color="primary"
+                $color="primary"
               />
               <NextLevelContainer>
                 <span>{overallLevel.progress} / {overallLevel.totalNeeded} XP</span>
@@ -152,20 +151,20 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
 
         {/* Quick Stats */}
         <StatsGrid>
-          <StatCard color="primary">
-            <StatValue color="primary">{userStats.workoutsCompleted}</StatValue>
+          <StatCard $color="primary">
+            <StatValue $color="primary">{userStats.workoutsCompleted}</StatValue>
             <StatLabel>Workouts</StatLabel>
           </StatCard>
-          <StatCard color="success">
-            <StatValue color="success">{userStats.streakDays}</StatValue>
+          <StatCard $color="success">
+            <StatValue $color="success">{userStats.streakDays}</StatValue>
             <StatLabel>Day Streak</StatLabel>
           </StatCard>
-          <StatCard color="info">
-            <StatValue color="info">{userStats.totalExercisesPerformed}</StatValue>
+          <StatCard $color="info">
+            <StatValue $color="info">{userStats.totalExercisesPerformed}</StatValue>
             <StatLabel>Exercises</StatLabel>
           </StatCard>
-          <StatCard color="warning">
-            <StatValue color="warning">{userStats.totalMinutes}</StatValue>
+          <StatCard $color="warning">
+            <StatValue $color="warning">{userStats.totalMinutes}</StatValue>
             <StatLabel>Minutes</StatLabel>
           </StatCard>
         </StatsGrid>

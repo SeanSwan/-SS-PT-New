@@ -180,7 +180,7 @@ const ScheduledSessionsCard: React.FC<ScheduledSessionsCardProps> = ({
   };
 
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Calendar size={22} />

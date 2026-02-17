@@ -27,7 +27,7 @@ interface NasmCategoryProgressProps {
  */
 const NasmCategoryProgress: React.FC<NasmCategoryProgressProps> = ({ nasmCategories }) => {
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Activity size={22} />
@@ -48,10 +48,9 @@ const NasmCategoryProgress: React.FC<NasmCategoryProgressProps> = ({ nasmCategor
               </ProgressBarName>
               <ProgressBarValue>Level {category.level}</ProgressBarValue>
             </ProgressBarLabel>
-            <StyledLinearProgress 
-              variant="determinate" 
-              value={category.progress} 
-              color={category.color as any}
+            <StyledLinearProgress
+              value={category.progress}
+              $color={category.color}
             />
           </ProgressBarContainer>
         ))}

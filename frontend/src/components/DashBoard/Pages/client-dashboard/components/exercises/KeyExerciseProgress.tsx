@@ -60,7 +60,7 @@ const KeyExerciseProgress: React.FC<KeyExerciseProgressProps> = ({
   onStartTraining
 }) => {
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Dumbbell size={22} />
@@ -79,9 +79,8 @@ const KeyExerciseProgress: React.FC<KeyExerciseProgressProps> = ({
             <ProgressBarValue>Level {keyExercises.squats.level}</ProgressBarValue>
           </ProgressBarLabel>
           <StyledLinearProgress
-            variant="determinate"
             value={keyExercises.squats.progress}
-            color="primary"
+            $color="primary"
           />
         </ProgressBarContainer>
 
@@ -94,9 +93,8 @@ const KeyExerciseProgress: React.FC<KeyExerciseProgressProps> = ({
             <ProgressBarValue>Level {keyExercises.lunges.level}</ProgressBarValue>
           </ProgressBarLabel>
           <StyledLinearProgress
-            variant="determinate"
             value={keyExercises.lunges.progress}
-            color="secondary"
+            $color="secondary"
           />
         </ProgressBarContainer>
 
@@ -109,9 +107,8 @@ const KeyExerciseProgress: React.FC<KeyExerciseProgressProps> = ({
             <ProgressBarValue>Level {keyExercises.planks.level}</ProgressBarValue>
           </ProgressBarLabel>
           <StyledLinearProgress
-            variant="determinate"
             value={keyExercises.planks.progress}
-            color="success"
+            $color="success"
           />
         </ProgressBarContainer>
 
@@ -124,9 +121,8 @@ const KeyExerciseProgress: React.FC<KeyExerciseProgressProps> = ({
             <ProgressBarValue>Level {keyExercises.reversePlanks.level}</ProgressBarValue>
           </ProgressBarLabel>
           <StyledLinearProgress
-            variant="determinate"
             value={keyExercises.reversePlanks.progress}
-            color="warning"
+            $color="warning"
           />
         </ProgressBarContainer>
 
