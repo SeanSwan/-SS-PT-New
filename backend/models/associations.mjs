@@ -445,7 +445,8 @@ const setupAssociations = async () => {
     Streak.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
     // Goal -> Supporters (many-to-many through GoalSupporter)
-    Goal.hasMany(GoalSupporter, { foreignKey: 'goalId', as: 'supporters' });
+    // Use a non-colliding alias because Goal already has a JSONB `supporters` attribute.
+    Goal.hasMany(GoalSupporter, { foreignKey: 'goalId', as: 'supporterLinks' });
     GoalSupporter.belongsTo(Goal, { foreignKey: 'goalId', as: 'goal' });
     User.hasMany(GoalSupporter, { foreignKey: 'supporterId', as: 'supportedGoals' });
     GoalSupporter.belongsTo(User, { foreignKey: 'supporterId', as: 'supporter' });

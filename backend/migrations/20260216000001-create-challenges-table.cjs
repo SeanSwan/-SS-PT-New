@@ -171,7 +171,7 @@ module.exports = {
 
       // Challenge Creator
       createdBy: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         allowNull: false,
         references: {
           model: 'Users',

@@ -21,7 +21,7 @@ const GoalComment = db.define('GoalComment', {
     references: { model: 'goals', key: 'id' },
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: { model: 'Users', key: 'id' },
     comment: 'User who posted the comment',

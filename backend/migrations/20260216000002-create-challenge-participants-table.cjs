@@ -44,7 +44,7 @@ module.exports = {
 
       // Foreign Keys
       userId: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         allowNull: false,
         references: {
           model: 'Users',
@@ -331,7 +331,7 @@ module.exports = {
       },
 
       verifiedBy: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         allowNull: true,
         references: {
           model: 'Users',

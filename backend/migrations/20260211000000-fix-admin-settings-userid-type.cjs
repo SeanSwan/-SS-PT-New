@@ -32,6 +32,13 @@ module.exports = {
         return;
       }
 
+      // Safety: this column does not exist in some production schemas.
+      const columns = await queryInterface.describeTable('admin_settings');
+      if (!columns.userId) {
+        console.log('admin_settings.userId column does not exist, skipping migration.');
+        return;
+      }
+
       await queryInterface.changeColumn('admin_settings', 'userId', {
         type: Sequelize.STRING(255),
         allowNull: false
@@ -46,6 +53,20 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     console.log('Reverting admin_settings.userId back to UUID...');
+
+    const [tables] = await queryInterface.sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE tablename = 'admin_settings';`
+    );
+    if (!tables || tables.length === 0) {
+      console.log('admin_settings table does not exist, skipping down migration.');
+      return;
+    }
+
+    const columns = await queryInterface.describeTable('admin_settings');
+    if (!columns.userId) {
+      console.log('admin_settings.userId column does not exist, skipping down migration.');
+      return;
+    }
 
     await queryInterface.changeColumn('admin_settings', 'userId', {
       type: Sequelize.UUID,

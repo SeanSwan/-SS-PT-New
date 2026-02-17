@@ -18,7 +18,7 @@ const Goal = db.define('Goal', {
   
   // Foreign Key
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
