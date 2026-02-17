@@ -1,20 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  CardHeader,
-  Button,
-  Chip,
-  Divider,
-  LinearProgress,
-  Tooltip,
-  ToggleButtonGroup,
-  ToggleButton
-} from '@mui/material';
+import styled from 'styled-components';
 import {
   Award,
   Trophy,
@@ -34,19 +19,19 @@ import {
   HelpCircle,
   Info
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  LineChart, 
-  Line, 
-  PieChart, 
-  Pie, 
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip as RechartsTooltip, 
-  Legend, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
   ResponsiveContainer,
   Area,
   AreaChart,
@@ -60,9 +45,481 @@ import {
   ZAxis
 } from 'recharts';
 
+/* ═══════════════════════════════════════════
+   Galaxy-Swan Theme Tokens
+   ═══════════════════════════════════════════ */
+const THEME = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgCard: 'rgba(15,23,42,0.85)',
+  bgGlass: 'rgba(255,255,255,0.04)',
+  border: 'rgba(14,165,233,0.2)',
+  borderSubtle: 'rgba(14,165,233,0.1)',
+  text: '#e2e8f0',
+  textSecondary: '#94a3b8',
+  textMuted: '#64748b',
+  accent: '#0ea5e9',
+  accentHover: '#38bdf8',
+  success: '#22c55e',
+  successBg: 'rgba(34,197,94,0.12)',
+  error: '#ef4444',
+  errorBg: 'rgba(239,68,68,0.12)',
+  warning: '#f59e0b',
+  warningBg: 'rgba(245,158,11,0.12)',
+  primaryBg: 'rgba(14,165,233,0.12)',
+} as const;
+
+/* ═══════════════════════════════════════════
+   Styled Components
+   ═══════════════════════════════════════════ */
+
+const AnalyticsRoot = styled.div`
+  color: ${THEME.text};
+`;
+
+const HeaderSection = styled.div`
+  margin-bottom: 24px;
+`;
+
+const PageTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: ${THEME.text};
+  margin: 0 0 16px 0;
+`;
+
+const ControlsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TabGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid ${({ $active }) => $active ? THEME.accent : THEME.border};
+  background: ${({ $active }) => $active ? THEME.accent : 'transparent'};
+  color: ${({ $active }) => $active ? '#0a0a1a' : THEME.text};
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: ${THEME.accentHover};
+    background: ${({ $active }) => $active ? THEME.accentHover : 'rgba(14,165,233,0.1)'};
+  }
+`;
+
+const ToggleGroup = styled.div`
+  display: inline-flex;
+  border: 1px solid ${THEME.border};
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const ToggleBtn = styled.button<{ $active: boolean }>`
+  min-height: 44px;
+  padding: 8px 14px;
+  border: none;
+  border-right: 1px solid ${THEME.border};
+  background: ${({ $active }) => $active ? THEME.accent : 'transparent'};
+  color: ${({ $active }) => $active ? '#0a0a1a' : THEME.text};
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover {
+    background: ${({ $active }) => $active ? THEME.accentHover : 'rgba(14,165,233,0.1)'};
+  }
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(12, 1fr);
+  }
+`;
+
+const GridItem = styled.div<{ $xs?: number; $md?: number }>`
+  grid-column: span 1;
+
+  @media (min-width: 768px) {
+    grid-column: span ${({ $md, $xs }) => $md ?? $xs ?? 12};
+  }
+`;
+
+const GlassCard = styled.div`
+  background: ${THEME.bgCard};
+  border: 1px solid ${THEME.border};
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const CardHeaderStyled = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+`;
+
+const CardTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${THEME.text};
+  margin: 0;
+`;
+
+const CardSubtitle = styled.p`
+  font-size: 0.75rem;
+  color: ${THEME.textSecondary};
+  margin: 4px 0 0 0;
+`;
+
+const CardContent = styled.div`
+  padding: 16px 20px;
+  flex: 1;
+`;
+
+const StyledDivider = styled.hr`
+  border: none;
+  border-top: 1px solid ${THEME.borderSubtle};
+  margin: 0;
+`;
+
+const ChartContainer = styled.div<{ $height?: number }>`
+  height: ${({ $height }) => $height ?? 350}px;
+  width: 100%;
+`;
+
+const ExportButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid ${THEME.border};
+  background: transparent;
+  color: ${THEME.text};
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: ${THEME.accent};
+    color: ${THEME.accent};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ActionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid ${THEME.border};
+  background: transparent;
+  color: ${THEME.text};
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: ${THEME.accent};
+    color: ${THEME.accent};
+  }
+`;
+
+/* KPI Card styled components */
+const KpiCardWrapper = styled.div`
+  background: ${THEME.bgCard};
+  border: 1px solid ${THEME.border};
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  padding: 20px;
+  height: 100%;
+`;
+
+const KpiHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const KpiLabel = styled.span`
+  font-size: 0.8125rem;
+  color: ${THEME.textSecondary};
+`;
+
+const KpiIconBubble = styled.div<{ $color: string }>`
+  padding: 8px;
+  background: ${({ $color }) => `${$color}20`};
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const KpiValue = styled.div`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: ${THEME.text};
+  margin-bottom: 8px;
+`;
+
+const KpiTrendRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const TrendBadge = styled.span<{ $trend: 'up' | 'down' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: ${({ $trend }) => $trend === 'up' ? THEME.successBg : THEME.errorBg};
+  color: ${({ $trend }) => $trend === 'up' ? THEME.success : THEME.error};
+`;
+
+const ComparisonLabel = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.textMuted};
+`;
+
+/* Custom Tooltip for Recharts */
+const TooltipPaper = styled.div`
+  background: rgba(15,23,42,0.95);
+  border: 1px solid ${THEME.border};
+  border-radius: 8px;
+  padding: 12px;
+  backdrop-filter: blur(12px);
+`;
+
+const TooltipTitle = styled.p`
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: ${THEME.text};
+  margin: 0 0 4px 0;
+`;
+
+const TooltipRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+`;
+
+const TooltipDot = styled.span<{ $color: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  flex-shrink: 0;
+`;
+
+const TooltipValue = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.textSecondary};
+`;
+
+/* Table */
+const TableWrapper = styled.div`
+  overflow-x: auto;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Th = styled.th`
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: ${THEME.textSecondary};
+  border-bottom: 1px solid ${THEME.border};
+`;
+
+const Td = styled.td`
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: ${THEME.text};
+  border-bottom: 1px solid ${THEME.borderSubtle};
+`;
+
+/* Chip / Badge */
+const TierChip = styled.span<{ $tier: string }>`
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: ${({ $tier }) =>
+    $tier === 'Bronze' ? '#CD7F3233' :
+    $tier === 'Silver' ? '#C0C0C033' :
+    $tier === 'Gold' ? '#FFD70033' :
+    '#E5E4E233'
+  };
+  color: ${({ $tier }) =>
+    $tier === 'Bronze' ? '#CD7F32' :
+    $tier === 'Silver' ? '#C0C0C0' :
+    $tier === 'Gold' ? '#FFD700' :
+    '#E5E4E2'
+  };
+`;
+
+const RiskChip = styled.span<{ $risk: string }>`
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: ${({ $risk }) => $risk === 'high' ? THEME.errorBg : THEME.warningBg};
+  color: ${({ $risk }) => $risk === 'high' ? THEME.error : THEME.warning};
+`;
+
+/* Insight Cards */
+const InsightCard = styled.div<{ $variant: 'success' | 'primary' | 'warning' }>`
+  padding: 16px;
+  border-radius: 10px;
+  height: 100%;
+  background: ${({ $variant }) =>
+    $variant === 'success' ? THEME.successBg :
+    $variant === 'primary' ? THEME.primaryBg :
+    THEME.warningBg
+  };
+  border: 1px solid ${({ $variant }) =>
+    $variant === 'success' ? 'rgba(34,197,94,0.2)' :
+    $variant === 'primary' ? 'rgba(14,165,233,0.2)' :
+    'rgba(245,158,11,0.2)'
+  };
+`;
+
+const InsightHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const InsightTitle = styled.span<{ $variant: 'success' | 'primary' | 'warning' }>`
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: ${({ $variant }) =>
+    $variant === 'success' ? THEME.success :
+    $variant === 'primary' ? THEME.accent :
+    THEME.warning
+  };
+`;
+
+const InsightBody = styled.p`
+  font-size: 0.8125rem;
+  color: ${THEME.textSecondary};
+  margin: 0;
+  line-height: 1.5;
+
+  strong {
+    color: ${THEME.text};
+  }
+`;
+
+/* Points Economy stat card */
+const StatBox = styled.div<{ $variant: 'primary' | 'error' | 'warning' }>`
+  padding: 16px;
+  border-radius: 10px;
+  background: ${({ $variant }) =>
+    $variant === 'primary' ? THEME.primaryBg :
+    $variant === 'error' ? THEME.errorBg :
+    THEME.warningBg
+  };
+  border: 1px solid ${({ $variant }) =>
+    $variant === 'primary' ? 'rgba(14,165,233,0.2)' :
+    $variant === 'error' ? 'rgba(239,68,68,0.2)' :
+    'rgba(245,158,11,0.2)'
+  };
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.8125rem;
+  color: ${THEME.textSecondary};
+`;
+
+const StatValue = styled.span`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: ${THEME.text};
+`;
+
+const SectionTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${THEME.text};
+  margin: 24px 0 16px 0;
+`;
+
+const ChartTypeSelectorRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+`;
+
+const InnerGrid3 = styled.div`
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
 /**
  * Enhanced SystemAnalytics Component
- * 
+ *
  * Provides comprehensive analytics and insights for the gamification system
  * Displays user engagement metrics, achievement statistics, reward usage, and tier distribution
  * Optimized for performance with customizable views and exportable data
@@ -73,32 +530,30 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'achievements' | 'rewards' | 'tiers' | 'trends'>('overview');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie' | 'area'>('bar');
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  
+
   // Handle time range change
   const handleTimeRangeChange = useCallback((
-    event: React.MouseEvent<HTMLElement>,
     newTimeRange: 'week' | 'month' | 'quarter' | 'year',
   ) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
     }
   }, []);
-  
+
   // Handle chart type change
   const handleChartTypeChange = useCallback((
-    event: React.MouseEvent<HTMLElement>,
     newChartType: 'bar' | 'line' | 'pie' | 'area',
   ) => {
     if (newChartType !== null) {
       setChartType(newChartType);
     }
   }, []);
-  
+
   // Calculate KPI card values based on time range
   const kpiValues = useMemo(() => {
     // In a real implementation, these would be calculated from the data based on time range
     // Here we're just using mock data
-    
+
     const ranges = {
       week: {
         newUsers: 8,
@@ -157,9 +612,9 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
         prevPointsSpent: 63000
       }
     };
-    
+
     const current = ranges[timeRange];
-    
+
     return {
       newUsers: {
         value: current.newUsers,
@@ -195,22 +650,22 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
         value: Math.round((current.pointsEarned - current.pointsSpent) / current.pointsEarned * 100),
         trend: (current.pointsEarned - current.pointsSpent) > (current.prevPointsEarned - current.prevPointsSpent) ? 'up' : 'down',
         percentage: Math.round(Math.abs(
-          ((current.pointsEarned - current.pointsSpent) - (current.prevPointsEarned - current.prevPointsSpent)) / 
+          ((current.pointsEarned - current.pointsSpent) - (current.prevPointsEarned - current.prevPointsSpent)) /
           (current.prevPointsEarned - current.prevPointsSpent) * 100
         ))
       }
     };
   }, [timeRange]);
-  
+
   // Generate activity data based on time range
   const activityData = useMemo(() => {
     const getActivityData = () => {
       const now = new Date();
       const result = [];
-      
+
       let dataPoints = 0;
       let interval = 0;
-      
+
       // Set number of data points and interval based on time range
       switch (timeRange) {
         case 'week':
@@ -230,16 +685,16 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           interval = 30 * 24 * 60 * 60 * 1000; // 1 month
           break;
       }
-      
+
       for (let i = dataPoints - 1; i >= 0; i--) {
         const date = new Date(now.getTime() - (i * interval));
         const pointsEarned = Math.floor(Math.random() * 2000) + 1000;
         const pointsSpent = Math.floor(Math.random() * 500) + 300;
         const activeUsers = Math.floor(Math.random() * 10) + 30;
         const newUsers = Math.floor(Math.random() * 3) + 1;
-        
+
         result.push({
-          date: timeRange === 'year' 
+          date: timeRange === 'year'
             ? date.toLocaleDateString('en-US', { month: 'short' })
             : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           pointsEarned,
@@ -251,13 +706,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           engagementRate: Math.floor(Math.random() * 10) + 70
         });
       }
-      
+
       return result;
     };
-    
+
     return getActivityData();
   }, [timeRange]);
-  
+
   // Generate tier distribution data
   const tierDistributionData = useMemo(() => {
     return [
@@ -267,7 +722,7 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       { name: 'Platinum', value: 2, color: '#E5E4E2' }
     ];
   }, []);
-  
+
   // Generate achievement completion data
   const achievementCompletionData = useMemo(() => {
     return [
@@ -280,7 +735,7 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       { name: 'Fitness Legend', completion: 5, color: '#795548' }
     ];
   }, []);
-  
+
   // Generate reward redemption data
   const rewardRedemptionData = useMemo(() => {
     return [
@@ -291,7 +746,7 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       { name: '25% Off Package', redemptions: 3, color: '#F44336' }
     ];
   }, []);
-  
+
   // Generate user retention data
   const userRetentionData = useMemo(() => {
     return [
@@ -301,51 +756,51 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       { tier: 'Platinum', retention: 98 }
     ];
   }, []);
-  
+
   // Generate tier progression data
   const tierProgressionData = useMemo(() => {
     const data = [];
-    
+
     const startDate = new Date();
-    const numPoints = timeRange === 'week' ? 7 : 
-                    timeRange === 'month' ? 4 : 
-                    timeRange === 'quarter' ? 12 : 
+    const numPoints = timeRange === 'week' ? 7 :
+                    timeRange === 'month' ? 4 :
+                    timeRange === 'quarter' ? 12 :
                     12;
-    
-    const interval = timeRange === 'week' ? 1 : 
-                    timeRange === 'month' ? 7 : 
-                    timeRange === 'quarter' ? 7 : 
+
+    const interval = timeRange === 'week' ? 1 :
+                    timeRange === 'month' ? 7 :
+                    timeRange === 'quarter' ? 7 :
                     30;
-    
+
     startDate.setDate(startDate.getDate() - (numPoints * interval));
-    
+
     let bronzeUsers = 15;
     let silverUsers = 10;
     let goldUsers = 3;
     let platinumUsers = 1;
     const totalUsers = bronzeUsers + silverUsers + goldUsers + platinumUsers;
-    
+
     for (let i = 0; i < numPoints; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + (i * interval));
-      
+
       // Small random changes to the numbers
       bronzeUsers += Math.floor(Math.random() * 3) - 1;
       silverUsers += Math.floor(Math.random() * 3) - 0.5;
       goldUsers += Math.floor(Math.random() * 2) - 0.5;
       platinumUsers += Math.floor(Math.random() * 2) - 0.5;
-      
+
       // Ensure values are at least 0
       bronzeUsers = Math.max(0, bronzeUsers);
       silverUsers = Math.max(0, silverUsers);
       goldUsers = Math.max(0, goldUsers);
       platinumUsers = Math.max(0, platinumUsers);
-      
+
       // Calculate percentages
       const newTotal = bronzeUsers + silverUsers + goldUsers + platinumUsers;
-      
+
       data.push({
-        date: timeRange === 'year' 
+        date: timeRange === 'year'
           ? date.toLocaleDateString('en-US', { month: 'short' })
           : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         bronze: Math.round((bronzeUsers / newTotal) * 100),
@@ -354,7 +809,7 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
         platinum: Math.round((platinumUsers / newTotal) * 100)
       });
     }
-    
+
     return data;
   }, [timeRange]);
 
@@ -368,7 +823,7 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       { name: '21+', achievements: 25, retention: 92, engagement: 85 }
     ];
   }, []);
-  
+
   // Risk users - those who haven't earned points in 14+ days
   const riskUsers = useMemo(() => {
     return [
@@ -379,128 +834,89 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       { id: 'user112', name: 'Michael Clark', tier: 'Silver', lastActive: '14 days ago', risk: 'medium' }
     ];
   }, []);
-  
+
   // Function to export data (mock implementation)
   const handleExportData = useCallback(() => {
     setIsExporting(true);
-    
+
     // Simulate export process
     setTimeout(() => {
       setIsExporting(false);
-      
+
       // In a real implementation, this would download a CSV or Excel file
       alert('Analytics data exported successfully!');
     }, 1500);
   }, []);
-  
+
   // Custom tooltip component for charts
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <Paper 
-          elevation={3}
-          sx={{ 
-            p: 1.5,
-            bgcolor: 'rgba(255, 255, 255, 0.95)',
-            border: '1px solid rgba(0, 0, 0, 0.05)',
-            boxShadow: 3
-          }}
-        >
-          <Typography variant="subtitle2">{label}</Typography>
+        <TooltipPaper>
+          <TooltipTitle>{label}</TooltipTitle>
           {payload.map((entry: any, index: number) => (
-            <Box key={`item-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-              <Box 
-                sx={{ 
-                  width: 12, 
-                  height: 12, 
-                  bgcolor: entry.color,
-                  borderRadius: '50%' 
-                }}
-              />
-              <Typography variant="body2" color="text.secondary">
+            <TooltipRow key={`item-${index}`}>
+              <TooltipDot $color={entry.color} />
+              <TooltipValue>
                 {entry.name}: {entry.value.toLocaleString()}
-              </Typography>
-            </Box>
+              </TooltipValue>
+            </TooltipRow>
           ))}
-        </Paper>
+        </TooltipPaper>
       );
     }
-    
+
     return null;
   };
-  
+
   // KPI Card Component
-  const KpiCard = ({ 
-    title, 
-    value, 
-    suffix = '', 
-    trend, 
+  const KpiCard = ({
+    title,
+    value,
+    suffix = '',
+    trend,
     percentage,
     color,
     icon: Icon
-  }: { 
-    title: string; 
-    value: number | string; 
+  }: {
+    title: string;
+    value: number | string;
     suffix?: string;
-    trend: 'up' | 'down'; 
+    trend: 'up' | 'down';
     percentage: number;
     color: string;
     icon: React.ElementType;
   }) => (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="subtitle2" color="text.secondary">
-            {title}
-          </Typography>
-          <Box sx={{ 
-            p: 1,
-            bgcolor: `${color}20`,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Icon size={20} color={color} />
-          </Box>
-        </Box>
-        
-        <Typography variant="h4" component="div" fontWeight="bold" gutterBottom>
-          {typeof value === 'number' ? value.toLocaleString() : value}{suffix}
-        </Typography>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box 
-            component="span"
-            sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              color: trend === 'up' ? 'success.main' : 'error.main',
-              bgcolor: trend === 'up' ? 'success.lighter' : 'error.lighter',
-              px: 0.75,
-              py: 0.25,
-              borderRadius: 1,
-              fontSize: '0.75rem',
-              fontWeight: 'medium'
-            }}
-          >
-            {trend === 'up' ? <Plus size={14} /> : <Minus size={14} />}
-            {percentage}%
-          </Box>
-          
-          <Typography variant="caption" color="text.secondary">
-            vs previous {timeRange}
-          </Typography>
-        </Box>
-      </CardContent>
-    </Card>
+    <KpiCardWrapper>
+      <KpiHeader>
+        <KpiLabel>{title}</KpiLabel>
+        <KpiIconBubble $color={color}>
+          <Icon size={20} color={color} />
+        </KpiIconBubble>
+      </KpiHeader>
+
+      <KpiValue>
+        {typeof value === 'number' ? value.toLocaleString() : value}{suffix}
+      </KpiValue>
+
+      <KpiTrendRow>
+        <TrendBadge $trend={trend}>
+          {trend === 'up' ? <Plus size={14} /> : <Minus size={14} />}
+          {percentage}%
+        </TrendBadge>
+
+        <ComparisonLabel>
+          vs previous {timeRange}
+        </ComparisonLabel>
+      </KpiTrendRow>
+    </KpiCardWrapper>
   );
-  
+
   // Render the overview tab
   const renderOverviewTab = () => (
-    <Grid container spacing={3}>
+    <GridContainer>
       {/* KPI Summary Cards */}
-      <Grid item xs={12} md={3}>
+      <GridItem $md={3}>
         <KpiCard
           title="Active Users"
           value={data.userEngagement.activeUsers}
@@ -509,9 +925,9 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           color="#4361ee"
           icon={Users}
         />
-      </Grid>
-      
-      <Grid item xs={12} md={3}>
+      </GridItem>
+
+      <GridItem $md={3}>
         <KpiCard
           title="Achievements Earned"
           value={kpiValues.achievementsEarned.value}
@@ -520,9 +936,9 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           color="#3a86ff"
           icon={Trophy}
         />
-      </Grid>
-      
-      <Grid item xs={12} md={3}>
+      </GridItem>
+
+      <GridItem $md={3}>
         <KpiCard
           title="Rewards Redeemed"
           value={kpiValues.rewardsRedeemed.value}
@@ -531,9 +947,9 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           color="#8338ec"
           icon={Gift}
         />
-      </Grid>
-      
-      <Grid item xs={12} md={3}>
+      </GridItem>
+
+      <GridItem $md={3}>
         <KpiCard
           title="Engagement Rate"
           value={kpiValues.engagementRate.value}
@@ -543,67 +959,62 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           color="#ff006e"
           icon={Activity}
         />
-      </Grid>
-      
+      </GridItem>
+
       {/* Activity Timeline */}
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader 
-            title="Activity Timeline" 
-            action={
-              <Tooltip title="Export data to CSV">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Download size={16} />}
-                  onClick={handleExportData}
-                  disabled={isExporting}
-                >
-                  {isExporting ? 'Exporting...' : 'Export'}
-                </Button>
-              </Tooltip>
-            }
-          />
-          <Divider />
+      <GridItem $md={12}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Activity Timeline</CardTitle>
+            <ExportButton
+              onClick={handleExportData}
+              disabled={isExporting}
+              title="Export data to CSV"
+            >
+              <Download size={16} />
+              {isExporting ? 'Exporting...' : 'Export'}
+            </ExportButton>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === 'bar' && (
                   <BarChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                    <XAxis dataKey="date" stroke={THEME.textMuted} />
+                    <YAxis stroke={THEME.textMuted} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Legend />
                     <Bar name="Points Earned" dataKey="pointsEarned" fill="#4361ee" />
                     <Bar name="Points Spent" dataKey="pointsSpent" fill="#ff006e" />
                   </BarChart>
                 )}
-                
+
                 {chartType === 'line' && (
                   <LineChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                    <XAxis dataKey="date" stroke={THEME.textMuted} />
+                    <YAxis stroke={THEME.textMuted} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Legend />
                     <Line type="monotone" name="Points Earned" dataKey="pointsEarned" stroke="#4361ee" dot={{ r: 3 }} />
                     <Line type="monotone" name="Points Spent" dataKey="pointsSpent" stroke="#ff006e" dot={{ r: 3 }} />
                   </LineChart>
                 )}
-                
+
                 {chartType === 'area' && (
                   <AreaChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                    <XAxis dataKey="date" stroke={THEME.textMuted} />
+                    <YAxis stroke={THEME.textMuted} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Legend />
                     <Area type="monotone" name="Points Earned" dataKey="pointsEarned" fill="#4361ee33" stroke="#4361ee" />
                     <Area type="monotone" name="Points Spent" dataKey="pointsSpent" fill="#ff006e33" stroke="#ff006e" />
                   </AreaChart>
                 )}
-                
+
                 {chartType === 'pie' && (
                   <PieChart>
                     <Pie
@@ -632,42 +1043,54 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   </PieChart>
                 )}
               </ResponsiveContainer>
-            </Box>
-            
+            </ChartContainer>
+
             {/* Chart Type Selector */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-              <ToggleButtonGroup
-                value={chartType}
-                exclusive
-                onChange={handleChartTypeChange}
-                size="small"
-                aria-label="chart type"
-              >
-                <ToggleButton value="bar" aria-label="bar chart">
+            <ChartTypeSelectorRow>
+              <ToggleGroup>
+                <ToggleBtn
+                  $active={chartType === 'bar'}
+                  onClick={() => handleChartTypeChange('bar')}
+                  aria-label="bar chart"
+                >
                   <BarChartIcon size={16} />
-                </ToggleButton>
-                <ToggleButton value="line" aria-label="line chart">
+                </ToggleBtn>
+                <ToggleBtn
+                  $active={chartType === 'line'}
+                  onClick={() => handleChartTypeChange('line')}
+                  aria-label="line chart"
+                >
                   <TrendingUp size={16} />
-                </ToggleButton>
-                <ToggleButton value="area" aria-label="area chart">
+                </ToggleBtn>
+                <ToggleBtn
+                  $active={chartType === 'area'}
+                  onClick={() => handleChartTypeChange('area')}
+                  aria-label="area chart"
+                >
                   <Activity size={16} />
-                </ToggleButton>
-                <ToggleButton value="pie" aria-label="pie chart">
+                </ToggleBtn>
+                <ToggleBtn
+                  $active={chartType === 'pie'}
+                  onClick={() => handleChartTypeChange('pie')}
+                  aria-label="pie chart"
+                >
                   <PieChartIcon size={16} />
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
+                </ToggleBtn>
+              </ToggleGroup>
+            </ChartTypeSelectorRow>
           </CardContent>
-        </Card>
-      </Grid>
-      
+        </GlassCard>
+      </GridItem>
+
       {/* Tier Distribution & Achievement Completion */}
-      <Grid item xs={12} md={6}>
-        <Card sx={{ height: '100%' }}>
-          <CardHeader title="Tier Distribution" />
-          <Divider />
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Tier Distribution</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 300 }}>
+            <ChartContainer $height={300}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -688,26 +1111,28 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card sx={{ height: '100%' }}>
-          <CardHeader title="Achievement Completion Rates" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Achievement Completion Rates</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 300 }}>
+            <ChartContainer $height={300}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={achievementCompletionData}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis type="number" domain={[0, 100]} />
-                  <YAxis type="category" dataKey="name" width={150} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis type="number" domain={[0, 100]} stroke={THEME.textMuted} />
+                  <YAxis type="category" dataKey="name" width={150} stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Bar dataKey="completion" radius={[0, 4, 4, 0]}>
                     {achievementCompletionData.map((entry, index) => (
@@ -716,262 +1141,219 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
+        </GlassCard>
+      </GridItem>
+
       {/* At-Risk Users */}
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader 
-            title="At-Risk Users" 
-            subheader="Users who haven't earned points in 14+ days"
-            action={
-              <Tooltip title="These users may need re-engagement strategies">
-                <HelpCircle size={16} />
-              </Tooltip>
-            }
-          />
-          <Divider />
+      <GridItem $md={12}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <div>
+              <CardTitle>At-Risk Users</CardTitle>
+              <CardSubtitle>Users who haven't earned points in 14+ days</CardSubtitle>
+            </div>
+            <span title="These users may need re-engagement strategies">
+              <HelpCircle size={16} color={THEME.textMuted} />
+            </span>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ overflowX: 'auto' }}>
-              <Box sx={{ display: 'table', minWidth: '100%', borderCollapse: 'collapse' }}>
-                <Box sx={{ display: 'table-header-group' }}>
-                  <Box sx={{ display: 'table-row' }}>
-                    <Box sx={{ display: 'table-cell', p: 2, fontWeight: 'bold', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>User</Box>
-                    <Box sx={{ display: 'table-cell', p: 2, fontWeight: 'bold', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>Tier</Box>
-                    <Box sx={{ display: 'table-cell', p: 2, fontWeight: 'bold', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>Last Active</Box>
-                    <Box sx={{ display: 'table-cell', p: 2, fontWeight: 'bold', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>Risk Level</Box>
-                    <Box sx={{ display: 'table-cell', p: 2, fontWeight: 'bold', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>Action</Box>
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'table-row-group' }}>
+            <TableWrapper>
+              <StyledTable>
+                <thead>
+                  <tr>
+                    <Th>User</Th>
+                    <Th>Tier</Th>
+                    <Th>Last Active</Th>
+                    <Th>Risk Level</Th>
+                    <Th>Action</Th>
+                  </tr>
+                </thead>
+                <tbody>
                   {riskUsers.map((user) => (
-                    <Box key={user.id} sx={{ display: 'table-row' }}>
-                      <Box sx={{ display: 'table-cell', p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{user.name}</Box>
-                      <Box sx={{ display: 'table-cell', p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                        <Chip 
-                          label={user.tier} 
-                          size="small"
-                          sx={{ 
-                            bgcolor: 
-                              user.tier === 'Bronze' ? '#CD7F3233' : 
-                              user.tier === 'Silver' ? '#C0C0C033' : 
-                              user.tier === 'Gold' ? '#FFD70033' : 
-                              '#E5E4E233',
-                            color: 
-                              user.tier === 'Bronze' ? '#CD7F32' : 
-                              user.tier === 'Silver' ? '#808080' : 
-                              user.tier === 'Gold' ? '#b8860b' : 
-                              '#75748C'
-                          }}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'table-cell', p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{user.lastActive}</Box>
-                      <Box sx={{ display: 'table-cell', p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                        <Chip 
-                          label={user.risk.toUpperCase()} 
-                          size="small"
-                          color={user.risk === 'high' ? 'error' : 'warning'}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'table-cell', p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                        <Button 
-                          variant="outlined" 
-                          size="small"
-                          sx={{ minWidth: 'auto' }}
-                        >
+                    <tr key={user.id}>
+                      <Td>{user.name}</Td>
+                      <Td>
+                        <TierChip $tier={user.tier}>{user.tier}</TierChip>
+                      </Td>
+                      <Td>{user.lastActive}</Td>
+                      <Td>
+                        <RiskChip $risk={user.risk}>{user.risk.toUpperCase()}</RiskChip>
+                      </Td>
+                      <Td>
+                        <ActionButton>
                           Send Incentive
-                        </Button>
-                      </Box>
-                    </Box>
+                        </ActionButton>
+                      </Td>
+                    </tr>
                   ))}
-                </Box>
-              </Box>
-            </Box>
+                </tbody>
+              </StyledTable>
+            </TableWrapper>
           </CardContent>
-        </Card>
-      </Grid>
-      
+        </GlassCard>
+      </GridItem>
+
       {/* Insights Cards */}
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader title="Key Insights" />
-          <Divider />
+      <GridItem $md={12}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Key Insights</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: 'success.lighter',
-                    borderRadius: 2,
-                    height: '100%'
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Trophy size={18} color="#4caf50" />
-                    <Typography variant="subtitle1" color="success.main" gutterBottom>
-                      Achievement Impact
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2">
-                    Users who earn at least 10 achievements show a <strong>78% higher retention rate</strong> than those with fewer achievements.
-                  </Typography>
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: 'primary.lighter',
-                    borderRadius: 2,
-                    height: '100%'
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Activity size={18} color="#1976d2" />
-                    <Typography variant="subtitle1" color="primary.main" gutterBottom>
-                      Engagement Trend
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2">
-                    Overall engagement has <strong>increased by {kpiValues.engagementRate.percentage}%</strong> compared to the previous {timeRange}, driven mainly by the new achievement system.
-                  </Typography>
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: 'warning.lighter',
-                    borderRadius: 2,
-                    height: '100%'
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <AlertTriangle size={18} color="#ff9800" />
-                    <Typography variant="subtitle1" color="warning.main" gutterBottom>
-                      Attention Needed
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2">
-                    <strong>{riskUsers.length} users</strong> haven't earned points in over 14 days and are at risk of churn. Consider sending personalized incentives.
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
+            <InnerGrid3>
+              <InsightCard $variant="success">
+                <InsightHeader>
+                  <Trophy size={18} color={THEME.success} />
+                  <InsightTitle $variant="success">
+                    Achievement Impact
+                  </InsightTitle>
+                </InsightHeader>
+                <InsightBody>
+                  Users who earn at least 10 achievements show a <strong>78% higher retention rate</strong> than those with fewer achievements.
+                </InsightBody>
+              </InsightCard>
+
+              <InsightCard $variant="primary">
+                <InsightHeader>
+                  <Activity size={18} color={THEME.accent} />
+                  <InsightTitle $variant="primary">
+                    Engagement Trend
+                  </InsightTitle>
+                </InsightHeader>
+                <InsightBody>
+                  Overall engagement has <strong>increased by {kpiValues.engagementRate.percentage}%</strong> compared to the previous {timeRange}, driven mainly by the new achievement system.
+                </InsightBody>
+              </InsightCard>
+
+              <InsightCard $variant="warning">
+                <InsightHeader>
+                  <AlertTriangle size={18} color={THEME.warning} />
+                  <InsightTitle $variant="warning">
+                    Attention Needed
+                  </InsightTitle>
+                </InsightHeader>
+                <InsightBody>
+                  <strong>{riskUsers.length} users</strong> haven't earned points in over 14 days and are at risk of churn. Consider sending personalized incentives.
+                </InsightBody>
+              </InsightCard>
+            </InnerGrid3>
           </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+        </GlassCard>
+      </GridItem>
+    </GridContainer>
   );
-  
+
   // Render the users tab
   const renderUsersTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="User Engagement Metrics" />
-          <Divider />
+    <GridContainer>
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>User Engagement Metrics</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 300 }}>
+            <ChartContainer $height={300}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="date" stroke={THEME.textMuted} />
+                  <YAxis stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
                   <Line type="monotone" name="Active Users" dataKey="activeUsers" stroke="#4361ee" dot={{ r: 3 }} />
                   <Line type="monotone" name="New Users" dataKey="newUsers" stroke="#3a86ff" dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Engagement by Achievement Count" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Engagement by Achievement Count</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 300 }}>
+            <ChartContainer $height={300}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={engagementData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="name" stroke={THEME.textMuted} />
+                  <YAxis stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
                   <Bar name="Retention %" dataKey="retention" fill="#4361ee" />
                   <Bar name="Engagement %" dataKey="engagement" fill="#ff006e" />
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader title="User Retention by Tier" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={12}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>User Retention by Tier</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 250 }}>
+            <ChartContainer $height={250}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={userRetentionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="tier" />
-                  <YAxis domain={[0, 100]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="tier" stroke={THEME.textMuted} />
+                  <YAxis domain={[0, 100]} stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Bar name="Retention %" dataKey="retention">
                     {userRetentionData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={
-                          entry.tier === 'Bronze' ? '#CD7F32' : 
-                          entry.tier === 'Silver' ? '#C0C0C0' : 
-                          entry.tier === 'Gold' ? '#FFD700' : 
+                          entry.tier === 'Bronze' ? '#CD7F32' :
+                          entry.tier === 'Silver' ? '#C0C0C0' :
+                          entry.tier === 'Gold' ? '#FFD700' :
                           '#E5E4E2'
-                        } 
+                        }
                       />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+        </GlassCard>
+      </GridItem>
+    </GridContainer>
   );
-  
+
   // Render the achievements tab
   const renderAchievementsTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Achievement Completion Rates" />
-          <Divider />
+    <GridContainer>
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Achievement Completion Rates</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 400 }}>
+            <ChartContainer $height={400}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={achievementCompletionData}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis type="number" domain={[0, 100]} />
-                  <YAxis type="category" dataKey="name" width={150} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis type="number" domain={[0, 100]} stroke={THEME.textMuted} />
+                  <YAxis type="category" dataKey="name" width={150} stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Bar dataKey="completion" radius={[0, 4, 4, 0]}>
                     {achievementCompletionData.map((entry, index) => (
@@ -980,57 +1362,61 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Achievements Earned Over Time" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Achievements Earned Over Time</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 400 }}>
+            <ChartContainer $height={400}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="date" stroke={THEME.textMuted} />
+                  <YAxis stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    name="Achievements Earned" 
-                    dataKey="achievementsEarned" 
-                    fill="#8338ec33" 
-                    stroke="#8338ec" 
+                  <Area
+                    type="monotone"
+                    name="Achievements Earned"
+                    dataKey="achievementsEarned"
+                    fill="#8338ec33"
+                    stroke="#8338ec"
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+        </GlassCard>
+      </GridItem>
+    </GridContainer>
   );
-  
+
   // Render the rewards tab
   const renderRewardsTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Reward Redemptions" />
-          <Divider />
+    <GridContainer>
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Reward Redemptions</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={rewardRedemptionData}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" width={150} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis type="number" stroke={THEME.textMuted} />
+                  <YAxis type="category" dataKey="name" width={150} stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Bar dataKey="redemptions" radius={[0, 4, 4, 0]}>
                     {rewardRedemptionData.map((entry, index) => (
@@ -1039,132 +1425,105 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Rewards Redeemed Over Time" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Rewards Redeemed Over Time</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="date" stroke={THEME.textMuted} />
+                  <YAxis stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    name="Rewards Redeemed" 
-                    dataKey="rewardsRedeemed" 
-                    fill="#ff006e33" 
-                    stroke="#ff006e" 
+                  <Area
+                    type="monotone"
+                    name="Rewards Redeemed"
+                    dataKey="rewardsRedeemed"
+                    fill="#ff006e33"
+                    stroke="#ff006e"
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader title="Points Economy" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={12}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Points Economy</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="date" stroke={THEME.textMuted} />
+                  <YAxis stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
                   <Bar name="Points Earned" dataKey="pointsEarned" fill="#4361ee" />
                   <Bar name="Points Spent" dataKey="pointsSpent" fill="#ff006e" />
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
-            
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle1" gutterBottom>
+            </ChartContainer>
+
+            <div>
+              <SectionTitle>
                 Points Economy Health
-              </Typography>
-              
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'primary.lighter',
-                      borderRadius: 2
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Total Points Issued</Typography>
-                      <Typography variant="h6" fontWeight="bold">
-                        {kpiValues.pointsEarned.value.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'error.lighter',
-                      borderRadius: 2
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Total Points Spent</Typography>
-                      <Typography variant="h6" fontWeight="bold">
-                        {kpiValues.pointsSpent.value.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'warning.lighter',
-                      borderRadius: 2
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">Points Economy Rate</Typography>
-                      <Typography variant="h6" fontWeight="bold">
-                        {kpiValues.pointsEconomy.value}%
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </Box>
+              </SectionTitle>
+
+              <InnerGrid3>
+                <StatBox $variant="primary">
+                  <StatLabel>Total Points Issued</StatLabel>
+                  <StatValue>
+                    {kpiValues.pointsEarned.value.toLocaleString()}
+                  </StatValue>
+                </StatBox>
+
+                <StatBox $variant="error">
+                  <StatLabel>Total Points Spent</StatLabel>
+                  <StatValue>
+                    {kpiValues.pointsSpent.value.toLocaleString()}
+                  </StatValue>
+                </StatBox>
+
+                <StatBox $variant="warning">
+                  <StatLabel>Points Economy Rate</StatLabel>
+                  <StatValue>
+                    {kpiValues.pointsEconomy.value}%
+                  </StatValue>
+                </StatBox>
+              </InnerGrid3>
+            </div>
           </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+        </GlassCard>
+      </GridItem>
+    </GridContainer>
   );
-  
+
   // Render the tiers tab
   const renderTiersTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Tier Distribution" />
-          <Divider />
+    <GridContainer>
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Tier Distribution</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -1185,22 +1544,24 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Tier Distribution Over Time" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Tier Distribution Over Time</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={tierProgressionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="date" stroke={THEME.textMuted} />
+                  <YAxis stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
                   <Area
@@ -1237,73 +1598,79 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+        </GlassCard>
+      </GridItem>
+    </GridContainer>
   );
-  
+
   // Render the trends tab
   const renderTrendsTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader title="Engagement Rate Trends" />
-          <Divider />
+    <GridContainer>
+      <GridItem $md={12}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Engagement Rate Trends</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, 100]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis dataKey="date" stroke={THEME.textMuted} />
+                  <YAxis domain={[0, 100]} stroke={THEME.textMuted} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    name="Engagement Rate (%)" 
-                    dataKey="engagementRate" 
-                    stroke="#4361ee" 
-                    dot={{ r: 3 }} 
+                  <Line
+                    type="monotone"
+                    name="Engagement Rate (%)"
+                    dataKey="engagementRate"
+                    stroke="#4361ee"
+                    dot={{ r: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Achievement vs. Retention" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Achievement vs. Retention</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart
                   margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                  <XAxis type="number" dataKey="achievements" name="Achievements" />
-                  <YAxis type="number" dataKey="retention" name="Retention %" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
+                  <XAxis type="number" dataKey="achievements" name="Achievements" stroke={THEME.textMuted} />
+                  <YAxis type="number" dataKey="retention" name="Retention %" stroke={THEME.textMuted} />
                   <ZAxis type="number" range={[100, 600]} />
                   <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
                   <Legend />
                   <Scatter name="User Segments" data={engagementData} fill="#8338ec" />
                 </ScatterChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardHeader title="Skill Analysis" />
-          <Divider />
+        </GlassCard>
+      </GridItem>
+
+      <GridItem $md={6}>
+        <GlassCard>
+          <CardHeaderStyled>
+            <CardTitle>Skill Analysis</CardTitle>
+          </CardHeaderStyled>
+          <StyledDivider />
           <CardContent>
-            <Box sx={{ height: 350 }}>
+            <ChartContainer $height={350}>
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
                   { subject: 'User Acquisition', A: 85, B: 75, fullMark: 100 },
@@ -1313,103 +1680,107 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                   { subject: 'Reward Usage', A: 65, B: 55, fullMark: 100 },
                   { subject: 'Points Economy', A: 70, B: 60, fullMark: 100 },
                 ]}>
-                  <PolarGrid stroke="rgba(0, 0, 0, 0.1)" />
-                  <PolarAngleAxis dataKey="subject" />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                  <PolarGrid stroke="rgba(14,165,233,0.1)" />
+                  <PolarAngleAxis dataKey="subject" stroke={THEME.textMuted} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={THEME.textMuted} />
                   <Radar name="Current" dataKey="A" stroke="#8338ec" fill="#8338ec" fillOpacity={0.3} />
                   <Radar name="Previous" dataKey="B" stroke="#ff006e" fill="#ff006e" fillOpacity={0.3} />
                   <Legend />
                 </RadarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+        </GlassCard>
+      </GridItem>
+    </GridContainer>
   );
-  
+
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
+    <AnalyticsRoot>
+      <HeaderSection>
+        <PageTitle>
           Gamification Analytics Dashboard
-        </Typography>
-        
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <Button
-              variant={activeTab === 'overview' ? 'contained' : 'outlined'}
-              startIcon={<Activity size={16} />}
-              size="small"
+        </PageTitle>
+
+        <ControlsRow>
+          <TabGroup>
+            <TabButton
+              $active={activeTab === 'overview'}
               onClick={() => setActiveTab('overview')}
             >
+              <Activity size={16} />
               Overview
-            </Button>
-            <Button
-              variant={activeTab === 'users' ? 'contained' : 'outlined'}
-              startIcon={<Users size={16} />}
-              size="small"
+            </TabButton>
+            <TabButton
+              $active={activeTab === 'users'}
               onClick={() => setActiveTab('users')}
             >
+              <Users size={16} />
               Users
-            </Button>
-            <Button
-              variant={activeTab === 'achievements' ? 'contained' : 'outlined'}
-              startIcon={<Trophy size={16} />}
-              size="small"
+            </TabButton>
+            <TabButton
+              $active={activeTab === 'achievements'}
               onClick={() => setActiveTab('achievements')}
             >
+              <Trophy size={16} />
               Achievements
-            </Button>
-            <Button
-              variant={activeTab === 'rewards' ? 'contained' : 'outlined'}
-              startIcon={<Gift size={16} />}
-              size="small"
+            </TabButton>
+            <TabButton
+              $active={activeTab === 'rewards'}
               onClick={() => setActiveTab('rewards')}
             >
+              <Gift size={16} />
               Rewards
-            </Button>
-            <Button
-              variant={activeTab === 'tiers' ? 'contained' : 'outlined'}
-              startIcon={<Award size={16} />}
-              size="small"
+            </TabButton>
+            <TabButton
+              $active={activeTab === 'tiers'}
               onClick={() => setActiveTab('tiers')}
             >
+              <Award size={16} />
               Tiers
-            </Button>
-            <Button
-              variant={activeTab === 'trends' ? 'contained' : 'outlined'}
-              startIcon={<TrendingUp size={16} />}
-              size="small"
+            </TabButton>
+            <TabButton
+              $active={activeTab === 'trends'}
               onClick={() => setActiveTab('trends')}
             >
+              <TrendingUp size={16} />
               Trends
-            </Button>
-          </Box>
-          
-          <ToggleButtonGroup
-            value={timeRange}
-            exclusive
-            onChange={handleTimeRangeChange}
-            size="small"
-            aria-label="time range"
-          >
-            <ToggleButton value="week" aria-label="last week">
+            </TabButton>
+          </TabGroup>
+
+          <ToggleGroup>
+            <ToggleBtn
+              $active={timeRange === 'week'}
+              onClick={() => handleTimeRangeChange('week')}
+              aria-label="last week"
+            >
               Week
-            </ToggleButton>
-            <ToggleButton value="month" aria-label="last month">
+            </ToggleBtn>
+            <ToggleBtn
+              $active={timeRange === 'month'}
+              onClick={() => handleTimeRangeChange('month')}
+              aria-label="last month"
+            >
               Month
-            </ToggleButton>
-            <ToggleButton value="quarter" aria-label="last quarter">
+            </ToggleBtn>
+            <ToggleBtn
+              $active={timeRange === 'quarter'}
+              onClick={() => handleTimeRangeChange('quarter')}
+              aria-label="last quarter"
+            >
               Quarter
-            </ToggleButton>
-            <ToggleButton value="year" aria-label="last year">
+            </ToggleBtn>
+            <ToggleBtn
+              $active={timeRange === 'year'}
+              onClick={() => handleTimeRangeChange('year')}
+              aria-label="last year"
+            >
               Year
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-      </Box>
-      
+            </ToggleBtn>
+          </ToggleGroup>
+        </ControlsRow>
+      </HeaderSection>
+
       {/* Render appropriate tab content */}
       {activeTab === 'overview' && renderOverviewTab()}
       {activeTab === 'users' && renderUsersTab()}
@@ -1417,7 +1788,7 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
       {activeTab === 'rewards' && renderRewardsTab()}
       {activeTab === 'tiers' && renderTiersTab()}
       {activeTab === 'trends' && renderTrendsTab()}
-    </Box>
+    </AnalyticsRoot>
   );
 };
 
