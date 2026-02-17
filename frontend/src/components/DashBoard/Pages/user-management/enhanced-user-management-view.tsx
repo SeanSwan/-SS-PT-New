@@ -3,7 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 
-// Styled Components
+// lucide-react icons
+import {
+  Edit,
+  UserPlus,
+  Key,
+  Lock,
+  ShieldCheck,
+  Settings,
+  Users,
+  Dumbbell,
+  Shield,
+  User,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+
+// Styled Components (zero MUI)
 import {
   PageContainer,
   ContentContainer,
@@ -19,58 +35,35 @@ import {
   StyledButton,
   IconButtonContainer,
   StyledIconButton,
-  StyledDialog,
+  ModalOverlay,
+  ModalPanel,
+  ModalTitle,
+  ModalContent,
+  ModalActions,
+  ModalSubText,
   LoadingContainer,
   LoadingSpinner,
   ErrorContainer,
   TabContainer,
+  TabBar,
+  TabButton,
+  RoleChip,
+  StatusChip,
+  FormGrid,
+  FormField,
+  FormLabel,
+  FormInput,
+  FormSelect,
+  FormDivider,
+  PaginationBar,
+  PaginationSelect,
+  PaginationButton,
   EmptyStateContainer,
   EmptyStateIcon,
   EmptyStateText,
   containerVariants,
   itemVariants,
 } from './styled-user-management';
-
-// Material UI Components
-import {
-  Box,
-  Table,
-  TableBody,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Divider,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Stack,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
-  Snackbar,
-  Alert,
-  Select,
-} from '@mui/material';
-
-// Icons
-import EditIcon from '@mui/icons-material/Edit';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import KeyIcon from '@mui/icons-material/Key';
-import LockIcon from '@mui/icons-material/Lock';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import GroupIcon from '@mui/icons-material/Group';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import SecurityIcon from '@mui/icons-material/Security';
-import PersonIcon from '@mui/icons-material/Person';
 
 // Fallback component
 const UserManagementFallback = lazy(() => import('./fallback-view'));
@@ -114,9 +107,9 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 2 }}>
+        <div style={{ paddingTop: '1rem' }}>
           {children}
-        </Box>
+        </div>
       )}
     </div>
   );
@@ -124,7 +117,7 @@ function TabPanel(props: TabPanelProps) {
 
 /**
  * Enhanced User Management View Component
- * 
+ *
  * Provides comprehensive user management capabilities:
  * - List all users with role-based filtering
  * - Edit user details and roles
@@ -136,7 +129,7 @@ const EnhancedUserManagementView: React.FC = () => {
   // Use auth context to get the authAxios instance
   const { authAxios } = useAuth();
   const { toast } = useToast();
-  
+
   // State
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,10 +157,10 @@ const EnhancedUserManagementView: React.FC = () => {
     try {
       setError(null);
       setLoading(true);
-      
+
       // Use authAxios instead of regular axios - this has the auth token set up in interceptors
       const response = await authAxios.get('/api/auth/users');
-      
+
       if (response.data && response.data.success) {
         setUsers(response.data.users || []);
       } else {
@@ -197,8 +190,9 @@ const EnhancedUserManagementView: React.FC = () => {
   }, []);
 
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
+    setPage(0);
   };
 
   // Filter users based on selected tab
@@ -220,11 +214,11 @@ const EnhancedUserManagementView: React.FC = () => {
   };
 
   // Handle pagination
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -245,7 +239,7 @@ const EnhancedUserManagementView: React.FC = () => {
   };
 
   // Handle edit form field changes
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditFormData(prev => ({
       ...prev,
@@ -256,10 +250,10 @@ const EnhancedUserManagementView: React.FC = () => {
   // Save user edits
   const handleSaveUser = async () => {
     if (!selectedUser) return;
-    
+
     try {
       const response = await authAxios.put(`/api/auth/users/${selectedUser.id}`, editFormData);
-      
+
       if (response.data && response.data.success) {
         toast({
           title: "Success",
@@ -294,13 +288,13 @@ const EnhancedUserManagementView: React.FC = () => {
   // Verify admin code and promote user
   const handleAdminCodeSubmit = async () => {
     if (!selectedUser) return;
-    
+
     try {
       const response = await authAxios.post('/api/auth/promote-admin', {
         userId: selectedUser.id,
         adminCode
       });
-      
+
       if (response.data && response.data.success) {
         toast({
           title: "Success",
@@ -336,13 +330,13 @@ const EnhancedUserManagementView: React.FC = () => {
   // Promote user to client
   const handlePromoteClientSubmit = async () => {
     if (!selectedUser) return;
-    
+
     try {
       const response = await authAxios.post('/api/auth/promote-client', {
         userId: selectedUser.id,
         availableSessions: editFormData.availableSessions
       });
-      
+
       if (response.data && response.data.success) {
         toast({
           title: "Success",
@@ -368,37 +362,26 @@ const EnhancedUserManagementView: React.FC = () => {
     }
   };
 
-  // Get role chip color
-  const getRoleChipColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'error';
-      case 'trainer':
-        return 'warning';
-      case 'client':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
   // Get tab icon based on index
   const getTabIcon = (index: number) => {
     switch (index) {
-      case 0: // All Users
-        return <GroupIcon />;
-      case 1: // Clients
-        return <FitnessCenterIcon />;
-      case 2: // Trainers
-        return <FitnessCenterIcon style={{ transform: 'rotate(45deg)' }} />;
-      case 3: // Admin
-        return <SecurityIcon />;
-      case 4: // Regular Users
-        return <PersonIcon />;
-      default:
-        return <GroupIcon />;
+      case 0: return <Users size={18} />;
+      case 1: return <Dumbbell size={18} />;
+      case 2: return <Dumbbell size={18} style={{ transform: 'rotate(45deg)' }} />;
+      case 3: return <Shield size={18} />;
+      case 4: return <User size={18} />;
+      default: return <Users size={18} />;
     }
   };
+
+  // Tab definitions
+  const tabs = [
+    { label: 'All Users', index: 0 },
+    { label: 'Clients', index: 1 },
+    { label: 'Trainers', index: 2 },
+    { label: 'Admins', index: 3 },
+    { label: 'Regular Users', index: 4 },
+  ];
 
   // Determine if we should show the fallback view
   if (error || (loading && users.length === 0)) {
@@ -415,7 +398,10 @@ const EnhancedUserManagementView: React.FC = () => {
 
   // Filter users for current page
   const filteredUsers = getFilteredUsers();
+  const totalPages = Math.ceil(filteredUsers.length / rowsPerPage);
   const paginatedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const startRow = page * rowsPerPage + 1;
+  const endRow = Math.min((page + 1) * rowsPerPage, filteredUsers.length);
 
   return (
     <PageContainer>
@@ -425,18 +411,16 @@ const EnhancedUserManagementView: React.FC = () => {
           animate="visible"
           variants={containerVariants}
         >
-          <StyledCard component={motion.div} variants={itemVariants}>
+          <StyledCard as={motion.div} {...itemVariants}>
             <CardHeader>
               <CardTitle>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <AdminPanelSettingsIcon style={{ fontSize: 28 }} />
-                  User Management
-                </Stack>
+                <Settings size={28} />
+                User Management
               </CardTitle>
               <motion.div variants={itemVariants}>
                 <StyledButton
-                  variant="contained"
-                  color="primary"
+                  $variant="contained"
+                  $color="primary"
                   onClick={() => fetchUsers()}
                   disabled={loading}
                 >
@@ -446,22 +430,24 @@ const EnhancedUserManagementView: React.FC = () => {
             </CardHeader>
             <CardContent>
               <TabContainer>
-                <Tabs
-                  value={tabValue}
-                  onChange={handleTabChange}
-                  textColor="inherit"
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  aria-label="user management tabs"
-                >
-                  <Tab icon={getTabIcon(0)} label="All Users" iconPosition="start" />
-                  <Tab icon={getTabIcon(1)} label="Clients" iconPosition="start" />
-                  <Tab icon={getTabIcon(2)} label="Trainers" iconPosition="start" />
-                  <Tab icon={getTabIcon(3)} label="Admins" iconPosition="start" />
-                  <Tab icon={getTabIcon(4)} label="Regular Users" iconPosition="start" />
-                </Tabs>
+                <TabBar role="tablist" aria-label="user management tabs">
+                  {tabs.map((tab) => (
+                    <TabButton
+                      key={tab.index}
+                      $active={tabValue === tab.index}
+                      onClick={() => handleTabChange(tab.index)}
+                      role="tab"
+                      aria-selected={tabValue === tab.index}
+                      aria-controls={`user-tabpanel-${tab.index}`}
+                      id={`user-tab-${tab.index}`}
+                    >
+                      {getTabIcon(tab.index)}
+                      {tab.label}
+                    </TabButton>
+                  ))}
+                </TabBar>
               </TabContainer>
-              
+
               <TabPanel value={tabValue} index={tabValue}>
                 {loading ? (
                   <LoadingContainer>
@@ -469,76 +455,72 @@ const EnhancedUserManagementView: React.FC = () => {
                   </LoadingContainer>
                 ) : (
                   <StyledTableContainer>
-                    <Table aria-label="users table">
-                      <TableHead>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }} aria-label="users table">
+                      <thead>
                         <StyledTableHead>
                           <StyledTableHeadCell>Name</StyledTableHeadCell>
                           <StyledTableHeadCell>Email</StyledTableHeadCell>
                           <StyledTableHeadCell>Username</StyledTableHeadCell>
                           <StyledTableHeadCell>Role</StyledTableHeadCell>
                           <StyledTableHeadCell>Status</StyledTableHeadCell>
-                          <StyledTableHeadCell align="right">Actions</StyledTableHeadCell>
+                          <StyledTableHeadCell $align="right">Actions</StyledTableHeadCell>
                         </StyledTableHead>
-                      </TableHead>
-                      <TableBody>
+                      </thead>
+                      <tbody>
                         {paginatedUsers.length > 0 ? (
                           paginatedUsers.map((user) => (
-                            <StyledTableRow key={user.id} component={motion.tr} variants={itemVariants}>
+                            <StyledTableRow key={user.id}>
                               <StyledTableCell>
                                 {user.firstName} {user.lastName}
                               </StyledTableCell>
                               <StyledTableCell>{user.email}</StyledTableCell>
                               <StyledTableCell>{user.username}</StyledTableCell>
                               <StyledTableCell>
-                                <Chip 
-                                  label={user.role.toUpperCase()} 
-                                  color={getRoleChipColor(user.role) as any}
-                                  size="small"
-                                />
+                                <RoleChip $role={user.role}>
+                                  {user.role.toUpperCase()}
+                                </RoleChip>
                               </StyledTableCell>
                               <StyledTableCell>
-                                <Chip 
-                                  label={user.isActive ? 'Active' : 'Inactive'} 
-                                  color={user.isActive ? 'success' : 'default'}
-                                  size="small"
-                                />
+                                <StatusChip $active={user.isActive}>
+                                  {user.isActive ? 'Active' : 'Inactive'}
+                                </StatusChip>
                               </StyledTableCell>
-                              <StyledTableCell align="right">
+                              <StyledTableCell $align="right">
                                 <IconButtonContainer>
                                   {/* Edit user button */}
                                   <StyledIconButton
-                                    btncolor="primary"
+                                    $btnColor="primary"
                                     onClick={() => handleEditUser(user)}
                                     title="Edit user"
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.95 }}
                                   >
-                                    <EditIcon fontSize="small" />
+                                    <Edit size={16} />
                                   </StyledIconButton>
 
                                   {/* Promote to client button - only for regular users */}
                                   {user.role === 'user' && (
                                     <StyledIconButton
-                                      btncolor="success"
+                                      $btnColor="success"
                                       onClick={() => handlePromoteToClient(user)}
                                       title="Promote to client"
                                       whileHover={{ scale: 1.1 }}
                                       whileTap={{ scale: 0.95 }}
                                     >
-                                      <PersonAddIcon fontSize="small" />
+                                      <UserPlus size={16} />
                                     </StyledIconButton>
                                   )}
 
                                   {/* Promote to admin button - for non-admin users */}
                                   {user.role !== 'admin' && (
                                     <StyledIconButton
-                                      btncolor="error"
+                                      $btnColor="error"
                                       onClick={() => handlePromoteToAdmin(user)}
                                       title="Promote to admin"
                                       whileHover={{ scale: 1.1 }}
                                       whileTap={{ scale: 0.95 }}
                                     >
-                                      <KeyIcon fontSize="small" />
+                                      <Key size={16} />
                                     </StyledIconButton>
                                   )}
                                 </IconButtonContainer>
@@ -546,38 +528,56 @@ const EnhancedUserManagementView: React.FC = () => {
                             </StyledTableRow>
                           ))
                         ) : (
-                          <TableRow>
+                          <tr>
                             <StyledTableCell colSpan={6}>
                               <EmptyStateContainer>
-                                <EmptyStateIcon>👤</EmptyStateIcon>
+                                <EmptyStateIcon>
+                                  <User size={48} />
+                                </EmptyStateIcon>
                                 <EmptyStateText>
                                   No users found in this category
                                 </EmptyStateText>
                               </EmptyStateContainer>
                             </StyledTableCell>
-                          </TableRow>
+                          </tr>
                         )}
-                      </TableBody>
-                    </Table>
+                      </tbody>
+                    </table>
                   </StyledTableContainer>
                 )}
-                
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  component="div"
-                  count={filteredUsers.length}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  sx={{ 
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '.MuiTablePagination-selectIcon': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '.MuiTablePagination-displayedRows': { color: 'rgba(255, 255, 255, 0.9)' },
-                    '.MuiTablePagination-select': { color: 'rgba(255, 255, 255, 0.9)' },
-                    '.MuiTablePagination-actions button': { color: 'rgba(255, 255, 255, 0.7)' },
-                  }}
-                />
+
+                {/* Custom Pagination */}
+                <PaginationBar>
+                  <span>Rows per page:</span>
+                  <PaginationSelect
+                    value={rowsPerPage}
+                    onChange={handleChangeRowsPerPage}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </PaginationSelect>
+                  <span>
+                    {filteredUsers.length > 0
+                      ? `${startRow}-${endRow} of ${filteredUsers.length}`
+                      : '0 of 0'}
+                  </span>
+                  <PaginationButton
+                    disabled={page === 0}
+                    onClick={() => handleChangePage(page - 1)}
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={18} />
+                  </PaginationButton>
+                  <PaginationButton
+                    disabled={page >= totalPages - 1}
+                    onClick={() => handleChangePage(page + 1)}
+                    title="Next page"
+                  >
+                    <ChevronRight size={18} />
+                  </PaginationButton>
+                </PaginationBar>
               </TabPanel>
             </CardContent>
           </StyledCard>
@@ -585,261 +585,208 @@ const EnhancedUserManagementView: React.FC = () => {
       </ContentContainer>
 
       {/* Edit User Dialog */}
-      <StyledDialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <EditIcon />
-            <Typography variant="h6">Edit User</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="First Name"
-                name="firstName"
-                value={editFormData.firstName}
-                onChange={handleEditFormChange}
-                variant="outlined"
-                InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                InputProps={{ 
-                  style: { color: 'rgba(255, 255, 255, 0.9)' },
-                }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Last Name"
-                name="lastName"
-                value={editFormData.lastName}
-                onChange={handleEditFormChange}
-                variant="outlined"
-                InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                InputProps={{ 
-                  style: { color: 'rgba(255, 255, 255, 0.9)' },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                value={editFormData.email}
-                onChange={handleEditFormChange}
-                variant="outlined"
-                InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                InputProps={{ 
-                  style: { color: 'rgba(255, 255, 255, 0.9)' },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="role-select-label" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Role</InputLabel>
-                <Select
-                  labelId="role-select-label"
+      <ModalOverlay $open={openEditDialog} onClick={() => setOpenEditDialog(false)}>
+        <ModalPanel $maxWidth="560px" onClick={(e) => e.stopPropagation()}>
+          <ModalTitle>
+            <Edit size={20} />
+            <h3>Edit User</h3>
+          </ModalTitle>
+          <ModalContent>
+            <FormGrid $columns={2} $gap="1rem">
+              <FormField>
+                <FormLabel htmlFor="edit-firstName">First Name</FormLabel>
+                <FormInput
+                  id="edit-firstName"
+                  name="firstName"
+                  value={editFormData.firstName}
+                  onChange={handleEditFormChange}
+                />
+              </FormField>
+              <FormField>
+                <FormLabel htmlFor="edit-lastName">Last Name</FormLabel>
+                <FormInput
+                  id="edit-lastName"
+                  name="lastName"
+                  value={editFormData.lastName}
+                  onChange={handleEditFormChange}
+                />
+              </FormField>
+              <FormField $fullWidth>
+                <FormLabel htmlFor="edit-email">Email</FormLabel>
+                <FormInput
+                  id="edit-email"
+                  name="email"
+                  value={editFormData.email}
+                  onChange={handleEditFormChange}
+                />
+              </FormField>
+              <FormField $fullWidth>
+                <FormLabel htmlFor="edit-role">Role</FormLabel>
+                <FormSelect
+                  id="edit-role"
                   name="role"
                   value={editFormData.role}
-                  label="Role"
-                  onChange={handleEditFormChange as any}
-                  sx={{ 
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    '.MuiSelect-icon': { color: 'rgba(255, 255, 255, 0.7)' },
-                  }}
+                  onChange={handleEditFormChange}
                 >
-                  <MenuItem value="user">User</MenuItem>
-                  <MenuItem value="client">Client</MenuItem>
-                  <MenuItem value="trainer">Trainer</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            {/* Client-specific fields - shown only when role is 'client' */}
-            {editFormData.role === 'client' && (
-              <>
-                <Grid item xs={12}>
-                  <Divider textAlign="left" sx={{ color: 'rgba(255, 255, 255, 0.6)', '&::before, &::after': { borderColor: 'rgba(255, 255, 255, 0.1)' } }}>
-                    Client Details
-                  </Divider>
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="fitness-goal-label" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Fitness Goal</InputLabel>
-                    <Select
-                      labelId="fitness-goal-label"
+                  <option value="user">User</option>
+                  <option value="client">Client</option>
+                  <option value="trainer">Trainer</option>
+                  <option value="admin">Admin</option>
+                </FormSelect>
+              </FormField>
+
+              {/* Client-specific fields - shown only when role is 'client' */}
+              {editFormData.role === 'client' && (
+                <>
+                  <FormDivider>Client Details</FormDivider>
+                  <FormField $fullWidth>
+                    <FormLabel htmlFor="edit-fitnessGoal">Fitness Goal</FormLabel>
+                    <FormSelect
+                      id="edit-fitnessGoal"
                       name="fitnessGoal"
                       value={editFormData.fitnessGoal}
-                      label="Fitness Goal"
-                      onChange={handleEditFormChange as any}
-                      sx={{ 
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        '.MuiSelect-icon': { color: 'rgba(255, 255, 255, 0.7)' },
-                      }}
+                      onChange={handleEditFormChange}
                     >
-                      <MenuItem value="weight-loss">Weight Loss</MenuItem>
-                      <MenuItem value="muscle-gain">Muscle Gain</MenuItem>
-                      <MenuItem value="endurance">Endurance</MenuItem>
-                      <MenuItem value="flexibility">Flexibility</MenuItem>
-                      <MenuItem value="general-fitness">General Fitness</MenuItem>
-                      <MenuItem value="sports-specific">Sports Specific</MenuItem>
-                      <MenuItem value="other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="training-experience-label" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Training Experience</InputLabel>
-                    <Select
-                      labelId="training-experience-label"
+                      <option value="">Select a goal</option>
+                      <option value="weight-loss">Weight Loss</option>
+                      <option value="muscle-gain">Muscle Gain</option>
+                      <option value="endurance">Endurance</option>
+                      <option value="flexibility">Flexibility</option>
+                      <option value="general-fitness">General Fitness</option>
+                      <option value="sports-specific">Sports Specific</option>
+                      <option value="other">Other</option>
+                    </FormSelect>
+                  </FormField>
+                  <FormField $fullWidth>
+                    <FormLabel htmlFor="edit-trainingExperience">Training Experience</FormLabel>
+                    <FormSelect
+                      id="edit-trainingExperience"
                       name="trainingExperience"
                       value={editFormData.trainingExperience}
-                      label="Training Experience"
-                      onChange={handleEditFormChange as any}
-                      sx={{ 
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        '.MuiSelect-icon': { color: 'rgba(255, 255, 255, 0.7)' },
-                      }}
+                      onChange={handleEditFormChange}
                     >
-                      <MenuItem value="beginner">Beginner</MenuItem>
-                      <MenuItem value="intermediate">Intermediate</MenuItem>
-                      <MenuItem value="advanced">Advanced</MenuItem>
-                      <MenuItem value="professional">Professional</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Available Sessions"
-                    name="availableSessions"
-                    type="number"
-                    InputProps={{ 
-                      inputProps: { min: 0 },
-                      style: { color: 'rgba(255, 255, 255, 0.9)' },
-                    }}
-                    value={editFormData.availableSessions}
-                    onChange={handleEditFormChange}
-                    variant="outlined"
-                    InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                  />
-                </Grid>
-              </>
-            )}
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <StyledButton 
-            onClick={() => setOpenEditDialog(false)}
-            variant="outlined"
-          >
-            Cancel
-          </StyledButton>
-          <StyledButton 
-            onClick={handleSaveUser}
-            variant="contained"
-            color="primary"
-          >
-            Save Changes
-          </StyledButton>
-        </DialogActions>
-      </StyledDialog>
+                      <option value="">Select experience level</option>
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                      <option value="professional">Professional</option>
+                    </FormSelect>
+                  </FormField>
+                  <FormField $fullWidth>
+                    <FormLabel htmlFor="edit-availableSessions">Available Sessions</FormLabel>
+                    <FormInput
+                      id="edit-availableSessions"
+                      name="availableSessions"
+                      type="number"
+                      min={0}
+                      value={editFormData.availableSessions}
+                      onChange={handleEditFormChange}
+                    />
+                  </FormField>
+                </>
+              )}
+            </FormGrid>
+          </ModalContent>
+          <ModalActions>
+            <StyledButton
+              $variant="outlined"
+              onClick={() => setOpenEditDialog(false)}
+            >
+              Cancel
+            </StyledButton>
+            <StyledButton
+              $variant="contained"
+              $color="primary"
+              onClick={handleSaveUser}
+            >
+              Save Changes
+            </StyledButton>
+          </ModalActions>
+        </ModalPanel>
+      </ModalOverlay>
 
       {/* Admin Code Dialog */}
-      <StyledDialog open={openAdminCodeDialog} onClose={() => setOpenAdminCodeDialog(false)}>
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <LockIcon sx={{ color: '#ff416c' }} />
-            <Typography variant="h6">Admin Authorization</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-            Enter the admin access code to promote {selectedUser?.firstName} {selectedUser?.lastName} to admin role.
-            This will grant them full system access.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Admin Access Code"
-            type="password"
-            fullWidth
-            variant="outlined"
-            value={adminCode}
-            onChange={(e) => setAdminCode(e.target.value)}
-            sx={{ mt: 2 }}
-            InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.7)' } }}
-            InputProps={{ 
-              style: { color: 'rgba(255, 255, 255, 0.9)' },
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <StyledButton 
-            onClick={() => setOpenAdminCodeDialog(false)}
-            variant="outlined"
-          >
-            Cancel
-          </StyledButton>
-          <StyledButton 
-            onClick={handleAdminCodeSubmit}
-            variant="contained"
-            color="error"
-          >
-            Authorize
-          </StyledButton>
-        </DialogActions>
-      </StyledDialog>
+      <ModalOverlay $open={openAdminCodeDialog} onClick={() => setOpenAdminCodeDialog(false)}>
+        <ModalPanel onClick={(e) => e.stopPropagation()}>
+          <ModalTitle>
+            <Lock size={20} style={{ color: '#ff416c' }} />
+            <h3>Admin Authorization</h3>
+          </ModalTitle>
+          <ModalContent>
+            <ModalSubText>
+              Enter the admin access code to promote {selectedUser?.firstName} {selectedUser?.lastName} to admin role.
+              This will grant them full system access.
+            </ModalSubText>
+            <FormField>
+              <FormLabel htmlFor="admin-code">Admin Access Code</FormLabel>
+              <FormInput
+                id="admin-code"
+                type="password"
+                autoFocus
+                value={adminCode}
+                onChange={(e) => setAdminCode(e.target.value)}
+              />
+            </FormField>
+          </ModalContent>
+          <ModalActions>
+            <StyledButton
+              $variant="outlined"
+              onClick={() => setOpenAdminCodeDialog(false)}
+            >
+              Cancel
+            </StyledButton>
+            <StyledButton
+              $variant="contained"
+              $color="error"
+              onClick={handleAdminCodeSubmit}
+            >
+              Authorize
+            </StyledButton>
+          </ModalActions>
+        </ModalPanel>
+      </ModalOverlay>
 
       {/* Promote to Client Dialog */}
-      <StyledDialog open={openPromoteDialog} onClose={() => setOpenPromoteDialog(false)}>
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <VerifiedUserIcon sx={{ color: '#00bf8f' }} />
-            <Typography variant="h6">Promote to Client</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-            Promote {selectedUser?.firstName} {selectedUser?.lastName} to client status. 
-            Enter the number of available training sessions to assign.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Available Sessions"
-            type="number"
-            fullWidth
-            variant="outlined"
-            InputProps={{ 
-              inputProps: { min: 0 },
-              style: { color: 'rgba(255, 255, 255, 0.9)' },
-            }}
-            value={editFormData.availableSessions}
-            onChange={(e) => setEditFormData({ ...editFormData, availableSessions: parseInt(e.target.value) || 0 })}
-            sx={{ mt: 2 }}
-            InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.7)' } }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <StyledButton 
-            onClick={() => setOpenPromoteDialog(false)}
-            variant="outlined"
-          >
-            Cancel
-          </StyledButton>
-          <StyledButton 
-            onClick={handlePromoteClientSubmit}
-            variant="contained"
-            color="success"
-          >
-            Promote
-          </StyledButton>
-        </DialogActions>
-      </StyledDialog>
+      <ModalOverlay $open={openPromoteDialog} onClick={() => setOpenPromoteDialog(false)}>
+        <ModalPanel onClick={(e) => e.stopPropagation()}>
+          <ModalTitle>
+            <ShieldCheck size={20} style={{ color: '#00bf8f' }} />
+            <h3>Promote to Client</h3>
+          </ModalTitle>
+          <ModalContent>
+            <ModalSubText>
+              Promote {selectedUser?.firstName} {selectedUser?.lastName} to client status.
+              Enter the number of available training sessions to assign.
+            </ModalSubText>
+            <FormField>
+              <FormLabel htmlFor="promote-sessions">Available Sessions</FormLabel>
+              <FormInput
+                id="promote-sessions"
+                type="number"
+                autoFocus
+                min={0}
+                value={editFormData.availableSessions}
+                onChange={(e) => setEditFormData({ ...editFormData, availableSessions: parseInt(e.target.value) || 0 })}
+              />
+            </FormField>
+          </ModalContent>
+          <ModalActions>
+            <StyledButton
+              $variant="outlined"
+              onClick={() => setOpenPromoteDialog(false)}
+            >
+              Cancel
+            </StyledButton>
+            <StyledButton
+              $variant="contained"
+              $color="success"
+              onClick={handlePromoteClientSubmit}
+            >
+              Promote
+            </StyledButton>
+          </ModalActions>
+        </ModalPanel>
+      </ModalOverlay>
     </PageContainer>
   );
 };
