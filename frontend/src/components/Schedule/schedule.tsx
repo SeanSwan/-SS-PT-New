@@ -32,19 +32,8 @@ import moment from "moment";
 import axios from "axios";
 import styled, { keyframes, css } from "styled-components";
 import { motion, AnimatePresence, useAnimation, useInView } from "framer-motion";
-import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import Tooltip from "@mui/material/Tooltip";
-import IconButton from "@mui/material/IconButton";
-import EventIcon from "@mui/icons-material/Event";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import AddIcon from "@mui/icons-material/Add";
-import TodayIcon from "@mui/icons-material/Today";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
+// MUI imports removed — dead code below `return <UniversalSchedule />` used these.
+// Full dead-code cleanup deferred to a separate pass.
 import { io } from "socket.io-client";
 
 // Import custom accessible components
