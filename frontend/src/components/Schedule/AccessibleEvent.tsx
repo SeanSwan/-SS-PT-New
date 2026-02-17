@@ -1,17 +1,14 @@
 /**
  * AccessibleEvent.tsx
- * 
+ *
  * An accessible custom event component for Big Calendar
  * Provides clear visual indicators, high contrast, and proper ARIA support
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import moment from 'moment';
-import Tooltip from '@mui/material/Tooltip';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import PersonIcon from '@mui/icons-material/Person';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { Calendar, User, Clock } from 'lucide-react';
 
 // Types
 interface EventProps {
@@ -43,16 +40,16 @@ const EventContainer = styled.div<{ status: string }>`
   overflow: hidden;
   position: relative;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  
+
   /* Status-based styling with enhanced contrast */
-  background: ${({ status }) => 
+  background: ${({ status }) =>
     status === 'available' ? 'rgba(0, 200, 150, 0.9)' :
     status === 'booked' ? 'rgba(150, 100, 230, 0.9)' :
     status === 'confirmed' ? 'rgba(0, 180, 230, 0.9)' :
     status === 'completed' ? 'rgba(70, 200, 70, 0.9)' :
     'rgba(230, 80, 80, 0.9)'};
-  
-  color: ${({ status }) => 
+
+  color: ${({ status }) =>
     ['available', 'confirmed', 'completed'].includes(status) ? '#000' : '#fff'};
 
   /* Cancelled styling */
@@ -60,7 +57,7 @@ const EventContainer = styled.div<{ status: string }>`
     text-decoration: line-through;
     opacity: 0.8;
   `}
-  
+
   /* Status badge */
   &::before {
     content: '${({ status }) => status.toUpperCase()}';
@@ -71,7 +68,7 @@ const EventContainer = styled.div<{ status: string }>`
     padding: 2px 5px;
     border-radius: 0 0 0 6px;
     background-color: rgba(0, 0, 0, 0.2);
-    color: ${({ status }) => 
+    color: ${({ status }) =>
       ['available', 'confirmed', 'completed'].includes(status) ? '#000' : '#fff'};
     font-weight: bold;
   }
@@ -91,9 +88,10 @@ const TimeInfo = styled.div`
   align-items: center;
   font-size: 0.8rem;
   margin-top: 2px;
-  
+
   svg {
-    font-size: 0.9rem;
+    width: 14px;
+    height: 14px;
     margin-right: 3px;
   }
 `;
@@ -105,9 +103,10 @@ const PersonInfo = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  
+
   svg {
-    font-size: 0.9rem;
+    width: 14px;
+    height: 14px;
     margin-right: 3px;
   }
 `;
@@ -116,17 +115,17 @@ const PersonInfo = styled.div`
 const TooltipContent = styled.div`
   padding: 10px;
   min-width: 200px;
-  
+
   h4 {
     margin: 0 0 5px 0;
     font-size: 1rem;
   }
-  
+
   p {
     margin: 4px 0;
     font-size: 0.9rem;
   }
-  
+
   .status {
     display: inline-block;
     padding: 3px 6px;
@@ -137,61 +136,100 @@ const TooltipContent = styled.div`
   }
 `;
 
+// Custom tooltip wrapper
+const TooltipWrapper = styled.div`
+  position: relative;
+  height: 100%;
+  width: 100%;
+`;
+
+const TooltipPopup = styled.div`
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(20, 20, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  min-width: 200px;
+  pointer-events: none;
+  color: white;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(20, 20, 40, 0.95);
+  }
+`;
+
 const AccessibleEvent: React.FC<EventProps> = ({ event }) => {
   const { title, start, end, status, client, trainer } = event;
-  
-  // Create tooltip content
-  const tooltipContent = (
-    <TooltipContent>
-      <h4>{title}</h4>
-      <p><strong>Status:</strong> {status.toUpperCase()}</p>
-      <p><strong>Time:</strong> {moment(start).format('h:mm A')} - {moment(end).format('h:mm A')}</p>
-      {client && <p><strong>Client:</strong> {client.firstName} {client.lastName}</p>}
-      {trainer && <p><strong>Trainer:</strong> {trainer.firstName} {trainer.lastName}</p>}
-    </TooltipContent>
-  );
-  
+  const [showTooltip, setShowTooltip] = useState(false);
+
   // Show appropriate person info based on event status
   const renderPersonInfo = () => {
     if (client && (status !== 'available')) {
       return (
         <PersonInfo>
-          <PersonIcon fontSize="small" />
+          <User size={14} />
           {client.firstName} {client.lastName}
         </PersonInfo>
       );
     }
-    
+
     if (trainer) {
       return (
         <PersonInfo>
-          <PersonIcon fontSize="small" />
+          <User size={14} />
           Trainer: {trainer.firstName}
         </PersonInfo>
       );
     }
-    
+
     return null;
   };
-  
+
   return (
-    <Tooltip title={tooltipContent} arrow>
-      <EventContainer 
+    <TooltipWrapper
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
+    >
+      {showTooltip && (
+        <TooltipPopup role="tooltip">
+          <TooltipContent>
+            <h4>{title}</h4>
+            <p><strong>Status:</strong> {status.toUpperCase()}</p>
+            <p><strong>Time:</strong> {moment(start).format('h:mm A')} - {moment(end).format('h:mm A')}</p>
+            {client && <p><strong>Client:</strong> {client.firstName} {client.lastName}</p>}
+            {trainer && <p><strong>Trainer:</strong> {trainer.firstName} {trainer.lastName}</p>}
+          </TooltipContent>
+        </TooltipPopup>
+      )}
+      <EventContainer
         status={status}
         role="button"
         aria-label={`${title} - ${status} session at ${moment(start).format('h:mm A')}`}
         tabIndex={0}
       >
         <EventTitle>{title}</EventTitle>
-        
+
         <TimeInfo>
-          <AccessTimeIcon fontSize="small" />
+          <Clock size={14} />
           {moment(start).format('h:mm A')}
         </TimeInfo>
-        
+
         {renderPersonInfo()}
       </EventContainer>
-    </Tooltip>
+    </TooltipWrapper>
   );
 };
 
