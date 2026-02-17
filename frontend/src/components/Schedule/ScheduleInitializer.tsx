@@ -1,13 +1,13 @@
 /**
  * ScheduleInitializer.tsx
- * 
+ *
  * A wrapper component that ensures the Redux store is properly initialized
  * before rendering the Schedule component. This prevents "undefined" errors
  * when accessing the schedule state.
  */
 
 import React, { useEffect, useState } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { CircularProgress, Typography } from '../ui/primitives';
 
 interface ScheduleInitializerProps {
   children: React.ReactNode;
@@ -15,45 +15,43 @@ interface ScheduleInitializerProps {
 
 const ScheduleInitializer: React.FC<ScheduleInitializerProps> = ({ children }) => {
   const [isReady, setIsReady] = useState(false);
-  
+
   useEffect(() => {
     // Simply check if the global initialization flag is set
-    if (window.__REDUX_ALREADY_INITIALIZED__) {
-      // If already initialized by oneTimeInitializer.js, we're good to go
+    if ((window as any).__REDUX_ALREADY_INITIALIZED__) {
       setIsReady(true);
     } else {
-      // Short timeout to give the one-time initializer a chance to run
       const timer = setTimeout(() => {
         console.log('ScheduleInitializer: Waited for store initialization');
         setIsReady(true);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, []);
-  
-  // If not ready yet, show loading indicator
+
   if (!isReady) {
     return (
-      <Box
-        sx={{
+      <div
+        style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '300px',
-          p: 3,
+          padding: '24px',
         }}
       >
-        <CircularProgress size={40} sx={{ mb: 2 }} />
+        <div style={{ marginBottom: '16px' }}>
+          <CircularProgress size={40} />
+        </div>
         <Typography variant="body1">
           Initializing schedule...
         </Typography>
-      </Box>
+      </div>
     );
   }
-  
-  // If initialization complete, render children
+
   return <>{children}</>;
 };
 

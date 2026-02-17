@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useSwanTheme, useMediaQuery } from '../../styles/mui-replacements';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext';
@@ -46,9 +46,9 @@ export const useHeaderState = () => {
   const navigate = useNavigate();
   
   // ===================== MATERIAL UI HOOKS =====================
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(muiTheme.breakpoints.down('lg'));
+  const swanTheme = useSwanTheme();
+  const isMobile = useMediaQuery((t) => t.breakpoints.down('md'));
+  const isTablet = useMediaQuery((t) => t.breakpoints.down('lg'));
   
   // ===================== REFS =====================
   const headerRef = useRef<HTMLElement>(null);

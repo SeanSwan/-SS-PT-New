@@ -6,7 +6,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Box } from '@mui/material';
+import { Box } from '../../ui/primitives';
 import DashboardSelector from '../../DashboardSelector/DashboardSelector';
 
 // Galaxy Theme Colors (copied from header for consistency)
@@ -200,7 +200,7 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
             SwanStudios Store
           </StyledNavLink>
 
-          <Box sx={{ ml: 1, mr: 1 }}>
+          <Box style={{ marginLeft: 8, marginRight: 8 }}>
             <DashboardSelector />
           </Box>
         </>

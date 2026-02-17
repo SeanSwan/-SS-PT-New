@@ -16,7 +16,7 @@
 
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Typography, Stack, Grid } from '@mui/material';
+import { Typography, Stack, Grid } from '../../../../ui/primitives';
 import { Calendar, TableIcon, CalendarDays, Zap, RefreshCw } from 'lucide-react';
 import { 
   AdminSessionsOverviewProps, 
@@ -114,13 +114,13 @@ const AdminSessionsOverview: React.FC<AdminSessionsOverviewProps> = ({
       <HeaderSection>
         <HeaderTitle>
           <Calendar size={28} />
-          <Typography 
-            variant="h5" 
-            component="h1" 
-            sx={{ 
+          <Typography
+            variant="h5"
+            component="h1"
+            style={{
               fontWeight: 300,
               color: 'white',
-              fontSize: { xs: '1.5rem', md: '1.75rem' }
+              fontSize: '1.75rem',
             }}
           >
             Training Sessions Management
@@ -230,14 +230,14 @@ export const CompactAdminSessionsOverview: React.FC<CompactOverviewProps> = memo
       transition={{ duration: 0.6 }}
     >
       <StellarSearchContainer>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            color: 'white', 
+        <Typography
+          variant="h6"
+          style={{
+            color: 'white',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
-            gap: 1
+            gap: '8px',
           }}
         >
           <Calendar size={20} />
@@ -255,7 +255,7 @@ export const CompactAdminSessionsOverview: React.FC<CompactOverviewProps> = memo
       
       <Grid container spacing={1.5}>
         {statsCards.map((cardData, index) => (
-          <Grid item xs={6} sm={3} key={cardData.label}>
+          <Grid item xs={6} sm={3} key={cardData.label} style={{ minWidth: 0 }}>
             <StatsCard
               data={cardData}
               index={index}
