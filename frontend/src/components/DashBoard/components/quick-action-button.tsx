@@ -1,5 +1,4 @@
 import React from 'react';
-import { Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
@@ -32,29 +31,29 @@ const IconContainer = styled.div<{ color?: string }>`
   margin-bottom: 1rem;
 `;
 
-const ActionTitle = styled(Typography)`
-  font-size: 1rem !important;
-  font-weight: 500 !important;
-  margin: 0 0 0.5rem 0 !important;
-  color: white !important;
+const ActionTitle = styled.h6`
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  color: white;
 `;
 
-const ActionDescription = styled(Typography)`
-  font-size: 0.75rem !important;
-  color: rgba(255, 255, 255, 0.7) !important;
-  margin: 0 !important;
+const ActionDescription = styled.p`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
 `;
 
 // Animation variants
 const cardVariants = {
   hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 10 
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10
     }
   }
 };
@@ -89,7 +88,7 @@ interface QuickActionButtonProps {
 
 /**
  * QuickActionButton Component
- * 
+ *
  * Displays a clickable card with icon and title for quick actions
  * in the admin dashboard.
  */
@@ -103,18 +102,18 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
   const navigate = useNavigate();
   const iconColor = colorMap[colorScheme] || colorMap.primary;
   const iconComponent = iconMap[icon] || <Settings size={24} color="white" />;
-  
+
   const handleClick = () => {
     navigate(path);
   };
-  
+
   return (
     <ActionCardContainer
       initial="hidden"
       animate="visible"
       variants={cardVariants}
-      whileHover={{ 
-        y: -5, 
+      whileHover={{
+        y: -5,
         boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
         backgroundColor: 'rgba(40, 40, 80, 0.5)',
         borderColor: 'rgba(0, 255, 255, 0.3)'
@@ -125,11 +124,11 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
       <IconContainer color={iconColor}>
         {iconComponent}
       </IconContainer>
-      <ActionTitle variant="h6">
+      <ActionTitle>
         {title}
       </ActionTitle>
       {description && (
-        <ActionDescription variant="body2">
+        <ActionDescription>
           {description}
         </ActionDescription>
       )}
