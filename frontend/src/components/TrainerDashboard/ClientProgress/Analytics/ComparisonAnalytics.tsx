@@ -1,37 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import styled from 'styled-components';
 import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  Switch,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Chip,
-  Alert,
-  Divider,
-  LinearProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
-} from '@mui/material';
-import {
-  CompareArrows,
+  ArrowLeftRight,
   TrendingUp,
   TrendingDown,
   Target,
-  Users,
-  BarChart,
-  ShowChart,
-  Timeline
 } from 'lucide-react';
 
 // Import chart components
@@ -41,9 +14,294 @@ import BarProgressChart from '../../../FitnessStats/charts/BarProgressChart';
 // Import proper type definitions
 import type { ComparisonAnalyticsProps, ComparisonMetric } from './types';
 
+/* ─── Galaxy-Swan Theme Tokens ─── */
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgCard: 'rgba(29,31,43,1)',
+  border: 'rgba(14,165,233,0.2)',
+  text: '#e2e8f0',
+  textSecondary: 'rgba(226,232,240,0.6)',
+  accent: '#0ea5e9',
+  cyan: '#00ffff',
+  success: '#4CAF50',
+  warning: '#FFC107',
+  error: '#FF6B6B',
+};
+
+/* ─── Styled Components ─── */
+
+const PageWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const GlassPanel = styled.div`
+  background: ${theme.bgCard};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const SectionTitle = styled.h3`
+  margin: 0 0 16px 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const Subtitle = styled.p`
+  margin: 0 0 24px 0;
+  font-size: 0.85rem;
+  color: ${theme.textSecondary};
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const FlexCenter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ControlsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: center;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, auto);
+  }
+`;
+
+const FieldWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const StyledLabel = styled.label`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: ${theme.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const StyledSelect = styled.select`
+  appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  padding: 10px 36px 10px 12px;
+  font-size: 0.875rem;
+  min-height: 44px;
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23e2e8f0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+
+  & option {
+    background: #1d1f2b;
+    color: ${theme.text};
+  }
+`;
+
+const SwitchWrapper = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 0.875rem;
+  color: ${theme.text};
+  user-select: none;
+`;
+
+const ToggleTrack = styled.span<{ $checked: boolean }>`
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${({ $checked }) => ($checked ? theme.accent : 'rgba(255,255,255,0.15)')};
+  transition: background 0.2s;
+  flex-shrink: 0;
+`;
+
+const ToggleThumb = styled.span<{ $checked: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${({ $checked }) => ($checked ? '22px' : '2px')};
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+`;
+
+const HiddenCheckbox = styled.input`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+/* ─── Table Styled Components ─── */
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const StyledThead = styled.thead`
+  border-bottom: 1px solid ${theme.border};
+`;
+
+const StyledTh = styled.th<{ $align?: string }>`
+  padding: 12px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: ${theme.textSecondary};
+  text-align: ${({ $align }) => $align || 'left'};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+`;
+
+const StyledTd = styled.td<{ $align?: string }>`
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: ${theme.text};
+  text-align: ${({ $align }) => $align || 'left'};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+`;
+
+const MetricName = styled.span`
+  font-weight: 500;
+  color: ${theme.text};
+  display: block;
+`;
+
+const MetricCaption = styled.span`
+  font-size: 0.75rem;
+  color: ${theme.textSecondary};
+  display: block;
+  margin-top: 2px;
+`;
+
+const MetricScore = styled.span<{ $bold?: boolean }>`
+  font-weight: ${({ $bold }) => ($bold ? 700 : 400)};
+  color: ${({ $bold }) => ($bold ? theme.text : theme.textSecondary)};
+  display: block;
+`;
+
+const ProgressBarWrapper = styled.div`
+  min-width: 80px;
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 6px;
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $width: number; $color: string }>`
+  height: 100%;
+  width: ${({ $width }) => $width}%;
+  background: ${({ $color }) => $color};
+  border-radius: 2px;
+  transition: width 0.4s ease;
+`;
+
+const PercentileChip = styled.span<{ $variant: 'success' | 'warning' | 'error' }>`
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: ${({ $variant }) =>
+    $variant === 'success'
+      ? 'rgba(76,175,80,0.15)'
+      : $variant === 'warning'
+        ? 'rgba(255,193,7,0.15)'
+        : 'rgba(255,107,107,0.15)'};
+  color: ${({ $variant }) =>
+    $variant === 'success'
+      ? theme.success
+      : $variant === 'warning'
+        ? theme.warning
+        : theme.error};
+`;
+
+const ImprovementText = styled.span<{ $color: string }>`
+  font-weight: 500;
+  color: ${({ $color }) => $color};
+`;
+
+/* ─── Insights Styled Components ─── */
+
+const InsightsStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const AlertBox = styled.div<{ $severity: 'success' | 'warning' | 'info' | 'error' }>`
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid
+    ${({ $severity }) =>
+      $severity === 'success'
+        ? theme.success
+        : $severity === 'warning'
+          ? theme.warning
+          : $severity === 'error'
+            ? theme.error
+            : theme.accent};
+`;
+
+const AlertTitle = styled.p`
+  margin: 0 0 6px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const AlertBody = styled.p`
+  margin: 0 0 8px 0;
+  font-size: 0.85rem;
+  color: ${theme.textSecondary};
+`;
+
+const AlertRec = styled.p`
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: ${theme.text};
+`;
+
 /**
  * ComparisonAnalytics Component
- * 
+ *
  * Advanced comparison analytics for trainers to compare client progress with:
  * - Other clients with similar profiles
  * - Average performance benchmarks
@@ -298,99 +556,91 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
     if (!comparisonAnalytics) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <CompareArrows color="#00ffff" size={24} style={{ marginRight: 12 }} />
-          <Typography variant="h6">{comparisonAnalytics.title}</Typography>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          {comparisonAnalytics.subtitle}
-        </Typography>
+      <GlassPanel>
+        <FlexRow>
+          <ArrowLeftRight color="#00ffff" size={24} />
+          <SectionTitle style={{ margin: 0 }}>{comparisonAnalytics.title}</SectionTitle>
+        </FlexRow>
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Metric</TableCell>
-                <TableCell align="center">Client Score</TableCell>
-                <TableCell align="center">Comparison</TableCell>
+        <Subtitle>
+          {comparisonAnalytics.subtitle}
+        </Subtitle>
+
+        <div style={{ overflowX: 'auto' }}>
+          <StyledTable>
+            <StyledThead>
+              <tr>
+                <StyledTh>Metric</StyledTh>
+                <StyledTh $align="center">Client Score</StyledTh>
+                <StyledTh $align="center">Comparison</StyledTh>
                 {showPercentiles && comparisonType === 'average' && (
-                  <TableCell align="center">Percentile</TableCell>
+                  <StyledTh $align="center">Percentile</StyledTh>
                 )}
-                <TableCell align="center">Performance</TableCell>
-                <TableCell align="center">Change</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+                <StyledTh $align="center">Performance</StyledTh>
+                <StyledTh $align="center">Change</StyledTh>
+              </tr>
+            </StyledThead>
+            <tbody>
               {comparisonAnalytics.metrics.map((metric: ComparisonMetric) => (
-                <TableRow key={metric.name}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
+                <tr key={metric.name}>
+                  <StyledTd>
+                    <MetricName>
                       {metric.name}
-                    </Typography>
+                    </MetricName>
                     {metric.target && (
-                      <Typography variant="caption" color="text.secondary">
+                      <MetricCaption>
                         Target: {metric.target}
-                      </Typography>
+                      </MetricCaption>
                     )}
                     {metric.current && (
-                      <Typography variant="caption" color="text.secondary" display="block">
+                      <MetricCaption>
                         Current: {metric.current}
-                      </Typography>
+                      </MetricCaption>
                     )}
-                  </TableCell>
-                  
-                  <TableCell align="center">
-                    <Box sx={{ minWidth: 80 }}>
-                      <Typography variant="body2" fontWeight="bold">
+                  </StyledTd>
+
+                  <StyledTd $align="center">
+                    <ProgressBarWrapper>
+                      <MetricScore $bold>
                         {metric.client}
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={metric.client} 
-                        sx={{ 
-                          mt: 1, 
-                          '& .MuiLinearProgress-bar': { 
-                            bgcolor: '#00ffff' 
-                          } 
-                        }} 
-                      />
-                    </Box>
-                  </TableCell>
-                  
-                  <TableCell align="center">
-                    <Box sx={{ minWidth: 80 }}>
-                      <Typography variant="body2" color="text.secondary">
+                      </MetricScore>
+                      <ProgressBarTrack>
+                        <ProgressBarFill $width={metric.client} $color="#00ffff" />
+                      </ProgressBarTrack>
+                    </ProgressBarWrapper>
+                  </StyledTd>
+
+                  <StyledTd $align="center">
+                    <ProgressBarWrapper>
+                      <MetricScore>
                         {metric.comparison}
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={metric.comparison} 
-                        sx={{ 
-                          mt: 1, 
-                          '& .MuiLinearProgress-bar': { 
-                            bgcolor: 'rgba(255, 255, 255, 0.3)' 
-                          } 
-                        }} 
-                      />
-                    </Box>
-                  </TableCell>
-                  
+                      </MetricScore>
+                      <ProgressBarTrack>
+                        <ProgressBarFill $width={metric.comparison} $color="rgba(255, 255, 255, 0.3)" />
+                      </ProgressBarTrack>
+                    </ProgressBarWrapper>
+                  </StyledTd>
+
                   {showPercentiles && comparisonType === 'average' && (
-                    <TableCell align="center">
+                    <StyledTd $align="center">
                       {metric.percentile && (
-                        <Chip 
-                          label={`${metric.percentile}th`} 
-                          size="small"
-                          color={metric.percentile >= 70 ? 'success' : metric.percentile >= 50 ? 'warning' : 'error'}
-                        />
+                        <PercentileChip
+                          $variant={
+                            metric.percentile >= 70
+                              ? 'success'
+                              : metric.percentile >= 50
+                                ? 'warning'
+                                : 'error'
+                          }
+                        >
+                          {metric.percentile}th
+                        </PercentileChip>
                       )}
-                    </TableCell>
+                    </StyledTd>
                   )}
-                  
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+                  <StyledTd $align="center">
+                    <FlexCenter>
                       {metric.trend === 'above' || metric.trend === 'approaching' ? (
                         <TrendingUp size={16} color="#4CAF50" />
                       ) : metric.trend === 'below' ? (
@@ -398,28 +648,26 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
                       ) : (
                         <Target size={16} color="#FFC107" />
                       )}
-                    </Box>
-                  </TableCell>
-                  
-                  <TableCell align="center">
-                    <Typography 
-                      variant="body2" 
-                      color={
-                        metric.improvement.startsWith('+') ? '#4CAF50' : 
-                        metric.improvement.startsWith('-') ? '#FF6B6B' : 
-                        'text.primary'
+                    </FlexCenter>
+                  </StyledTd>
+
+                  <StyledTd $align="center">
+                    <ImprovementText
+                      $color={
+                        metric.improvement.startsWith('+') ? '#4CAF50' :
+                        metric.improvement.startsWith('-') ? '#FF6B6B' :
+                        theme.text
                       }
-                      fontWeight="medium"
                     >
                       {metric.improvement}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                    </ImprovementText>
+                  </StyledTd>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+            </tbody>
+          </StyledTable>
+        </div>
+      </GlassPanel>
     );
   };
 
@@ -427,100 +675,94 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
     if (!comparisonAnalytics?.insights) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b' }}>
-        <Typography variant="h6" gutterBottom>
+      <GlassPanel>
+        <SectionTitle>
           Analytics Insights
-        </Typography>
-        
-        <Grid container spacing={2}>
+        </SectionTitle>
+
+        <InsightsStack>
           {comparisonAnalytics.insights.map((insight: any, index: number) => (
-            <Grid item xs={12} key={index}>
-              <Alert 
-                severity={
-                  insight.type === 'success' ? 'success' : 
-                  insight.type === 'warning' ? 'warning' : 
-                  'info'
-                }
-                sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)' }}
-              >
-                <Typography variant="subtitle2" gutterBottom>
-                  {insight.title}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  {insight.description}
-                </Typography>
-                <Typography variant="body2" fontWeight="medium">
-                  Recommendation: {insight.recommendation}
-                </Typography>
-              </Alert>
-            </Grid>
+            <AlertBox
+              key={index}
+              $severity={
+                insight.type === 'success' ? 'success' :
+                insight.type === 'warning' ? 'warning' :
+                'info'
+              }
+            >
+              <AlertTitle>
+                {insight.title}
+              </AlertTitle>
+              <AlertBody>
+                {insight.description}
+              </AlertBody>
+              <AlertRec>
+                Recommendation: {insight.recommendation}
+              </AlertRec>
+            </AlertBox>
           ))}
-        </Grid>
-      </Paper>
+        </InsightsStack>
+      </GlassPanel>
     );
   };
 
   return (
-    <Box>
+    <PageWrapper>
       {/* Controls */}
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <GlassPanel>
+        <SectionTitle>
           Comparison Analytics
-        </Typography>
-        
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Comparison Type</InputLabel>
-              <Select
-                value={comparisonType}
-                onChange={(e) => setComparisonType(e.target.value as any)}
-                label="Comparison Type"
-              >
-                <MenuItem value="average">vs. Average</MenuItem>
-                <MenuItem value="clients">vs. Similar Clients</MenuItem>
-                <MenuItem value="historical">vs. Personal History</MenuItem>
-                <MenuItem value="goals">vs. Target Goals</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Timeframe</InputLabel>
-              <Select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
-                label="Timeframe"
-              >
-                <MenuItem value="1month">Last Month</MenuItem>
-                <MenuItem value="3months">Last 3 Months</MenuItem>
-                <MenuItem value="6months">Last 6 Months</MenuItem>
-                <MenuItem value="1year">Last Year</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={showPercentiles}
-                  onChange={(e) => setShowPercentiles(e.target.checked)}
-                />
-              }
-              label="Show Percentiles"
+        </SectionTitle>
+
+        <ControlsGrid>
+          <FieldWrapper>
+            <StyledLabel htmlFor="comparison-type">Comparison Type</StyledLabel>
+            <StyledSelect
+              id="comparison-type"
+              value={comparisonType}
+              onChange={(e) => setComparisonType(e.target.value as any)}
+            >
+              <option value="average">vs. Average</option>
+              <option value="clients">vs. Similar Clients</option>
+              <option value="historical">vs. Personal History</option>
+              <option value="goals">vs. Target Goals</option>
+            </StyledSelect>
+          </FieldWrapper>
+
+          <FieldWrapper>
+            <StyledLabel htmlFor="timeframe-select">Timeframe</StyledLabel>
+            <StyledSelect
+              id="timeframe-select"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+            >
+              <option value="1month">Last Month</option>
+              <option value="3months">Last 3 Months</option>
+              <option value="6months">Last 6 Months</option>
+              <option value="1year">Last Year</option>
+            </StyledSelect>
+          </FieldWrapper>
+
+          <SwitchWrapper>
+            <HiddenCheckbox
+              type="checkbox"
+              checked={showPercentiles}
+              onChange={(e) => setShowPercentiles(e.target.checked)}
             />
-          </Grid>
-        </Grid>
-      </Paper>
+            <ToggleTrack $checked={showPercentiles}>
+              <ToggleThumb $checked={showPercentiles} />
+            </ToggleTrack>
+            Show Percentiles
+          </SwitchWrapper>
+        </ControlsGrid>
+      </GlassPanel>
 
       {/* Metrics Comparison */}
       {renderMetricsComparison()}
-      
+
       {/* Insights */}
       {renderInsights()}
-    </Box>
+    </PageWrapper>
   );
 };
 

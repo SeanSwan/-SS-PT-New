@@ -1,43 +1,20 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Typography, 
-  Dialog, 
-  DialogActions, 
-  DialogContent, 
-  DialogTitle, 
-  TextField, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem, 
-  Grid, 
-  IconButton,
-  Divider,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Tooltip
-} from '@mui/material';
-import { 
-  Award, 
-  Edit, 
-  Trash2, 
-  Plus, 
-  Star, 
-  Gift, 
-  TrendingUp, 
-  Trophy, 
-  Heart, 
-  Target, 
-  Zap, 
-  Calendar, 
-  Clock, 
-  Dumbbell, 
+import styled from 'styled-components';
+import {
+  Award,
+  Edit,
+  Trash2,
+  Plus,
+  Star,
+  Gift,
+  TrendingUp,
+  Trophy,
+  Heart,
+  Target,
+  Zap,
+  Calendar,
+  Clock,
+  Dumbbell,
   Medal,
   Eye,
   EyeOff,
@@ -55,6 +32,469 @@ import {
   AchievementReward,
   AchievementBadge
 } from '../styled-gamification-system';
+
+// ─── Styled Components ───────────────────────────────────────────────
+
+const ControlsRow = styled.div`
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  flex-grow: 1;
+  min-width: 200px;
+  max-width: 300px;
+  display: flex;
+  align-items: center;
+`;
+
+const SearchIconBox = styled.div`
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: #94a3b8;
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px 8px 38px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+`;
+
+const StyledSelect = styled.select`
+  min-height: 44px;
+  min-width: 120px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const SwitchLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 14px;
+  min-height: 44px;
+`;
+
+const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const SwitchTrack = styled.div<{ $checked: boolean }>`
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: ${({ $checked }) => $checked ? '#0ea5e9' : 'rgba(14, 165, 233, 0.2)'};
+  border-radius: 11px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+`;
+
+const SwitchThumb = styled.div<{ $checked: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${({ $checked }) => $checked ? '20px' : '2px'};
+  width: 18px;
+  height: 18px;
+  background: #e2e8f0;
+  border-radius: 50%;
+  transition: left 0.2s ease;
+`;
+
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: #0ea5e9;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #0284c7;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: transparent;
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.1);
+  }
+`;
+
+const OutlinedButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: transparent;
+  color: #0ea5e9;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.1);
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+`;
+
+const StatusPositioner = styled.div`
+  position: absolute;
+  top: 8px;
+  left: 8px;
+`;
+
+const TooltipButton = styled.button<{ $isActive: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: ${({ $isActive }) => $isActive ? '#0ea5e9' : '#64748b'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.1);
+  }
+`;
+
+const ChipRequirement = styled.div`
+  margin-top: auto;
+  margin-bottom: 8px;
+`;
+
+const ChipSpan = styled.span`
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 16px;
+  color: #e2e8f0;
+  font-size: 12px;
+  margin-bottom: 8px;
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  gap: 8px;
+  width: 100%;
+`;
+
+const IconActionButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: ${({ $variant }) => $variant === 'danger' ? '#ef4444' : '#0ea5e9'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ $variant }) => $variant === 'danger'
+      ? 'rgba(239, 68, 68, 0.1)'
+      : 'rgba(14, 165, 233, 0.1)'};
+  }
+`;
+
+// ─── Dialog Styled Components ────────────────────────────────────────
+
+const DialogOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => $open ? 'flex' : 'none'};
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1300;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+`;
+
+const DialogPanel = styled.div`
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+`;
+
+const DialogTitleBar = styled.div`
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+`;
+
+const DialogTitleText = styled.h2`
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const DialogContentArea = styled.div`
+  padding: 24px;
+`;
+
+const DialogActionsBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(14, 165, 233, 0.2);
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormFieldFull = styled.div`
+  grid-column: 1 / -1;
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+`;
+
+const FormInput = styled.input`
+  min-height: 44px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+`;
+
+const FormInputWithIcon = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+
+  &:focus-within {
+    border-color: #0ea5e9;
+  }
+
+  input {
+    flex: 1;
+    min-height: 42px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-size: 14px;
+    outline: none;
+  }
+`;
+
+const FormTextarea = styled.textarea`
+  min-height: 88px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+`;
+
+const FormSelect = styled.select`
+  min-height: 44px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const StyledDivider = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(14, 165, 233, 0.2);
+  margin: 4px 0;
+`;
+
+const SectionTitle = styled.h4`
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const TierSwatch = styled.span<{ $color: string }>`
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: ${({ $color }) => $color};
+  vertical-align: middle;
+  margin-right: 6px;
+`;
+
+const BadgePreview = styled.div`
+  margin-top: 12px;
+
+  img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+  }
+`;
+
+// ─── Interfaces ──────────────────────────────────────────────────────
 
 interface Achievement {
   id: string;
@@ -140,16 +580,16 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
   // Get filtered achievements
   const filteredAchievements = achievements.filter(a => {
     // Search filter
-    const matchesSearch = searchQuery === '' || 
-      a.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = searchQuery === '' ||
+      a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // Tier filter
     const matchesTier = filterTier === 'all' || a.tier === filterTier;
-    
+
     // Active status filter
     const matchesStatus = showInactiveOnly ? !a.isActive : true;
-    
+
     return matchesSearch && matchesTier && matchesStatus;
   });
 
@@ -203,70 +643,59 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
   };
 
   return (
-    <Box>
+    <div>
       {/* Search and filter controls */}
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search achievements..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          size="small"
-          sx={{ flexGrow: 1, minWidth: 200, maxWidth: 300 }}
-          InputProps={{
-            startAdornment: (
-              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                <Search size={18} />
-              </Box>
-            ),
-          }}
-        />
+      <ControlsRow>
+        <SearchInputWrapper>
+          <SearchIconBox>
+            <Search size={18} />
+          </SearchIconBox>
+          <StyledInput
+            placeholder="Search achievements..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </SearchInputWrapper>
 
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="tier-filter-label">Tier</InputLabel>
-          <Select
-            labelId="tier-filter-label"
-            value={filterTier}
-            label="Tier"
-            onChange={(e) => setFilterTier(e.target.value)}
-          >
-            <MenuItem value="all">All Tiers</MenuItem>
-            {tiers.map(tier => (
-              <MenuItem key={tier.value} value={tier.value}>
-                {tier.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <StyledSelect
+          value={filterTier}
+          onChange={(e) => setFilterTier(e.target.value)}
+        >
+          <option value="all">All Tiers</option>
+          {tiers.map(tier => (
+            <option key={tier.value} value={tier.value}>
+              {tier.label}
+            </option>
+          ))}
+        </StyledSelect>
 
-        <FormControlLabel
-          control={
-            <Switch 
-              checked={showInactiveOnly}
-              onChange={(e) => setShowInactiveOnly(e.target.checked)}
-              size="small"
-            />
-          }
-          label="Inactive Only"
-        />
+        <SwitchLabel>
+          <HiddenCheckbox
+            checked={showInactiveOnly}
+            onChange={(e) => setShowInactiveOnly(e.target.checked)}
+          />
+          <SwitchTrack $checked={showInactiveOnly}>
+            <SwitchThumb $checked={showInactiveOnly} />
+          </SwitchTrack>
+          Inactive Only
+        </SwitchLabel>
 
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<Plus />}
+        <PrimaryButton
           onClick={handleOpenCreateDialog}
           data-testid="create-achievement-button"
         >
+          <Plus size={18} />
           New Achievement
-        </Button>
-      </Box>
+        </PrimaryButton>
+      </ControlsRow>
 
       {/* Display achievements in a grid */}
       <AchievementGrid>
         {filteredAchievements.map((achievement) => (
-          <AchievementItem 
+          <AchievementItem
             key={achievement.id}
             tier={achievement.tier}
-            whileHover={{ 
+            whileHover={{
               y: -5,
               transition: { duration: 0.2 }
             }}
@@ -276,17 +705,15 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
               {achievement.tier.toUpperCase()}
             </AchievementBadge>
 
-            <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
-              <Tooltip title={achievement.isActive ? "Active" : "Inactive"}>
-                <IconButton
-                  size="small"
-                  color={achievement.isActive ? "primary" : "default"}
-                  onClick={() => onToggleStatus(achievement.id, !achievement.isActive)}
-                >
-                  {achievement.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <StatusPositioner>
+              <TooltipButton
+                $isActive={achievement.isActive}
+                onClick={() => onToggleStatus(achievement.id, !achievement.isActive)}
+                title={achievement.isActive ? "Active" : "Inactive"}
+              >
+                {achievement.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+              </TooltipButton>
+            </StatusPositioner>
 
             <AchievementIcon tier={achievement.tier}>
               {getIconComponent(achievement.icon)}
@@ -298,255 +725,218 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
               {achievement.description}
             </AchievementDescription>
 
-            <Box sx={{ mt: 'auto', mb: 1 }}>
-              <Chip 
-                label={`${achievement.requirementValue} ${achievement.requirementType.replace('_', ' ')}`} 
-                size="small" 
-                sx={{ mb: 1 }}
-              />
-            </Box>
+            <ChipRequirement>
+              <ChipSpan>
+                {`${achievement.requirementValue} ${achievement.requirementType.replace('_', ' ')}`}
+              </ChipSpan>
+            </ChipRequirement>
 
             <AchievementReward>
               <Star size={18} /> {achievement.pointValue} points
             </AchievementReward>
 
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              mt: 2, 
-              gap: 1,
-              width: '100%'
-            }}>
-              <IconButton 
-                size="small" 
+            <ActionRow>
+              <IconActionButton
+                $variant="primary"
                 onClick={() => handleOpenEditDialog(achievement)}
-                color="primary"
+                title="Edit"
               >
                 <Edit size={16} />
-              </IconButton>
-              <IconButton 
-                size="small" 
+              </IconActionButton>
+              <IconActionButton
+                $variant="danger"
                 onClick={() => onDeleteAchievement(achievement.id)}
-                color="error"
+                title="Delete"
               >
                 <Trash2 size={16} />
-              </IconButton>
-            </Box>
+              </IconActionButton>
+            </ActionRow>
           </AchievementItem>
         ))}
       </AchievementGrid>
 
       {/* Create/Edit Achievement Dialog */}
-      <Dialog 
-        open={dialogOpen} 
-        onClose={() => setDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingAchievement ? 'Edit Achievement' : 'Create New Achievement'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={3} sx={{ mt: 0 }}>
-            <Grid item xs={12}>
-              <TextField
-                label="Achievement Name"
-                fullWidth
-                value={newAchievement.name}
-                onChange={(e) => setNewAchievement({ ...newAchievement, name: e.target.value })}
-                required
-              />
-            </Grid>
+      <DialogOverlay $open={dialogOpen} onClick={() => setDialogOpen(false)}>
+        <DialogPanel onClick={(e) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <DialogTitleText>
+              {editingAchievement ? 'Edit Achievement' : 'Create New Achievement'}
+            </DialogTitleText>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <FormGrid>
+              <FormFieldFull>
+                <FormField>
+                  <FieldLabel>Achievement Name</FieldLabel>
+                  <FormInput
+                    value={newAchievement.name}
+                    onChange={(e) => setNewAchievement({ ...newAchievement, name: e.target.value })}
+                    placeholder="Achievement Name"
+                    required
+                  />
+                </FormField>
+              </FormFieldFull>
 
-            <Grid item xs={12}>
-              <TextField
-                label="Description"
-                fullWidth
-                multiline
-                rows={3}
-                value={newAchievement.description}
-                onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value })}
-                required
-              />
-            </Grid>
+              <FormFieldFull>
+                <FormField>
+                  <FieldLabel>Description</FieldLabel>
+                  <FormTextarea
+                    value={newAchievement.description}
+                    onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value })}
+                    placeholder="Description"
+                    rows={3}
+                    required
+                  />
+                </FormField>
+              </FormFieldFull>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Icon</InputLabel>
-                <Select
+              <FormField>
+                <FieldLabel>Icon</FieldLabel>
+                <FormSelect
                   value={newAchievement.icon}
-                  label="Icon"
                   onChange={(e) => setNewAchievement({ ...newAchievement, icon: e.target.value })}
                 >
                   {icons.map(icon => (
-                    <MenuItem key={icon.name} value={icon.name}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {icon.component}
-                        <span>{icon.name}</span>
-                      </Box>
-                    </MenuItem>
+                    <option key={icon.name} value={icon.name}>
+                      {icon.name}
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </FormSelect>
+              </FormField>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tier</InputLabel>
-                <Select
+              <FormField>
+                <FieldLabel>Tier</FieldLabel>
+                <FormSelect
                   value={newAchievement.tier}
-                  label="Tier"
-                  onChange={(e) => setNewAchievement({ 
-                    ...newAchievement, 
-                    tier: e.target.value as 'bronze' | 'silver' | 'gold' | 'platinum' 
+                  onChange={(e) => setNewAchievement({
+                    ...newAchievement,
+                    tier: e.target.value as 'bronze' | 'silver' | 'gold' | 'platinum'
                   })}
                 >
                   {tiers.map(tier => (
-                    <MenuItem key={tier.value} value={tier.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ 
-                          width: 16, 
-                          height: 16, 
-                          borderRadius: '50%',
-                          bgcolor: tier.color
-                        }} />
-                        <span>{tier.label}</span>
-                      </Box>
-                    </MenuItem>
+                    <option key={tier.value} value={tier.value}>
+                      {tier.label}
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </FormSelect>
+              </FormField>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Point Value"
-                type="number"
-                fullWidth
-                value={newAchievement.pointValue}
-                onChange={(e) => setNewAchievement({ 
-                  ...newAchievement, 
-                  pointValue: parseInt(e.target.value) || 0 
-                })}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                      <Star size={16} color="#FFC107" />
-                    </Box>
-                  ),
-                }}
-              />
-            </Grid>
+              <FormField>
+                <FieldLabel>Point Value</FieldLabel>
+                <FormInputWithIcon>
+                  <Star size={16} color="#FFC107" />
+                  <input
+                    type="number"
+                    value={newAchievement.pointValue}
+                    onChange={(e) => setNewAchievement({
+                      ...newAchievement,
+                      pointValue: parseInt(e.target.value) || 0
+                    })}
+                    required
+                  />
+                </FormInputWithIcon>
+              </FormField>
 
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch 
+              <FormField>
+                <FieldLabel>&nbsp;</FieldLabel>
+                <SwitchLabel>
+                  <HiddenCheckbox
                     checked={newAchievement.isActive}
-                    onChange={(e) => setNewAchievement({ 
-                      ...newAchievement, 
-                      isActive: e.target.checked 
+                    onChange={(e) => setNewAchievement({
+                      ...newAchievement,
+                      isActive: e.target.checked
                     })}
                   />
-                }
-                label="Active"
-              />
-            </Grid>
+                  <SwitchTrack $checked={newAchievement.isActive}>
+                    <SwitchThumb $checked={newAchievement.isActive} />
+                  </SwitchTrack>
+                  Active
+                </SwitchLabel>
+              </FormField>
 
-            <Grid item xs={12}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle1" gutterBottom>
-                Achievement Requirements
-              </Typography>
-            </Grid>
+              <FormFieldFull>
+                <StyledDivider />
+                <SectionTitle>
+                  Achievement Requirements
+                </SectionTitle>
+              </FormFieldFull>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Requirement Type</InputLabel>
-                <Select
+              <FormField>
+                <FieldLabel>Requirement Type</FieldLabel>
+                <FormSelect
                   value={newAchievement.requirementType}
-                  label="Requirement Type"
-                  onChange={(e) => setNewAchievement({ 
-                    ...newAchievement, 
-                    requirementType: e.target.value 
+                  onChange={(e) => setNewAchievement({
+                    ...newAchievement,
+                    requirementType: e.target.value
                   })}
                 >
                   {requirementTypes.map(type => (
-                    <MenuItem key={type.value} value={type.value}>
+                    <option key={type.value} value={type.value}>
                       {type.label}
-                    </MenuItem>
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </FormSelect>
+              </FormField>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Requirement Value"
-                type="number"
-                fullWidth
-                value={newAchievement.requirementValue}
-                onChange={(e) => setNewAchievement({ 
-                  ...newAchievement, 
-                  requirementValue: parseInt(e.target.value) || 0
-                })}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle1" gutterBottom>
-                Badge Image (Optional)
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                startIcon={<Image />}
-                component="label"
-              >
-                Upload Badge Image
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={(e) => {
-                    // File upload would be implemented in a real application
-                    // This is just a placeholder for the UI
-                    console.log("File selected:", e.target.files?.[0]);
-                  }}
+              <FormField>
+                <FieldLabel>Requirement Value</FieldLabel>
+                <FormInput
+                  type="number"
+                  value={newAchievement.requirementValue}
+                  onChange={(e) => setNewAchievement({
+                    ...newAchievement,
+                    requirementValue: parseInt(e.target.value) || 0
+                  })}
+                  required
                 />
-              </Button>
-              {newAchievement.badgeImageUrl && (
-                <Box sx={{ mt: 2 }}>
-                  <img 
-                    src={newAchievement.badgeImageUrl} 
-                    alt="Badge" 
-                    style={{ maxWidth: '100%', maxHeight: 200 }} 
+              </FormField>
+
+              <FormFieldFull>
+                <StyledDivider />
+                <SectionTitle>
+                  Badge Image (Optional)
+                </SectionTitle>
+              </FormFieldFull>
+
+              <FormFieldFull>
+                <OutlinedButton as="label">
+                  <Image size={18} />
+                  Upload Badge Image
+                  <HiddenFileInput
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      // File upload would be implemented in a real application
+                      // This is just a placeholder for the UI
+                      console.log("File selected:", e.target.files?.[0]);
+                    }}
                   />
-                </Box>
-              )}
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} color="inherit">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSaveAchievement} 
-            variant="contained" 
-            color="primary"
-            disabled={!newAchievement.name || !newAchievement.description}
-          >
-            {editingAchievement ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                </OutlinedButton>
+                {newAchievement.badgeImageUrl && (
+                  <BadgePreview>
+                    <img
+                      src={newAchievement.badgeImageUrl}
+                      alt="Badge"
+                    />
+                  </BadgePreview>
+                )}
+              </FormFieldFull>
+            </FormGrid>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <SecondaryButton onClick={() => setDialogOpen(false)}>
+              Cancel
+            </SecondaryButton>
+            <PrimaryButton
+              onClick={handleSaveAchievement}
+              disabled={!newAchievement.name || !newAchievement.description}
+            >
+              {editingAchievement ? 'Update' : 'Create'}
+            </PrimaryButton>
+          </DialogActionsBar>
+        </DialogPanel>
+      </DialogOverlay>
+    </div>
   );
 };
 

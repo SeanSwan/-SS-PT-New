@@ -1,33 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  TextField,
-  Button,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Tooltip,
-  IconButton,
-  Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
-} from '@mui/material';
+import styled from 'styled-components';
 import {
   Save,
   HelpCircle,
@@ -37,8 +9,398 @@ import {
   Award,
   Zap,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
+
+/* ------------------------------------------------------------------ */
+/*  Styled Components – Galaxy-Swan theme                             */
+/* ------------------------------------------------------------------ */
+
+const PageWrapper = styled.div`
+  width: 100%;
+`;
+
+const AlertBanner = styled.div<{ $variant?: 'warning' | 'info' }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  background: ${({ $variant }) =>
+    $variant === 'info'
+      ? 'rgba(14, 165, 233, 0.12)'
+      : 'rgba(234, 179, 8, 0.12)'};
+  border: 1px solid ${({ $variant }) =>
+    $variant === 'info'
+      ? 'rgba(14, 165, 233, 0.3)'
+      : 'rgba(234, 179, 8, 0.3)'};
+
+  svg {
+    flex-shrink: 0;
+  }
+`;
+
+const AlertContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+`;
+
+const Heading = styled.h2`
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const Button = styled.button<{ $variant?: 'primary' | 'outlined' | 'ghost'; $disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  transition: all 0.2s ease;
+  opacity: ${({ $disabled }) => ($disabled ? 0.45 : 1)};
+  white-space: nowrap;
+
+  ${({ $variant }) => {
+    switch ($variant) {
+      case 'outlined':
+        return `
+          background: transparent;
+          color: #0ea5e9;
+          border: 1px solid rgba(14, 165, 233, 0.4);
+          &:hover:not(:disabled) {
+            background: rgba(14, 165, 233, 0.08);
+            border-color: rgba(14, 165, 233, 0.7);
+          }
+        `;
+      case 'ghost':
+        return `
+          background: transparent;
+          color: #e2e8f0;
+          border: none;
+          padding: 6px 12px;
+          &:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.06);
+          }
+        `;
+      default:
+        return `
+          background: linear-gradient(135deg, #0ea5e9, #7851A9);
+          color: #ffffff;
+          border: none;
+          &:hover:not(:disabled) {
+            filter: brightness(1.12);
+          }
+        `;
+    }
+  }}
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 768px) {
+    &.two-col {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+`;
+
+const GlassCard = styled.div`
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const CardHeadingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #0ea5e9;
+`;
+
+const CardTitle = styled.h3`
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const SwitchGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+
+  @media (min-width: 430px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+`;
+
+/* ---------- Toggle / Switch ---------- */
+
+const SwitchLabel = styled.label<{ $disabled?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 4px;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $disabled }) => ($disabled ? 0.45 : 1)};
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  user-select: none;
+`;
+
+const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+`;
+
+const SwitchTrack = styled.span<{ $checked?: boolean }>`
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  min-width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${({ $checked }) =>
+    $checked ? '#0ea5e9' : 'rgba(255, 255, 255, 0.12)'};
+  transition: background 0.2s ease;
+`;
+
+const SwitchThumb = styled.span<{ $checked?: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${({ $checked }) => ($checked ? '22px' : '2px')};
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+`;
+
+const LabelContent = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const TooltipButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  margin: -10px;
+  border: none;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.5);
+  cursor: help;
+  position: relative;
+
+  &:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: rgba(15, 23, 42, 0.97);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #e2e8f0;
+    white-space: nowrap;
+    z-index: 50;
+    pointer-events: none;
+  }
+`;
+
+/* ---------- Form Controls ---------- */
+
+const InputGroup = styled.div<{ $fullWidth?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+`;
+
+const InputLabel = styled.label`
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.6);
+  margin-bottom: 2px;
+`;
+
+const HelperText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.5);
+  margin-top: 2px;
+`;
+
+const StyledInput = styled.input<{ $disabled?: boolean; $textAlign?: string; $width?: string }>`
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  background: rgba(15, 23, 42, 0.7);
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  width: ${({ $width }) => $width || '100%'};
+  text-align: ${({ $textAlign }) => $textAlign || 'left'};
+  outline: none;
+  transition: border-color 0.2s ease;
+  opacity: ${({ $disabled }) => ($disabled ? 0.45 : 1)};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'text')};
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    opacity: 1;
+  }
+`;
+
+/* ---------- Table ---------- */
+
+const TableWrapper = styled.div`
+  overflow-x: auto;
+  margin-top: 8px;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const THead = styled.thead`
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(226, 232, 240, 0.6);
+    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+  }
+`;
+
+const TBody = styled.tbody`
+  td {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+    color: #e2e8f0;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.08);
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+`;
+
+const TierDot = styled.span<{ $color: string }>`
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  margin-right: 8px;
+  vertical-align: middle;
+`;
+
+const TierCell = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const InputSuffix = styled.span`
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.5);
+  margin-left: 8px;
+`;
+
+const FormulaBox = styled.div`
+  margin-top: 24px;
+`;
+
+const SubTitle = styled.p`
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #e2e8f0;
+`;
+
+const CodeBlock = styled.div`
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(14, 165, 233, 0.1);
+  border-radius: 8px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.875rem;
+  color: #0ea5e9;
+`;
+
+const MutedText = styled.p`
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: rgba(226, 232, 240, 0.5);
+`;
+
+const SectionSpacer = styled.div`
+  margin-top: 16px;
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Interfaces                                                        */
+/* ------------------------------------------------------------------ */
 
 interface PointValue {
   id: string;
@@ -90,6 +452,31 @@ interface GamificationSettingsProps {
   onRestoreDefaults: () => void;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Helper: Custom Switch                                             */
+/* ------------------------------------------------------------------ */
+
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+  label: React.ReactNode;
+}
+
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked, onChange, disabled, label }) => (
+  <SwitchLabel $disabled={disabled}>
+    <HiddenCheckbox checked={checked} onChange={onChange} disabled={disabled} />
+    <SwitchTrack $checked={checked}>
+      <SwitchThumb $checked={checked} />
+    </SwitchTrack>
+    {typeof label === 'string' ? <span>{label}</span> : label}
+  </SwitchLabel>
+);
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
+
 /**
  * GamificationSettings Component
  * Admin interface for managing gamification system settings
@@ -112,25 +499,25 @@ const GamificationSettings: React.FC<GamificationSettingsProps> = ({
   const [editedLevelSettings, setEditedLevelSettings] = useState<LevelSettings>(levelSettings);
   const [editedSystemSettings, setEditedSystemSettings] = useState<SystemSettings>(systemSettings);
   const [isEdited, setIsEdited] = useState(false);
-  
+
   // Handle point value changes
   const handlePointValueChange = (id: string, value: number) => {
-    const updated = editedPointValues.map(pv => 
+    const updated = editedPointValues.map(pv =>
       pv.id === id ? { ...pv, pointValue: value } : pv
     );
     setEditedPointValues(updated);
     setIsEdited(true);
   };
-  
+
   // Handle tier threshold changes
   const handleTierThresholdChange = (tier: 'bronze' | 'silver' | 'gold' | 'platinum', value: number) => {
-    const updated = editedTierThresholds.map(tt => 
+    const updated = editedTierThresholds.map(tt =>
       tt.tier === tier ? { ...tt, pointsRequired: value } : tt
     );
     setEditedTierThresholds(updated);
     setIsEdited(true);
   };
-  
+
   // Handle level settings changes
   const handleLevelSettingChange = (key: keyof LevelSettings, value: number | boolean) => {
     setEditedLevelSettings({
@@ -139,7 +526,7 @@ const GamificationSettings: React.FC<GamificationSettingsProps> = ({
     });
     setIsEdited(true);
   };
-  
+
   // Handle system setting changes
   const handleSystemSettingChange = (key: keyof SystemSettings, value: boolean | number | { enabled: boolean, expirationDays: number }) => {
     setEditedSystemSettings({
@@ -148,7 +535,7 @@ const GamificationSettings: React.FC<GamificationSettingsProps> = ({
     });
     setIsEdited(true);
   };
-  
+
   // Handle save button click
   const handleSave = () => {
     onUpdatePointValues(editedPointValues);
@@ -158,411 +545,334 @@ const GamificationSettings: React.FC<GamificationSettingsProps> = ({
     onSaveSettings();
     setIsEdited(false);
   };
-  
+
   // Handle restore defaults
   const handleRestoreDefaults = () => {
     // Show confirmation dialog in real implementation
     onRestoreDefaults();
     setIsEdited(false);
   };
-  
+
+  const tierColorMap: Record<string, string> = {
+    bronze: '#CD7F32',
+    silver: '#C0C0C0',
+    gold: '#FFD700',
+    platinum: '#E5E4E2',
+  };
+
   return (
-    <Box>
+    <PageWrapper>
       {isEdited && (
-        <Alert 
-          severity="warning" 
-          sx={{ mb: 3 }}
-          action={
-            <Button color="inherit" size="small" onClick={handleSave}>
-              Save Changes
-            </Button>
-          }
-        >
-          You have unsaved changes to the gamification settings.
-        </Alert>
+        <AlertBanner $variant="warning">
+          <AlertContent>
+            <AlertTriangle size={16} />
+            You have unsaved changes to the gamification settings.
+          </AlertContent>
+          <Button $variant="ghost" onClick={handleSave}>
+            Save Changes
+          </Button>
+        </AlertBanner>
       )}
-      
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-        <Typography variant="h5" component="h2">
-          Gamification System Settings
-        </Typography>
-        
-        <Box>
-          <Button 
-            variant="outlined" 
-            startIcon={<RefreshCw size={16} />}
+
+      <HeaderRow>
+        <Heading>Gamification System Settings</Heading>
+
+        <ButtonGroup>
+          <Button
+            $variant="outlined"
             onClick={handleRestoreDefaults}
-            sx={{ mr: 2 }}
           >
+            <RefreshCw size={16} />
             Restore Defaults
           </Button>
-          
-          <Button 
-            variant="contained" 
-            color="primary"
-            startIcon={<Save size={16} />}
+
+          <Button
+            $variant="primary"
             onClick={handleSave}
             disabled={!isEdited}
+            $disabled={!isEdited}
           >
+            <Save size={16} />
             Save Settings
           </Button>
-        </Box>
-      </Box>
-      
-      <Grid container spacing={3}>
-        {/* System Settings */}
-        <Grid item xs={12}>
-          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Settings size={20} style={{ marginRight: 8 }} />
-              <Typography variant="h6">System Settings</Typography>
-            </Box>
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableGamification}
-                      onChange={(e) => handleSystemSettingChange('enableGamification', e.target.checked)}
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography>Enable Gamification</Typography>
-                      <Tooltip title="Master switch for the entire gamification system">
-                        <IconButton size="small">
-                          <HelpCircle size={14} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  }
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableAchievements}
-                      onChange={(e) => handleSystemSettingChange('enableAchievements', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Achievements"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableRewards}
-                      onChange={(e) => handleSystemSettingChange('enableRewards', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Rewards"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableLeaderboard}
-                      onChange={(e) => handleSystemSettingChange('enableLeaderboard', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Leaderboard"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableLevels}
-                      onChange={(e) => handleSystemSettingChange('enableLevels', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Levels"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableTiers}
-                      onChange={(e) => handleSystemSettingChange('enableTiers', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Tiers"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.enableStreaks}
-                      onChange={(e) => handleSystemSettingChange('enableStreaks', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Streaks"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.notifyOnAchievement}
-                      onChange={(e) => handleSystemSettingChange('notifyOnAchievement', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableAchievements}
-                    />
-                  }
-                  label="Notify on Achievement"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.notifyOnLevelUp}
-                      onChange={(e) => handleSystemSettingChange('notifyOnLevelUp', e.target.checked)}
-                      disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
-                    />
-                  }
-                  label="Notify on Level Up"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  label="Streak Expiration (Days)"
-                  type="number"
-                  value={editedSystemSettings.streakExpirationDays}
-                  onChange={(e) => handleSystemSettingChange('streakExpirationDays', parseInt(e.target.value) || 0)}
-                  disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableStreaks}
-                  fullWidth
-                  InputProps={{ inputProps: { min: 1 } }}
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={editedSystemSettings.pointsExpiration.enabled}
-                      onChange={(e) => handleSystemSettingChange('pointsExpiration', {
-                        ...editedSystemSettings.pointsExpiration,
-                        enabled: e.target.checked
-                      })}
-                      disabled={!editedSystemSettings.enableGamification}
-                    />
-                  }
-                  label="Enable Points Expiration"
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  label="Points Expiration (Days)"
-                  type="number"
-                  value={editedSystemSettings.pointsExpiration.expirationDays}
-                  onChange={(e) => handleSystemSettingChange('pointsExpiration', {
-                    ...editedSystemSettings.pointsExpiration,
-                    expirationDays: parseInt(e.target.value) || 0
-                  })}
-                  disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.pointsExpiration.enabled}
-                  fullWidth
-                  InputProps={{ inputProps: { min: 1 } }}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-        
-        {/* Level Settings */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <TrendingUp size={20} style={{ marginRight: 8 }} />
-              <Typography variant="h6">Level Settings</Typography>
-            </Box>
-            
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                label="Points Per Level"
+        </ButtonGroup>
+      </HeaderRow>
+
+      {/* System Settings */}
+      <GlassCard style={{ marginBottom: 24 }}>
+        <CardHeadingRow>
+          <Settings size={20} />
+          <CardTitle>System Settings</CardTitle>
+        </CardHeadingRow>
+
+        <SwitchGrid>
+          <ToggleSwitch
+            checked={editedSystemSettings.enableGamification}
+            onChange={(e) => handleSystemSettingChange('enableGamification', e.target.checked)}
+            label={
+              <LabelContent>
+                <span>Enable Gamification</span>
+                <TooltipButton data-tooltip="Master switch for the entire gamification system">
+                  <HelpCircle size={14} />
+                </TooltipButton>
+              </LabelContent>
+            }
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.enableAchievements}
+            onChange={(e) => handleSystemSettingChange('enableAchievements', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Achievements"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.enableRewards}
+            onChange={(e) => handleSystemSettingChange('enableRewards', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Rewards"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.enableLeaderboard}
+            onChange={(e) => handleSystemSettingChange('enableLeaderboard', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Leaderboard"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.enableLevels}
+            onChange={(e) => handleSystemSettingChange('enableLevels', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Levels"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.enableTiers}
+            onChange={(e) => handleSystemSettingChange('enableTiers', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Tiers"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.enableStreaks}
+            onChange={(e) => handleSystemSettingChange('enableStreaks', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Streaks"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.notifyOnAchievement}
+            onChange={(e) => handleSystemSettingChange('notifyOnAchievement', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableAchievements}
+            label="Notify on Achievement"
+          />
+
+          <ToggleSwitch
+            checked={editedSystemSettings.notifyOnLevelUp}
+            onChange={(e) => handleSystemSettingChange('notifyOnLevelUp', e.target.checked)}
+            disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
+            label="Notify on Level Up"
+          />
+
+          <div>
+            <InputGroup $fullWidth>
+              <InputLabel>Streak Expiration (Days)</InputLabel>
+              <StyledInput
                 type="number"
-                value={editedLevelSettings.pointsPerLevel}
-                onChange={(e) => handleLevelSettingChange('pointsPerLevel', parseInt(e.target.value) || 0)}
-                disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
-                fullWidth
-                margin="normal"
-                InputProps={{ inputProps: { min: 1 } }}
-                helperText="Points required to advance one level"
+                value={editedSystemSettings.streakExpirationDays}
+                onChange={(e) => handleSystemSettingChange('streakExpirationDays', parseInt(e.target.value) || 0)}
+                disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableStreaks}
+                $disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableStreaks}
+                min={1}
               />
-              
-              <FormControlLabel
-                control={
-                  <Switch 
-                    checked={editedLevelSettings.enableLevelCap}
-                    onChange={(e) => handleLevelSettingChange('enableLevelCap', e.target.checked)}
-                    disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
-                  />
-                }
-                label="Enable Level Cap"
-                sx={{ mt: 2 }}
+            </InputGroup>
+          </div>
+
+          <ToggleSwitch
+            checked={editedSystemSettings.pointsExpiration.enabled}
+            onChange={(e) => handleSystemSettingChange('pointsExpiration', {
+              ...editedSystemSettings.pointsExpiration,
+              enabled: e.target.checked
+            })}
+            disabled={!editedSystemSettings.enableGamification}
+            label="Enable Points Expiration"
+          />
+
+          <div>
+            <InputGroup $fullWidth>
+              <InputLabel>Points Expiration (Days)</InputLabel>
+              <StyledInput
+                type="number"
+                value={editedSystemSettings.pointsExpiration.expirationDays}
+                onChange={(e) => handleSystemSettingChange('pointsExpiration', {
+                  ...editedSystemSettings.pointsExpiration,
+                  expirationDays: parseInt(e.target.value) || 0
+                })}
+                disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.pointsExpiration.enabled}
+                $disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.pointsExpiration.enabled}
+                min={1}
               />
-              
-              <TextField
-                label="Level Cap"
+            </InputGroup>
+          </div>
+        </SwitchGrid>
+      </GlassCard>
+
+      <GridContainer className="two-col" style={{ marginBottom: 24 }}>
+        {/* Level Settings */}
+        <GlassCard>
+          <CardHeadingRow>
+            <TrendingUp size={20} />
+            <CardTitle>Level Settings</CardTitle>
+          </CardHeadingRow>
+
+          <InputGroup $fullWidth>
+            <InputLabel>Points Per Level</InputLabel>
+            <StyledInput
+              type="number"
+              value={editedLevelSettings.pointsPerLevel}
+              onChange={(e) => handleLevelSettingChange('pointsPerLevel', parseInt(e.target.value) || 0)}
+              disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
+              $disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
+              min={1}
+            />
+            <HelperText>Points required to advance one level</HelperText>
+          </InputGroup>
+
+          <SectionSpacer>
+            <ToggleSwitch
+              checked={editedLevelSettings.enableLevelCap}
+              onChange={(e) => handleLevelSettingChange('enableLevelCap', e.target.checked)}
+              disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels}
+              label="Enable Level Cap"
+            />
+          </SectionSpacer>
+
+          <SectionSpacer>
+            <InputGroup $fullWidth>
+              <InputLabel>Level Cap</InputLabel>
+              <StyledInput
                 type="number"
                 value={editedLevelSettings.levelCap}
                 onChange={(e) => handleLevelSettingChange('levelCap', parseInt(e.target.value) || 0)}
                 disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels || !editedLevelSettings.enableLevelCap}
-                fullWidth
-                margin="normal"
-                InputProps={{ inputProps: { min: 1 } }}
-                helperText="Maximum level a user can reach"
+                $disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableLevels || !editedLevelSettings.enableLevelCap}
+                min={1}
               />
-            </Box>
-            
-            <Box sx={{ mt: 4 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Level Calculation Formula:
-              </Typography>
-              <Paper sx={{ p: 2, bgcolor: 'rgba(0, 0, 0, 0.04)' }}>
-                <Typography fontFamily="monospace">
-                  Level = Math.floor(totalPoints / pointsPerLevel) + 1
-                </Typography>
-              </Paper>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Users start at Level 1. For example, with {editedLevelSettings.pointsPerLevel} points per level, a user with 4500 points would be at Level {Math.floor(4500 / editedLevelSettings.pointsPerLevel) + 1}.
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
+              <HelperText>Maximum level a user can reach</HelperText>
+            </InputGroup>
+          </SectionSpacer>
+
+          <FormulaBox>
+            <SubTitle>Level Calculation Formula:</SubTitle>
+            <CodeBlock>
+              Level = Math.floor(totalPoints / pointsPerLevel) + 1
+            </CodeBlock>
+            <MutedText>
+              Users start at Level 1. For example, with {editedLevelSettings.pointsPerLevel} points per level, a user with 4500 points would be at Level {Math.floor(4500 / editedLevelSettings.pointsPerLevel) + 1}.
+            </MutedText>
+          </FormulaBox>
+        </GlassCard>
+
         {/* Tier Thresholds */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Award size={20} style={{ marginRight: 8 }} />
-              <Typography variant="h6">Tier Thresholds</Typography>
-            </Box>
-            
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Tier</TableCell>
-                    <TableCell>Points Required</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {editedTierThresholds.map((tier) => (
-                    <TableRow key={tier.tier}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Box sx={{ 
-                            width: 16, 
-                            height: 16, 
-                            borderRadius: '50%',
-                            bgcolor: 
-                              tier.tier === 'bronze' ? '#CD7F32' :
-                              tier.tier === 'silver' ? '#C0C0C0' :
-                              tier.tier === 'gold' ? '#FFD700' :
-                              '#E5E4E2',
-                            mr: 1
-                          }} />
-                          {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <TextField
+        <GlassCard>
+          <CardHeadingRow>
+            <Award size={20} />
+            <CardTitle>Tier Thresholds</CardTitle>
+          </CardHeadingRow>
+
+          <TableWrapper>
+            <StyledTable>
+              <THead>
+                <tr>
+                  <th>Tier</th>
+                  <th>Points Required</th>
+                </tr>
+              </THead>
+              <TBody>
+                {editedTierThresholds.map((tier) => (
+                  <tr key={tier.tier}>
+                    <td>
+                      <TierCell>
+                        <TierDot $color={tierColorMap[tier.tier] || '#E5E4E2'} />
+                        {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+                      </TierCell>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <StyledInput
                           type="number"
                           value={tier.pointsRequired}
                           onChange={(e) => handleTierThresholdChange(tier.tier, parseInt(e.target.value) || 0)}
                           disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableTiers}
-                          size="small"
-                          InputProps={{ 
-                            inputProps: { min: 0 },
-                            endAdornment: <Box component="span" sx={{ ml: 1, fontSize: '0.75rem' }}>points</Box>
-                          }}
+                          $disabled={!editedSystemSettings.enableGamification || !editedSystemSettings.enableTiers}
+                          $width="120px"
+                          min={0}
                         />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-              Set the point thresholds required for users to reach each tier. Users start with no tier and must earn the specified points to progress.
-            </Typography>
-            
-            <Alert severity="info" sx={{ mt: 2 }}>
+                        <InputSuffix>points</InputSuffix>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </TBody>
+            </StyledTable>
+          </TableWrapper>
+
+          <MutedText style={{ marginTop: 24 }}>
+            Set the point thresholds required for users to reach each tier. Users start with no tier and must earn the specified points to progress.
+          </MutedText>
+
+          <AlertBanner $variant="info" style={{ marginTop: 16 }}>
+            <AlertContent>
+              <Info size={16} />
               Make sure tier thresholds are properly spaced to create achievable progression. Bronze should be attainable fairly easily, while Platinum should represent significant achievement.
-            </Alert>
-          </Paper>
-        </Grid>
-        
-        {/* Point Values */}
-        <Grid item xs={12}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <BarChart2 size={20} style={{ marginRight: 8 }} />
-              <Typography variant="h6">Point Values</Typography>
-            </Box>
-            
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Configure the point values awarded for different activities in the system.
-            </Typography>
-            
-            <TableContainer sx={{ mt: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Activity</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell align="right">Points</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {editedPointValues.map((pv) => (
-                    <TableRow key={pv.id}>
-                      <TableCell>{pv.name}</TableCell>
-                      <TableCell>{pv.description}</TableCell>
-                      <TableCell align="right">
-                        <TextField
-                          type="number"
-                          value={pv.pointValue}
-                          onChange={(e) => handlePointValueChange(pv.id, parseInt(e.target.value) || 0)}
-                          size="small"
-                          InputProps={{ 
-                            inputProps: { min: 0, style: { textAlign: 'right' } }
-                          }}
-                          sx={{ width: 100 }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+            </AlertContent>
+          </AlertBanner>
+        </GlassCard>
+      </GridContainer>
+
+      {/* Point Values */}
+      <GlassCard>
+        <CardHeadingRow>
+          <BarChart2 size={20} />
+          <CardTitle>Point Values</CardTitle>
+        </CardHeadingRow>
+
+        <MutedText style={{ margin: '0 0 8px' }}>
+          Configure the point values awarded for different activities in the system.
+        </MutedText>
+
+        <TableWrapper>
+          <StyledTable>
+            <THead>
+              <tr>
+                <th>Activity</th>
+                <th>Description</th>
+                <th style={{ textAlign: 'right' }}>Points</th>
+              </tr>
+            </THead>
+            <TBody>
+              {editedPointValues.map((pv) => (
+                <tr key={pv.id}>
+                  <td>{pv.name}</td>
+                  <td>{pv.description}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <StyledInput
+                      type="number"
+                      value={pv.pointValue}
+                      onChange={(e) => handlePointValueChange(pv.id, parseInt(e.target.value) || 0)}
+                      $width="100px"
+                      $textAlign="right"
+                      min={0}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </TBody>
+          </StyledTable>
+        </TableWrapper>
+      </GlassCard>
+    </PageWrapper>
   );
 };
 
