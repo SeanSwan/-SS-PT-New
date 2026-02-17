@@ -1,32 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  Divider,
-  Avatar,
-  CircularProgress,
-  IconButton,
-  Chip,
-  Paper,
-  Tooltip,
-  Badge,
-  LinearProgress,
-  Snackbar,
-  Alert
-} from '@mui/material';
-import { 
-  MessageSquare, 
-  Heart, 
-  Share, 
-  Image, 
-  Send, 
-  MoreVertical, 
-  Award, 
-  Dumbbell, 
+  MessageSquare,
+  Heart,
+  Share,
+  Image,
+  Send,
+  MoreVertical,
+  Award,
+  Dumbbell,
   Clock,
   Star,
   Zap,
@@ -40,9 +21,21 @@ import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import PostCard from './PostCard';
 import CreatePostCard from './CreatePostCard';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
-// Styled components
+// ─── Keyframes ──────────────────────────────────────────────
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+`;
+
+// ─── Styled Components ──────────────────────────────────────
 const FeedContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -52,30 +45,58 @@ const FeedContainer = styled.div`
   margin: 0 auto;
 `;
 
-const LoadMoreButton = styled(Button)`
+const LoadMoreButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin: 16px auto;
+  min-height: 44px;
+  padding: 8px 22px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  border-radius: 8px;
+  color: #00FFFF;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.08);
+    border-color: #00FFFF;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
-const EmptyFeedMessage = styled(Paper)`
+const EmptyFeedMessage = styled.div`
   padding: 24px;
   text-align: center;
   border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(29, 31, 43, 0.8);
 `;
 
-const GamificationHeader = styled(Box)`
+const GamificationHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #1976d2, #42a5f5);
+  background: linear-gradient(135deg, #7851A9, #00FFFF);
   color: white;
   border-radius: 12px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  box-shadow: 0 4px 12px rgba(120, 81, 169, 0.3);
 `;
 
-const PointsDisplay = styled(Box)`
+const PointsDisplay = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -85,14 +106,14 @@ const PointsDisplay = styled(Box)`
   backdrop-filter: blur(10px);
 `;
 
-const StreakDisplay = styled(Box)`
+const StreakDisplay = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.9rem;
 `;
 
-const ActivityIndicator = styled(Box)`
+const ActivityIndicator = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
@@ -103,39 +124,161 @@ const ActivityIndicator = styled(Box)`
   border-left: 4px solid #4caf50;
 `;
 
-const FeedStats = styled(Box)`
+const FeedStats = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 `;
 
-const StatCard = styled(Box)`
-  background: white;
+const StatCard = styled.div`
+  background: rgba(29, 31, 43, 0.8);
   padding: 16px;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.2s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
   }
 `;
 
-const LiveActivityBadge = styled(Badge)`
-  .MuiBadge-badge {
-    background: linear-gradient(135deg, #4caf50, #66bb6a);
-    color: white;
-    animation: pulse 2s infinite;
-  }
-  
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+const LiveActivityBadgeWrapper = styled.span`
+  position: relative;
+  display: inline-flex;
+`;
+
+const LiveBadgeLabel = styled.span`
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  min-width: 20px;
+  padding: 0 6px;
+  height: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  color: white;
+  animation: ${pulse} 2s infinite;
+`;
+
+/* ---- Typography replacements ---- */
+const Heading6 = styled.h6<{ $color?: string; $fontWeight?: string | number; $mb?: number; $gutterBottom?: boolean }>`
+  font-size: 1.25rem;
+  font-weight: ${({ $fontWeight }) => $fontWeight || 500};
+  line-height: 1.6;
+  letter-spacing: 0.0075em;
+  color: ${({ $color }) => $color || 'inherit'};
+  margin: 0;
+  margin-bottom: ${({ $mb, $gutterBottom }) => {
+    if ($mb !== undefined) return `${$mb * 8}px`;
+    if ($gutterBottom) return '0.35em';
+    return '0';
+  }};
+`;
+
+const BodyText2 = styled.p<{ $color?: string; $fontWeight?: string | number; $opacity?: number; $paragraph?: boolean }>`
+  font-size: 0.875rem;
+  font-weight: ${({ $fontWeight }) => $fontWeight || 400};
+  line-height: 1.43;
+  letter-spacing: 0.01071em;
+  color: ${({ $color }) => $color || 'inherit'};
+  opacity: ${({ $opacity }) => $opacity ?? 1};
+  margin: 0;
+  margin-bottom: ${({ $paragraph }) => ($paragraph ? '16px' : '0')};
+`;
+
+const CaptionText = styled.span<{ $color?: string }>`
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.66;
+  letter-spacing: 0.03333em;
+  color: ${({ $color }) => $color || 'inherit'};
+`;
+
+/* ---- Button replacements ---- */
+const ContainedButton = styled.button<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 22px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  background: ${({ $color }) => {
+    if ($color === 'primary') return 'linear-gradient(135deg, #7851A9, #00FFFF)';
+    return 'linear-gradient(135deg, #7851A9, #00FFFF)';
+  }};
+  cursor: pointer;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 3px 8px rgba(120, 81, 169, 0.3);
+
+  &:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 12px rgba(120, 81, 169, 0.4);
   }
 `;
+
+const OutlinedButton = styled.button<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 22px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  border-radius: 8px;
+  color: #00FFFF;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.08);
+    border-color: #00FFFF;
+  }
+`;
+
+/* ---- Loading Spinner ---- */
+const Spinner = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 40}px;
+  height: ${({ $size }) => $size || 40}px;
+  border: 3px solid rgba(0, 255, 255, 0.2);
+  border-top-color: #00FFFF;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+const CenterBox = styled.div`
+  display: flex;
+  justify-content: center;
+  margin: 32px 0;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+`;
+
+const GamificationHeaderLeft = styled.div``;
 
 /**
  * Social Feed Component
@@ -144,22 +287,22 @@ const LiveActivityBadge = styled(Badge)`
 const SocialFeed: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { 
-    posts, 
-    isLoading, 
-    error, 
-    hasMore, 
-    loadMore, 
+  const {
+    posts,
+    isLoading,
+    error,
+    hasMore,
+    loadMore,
     isLoadingMore,
     likePost,
     unlikePost,
     addComment
   } = useSocialFeed();
-  
+
   const { profile } = useGamificationData();
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string | null>(null);
-  
+
   // Calculate feed stats
   const feedStats = {
     totalPosts: posts.length,
@@ -169,13 +312,13 @@ const SocialFeed: React.FC = () => {
     totalLikes: posts.reduce((sum, p) => sum + p.likesCount, 0),
     totalComments: posts.reduce((sum, p) => sum + p.commentsCount, 0)
   };
-  
+
   // Show activity indicator when there's recent activity
   useEffect(() => {
     if (posts.length > 0) {
       const latestPost = posts[0];
       const timeDiff = Date.now() - new Date(latestPost.createdAt).getTime();
-      
+
       if (timeDiff < 300000) { // 5 minutes
         setRecentActivity(`New ${latestPost.type} post from ${latestPost.user.firstName}`);
         setTimeout(() => setRecentActivity(null), 10000);
@@ -186,9 +329,9 @@ const SocialFeed: React.FC = () => {
   if (isLoading) {
     return (
       <FeedContainer>
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
+        <CenterBox>
+          <Spinner />
+        </CenterBox>
       </FeedContainer>
     );
   }
@@ -197,19 +340,18 @@ const SocialFeed: React.FC = () => {
     return (
       <FeedContainer>
         <EmptyFeedMessage>
-          <Typography variant="h6" color="error" gutterBottom>
+          <Heading6 $color="#f44336" $gutterBottom>
             Error loading feed
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          </Heading6>
+          <BodyText2 $color="rgba(255,255,255,0.7)" $paragraph>
             Something went wrong while loading your social feed.
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary"
+          </BodyText2>
+          <ContainedButton
+            $color="primary"
             onClick={() => window.location.reload()}
           >
             Retry
-          </Button>
+          </ContainedButton>
         </EmptyFeedMessage>
       </FeedContainer>
     );
@@ -220,133 +362,131 @@ const SocialFeed: React.FC = () => {
       {/* Gamification Header */}
       {profile.data && (
         <GamificationHeader>
-          <Box>
-            <Typography variant="h6" fontWeight="600" mb={0.5}>
+          <GamificationHeaderLeft>
+            <Heading6 $fontWeight={600} $mb={0.5}>
               Welcome back, {user?.firstName}! 🚀
-            </Typography>
+            </Heading6>
             <StreakDisplay>
               <Zap size={16} />
-              <Typography variant="body2">
+              <BodyText2>
                 {profile.data.streakDays} day streak
-              </Typography>
+              </BodyText2>
             </StreakDisplay>
-          </Box>
-          
+          </GamificationHeaderLeft>
+
           <PointsDisplay>
             <Star size={18} />
-            <Typography variant="h6" fontWeight="700">
+            <Heading6 $fontWeight={700}>
               {profile.data.points?.toLocaleString() || 0}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+            </Heading6>
+            <BodyText2 $opacity={0.8}>
               points
-            </Typography>
+            </BodyText2>
           </PointsDisplay>
         </GamificationHeader>
       )}
-      
+
       {/* Recent Activity Indicator */}
       {recentActivity && (
         <ActivityIndicator>
-          <LiveActivityBadge badgeContent="LIVE" color="primary">
+          <LiveActivityBadgeWrapper>
             <TrendingUp size={20} color="#4caf50" />
-          </LiveActivityBadge>
-          <Typography variant="body2" color="success.main" fontWeight="500">
+            <LiveBadgeLabel>LIVE</LiveBadgeLabel>
+          </LiveActivityBadgeWrapper>
+          <BodyText2 $color="#4caf50" $fontWeight={500}>
             {recentActivity}
-          </Typography>
+          </BodyText2>
         </ActivityIndicator>
       )}
-      
+
       {/* Feed Statistics */}
       {posts.length > 0 && (
         <FeedStats>
           <StatCard>
-            <Typography variant="h6" color="primary" fontWeight="600">
+            <Heading6 $color="#00FFFF" $fontWeight={600}>
               {feedStats.workoutPosts}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Heading6>
+            <CaptionText $color="rgba(255,255,255,0.7)">
               Workouts
-            </Typography>
+            </CaptionText>
           </StatCard>
-          
+
           <StatCard>
-            <Typography variant="h6" color="warning.main" fontWeight="600">
+            <Heading6 $color="#ed6c02" $fontWeight={600}>
               {feedStats.achievementPosts}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Heading6>
+            <CaptionText $color="rgba(255,255,255,0.7)">
               Achievements
-            </Typography>
+            </CaptionText>
           </StatCard>
-          
+
           <StatCard>
-            <Typography variant="h6" color="secondary.main" fontWeight="600">
+            <Heading6 $color="#7851A9" $fontWeight={600}>
               {feedStats.transformationPosts}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Heading6>
+            <CaptionText $color="rgba(255,255,255,0.7)">
               Transformations
-            </Typography>
+            </CaptionText>
           </StatCard>
-          
+
           <StatCard>
-            <Typography variant="h6" color="error.main" fontWeight="600">
+            <Heading6 $color="#d32f2f" $fontWeight={600}>
               {feedStats.totalLikes}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Heading6>
+            <CaptionText $color="rgba(255,255,255,0.7)">
               Total Likes
-            </Typography>
+            </CaptionText>
           </StatCard>
         </FeedStats>
       )}
-      
+
       {/* Create Post Card */}
       <CreatePostCard />
-      
+
       {/* Posts Feed */}
       {posts.length > 0 ? (
         <>
           {posts.map(post => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
+            <PostCard
+              key={post.id}
+              post={post}
               onLike={() => post.isLiked ? unlikePost(post.id) : likePost(post.id)}
               onComment={addComment}
             />
           ))}
-          
+
           {hasMore && (
             <LoadMoreButton
-              variant="outlined"
               onClick={loadMore}
               disabled={isLoadingMore}
-              startIcon={isLoadingMore ? <CircularProgress size={20} /> : <Clock size={20} />}
             >
+              {isLoadingMore ? <Spinner $size={20} /> : <Clock size={20} />}
               {isLoadingMore ? 'Loading more posts...' : 'Load more posts'}
             </LoadMoreButton>
           )}
         </>
       ) : (
         <EmptyFeedMessage>
-          <Typography variant="h6" gutterBottom>
+          <Heading6 $gutterBottom>
             Your feed is empty
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          </Heading6>
+          <BodyText2 $color="rgba(255,255,255,0.7)" $paragraph>
             Connect with friends or join challenges to see their activity here!
-          </Typography>
-          <Box display="flex" justifyContent="center" gap={2} mt={3}>
-            <Button 
-              variant="contained" 
-              color="primary"
+          </BodyText2>
+          <ButtonGroup>
+            <ContainedButton
+              $color="primary"
               onClick={() => navigate('/social/friends')}
             >
               Find Friends
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
+            </ContainedButton>
+            <OutlinedButton
+              $color="primary"
               onClick={() => navigate('/social/challenges')}
             >
               Browse Challenges
-            </Button>
-          </Box>
+            </OutlinedButton>
+          </ButtonGroup>
         </EmptyFeedMessage>
       )}
     </FeedContainer>
