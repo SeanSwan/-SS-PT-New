@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import {
   Dialog,
   DialogTitle,
@@ -19,8 +20,8 @@ import {
   Alert,
   CircularProgress,
   Chip
-} from '@mui/material';
-import { Add, Close, CardGiftcard } from '@mui/icons-material';
+} from '../../../../ui/primitives/components';
+import { Plus, X, Gift } from 'lucide-react';
 
 import { useAddSessionCredits } from '../../../../../hooks/useClientBillingOverview';
 
@@ -33,6 +34,30 @@ interface AddSessionsDialogProps {
 }
 
 const PRESET_AMOUNTS = [1, 5, 10, 20];
+
+const PresetChip = styled.button<{ $active: boolean }>`
+  min-height: 44px;
+  min-width: 60px;
+  font-size: 1rem;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  color: white;
+  font-weight: 500;
+  background: ${({ $active }) =>
+    $active
+      ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+      : 'rgba(139, 92, 246, 0.2)'};
+  transition: background 0.2s;
+
+  &:hover {
+    background: ${({ $active }) =>
+      $active
+        ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+        : 'rgba(139, 92, 246, 0.3)'};
+  }
+`;
 
 const AddSessionsDialog: React.FC<AddSessionsDialogProps> = ({
   open,
@@ -96,140 +121,97 @@ const AddSessionsDialog: React.FC<AddSessionsDialogProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: {
+        style: {
           background: 'linear-gradient(135deg, #1e293b, #0f172a)',
           border: '1px solid rgba(139, 92, 246, 0.3)'
         }
       }}
     >
-      <DialogTitle sx={{ color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
-        <CardGiftcard sx={{ color: '#8b5cf6' }} />
+      <DialogTitle style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Gift size={20} style={{ color: '#8b5cf6' }} />
         Add Sessions for {clientName || 'Client'}
       </DialogTitle>
 
       <DialogContent>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" style={{ marginBottom: 16 }}>
             {error}
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+        <Box style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 8 }}>
           {/* Preset Amount Buttons */}
           <Box>
-            <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+            <Typography variant="subtitle2" style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
               Quick Select
             </Typography>
-            <Box display="flex" gap={1} flexWrap="wrap">
+            <Box style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {PRESET_AMOUNTS.map((amount) => (
-                <Chip
+                <PresetChip
                   key={amount}
-                  label={`+${amount}`}
+                  $active={sessions === amount}
                   onClick={() => setSessions(amount)}
-                  sx={{
-                    minHeight: 44,
-                    minWidth: 60,
-                    fontSize: '1rem',
-                    background: sessions === amount
-                      ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
-                      : 'rgba(139, 92, 246, 0.2)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      background: sessions === amount
-                        ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
-                        : 'rgba(139, 92, 246, 0.3)'
-                    }
-                  }}
-                />
+                >
+                  +{amount}
+                </PresetChip>
               ))}
             </Box>
           </Box>
 
           {/* Custom Amount */}
           <TextField
-            fullWidth
+            style={{ width: '100%' }}
             label="Number of Sessions"
             type="number"
             value={sessions}
             onChange={(e) => setSessions(Math.max(1, parseInt(e.target.value) || 1))}
-            inputProps={{ min: 1, max: 100 }}
-            sx={{
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiOutlinedInput-root': {
-                color: 'white',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(139, 92, 246, 0.5)' },
-                '&.Mui-focused fieldset': { borderColor: '#8b5cf6' }
-              }
-            }}
           />
 
           {/* Reason (Required for audit) */}
           <TextField
-            fullWidth
+            style={{ width: '100%' }}
             label="Reason (Required)"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g., Complimentary session, Compensation, Package upgrade..."
-            sx={{
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiOutlinedInput-root': {
-                color: 'white',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(139, 92, 246, 0.5)' },
-                '&.Mui-focused fieldset': { borderColor: '#8b5cf6' }
-              }
-            }}
           />
 
           {/* Admin Note (Optional) */}
           <TextField
-            fullWidth
+            style={{ width: '100%' }}
             label="Admin Note (Optional)"
-            multiline
-            rows={2}
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}
             placeholder="Internal notes for record keeping..."
-            sx={{
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiOutlinedInput-root': {
-                color: 'white',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(139, 92, 246, 0.5)' },
-                '&.Mui-focused fieldset': { borderColor: '#8b5cf6' }
-              }
-            }}
           />
 
           {/* Summary */}
           <Box
-            sx={{
+            style={{
               background: 'rgba(139, 92, 246, 0.1)',
-              borderRadius: 2,
-              p: 2,
+              borderRadius: 8,
+              padding: 16,
               border: '1px solid rgba(139, 92, 246, 0.3)'
             }}
           >
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+            <Typography variant="body2" style={{ color: 'rgba(255,255,255,0.8)' }}>
               This action will:
             </Typography>
-            <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 500, mt: 1 }}>
+            <Typography variant="body2" style={{ color: '#8b5cf6', fontWeight: 500, marginTop: 8 }}>
               Add {sessions} session{sessions !== 1 ? 's' : ''} to {clientName || 'client'}'s account
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+            <Typography variant="caption" style={{ color: 'rgba(255,255,255,0.5)' }}>
               This action will be logged for audit purposes.
             </Typography>
           </Box>
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions style={{ padding: '16px 24px 24px' }}>
         <Button
           onClick={onClose}
-          startIcon={<Close />}
-          sx={{ color: 'rgba(255,255,255,0.7)' }}
+          startIcon={<X size={16} />}
+          style={{ color: 'rgba(255,255,255,0.7)' }}
         >
           Cancel
         </Button>
@@ -237,8 +219,8 @@ const AddSessionsDialog: React.FC<AddSessionsDialogProps> = ({
           variant="contained"
           onClick={handleSubmit}
           disabled={addCreditsMutation.isPending || sessions < 1 || !reason.trim()}
-          startIcon={addCreditsMutation.isPending ? <CircularProgress size={20} /> : <Add />}
-          sx={{
+          startIcon={addCreditsMutation.isPending ? <CircularProgress size={20} /> : <Plus size={16} />}
+          style={{
             background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
             minHeight: 44
           }}

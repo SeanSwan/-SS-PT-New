@@ -17,13 +17,12 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
   Box,
   Typography,
   Alert,
   CircularProgress
-} from '@mui/material';
-import { EventAvailable, Close } from '@mui/icons-material';
+} from '../../../../ui/primitives/components';
+import { CalendarCheck, X } from 'lucide-react';
 
 import { useBookSessionForClient } from '../../../../../hooks/useClientBillingOverview';
 
@@ -138,148 +137,96 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: {
+        style: {
           background: 'linear-gradient(135deg, #1e293b, #0f172a)',
           border: '1px solid rgba(0, 255, 255, 0.2)'
         }
       }}
     >
-      <DialogTitle sx={{ color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
-        <EventAvailable sx={{ color: '#00ffff' }} />
+      <DialogTitle style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <CalendarCheck size={20} style={{ color: '#00ffff' }} />
         Book Session for {clientName || 'Client'}
       </DialogTitle>
 
       <DialogContent>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" style={{ marginBottom: 16 }}>
             {error}
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <Box style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
           {/* Date */}
           <TextField
-            fullWidth
+            style={{ width: '100%' }}
             label="Session Date"
             type="date"
             value={sessionDate}
             onChange={(e) => setSessionDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            inputProps={{ min: minDate }}
-            sx={{
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiOutlinedInput-root': {
-                color: 'white',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(0, 255, 255, 0.5)' },
-                '&.Mui-focused fieldset': { borderColor: '#00ffff' }
-              }
-            }}
           />
 
           {/* Time */}
           <TextField
-            fullWidth
+            style={{ width: '100%' }}
             label="Session Time"
             type="time"
             value={sessionTime}
             onChange={(e) => setSessionTime(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiOutlinedInput-root': {
-                color: 'white',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(0, 255, 255, 0.5)' },
-                '&.Mui-focused fieldset': { borderColor: '#00ffff' }
-              }
-            }}
           />
 
           {/* Trainer Select */}
           <FormControl fullWidth>
-            <InputLabel sx={{ color: 'rgba(255,255,255,0.7)' }}>Trainer</InputLabel>
+            <InputLabel>Trainer</InputLabel>
             <Select
               value={trainerId}
-              onChange={(e) => setTrainerId(e.target.value as number)}
-              label="Trainer"
+              onChange={(e) => setTrainerId(Number(e.target.value))}
               disabled={loadingTrainers}
-              sx={{
-                color: 'white',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0, 255, 255, 0.5)' },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00ffff' }
-              }}
+              fullWidth
             >
-              {loadingTrainers ? (
-                <MenuItem disabled>
-                  <CircularProgress size={20} />
-                  <Typography sx={{ ml: 1 }}>Loading trainers...</Typography>
-                </MenuItem>
-              ) : trainers.length === 0 ? (
-                <MenuItem disabled>No trainers available</MenuItem>
-              ) : (
-                trainers.map((trainer) => (
-                  <MenuItem key={trainer.id} value={trainer.id}>
-                    {trainer.firstName} {trainer.lastName}
-                  </MenuItem>
-                ))
-              )}
+              <option value="">Select a trainer</option>
+              {trainers.map((trainer) => (
+                <option key={trainer.id} value={trainer.id}>
+                  {trainer.firstName} {trainer.lastName}
+                </option>
+              ))}
             </Select>
           </FormControl>
 
           {/* Duration Select */}
           <FormControl fullWidth>
-            <InputLabel sx={{ color: 'rgba(255,255,255,0.7)' }}>Duration</InputLabel>
+            <InputLabel>Duration</InputLabel>
             <Select
               value={duration}
-              onChange={(e) => setDuration(e.target.value as number)}
-              label="Duration"
-              sx={{
-                color: 'white',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0, 255, 255, 0.5)' },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00ffff' }
-              }}
+              onChange={(e) => setDuration(Number(e.target.value))}
+              fullWidth
             >
-              <MenuItem value={30}>30 minutes</MenuItem>
-              <MenuItem value={45}>45 minutes</MenuItem>
-              <MenuItem value={60}>60 minutes</MenuItem>
-              <MenuItem value={90}>90 minutes</MenuItem>
+              <option value={30}>30 minutes</option>
+              <option value={45}>45 minutes</option>
+              <option value={60}>60 minutes</option>
+              <option value={90}>90 minutes</option>
             </Select>
           </FormControl>
 
           {/* Notes */}
           <TextField
-            fullWidth
+            style={{ width: '100%' }}
             label="Notes (Optional)"
-            multiline
-            rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Any special instructions or notes for this session..."
-            sx={{
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiOutlinedInput-root': {
-                color: 'white',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(0, 255, 255, 0.5)' },
-                '&.Mui-focused fieldset': { borderColor: '#00ffff' }
-              }
-            }}
           />
 
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+          <Typography variant="caption" style={{ color: 'rgba(255,255,255,0.5)' }}>
             This will deduct 1 session credit from the client's account.
           </Typography>
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions style={{ padding: '16px 24px 24px' }}>
         <Button
           onClick={onClose}
-          startIcon={<Close />}
-          sx={{ color: 'rgba(255,255,255,0.7)' }}
+          startIcon={<X size={16} />}
+          style={{ color: 'rgba(255,255,255,0.7)' }}
         >
           Cancel
         </Button>
@@ -287,8 +234,8 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
           variant="contained"
           onClick={handleSubmit}
           disabled={bookSessionMutation.isPending}
-          startIcon={bookSessionMutation.isPending ? <CircularProgress size={20} /> : <EventAvailable />}
-          sx={{
+          startIcon={bookSessionMutation.isPending ? <CircularProgress size={20} /> : <CalendarCheck size={16} />}
+          style={{
             background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
             minHeight: 44
           }}
