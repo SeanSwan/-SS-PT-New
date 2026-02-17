@@ -5,14 +5,12 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   FormControl,
   InputLabel,
-  MenuItem,
   Select,
   Typography
-} from '@mui/material';
+} from '../../../../ui/primitives/components';
 import { Award, Gift, TrendingUp, Trophy, Star, Dumbbell, Heart, Target, Zap, Calendar, Clock, Medal, CheckCircle, Users, Edit } from 'lucide-react';
 
 interface Client {
@@ -64,28 +62,6 @@ const AwardAchievementDialog: React.FC<AwardAchievementDialogProps> = ({
   achievements,
   awarding
 }) => {
-  // Helper function to get icon component
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'Award': return <Award />;
-      case 'Gift': return <Gift />;
-      case 'TrendingUp': return <TrendingUp />;
-      case 'Star': return <Star />;
-      case 'Trophy': return <Trophy />;
-      case 'Heart': return <Heart />;
-      case 'Target': return <Target />;
-      case 'Zap': return <Zap />;
-      case 'Calendar': return <Calendar />;
-      case 'Clock': return <Clock />;
-      case 'Dumbbell': return <Dumbbell />;
-      case 'Medal': return <Medal />;
-      case 'CheckCircle': return <CheckCircle />;
-      case 'Users': return <Users />;
-      case 'Edit': return <Edit />;
-      default: return <Award />;
-    }
-  };
-
   return (
     <Dialog
       open={open}
@@ -101,57 +77,45 @@ const AwardAchievementDialog: React.FC<AwardAchievementDialogProps> = ({
         Award Achievement to {client?.firstName} {client?.lastName}
       </DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ mb: 2 }}>
+        <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 16 }}>
           Select an achievement to award to this client. The points associated with the achievement will be automatically credited to their account.
-        </DialogContentText>
-        
-        <FormControl fullWidth sx={{ mt: 2 }}>
-          <InputLabel id="achievement-label">Select Achievement</InputLabel>
+        </Typography>
+
+        <FormControl fullWidth style={{ marginTop: 16 }}>
+          <InputLabel>Select Achievement</InputLabel>
           <Select
-            labelId="achievement-label"
             value={selectedAchievement}
-            onChange={(e) => setSelectedAchievement(e.target.value as string)}
-            label="Select Achievement"
-            inputProps={{ 'data-testid': 'achievement-select' }}
+            onChange={(e) => setSelectedAchievement(e.target.value)}
+            fullWidth
+            data-testid="achievement-select"
           >
-            <MenuItem value="">
-              <em>Select an achievement</em>
-            </MenuItem>
-            
+            <option value="">Select an achievement</option>
             {achievements.map((achievement) => (
-              <MenuItem key={achievement.id} value={achievement.id}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {getIconComponent(achievement.icon)}
-                  <Box>
-                    <Typography variant="body1">{achievement.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {achievement.pointValue} points - {achievement.tier.toUpperCase()}
-                    </Typography>
-                  </Box>
-                </Box>
-              </MenuItem>
+              <option key={achievement.id} value={achievement.id}>
+                {achievement.name} — {achievement.pointValue} pts ({achievement.tier.toUpperCase()})
+              </option>
             ))}
           </Select>
         </FormControl>
-        
+
         {selectedAchievement && (
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(0, 0, 0, 0.04)', borderRadius: 1 }}>
-            <Typography variant="body2" gutterBottom>
+          <Box style={{ marginTop: 24, padding: 16, background: 'rgba(0, 0, 0, 0.15)', borderRadius: 4 }}>
+            <Typography variant="body2" style={{ marginBottom: 8 }}>
               Achievement Details:
             </Typography>
-            
+
             {(() => {
               const achievement = achievements.find(a => a.id === selectedAchievement);
               if (!achievement) return null;
-              
+
               return (
                 <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 8 }}>
                     {achievement.description}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                  <Box style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
                     <Star size={16} color="#FFC107" />
-                    <Typography variant="body2" fontWeight="bold">
+                    <Typography variant="body2" style={{ fontWeight: 'bold' }}>
                       {achievement.pointValue} points will be awarded
                     </Typography>
                   </Box>
@@ -162,15 +126,14 @@ const AwardAchievementDialog: React.FC<AwardAchievementDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button 
+        <Button
           onClick={onClose}
           disabled={awarding}
         >
           Cancel
         </Button>
-        <Button 
-          variant="contained" 
-          color="primary"
+        <Button
+          variant="contained"
           onClick={onAward}
           disabled={!selectedAchievement || awarding}
           data-testid="award-achievement-button"

@@ -18,21 +18,13 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
   Box,
   Typography,
   Alert,
   CircularProgress,
   Chip
-} from '@mui/material';
-import {
-  Payment,
-  Close,
-  CheckCircle,
-  CreditCard,
-  MonetizationOn,
-  AccountBalance
-} from '@mui/icons-material';
+} from '../../../../ui/primitives/components';
+import { CreditCard, X, CheckCircle, Banknote, Landmark, Wallet } from 'lucide-react';
 
 import { useApplyPayment } from '../../../../../hooks/useClientBillingOverview';
 
@@ -55,12 +47,12 @@ interface ApplyPaymentDialogProps {
 
 type PaymentMethod = 'stripe' | 'cash' | 'venmo' | 'check' | 'other';
 
-const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
-  { value: 'stripe', label: 'Credit Card (Stripe)', icon: <CreditCard /> },
-  { value: 'cash', label: 'Cash', icon: <MonetizationOn /> },
-  { value: 'venmo', label: 'Venmo', icon: <Payment /> },
-  { value: 'check', label: 'Check', icon: <AccountBalance /> },
-  { value: 'other', label: 'Other', icon: <Payment /> }
+const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: 'stripe', label: 'Credit Card (Stripe)' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'venmo', label: 'Venmo' },
+  { value: 'check', label: 'Check' },
+  { value: 'other', label: 'Other' }
 ];
 
 const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
@@ -153,7 +145,7 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: {
+        style: {
           background: 'linear-gradient(135deg, #1e293b, #0f172a)',
           border: success
             ? '1px solid rgba(16, 185, 129, 0.5)'
@@ -161,15 +153,15 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
         }
       }}
     >
-      <DialogTitle sx={{ color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
+      <DialogTitle style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
         {success ? (
           <>
-            <CheckCircle sx={{ color: '#10b981' }} />
+            <CheckCircle size={20} style={{ color: '#10b981' }} />
             Payment Applied
           </>
         ) : (
           <>
-            <Payment sx={{ color: '#10b981' }} />
+            <Wallet size={20} style={{ color: '#10b981' }} />
             Apply Payment
           </>
         )}
@@ -178,24 +170,17 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
       <DialogContent>
         {/* Success State */}
         {success && (
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: 4
-            }}
-          >
-            <CheckCircle sx={{ fontSize: 64, color: '#10b981', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
+          <Box style={{ textAlign: 'center', padding: '32px 0' }}>
+            <CheckCircle size={64} style={{ color: '#10b981', marginBottom: 16 }} />
+            <Typography variant="h6" style={{ color: 'white', marginBottom: 8 }}>
               Payment Successfully Applied
             </Typography>
             <Chip
-              icon={<CheckCircle />}
               label={`PAID - ${paidTimestamp ? formatDate(paidTimestamp) : 'Now'}`}
-              color="success"
-              sx={{ fontSize: '1rem', py: 2, px: 2 }}
+              style={{ fontSize: '1rem', padding: '8px 16px', background: '#10b981', color: 'white' }}
             />
             {selectedOrder && (
-              <Box sx={{ mt: 3, color: 'rgba(255,255,255,0.7)' }}>
+              <Box style={{ marginTop: 24, color: 'rgba(255,255,255,0.7)' }}>
                 <Typography variant="body2">
                   {selectedOrder.packageName}
                 </Typography>
@@ -211,40 +196,27 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
         {!success && (
           <>
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
+              <Alert severity="error" style={{ marginBottom: 16 }}>
                 {error}
               </Alert>
             )}
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Box style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
               {/* Order Select */}
               <FormControl fullWidth>
-                <InputLabel sx={{ color: 'rgba(255,255,255,0.7)' }}>Order</InputLabel>
+                <InputLabel>Order</InputLabel>
                 <Select
                   value={selectedOrderId}
-                  onChange={(e) => setSelectedOrderId(e.target.value as number)}
-                  label="Order"
-                  sx={{
-                    color: 'white',
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(16, 185, 129, 0.5)' },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#10b981' }
-                  }}
+                  onChange={(e) => setSelectedOrderId(Number(e.target.value))}
+                  fullWidth
                 >
                   {pendingOrders.length === 0 ? (
-                    <MenuItem disabled>No pending orders</MenuItem>
+                    <option disabled>No pending orders</option>
                   ) : (
                     pendingOrders.map((order) => (
-                      <MenuItem key={order.id} value={order.id}>
-                        <Box>
-                          <Typography variant="body2">
-                            {order.packageName} - {formatCurrency(order.amount)}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
-                            {order.sessions} sessions • Created {formatDate(order.createdAt)}
-                          </Typography>
-                        </Box>
-                      </MenuItem>
+                      <option key={order.id} value={order.id}>
+                        {order.packageName} - {formatCurrency(order.amount)} ({order.sessions} sessions)
+                      </option>
                     ))
                   )}
                 </Select>
@@ -253,23 +225,23 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
               {/* Selected Order Summary */}
               {selectedOrder && (
                 <Box
-                  sx={{
+                  style={{
                     background: 'rgba(16, 185, 129, 0.1)',
-                    borderRadius: 2,
-                    p: 2,
+                    borderRadius: 8,
+                    padding: 16,
                     border: '1px solid rgba(16, 185, 129, 0.3)'
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ color: '#10b981', mb: 1 }}>
+                  <Typography variant="subtitle2" style={{ color: '#10b981', marginBottom: 8 }}>
                     Order Details
                   </Typography>
-                  <Typography variant="body1" sx={{ color: 'white', fontWeight: 500 }}>
+                  <Typography variant="body1" style={{ color: 'white', fontWeight: 500 }}>
                     {selectedOrder.packageName}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <Typography variant="body2" style={{ color: 'rgba(255,255,255,0.7)' }}>
                     {selectedOrder.sessions} sessions
                   </Typography>
-                  <Typography variant="h5" sx={{ color: '#10b981', fontWeight: 700, mt: 1 }}>
+                  <Typography variant="h5" style={{ color: '#10b981', fontWeight: 700, marginTop: 8 }}>
                     {formatCurrency(selectedOrder.amount)}
                   </Typography>
                 </Box>
@@ -277,32 +249,23 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
 
               {/* Payment Method */}
               <FormControl fullWidth>
-                <InputLabel sx={{ color: 'rgba(255,255,255,0.7)' }}>Payment Method</InputLabel>
+                <InputLabel>Payment Method</InputLabel>
                 <Select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                  label="Payment Method"
-                  sx={{
-                    color: 'white',
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(16, 185, 129, 0.5)' },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#10b981' }
-                  }}
+                  fullWidth
                 >
                   {PAYMENT_METHODS.map((method) => (
-                    <MenuItem key={method.value} value={method.value}>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        {method.icon}
-                        {method.label}
-                      </Box>
-                    </MenuItem>
+                    <option key={method.value} value={method.value}>
+                      {method.label}
+                    </option>
                   ))}
                 </Select>
               </FormControl>
 
               {/* Reference Number */}
               <TextField
-                fullWidth
+                style={{ width: '100%' }}
                 label="Reference Number (Optional)"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
@@ -315,18 +278,9 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
                     ? 'Venmo transaction ID'
                     : 'Receipt or reference number'
                 }
-                sx={{
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                    '&:hover fieldset': { borderColor: 'rgba(16, 185, 129, 0.5)' },
-                    '&.Mui-focused fieldset': { borderColor: '#10b981' }
-                  }
-                }}
               />
 
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+              <Typography variant="caption" style={{ color: 'rgba(255,255,255,0.5)' }}>
                 This action will mark the order as paid and allocate session credits.
                 If already paid, no duplicate charges will be applied (idempotent).
               </Typography>
@@ -335,12 +289,12 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions style={{ padding: '16px 24px 24px' }}>
         {success ? (
           <Button
             variant="contained"
             onClick={handleClose}
-            sx={{
+            style={{
               background: 'linear-gradient(135deg, #10b981, #059669)',
               minHeight: 44
             }}
@@ -351,8 +305,8 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
           <>
             <Button
               onClick={handleClose}
-              startIcon={<Close />}
-              sx={{ color: 'rgba(255,255,255,0.7)' }}
+              startIcon={<X size={16} />}
+              style={{ color: 'rgba(255,255,255,0.7)' }}
             >
               Cancel
             </Button>
@@ -360,8 +314,8 @@ const ApplyPaymentDialog: React.FC<ApplyPaymentDialogProps> = ({
               variant="contained"
               onClick={handleSubmit}
               disabled={applyPaymentMutation.isPending || !selectedOrderId}
-              startIcon={applyPaymentMutation.isPending ? <CircularProgress size={20} /> : <CheckCircle />}
-              sx={{
+              startIcon={applyPaymentMutation.isPending ? <CircularProgress size={20} /> : <CheckCircle size={16} />}
+              style={{
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 minHeight: 44
               }}
