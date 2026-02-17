@@ -198,9 +198,7 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
         theme="cosmic"
         size="medium"
         scrollThreshold={500}
-        onScrollToTop={() => {
-          console.log('Admin dashboard scroll to top clicked');
-        }}
+        onScrollToTop={() => {}}
       />
     </Box>
   );
