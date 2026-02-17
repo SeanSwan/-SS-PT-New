@@ -17,30 +17,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Avatar,
-  Chip,
-  LinearProgress,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Box,
-  Divider,
-  Rating
-} from '@mui/material';
-import {
   TrendingUp,
   TrendingDown,
   Star,
@@ -69,7 +45,7 @@ interface TrainerMetrics {
   email: string;
   specializations: string[];
   certifications: string[];
-  
+
   // Performance Metrics
   totalRevenue: number;
   revenueGrowth: number;
@@ -77,26 +53,26 @@ interface TrainerMetrics {
   clientRetention: number;
   averageRating: number;
   totalReviews: number;
-  
+
   // Efficiency Metrics
   utilizationRate: number;
   averageSessionDuration: number;
   noShowRate: number;
   cancellationRate: number;
   rebookingRate: number;
-  
+
   // Social & Engagement
   socialPosts: number;
   clientEngagement: number;
   challengesCreated: number;
   communityScore: number;
-  
+
   // NASM Compliance
   assessmentsCompleted: number;
   correctiveExercises: number;
   continuingEducation: number;
   complianceScore: number;
-  
+
   // Schedule Optimization
   peakHours: string[];
   preferredClients: number;
@@ -121,14 +97,14 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
 }) => {
   const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'comparison'>('overview');
   const [sortBy, setSortBy] = useState<'revenue' | 'rating' | 'retention' | 'efficiency'>('revenue');
-  
+
   // Generate comprehensive trainer metrics
   const trainerMetrics = useMemo(() => {
     return trainers.map(trainer => {
       // Mock comprehensive data - in real app, this would come from API
       const baseRevenue = 3000 + Math.random() * 4000;
       const efficiency = 0.7 + Math.random() * 0.3;
-      
+
       return {
         id: trainer.id,
         name: `${trainer.firstName} ${trainer.lastName}`,
@@ -136,7 +112,7 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
         avatar: trainer.avatar,
         specializations: ['Strength Training', 'HIIT', 'Mobility'].slice(0, Math.floor(Math.random() * 3) + 1),
         certifications: ['NASM-CPT', 'NASM-CES', 'NASM-PES'].slice(0, Math.floor(Math.random() * 3) + 1),
-        
+
         // Performance Metrics
         totalRevenue: Math.round(baseRevenue),
         revenueGrowth: Math.round((Math.random() - 0.3) * 30),
@@ -144,26 +120,26 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
         clientRetention: Math.round(75 + Math.random() * 20),
         averageRating: 4.0 + Math.random() * 1.0,
         totalReviews: Math.round(20 + Math.random() * 80),
-        
+
         // Efficiency Metrics
         utilizationRate: Math.round(efficiency * 100),
         averageSessionDuration: 55 + Math.random() * 20,
         noShowRate: Math.round(Math.random() * 8),
         cancellationRate: Math.round(Math.random() * 12),
         rebookingRate: Math.round(80 + Math.random() * 15),
-        
+
         // Social & Engagement
         socialPosts: Math.round(10 + Math.random() * 40),
         clientEngagement: Math.round(60 + Math.random() * 35),
         challengesCreated: Math.round(Math.random() * 8),
         communityScore: Math.round(70 + Math.random() * 25),
-        
+
         // NASM Compliance
         assessmentsCompleted: Math.round(5 + Math.random() * 15),
         correctiveExercises: Math.round(10 + Math.random() * 30),
         continuingEducation: Math.round(Math.random() * 40),
         complianceScore: Math.round(85 + Math.random() * 15),
-        
+
         // Schedule Optimization
         peakHours: ['6:00 AM', '12:00 PM', '6:00 PM'].slice(0, Math.floor(Math.random() * 3) + 1),
         preferredClients: Math.round(5 + Math.random() * 15),
@@ -180,11 +156,11 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
       }
     });
   }, [trainers, sortBy]);
-  
+
   const selectedTrainerData = useMemo(() => {
     return trainerMetrics.find(t => t.id === selectedTrainer);
   }, [trainerMetrics, selectedTrainer]);
-  
+
   // Team averages for comparison
   const teamAverages = useMemo(() => {
     const metrics = trainerMetrics;
@@ -196,7 +172,7 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
       compliance: Math.round(metrics.reduce((sum, t) => sum + t.complianceScore, 0) / metrics.length)
     };
   }, [trainerMetrics]);
-  
+
   const getBurnoutColor = (risk: string) => {
     switch (risk) {
       case 'high': return '#ef4444';
@@ -205,11 +181,27 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
       default: return '#6b7280';
     }
   };
-  
+
   const getPerformanceColor = (value: number, average: number) => {
     if (value > average * 1.1) return '#22c55e';
     if (value < average * 0.9) return '#ef4444';
     return '#3b82f6';
+  };
+
+  const renderStarRating = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const fraction = rating - fullStars;
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(<StarIcon key={i}><Star size={14} fill="#f59e0b" stroke="#f59e0b" /></StarIcon>);
+      } else if (i === fullStars && fraction >= 0.5) {
+        stars.push(<StarIcon key={i}><Star size={14} fill="#f59e0b" stroke="#f59e0b" style={{ clipPath: 'inset(0 50% 0 0)' }} /></StarIcon>);
+      } else {
+        stars.push(<StarIcon key={i}><Star size={14} stroke="rgba(255,255,255,0.3)" /></StarIcon>);
+      }
+    }
+    return <StarRatingWrapper>{stars}</StarRatingWrapper>;
   };
 
   return (
@@ -222,124 +214,106 @@ const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = 
         {/* Header Controls */}
         <HeaderSection>
           <div>
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 300 }}>
+            <SectionTitle>
               Trainer Performance Center
-            </Typography>
-            <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+            </SectionTitle>
+            <SectionSubtitle>
               Advanced trainer analytics and optimization
-            </Typography>
+            </SectionSubtitle>
           </div>
-          
+
           <ControlsSection>
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ color: 'white' }}>View</InputLabel>
-              <Select
+            <SelectWrapper>
+              <SelectLabel>View</SelectLabel>
+              <StyledSelect
                 value={viewMode}
                 onChange={(e) => setViewMode(e.target.value as any)}
-                sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}
               >
-                <MenuItem value="overview">Overview</MenuItem>
-                <MenuItem value="detailed">Detailed</MenuItem>
-                <MenuItem value="comparison">Comparison</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ color: 'white' }}>Sort By</InputLabel>
-              <Select
+                <option value="overview">Overview</option>
+                <option value="detailed">Detailed</option>
+                <option value="comparison">Comparison</option>
+              </StyledSelect>
+            </SelectWrapper>
+
+            <SelectWrapper>
+              <SelectLabel>Sort By</SelectLabel>
+              <StyledSelect
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}
               >
-                <MenuItem value="revenue">Revenue</MenuItem>
-                <MenuItem value="rating">Rating</MenuItem>
-                <MenuItem value="retention">Retention</MenuItem>
-                <MenuItem value="efficiency">Efficiency</MenuItem>
-              </Select>
-            </FormControl>
+                <option value="revenue">Revenue</option>
+                <option value="rating">Rating</option>
+                <option value="retention">Retention</option>
+                <option value="efficiency">Efficiency</option>
+              </StyledSelect>
+            </SelectWrapper>
           </ControlsSection>
         </HeaderSection>
 
         {/* Trainer Performance Table */}
         <PerformanceTableSection>
-          <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+          <TableTitle>
             Trainer Performance Analytics
-          </Typography>
-          
-          <TableContainer component={Paper} sx={{ background: 'rgba(255,255,255,0.05)' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Trainer</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Revenue</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Rating</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Sessions</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          </TableTitle>
+
+          <TableWrapper>
+            <StyledTable>
+              <thead>
+                <tr>
+                  <StyledTh>Trainer</StyledTh>
+                  <StyledTh>Revenue</StyledTh>
+                  <StyledTh>Rating</StyledTh>
+                  <StyledTh>Sessions</StyledTh>
+                  <StyledTh>Actions</StyledTh>
+                </tr>
+              </thead>
+              <tbody>
                 {trainerMetrics.map((trainer) => (
-                  <TableRow key={trainer.id} sx={{ '&:hover': { background: 'rgba(255,255,255,0.03)' } }}>
-                    <TableCell>
+                  <StyledTr key={trainer.id}>
+                    <StyledTd>
                       <TrainerCell>
-                        <Avatar sx={{ width: 40, height: 40 }}>
+                        <AvatarCircle>
                           {trainer.name.split(' ').map(n => n[0]).join('')}
-                        </Avatar>
+                        </AvatarCircle>
                         <div>
-                          <Typography variant="body2" sx={{ color: 'white', fontWeight: 500 }}>
+                          <TrainerName>
                             {trainer.name}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                          </TrainerName>
+                          <TrainerSpec>
                             {trainer.specializations.slice(0, 2).join(', ')}
-                          </Typography>
+                          </TrainerSpec>
                         </div>
                       </TrainerCell>
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: getPerformanceColor(trainer.totalRevenue, teamAverages.revenue),
-                          fontWeight: 600 
-                        }}
-                      >
+                    </StyledTd>
+
+                    <StyledTd>
+                      <RevenueText style={{ color: getPerformanceColor(trainer.totalRevenue, teamAverages.revenue) }}>
                         ${trainer.totalRevenue.toLocaleString()}
-                      </Typography>
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Rating value={trainer.averageRating} precision={0.1} readOnly size="small" />
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: 'white' }}>
+                      </RevenueText>
+                    </StyledTd>
+
+                    <StyledTd>
+                      {renderStarRating(trainer.averageRating)}
+                    </StyledTd>
+
+                    <StyledTd>
+                      <CellText>
                         {trainer.sessionsCompleted}
-                      </Typography>
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Button
-                        size="small"
-                        variant="outlined"
+                      </CellText>
+                    </StyledTd>
+
+                    <StyledTd>
+                      <ViewDetailsButton
                         onClick={() => onTrainerSelect(trainer.id)}
-                        sx={{
-                          borderColor: 'rgba(255,255,255,0.3)',
-                          color: 'white',
-                          '&:hover': {
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                          }
-                        }}
                       >
                         View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                      </ViewDetailsButton>
+                    </StyledTd>
+                  </StyledTr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </tbody>
+            </StyledTable>
+          </TableWrapper>
         </PerformanceTableSection>
       </motion.div>
     </AnalyticsContainer>
@@ -360,7 +334,7 @@ const HeaderSection = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
@@ -371,7 +345,7 @@ const HeaderSection = styled.div`
 const ControlsSection = styled.div`
   display: flex;
   gap: 1rem;
-  
+
   @media (max-width: 768px) {
     width: 100%;
     justify-content: space-between;
@@ -386,4 +360,168 @@ const TrainerCell = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+`;
+
+const SectionTitle = styled.h4`
+  color: white;
+  font-weight: 300;
+  font-size: 2.125rem;
+  margin: 0;
+  line-height: 1.235;
+`;
+
+const SectionSubtitle = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  margin: 0.25rem 0 0 0;
+  line-height: 1.75;
+`;
+
+const SelectWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 120px;
+`;
+
+const SelectLabel = styled.label`
+  color: white;
+  font-size: 0.75rem;
+  padding-left: 0.25rem;
+`;
+
+const StyledSelect = styled.select`
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  outline: none;
+  appearance: auto;
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const TableTitle = styled.h6`
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0 0 1rem 0;
+  line-height: 1.6;
+`;
+
+const TableWrapper = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const StyledTh = styled.th`
+  color: white;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+  font-size: 0.875rem;
+`;
+
+const StyledTr = styled.tr`
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+`;
+
+const StyledTd = styled.td`
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+`;
+
+const AvatarCircle = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #7851A9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  flex-shrink: 0;
+`;
+
+const TrainerName = styled.span`
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  display: block;
+`;
+
+const TrainerSpec = styled.span`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  display: block;
+`;
+
+const RevenueText = styled.span`
+  font-weight: 600;
+  font-size: 0.875rem;
+`;
+
+const CellText = styled.span`
+  color: white;
+  font-size: 0.875rem;
+`;
+
+const StarRatingWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1px;
+`;
+
+const StarIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+`;
+
+const ViewDetailsButton = styled.button`
+  min-height: 44px;
+  padding: 0.375rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
+  }
 `;

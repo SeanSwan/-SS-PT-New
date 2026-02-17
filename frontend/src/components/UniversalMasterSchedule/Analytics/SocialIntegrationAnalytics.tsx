@@ -17,25 +17,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Avatar,
-  Chip,
-  LinearProgress,
-  Button,
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  IconButton,
-  Tooltip,
-  Badge,
-  AvatarGroup
-} from '@mui/material';
-import {
   TrendingUp,
   Heart,
   MessageSquare,
@@ -110,7 +91,7 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
   dateRange
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'influencers' | 'content'>('overview');
-  
+
   // Mock comprehensive social data
   const socialMetrics = useMemo<SocialMetrics>(() => ({
     totalPosts: 1247,
@@ -136,11 +117,11 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
         id: '1',
         name: 'Sarah Johnson',
         followers: 15000,
-        engagement: 12.5,  
+        engagement: 12.5,
         posts: 45
       },
       {
-        id: '2', 
+        id: '2',
         name: 'Mike Chen',
         followers: 8500,
         engagement: 9.8,
@@ -155,7 +136,7 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
       }
     ]
   }), []);
-  
+
   const gamificationMetrics = useMemo<GamificationMetrics>(() => ({
     totalPoints: 156780,
     challengesCompleted: 89,
@@ -166,14 +147,14 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
     referrals: 28,
     socialShares: 156
   }), []);
-  
+
   // Calculate social conversion metrics
   const conversionMetrics = useMemo(() => {
     const socialTrafficConversion = 15.8; // % of social traffic that converts
     const organicGrowthRate = 12.5; // Monthly organic growth %
     const influencerROI = 340; // % ROI from influencer partnerships
     const communityRetention = 89; // % retention for community-engaged users
-    
+
     return {
       socialTrafficConversion,
       organicGrowthRate,
@@ -182,7 +163,7 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
       estimatedRevenue: Math.round(socialMetrics.organicReach * 0.02 * 150) // Rough calculation
     };
   }, [socialMetrics]);
-  
+
   const getEngagementColor = (rate: number) => {
     if (rate >= 15) return '#22c55e';
     if (rate >= 10) return '#3b82f6';
@@ -200,19 +181,19 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
         {/* Header with Tab Navigation */}
         <HeaderSection>
           <div>
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 300 }}>
+            <PageTitle>
               Social Media & Community Analytics
-            </Typography>
-            <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+            </PageTitle>
+            <PageSubtitle>
               Track social engagement impact on business growth
-            </Typography>
+            </PageSubtitle>
           </div>
-          
+
           <TabNavigation>
             {['overview', 'challenges', 'influencers', 'content'].map((tab) => (
               <TabButton
                 key={tab}
-                active={activeTab === tab}
+                $active={activeTab === tab}
                 onClick={() => setActiveTab(tab as any)}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -224,71 +205,63 @@ const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
         {/* Key Social Metrics */}
         {activeTab === 'overview' && (
           <MetricsOverview>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={3}>
-                <SocialMetricCard>
-                  <SocialIcon>
-                    <Eye size={24} />
-                  </SocialIcon>
-                  <MetricContent>
-                    <MetricValue>{socialMetrics.organicReach.toLocaleString()}</MetricValue>
-                    <MetricLabel>Organic Reach</MetricLabel>
-                    <MetricTrend>
-                      <ArrowUp size={14} color="#22c55e" />
-                      +{conversionMetrics.organicGrowthRate}% this month
-                    </MetricTrend>
-                  </MetricContent>
-                </SocialMetricCard>
-              </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <SocialMetricCard>
-                  <SocialIcon>
-                    <Heart size={24} />
-                  </SocialIcon>
-                  <MetricContent>
-                    <MetricValue>{socialMetrics.engagementRate}%</MetricValue>
-                    <MetricLabel>Engagement Rate</MetricLabel>
-                    <MetricTrend>
-                      <ArrowUp size={14} color="#22c55e" />
-                      Industry leading
-                    </MetricTrend>
-                  </MetricContent>
-                </SocialMetricCard>
-              </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <SocialMetricCard>
-                  <SocialIcon>
-                    <Users size={24} />
-                  </SocialIcon>
-                  <MetricContent>
-                    <MetricValue>${conversionMetrics.estimatedRevenue.toLocaleString()}</MetricValue>
-                    <MetricLabel>Social Revenue</MetricLabel>
-                    <MetricTrend>
-                      <ArrowUp size={14} color="#22c55e" />
-                      {conversionMetrics.socialTrafficConversion}% conversion
-                    </MetricTrend>
-                  </MetricContent>
-                </SocialMetricCard>
-              </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <SocialMetricCard>
-                  <SocialIcon>
-                    <Zap size={24} />
-                  </SocialIcon>
-                  <MetricContent>
-                    <MetricValue>{socialMetrics.viralCoefficient}</MetricValue>
-                    <MetricLabel>Viral Coefficient</MetricLabel>
-                    <MetricTrend>
-                      <ArrowUp size={14} color="#22c55e" />
-                      Excellent virality
-                    </MetricTrend>
-                  </MetricContent>
-                </SocialMetricCard>
-              </Grid>
-            </Grid>
+            <MetricsGrid>
+              <SocialMetricCard>
+                <SocialIcon>
+                  <Eye size={24} />
+                </SocialIcon>
+                <MetricContent>
+                  <MetricValue>{socialMetrics.organicReach.toLocaleString()}</MetricValue>
+                  <MetricLabel>Organic Reach</MetricLabel>
+                  <MetricTrend>
+                    <ArrowUp size={14} color="#22c55e" />
+                    +{conversionMetrics.organicGrowthRate}% this month
+                  </MetricTrend>
+                </MetricContent>
+              </SocialMetricCard>
+
+              <SocialMetricCard>
+                <SocialIcon>
+                  <Heart size={24} />
+                </SocialIcon>
+                <MetricContent>
+                  <MetricValue>{socialMetrics.engagementRate}%</MetricValue>
+                  <MetricLabel>Engagement Rate</MetricLabel>
+                  <MetricTrend>
+                    <ArrowUp size={14} color="#22c55e" />
+                    Industry leading
+                  </MetricTrend>
+                </MetricContent>
+              </SocialMetricCard>
+
+              <SocialMetricCard>
+                <SocialIcon>
+                  <Users size={24} />
+                </SocialIcon>
+                <MetricContent>
+                  <MetricValue>${conversionMetrics.estimatedRevenue.toLocaleString()}</MetricValue>
+                  <MetricLabel>Social Revenue</MetricLabel>
+                  <MetricTrend>
+                    <ArrowUp size={14} color="#22c55e" />
+                    {conversionMetrics.socialTrafficConversion}% conversion
+                  </MetricTrend>
+                </MetricContent>
+              </SocialMetricCard>
+
+              <SocialMetricCard>
+                <SocialIcon>
+                  <Zap size={24} />
+                </SocialIcon>
+                <MetricContent>
+                  <MetricValue>{socialMetrics.viralCoefficient}</MetricValue>
+                  <MetricLabel>Viral Coefficient</MetricLabel>
+                  <MetricTrend>
+                    <ArrowUp size={14} color="#22c55e" />
+                    Excellent virality
+                  </MetricTrend>
+                </MetricContent>
+              </SocialMetricCard>
+            </MetricsGrid>
           </MetricsOverview>
         )}
       </motion.div>
@@ -310,7 +283,7 @@ const HeaderSection = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
@@ -318,24 +291,40 @@ const HeaderSection = styled.div`
   }
 `;
 
+const PageTitle = styled.h4`
+  color: white;
+  font-weight: 300;
+  font-size: 1.75rem;
+  margin: 0;
+`;
+
+const PageSubtitle = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  margin: 0.25rem 0 0 0;
+`;
+
 const TabNavigation = styled.div`
   display: flex;
   gap: 0.5rem;
 `;
 
-const TabButton = styled.button<{ active: boolean }>`
-  background: ${props => props.active ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
-  border: 1px solid ${props => props.active ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)'};
+const TabButton = styled.button<{ $active: boolean }>`
+  background: ${props => props.$active ? 'rgba(14, 165, 233, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+  border: 1px solid ${props => props.$active ? 'rgba(14, 165, 233, 0.5)' : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 8px;
-  color: ${props => props.active ? '#3b82f6' : 'rgba(255, 255, 255, 0.7)'};
-  padding: 0.5rem 1rem;
+  color: ${props => props.$active ? '#0ea5e9' : 'rgba(255, 255, 255, 0.7)'};
+  padding: 0.625rem 1rem;
+  min-height: 44px;
+  min-width: 44px;
   cursor: pointer;
   transition: all 0.2s;
-  font-weight: ${props => props.active ? 600 : 400};
-  
+  font-weight: ${props => props.$active ? 600 : 400};
+  font-size: 0.875rem;
+
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.3);
   }
 `;
 
@@ -343,19 +332,33 @@ const MetricsOverview = styled.div`
   margin-bottom: 2rem;
 `;
 
+const MetricsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const SocialMetricCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   backdrop-filter: blur(10px);
-  
+
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.85);
+    border-color: rgba(14, 165, 233, 0.4);
   }
 `;
 
@@ -363,11 +366,12 @@ const SocialIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  flex-shrink: 0;
 `;
 
 const MetricContent = styled.div`
@@ -377,13 +381,13 @@ const MetricContent = styled.div`
 const MetricValue = styled.div`
   font-size: 1.75rem;
   font-weight: 600;
-  color: white;
+  color: #e2e8f0;
   margin-bottom: 0.25rem;
 `;
 
 const MetricLabel = styled.div`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(226, 232, 240, 0.7);
   margin-bottom: 0.5rem;
 `;
 
