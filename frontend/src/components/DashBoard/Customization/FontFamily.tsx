@@ -1,12 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// material-ui
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Grid from '@mui/material/Grid2';
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
-import Typography from '@mui/material/Typography';
+// Swan primitives
+import { FormControlLabel, Grid, Radio, RadioGroup, Typography } from '../../ui/primitives';
 
 // project imports
 import useConfig from '../../../hooks/useConfig';
@@ -79,7 +75,7 @@ const FontFamily: React.FC = () => {
       >
         <Grid container spacing={1.25}>
           {fonts.map((font, index) => (
-            <Grid key={index} size={12}>
+            <Grid key={index} item xs={12}>
               <FontFamilyCard 
                 content={false} 
                 isActive={fontFamily === font.value}
@@ -90,8 +86,8 @@ const FontFamily: React.FC = () => {
                   isActive={fontFamily === font.value}
                 >
                   <FormControlLabel
-                    sx={{ width: 1 }}
-                    control={<Radio value={font.value} sx={{ display: 'none' }} />}
+                    style={{ width: '100%' }}
+                    control={<Radio value={font.value} style={{ display: 'none' }} />}
                     label={
                       <FontLabel variant="h5" fontFamily={font.value}>
                         {font.label}

@@ -1,10 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// material-ui
-import Grid from '@mui/material/Grid2';
-import Slider from '@mui/material/Slider';
-import Typography from '@mui/material/Typography';
+// Swan primitives
+import { Typography, Slider } from '../../ui/primitives';
 
 // project imports
 import useConfig from '../../../hooks/useConfig';
@@ -38,8 +36,8 @@ function valueText(value: number): string {
 const BorderRadius: React.FC = () => {
   const { borderRadius, onChangeBorderRadius } = useConfig();
 
-  const handleChange = (_event: Event, newValue: number | number[]) => {
-    onChangeBorderRadius(newValue as number);
+  const handleChange = (_event: Event, newValue: number) => {
+    onChangeBorderRadius(newValue);
   };
 
   return (
@@ -57,12 +55,6 @@ const BorderRadius: React.FC = () => {
             aria-labelledby="discrete-slider-small-steps"
             min={4}
             max={24}
-            color="primary"
-            sx={{
-              '& .MuiSlider-valueLabel': {
-                color: 'primary.light'
-              }
-            }}
           />
         </GrowContainer>
         <Typography variant="h6">24px</Typography>

@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
-// material-ui
-import { useTheme } from '@mui/material/styles';
-import Divider from '@mui/material/Divider';
-import Drawer from '@mui/material/Drawer';
-import Fab from '@mui/material/Fab';
-import Grid from '@mui/material/Grid2';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
+// Swan primitives
+import { Divider, Drawer, Fab, Grid, IconButton, Tooltip } from '../../ui/primitives';
 
 // third party
 import PerfectScrollbar from 'react-perfect-scrollbar';
@@ -32,12 +26,10 @@ const CustomizeFab = styled(Fab)`
   position: fixed;
   right: 10px;
   z-index: 1200;
-  box-shadow: ${({ theme }) => theme.shadows[4]};
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 `;
 
 const CustomizationPanel: React.FC = () => {
-  const theme = useTheme();
-
   // drawer on/off
   const [open, setOpen] = useState(false);
   const handleToggle = () => {
@@ -52,30 +44,30 @@ const CustomizationPanel: React.FC = () => {
           <CustomizeFab
             onClick={handleToggle}
             size="medium"
-            color="secondary"
+            color="#7851A9"
           >
             <AnimateButton type="rotate">
-              <IconButton color="inherit" size="large" disableRipple aria-label="live customize">
+              <IconButton color="inherit" size="large" aria-label="live customize">
                 <IconSettings />
               </IconButton>
             </AnimateButton>
           </CustomizeFab>
         </div>
       </Tooltip>
-      <Drawer 
-        anchor="right" 
-        onClose={handleToggle} 
-        open={open} 
+      <Drawer
+        anchor="right"
+        onClose={handleToggle}
+        open={open}
         PaperProps={{ sx: { width: 280 } }}
       >
         <PerfectScrollbar>
           <Grid container spacing={2}>
-            <Grid size={12}>
+            <Grid item xs={12}>
               {/* font family */}
               <FontFamily />
               <Divider />
             </Grid>
-            <Grid size={12}>
+            <Grid item xs={12}>
               {/* border radius */}
               <BorderRadius />
               <Divider />
