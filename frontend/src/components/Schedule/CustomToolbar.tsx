@@ -1,6 +1,6 @@
 /**
  * CustomToolbar.tsx
- * 
+ *
  * An accessible toolbar component for the Big Calendar component
  * Provides enhanced keyboard navigation, high contrast, and screen reader support
  */
@@ -9,12 +9,7 @@ import React from 'react';
 import styled from 'styled-components';
 import moment from 'moment';
 import { Navigate } from 'react-big-calendar';
-import Tooltip from '@mui/material/Tooltip';
-import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import TodayIcon from '@mui/icons-material/Today';
+import { ArrowLeft, ArrowRight, Calendar } from 'lucide-react';
 
 // Styled components for accessibility
 const ToolbarContainer = styled.div`
@@ -27,7 +22,7 @@ const ToolbarContainer = styled.div`
   border-radius: 8px;
   flex-wrap: wrap;
   gap: 1rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -49,39 +44,49 @@ const NavigationContainer = styled.div`
 
 const ViewContainer = styled.div`
   display: flex;
-  
+
   @media (max-width: 768px) {
     width: 100%;
     justify-content: space-between;
   }
 `;
 
-const StyledButtonGroup = styled(ButtonGroup)`
-  &.MuiButtonGroup-root {
-    background: rgba(30, 30, 60, 0.7);
-    
-    .MuiButton-root {
-      color: white;
-      font-size: 1rem;
-      padding: 0.6rem 1rem;
-      min-width: 80px;
-      border-color: rgba(120, 81, 169, 0.4);
-      
-      &:hover {
-        background: rgba(120, 81, 169, 0.4);
-      }
-      
-      &.active {
-        background: rgba(120, 81, 169, 0.6);
-        box-shadow: 0 0 12px rgba(120, 81, 169, 0.4);
-        font-weight: 600;
-      }
-      
-      &:focus-visible {
-        outline: 2px solid #00ffff;
-        outline-offset: 2px;
-      }
-    }
+const ButtonGroupContainer = styled.div`
+  display: flex;
+  background: rgba(30, 30, 60, 0.7);
+  border-radius: 4px;
+  overflow: hidden;
+`;
+
+const ToolbarButton = styled.button<{ $active?: boolean }>`
+  color: white;
+  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  min-width: 80px;
+  min-height: 44px;
+  border: 1px solid rgba(120, 81, 169, 0.4);
+  background: ${({ $active }) => $active ? 'rgba(120, 81, 169, 0.6)' : 'transparent'};
+  box-shadow: ${({ $active }) => $active ? '0 0 12px rgba(120, 81, 169, 0.4)' : 'none'};
+  font-weight: ${({ $active }) => $active ? '600' : '400'};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(120, 81, 169, 0.4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ffff;
+    outline-offset: 2px;
+  }
+
+  /* Remove double borders between adjacent buttons */
+  & + & {
+    border-left: none;
   }
 `;
 
@@ -134,7 +139,7 @@ const CustomToolbar: React.FC<CustomToolbarProps> = ({
         return '';
     }
   };
-  
+
   // Format view button labels for better accessibility
   const getViewLabel = (viewName: string): string => {
     switch (viewName) {
@@ -150,59 +155,56 @@ const CustomToolbar: React.FC<CustomToolbarProps> = ({
         return viewName;
     }
   };
-  
+
   return (
     <ToolbarContainer role="toolbar" aria-label="Calendar navigation">
       <Title id="calendar-current-view">{getDisplayTitle()}</Title>
-      
+
       <NavigationContainer>
-        <ButtonGroup variant="contained" color="primary" size="medium" aria-label="Calendar date navigation">
-          <Tooltip title={getNavigationAriaLabel(Navigate.PREVIOUS)}>
-            <Button 
-              onClick={() => onNavigate(Navigate.PREVIOUS)}
-              aria-label={getNavigationAriaLabel(Navigate.PREVIOUS)}
-              startIcon={<ArrowBackIcon />}
-            >
-              <span className="visible-sr-only">Previous</span>
-            </Button>
-          </Tooltip>
-          
-          <Tooltip title={getNavigationAriaLabel(Navigate.TODAY)}>
-            <Button 
-              onClick={() => onNavigate(Navigate.TODAY)}
-              aria-label={getNavigationAriaLabel(Navigate.TODAY)}
-              startIcon={<TodayIcon />}
-            >
-              Today
-            </Button>
-          </Tooltip>
-          
-          <Tooltip title={getNavigationAriaLabel(Navigate.NEXT)}>
-            <Button 
-              onClick={() => onNavigate(Navigate.NEXT)}
-              aria-label={getNavigationAriaLabel(Navigate.NEXT)}
-              endIcon={<ArrowForwardIcon />}
-            >
-              <span className="visible-sr-only">Next</span>
-            </Button>
-          </Tooltip>
-        </ButtonGroup>
+        <ButtonGroupContainer role="group" aria-label="Calendar date navigation">
+          <ToolbarButton
+            onClick={() => onNavigate(Navigate.PREVIOUS)}
+            aria-label={getNavigationAriaLabel(Navigate.PREVIOUS)}
+            title={getNavigationAriaLabel(Navigate.PREVIOUS)}
+          >
+            <ArrowLeft size={18} />
+            <span className="visible-sr-only">Previous</span>
+          </ToolbarButton>
+
+          <ToolbarButton
+            onClick={() => onNavigate(Navigate.TODAY)}
+            aria-label={getNavigationAriaLabel(Navigate.TODAY)}
+            title={getNavigationAriaLabel(Navigate.TODAY)}
+          >
+            <Calendar size={18} />
+            Today
+          </ToolbarButton>
+
+          <ToolbarButton
+            onClick={() => onNavigate(Navigate.NEXT)}
+            aria-label={getNavigationAriaLabel(Navigate.NEXT)}
+            title={getNavigationAriaLabel(Navigate.NEXT)}
+          >
+            <span className="visible-sr-only">Next</span>
+            <ArrowRight size={18} />
+          </ToolbarButton>
+        </ButtonGroupContainer>
       </NavigationContainer>
-      
+
       <ViewContainer>
-        <StyledButtonGroup variant="contained" color="primary" size="medium" aria-label="Calendar view options">
+        <ButtonGroupContainer role="group" aria-label="Calendar view options">
           {views.map(viewName => (
-            <Button
+            <ToolbarButton
               key={viewName}
+              $active={view === viewName}
               onClick={() => onView(viewName)}
-              className={view === viewName ? 'active' : ''}
               aria-pressed={view === viewName}
               aria-label={getViewLabel(viewName)}
             >
               {viewName.charAt(0).toUpperCase() + viewName.slice(1)}
-            </Button>
+            </ToolbarButton>
           ))}
-        </StyledButtonGroup>
+        </ButtonGroupContainer>
       </ViewContainer>
     </ToolbarContainer>
   );

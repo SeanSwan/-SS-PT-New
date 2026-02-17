@@ -4,7 +4,80 @@
  */
 
 import React, { Component } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import styled from 'styled-components';
+
+const ErrorContainer = styled.div`
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(30, 30, 60, 0.3);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+`;
+
+const ErrorTitle = styled.h5`
+  margin: 0 0 16px;
+  color: #ff416c;
+  font-size: 1.5rem;
+  font-weight: 600;
+`;
+
+const ErrorMessage = styled.p`
+  margin: 0 0 32px;
+  max-width: 600px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  line-height: 1.5;
+`;
+
+const RetryButton = styled.button`
+  background: linear-gradient(135deg, #1976d2, #42a5f5);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    transform: translateY(-1px);
+  }
+`;
+
+const DebugBox = styled.div`
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  max-width: 100%;
+  overflow: auto;
+  text-align: left;
+`;
+
+const DebugTitle = styled.p`
+  color: #ff416c;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+`;
+
+const DebugText = styled.pre`
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: monospace;
+`;
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -37,7 +110,7 @@ class ScheduleErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryS
 
   handleRetry = (): void => {
     this.setState({ hasError: false, error: null });
-    
+
     // Try to refresh the page data
     window.location.reload();
   };
@@ -45,49 +118,30 @@ class ScheduleErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryS
   render(): React.ReactNode {
     if (this.state.hasError) {
       return (
-        <Box 
-          sx={{
-            p: 4,
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: 2,
-            background: 'rgba(30, 30, 60, 0.3)',
-            backdropFilter: 'blur(10px)',
-            textAlign: 'center',
-            minHeight: '300px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <Typography variant="h5" sx={{ mb: 2, color: '#ff416c' }}>
+        <ErrorContainer>
+          <ErrorTitle>
             Schedule Error
-          </Typography>
-          
-          <Typography variant="body1" sx={{ mb: 4, maxWidth: '600px' }}>
+          </ErrorTitle>
+
+          <ErrorMessage>
             There was an error loading the schedule component. This could be due to a data loading issue or a temporary problem with the application.
-          </Typography>
-          
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={this.handleRetry}
-            sx={{ mb: 2 }}
-          >
+          </ErrorMessage>
+
+          <RetryButton onClick={this.handleRetry}>
             Retry Loading
-          </Button>
-          
+          </RetryButton>
+
           {process.env.NODE_ENV === 'development' && this.state.error && (
-            <Box sx={{ mt: 3, p: 2, background: 'rgba(0,0,0,0.2)', borderRadius: 1, maxWidth: '100%', overflow: 'auto', textAlign: 'left' }}>
-              <Typography variant="subtitle2" sx={{ color: '#ff416c', mb: 1 }}>
+            <DebugBox>
+              <DebugTitle>
                 Error Details (Dev Only):
-              </Typography>
-              <Typography variant="body2" component="pre" sx={{ whiteSpace: 'pre-wrap', fontSize: '0.8rem' }}>
+              </DebugTitle>
+              <DebugText>
                 {this.state.error.toString()}
-              </Typography>
-            </Box>
+              </DebugText>
+            </DebugBox>
           )}
-        </Box>
+        </ErrorContainer>
       );
     }
 

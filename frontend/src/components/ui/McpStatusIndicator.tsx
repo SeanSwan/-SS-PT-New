@@ -1,20 +1,88 @@
 /**
  * McpStatusIndicator Component
- * 
+ *
  * Displays the status of MCP servers with visual indicators
  * and provides information about server connectivity.
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import { McpServerStatus } from '../../utils/mcp-utils';
-import { Box, Paper, Typography, Tooltip } from '@mui/material';
-import { 
-  Server, 
+import {
+  Server,
   Trophy,
   AlertCircle,
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
+
+const IndicatorContainer = styled.div<{ $floating?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  ${({ $floating }) => $floating && `
+    position: fixed;
+    bottom: 15px;
+    left: 15px;
+    z-index: 1000;
+  `}
+`;
+
+const CompactContainer = styled.div<{ $floating?: boolean }>`
+  display: flex;
+  gap: 10px;
+  ${({ $floating }) => $floating && `
+    position: fixed;
+    bottom: 15px;
+    left: 15px;
+    z-index: 1000;
+    opacity: 0.8;
+    &:hover { opacity: 1; }
+  `}
+`;
+
+const StatusCard = styled.div<{ $bgColor: string; $borderColor: string }>`
+  padding: 12px;
+  border-radius: 8px;
+  background-color: ${props => props.$bgColor};
+  border: 1px solid ${props => props.$borderColor};
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+`;
+
+const StatusHeader = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const StatusTitle = styled.span`
+  margin-left: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+`;
+
+const StatusBadgesRow = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const StatusBadge = styled.div<{ $bgColor: string; $borderColor: string }>`
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: ${props => props.$bgColor};
+  border: 1px solid ${props => props.$borderColor};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+`;
+
+const BadgeLabel = styled.span`
+  margin-left: 4px;
+  font-size: 0.75rem;
+  color: white;
+  font-weight: bold;
+`;
 
 interface McpStatusIndicatorProps {
   status: McpServerStatus;
@@ -22,9 +90,6 @@ interface McpStatusIndicatorProps {
   position?: 'floating' | 'inline';
 }
 
-/**
- * Component to display MCP server status
- */
 const McpStatusIndicator: React.FC<McpStatusIndicatorProps> = ({
   status,
   variant = 'compact',
@@ -32,185 +97,89 @@ const McpStatusIndicator: React.FC<McpStatusIndicatorProps> = ({
 }) => {
   const hasFullFunctionality = status.workout && status.gamification;
   const hasBasicFunctionality = status.workout;
-  
-  // Helper to determine status color
-  const getStatusColor = (isOnline: boolean) => {
-    return isOnline ? '#00c853' : '#ff0000';
-  };
-  
-  // Helper to determine status background color
-  const getStatusBgColor = (isOnline: boolean) => {
-    return isOnline ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 0, 0, 0.2)';
-  };
-  
-  // Helper to determine status border color
-  const getStatusBorderColor = (isOnline: boolean) => {
-    return isOnline ? 'rgba(0, 200, 83, 0.5)' : 'rgba(255, 0, 0, 0.5)';
-  };
-  
-  // Helper to determine overall status text
+  const isFloating = position === 'floating';
+
+  const getStatusColor = (isOnline: boolean) => isOnline ? '#00c853' : '#ff0000';
+  const getStatusBgColor = (isOnline: boolean) => isOnline ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 0, 0, 0.2)';
+  const getStatusBorderColor = (isOnline: boolean) => isOnline ? 'rgba(0, 200, 83, 0.5)' : 'rgba(255, 0, 0, 0.5)';
+
   const getOverallStatusText = () => {
-    if (hasFullFunctionality) {
-      return 'All MCP servers online';
-    } else if (hasBasicFunctionality) {
-      return 'Basic MCP functionality available';
-    } else {
-      return 'MCP servers offline';
-    }
+    if (hasFullFunctionality) return 'All MCP servers online';
+    if (hasBasicFunctionality) return 'Basic MCP functionality available';
+    return 'MCP servers offline';
   };
-  
-  // Helper to determine overall status icon
+
   const getOverallStatusIcon = () => {
-    if (hasFullFunctionality) {
-      return <CheckCircle size={15} color="#00c853" />;
-    } else if (hasBasicFunctionality) {
-      return <AlertTriangle size={15} color="#ff9800" />;
-    } else {
-      return <AlertCircle size={15} color="#ff0000" />;
-    }
+    if (hasFullFunctionality) return <CheckCircle size={15} color="#00c853" />;
+    if (hasBasicFunctionality) return <AlertTriangle size={15} color="#ff9800" />;
+    return <AlertCircle size={15} color="#ff0000" />;
   };
-  
+
+  const getOverallBgColor = () => {
+    if (hasFullFunctionality) return 'rgba(0, 200, 83, 0.1)';
+    if (hasBasicFunctionality) return 'rgba(255, 152, 0, 0.1)';
+    return 'rgba(255, 0, 0, 0.1)';
+  };
+
+  const getOverallBorderColor = () => {
+    if (hasFullFunctionality) return 'rgba(0, 200, 83, 0.3)';
+    if (hasBasicFunctionality) return 'rgba(255, 152, 0, 0.3)';
+    return 'rgba(255, 0, 0, 0.3)';
+  };
+
   // Render full variant
   if (variant === 'full') {
     return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          gap: 1,
-          ...(position === 'floating' ? {
-            position: 'fixed',
-            bottom: '15px',
-            left: '15px',
-            zIndex: 1000,
-          } : {})
-        }}
-      >
-        <Paper
-          elevation={2}
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            bgcolor: hasFullFunctionality ? 
-              'rgba(0, 200, 83, 0.1)' : 
-              hasBasicFunctionality ? 
-              'rgba(255, 152, 0, 0.1)' : 
-              'rgba(255, 0, 0, 0.1)',
-            border: '1px solid',
-            borderColor: hasFullFunctionality ? 
-              'rgba(0, 200, 83, 0.3)' : 
-              hasBasicFunctionality ? 
-              'rgba(255, 152, 0, 0.3)' : 
-              'rgba(255, 0, 0, 0.3)'
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+      <IndicatorContainer $floating={isFloating}>
+        <StatusCard $bgColor={getOverallBgColor()} $borderColor={getOverallBorderColor()}>
+          <StatusHeader>
             {getOverallStatusIcon()}
-            <Typography variant="subtitle2" sx={{ ml: 1 }}>
-              {getOverallStatusText()}
-            </Typography>
-          </Box>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                p: '5px 10px',
-                borderRadius: '20px',
-                bgcolor: getStatusBgColor(status.workout),
-                border: '1px solid',
-                borderColor: getStatusBorderColor(status.workout)
-              }}
+            <StatusTitle>{getOverallStatusText()}</StatusTitle>
+          </StatusHeader>
+
+          <StatusBadgesRow>
+            <StatusBadge
+              $bgColor={getStatusBgColor(status.workout)}
+              $borderColor={getStatusBorderColor(status.workout)}
             >
               <Server size={15} color={getStatusColor(status.workout)} />
-              <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 'bold' }}>
-                Workout MCP
-              </Typography>
-            </Box>
-            
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                p: '5px 10px',
-                borderRadius: '20px',
-                bgcolor: getStatusBgColor(status.gamification),
-                border: '1px solid',
-                borderColor: getStatusBorderColor(status.gamification)
-              }}
+              <BadgeLabel>Workout MCP</BadgeLabel>
+            </StatusBadge>
+
+            <StatusBadge
+              $bgColor={getStatusBgColor(status.gamification)}
+              $borderColor={getStatusBorderColor(status.gamification)}
             >
               <Trophy size={15} color={getStatusColor(status.gamification)} />
-              <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 'bold' }}>
-                Gamification MCP
-              </Typography>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
+              <BadgeLabel>Gamification MCP</BadgeLabel>
+            </StatusBadge>
+          </StatusBadgesRow>
+        </StatusCard>
+      </IndicatorContainer>
     );
   }
-  
+
   // Render compact variant
   return (
-    <Box 
-      sx={{ 
-        display: 'flex',
-        gap: '10px',
-        ...(position === 'floating' ? {
-          position: 'fixed',
-          bottom: '15px',
-          left: '15px',
-          zIndex: 1000,
-          opacity: 0.8,
-          '&:hover': { opacity: 1 }
-        } : {})
-      }}
-    >
-      <Tooltip title={`Workout MCP Server: ${status.workout ? 'Online' : 'Offline'}`}>
-        <span>
-          <Paper 
-            elevation={2} 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              padding: '5px 10px',
-              borderRadius: '20px',
-              bgcolor: getStatusBgColor(status.workout),
-              border: '1px solid',
-              borderColor: getStatusBorderColor(status.workout)
-            }}
-          >
-            <Server size={15} color={getStatusColor(status.workout)} />
-            <Typography variant="caption" sx={{ ml: 0.5, color: 'white', fontWeight: 'bold' }}>
-              Workout
-            </Typography>
-          </Paper>
-        </span>
-      </Tooltip>
-      
-      <Tooltip title={`Gamification MCP Server: ${status.gamification ? 'Online' : 'Offline'}`}>
-        <span>
-          <Paper 
-            elevation={2} 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              padding: '5px 10px',
-              borderRadius: '20px',
-              bgcolor: getStatusBgColor(status.gamification),
-              border: '1px solid',
-              borderColor: getStatusBorderColor(status.gamification)
-            }}
-          >
-            <Trophy size={15} color={getStatusColor(status.gamification)} />
-            <Typography variant="caption" sx={{ ml: 0.5, color: 'white', fontWeight: 'bold' }}>
-              Gamification
-            </Typography>
-          </Paper>
-        </span>
-      </Tooltip>
-    </Box>
+    <CompactContainer $floating={isFloating}>
+      <StatusBadge
+        $bgColor={getStatusBgColor(status.workout)}
+        $borderColor={getStatusBorderColor(status.workout)}
+        title={`Workout MCP Server: ${status.workout ? 'Online' : 'Offline'}`}
+      >
+        <Server size={15} color={getStatusColor(status.workout)} />
+        <BadgeLabel>Workout</BadgeLabel>
+      </StatusBadge>
+
+      <StatusBadge
+        $bgColor={getStatusBgColor(status.gamification)}
+        $borderColor={getStatusBorderColor(status.gamification)}
+        title={`Gamification MCP Server: ${status.gamification ? 'Online' : 'Offline'}`}
+      >
+        <Trophy size={15} color={getStatusColor(status.gamification)} />
+        <BadgeLabel>Gamification</BadgeLabel>
+      </StatusBadge>
+    </CompactContainer>
   );
 };
 
