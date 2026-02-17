@@ -1,19 +1,128 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, LinearProgress, Stack, Skeleton } from '@mui/material';
+import styled, { keyframes } from 'styled-components';
 import { Award, TrendingUp } from 'lucide-react';
+
+const shimmer = keyframes`
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const CardContainer = styled.div`
+  border-radius: 12px;
+  height: 100%;
+  background: rgba(29, 31, 43, 0.8);
+  color: white;
+  box-shadow: 0 8px 25px rgba(120, 81, 169, 0.25);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+`;
+
+const CardContent = styled.div`
+  padding: 16px;
+`;
+
+const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $mt?: string; $borderRadius?: string }>`
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 2s infinite linear;
+  width: ${props => props.$width || '100%'};
+  height: ${props => props.$height || '20px'};
+  margin-top: ${props => props.$mt || '0'};
+  border-radius: ${props => props.$borderRadius || '4px'};
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ProgressSection = styled.div`
+  margin-top: 24px;
+`;
+
+const ProgressRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+`;
+
+const ProgressLabel = styled.span`
+  font-size: 0.875rem;
+  opacity: 0.8;
+`;
+
+const ProgressValue = styled.span`
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const ProgressBarContainer = styled.div`
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $value: number }>`
+  height: 100%;
+  width: ${props => props.$value}%;
+  background: #7851a9;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+`;
+
+const StatsRow = styled.div`
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StatBlock = styled.div``;
+
+const StatLabel = styled.p`
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin: 0;
+`;
+
+const StatValueRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  gap: 4px;
+`;
+
+const StatValue = styled.span`
+  font-size: 1.25rem;
+  font-weight: 600;
+`;
+
+const DecorCircle = styled.div<{ $size: number; $top?: number; $right?: number; $bottom?: number; $left?: number }>`
+  position: absolute;
+  width: ${props => props.$size}px;
+  height: ${props => props.$size}px;
+  border-radius: 50%;
+  z-index: 0;
+  ${props => props.$top !== undefined && `top: ${props.$top}px;`}
+  ${props => props.$right !== undefined && `right: ${props.$right}px;`}
+  ${props => props.$bottom !== undefined && `bottom: ${props.$bottom}px;`}
+  ${props => props.$left !== undefined && `left: ${props.$left}px;`}
+`;
 
 interface TrainingProgressDarkCardProps {
   isLoading?: boolean;
 }
 
-/**
- * Training Progress Dark Card Component
- * 
- * Displays client achievements and progress metrics in a dark themed card.
- * Highlights important training milestones and improvements.
- */
 const TrainingProgressDarkCard: React.FC<TrainingProgressDarkCardProps> = ({ isLoading = false }) => {
-  // Sample data - in a real application, this would come from an API
   const progressData = {
     achievementsCompleted: 78,
     averageImprovement: 24,
@@ -21,114 +130,69 @@ const TrainingProgressDarkCard: React.FC<TrainingProgressDarkCardProps> = ({ isL
   };
 
   return (
-    <Card
-      sx={{
-        borderRadius: 3,
-        height: '100%',
-        bgcolor: 'rgba(29, 31, 43, 0.8)',
-        color: 'primary.contrastText',
-        boxShadow: '0 8px 25px rgba(120, 81, 169, 0.25)',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'transform 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-5px)'
-        }
-      }}
-    >
+    <CardContainer>
       <CardContent>
         {isLoading ? (
-          <Box>
-            <Skeleton variant="text" height={40} width="80%" sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
-            <Skeleton variant="text" height={25} width="60%" sx={{ mt: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
-            <Skeleton variant="rectangular" height={100} sx={{ mt: 3, borderRadius: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
-          </Box>
+          <div>
+            <SkeletonBlock $width="80%" $height="40px" />
+            <SkeletonBlock $width="60%" $height="25px" $mt="8px" />
+            <SkeletonBlock $height="100px" $mt="24px" $borderRadius="4px" />
+          </div>
         ) : (
           <>
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Stack direction="row" alignItems="center" spacing={1}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <HeaderRow>
                 <Award size={24} />
-                <Typography variant="h6" fontWeight="600">
+                <h6 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
                   Achievements
-                </Typography>
-              </Stack>
-              
-              <Box sx={{ mt: 3 }}>
-                <Stack direction="row" justifyContent="space-between" mb={0.5}>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Completed Goals
-                  </Typography>
-                  <Typography variant="body2" fontWeight="medium">
-                    {progressData.achievementsCompleted}%
-                  </Typography>
-                </Stack>
-                <LinearProgress
-                  variant="determinate"
-                  value={progressData.achievementsCompleted}
-                  sx={{
-                    height: 10,
-                    borderRadius: 5,
-                    bgcolor: 'rgba(255, 255, 255, 0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: '#7851a9'
-                    }
-                  }}
-                />
-              </Box>
-              
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Avg. Improvement
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <Typography variant="h6" mr={0.5}>
-                      {progressData.averageImprovement}%
-                    </Typography>
+                </h6>
+              </HeaderRow>
+
+              <ProgressSection>
+                <ProgressRow>
+                  <ProgressLabel>Completed Goals</ProgressLabel>
+                  <ProgressValue>{progressData.achievementsCompleted}%</ProgressValue>
+                </ProgressRow>
+                <ProgressBarContainer>
+                  <ProgressBarFill $value={progressData.achievementsCompleted} />
+                </ProgressBarContainer>
+              </ProgressSection>
+
+              <StatsRow>
+                <StatBlock>
+                  <StatLabel>Avg. Improvement</StatLabel>
+                  <StatValueRow>
+                    <StatValue>{progressData.averageImprovement}%</StatValue>
                     <TrendingUp size={16} />
-                  </Box>
-                </Box>
-                
-                <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Milestones
-                  </Typography>
-                  <Typography variant="h6" mt={0.5}>
+                  </StatValueRow>
+                </StatBlock>
+
+                <StatBlock>
+                  <StatLabel>Milestones</StatLabel>
+                  <StatValue style={{ marginTop: 4, display: 'block' }}>
                     {progressData.milestonesReached}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-            
+                  </StatValue>
+                </StatBlock>
+              </StatsRow>
+            </div>
+
             {/* Decorative elements */}
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -20,
-                right: -20,
-                width: 120,
-                height: 120,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)',
-                zIndex: 0
-              }}
+            <DecorCircle
+              $size={120}
+              $top={-20}
+              $right={-20}
+              style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)' }}
             />
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: -50,
-                left: -50,
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%)',
-                zIndex: 0
-              }}
+            <DecorCircle
+              $size={200}
+              $bottom={-50}
+              $left={-50}
+              style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%)' }}
             />
           </>
         )}
       </CardContent>
-    </Card>
+    </CardContainer>
   );
 };
 

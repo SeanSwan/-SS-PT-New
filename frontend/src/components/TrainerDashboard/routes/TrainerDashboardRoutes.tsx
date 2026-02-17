@@ -1,144 +1,145 @@
 import React, { Suspense } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import styled, { keyframes } from 'styled-components';
+import { CircularProgress } from '../../ui/primitives/components';
 
 // Import trainer dashboard components
 import ClientProgressView from '../ClientProgress/ClientProgressView';
 import TrainerDashboard from '../TrainerDashboard';
-// Import the trainer workout management component
 import TrainerWorkoutManagement from '../WorkoutManagement/TrainerWorkoutManagement';
-// Import the content & form check component
 import ContentFormCheck from '../ContentFormCheck';
-// Import the trainer schedule component
 import TrainerScheduleTab from '../../DashBoard/Pages/trainer-dashboard/schedule';
+
+const PageContainer = styled.div`
+  padding: 24px;
+`;
+
+const SectionCard = styled.div`
+  padding: 24px;
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-top: 24px;
+`;
+
+const PageTitle = styled.h4`
+  font-size: 2rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px;
+`;
+
+const PageDescription = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px;
+  line-height: 1.5;
+`;
+
+const SectionTitle = styled.h6`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px;
+`;
+
+const SectionText = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  line-height: 1.6;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  gap: 16px;
+`;
+
+const LoadingText = styled.span`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
 
 /**
  * Trainer Dashboard Home Component
- * Central dashboard view for trainers showing key metrics and navigation
  */
 const TrainerDashboardHome = () => <TrainerDashboard />;
 
 /**
  * My Clients View Component
- * View and manage assigned clients
  */
 const MyClientsView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>My Clients</Typography>
-    <Typography variant="body1" paragraph>
+  <PageContainer>
+    <PageTitle>My Clients</PageTitle>
+    <PageDescription>
       View and manage your assigned clients.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Client Dashboard</Typography>
-      <Typography variant="body2">
+    </PageDescription>
+
+    <SectionCard>
+      <SectionTitle>Client Dashboard</SectionTitle>
+      <SectionText>
         Access detailed profiles of your assigned clients. View their progress,
         workout history, and current training programs. Add notes and track their
         fitness journey. All client data is securely synchronized with the MCP server.
-      </Typography>
-    </Box>
-  </Box>
+      </SectionText>
+    </SectionCard>
+  </PageContainer>
 );
 
-/**
- * Schedule View Component
- * View and manage trainer calendar and schedule
- */
 const ScheduleView = () => <TrainerScheduleTab />;
-
-/**
- * Workout Plans View Component with MCP Integration
- * Create and manage workout plans for clients
- */
 const WorkoutPlansView = () => <TrainerWorkoutManagement />;
 
-/**
- * Training Sessions View Component
- * Schedule and manage client training sessions
- */
 const TrainingSessionsView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Training Sessions</Typography>
-    <Typography variant="body1" paragraph>
+  <PageContainer>
+    <PageTitle>Training Sessions</PageTitle>
+    <PageDescription>
       Schedule and manage your training sessions with clients.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Session Calendar</Typography>
-      <Typography variant="body2">
+    </PageDescription>
+
+    <SectionCard>
+      <SectionTitle>Session Calendar</SectionTitle>
+      <SectionText>
         View your training schedule in calendar format. Book new sessions with clients,
         reschedule existing appointments, and track session completion.
         Sessions are synchronized with the MCP server for client visibility.
-      </Typography>
-    </Box>
-  </Box>
+      </SectionText>
+    </SectionCard>
+  </PageContainer>
 );
 
-/**
- * Messages View Component
- * Manage client communications
- */
 const MessagesView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Messages</Typography>
-    <Typography variant="body1" paragraph>
+  <PageContainer>
+    <PageTitle>Messages</PageTitle>
+    <PageDescription>
       Communicate with your clients and manage conversations.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Client Communications</Typography>
-      <Typography variant="body2">
+    </PageDescription>
+
+    <SectionCard>
+      <SectionTitle>Client Communications</SectionTitle>
+      <SectionText>
         Send messages to your clients, share workout feedback, provide motivation,
         and answer questions. All messages are stored securely and synchronized
         across the platform for seamless communication.
-      </Typography>
-    </Box>
-  </Box>
+      </SectionText>
+    </SectionCard>
+  </PageContainer>
 );
 
-/**
- * Content & Form Checks View Component
- * Manage training content and review client form check videos
- */
 const ContentFormChecksView = () => <ContentFormCheck />;
 
-// Loading fallback component
 const LoadingFallback = () => (
-  <Box sx={{ 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    height: '50vh' 
-  }}>
+  <LoadingContainer>
     <CircularProgress />
-    <Typography variant="body1" sx={{ ml: 2 }}>
-      Loading...
-    </Typography>
-  </Box>
+    <LoadingText>Loading...</LoadingText>
+  </LoadingContainer>
 );
 
 /**
  * TrainerDashboardRoutes Component
- * 
+ *
  * Provides routing configuration for the trainer dashboard
- * Ensures that routes match the NavItems in TrainerDashboardLayout
- * Focused on trainer-specific functionality without admin features
- * Integrates with MCP services for synchronized data across user roles
  */
 const TrainerDashboardRoutes: React.FC = () => {
   return (
