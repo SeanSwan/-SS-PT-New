@@ -18,7 +18,6 @@
 import React, { memo, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import { Box as MuiBox, Alert, Typography } from '@mui/material';
 import { Calendar, AlertTriangle } from 'lucide-react';
 import { AdminSessionsCalendarProps } from './AdminSessionsTypes';
 import { LoadingState, cardVariants } from './AdminSessionsSharedComponents';
