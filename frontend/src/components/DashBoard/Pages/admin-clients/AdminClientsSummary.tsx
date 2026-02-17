@@ -4,80 +4,286 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Grid,
-  Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
-import {
-  People,
-  PersonAdd,
-  Assessment,
+  Users,
+  UserPlus,
+  BarChart3,
   Settings,
-  Timeline,
-  CheckCircle,
-  Warning,
-  Info,
+  Activity,
+  CheckCircle2,
   TrendingUp,
-  GroupAdd,
-  ManageAccounts,
-  Analytics,
-  Dashboard,
-  Assignment
-} from '@mui/icons-material';
+  UserCog,
+  LayoutDashboard,
+  ClipboardList,
+  type LucideIcon
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  backdropFilter: 'blur(10px)',
-  borderRadius: 12,
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  color: '#e0e0e0',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    transform: 'translateY(-4px)',
-    boxShadow: '0 8px 24px rgba(0, 255, 255, 0.1)',
-  },
-}));
+/* ─── Styled Components ─── */
 
-const HeroButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-  color: '#0a0a1a',
-  padding: '12px 32px',
-  borderRadius: 12,
-  textTransform: 'none',
-  fontWeight: 600,
-  fontSize: '1.1rem',
-  '&:hover': {
-    background: 'linear-gradient(135deg, #00e6ff, #00b3ff)',
-    transform: 'translateY(-2px)',
-    boxShadow: '0 6px 20px rgba(0, 255, 255, 0.4)',
-  },
-}));
+const PageWrapper = styled.div`
+  padding: 24px;
+  background-color: rgba(15, 23, 42, 0.95);
+  min-height: 100vh;
+  color: #e2e8f0;
+`;
 
-const FeatureList = styled(List)(({ theme }) => ({
-  '& .MuiListItem-root': {
-    padding: '8px 0',
-  },
-  '& .MuiListItemIcon-root': {
-    minWidth: 36,
-    color: '#00ffff',
-  },
-  '& .MuiListItemText-primary': {
-    color: '#e0e0e0',
-  },
-}));
+const HeaderSection = styled.div`
+  margin-bottom: 32px;
+  text-align: center;
+`;
+
+const PageTitle = styled.h3`
+  color: #00ffff;
+  margin-bottom: 16px;
+  font-weight: 700;
+  font-size: 2rem;
+`;
+
+const PageSubtitle = styled.h6`
+  color: #94a3b8;
+  margin-bottom: 32px;
+  font-weight: 400;
+  font-size: 1.15rem;
+`;
+
+const GlassCard = styled.div`
+  background-color: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 255, 255, 0.1);
+  }
+`;
+
+const CardBody = styled.div`
+  padding: 24px;
+`;
+
+const HeroButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  color: #0a0a1a;
+  padding: 12px 32px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #00e6ff, #00b3ff);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
+  }
+`;
+
+const OutlineButton = styled.button<{ $hoverBg?: string; $hoverBorder?: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  color: #e2e8f0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: ${({ $hoverBg }) => $hoverBg || 'rgba(0, 255, 255, 0.1)'};
+    border-color: ${({ $hoverBorder }) => $hoverBorder || '#00ffff'};
+  }
+`;
+
+const SmallOutlineButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  color: #00ffff;
+  background: transparent;
+  border: 1px solid #00ffff;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(0, 255, 255, 0.1);
+    border-color: #00ffff;
+  }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+
+  @media (min-width: 375px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const TwoColumnGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const FullWidthSection = styled.div`
+  margin-top: 32px;
+`;
+
+const QuickActionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 375px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const StatCardContent = styled.div`
+  text-align: center;
+`;
+
+const IconCircle = styled.div<{ $bgColor: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 50%;
+  background-color: ${({ $bgColor }) => `${$bgColor}20`};
+  margin-bottom: 16px;
+`;
+
+const StatValue = styled.h4<{ $color: string }>`
+  color: ${({ $color }) => $color};
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin: 0 0 4px 0;
+`;
+
+const StatLabel = styled.p`
+  color: #94a3b8;
+  font-size: 1rem;
+  margin: 0;
+`;
+
+const SectionTitle = styled.h5`
+  color: #00ffff;
+  margin-bottom: 24px;
+  font-weight: 600;
+  font-size: 1.3rem;
+`;
+
+const FeatureListWrapper = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const FeatureListItem = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+`;
+
+const FeatureIconSlot = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  color: #00ffff;
+`;
+
+const StyledDivider = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0;
+`;
+
+const StatusSurface = styled.div`
+  padding: 16px;
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  margin-bottom: 24px;
+`;
+
+const StatusRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const StatusTitle = styled.h6`
+  color: #4caf50;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const StatusDescription = styled.p`
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 8px 0 0 0;
+`;
+
+const StatusCheckRow = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px 0;
+  color: #e2e8f0;
+  font-size: 1rem;
+`;
+
+const StatusChecksWrapper = styled.div`
+  margin-bottom: 16px;
+`;
+
+/* ─── Component ─── */
 
 const AdminClientsSummary: React.FC = () => {
   const navigate = useNavigate();
@@ -86,268 +292,183 @@ const AdminClientsSummary: React.FC = () => {
     navigate('/dashboard/clients');
   };
 
-  const features = [
-    { icon: <People />, text: 'Comprehensive client database with search & filtering' },
-    { icon: <PersonAdd />, text: 'Add new clients with detailed onboarding' },
-    { icon: <Assignment />, text: 'Manage client sessions and training packages' },
-    { icon: <Analytics />, text: 'Real-time MCP server statistics' },
-    { icon: <ManageAccounts />, text: 'Reset passwords and assign trainers' },
-    { icon: <Timeline />, text: 'Track client progress and achievements' },
+  const features: { Icon: LucideIcon; text: string }[] = [
+    { Icon: Users, text: 'Comprehensive client database with search & filtering' },
+    { Icon: UserPlus, text: 'Add new clients with detailed onboarding' },
+    { Icon: ClipboardList, text: 'Manage client sessions and training packages' },
+    { Icon: BarChart3, text: 'Real-time MCP server statistics' },
+    { Icon: UserCog, text: 'Reset passwords and assign trainers' },
+    { Icon: Activity, text: 'Track client progress and achievements' },
   ];
 
-  const quickStats = [
-    { 
-      value: '500+', 
+  const quickStats: { value: string; label: string; Icon: LucideIcon; color: string }[] = [
+    {
+      value: '500+',
       label: 'Total Clients',
-      icon: <People />,
+      Icon: Users,
       color: '#00ffff'
     },
-    { 
-      value: '24', 
+    {
+      value: '24',
       label: 'New This Month',
-      icon: <PersonAdd />,
+      Icon: UserPlus,
       color: '#10b981'
     },
-    { 
-      value: '98%', 
+    {
+      value: '98%',
       label: 'Retention Rate',
-      icon: <TrendingUp />,
+      Icon: TrendingUp,
       color: '#7851a9'
     },
-    { 
-      value: '4.8/5', 
+    {
+      value: '4.8/5',
       label: 'Average Rating',
-      icon: <CheckCircle />,
+      Icon: CheckCircle2,
       color: '#f59e0b'
     },
   ];
 
   return (
-    <Box sx={{ p: 3, bgcolor: '#0a0a1a', minHeight: '100vh', color: '#e0e0e0' }}>
+    <PageWrapper>
       {/* Header */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Typography variant="h3" sx={{ color: '#00ffff', mb: 2, fontWeight: 700 }}>
-          Client Management System
-        </Typography>
-        <Typography variant="h6" sx={{ color: '#a0a0a0', mb: 4 }}>
+      <HeaderSection>
+        <PageTitle>Client Management System</PageTitle>
+        <PageSubtitle>
           Comprehensive tools for managing your SwanStudios clients
-        </Typography>
-        
-        <HeroButton
-          onClick={handleNavigateToClients}
-          size="large"
-          startIcon={<Dashboard />}
-        >
+        </PageSubtitle>
+
+        <HeroButton onClick={handleNavigateToClients}>
+          <LayoutDashboard size={20} />
           Open Client Management
         </HeroButton>
-      </Box>
+      </HeaderSection>
 
       {/* Quick Stats */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <StatsGrid>
         {quickStats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <StyledCard>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Box 
-                  sx={{ 
-                    display: 'inline-flex',
-                    p: 2,
-                    borderRadius: '50%',
-                    bgcolor: `${stat.color}20`,
-                    mb: 2
-                  }}
-                >
-                  {React.cloneElement(stat.icon, { 
-                    sx: { fontSize: 32, color: stat.color } 
-                  })}
-                </Box>
-                <Typography variant="h4" sx={{ color: stat.color, fontWeight: 700 }}>
+          <GlassCard key={index}>
+            <CardBody>
+              <StatCardContent>
+                <IconCircle $bgColor={stat.color}>
+                  <stat.Icon size={32} color={stat.color} />
+                </IconCircle>
+                <StatValue $color={stat.color}>
                   {stat.value}
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
+                </StatValue>
+                <StatLabel>
                   {stat.label}
-                </Typography>
-              </CardContent>
-            </StyledCard>
-          </Grid>
+                </StatLabel>
+              </StatCardContent>
+            </CardBody>
+          </GlassCard>
         ))}
-      </Grid>
+      </StatsGrid>
 
-      <Grid container spacing={4}>
+      <TwoColumnGrid>
         {/* Features Overview */}
-        <Grid item xs={12} md={6}>
-          <StyledCard>
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#00ffff', mb: 3, fontWeight: 600 }}>
-                Key Features
-              </Typography>
-              <FeatureList>
-                {features.map((feature, index) => (
-                  <React.Fragment key={index}>
-                    <ListItem>
-                      <ListItemIcon>
-                        {feature.icon}
-                      </ListItemIcon>
-                      <ListItemText primary={feature.text} />
-                    </ListItem>
-                    {index < features.length - 1 && <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />}
-                  </React.Fragment>
-                ))}
-              </FeatureList>
-            </CardContent>
-          </StyledCard>
-        </Grid>
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>Key Features</SectionTitle>
+            <FeatureListWrapper>
+              {features.map((feature, index) => (
+                <React.Fragment key={index}>
+                  <FeatureListItem>
+                    <FeatureIconSlot>
+                      <feature.Icon size={20} />
+                    </FeatureIconSlot>
+                    <span>{feature.text}</span>
+                  </FeatureListItem>
+                  {index < features.length - 1 && <StyledDivider />}
+                </React.Fragment>
+              ))}
+            </FeatureListWrapper>
+          </CardBody>
+        </GlassCard>
 
         {/* System Status */}
-        <Grid item xs={12} md={6}>
-          <StyledCard>
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#00ffff', mb: 3, fontWeight: 600 }}>
-                System Status
-              </Typography>
-              
-              <Box sx={{ mb: 3 }}>
-                <Paper sx={{ p: 2, bgcolor: 'rgba(76, 175, 80, 0.1)', border: '1px solid rgba(76, 175, 80, 0.3)' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckCircle sx={{ color: '#4caf50', fontSize: 24 }} />
-                    <Typography variant="h6" sx={{ color: '#4caf50' }}>
-                      All Systems Operational
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Client management services are running smoothly
-                  </Typography>
-                </Paper>
-              </Box>
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>System Status</SectionTitle>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
-                  Backend API: Healthy
-                </Typography>
-                <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
-                  Database: Connected
-                </Typography>
-                <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
-                  MCP Services: 6/6 Online
-                </Typography>
-              </Box>
+            <StatusSurface>
+              <StatusRow>
+                <CheckCircle2 size={24} color="#4caf50" />
+                <StatusTitle>All Systems Operational</StatusTitle>
+              </StatusRow>
+              <StatusDescription>
+                Client management services are running smoothly
+              </StatusDescription>
+            </StatusSurface>
 
-              <Button
-                variant="outlined"
-                size="small"
+            <StatusChecksWrapper>
+              <StatusCheckRow>
+                <CheckCircle2 size={20} color="#4caf50" />
+                Backend API: Healthy
+              </StatusCheckRow>
+              <StatusCheckRow>
+                <CheckCircle2 size={20} color="#4caf50" />
+                Database: Connected
+              </StatusCheckRow>
+              <StatusCheckRow>
+                <CheckCircle2 size={20} color="#4caf50" />
+                MCP Services: 6/6 Online
+              </StatusCheckRow>
+            </StatusChecksWrapper>
+
+            <SmallOutlineButton onClick={handleNavigateToClients}>
+              View Detailed Status
+            </SmallOutlineButton>
+          </CardBody>
+        </GlassCard>
+      </TwoColumnGrid>
+
+      {/* Quick Actions */}
+      <FullWidthSection>
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>Quick Actions</SectionTitle>
+
+            <QuickActionsGrid>
+              <OutlineButton
                 onClick={handleNavigateToClients}
-                sx={{ 
-                  color: '#00ffff',
-                  borderColor: '#00ffff',
-                  '&:hover': {
-                    bgcolor: 'rgba(0, 255, 255, 0.1)',
-                    borderColor: '#00ffff',
-                  }
-                }}
+                $hoverBg="rgba(0, 255, 255, 0.1)"
+                $hoverBorder="#00ffff"
               >
-                View Detailed Status
-              </Button>
-            </CardContent>
-          </StyledCard>
-        </Grid>
+                <UserPlus size={20} />
+                Add New Client
+              </OutlineButton>
 
-        {/* Quick Actions */}
-        <Grid item xs={12}>
-          <StyledCard>
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#00ffff', mb: 3, fontWeight: 600 }}>
-                Quick Actions
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<PersonAdd />}
-                    onClick={handleNavigateToClients}
-                    sx={{ 
-                      p: 2,
-                      color: '#e0e0e0',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      '&:hover': {
-                        bgcolor: 'rgba(0, 255, 255, 0.1)',
-                        borderColor: '#00ffff',
-                      }
-                    }}
-                  >
-                    Add New Client
-                  </Button>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<Assessment />}
-                    onClick={() => navigate('/dashboard/client-progress')}
-                    sx={{ 
-                      p: 2,
-                      color: '#e0e0e0',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      '&:hover': {
-                        bgcolor: 'rgba(120, 81, 169, 0.1)',
-                        borderColor: '#7851a9',
-                      }
-                    }}
-                  >
-                    View Progress Reports
-                  </Button>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<GroupAdd />}
-                    onClick={() => navigate('/dashboard/admin-sessions')}
-                    sx={{ 
-                      p: 2,
-                      color: '#e0e0e0',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      '&:hover': {
-                        bgcolor: 'rgba(16, 185, 129, 0.1)',
-                        borderColor: '#10b981',
-                      }
-                    }}
-                  >
-                    Manage Sessions
-                  </Button>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<Settings />}
-                    onClick={handleNavigateToClients}
-                    sx={{ 
-                      p: 2,
-                      color: '#e0e0e0',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      '&:hover': {
-                        bgcolor: 'rgba(245, 158, 11, 0.1)',
-                        borderColor: '#f59e0b',
-                      }
-                    }}
-                  >
-                    System Settings
-                  </Button>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </StyledCard>
-        </Grid>
-      </Grid>
-    </Box>
+              <OutlineButton
+                onClick={() => navigate('/dashboard/client-progress')}
+                $hoverBg="rgba(120, 81, 169, 0.1)"
+                $hoverBorder="#7851a9"
+              >
+                <BarChart3 size={20} />
+                View Progress Reports
+              </OutlineButton>
+
+              <OutlineButton
+                onClick={() => navigate('/dashboard/admin-sessions')}
+                $hoverBg="rgba(16, 185, 129, 0.1)"
+                $hoverBorder="#10b981"
+              >
+                <UserPlus size={20} />
+                Manage Sessions
+              </OutlineButton>
+
+              <OutlineButton
+                onClick={handleNavigateToClients}
+                $hoverBg="rgba(245, 158, 11, 0.1)"
+                $hoverBorder="#f59e0b"
+              >
+                <Settings size={20} />
+                System Settings
+              </OutlineButton>
+            </QuickActionsGrid>
+          </CardBody>
+        </GlassCard>
+      </FullWidthSection>
+    </PageWrapper>
   );
 };
 

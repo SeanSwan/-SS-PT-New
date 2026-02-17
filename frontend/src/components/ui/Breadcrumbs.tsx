@@ -6,7 +6,7 @@ import styled from 'styled-components';
 import { Box, Chip, Typography } from './primitives';
 import { alpha, useSwanTheme, useMediaQuery } from '../../styles/mui-replacements';
 
-// Icons (lucide-react replaces @mui/icons-material)
+// Icons (lucide-react)
 import {
   Home,
   Dumbbell,
