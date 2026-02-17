@@ -1,39 +1,303 @@
 import React, { useState } from 'react';
+import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 
-// Icons 
-import { 
-  Beaker, 
-  UserPlus, 
-  Zap, 
-  Check, 
+// Icons
+import {
+  Beaker,
+  UserPlus,
+  Zap,
+  Check,
   AlertTriangle,
   Copy
 } from 'lucide-react';
 
-// Material UI components
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  Grid,
-  MenuItem,
-  Paper,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-  Alert,
-  IconButton,
-  Tooltip
-} from '@mui/material';
+// ─── Styled Components ──────────────────────────────────────────────
 
-// Animation variants
+const StyledCard = styled(motion.div)`
+  background-color: rgba(30, 30, 60, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+`;
+
+const StyledCardHeader = styled.div`
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const CardHeaderTitle = styled.h6`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.6;
+`;
+
+const StyledCardContent = styled.div`
+  padding: 24px;
+`;
+
+const WarningAlert = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  border-left: 4px solid #ff9800;
+  background-color: rgba(255, 152, 0, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  line-height: 1.5;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #ff9800;
+  }
+`;
+
+const InfoAlert = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  line-height: 1.5;
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const StyledPaper = styled.div`
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  height: 100%;
+  box-sizing: border-box;
+`;
+
+const SectionTitle = styled.h6`
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.6;
+`;
+
+const BodyText = styled.p`
+  margin: 0 0 16px 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+`;
+
+const ButtonWrapper = styled.div`
+  margin-bottom: 16px;
+`;
+
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 22px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #0a0a1a;
+  cursor: pointer;
+  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  box-shadow: 0 4px 10px rgba(0, 200, 255, 0.3);
+  transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 15px rgba(0, 200, 255, 0.4);
+    background: linear-gradient(135deg, #00ffff, #00b8eb);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 22px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7851a9, #a67dd4);
+  box-shadow: 0 4px 10px rgba(120, 81, 169, 0.3);
+  transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 15px rgba(120, 81, 169, 0.4);
+    background: linear-gradient(135deg, #7851a9, #9366c7);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const CopyButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  padding: 10px 14px;
+  margin: 16px 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  font-size: 0.875rem;
+  color: #ffffff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+`;
+
+const InputLabel = styled.label`
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+  margin-top: 16px;
+`;
+
+const ClientInfoBox = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  background-color: rgba(0, 255, 255, 0.05);
+`;
+
+const ClientInfoHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const ClientInfoTitle = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+`;
+
+const ClientInfoDetail = styled.p`
+  margin: 4px 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+
+  strong {
+    color: #ffffff;
+  }
+`;
+
+const SessionInfoBox = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 81, 169, 0.3);
+  background-color: rgba(120, 81, 169, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const SessionInfoContent = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const SessionInfoTitle = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #a67dd4;
+`;
+
+const SessionInfoText = styled.span`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+`;
+
+// ─── Animation Variants ─────────────────────────────────────────────
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -57,12 +321,12 @@ const itemVariants = {
 
 /**
  * Session Test Controls Component
- * 
+ *
  * This component provides admin controls for testing the session system:
  * - Create test clients
  * - Add sessions to test clients
  * - Display test client credentials for login
- * 
+ *
  * This component should only be used in development environments.
  */
 const SessionTestControls: React.FC = () => {
@@ -150,7 +414,7 @@ const SessionTestControls: React.FC = () => {
 
     const credentials = `Email: ${testClient.email}\nPassword: ${testClient.password || 'Test123!'}`;
     navigator.clipboard.writeText(credentials);
-    
+
     toast({
       title: "Copied!",
       description: "Test client credentials copied to clipboard",
@@ -163,233 +427,128 @@ const SessionTestControls: React.FC = () => {
       animate="visible"
       variants={containerVariants}
     >
-      <Card 
-        elevation={0}
-        component={motion.div}
+      <StyledCard
         variants={itemVariants}
-        sx={{
-          backgroundColor: 'rgba(30, 30, 60, 0.3)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '15px',
-          boxShadow: '0 15px 35px rgba(0, 0, 0, 0.3)',
-          overflow: 'hidden'
-        }}
       >
-        <CardHeader
-          title={
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Beaker size={22} />
-              <Typography variant="h6" component="div">
-                Session Testing Controls
-              </Typography>
-            </Stack>
-          }
-          sx={{
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            background: 'rgba(0, 0, 0, 0.2)'
-          }}
-        />
-        
-        <CardContent>
-          <Alert 
-            severity="warning" 
-            variant="filled" 
-            sx={{ mb: 3 }}
-            icon={<AlertTriangle />}
-          >
-            These testing controls are for development purposes only. They allow you to create test clients and add sessions to them to test the session management system.
-          </Alert>
-          
-          <Grid container spacing={3}>
+        <StyledCardHeader>
+          <Beaker size={22} />
+          <CardHeaderTitle>Session Testing Controls</CardHeaderTitle>
+        </StyledCardHeader>
+
+        <StyledCardContent>
+          <WarningAlert>
+            <AlertTriangle size={20} />
+            <span>
+              These testing controls are for development purposes only. They allow you to create test clients and add sessions to them to test the session management system.
+            </span>
+          </WarningAlert>
+
+          <GridContainer>
             {/* Test Client Creation */}
-            <Grid item xs={12} md={6}>
-              <Paper
-                elevation={0}
-                sx={{ 
-                  p: 2, 
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '10px',
-                  height: '100%'
-                }}
-              >
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <UserPlus size={18} />
-                  Create Test Client
-                </Typography>
-                
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" paragraph>
-                  Create a test client with an automatically generated email and password.
-                </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<UserPlus size={16} />}
-                    onClick={handleCreateTestClient}
-                    disabled={creatingClient}
-                    sx={{ 
-                      mt: 1,
-                      background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-                      boxShadow: '0 4px 10px rgba(0, 200, 255, 0.3)',
-                      '&:hover': {
-                        boxShadow: '0 6px 15px rgba(0, 200, 255, 0.4)',
-                        background: 'linear-gradient(135deg, #00ffff, #00b8eb)',
-                      }
-                    }}
-                  >
-                    {creatingClient ? 'Creating...' : 'Create Test Client'}
-                  </Button>
-                </Box>
-                
-                {testClient && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      borderRadius: '8px',
-                      border: '1px solid rgba(0, 255, 255, 0.2)',
-                      backgroundColor: 'rgba(0, 255, 255, 0.05)',
-                    }}
-                  >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-                      <Typography variant="subtitle2">Test Client Created</Typography>
-                      <Tooltip title="Copy Credentials">
-                        <IconButton
-                          size="small"
-                          onClick={handleCopyCredentials}
-                          sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                        >
-                          <Copy size={16} />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                    
-                    <Typography variant="body2">
-                      <strong>Name:</strong> {testClient.firstName} {testClient.lastName}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Email:</strong> {testClient.email}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Password:</strong> {testClient.password || 'Test123!'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Available Sessions:</strong> {testClient.availableSessions || 0}
-                    </Typography>
-                  </Box>
-                )}
-              </Paper>
-            </Grid>
-            
+            <StyledPaper>
+              <SectionTitle>
+                <UserPlus size={18} />
+                Create Test Client
+              </SectionTitle>
+
+              <BodyText>
+                Create a test client with an automatically generated email and password.
+              </BodyText>
+
+              <ButtonWrapper>
+                <PrimaryButton
+                  onClick={handleCreateTestClient}
+                  disabled={creatingClient}
+                >
+                  <UserPlus size={16} />
+                  {creatingClient ? 'Creating...' : 'Create Test Client'}
+                </PrimaryButton>
+              </ButtonWrapper>
+
+              {testClient && (
+                <ClientInfoBox>
+                  <ClientInfoHeader>
+                    <ClientInfoTitle>Test Client Created</ClientInfoTitle>
+                    <CopyButton
+                      onClick={handleCopyCredentials}
+                      title="Copy Credentials"
+                    >
+                      <Copy size={16} />
+                    </CopyButton>
+                  </ClientInfoHeader>
+
+                  <ClientInfoDetail>
+                    <strong>Name:</strong> {testClient.firstName} {testClient.lastName}
+                  </ClientInfoDetail>
+                  <ClientInfoDetail>
+                    <strong>Email:</strong> {testClient.email}
+                  </ClientInfoDetail>
+                  <ClientInfoDetail>
+                    <strong>Password:</strong> {testClient.password || 'Test123!'}
+                  </ClientInfoDetail>
+                  <ClientInfoDetail>
+                    <strong>Available Sessions:</strong> {testClient.availableSessions || 0}
+                  </ClientInfoDetail>
+                </ClientInfoBox>
+              )}
+            </StyledPaper>
+
             {/* Test Add Sessions */}
-            <Grid item xs={12} md={6}>
-              <Paper
-                elevation={0}
-                sx={{ 
-                  p: 2, 
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '10px',
-                  height: '100%'
-                }}
-              >
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Zap size={18} />
-                  Add Test Sessions
-                </Typography>
-                
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" paragraph>
-                  Add sessions to your test client to simulate package purchases.
-                </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <TextField
-                    label="Number of Sessions"
-                    type="number"
-                    value={sessions}
-                    onChange={(e) => setSessions(parseInt(e.target.value) || 1)}
-                    inputProps={{ min: 1, max: 100 }}
-                    fullWidth
-                    margin="normal"
-                    variant="outlined"
-                    size="small"
-                    disabled={!testClient || addingSessions}
-                    sx={{
-                      mb: 2,
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': {
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
-                        },
-                        '&:hover fieldset': {
-                          borderColor: 'rgba(255, 255, 255, 0.4)',
-                        },
-                      },
-                    }}
-                  />
-                  
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<Zap size={16} />}
-                    onClick={handleAddSessions}
-                    disabled={!testClient || addingSessions}
-                    sx={{ 
-                      mt: 1,
-                      background: 'linear-gradient(135deg, #7851a9, #a67dd4)',
-                      boxShadow: '0 4px 10px rgba(120, 81, 169, 0.3)',
-                      '&:hover': {
-                        boxShadow: '0 6px 15px rgba(120, 81, 169, 0.4)',
-                        background: 'linear-gradient(135deg, #7851a9, #9366c7)',
-                      }
-                    }}
-                  >
-                    {addingSessions ? 'Adding...' : 'Add Sessions'}
-                  </Button>
-                </Box>
-                
-                {!testClient && (
-                  <Alert 
-                    severity="info" 
-                    variant="outlined"
-                    sx={{ 
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)'
-                    }}
-                  >
-                    Create a test client first before adding sessions
-                  </Alert>
-                )}
-                
-                {testClient && testClient.availableSessions > 0 && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      borderRadius: '8px',
-                      border: '1px solid rgba(120, 81, 169, 0.3)',
-                      backgroundColor: 'rgba(120, 81, 169, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
-                    }}
-                  >
-                    <Check size={20} color="#a67dd4" />
-                    <div>
-                      <Typography variant="subtitle2" sx={{ color: '#a67dd4' }}>
-                        Test Client has {testClient.availableSessions} available sessions
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        These sessions will appear in the admin dashboard and can be used by the test client
-                      </Typography>
-                    </div>
-                  </Box>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+            <StyledPaper>
+              <SectionTitle>
+                <Zap size={18} />
+                Add Test Sessions
+              </SectionTitle>
+
+              <BodyText>
+                Add sessions to your test client to simulate package purchases.
+              </BodyText>
+
+              <ButtonWrapper>
+                <InputLabel htmlFor="session-count">Number of Sessions</InputLabel>
+                <StyledInput
+                  id="session-count"
+                  type="number"
+                  value={sessions}
+                  onChange={(e) => setSessions(parseInt(e.target.value) || 1)}
+                  min={1}
+                  max={100}
+                  placeholder="Number of Sessions"
+                  disabled={!testClient || addingSessions}
+                />
+
+                <SecondaryButton
+                  onClick={handleAddSessions}
+                  disabled={!testClient || addingSessions}
+                >
+                  <Zap size={16} />
+                  {addingSessions ? 'Adding...' : 'Add Sessions'}
+                </SecondaryButton>
+              </ButtonWrapper>
+
+              {!testClient && (
+                <InfoAlert>
+                  Create a test client first before adding sessions
+                </InfoAlert>
+              )}
+
+              {testClient && testClient.availableSessions > 0 && (
+                <SessionInfoBox>
+                  <Check size={20} color="#a67dd4" />
+                  <SessionInfoContent>
+                    <SessionInfoTitle>
+                      Test Client has {testClient.availableSessions} available sessions
+                    </SessionInfoTitle>
+                    <SessionInfoText>
+                      These sessions will appear in the admin dashboard and can be used by the test client
+                    </SessionInfoText>
+                  </SessionInfoContent>
+                </SessionInfoBox>
+              )}
+            </StyledPaper>
+          </GridContainer>
+        </StyledCardContent>
+      </StyledCard>
     </motion.div>
   );
 };
