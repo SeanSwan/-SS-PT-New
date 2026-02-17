@@ -1,37 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  Alert,
-  Chip,
-  LinearProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Button,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText
-} from '@mui/material';
+import styled from 'styled-components';
 import {
   AlertTriangle,
   Shield,
   Activity,
   Clock,
   TrendingUp,
-  ExpandMore,
+  ChevronDown,
   CheckCircle,
   XCircle,
   Info,
@@ -46,9 +21,303 @@ import RadarProgressChart from '../../../FitnessStats/charts/RadarProgressChart'
 // Import proper type definitions
 import type { InjuryRiskAssessmentProps } from './types';
 
+/* ─── styled-components (Galaxy-Swan theme) ─── */
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const GlassPanel = styled.div`
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const FlexBetween = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Heading6 = styled.h6`
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Heading3 = styled.h3<{ $color?: string }>`
+  margin: 0 0 8px 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: ${({ $color }) => $color || '#e2e8f0'};
+`;
+
+const Subtitle = styled.p`
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const BodyText = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+`;
+
+const SecondaryText = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+`;
+
+const CaptionText = styled.span`
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: block;
+`;
+
+const MediumText = styled.span`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e2e8f0;
+`;
+
+const RiskChip = styled.span<{ $bgColor: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: ${({ $bgColor }) => $bgColor};
+  white-space: nowrap;
+`;
+
+const SmallRiskChip = styled.span<{ $bgColor: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  background: ${({ $bgColor }) => $bgColor};
+  white-space: nowrap;
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const GridThreeCol = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $width: number; $color: string }>`
+  height: 100%;
+  width: ${({ $width }) => $width}%;
+  background: ${({ $color }) => $color};
+  border-radius: 3px;
+  transition: width 0.4s ease;
+`;
+
+const AlertBox = styled.div`
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+`;
+
+const AccordionWrapper = styled.details`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.15);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+
+  &[open] > summary svg.chevron-icon {
+    transform: rotate(180deg);
+  }
+`;
+
+const AccordionSummaryStyled = styled.summary`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  min-height: 44px;
+  list-style: none;
+  user-select: none;
+  color: #e2e8f0;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::marker {
+    display: none;
+    content: '';
+  }
+`;
+
+const AccordionContent = styled.div`
+  padding: 0 16px 16px;
+  overflow-x: auto;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+`;
+
+const TableHead = styled.thead`
+  th {
+    padding: 8px 12px;
+    text-align: left;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+    white-space: nowrap;
+  }
+`;
+
+const TableBody = styled.tbody`
+  td {
+    padding: 8px 12px;
+    color: #e2e8f0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+`;
+
+const ProtocolCard = styled.div<{ $bgColor: string }>`
+  background: ${({ $bgColor }) => $bgColor};
+  border: 1px solid rgba(14, 165, 233, 0.15);
+  border-radius: 10px;
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ProtocolHeading = styled.h6<{ $color: string }>`
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${({ $color }) => $color};
+`;
+
+const StyledList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const StyledListItem = styled.li`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  min-height: 36px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+`;
+
+const ListItemPrimary = styled.span`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  display: block;
+`;
+
+const ListItemSecondary = styled.span`
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: block;
+  margin-top: 2px;
+`;
+
+const RecommendationCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.15);
+  border-radius: 10px;
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const RecommendationHeading = styled.h6`
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #00ffff;
+`;
+
+const CenterBox = styled.div`
+  text-align: center;
+`;
+
+const CategoryBlock = styled.div`
+  margin-bottom: 16px;
+`;
+
+const ChevronIcon = styled(ChevronDown)`
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+`;
+
+const SummaryLeft = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+`;
+
+/* ─── Component ─── */
+
 /**
  * InjuryRiskAssessment Component
- * 
+ *
  * Advanced injury risk analysis for trainers including:
  * - Movement pattern analysis
  * - Muscular imbalance detection
@@ -72,7 +341,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
       overallRisk: 'medium', // low, medium, high
       riskScore: 65, // 0-100 scale
       lastAssessment: new Date().toISOString(),
-      
+
       categories: [
         {
           id: 'movement',
@@ -275,71 +544,52 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     if (!riskAssessment) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <GlassPanel>
+        <FlexBetween style={{ marginBottom: 24 }}>
+          <FlexRow>
             <Shield color="#00ffff" size={24} style={{ marginRight: 12 }} />
-            <Typography variant="h6">Injury Risk Assessment</Typography>
-          </Box>
-          
-          <Chip 
-            label={`${riskAssessment.overallRisk.toUpperCase()} RISK`}
-            sx={{ 
-              bgcolor: getRiskColor(riskAssessment.overallRisk),
-              color: '#fff',
-              fontWeight: 'bold'
-            }}
-          />
-        </Box>
+            <Heading6 style={{ marginBottom: 0 }}>Injury Risk Assessment</Heading6>
+          </FlexRow>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h3" sx={{ color: getRiskColor(riskAssessment.overallRisk), mb: 1 }}>
-                {riskAssessment.riskScore}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Overall Risk Score
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block">
-                Last assessed: {new Date(riskAssessment.lastAssessment).toLocaleDateString()}
-              </Typography>
-            </Box>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" gutterBottom>
+          <RiskChip $bgColor={getRiskColor(riskAssessment.overallRisk)}>
+            {riskAssessment.overallRisk.toUpperCase()} RISK
+          </RiskChip>
+        </FlexBetween>
+
+        <GridContainer>
+          <CenterBox>
+            <Heading3 $color={getRiskColor(riskAssessment.overallRisk)}>
+              {riskAssessment.riskScore}
+            </Heading3>
+            <BodyText>
+              Overall Risk Score
+            </BodyText>
+            <CaptionText>
+              Last assessed: {new Date(riskAssessment.lastAssessment).toLocaleDateString()}
+            </CaptionText>
+          </CenterBox>
+
+          <div>
+            <Subtitle>
               Risk Categories
-            </Typography>
-            
+            </Subtitle>
+
             {riskAssessment.categories.map((category) => (
-              <Box key={category.id} sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2">{category.name}</Typography>
-                  <Chip 
-                    size="small"
-                    label={category.risk}
-                    sx={{ 
-                      bgcolor: getRiskColor(category.risk),
-                      color: '#fff',
-                      fontSize: '0.7rem'
-                    }}
-                  />
-                </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={category.score} 
-                  sx={{ 
-                    '& .MuiLinearProgress-bar': { 
-                      bgcolor: getRiskColor(category.risk)
-                    } 
-                  }} 
-                />
-              </Box>
+              <CategoryBlock key={category.id}>
+                <FlexBetween style={{ marginBottom: 6 }}>
+                  <BodyText>{category.name}</BodyText>
+                  <SmallRiskChip $bgColor={getRiskColor(category.risk)}>
+                    {category.risk}
+                  </SmallRiskChip>
+                </FlexBetween>
+                <ProgressBarTrack>
+                  <ProgressBarFill $width={category.score} $color={getRiskColor(category.risk)} />
+                </ProgressBarTrack>
+              </CategoryBlock>
             ))}
-          </Grid>
-        </Grid>
-      </Paper>
+          </div>
+        </GridContainer>
+      </GlassPanel>
     );
   };
 
@@ -347,33 +597,26 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     if (!riskAssessment?.criticalAlerts?.length) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-          <AlertTriangle color="#FF6B6B" size={20} style={{ marginRight: 8 }} />
+      <GlassPanel>
+        <Heading6>
+          <AlertTriangle color="#FF6B6B" size={20} />
           Critical Alerts
-        </Typography>
-        
-        <Grid container spacing={2}>
-          {riskAssessment.criticalAlerts.map((alert, index) => (
-            <Grid item xs={12} key={index}>
-              <Alert 
-                severity={alert.severity as any}
-                sx={{ bgcolor: 'rgba(255, 107, 107, 0.1)' }}
-              >
-                <Typography variant="subtitle2" gutterBottom>
-                  {alert.title} - Action needed: {alert.timeframe}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  {alert.description}
-                </Typography>
-                <Typography variant="body2" fontWeight="medium">
-                  Action: {alert.action}
-                </Typography>
-              </Alert>
-            </Grid>
-          ))}
-        </Grid>
-      </Paper>
+        </Heading6>
+
+        {riskAssessment.criticalAlerts.map((alert, index) => (
+          <AlertBox key={index}>
+            <Subtitle style={{ marginBottom: 4 }}>
+              {alert.title} - Action needed: {alert.timeframe}
+            </Subtitle>
+            <SecondaryText style={{ marginBottom: 8 }}>
+              {alert.description}
+            </SecondaryText>
+            <MediumText>
+              Action: {alert.action}
+            </MediumText>
+          </AlertBox>
+        ))}
+      </GlassPanel>
     );
   };
 
@@ -381,70 +624,57 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     if (!riskAssessment) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <GlassPanel>
+        <Heading6>
           Detailed Assessment
-        </Typography>
-        
+        </Heading6>
+
         {riskAssessment.categories.map((category) => (
-          <Accordion key={category.id} sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', mb: 1 }}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Typography variant="subtitle1" sx={{ flex: 1 }}>
+          <AccordionWrapper key={category.id}>
+            <AccordionSummaryStyled>
+              <SummaryLeft>
+                <span style={{ flex: 1, fontSize: '1rem', fontWeight: 500 }}>
                   {category.name}
-                </Typography>
-                <Chip 
-                  size="small"
-                  label={`${category.score}/100`}
-                  sx={{ 
-                    bgcolor: getRiskColor(category.risk),
-                    color: '#fff',
-                    mr: 1
-                  }}
-                />
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Assessment Area</TableCell>
-                      <TableCell align="center">Status</TableCell>
-                      <TableCell>Notes</TableCell>
-                      <TableCell>Recommendation</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {category.findings.map((finding, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="medium">
-                            {finding.pattern}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          {getStatusIcon(finding.status)}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {finding.notes}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {finding.recommendation}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </AccordionDetails>
-          </Accordion>
+                </span>
+                <SmallRiskChip $bgColor={getRiskColor(category.risk)}>
+                  {category.score}/100
+                </SmallRiskChip>
+              </SummaryLeft>
+              <ChevronIcon className="chevron-icon" size={20} color="#94a3b8" />
+            </AccordionSummaryStyled>
+            <AccordionContent>
+              <StyledTable>
+                <TableHead>
+                  <tr>
+                    <th>Assessment Area</th>
+                    <th style={{ textAlign: 'center' }}>Status</th>
+                    <th>Notes</th>
+                    <th>Recommendation</th>
+                  </tr>
+                </TableHead>
+                <TableBody>
+                  {category.findings.map((finding, index) => (
+                    <tr key={index}>
+                      <td>
+                        <MediumText>{finding.pattern}</MediumText>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {getStatusIcon(finding.status)}
+                      </td>
+                      <td>
+                        <SecondaryText>{finding.notes}</SecondaryText>
+                      </td>
+                      <td>
+                        <BodyText>{finding.recommendation}</BodyText>
+                      </td>
+                    </tr>
+                  ))}
+                </TableBody>
+              </StyledTable>
+            </AccordionContent>
+          </AccordionWrapper>
         ))}
-      </Paper>
+      </GlassPanel>
     );
   };
 
@@ -454,97 +684,81 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     const { inhibit, lengthen, activate, integrate } = riskAssessment.correctiveProtocol;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <GlassPanel>
+        <Heading6>
           NASM Corrective Exercise Protocol
-        </Typography>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        </Heading6>
+
+        <SecondaryText style={{ marginBottom: 24 }}>
           Based on assessment findings, follow this 4-phase corrective approach:
-        </Typography>
+        </SecondaryText>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card sx={{ bgcolor: 'rgba(255, 107, 107, 0.1)', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ color: '#FF6B6B' }}>
-                  1. Inhibit (Overactive)
-                </Typography>
-                <List dense>
-                  {inhibit.map((item, index) => (
-                    <ListItem key={index}>
-                      <ListItemText
-                        primary={item.muscle}
-                        secondary={`${item.exercise} - ${item.duration} (${item.frequency})`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
+        <GridContainer>
+          <ProtocolCard $bgColor="rgba(255, 107, 107, 0.1)">
+            <ProtocolHeading $color="#FF6B6B">
+              1. Inhibit (Overactive)
+            </ProtocolHeading>
+            <StyledList>
+              {inhibit.map((item, index) => (
+                <StyledListItem key={index}>
+                  <div>
+                    <ListItemPrimary>{item.muscle}</ListItemPrimary>
+                    <ListItemSecondary>{item.exercise} - {item.duration} ({item.frequency})</ListItemSecondary>
+                  </div>
+                </StyledListItem>
+              ))}
+            </StyledList>
+          </ProtocolCard>
 
-          <Grid item xs={12} md={6}>
-            <Card sx={{ bgcolor: 'rgba(255, 193, 7, 0.1)', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ color: '#FFC107' }}>
-                  2. Lengthen (Tight)
-                </Typography>
-                <List dense>
-                  {lengthen.map((item, index) => (
-                    <ListItem key={index}>
-                      <ListItemText
-                        primary={item.muscle}
-                        secondary={`${item.exercise} - ${item.duration} (${item.frequency})`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
+          <ProtocolCard $bgColor="rgba(255, 193, 7, 0.1)">
+            <ProtocolHeading $color="#FFC107">
+              2. Lengthen (Tight)
+            </ProtocolHeading>
+            <StyledList>
+              {lengthen.map((item, index) => (
+                <StyledListItem key={index}>
+                  <div>
+                    <ListItemPrimary>{item.muscle}</ListItemPrimary>
+                    <ListItemSecondary>{item.exercise} - {item.duration} ({item.frequency})</ListItemSecondary>
+                  </div>
+                </StyledListItem>
+              ))}
+            </StyledList>
+          </ProtocolCard>
 
-          <Grid item xs={12} md={6}>
-            <Card sx={{ bgcolor: 'rgba(0, 255, 255, 0.1)', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-                  3. Activate (Underactive)
-                </Typography>
-                <List dense>
-                  {activate.map((item, index) => (
-                    <ListItem key={index}>
-                      <ListItemText
-                        primary={item.muscle}
-                        secondary={`${item.exercise} - ${item.reps} (${item.frequency})`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
+          <ProtocolCard $bgColor="rgba(0, 255, 255, 0.1)">
+            <ProtocolHeading $color="#00ffff">
+              3. Activate (Underactive)
+            </ProtocolHeading>
+            <StyledList>
+              {activate.map((item, index) => (
+                <StyledListItem key={index}>
+                  <div>
+                    <ListItemPrimary>{item.muscle}</ListItemPrimary>
+                    <ListItemSecondary>{item.exercise} - {item.reps} ({item.frequency})</ListItemSecondary>
+                  </div>
+                </StyledListItem>
+              ))}
+            </StyledList>
+          </ProtocolCard>
 
-          <Grid item xs={12} md={6}>
-            <Card sx={{ bgcolor: 'rgba(76, 175, 80, 0.1)', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ color: '#4CAF50' }}>
-                  4. Integrate (Functional)
-                </Typography>
-                <List dense>
-                  {integrate.map((item, index) => (
-                    <ListItem key={index}>
-                      <ListItemText
-                        primary={item.muscle}
-                        secondary={`${item.exercise} - ${item.reps} (${item.frequency})`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Paper>
+          <ProtocolCard $bgColor="rgba(76, 175, 80, 0.1)">
+            <ProtocolHeading $color="#4CAF50">
+              4. Integrate (Functional)
+            </ProtocolHeading>
+            <StyledList>
+              {integrate.map((item, index) => (
+                <StyledListItem key={index}>
+                  <div>
+                    <ListItemPrimary>{item.muscle}</ListItemPrimary>
+                    <ListItemSecondary>{item.exercise} - {item.reps} ({item.frequency})</ListItemSecondary>
+                  </div>
+                </StyledListItem>
+              ))}
+            </StyledList>
+          </ProtocolCard>
+        </GridContainer>
+      </GlassPanel>
     );
   };
 
@@ -552,49 +766,40 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     if (!riskAssessment?.recommendations) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b' }}>
-        <Typography variant="h6" gutterBottom>
+      <GlassPanel style={{ marginBottom: 0 }}>
+        <Heading6>
           Action Plan Recommendations
-        </Typography>
-        
-        <Grid container spacing={3}>
+        </Heading6>
+
+        <GridThreeCol>
           {riskAssessment.recommendations.map((category, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <Card sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-                    {category.category}
-                  </Typography>
-                  <List dense>
-                    {category.items.map((item, itemIndex) => (
-                      <ListItem key={itemIndex}>
-                        <ListItemIcon>
-                          <CheckCircle size={16} color="#4CAF50" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={item}
-                          primaryTypographyProps={{ variant: 'body2' }}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
+            <RecommendationCard key={index}>
+              <RecommendationHeading>
+                {category.category}
+              </RecommendationHeading>
+              <StyledList>
+                {category.items.map((item, itemIndex) => (
+                  <StyledListItem key={itemIndex}>
+                    <CheckCircle size={16} color="#4CAF50" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <BodyText>{item}</BodyText>
+                  </StyledListItem>
+                ))}
+              </StyledList>
+            </RecommendationCard>
           ))}
-        </Grid>
-      </Paper>
+        </GridThreeCol>
+      </GlassPanel>
     );
   };
 
   return (
-    <Box>
+    <Container>
       {renderOverallRisk()}
       {renderCriticalAlerts()}
       {renderDetailedAssessment()}
       {renderCorrectiveProtocol()}
       {renderRecommendations()}
-    </Box>
+    </Container>
   );
 };
 
