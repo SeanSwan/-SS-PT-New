@@ -230,6 +230,70 @@ async function migrateResetPasswordColumns() {
 }
 
 /**
+ * Migration 5: Ensure shopping_carts has columns expected by ShoppingCart model.
+ * Handles environments where a subset of cart migrations were applied.
+ */
+async function migrateShoppingCartColumns() {
+  const addColumnIfMissing = async (column, definition) => {
+    try {
+      const [cols] = await sequelize.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_name = 'shopping_carts' AND column_name = '${column}';`
+      );
+      if (cols && cols.length > 0) return;
+
+      logger.info(`[Migration] Adding shopping_carts.${column}...`);
+      await sequelize.query(`ALTER TABLE shopping_carts ADD COLUMN "${column}" ${definition};`);
+      logger.info(`[Migration] shopping_carts.${column} added successfully`);
+    } catch (error) {
+      logger.warn(`[Migration] shopping_carts.${column} add failed (non-critical): ${error.message}`);
+    }
+  };
+
+  try {
+    const [tables] = await sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE tablename = 'shopping_carts';`
+    );
+    if (!tables || tables.length === 0) {
+      logger.info('[Migration] shopping_carts table does not exist yet, skipping');
+      return;
+    }
+
+    await addColumnIfMissing('paymentIntentId', 'VARCHAR(255)');
+    await addColumnIfMissing('total', 'DECIMAL(10,2) DEFAULT 0.00');
+    await addColumnIfMissing('checkoutSessionId', 'VARCHAR(255)');
+    await addColumnIfMissing('paymentStatus', 'VARCHAR(255)');
+    await addColumnIfMissing('completedAt', 'TIMESTAMPTZ');
+    await addColumnIfMissing('lastActivityAt', 'TIMESTAMPTZ');
+    await addColumnIfMissing('checkoutSessionExpired', 'BOOLEAN DEFAULT false NOT NULL');
+    await addColumnIfMissing('sessionsGranted', 'BOOLEAN DEFAULT false NOT NULL');
+    await addColumnIfMissing('stripeSessionData', 'TEXT');
+    await addColumnIfMissing('customerInfo', 'TEXT');
+    await addColumnIfMissing('subtotal', 'DECIMAL(10,2)');
+    await addColumnIfMissing('tax', 'DECIMAL(10,2)');
+    await addColumnIfMissing('lastCheckoutAttempt', 'TIMESTAMPTZ');
+
+    // Ensure enum supports newer payment states when enum type exists.
+    try {
+      const [enumRows] = await sequelize.query(`
+        SELECT e.enumlabel
+        FROM pg_enum e
+        JOIN pg_type t ON e.enumtypid = t.oid
+        WHERE t.typname = 'enum_shopping_carts_status';
+      `);
+      if (enumRows && enumRows.length > 0) {
+        await sequelize.query(`ALTER TYPE enum_shopping_carts_status ADD VALUE IF NOT EXISTS 'pending_payment';`);
+        await sequelize.query(`ALTER TYPE enum_shopping_carts_status ADD VALUE IF NOT EXISTS 'cancelled';`);
+      }
+    } catch (enumError) {
+      logger.warn(`[Migration] shopping_carts status enum update skipped: ${enumError.message}`);
+    }
+  } catch (error) {
+    logger.warn(`[Migration] shopping_carts schema fix failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -241,6 +305,7 @@ export async function runStartupMigrations() {
     await migrateMessagingTables();
     await migrateStabilizationColumns();
     await migrateResetPasswordColumns();
+    await migrateShoppingCartColumns();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;
