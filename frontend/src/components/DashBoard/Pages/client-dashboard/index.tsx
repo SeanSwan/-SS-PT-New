@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Dialog, DialogContent, DialogTitle, DialogActions, Button, CircularProgress } from '@mui/material';
+import { Box, Dialog, DialogContent, DialogTitle, DialogActions, Button, CircularProgress, Typography, Chip } from '../../../ui/primitives/components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import useWindowSize from '../../../../hooks/useWindowSize';
@@ -654,13 +654,13 @@ const EnhancedClientDashboard: React.FC = () => {
   // Render challenges dialog
   const renderChallengesDialog = () => {
     return (
-      <Dialog 
-        open={showChallengesDialog} 
+      <Dialog
+        open={showChallengesDialog}
         onClose={() => setShowChallengesDialog(false)}
         fullWidth
         maxWidth="md"
         PaperProps={{
-          sx: {
+          style: {
             background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
             color: 'white',
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -668,22 +668,22 @@ const EnhancedClientDashboard: React.FC = () => {
           }
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Trophy size={20} />
           Active Challenges
         </DialogTitle>
         <DialogContent>
           {challenges.map((challenge) => (
-            <Box key={challenge.id} sx={{ mb: 2 }}>
+            <Box key={challenge.id} style={{ marginBottom: 16 }}>
               <ChallengesCard challenges={[challenge]} />
             </Box>
           ))}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button 
-            variant="outlined" 
+        <DialogActions style={{ padding: '24px' }}>
+          <Button
+            variant="outlined"
             onClick={() => setShowChallengesDialog(false)}
-            sx={{ borderRadius: '8px', px: 3 }}
+            style={{ borderRadius: '8px', padding: '8px 24px' }}
           >
             Close
           </Button>
@@ -695,13 +695,13 @@ const EnhancedClientDashboard: React.FC = () => {
   // Render rewards dialog
   const renderRewardsDialog = () => {
     return (
-      <Dialog 
-        open={showRewardsDialog} 
+      <Dialog
+        open={showRewardsDialog}
         onClose={() => setShowRewardsDialog(false)}
         fullWidth
         maxWidth="md"
         PaperProps={{
-          sx: {
+          style: {
             background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
             color: 'white',
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -709,64 +709,60 @@ const EnhancedClientDashboard: React.FC = () => {
           }
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Gift size={20} />
           Rewards Shop
-          <Box sx={{ ml: 'auto', bgcolor: 'rgba(255, 255, 255, 0.1)', px: 2, py: 0.5, borderRadius: 2 }}>
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box style={{ marginLeft: 'auto', background: 'rgba(255, 255, 255, 0.1)', padding: '4px 16px', borderRadius: 8 }}>
+            <Typography variant="body2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Award size={16} /> {points} Points
             </Typography>
           </Box>
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2 }}>
+          <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
             {rewards.map((reward) => (
-              <Box 
-                key={reward.id} 
-                sx={{ 
-                  p: 2, 
-                  borderRadius: '10px', 
-                  background: reward.unlocked ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)', 
-                  border: '1px solid',
-                  borderColor: reward.unlocked ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+              <Box
+                key={reward.id}
+                style={{
+                  padding: 16,
+                  borderRadius: '10px',
+                  background: reward.unlocked ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${reward.unlocked ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
                 }}
               >
-                <Box sx={{ fontSize: '2rem', mb: 1 }}>
+                <Box style={{ fontSize: '2rem', marginBottom: 8 }}>
                   {reward.icon}
                 </Box>
                 <Typography variant="subtitle1">
                   {reward.title}
                 </Typography>
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" sx={{ mb: 2 }}>
+                <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 16 }}>
                   {reward.description}
                 </Typography>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Chip 
-                    icon={<Award size={14} />} 
-                    label={reward.requiredPoints} 
+
+                <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Chip
+                    label={`${reward.requiredPoints} pts`}
                     size="small"
-                    sx={{ bgcolor: 'rgba(0, 0, 0, 0.2)' }}
+                    style={{ background: 'rgba(0, 0, 0, 0.2)' }}
                   />
-                  
+
                   {reward.unlocked ? (
-                    <Chip 
-                      icon={<Check size={14} />} 
-                      label="Claimed" 
+                    <Chip
+                      label="Claimed"
                       size="small"
                       color="success"
                     />
                   ) : (
                     <Button
                       variant="outlined"
-                      size="small"
-                      color={points >= reward.requiredPoints ? "primary" : "inherit"}
                       startIcon={points >= reward.requiredPoints ? <Unlock size={14} /> : <Lock size={14} />}
                       onClick={() => claimReward(reward.id)}
                       disabled={points < reward.requiredPoints}
-                      sx={{ 
+                      style={{
                         opacity: points >= reward.requiredPoints ? 1 : 0.5,
-                        borderColor: points >= reward.requiredPoints ? 'primary.main' : 'rgba(255, 255, 255, 0.2)'
+                        fontSize: '0.8rem',
+                        padding: '4px 12px'
                       }}
                     >
                       Claim
@@ -777,11 +773,11 @@ const EnhancedClientDashboard: React.FC = () => {
             ))}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button 
-            variant="outlined" 
+        <DialogActions style={{ padding: '24px' }}>
+          <Button
+            variant="outlined"
             onClick={() => setShowRewardsDialog(false)}
-            sx={{ borderRadius: '8px', px: 3 }}
+            style={{ borderRadius: '8px', padding: '8px 24px' }}
           >
             Close
           </Button>
@@ -794,14 +790,14 @@ const EnhancedClientDashboard: React.FC = () => {
   if (loading) {
     return (
       <PageContainer>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box style={{
+          display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center', 
+          alignItems: 'center',
+          justifyContent: 'center',
           height: '100vh'
         }}>
-          <CircularProgress size={60} sx={{ color: '#00ffff', mb: 3 }} />
+          <CircularProgress size={60} style={{ color: '#00ffff', marginBottom: 24 }} />
           <Typography variant="h6">Loading your fitness dashboard...</Typography>
         </Box>
       </PageContainer>
@@ -875,19 +871,18 @@ const EnhancedClientDashboard: React.FC = () => {
       
       {/* Debug Button - Only in development */}
       {process.env.NODE_ENV === 'development' && (
-        <Box 
-          sx={{ 
-            position: 'fixed', 
-            bottom: 20, 
-            left: 20, 
-            zIndex: 1000 
+        <Box
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            left: 20,
+            zIndex: 1000
           }}
         >
-          <Button 
-            variant="contained" 
-            color="primary" 
+          <Button
+            variant="contained"
             onClick={simulateNewAchievement}
-            sx={{ borderRadius: '8px' }}
+            style={{ borderRadius: '8px' }}
           >
             Simulate Achievement
           </Button>

@@ -8,45 +8,65 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Dialog, IconButton } from '@mui/material';
-import { MicNone, Close } from '@mui/icons-material';
+import { Button, Dialog } from '../ui/primitives/components';
+import { Mic, X } from 'lucide-react';
 import styled from 'styled-components';
 import VoiceSessionLogger from './VoiceSessionLogger';
 import { useAuth } from '../../context/AuthContext';
 
 // Styled components
-const LogButton = styled(Button)`
-  && {
-    background: linear-gradient(90deg, #00ffff, #7851a9);
-    color: white;
-    border-radius: 8px;
-    text-transform: none;
-    
-    &:hover {
-      background: linear-gradient(90deg, #7851a9, #00ffff);
-    }
+const LogButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #00ffff, #7851a9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+
+  &:hover {
+    background: linear-gradient(90deg, #7851a9, #00ffff);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
-const LogMobileButton = styled(IconButton)`
-  && {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
-    color: white;
-    width: 60px;
-    height: 60px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    
-    &:hover {
-      background: linear-gradient(90deg, #7851a9, #00ffff);
-    }
-    
-    @media (min-width: 769px) {
-      display: none;
-    }
+const LogMobileButton = styled.button`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(90deg, #00ffff, #7851a9);
+  color: white;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  cursor: pointer;
+
+  &:hover {
+    background: linear-gradient(90deg, #7851a9, #00ffff);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (min-width: 769px) {
+    display: none;
   }
 `;
 
@@ -90,16 +110,15 @@ const SessionLogButton = ({ sessionId, sessionData, variant = 'desktop' }) => {
     <>
       {variant === 'desktop' ? (
         <LogButton
-          startIcon={<MicNone />}
           onClick={handleOpen}
           disabled={!isEnabled}
-          size="medium"
         >
+          <Mic size={18} />
           Log Session
         </LogButton>
       ) : (
         <LogMobileButton onClick={handleOpen} disabled={!isEnabled}>
-          <MicNone />
+          <Mic size={24} />
         </LogMobileButton>
       )}
       

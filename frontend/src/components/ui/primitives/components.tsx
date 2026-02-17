@@ -1852,47 +1852,62 @@ const DialogBackdrop = styled.div<{ $open: boolean }>`
   animation: ${dialogFadeIn} 0.2s ease-out;
 `;
 
-const DialogPanel = styled.div<{ $maxWidth: string; $fullWidth: boolean }>`
+const DialogPanel = styled.div<{ $maxWidth: string; $fullWidth: boolean; $fullScreen?: boolean }>`
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   z-index: 1301;
-  width: ${({ $fullWidth, $maxWidth }) => {
-    if (!$fullWidth) return 'auto';
-    switch ($maxWidth) {
-      case 'xs': return 'min(444px, calc(100% - 64px))';
-      case 'sm': return 'min(600px, calc(100% - 64px))';
-      case 'md': return 'min(900px, calc(100% - 64px))';
-      case 'lg': return 'min(1200px, calc(100% - 64px))';
-      case 'xl': return 'min(1536px, calc(100% - 64px))';
-      default: return 'min(600px, calc(100% - 64px))';
-    }
-  }};
-  max-width: ${({ $maxWidth }) => {
-    switch ($maxWidth) {
-      case 'xs': return '444px';
-      case 'sm': return '600px';
-      case 'md': return '900px';
-      case 'lg': return '1200px';
-      case 'xl': return '1536px';
-      default: return '600px';
-    }
-  }};
-  max-height: calc(100% - 64px);
   display: flex;
   flex-direction: column;
   background: ${alpha('#0f172a', 0.97)};
-  border: 1px solid ${alpha('#FFFFFF', 0.1)};
-  border-radius: 12px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
   color: #FFFFFF;
   overflow: hidden;
-  animation: ${dialogSlideUp} 0.25s ease-out;
+
+  ${({ $fullScreen }) => $fullScreen ? `
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+  ` : `
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid ${alpha('#FFFFFF', 0.1)};
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    max-height: calc(100% - 64px);
+    animation: ${dialogSlideUp} 0.25s ease-out;
+  `}
+
+  ${({ $fullWidth, $maxWidth, $fullScreen }) => !$fullScreen && `
+    width: ${$fullWidth ? (() => {
+      switch ($maxWidth) {
+        case 'xs': return 'min(444px, calc(100% - 64px))';
+        case 'sm': return 'min(600px, calc(100% - 64px))';
+        case 'md': return 'min(900px, calc(100% - 64px))';
+        case 'lg': return 'min(1200px, calc(100% - 64px))';
+        case 'xl': return 'min(1536px, calc(100% - 64px))';
+        default: return 'min(600px, calc(100% - 64px))';
+      }
+    })() : 'auto'};
+    max-width: ${(() => {
+      switch ($maxWidth) {
+        case 'xs': return '444px';
+        case 'sm': return '600px';
+        case 'md': return '900px';
+        case 'lg': return '1200px';
+        case 'xl': return '1536px';
+        default: return '600px';
+      }
+    })()};
+  `}
 
   @media (max-width: 600px) {
-    width: calc(100% - 32px);
-    max-height: calc(100% - 32px);
+    ${({ $fullScreen }) => !$fullScreen && `
+      width: calc(100% - 32px);
+      max-height: calc(100% - 32px);
+    `}
   }
 `;
 
@@ -1901,13 +1916,14 @@ export interface DialogProps extends StyleSystemProps {
   onClose?: () => void;
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
   fullWidth?: boolean;
+  fullScreen?: boolean;
   children?: React.ReactNode;
   PaperProps?: { sx?: any; style?: React.CSSProperties; className?: string };
   [key: string]: any;
 }
 
 export const Dialog = forwardRef<HTMLDivElement, DialogProps>(
-  ({ open, onClose, maxWidth = 'sm', fullWidth = false, children, PaperProps, sx, style, ...rest }, ref) => {
+  ({ open, onClose, maxWidth = 'sm', fullWidth = false, fullScreen = false, children, PaperProps, sx, style, ...rest }, ref) => {
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) onClose();
     }, [onClose]);
@@ -1934,6 +1950,7 @@ export const Dialog = forwardRef<HTMLDivElement, DialogProps>(
           ref={ref}
           $maxWidth={maxWidth === false ? 'sm' : maxWidth}
           $fullWidth={fullWidth}
+          $fullScreen={fullScreen}
           role="dialog"
           aria-modal="true"
           style={{ ...paperStyle, ...style }}
