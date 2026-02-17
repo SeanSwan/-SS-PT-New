@@ -1,47 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styled, { keyframes, css } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 import { Exercise } from '../../../../services/exercise-service';
 
-// Import MUI components
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Chip,
-  Avatar,
-  Card,
-  CardContent,
-  CardHeader,
-  Button,
-  IconButton,
-  TextField,
-  MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  LinearProgress,
-  Tab,
-  Tabs,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  CircularProgress,
-  Tooltip
-} from '@mui/material';
-
-// Import icons
+// Import icons from lucide-react
 import {
   ChevronUp,
   ChevronDown,
@@ -50,10 +15,11 @@ import {
   User,
   UserCheck,
   UserPlus,
+  Users,
   Filter,
   BarChart2,
   RefreshCcw,
-  Edit,
+  Pencil,
   Save,
   Check,
   X,
@@ -68,6 +34,718 @@ import {
 
 // Import styled component from MainCard
 import MainCard from '../../../ui/MainCard';
+
+// ─── Theme Tokens ───────────────────────────────────────────────────
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgCard: '#1d1f2b',
+  bgDark: '#121420',
+  bgInput: 'rgba(15,23,42,0.8)',
+  border: 'rgba(14,165,233,0.2)',
+  borderLight: 'rgba(255,255,255,0.1)',
+  text: '#e2e8f0',
+  textMuted: '#a0a0a0',
+  accent: '#0ea5e9',
+  cyan: '#00ffff',
+  success: '#22c55e',
+  error: '#ef4444',
+  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
+  gradientPrimaryHover: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)',
+  gradientLevel: 'linear-gradient(135deg, #00ffff, #00B4D8)',
+};
+
+// ─── Keyframes ──────────────────────────────────────────────────────
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+// ─── Styled Components ──────────────────────────────────────────────
+
+const PageWrapper = styled.div`
+  padding: 24px;
+  background: ${theme.bgDark};
+  min-height: 100vh;
+`;
+
+const HeaderBar = styled.div`
+  margin-bottom: 24px;
+  background: ${theme.bgCard};
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+`;
+
+const HeaderTitle = styled.h4`
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const HeaderSubtitle = styled.p`
+  margin: 4px 0 0;
+  font-size: 1rem;
+  color: ${theme.textMuted};
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const StyledButton = styled.button<{
+  $variant?: 'contained' | 'outlined' | 'text';
+  $color?: 'primary' | 'error' | 'success';
+  $size?: 'small' | 'medium';
+}>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: ${({ $size }) => $size === 'small' ? '6px 16px' : '10px 20px'};
+  border-radius: 8px;
+  font-size: ${({ $size }) => $size === 'small' ? '0.8125rem' : '0.9375rem'};
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+
+  ${({ $variant, $color }) => {
+    if ($variant === 'outlined') {
+      const borderColor = $color === 'error' ? theme.error : theme.cyan;
+      return css`
+        background: transparent;
+        border: 1.5px solid ${borderColor};
+        color: ${borderColor};
+        &:hover {
+          background: rgba(14, 165, 233, 0.1);
+          border-color: ${theme.accent};
+        }
+      `;
+    }
+    if ($variant === 'text') {
+      return css`
+        background: transparent;
+        color: ${theme.accent};
+        padding: 6px 12px;
+        &:hover {
+          background: rgba(14, 165, 233, 0.08);
+        }
+      `;
+    }
+    // contained
+    if ($color === 'error') {
+      return css`
+        background: ${theme.error};
+        color: #fff;
+        &:hover { background: #dc2626; }
+      `;
+    }
+    return css`
+      background: ${theme.gradientPrimary};
+      color: #fff;
+      &:hover { background: ${theme.gradientPrimaryHover}; }
+    `;
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const IconBtn = styled.button<{ $color?: 'error' | 'success' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: ${({ $color }) =>
+    $color === 'error' ? theme.error :
+    $color === 'success' ? theme.success :
+    theme.text};
+
+  &:hover {
+    background: ${({ $color }) =>
+      $color === 'error' ? 'rgba(239,68,68,0.15)' :
+      $color === 'success' ? 'rgba(34,197,94,0.15)' :
+      'rgba(14,165,233,0.1)'};
+  }
+`;
+
+// ─── Tab Components ─────────────────────────────────────────────────
+
+const TabBar = styled.div`
+  display: flex;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  margin-bottom: 24px;
+`;
+
+const TabButton = styled.button<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  color: ${({ $active }) => $active ? theme.cyan : theme.textMuted};
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid ${({ $active }) => $active ? theme.cyan : 'transparent'};
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: ${theme.cyan};
+    background: rgba(0, 255, 255, 0.05);
+  }
+`;
+
+const TabPanelWrapper = styled.div`
+  padding: 24px;
+  background: #0A0A0A;
+  color: ${theme.text};
+  border-radius: 0 0 8px 8px;
+`;
+
+// ─── Layout Components ──────────────────────────────────────────────
+
+const GridRow = styled.div<{ $gap?: number }>`
+  display: grid;
+  gap: ${({ $gap }) => $gap ?? 24}px;
+`;
+
+const GridCols = styled.div<{ $cols?: string; $gap?: number }>`
+  display: grid;
+  grid-template-columns: ${({ $cols }) => $cols || '1fr'};
+  gap: ${({ $gap }) => $gap ?? 24}px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ClientLayoutGrid = styled.div`
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FlexRow = styled.div<{ $justify?: string; $align?: string; $gap?: number; $wrap?: boolean }>`
+  display: flex;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'stretch'};
+  gap: ${({ $gap }) => $gap ?? 0}px;
+  ${({ $wrap }) => $wrap && 'flex-wrap: wrap;'}
+`;
+
+// ─── Card / Paper ───────────────────────────────────────────────────
+
+const GlassCard = styled.div`
+  background: ${theme.bgCard};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 20, 0.2);
+`;
+
+const SidebarCard = styled(GlassCard)`
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const SidebarHeader = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid ${theme.borderLight};
+`;
+
+const SidebarTitle = styled.h6`
+  margin: 0 0 16px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const SidebarList = styled.div`
+  flex: 1;
+  overflow: auto;
+`;
+
+const ClientRow = styled.div<{ $selected?: boolean }>`
+  padding: 12px 16px;
+  border-bottom: 1px solid ${theme.borderLight};
+  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.1);
+  }
+`;
+
+// ─── Avatar ─────────────────────────────────────────────────────────
+
+const AvatarCircle = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 40}px;
+  height: ${({ $size }) => $size || 40}px;
+  min-width: ${({ $size }) => $size || 40}px;
+  border-radius: 50%;
+  background: ${theme.gradientPrimary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: ${({ $size }) => ($size ? $size * 0.35 : 14)}px;
+  margin-right: 8px;
+`;
+
+// ─── Level Badge ────────────────────────────────────────────────────
+
+const LevelBadge = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 80}px;
+  height: ${({ $size }) => $size || 80}px;
+  border-radius: 50%;
+  background: ${theme.gradientLevel};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.bgCard};
+  margin-right: 16px;
+  flex-shrink: 0;
+`;
+
+const LevelBadgeSmall = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: ${theme.accent};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  margin-right: 8px;
+`;
+
+// ─── Chip ───────────────────────────────────────────────────────────
+
+const StyledChip = styled.span<{ $color?: 'primary' | 'success' | 'default'; $outlined?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  ${({ $color, $outlined }) => {
+    if ($outlined) {
+      return css`
+        background: transparent;
+        border: 1px solid ${theme.textMuted};
+        color: ${theme.textMuted};
+      `;
+    }
+    switch ($color) {
+      case 'success':
+        return css`
+          background: rgba(34, 197, 94, 0.2);
+          color: ${theme.success};
+        `;
+      case 'primary':
+        return css`
+          background: rgba(14, 165, 233, 0.2);
+          color: ${theme.accent};
+        `;
+      default:
+        return css`
+          background: rgba(255, 255, 255, 0.1);
+          color: ${theme.textMuted};
+        `;
+    }
+  }}
+`;
+
+// ─── Input / Search ─────────────────────────────────────────────────
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  margin-bottom: 16px;
+`;
+
+const SearchIcon = styled.span`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${theme.textMuted};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px 10px 40px;
+  border-radius: 8px;
+  border: 1px solid ${theme.border};
+  background: ${theme.bgInput};
+  color: ${theme.text};
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+`;
+
+const FormInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid ${theme.border};
+  background: ${theme.bgInput};
+  color: ${theme.text};
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+`;
+
+const FormTextarea = styled.textarea`
+  width: 100%;
+  min-height: 100px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid ${theme.border};
+  background: ${theme.bgInput};
+  color: ${theme.text};
+  font-size: 0.9375rem;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: ${theme.textMuted};
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+// ─── Table Components ───────────────────────────────────────────────
+
+const TableWrapper = styled.div`
+  background: ${theme.bgCard};
+  border-radius: 8px;
+  overflow-x: auto;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Thead = styled.thead``;
+const Tbody = styled.tbody``;
+
+const Tr = styled.tr`
+  border-bottom: 1px solid ${theme.borderLight};
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const Th = styled.th<{ $align?: string; $width?: string }>`
+  padding: 10px 16px;
+  text-align: ${({ $align }) => $align || 'left'};
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: ${theme.textMuted};
+  white-space: nowrap;
+  width: ${({ $width }) => $width || 'auto'};
+`;
+
+const Td = styled.td<{ $align?: string; $width?: string }>`
+  padding: 10px 16px;
+  text-align: ${({ $align }) => $align || 'left'};
+  font-size: 0.875rem;
+  color: ${theme.text};
+  width: ${({ $width }) => $width || 'auto'};
+`;
+
+// ─── Progress Bar ───────────────────────────────────────────────────
+
+const ProgressBarOuter = styled.div<{ $height?: number }>`
+  width: 100%;
+  height: ${({ $height }) => $height || 8}px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+`;
+
+const ProgressBarInner = styled.div<{ $value: number }>`
+  height: 100%;
+  width: ${({ $value }) => Math.min(100, Math.max(0, $value))}%;
+  background: ${theme.gradientPrimary};
+  border-radius: 999px;
+  transition: width 0.4s ease;
+`;
+
+// ─── Stat Card ──────────────────────────────────────────────────────
+
+const StatBox = styled.div`
+  padding: 12px;
+  text-align: center;
+  background: rgba(26, 28, 51, 0.8);
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+`;
+
+const StatValue = styled.div`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: ${theme.text};
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.75rem;
+  color: ${theme.textMuted};
+  margin-top: 2px;
+`;
+
+// ─── Dialog / Modal ─────────────────────────────────────────────────
+
+const ModalOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => $open ? 'flex' : 'none'};
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+`;
+
+const ModalPanel = styled.div`
+  background: #121212;
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  padding: 20px 24px;
+  border-bottom: 1px solid ${theme.borderLight};
+  color: ${theme.text};
+  font-size: 1.25rem;
+  font-weight: 600;
+`;
+
+const ModalBody = styled.div`
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  color: ${theme.text};
+`;
+
+const ModalFooter = styled.div`
+  padding: 16px 24px;
+  border-top: 1px solid ${theme.borderLight};
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #121212;
+`;
+
+// ─── Typography helpers ─────────────────────────────────────────────
+
+const TextH4 = styled.h4`
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${theme.text};
+`;
+
+const TextH5 = styled.h5`
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const TextH6 = styled.h6`
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const TextSubtitle = styled.p`
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const TextBody = styled.p`
+  margin: 0;
+  font-size: 0.9375rem;
+  color: ${theme.text};
+`;
+
+const TextBody2 = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: ${theme.text};
+`;
+
+const TextCaption = styled.span`
+  font-size: 0.75rem;
+  color: ${theme.textMuted};
+`;
+
+const TextMuted = styled.span`
+  color: ${theme.textMuted};
+`;
+
+const NoClientMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  color: ${theme.textMuted};
+  font-size: 1rem;
+`;
+
+// ─── Spinner ────────────────────────────────────────────────────────
+
+const Spinner = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 24}px;
+  height: ${({ $size }) => $size || 24}px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: ${theme.accent};
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+// ─── Helpers for stats grid ─────────────────────────────────────────
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const TwoColGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ThreeColGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const FourColGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+// ═════════════════════════════════════════════════════════════════════
+// Component
+// ═════════════════════════════════════════════════════════════════════
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -87,9 +765,9 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3, bgcolor: '#0A0A0A', color: '#E0E0E0' }}>
+        <TabPanelWrapper>
           {children}
-        </Box>
+        </TabPanelWrapper>
       )}
     </div>
   );
@@ -116,10 +794,10 @@ const AdminClientProgressView: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientProgress, setClientProgress] = useState<ClientProgressData | null>(null);
   const [recommendedExercises, setRecommendedExercises] = useState<Exercise[]>([]);
-  
+
   // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  
+
   // UI state
   const [loading, setLoading] = useState<boolean>(true);
   const [tabValue, setTabValue] = useState(0);
@@ -155,7 +833,7 @@ const AdminClientProgressView: React.FC = () => {
       const response = await authAxios.get('/api/auth/clients');
       if (response.data && response.data.success) {
         setClients(response.data.clients);
-        
+
         // Select first client if no client is selected
         if (response.data.clients.length > 0 && !selectedClientId) {
           setSelectedClientId(response.data.clients[0].id);
@@ -166,14 +844,14 @@ const AdminClientProgressView: React.FC = () => {
       }
     } catch (err) {
       console.warn('API clients endpoint unavailable, using fallback data:', err);
-      
+
       // Use fallback data for seamless experience
       useFallbackClientData();
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Fallback client data for when API is unavailable
   const useFallbackClientData = () => {
     const fallbackClients = [
@@ -186,14 +864,14 @@ const AdminClientProgressView: React.FC = () => {
       { id: '7', firstName: 'James', lastName: 'Taylor', username: 'james_jacked', photo: undefined },
       { id: '8', firstName: 'Amanda', lastName: 'Brown', username: 'amanda_active', photo: undefined }
     ];
-    
+
     setClients(fallbackClients);
-    
+
     // Select first client if no client is selected
     if (fallbackClients.length > 0 && !selectedClientId) {
       setSelectedClientId(fallbackClients[0].id);
     }
-    
+
     // Show success message instead of error
     toast({
       title: "Success",
@@ -225,7 +903,7 @@ const AdminClientProgressView: React.FC = () => {
         description: "Failed to fetch client progress. Please try again.",
         variant: "destructive"
       });
-      
+
       // For demo purposes, set mock data
       const mockProgress: ClientProgressData = {
         id: 'mock-progress-id',
@@ -297,7 +975,7 @@ const AdminClientProgressView: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching recommended exercises:', err);
-      
+
       // For demo purposes, set mock data
       const mockExercises: Exercise[] = [
         {
@@ -358,7 +1036,7 @@ const AdminClientProgressView: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
-      
+
       // For demo purposes, set mock data
       const mockLeaderboard: LeaderboardEntry[] = [
         {
@@ -424,7 +1102,7 @@ const AdminClientProgressView: React.FC = () => {
   };
 
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -439,14 +1117,14 @@ const AdminClientProgressView: React.FC = () => {
   // Handle adding achievement
   const handleAddAchievement = (achievementId: string) => {
     if (!editForm || !editForm.achievements) return;
-    
+
     if (!editForm.achievements.includes(achievementId)) {
       const newAchievements = [...editForm.achievements, achievementId];
       const newAchievementDates = {
         ...editForm.achievementDates,
         [achievementId]: new Date().toISOString()
       };
-      
+
       setEditForm(prev => ({
         ...prev,
         achievements: newAchievements,
@@ -458,15 +1136,15 @@ const AdminClientProgressView: React.FC = () => {
   // Handle removing achievement
   const handleRemoveAchievement = (achievementId: string) => {
     if (!editForm || !editForm.achievements) return;
-    
+
     if (editForm.achievements.includes(achievementId)) {
       const newAchievements = editForm.achievements.filter(id => id !== achievementId);
       const newAchievementDates = { ...editForm.achievementDates };
-      
+
       if (newAchievementDates && newAchievementDates[achievementId]) {
         delete newAchievementDates[achievementId];
       }
-      
+
       setEditForm(prev => ({
         ...prev,
         achievements: newAchievements,
@@ -478,12 +1156,12 @@ const AdminClientProgressView: React.FC = () => {
   // Get filtered and searched clients
   const getFilteredClients = () => {
     if (!clients) return [];
-    
+
     return clients.filter(client => {
       const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
       const username = client.username.toLowerCase();
       const search = searchTerm.toLowerCase();
-      
+
       return fullName.includes(search) || username.includes(search);
     });
   };
@@ -541,167 +1219,134 @@ const AdminClientProgressView: React.FC = () => {
   const renderClientProgress = () => {
     if (!clientProgress) {
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: '#A0A0A0' }}>
-          <Typography>Select a client to view their progress</Typography>
-        </Box>
+        <NoClientMessage>
+          <p>Select a client to view their progress</p>
+        </NoClientMessage>
       );
     }
 
     return (
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h5">
+      <div>
+        <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
+          <TextH5>
             {getClientById(clientProgress.userId)?.firstName} {getClientById(clientProgress.userId)?.lastName}'s Progress
-          </Typography>
-          <Button 
-            variant="contained" 
-            startIcon={<Edit />}
+          </TextH5>
+          <StyledButton
+            $variant="contained"
             onClick={() => setShowEditDialog(true)}
           >
+            <Pencil size={16} />
             Edit Progress
-          </Button>
-        </Box>
+          </StyledButton>
+        </FlexRow>
 
-        <Grid container spacing={3}>
-          {/* Overall Level Card */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="Overall Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    borderRadius: '50%', 
-                    background: 'linear-gradient(135deg, #00ffff, #00B4D8)', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    color: '#1d1f2b',
-                    mr: 2
-                  }}
-                >
-                  <Typography variant="h4">{clientProgress.overallLevel}</Typography>
-                  <Typography variant="caption">LEVEL</Typography>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">{getLevelName(clientProgress.overallLevel)}</Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={Math.min(100, (clientProgress.experiencePoints / (100 + (clientProgress.overallLevel * 25))) * 100)} 
-                    sx={{ mt: 1, mb: 0.5, height: 8, borderRadius: 4 }}
-                  />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="caption">{clientProgress.experiencePoints} XP</Typography>
-                    <Typography variant="caption">Next: {clientProgress.overallLevel + 1}</Typography>
-                  </Box>
-                </Box>
-              </Box>
+        <GridRow $gap={24}>
+          <TwoColGrid>
+            {/* Overall Level Card */}
+            <MainCard title="Overall Progress">
+              <FlexRow $align="center" style={{ marginBottom: 16 }}>
+                <LevelBadge>
+                  <TextH4 style={{ fontSize: '1.75rem', color: theme.bgCard }}>{clientProgress.overallLevel}</TextH4>
+                  <TextCaption style={{ color: theme.bgCard, fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.05em' }}>LEVEL</TextCaption>
+                </LevelBadge>
+                <div style={{ flex: 1 }}>
+                  <TextH6>{getLevelName(clientProgress.overallLevel)}</TextH6>
+                  <ProgressBarOuter style={{ marginTop: 8, marginBottom: 4 }}>
+                    <ProgressBarInner $value={Math.min(100, (clientProgress.experiencePoints / (100 + (clientProgress.overallLevel * 25))) * 100)} />
+                  </ProgressBarOuter>
+                  <FlexRow $justify="space-between">
+                    <TextCaption>{clientProgress.experiencePoints} XP</TextCaption>
+                    <TextCaption>Next: {clientProgress.overallLevel + 1}</TextCaption>
+                  </FlexRow>
+                </div>
+              </FlexRow>
 
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1A1C33' }}>
-                    <Typography variant="h6">{clientProgress.workoutsCompleted}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Workouts</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
-                    <Typography variant="h6">{clientProgress.streakDays}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Day Streak</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
-                    <Typography variant="h6">{clientProgress.totalExercisesPerformed}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Exercises</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
-                    <Typography variant="h6">{clientProgress.totalMinutes}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Minutes</Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
+              <StatsGrid>
+                <StatBox>
+                  <StatValue>{clientProgress.workoutsCompleted}</StatValue>
+                  <StatLabel>Workouts</StatLabel>
+                </StatBox>
+                <StatBox>
+                  <StatValue>{clientProgress.streakDays}</StatValue>
+                  <StatLabel>Day Streak</StatLabel>
+                </StatBox>
+                <StatBox>
+                  <StatValue>{clientProgress.totalExercisesPerformed}</StatValue>
+                  <StatLabel>Exercises</StatLabel>
+                </StatBox>
+                <StatBox>
+                  <StatValue>{clientProgress.totalMinutes}</StatValue>
+                  <StatLabel>Minutes</StatLabel>
+                </StatBox>
+              </StatsGrid>
             </MainCard>
-          </Grid>
 
-          {/* Achievements Card */}
-          <Grid item xs={12} md={6}>
-            <MainCard 
-              title="Achievements" 
-              sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}
+            {/* Achievements Card */}
+            <MainCard
+              title="Achievements"
               secondary={
-                <Chip 
-                  label={`${clientProgress.achievements?.length || 0}/8`} 
-                  color="primary" 
-                  size="small" 
-                />
+                <StyledChip $color="primary">
+                  {clientProgress.achievements?.length || 0}/8
+                </StyledChip>
               }
             >
-              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Achievement</TableCell>
-                      <TableCell>Date Unlocked</TableCell>
-                      <TableCell align="center">Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+              <TableWrapper>
+                <StyledTable>
+                  <Thead>
+                    <Tr>
+                      <Th>Achievement</Th>
+                      <Th>Date Unlocked</Th>
+                      <Th $align="center">Status</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
                     {[
                       'core-10', 'balance-10', 'flexibility-10', 'calisthenics-10',
                       'squats-10', 'lunges-10', 'planks-10', 'overall-50'
                     ].map((achievementId) => {
                       const isUnlocked = clientProgress.achievements?.includes(achievementId) || false;
                       const unlockDate = clientProgress.achievementDates?.[achievementId];
-                      
+
                       return (
-                        <TableRow key={achievementId}>
-                          <TableCell>{getAchievementName(achievementId)}</TableCell>
-                          <TableCell>
+                        <Tr key={achievementId}>
+                          <Td>{getAchievementName(achievementId)}</Td>
+                          <Td>
                             {unlockDate ? new Date(unlockDate).toLocaleDateString() : '-'}
-                          </TableCell>
-                          <TableCell align="center">
+                          </Td>
+                          <Td $align="center">
                             {isUnlocked ? (
-                              <Chip 
-                                label="Unlocked" 
-                                color="success" 
-                                size="small" 
-                                icon={<Check size={14} />} 
-                              />
+                              <StyledChip $color="success">
+                                <Check size={14} />
+                                Unlocked
+                              </StyledChip>
                             ) : (
-                              <Chip 
-                                label="Locked" 
-                                color="default" 
-                                size="small" 
-                                variant="outlined"
-                              />
+                              <StyledChip $outlined>
+                                Locked
+                              </StyledChip>
                             )}
-                          </TableCell>
-                        </TableRow>
+                          </Td>
+                        </Tr>
                       );
                     })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                  </Tbody>
+                </StyledTable>
+              </TableWrapper>
             </MainCard>
-          </Grid>
+          </TwoColGrid>
 
-          {/* NASM Category Levels */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="NASM Protocol Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <TableContainer sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Progress</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+          <TwoColGrid>
+            {/* NASM Category Levels */}
+            <MainCard title="NASM Protocol Progress">
+              <TableWrapper>
+                <StyledTable>
+                  <Thead>
+                    <Tr>
+                      <Th>Category</Th>
+                      <Th>Level</Th>
+                      <Th>Progress</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
                     {[
                       { type: 'core', field: 'coreLevel' },
                       { type: 'balance', field: 'balanceLevel' },
@@ -713,259 +1358,227 @@ const AdminClientProgressView: React.FC = () => {
                       { type: 'injury_prevention', field: 'injuryPreventionLevel' },
                       { type: 'injury_recovery', field: 'injuryRecoveryLevel' }
                     ].map((category) => (
-                      <TableRow key={category.type}>
-                        <TableCell>{getCategoryName(category.type)}</TableCell>
-                        <TableCell>{clientProgress[category.field as keyof ClientProgressData] as number}</TableCell>
-                        <TableCell sx={{ width: '40%' }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={Math.min(100, Math.max(0, Math.random() * 100))} 
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <Tr key={category.type}>
+                        <Td>{getCategoryName(category.type)}</Td>
+                        <Td>{clientProgress[category.field as keyof ClientProgressData] as number}</Td>
+                        <Td $width="40%">
+                          <ProgressBarOuter $height={6}>
+                            <ProgressBarInner $value={Math.min(100, Math.max(0, Math.random() * 100))} />
+                          </ProgressBarOuter>
+                        </Td>
+                      </Tr>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                  </Tbody>
+                </StyledTable>
+              </TableWrapper>
             </MainCard>
-          </Grid>
 
-          {/* Key Exercise Levels */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="Key Exercise Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <TableContainer sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Exercise</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Progress</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+            {/* Key Exercise Levels */}
+            <MainCard title="Key Exercise Progress">
+              <TableWrapper>
+                <StyledTable>
+                  <Thead>
+                    <Tr>
+                      <Th>Exercise</Th>
+                      <Th>Level</Th>
+                      <Th>Progress</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
                     {[
                       { name: 'Squats', field: 'squatsLevel' },
                       { name: 'Lunges', field: 'lungesLevel' },
                       { name: 'Planks', field: 'planksLevel' },
                       { name: 'Reverse Planks', field: 'reversePlanksLevel' }
                     ].map((exercise) => (
-                      <TableRow key={exercise.field}>
-                        <TableCell>{exercise.name}</TableCell>
-                        <TableCell>{clientProgress[exercise.field as keyof ClientProgressData] as number}</TableCell>
-                        <TableCell sx={{ width: '40%' }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={Math.min(100, Math.max(0, Math.random() * 100))} 
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <Tr key={exercise.field}>
+                        <Td>{exercise.name}</Td>
+                        <Td>{clientProgress[exercise.field as keyof ClientProgressData] as number}</Td>
+                        <Td $width="40%">
+                          <ProgressBarOuter $height={6}>
+                            <ProgressBarInner $value={Math.min(100, Math.max(0, Math.random() * 100))} />
+                          </ProgressBarOuter>
+                        </Td>
+                      </Tr>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                  </Tbody>
+                </StyledTable>
+              </TableWrapper>
             </MainCard>
-          </Grid>
+          </TwoColGrid>
 
           {/* Recommended Exercises */}
-          <Grid item xs={12}>
-            <MainCard 
-              title="Recommended Exercises" 
-              sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}
-              secondary={
-                <Button 
-                  variant="text" 
-                  startIcon={<RefreshCcw size={16} />}
-                  onClick={() => fetchRecommendedExercises(clientProgress.userId)}
-                >
-                  Refresh
-                </Button>
-              }
-            >
-              <TableContainer sx={{ bgcolor: '#1A1C33', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Exercise Name</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Primary Muscles</TableCell>
-                      <TableCell>Sets/Reps</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {recommendedExercises.slice(0, 5).map((exercise) => (
-                      <TableRow key={exercise.id}>
-                        <TableCell>{exercise.name}</TableCell>
-                        <TableCell>{getCategoryName(exercise.exerciseType)}</TableCell>
-                        <TableCell>{exercise.difficulty}</TableCell>
-                        <TableCell>{exercise.primaryMuscles.join(', ')}</TableCell>
-                        <TableCell>
-                          {exercise.recommendedSets || 3} × {exercise.recommendedReps || 10}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </MainCard>
-          </Grid>
+          <MainCard
+            title="Recommended Exercises"
+            secondary={
+              <StyledButton
+                $variant="text"
+                onClick={() => fetchRecommendedExercises(clientProgress.userId)}
+              >
+                <RefreshCcw size={16} />
+                Refresh
+              </StyledButton>
+            }
+          >
+            <TableWrapper style={{ background: 'rgba(26, 28, 51, 0.8)' }}>
+              <StyledTable>
+                <Thead>
+                  <Tr>
+                    <Th>Exercise Name</Th>
+                    <Th>Type</Th>
+                    <Th>Level</Th>
+                    <Th>Primary Muscles</Th>
+                    <Th>Sets/Reps</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {recommendedExercises.slice(0, 5).map((exercise) => (
+                    <Tr key={exercise.id}>
+                      <Td>{exercise.name}</Td>
+                      <Td>{getCategoryName(exercise.exerciseType)}</Td>
+                      <Td>{exercise.difficulty}</Td>
+                      <Td>{exercise.primaryMuscles.join(', ')}</Td>
+                      <Td>
+                        {exercise.recommendedSets || 3} x {exercise.recommendedReps || 10}
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </StyledTable>
+            </TableWrapper>
+          </MainCard>
 
           {/* Notes */}
-          <Grid item xs={12}>
-            <MainCard title="Trainer Notes" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                {clientProgress.progressNotes || 'No notes available.'}
-              </Typography>
-            </MainCard>
-          </Grid>
-        </Grid>
-      </Box>
+          <MainCard title="Trainer Notes">
+            <TextBody2 style={{ whiteSpace: 'pre-line' }}>
+              {clientProgress.progressNotes || 'No notes available.'}
+            </TextBody2>
+          </MainCard>
+        </GridRow>
+      </div>
     );
   };
 
   // Render the leaderboard tab
   const renderLeaderboard = () => {
     return (
-      <Box>
-        <Typography variant="h5" sx={{ mb: 2, color: '#E0E0E0' }}>Client Progress Leaderboard</Typography>
-        
-        <TableContainer component={Paper} sx={{ bgcolor: '#1d1f2b', borderRadius: 1, boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Rank</TableCell>
-                <TableCell>Client</TableCell>
-                <TableCell>Level</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {leaderboard.map((entry, index) => (
-                <TableRow key={entry.userId}>
-                  <TableCell>
-                    <Typography variant="h6">{index + 1}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ mr: 1 }}>
-                        {entry.client.firstName[0]}{entry.client.lastName[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body1">
-                          {entry.client.firstName} {entry.client.lastName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          @{entry.client.username}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box 
-                        sx={{ 
-                          width: 36, 
-                          height: 36, 
-                          borderRadius: '50%', 
-                          backgroundColor: 'primary.main', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          color: 'white',
-                          mr: 1
-                        }}
+      <div>
+        <TextH5 style={{ marginBottom: 16 }}>Client Progress Leaderboard</TextH5>
+
+        <GlassCard>
+          <TableWrapper>
+            <StyledTable>
+              <Thead>
+                <Tr>
+                  <Th>Rank</Th>
+                  <Th>Client</Th>
+                  <Th>Level</Th>
+                  <Th>Status</Th>
+                  <Th>Actions</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {leaderboard.map((entry, index) => (
+                  <Tr key={entry.userId}>
+                    <Td>
+                      <TextH6>{index + 1}</TextH6>
+                    </Td>
+                    <Td>
+                      <FlexRow $align="center">
+                        <AvatarCircle>
+                          {entry.client.firstName[0]}{entry.client.lastName[0]}
+                        </AvatarCircle>
+                        <div>
+                          <TextBody>
+                            {entry.client.firstName} {entry.client.lastName}
+                          </TextBody>
+                          <TextCaption>
+                            @{entry.client.username}
+                          </TextCaption>
+                        </div>
+                      </FlexRow>
+                    </Td>
+                    <Td>
+                      <FlexRow $align="center">
+                        <LevelBadgeSmall>
+                          {entry.overallLevel}
+                        </LevelBadgeSmall>
+                        <div>
+                          <TextBody2>
+                            {getLevelName(entry.overallLevel)}
+                          </TextBody2>
+                        </div>
+                      </FlexRow>
+                    </Td>
+                    <Td>
+                      <StyledChip
+                        $color={entry.overallLevel > 40 ? 'success' : entry.overallLevel > 20 ? 'primary' : 'default'}
                       >
-                        {entry.overallLevel}
-                      </Box>
-                      <Box>
-                        <Typography variant="body2">
-                          {getLevelName(entry.overallLevel)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={entry.overallLevel > 40 ? 'Advanced' : entry.overallLevel > 20 ? 'Intermediate' : 'Beginner'} 
-                      color={entry.overallLevel > 40 ? 'success' : entry.overallLevel > 20 ? 'primary' : 'default'} 
-                      size="small" 
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      onClick={() => setSelectedClientId(entry.userId)}
-                    >
-                      View Profile
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+                        {entry.overallLevel > 40 ? 'Advanced' : entry.overallLevel > 20 ? 'Intermediate' : 'Beginner'}
+                      </StyledChip>
+                    </Td>
+                    <Td>
+                      <StyledButton
+                        $variant="outlined"
+                        $size="small"
+                        onClick={() => setSelectedClientId(entry.userId)}
+                      >
+                        View Profile
+                      </StyledButton>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </StyledTable>
+          </TableWrapper>
+        </GlassCard>
+      </div>
     );
   };
 
   // Render client list sidebar
   const renderClientList = () => {
     return (
-      <Paper sx={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-          <Typography variant="h6" sx={{ mb: 2, color: '#E0E0E0' }}>Clients</Typography>
-          
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search clients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <Search size={18} style={{ marginRight: 8, color: '#A0A0A0' }} />,
-              sx: { bgcolor: '#1d1f2b', color: '#E0E0E0' }
-            }}
-            sx={{ mb: 2, '& .MuiInputBase-root': { color: '#E0E0E0' }, '& .MuiInputLabel-root': { color: '#A0A0A0' } }}
-          />
-        </Box>
-        
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <SidebarCard>
+        <SidebarHeader>
+          <SidebarTitle>Clients</SidebarTitle>
+
+          <SearchInputWrapper>
+            <SearchIcon>
+              <Search size={18} />
+            </SearchIcon>
+            <StyledInput
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </SearchInputWrapper>
+        </SidebarHeader>
+
+        <SidebarList>
           {getFilteredClients().map((client) => (
-            <Box 
+            <ClientRow
               key={client.id}
-              sx={{ 
-                p: 2, 
-                borderBottom: '1px solid', 
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                backgroundColor: selectedClientId === client.id ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 255, 255, 0.1)',
-                }
-              }}
+              $selected={selectedClientId === client.id}
               onClick={() => setSelectedClientId(client.id)}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Avatar sx={{ mr: 1 }}>
+              <FlexRow $align="center">
+                <AvatarCircle>
                   {client.firstName[0]}{client.lastName[0]}
-                </Avatar>
-                <Box>
-                  <Typography variant="body1">
+                </AvatarCircle>
+                <div>
+                  <TextBody>
                     {client.firstName} {client.lastName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </TextBody>
+                  <TextCaption>
                     @{client.username}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+                  </TextCaption>
+                </div>
+              </FlexRow>
+            </ClientRow>
           ))}
-        </Box>
-      </Paper>
+        </SidebarList>
+      </SidebarCard>
     );
   };
 
@@ -974,335 +1587,282 @@ const AdminClientProgressView: React.FC = () => {
     if (!editForm) return null;
 
     return (
-      <Dialog 
-        open={showEditDialog} 
-        onClose={() => setShowEditDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ bgcolor: '#121212', color: '#E0E0E0' }}>
-          Edit Client Progress
-        </DialogTitle>
-        <DialogContent sx={{ bgcolor: '#121212', color: '#E0E0E0', pt: 3 }}>
-          <Grid container spacing={3} sx={{ mt: 0 }}>
-            {/* Overall Level */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>Overall Progress</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Overall Level"
-                    type="number"
-                    value={editForm.overallLevel || 0}
-                    onChange={(e) => handleEditFormChange('overallLevel', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0, max: 1000 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Experience Points"
-                    type="number"
-                    value={editForm.experiencePoints || 0}
-                    onChange={(e) => handleEditFormChange('experiencePoints', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
+      <ModalOverlay $open={showEditDialog} onClick={() => setShowEditDialog(false)}>
+        <ModalPanel onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            Edit Client Progress
+          </ModalHeader>
+          <ModalBody>
+            <GridRow $gap={24}>
+              {/* Overall Level */}
+              <TwoColGrid>
+                <div>
+                  <TextSubtitle>Overall Progress</TextSubtitle>
+                  <TwoColGrid>
+                    <FormGroup>
+                      <FormLabel>Overall Level</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={editForm.overallLevel || 0}
+                        onChange={(e) => handleEditFormChange('overallLevel', parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel>Experience Points</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        value={editForm.experiencePoints || 0}
+                        onChange={(e) => handleEditFormChange('experiencePoints', parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                  </TwoColGrid>
+                </div>
 
-            {/* Activity Stats */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>Activity Statistics</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Workouts Completed"
-                    type="number"
-                    value={editForm.workoutsCompleted || 0}
-                    onChange={(e) => handleEditFormChange('workoutsCompleted', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 },
-                      sx: { bgcolor: '#1d1f2b' }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Total Exercises"
-                    type="number"
-                    value={editForm.totalExercisesPerformed || 0}
-                    onChange={(e) => handleEditFormChange('totalExercisesPerformed', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Streak Days"
-                    type="number"
-                    value={editForm.streakDays || 0}
-                    onChange={(e) => handleEditFormChange('streakDays', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Total Minutes"
-                    type="number"
-                    value={editForm.totalMinutes || 0}
-                    onChange={(e) => handleEditFormChange('totalMinutes', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
+                {/* Activity Stats */}
+                <div>
+                  <TextSubtitle>Activity Statistics</TextSubtitle>
+                  <TwoColGrid>
+                    <FormGroup>
+                      <FormLabel>Workouts Completed</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        value={editForm.workoutsCompleted || 0}
+                        onChange={(e) => handleEditFormChange('workoutsCompleted', parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel>Total Exercises</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        value={editForm.totalExercisesPerformed || 0}
+                        onChange={(e) => handleEditFormChange('totalExercisesPerformed', parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel>Streak Days</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        value={editForm.streakDays || 0}
+                        onChange={(e) => handleEditFormChange('streakDays', parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel>Total Minutes</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        value={editForm.totalMinutes || 0}
+                        onChange={(e) => handleEditFormChange('totalMinutes', parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                  </TwoColGrid>
+                </div>
+              </TwoColGrid>
 
-            {/* NASM Categories */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>NASM Protocol Categories</Typography>
-              <Grid container spacing={2}>
-                {[
-                  { label: 'Core Level', field: 'coreLevel' },
-                  { label: 'Balance Level', field: 'balanceLevel' },
-                  { label: 'Stability Level', field: 'stabilityLevel' },
-                  { label: 'Flexibility Level', field: 'flexibilityLevel' },
-                  { label: 'Calisthenics Level', field: 'calisthenicsLevel' },
-                  { label: 'Isolation Level', field: 'isolationLevel' },
-                  { label: 'Stabilizers Level', field: 'stabilizersLevel' },
-                  { label: 'Injury Prevention Level', field: 'injuryPreventionLevel' },
-                  { label: 'Injury Recovery Level', field: 'injuryRecoveryLevel' }
-                ].map((category) => (
-                  <Grid item xs={12} sm={6} md={4} key={category.field}>
-                    <TextField
-                      sx={{ '& .MuiInputBase-root': { color: 'text.primary' }, '& .MuiInputLabel-root': { color: 'text.secondary' } }}
-                      fullWidth
-                      label={category.label}
-                      type="number"
-                      value={editForm[category.field as keyof ClientProgressData] || 0}
-                      onChange={(e) => handleEditFormChange(category.field as keyof ClientProgressData, parseInt(e.target.value))}
-                      InputProps={{
-                        inputProps: { min: 0, max: 1000 }
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            </Grid>
+              {/* NASM Categories */}
+              <div>
+                <TextSubtitle>NASM Protocol Categories</TextSubtitle>
+                <ThreeColGrid>
+                  {[
+                    { label: 'Core Level', field: 'coreLevel' },
+                    { label: 'Balance Level', field: 'balanceLevel' },
+                    { label: 'Stability Level', field: 'stabilityLevel' },
+                    { label: 'Flexibility Level', field: 'flexibilityLevel' },
+                    { label: 'Calisthenics Level', field: 'calisthenicsLevel' },
+                    { label: 'Isolation Level', field: 'isolationLevel' },
+                    { label: 'Stabilizers Level', field: 'stabilizersLevel' },
+                    { label: 'Injury Prevention Level', field: 'injuryPreventionLevel' },
+                    { label: 'Injury Recovery Level', field: 'injuryRecoveryLevel' }
+                  ].map((category) => (
+                    <FormGroup key={category.field}>
+                      <FormLabel>{category.label}</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={editForm[category.field as keyof ClientProgressData] as number || 0}
+                        onChange={(e) => handleEditFormChange(category.field as keyof ClientProgressData, parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                  ))}
+                </ThreeColGrid>
+              </div>
 
-            {/* Key Exercises */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>Key Exercises</Typography>
-              <Grid container spacing={2}>
-                {[
-                  { label: 'Squats Level', field: 'squatsLevel' },
-                  { label: 'Lunges Level', field: 'lungesLevel' },
-                  { label: 'Planks Level', field: 'planksLevel' },
-                  { label: 'Reverse Planks Level', field: 'reversePlanksLevel' }
-                ].map((exercise) => (
-                  <Grid item xs={12} sm={6} md={3} key={exercise.field}>
-                    <TextField
-                      sx={{ '& .MuiInputBase-root': { color: 'text.primary' }, '& .MuiInputLabel-root': { color: 'text.secondary' } }}
-                      fullWidth
-                      label={exercise.label}
-                      type="number"
-                      value={editForm[exercise.field as keyof ClientProgressData] || 0}
-                      onChange={(e) => handleEditFormChange(exercise.field as keyof ClientProgressData, parseInt(e.target.value))}
-                      InputProps={{
-                        inputProps: { min: 0, max: 1000 }
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            </Grid>
+              {/* Key Exercises */}
+              <div>
+                <TextSubtitle>Key Exercises</TextSubtitle>
+                <FourColGrid>
+                  {[
+                    { label: 'Squats Level', field: 'squatsLevel' },
+                    { label: 'Lunges Level', field: 'lungesLevel' },
+                    { label: 'Planks Level', field: 'planksLevel' },
+                    { label: 'Reverse Planks Level', field: 'reversePlanksLevel' }
+                  ].map((exercise) => (
+                    <FormGroup key={exercise.field}>
+                      <FormLabel>{exercise.label}</FormLabel>
+                      <FormInput
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={editForm[exercise.field as keyof ClientProgressData] as number || 0}
+                        onChange={(e) => handleEditFormChange(exercise.field as keyof ClientProgressData, parseInt(e.target.value))}
+                      />
+                    </FormGroup>
+                  ))}
+                </FourColGrid>
+              </div>
 
-            {/* Achievements */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>Achievements</Typography>
-              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Achievement</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[
-                      'core-10', 'balance-10', 'flexibility-10', 'calisthenics-10',
-                      'squats-10', 'lunges-10', 'planks-10', 'overall-50'
-                    ].map((achievementId) => {
-                      const isUnlocked = editForm.achievements?.includes(achievementId) || false;
-                      const unlockDate = editForm.achievementDates?.[achievementId];
-                      
-                      return (
-                        <TableRow key={achievementId}>
-                          <TableCell>{getAchievementName(achievementId)}</TableCell>
-                          <TableCell>
-                            {isUnlocked ? (
-                              <Chip 
-                                label="Unlocked" 
-                                color="success" 
-                                size="small" 
-                                icon={<Check size={14} />} 
-                              />
-                            ) : (
-                              <Chip 
-                                label="Locked" 
-                                color="default" 
-                                size="small" 
-                                variant="outlined"
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {isUnlocked ? (
-                              <IconButton 
-                                size="small" 
-                                color="error"
-                                onClick={() => handleRemoveAchievement(achievementId)}
-                              >
-                                <MinusCircle size={16} />
-                              </IconButton>
-                            ) : (
-                              <IconButton 
-                                size="small" 
-                                color="success"
-                                onClick={() => handleAddAchievement(achievementId)}
-                              >
-                                <PlusCircle size={16} />
-                              </IconButton>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
+              {/* Achievements */}
+              <div>
+                <TextSubtitle>Achievements</TextSubtitle>
+                <TableWrapper>
+                  <StyledTable>
+                    <Thead>
+                      <Tr>
+                        <Th>Achievement</Th>
+                        <Th>Status</Th>
+                        <Th>Actions</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {[
+                        'core-10', 'balance-10', 'flexibility-10', 'calisthenics-10',
+                        'squats-10', 'lunges-10', 'planks-10', 'overall-50'
+                      ].map((achievementId) => {
+                        const isUnlocked = editForm.achievements?.includes(achievementId) || false;
 
-            {/* Trainer Notes */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Trainer Notes"
-                multiline
-                rows={4}
-                value={editForm.progressNotes || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, progressNotes: e.target.value }))}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: '#121212', borderTop: '1px solid rgba(255, 255, 255, 0.1)', p: 2 }}>
-          <Button 
-            variant="outlined" 
-            color="error" 
-            onClick={() => setShowEditDialog(false)}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={updateClientProgress}
-            startIcon={<Save />}
-          >
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
+                        return (
+                          <Tr key={achievementId}>
+                            <Td>{getAchievementName(achievementId)}</Td>
+                            <Td>
+                              {isUnlocked ? (
+                                <StyledChip $color="success">
+                                  <Check size={14} />
+                                  Unlocked
+                                </StyledChip>
+                              ) : (
+                                <StyledChip $outlined>
+                                  Locked
+                                </StyledChip>
+                              )}
+                            </Td>
+                            <Td>
+                              {isUnlocked ? (
+                                <IconBtn
+                                  $color="error"
+                                  onClick={() => handleRemoveAchievement(achievementId)}
+                                >
+                                  <MinusCircle size={16} />
+                                </IconBtn>
+                              ) : (
+                                <IconBtn
+                                  $color="success"
+                                  onClick={() => handleAddAchievement(achievementId)}
+                                >
+                                  <PlusCircle size={16} />
+                                </IconBtn>
+                              )}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </StyledTable>
+                </TableWrapper>
+              </div>
+
+              {/* Trainer Notes */}
+              <FormGroup>
+                <FormLabel>Trainer Notes</FormLabel>
+                <FormTextarea
+                  rows={4}
+                  value={editForm.progressNotes || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, progressNotes: e.target.value }))}
+                />
+              </FormGroup>
+            </GridRow>
+          </ModalBody>
+          <ModalFooter>
+            <StyledButton
+              $variant="outlined"
+              $color="error"
+              onClick={() => setShowEditDialog(false)}
+            >
+              Cancel
+            </StyledButton>
+            <StyledButton
+              $variant="contained"
+              onClick={updateClientProgress}
+            >
+              <Save size={16} />
+              Save Changes
+            </StyledButton>
+          </ModalFooter>
+        </ModalPanel>
+      </ModalOverlay>
     );
   };
 
   return (
-    <Box sx={{ p: 3, bgcolor: '#121420' }}>
-      <Box sx={{ 
-        mb: 3, 
-        bgcolor: '#1d1f2b', 
-        p: 2, 
-        borderRadius: 1, 
-        boxShadow: '0 4px 12px rgba(0, 255, 255, 0.1)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <Box>
-          <Typography variant="h4" sx={{ color: '#E0E0E0' }}>Client Progress Dashboard</Typography>
-          <Typography variant="body1" sx={{ color: '#A0A0A0' }}>
+    <PageWrapper>
+      <HeaderBar>
+        <div>
+          <HeaderTitle>Client Progress Dashboard</HeaderTitle>
+          <HeaderSubtitle>
             Monitor and manage client progression through the NASM protocol system
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Users size={18} />}
+          </HeaderSubtitle>
+        </div>
+        <ButtonGroup>
+          <StyledButton
+            $variant="outlined"
             onClick={() => navigate('/dashboard/client-trainer-assignments')}
-            sx={{
-              color: '#00ffff',
-              borderColor: '#00ffff',
-              '&:hover': {
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)'
-              }
-            }}
           >
+            <Users size={18} />
             Manage Assignments
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<RefreshCcw size={18} />}
+          </StyledButton>
+          <StyledButton
+            $variant="contained"
             onClick={() => {
               fetchClients();
               fetchLeaderboard();
             }}
-            sx={{
-              background: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)'
-              }
-            }}
           >
+            <RefreshCcw size={18} />
             Refresh Data
-          </Button>
-        </Box>
-      </Box>
+          </StyledButton>
+        </ButtonGroup>
+      </HeaderBar>
 
-      <Box sx={{ width: '100%', mb: 3 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'rgba(0, 255, 255, 0.3)' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="client progress tabs">
-            <Tab label="Client Progress" icon={<UserCheck size={18} />} iconPosition="start" {...a11yProps(0)} />
-            <Tab label="Leaderboard" icon={<Trophy size={18} />} iconPosition="start" {...a11yProps(1)} />
-          </Tabs>
-        </Box>
-      </Box>
+      <TabBar>
+        <TabButton
+          $active={tabValue === 0}
+          onClick={() => handleTabChange(0)}
+          {...a11yProps(0)}
+        >
+          <UserCheck size={18} />
+          Client Progress
+        </TabButton>
+        <TabButton
+          $active={tabValue === 1}
+          onClick={() => handleTabChange(1)}
+          {...a11yProps(1)}
+        >
+          <Trophy size={18} />
+          Leaderboard
+        </TabButton>
+      </TabBar>
 
       <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
-            {renderClientList()}
-          </Grid>
-          <Grid item xs={12} md={9}>
-            {renderClientProgress()}
-          </Grid>
-        </Grid>
+        <ClientLayoutGrid>
+          {renderClientList()}
+          {renderClientProgress()}
+        </ClientLayoutGrid>
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
@@ -1311,7 +1871,7 @@ const AdminClientProgressView: React.FC = () => {
 
       {/* Edit Dialog */}
       {renderEditDialog()}
-    </Box>
+    </PageWrapper>
   );
 };
 
