@@ -4,44 +4,9 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 import { Exercise } from '../../../../services/exercise-service';
+import styled, { keyframes, css } from 'styled-components';
 
-// Import MUI components
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Chip,
-  Avatar,
-  Card,
-  CardContent,
-  CardHeader,
-  Button,
-  IconButton,
-  TextField,
-  MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  LinearProgress,
-  Tab,
-  Tabs,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  CircularProgress,
-  Tooltip
-} from '@mui/material';
-
-// Import icons
+// Import icons (lucide-react only)
 import {
   ChevronUp,
   ChevronDown,
@@ -70,6 +35,617 @@ import {
 // Import styled component from MainCard
 import MainCard from '../../../ui/MainCard';
 
+/* ─── Galaxy-Swan Theme Tokens ─── */
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgDeep: '#121420',
+  bgCard: '#1d1f2b',
+  bgCardAlt: '#1A1C33',
+  border: 'rgba(14,165,233,0.2)',
+  borderLight: 'rgba(255,255,255,0.1)',
+  text: '#e2e8f0',
+  textMuted: '#A0A0A0',
+  accent: '#0ea5e9',
+  cyan: '#00ffff',
+  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
+  gradientPrimaryHover: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)',
+  gradientLevel: 'linear-gradient(135deg, #00ffff, #00B4D8)',
+  shadow: '0 4px 12px rgba(0, 0, 20, 0.2)',
+  shadowCyan: '0 4px 12px rgba(0, 255, 255, 0.1)',
+};
+
+/* ─── Keyframes ─── */
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+/* ─── Styled Components ─── */
+
+const PageWrapper = styled.div`
+  padding: 24px;
+  background-color: ${theme.bgDeep};
+`;
+
+const HeaderBar = styled.div`
+  margin-bottom: 24px;
+  background-color: ${theme.bgCard};
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: ${theme.shadowCyan};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+`;
+
+const HeaderTitle = styled.h4`
+  color: ${theme.text};
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const HeaderSubtitle = styled.p`
+  color: ${theme.textMuted};
+  font-size: 1rem;
+  margin: 4px 0 0 0;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 12px;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    width: 100%;
+  }
+`;
+
+const OutlinedButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: ${theme.cyan};
+  border: 1px solid ${theme.cyan};
+  background: transparent;
+
+  &:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.cyan};
+    outline-offset: 2px;
+  }
+`;
+
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #fff;
+  border: none;
+  background: ${theme.gradientPrimary};
+
+  &:hover {
+    background: ${theme.gradientPrimaryHover};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.cyan};
+    outline-offset: 2px;
+  }
+`;
+
+const SmallOutlinedButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: ${theme.cyan};
+  border: 1px solid ${theme.border};
+  background: transparent;
+
+  &:hover {
+    border-color: ${theme.cyan};
+    background: rgba(14, 165, 233, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.cyan};
+    outline-offset: 2px;
+  }
+`;
+
+/* ─── Tabs ─── */
+
+const TabsWrapper = styled.div`
+  width: 100%;
+  margin-bottom: 24px;
+`;
+
+const TabsBorder = styled.div`
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  display: flex;
+  gap: 0;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px 24px;
+  border: none;
+  border-bottom: 2px solid ${({ $active }) => ($active ? theme.cyan : 'transparent')};
+  background: transparent;
+  color: ${({ $active }) => ($active ? theme.cyan : theme.textMuted)};
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: ${theme.cyan};
+    background: rgba(0, 255, 255, 0.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.cyan};
+    outline-offset: -2px;
+  }
+`;
+
+/* ─── TabPanel ─── */
+
+const TabPanelWrapper = styled.div`
+  padding: 24px;
+  background-color: #0A0A0A;
+  color: ${theme.text};
+`;
+
+/* ─── Grid Layout ─── */
+
+const GridRow = styled.div<{ $gap?: number }>`
+  display: grid;
+  gap: ${({ $gap }) => ($gap ?? 24)}px;
+`;
+
+const ProgressLayout = styled(GridRow)`
+  grid-template-columns: 1fr 3fr;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const TwoCol = styled(GridRow)`
+  grid-template-columns: 1fr 1fr;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FourCol = styled(GridRow)`
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+/* ─── Client List Sidebar ─── */
+
+const SidebarPanel = styled.div`
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: ${theme.bgCard};
+  border-radius: 8px;
+  box-shadow: ${theme.shadow};
+  border: 1px solid ${theme.border};
+`;
+
+const SidebarHeader = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid ${theme.borderLight};
+`;
+
+const SidebarTitle = styled.h6`
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  margin-bottom: 16px;
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${theme.textMuted};
+  display: flex;
+  align-items: center;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px 8px 40px;
+  border-radius: 6px;
+  border: 1px solid ${theme.border};
+  background: ${theme.bgCard};
+  color: ${theme.text};
+  font-size: 0.875rem;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.cyan};
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+  }
+`;
+
+const ClientList = styled.div`
+  flex: 1;
+  overflow: auto;
+`;
+
+const ClientItem = styled.div<{ $selected: boolean }>`
+  padding: 12px 16px;
+  border-bottom: 1px solid ${theme.borderLight};
+  background-color: ${({ $selected }) => ($selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(0, 255, 255, 0.1);
+  }
+`;
+
+const AvatarCircle = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: ${theme.gradientLevel};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.bgCard};
+  font-weight: 600;
+  font-size: 0.8125rem;
+  flex-shrink: 0;
+  margin-right: 12px;
+`;
+
+const ClientName = styled.p`
+  margin: 0;
+  font-size: 0.9375rem;
+  color: ${theme.text};
+  font-weight: 500;
+`;
+
+const ClientUsername = styled.p`
+  margin: 2px 0 0 0;
+  font-size: 0.8125rem;
+  color: ${theme.textMuted};
+`;
+
+/* ─── Progress Section ─── */
+
+const EmptyState = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  color: ${theme.textMuted};
+  font-size: 0.9375rem;
+`;
+
+const ProgressHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const SectionTitle = styled.h5`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+/* ─── Overall Level ─── */
+
+const LevelRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const LevelBadge = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: ${theme.gradientLevel};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.bgCard};
+  margin-right: 16px;
+  flex-shrink: 0;
+`;
+
+const LevelNumber = styled.span`
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+`;
+
+const LevelCaption = styled.span`
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const LevelInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const LevelNameText = styled.h6`
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 8px;
+  margin-bottom: 4px;
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $percent: number }>`
+  height: 100%;
+  border-radius: 4px;
+  background: ${theme.gradientLevel};
+  width: ${({ $percent }) => Math.min(100, $percent)}%;
+  transition: width 0.5s ease;
+`;
+
+const ProgressLabels = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const CaptionText = styled.span`
+  font-size: 0.75rem;
+  color: ${theme.textMuted};
+`;
+
+/* ─── Stat Cards ─── */
+
+const StatCard = styled.div`
+  padding: 12px;
+  text-align: center;
+  background: ${theme.bgCardAlt};
+  border-radius: 8px;
+  border: 1px solid ${theme.border};
+`;
+
+const StatValue = styled.span`
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: ${theme.text};
+`;
+
+const StatLabel = styled.span`
+  display: block;
+  font-size: 0.8125rem;
+  color: ${theme.textMuted};
+  margin-top: 2px;
+`;
+
+/* ─── Notes ─── */
+
+const NotesBody = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: ${theme.text};
+  white-space: pre-line;
+  line-height: 1.6;
+`;
+
+/* ─── Leaderboard ─── */
+
+const LeaderboardTitle = styled.h5`
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background: ${theme.bgCard};
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: ${theme.shadow};
+`;
+
+const StyledThead = styled.thead`
+  background: rgba(14, 165, 233, 0.08);
+`;
+
+const StyledTh = styled.th`
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: ${theme.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid ${theme.border};
+`;
+
+const StyledTr = styled.tr`
+  &:not(:last-child) {
+    border-bottom: 1px solid ${theme.borderLight};
+  }
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.05);
+  }
+`;
+
+const StyledTd = styled.td`
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: ${theme.text};
+  vertical-align: middle;
+`;
+
+const RankText = styled.span`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: ${theme.text};
+`;
+
+const LeaderboardAvatarRow = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const LeaderboardName = styled.p`
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: ${theme.text};
+`;
+
+const LeaderboardUsername = styled.p`
+  margin: 2px 0 0 0;
+  font-size: 0.8125rem;
+  color: ${theme.textMuted};
+`;
+
+const LevelCircleSmall = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: ${theme.accent};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  margin-right: 8px;
+  flex-shrink: 0;
+`;
+
+const LevelNameSmall = styled.span`
+  font-size: 0.8125rem;
+  color: ${theme.text};
+`;
+
+/* ─── Chip ─── */
+
+const StyledChip = styled.span<{ $variant: 'success' | 'primary' | 'default' }>`
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+
+  ${({ $variant }) => {
+    switch ($variant) {
+      case 'success':
+        return css`
+          background: rgba(34, 197, 94, 0.15);
+          color: #4ade80;
+          border: 1px solid rgba(34, 197, 94, 0.3);
+        `;
+      case 'primary':
+        return css`
+          background: rgba(14, 165, 233, 0.15);
+          color: #38bdf8;
+          border: 1px solid rgba(14, 165, 233, 0.3);
+        `;
+      default:
+        return css`
+          background: rgba(255, 255, 255, 0.08);
+          color: ${theme.textMuted};
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        `;
+    }
+  }}
+`;
+
+/* ─── Spinner ─── */
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: ${theme.cyan};
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+/* ─── Component Interfaces ─── */
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -88,9 +664,9 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3, bgcolor: '#0A0A0A', color: '#E0E0E0' }}>
+        <TabPanelWrapper>
           {children}
-        </Box>
+        </TabPanelWrapper>
       )}
     </div>
   );
@@ -117,10 +693,10 @@ const AdminClientProgressView: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientProgress, setClientProgress] = useState<ClientProgressData | null>(null);
   const [recommendedExercises, setRecommendedExercises] = useState<Exercise[]>([]);
-  
+
   // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  
+
   // UI state
   const [loading, setLoading] = useState<boolean>(true);
   const [tabValue, setTabValue] = useState(0);
@@ -156,7 +732,7 @@ const AdminClientProgressView: React.FC = () => {
       const response = await authAxios.get('/api/auth/clients');
       if (response.data && response.data.success) {
         setClients(response.data.clients);
-        
+
         // Select first client if no client is selected
         if (response.data.clients.length > 0 && !selectedClientId) {
           setSelectedClientId(response.data.clients[0].id);
@@ -167,14 +743,14 @@ const AdminClientProgressView: React.FC = () => {
       }
     } catch (err) {
       console.warn('API clients endpoint unavailable, using fallback data:', err);
-      
+
       // Use fallback data for seamless experience
       useFallbackClientData();
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Fallback client data for when API is unavailable
   const useFallbackClientData = () => {
     const fallbackClients = [
@@ -187,14 +763,14 @@ const AdminClientProgressView: React.FC = () => {
       { id: '7', firstName: 'James', lastName: 'Taylor', username: 'james_jacked', photo: undefined },
       { id: '8', firstName: 'Amanda', lastName: 'Brown', username: 'amanda_active', photo: undefined }
     ];
-    
+
     setClients(fallbackClients);
-    
+
     // Select first client if no client is selected
     if (fallbackClients.length > 0 && !selectedClientId) {
       setSelectedClientId(fallbackClients[0].id);
     }
-    
+
     // Show success message instead of error
     toast({
       title: "Success",
@@ -276,7 +852,7 @@ const AdminClientProgressView: React.FC = () => {
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-04-15T00:00:00.000Z'
     };
-    
+
     setClientProgress(mockProgress);
     setEditForm(mockProgress);
   };
@@ -342,7 +918,7 @@ const AdminClientProgressView: React.FC = () => {
         recommendedDuration: 30
       }
     ];
-    
+
     setRecommendedExercises(mockExercises);
   };
 
@@ -390,24 +966,24 @@ const AdminClientProgressView: React.FC = () => {
         client: { id: 'user5', firstName: 'James', lastName: 'Wilson', username: 'jwilson' }
       }
     ];
-    
+
     setLeaderboard(mockLeaderboard);
   };
 
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
   };
 
   // Get filtered and searched clients
   const getFilteredClients = () => {
     if (!clients) return [];
-    
+
     return clients.filter(client => {
       const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
       const username = client.username.toLowerCase();
       const search = searchTerm.toLowerCase();
-      
+
       return fullName.includes(search) || username.includes(search);
     });
   };
@@ -430,325 +1006,266 @@ const AdminClientProgressView: React.FC = () => {
     return 'Fitness Champion';
   };
 
+  // Helper to get chip variant
+  const getChipVariant = (level: number): 'success' | 'primary' | 'default' => {
+    if (level > 40) return 'success';
+    if (level > 20) return 'primary';
+    return 'default';
+  };
+
+  const getChipLabel = (level: number): string => {
+    if (level > 40) return 'Advanced';
+    if (level > 20) return 'Intermediate';
+    return 'Beginner';
+  };
+
   // Render the selected client's progress
   const renderClientProgress = () => {
     if (!clientProgress) {
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: '#A0A0A0' }}>
-          <Typography>Select a client to view their progress</Typography>
-        </Box>
+        <EmptyState>
+          <span>Select a client to view their progress</span>
+        </EmptyState>
       );
     }
 
     const selectedClient = getClientById(clientProgress.userId);
-    
+    const xpPercent = (clientProgress.experiencePoints / (100 + (clientProgress.overallLevel * 25))) * 100;
+
     return (
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h5">
+      <div>
+        <ProgressHeader>
+          <SectionTitle>
             {selectedClient?.firstName} {selectedClient?.lastName}'s Progress
-          </Typography>
-        </Box>
+          </SectionTitle>
+        </ProgressHeader>
 
-        <Grid container spacing={3}>
+        <TwoCol $gap={24}>
           {/* Overall Level Card */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="Overall Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    borderRadius: '50%', 
-                    background: 'linear-gradient(135deg, #00ffff, #00B4D8)', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    color: '#1d1f2b',
-                    mr: 2
-                  }}
-                >
-                  <Typography variant="h4">{clientProgress.overallLevel}</Typography>
-                  <Typography variant="caption">LEVEL</Typography>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">{getLevelName(clientProgress.overallLevel)}</Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={Math.min(100, (clientProgress.experiencePoints / (100 + (clientProgress.overallLevel * 25))) * 100)} 
-                    sx={{ mt: 1, mb: 0.5, height: 8, borderRadius: 4 }}
-                  />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="caption">{clientProgress.experiencePoints} XP</Typography>
-                    <Typography variant="caption">Next: {clientProgress.overallLevel + 1}</Typography>
-                  </Box>
-                </Box>
-              </Box>
+          <MainCard title="Overall Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
+            <LevelRow>
+              <LevelBadge>
+                <LevelNumber>{clientProgress.overallLevel}</LevelNumber>
+                <LevelCaption>LEVEL</LevelCaption>
+              </LevelBadge>
+              <LevelInfo>
+                <LevelNameText>{getLevelName(clientProgress.overallLevel)}</LevelNameText>
+                <ProgressBarTrack>
+                  <ProgressBarFill $percent={xpPercent} />
+                </ProgressBarTrack>
+                <ProgressLabels>
+                  <CaptionText>{clientProgress.experiencePoints} XP</CaptionText>
+                  <CaptionText>Next: {clientProgress.overallLevel + 1}</CaptionText>
+                </ProgressLabels>
+              </LevelInfo>
+            </LevelRow>
 
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1A1C33' }}>
-                    <Typography variant="h6">{clientProgress.workoutsCompleted}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Workouts</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
-                    <Typography variant="h6">{clientProgress.streakDays}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Day Streak</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
-                    <Typography variant="h6">{clientProgress.totalExercisesPerformed}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Exercises</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
-                    <Typography variant="h6">{clientProgress.totalMinutes}</Typography>
-                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Minutes</Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </MainCard>
-          </Grid>
+            <FourCol $gap={12}>
+              <StatCard>
+                <StatValue>{clientProgress.workoutsCompleted}</StatValue>
+                <StatLabel>Workouts</StatLabel>
+              </StatCard>
+              <StatCard>
+                <StatValue>{clientProgress.streakDays}</StatValue>
+                <StatLabel>Day Streak</StatLabel>
+              </StatCard>
+              <StatCard>
+                <StatValue>{clientProgress.totalExercisesPerformed}</StatValue>
+                <StatLabel>Exercises</StatLabel>
+              </StatCard>
+              <StatCard>
+                <StatValue>{clientProgress.totalMinutes}</StatValue>
+                <StatLabel>Minutes</StatLabel>
+              </StatCard>
+            </FourCol>
+          </MainCard>
 
           {/* Progress Notes */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="Trainer Notes" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                {clientProgress.progressNotes || 'No notes available.'}
-              </Typography>
-            </MainCard>
-          </Grid>
-        </Grid>
-      </Box>
+          <MainCard title="Trainer Notes" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
+            <NotesBody>
+              {clientProgress.progressNotes || 'No notes available.'}
+            </NotesBody>
+          </MainCard>
+        </TwoCol>
+      </div>
     );
   };
 
   // Render the leaderboard tab
   const renderLeaderboard = () => {
     return (
-      <Box>
-        <Typography variant="h5" sx={{ mb: 2, color: '#E0E0E0' }}>Client Progress Leaderboard</Typography>
-        
-        <TableContainer component={Paper} sx={{ bgcolor: '#1d1f2b', borderRadius: 1, boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Rank</TableCell>
-                <TableCell>Client</TableCell>
-                <TableCell>Level</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {leaderboard.map((entry, index) => (
-                <TableRow key={entry.userId}>
-                  <TableCell>
-                    <Typography variant="h6">{index + 1}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ mr: 1 }}>
-                        {entry.client.firstName[0]}{entry.client.lastName[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body1">
-                          {entry.client.firstName} {entry.client.lastName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          @{entry.client.username}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box 
-                        sx={{ 
-                          width: 36, 
-                          height: 36, 
-                          borderRadius: '50%', 
-                          backgroundColor: 'primary.main', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          color: 'white',
-                          mr: 1
-                        }}
-                      >
-                        {entry.overallLevel}
-                      </Box>
-                      <Box>
-                        <Typography variant="body2">
-                          {getLevelName(entry.overallLevel)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={entry.overallLevel > 40 ? 'Advanced' : entry.overallLevel > 20 ? 'Intermediate' : 'Beginner'} 
-                      color={entry.overallLevel > 40 ? 'success' : entry.overallLevel > 20 ? 'primary' : 'default'} 
-                      size="small" 
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      onClick={() => setSelectedClientId(entry.userId)}
-                    >
-                      View Profile
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+      <div>
+        <LeaderboardTitle>Client Progress Leaderboard</LeaderboardTitle>
+
+        <StyledTable>
+          <StyledThead>
+            <tr>
+              <StyledTh>Rank</StyledTh>
+              <StyledTh>Client</StyledTh>
+              <StyledTh>Level</StyledTh>
+              <StyledTh>Status</StyledTh>
+              <StyledTh>Actions</StyledTh>
+            </tr>
+          </StyledThead>
+          <tbody>
+            {leaderboard.map((entry, index) => (
+              <StyledTr key={entry.userId}>
+                <StyledTd>
+                  <RankText>{index + 1}</RankText>
+                </StyledTd>
+                <StyledTd>
+                  <LeaderboardAvatarRow>
+                    <AvatarCircle>
+                      {entry.client.firstName[0]}{entry.client.lastName[0]}
+                    </AvatarCircle>
+                    <div>
+                      <LeaderboardName>
+                        {entry.client.firstName} {entry.client.lastName}
+                      </LeaderboardName>
+                      <LeaderboardUsername>
+                        @{entry.client.username}
+                      </LeaderboardUsername>
+                    </div>
+                  </LeaderboardAvatarRow>
+                </StyledTd>
+                <StyledTd>
+                  <LeaderboardAvatarRow>
+                    <LevelCircleSmall>
+                      {entry.overallLevel}
+                    </LevelCircleSmall>
+                    <LevelNameSmall>
+                      {getLevelName(entry.overallLevel)}
+                    </LevelNameSmall>
+                  </LeaderboardAvatarRow>
+                </StyledTd>
+                <StyledTd>
+                  <StyledChip $variant={getChipVariant(entry.overallLevel)}>
+                    {getChipLabel(entry.overallLevel)}
+                  </StyledChip>
+                </StyledTd>
+                <StyledTd>
+                  <SmallOutlinedButton
+                    onClick={() => setSelectedClientId(entry.userId)}
+                  >
+                    View Profile
+                  </SmallOutlinedButton>
+                </StyledTd>
+              </StyledTr>
+            ))}
+          </tbody>
+        </StyledTable>
+      </div>
     );
   };
 
   // Render client list sidebar
   const renderClientList = () => {
     return (
-      <Paper sx={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-          <Typography variant="h6" sx={{ mb: 2, color: '#E0E0E0' }}>Clients</Typography>
-          
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search clients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <Search size={18} style={{ marginRight: 8, color: '#A0A0A0' }} />,
-              sx: { bgcolor: '#1d1f2b', color: '#E0E0E0' }
-            }}
-            sx={{ mb: 2, '& .MuiInputBase-root': { color: '#E0E0E0' }, '& .MuiInputLabel-root': { color: '#A0A0A0' } }}
-          />
-        </Box>
-        
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <SidebarPanel>
+        <SidebarHeader>
+          <SidebarTitle>Clients</SidebarTitle>
+
+          <SearchInputWrapper>
+            <SearchIcon>
+              <Search size={18} />
+            </SearchIcon>
+            <SearchInput
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </SearchInputWrapper>
+        </SidebarHeader>
+
+        <ClientList>
           {getFilteredClients().map((client) => (
-            <Box 
+            <ClientItem
               key={client.id}
-              sx={{ 
-                p: 2, 
-                borderBottom: '1px solid', 
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                backgroundColor: selectedClientId === client.id ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 255, 255, 0.1)',
-                }
-              }}
+              $selected={selectedClientId === client.id}
               onClick={() => setSelectedClientId(client.id)}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Avatar sx={{ mr: 1 }}>
-                  {client.firstName[0]}{client.lastName[0]}
-                </Avatar>
-                <Box>
-                  <Typography variant="body1">
-                    {client.firstName} {client.lastName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    @{client.username}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+              <AvatarCircle>
+                {client.firstName[0]}{client.lastName[0]}
+              </AvatarCircle>
+              <div>
+                <ClientName>
+                  {client.firstName} {client.lastName}
+                </ClientName>
+                <ClientUsername>
+                  @{client.username}
+                </ClientUsername>
+              </div>
+            </ClientItem>
           ))}
-        </Box>
-      </Paper>
+        </ClientList>
+      </SidebarPanel>
     );
   };
 
   return (
-    <Box sx={{ p: 3, bgcolor: '#121420' }}>
-      <Box sx={{ 
-        mb: 3, 
-        bgcolor: '#1d1f2b', 
-        p: 2, 
-        borderRadius: 1, 
-        boxShadow: '0 4px 12px rgba(0, 255, 255, 0.1)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <Box>
-          <Typography variant="h4" sx={{ color: '#E0E0E0' }}>Client Progress Dashboard</Typography>
-          <Typography variant="body1" sx={{ color: '#A0A0A0' }}>
+    <PageWrapper>
+      <HeaderBar>
+        <div>
+          <HeaderTitle>Client Progress Dashboard</HeaderTitle>
+          <HeaderSubtitle>
             Monitor and manage client progression through the NASM protocol system
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Users size={18} />}
+          </HeaderSubtitle>
+        </div>
+        <HeaderActions>
+          <OutlinedButton
             onClick={() => navigate('/dashboard/client-trainer-assignments')}
-            sx={{
-              color: '#00ffff',
-              borderColor: '#00ffff',
-              '&:hover': {
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)'
-              }
-            }}
           >
+            <Users size={18} />
             Manage Assignments
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<RefreshCcw size={18} />}
+          </OutlinedButton>
+          <PrimaryButton
             onClick={() => {
               fetchClients();
               fetchLeaderboard();
             }}
-            sx={{
-              background: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)'
-              }
-            }}
           >
+            <RefreshCcw size={18} />
             Refresh Data
-          </Button>
-        </Box>
-      </Box>
+          </PrimaryButton>
+        </HeaderActions>
+      </HeaderBar>
 
-      <Box sx={{ width: '100%', mb: 3 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'rgba(0, 255, 255, 0.3)' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="client progress tabs">
-            <Tab label="Client Progress" icon={<UserCheck size={18} />} iconPosition="start" {...a11yProps(0)} />
-            <Tab label="Leaderboard" icon={<Trophy size={18} />} iconPosition="start" {...a11yProps(1)} />
-          </Tabs>
-        </Box>
-      </Box>
+      <TabsWrapper>
+        <TabsBorder>
+          <TabButton
+            $active={tabValue === 0}
+            onClick={() => handleTabChange(0)}
+            {...a11yProps(0)}
+          >
+            <UserCheck size={18} />
+            Client Progress
+          </TabButton>
+          <TabButton
+            $active={tabValue === 1}
+            onClick={() => handleTabChange(1)}
+            {...a11yProps(1)}
+          >
+            <Trophy size={18} />
+            Leaderboard
+          </TabButton>
+        </TabsBorder>
+      </TabsWrapper>
 
       <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
+        <ProgressLayout $gap={24}>
+          <div>
             {renderClientList()}
-          </Grid>
-          <Grid item xs={12} md={9}>
+          </div>
+          <div>
             {renderClientProgress()}
-          </Grid>
-        </Grid>
+          </div>
+        </ProgressLayout>
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
         {renderLeaderboard()}
       </TabPanel>
-    </Box>
+    </PageWrapper>
   );
 };
 

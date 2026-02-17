@@ -11,54 +11,25 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import styled, { keyframes, css } from 'styled-components';
 import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Stack,
-  Divider,
-} from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  Refresh as RefreshIcon,
-  Assessment as AssessmentIcon,
-  FitnessCenter as FitnessCenterIcon,
-  VerifiedUser as VerifiedUserIcon,
-  TrendingUp as TrendingUpIcon,
-} from '@mui/icons-material';
+  CheckCircle,
+  XCircle,
+  Pencil,
+  Trash2,
+  Plus,
+  RefreshCw,
+  BarChart3,
+  Dumbbell,
+  ShieldCheck,
+  TrendingUp,
+} from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../utils/api';
+
+/* =============================================
+   INTERFACES (unchanged)
+   ============================================= */
 
 interface ComplianceMetrics {
   total_clients: number;
@@ -109,6 +80,465 @@ interface TrainerCertification {
   certificate_url: string | null;
   verified_at: string | null;
 }
+
+/* =============================================
+   STYLED COMPONENTS
+   ============================================= */
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const PageContainer = styled.div`
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px;
+`;
+
+const PageTitle = styled.h4`
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 8px 0;
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 1rem;
+  color: rgba(226, 232, 240, 0.6);
+  margin: 0 0 32px 0;
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  ${({ $active }) =>
+    $active
+      ? css`
+          background: rgba(14, 165, 233, 0.2);
+          color: #0ea5e9;
+          box-shadow: 0 0 12px rgba(14, 165, 233, 0.15);
+        `
+      : css`
+          background: transparent;
+          color: rgba(226, 232, 240, 0.6);
+
+          &:hover {
+            background: rgba(14, 165, 233, 0.08);
+            color: #e2e8f0;
+          }
+        `}
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const SectionTitle = styled.h5`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+`;
+
+const GlassCard = styled.div<{ $bgColor?: string }>`
+  background: ${({ $bgColor }) => $bgColor || 'rgba(15, 23, 42, 0.95)'};
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const MetricGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const TwoColGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FullWidthRow = styled.div`
+  margin-top: 24px;
+`;
+
+const MetricCard = styled(GlassCard)<{ $accent: string }>`
+  border-left: 4px solid ${({ $accent }) => $accent};
+`;
+
+const MetricRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const MetricValue = styled.span`
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+`;
+
+const MetricLabel = styled.span`
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.6);
+  margin-top: 4px;
+  display: block;
+`;
+
+const IconWrap = styled.span<{ $color?: string }>`
+  color: ${({ $color }) => $color || 'rgba(226, 232, 240, 0.35)'};
+  display: flex;
+  align-items: center;
+`;
+
+const HorizontalRule = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(14, 165, 233, 0.15);
+  margin: 16px 0;
+`;
+
+const RowBetween = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StackColumn = styled.div<{ $gap?: number }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ $gap }) => $gap ?? 12}px;
+`;
+
+const StackRow = styled.div<{ $gap?: number }>`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${({ $gap }) => $gap ?? 8}px;
+`;
+
+const CardTitle = styled.h6`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 4px 0;
+`;
+
+const BodyText = styled.span`
+  font-size: 0.9375rem;
+  color: #e2e8f0;
+`;
+
+const CaptionText = styled.span`
+  font-size: 0.8125rem;
+  color: rgba(226, 232, 240, 0.6);
+`;
+
+/* --- Chip / Badge --- */
+type ChipVariant = 'primary' | 'success' | 'warning' | 'error' | 'info' | 'default';
+
+const chipColors: Record<ChipVariant, { bg: string; text: string }> = {
+  primary: { bg: 'rgba(14, 165, 233, 0.18)', text: '#0ea5e9' },
+  success: { bg: 'rgba(34, 197, 94, 0.18)', text: '#22c55e' },
+  warning: { bg: 'rgba(234, 179, 8, 0.18)', text: '#eab308' },
+  error: { bg: 'rgba(239, 68, 68, 0.18)', text: '#ef4444' },
+  info: { bg: 'rgba(99, 102, 241, 0.18)', text: '#818cf8' },
+  default: { bg: 'rgba(226, 232, 240, 0.12)', text: '#e2e8f0' },
+};
+
+const Chip = styled.span<{ $variant?: ChipVariant; $small?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  padding: ${({ $small }) => ($small ? '2px 10px' : '4px 14px')};
+  border-radius: 999px;
+  font-size: ${({ $small }) => ($small ? '0.75rem' : '0.8125rem')};
+  font-weight: 500;
+  white-space: nowrap;
+  background: ${({ $variant }) => chipColors[$variant || 'default'].bg};
+  color: ${({ $variant }) => chipColors[$variant || 'default'].text};
+`;
+
+/* --- Buttons --- */
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #0ea5e9, #7851a9);
+  color: #fff;
+
+  &:hover {
+    opacity: 0.9;
+    box-shadow: 0 0 16px rgba(14, 165, 233, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const OutlineButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 24px;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: #0ea5e9;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: #0ea5e9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SmallButton = styled.button<{ $variant?: 'success' | 'primary' | 'default' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${({ $variant }) => {
+    switch ($variant) {
+      case 'success':
+        return css`
+          background: rgba(34, 197, 94, 0.2);
+          color: #22c55e;
+          &:hover {
+            background: rgba(34, 197, 94, 0.35);
+          }
+        `;
+      default:
+        return css`
+          background: rgba(14, 165, 233, 0.15);
+          color: #0ea5e9;
+          &:hover {
+            background: rgba(14, 165, 233, 0.25);
+          }
+        `;
+    }
+  }}
+`;
+
+const SmallLinkButton = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  background: rgba(14, 165, 233, 0.15);
+  color: #0ea5e9;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.25);
+  }
+`;
+
+const IconBtn = styled.button<{ $color?: 'success' | 'primary' | 'error' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+
+  ${({ $color }) => {
+    switch ($color) {
+      case 'success':
+        return css`
+          color: #22c55e;
+          &:hover { background: rgba(34, 197, 94, 0.15); }
+        `;
+      case 'error':
+        return css`
+          color: #ef4444;
+          &:hover { background: rgba(239, 68, 68, 0.15); }
+        `;
+      default:
+        return css`
+          color: #0ea5e9;
+          &:hover { background: rgba(14, 165, 233, 0.15); }
+        `;
+    }
+  }}
+`;
+
+/* --- Table --- */
+const TableWrapper = styled.div`
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  overflow-x: auto;
+  backdrop-filter: blur(12px);
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const THead = styled.thead`
+  background: rgba(14, 165, 233, 0.06);
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+  white-space: nowrap;
+`;
+
+const Td = styled.td`
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.08);
+  vertical-align: middle;
+`;
+
+const Tr = styled.tr`
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.04);
+  }
+`;
+
+/* --- Alert --- */
+const AlertInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #818cf8;
+  font-size: 0.875rem;
+  margin-top: 16px;
+`;
+
+/* --- Spinner --- */
+const Spinner = styled.div`
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(14, 165, 233, 0.15);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+`;
+
+const SpinnerCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+`;
+
+const VerifiedText = styled.span`
+  font-size: 0.8125rem;
+  color: #22c55e;
+`;
+
+const TwoColActivityGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+/* =============================================
+   COMPONENT
+   ============================================= */
 
 const NASMAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -247,7 +677,7 @@ const NASMAdminDashboard: React.FC = () => {
     return labels[phase] || phase;
   };
 
-  const getCertColor = (status: string): 'success' | 'error' | 'warning' => {
+  const getCertChipVariant = (status: string): ChipVariant => {
     if (status === 'active') return 'success';
     if (status === 'expired') return 'error';
     return 'warning';
@@ -257,463 +687,420 @@ const NASMAdminDashboard: React.FC = () => {
   // TAB 0: COMPLIANCE DASHBOARD
   // ========================================
   const renderComplianceDashboard = () => (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          NASM Compliance Metrics
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={refreshMetrics}
-          disabled={loading}
-        >
+    <div>
+      <SectionHeader>
+        <SectionTitle>NASM Compliance Metrics</SectionTitle>
+        <OutlineButton onClick={refreshMetrics} disabled={loading}>
+          <RefreshCw size={16} />
           Refresh
-        </Button>
-      </Stack>
+        </OutlineButton>
+      </SectionHeader>
 
       {metrics && (
-        <Grid container spacing={3}>
-          {/* Client Metrics */}
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ bgcolor: 'primary.main', color: 'white' }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Typography variant="h3" fontWeight="bold">
-                      {metrics.total_clients}
-                    </Typography>
-                    <Typography variant="body2">Total Clients</Typography>
-                  </Box>
-                  <FitnessCenterIcon sx={{ fontSize: 48, opacity: 0.7 }} />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+        <>
+          <MetricGrid>
+            {/* Client Metrics */}
+            <MetricCard $accent="#0ea5e9">
+              <MetricRow>
+                <div>
+                  <MetricValue>{metrics.total_clients}</MetricValue>
+                  <MetricLabel>Total Clients</MetricLabel>
+                </div>
+                <IconWrap $color="rgba(14, 165, 233, 0.35)">
+                  <Dumbbell size={48} />
+                </IconWrap>
+              </MetricRow>
+            </MetricCard>
 
-          {/* Active Protocols */}
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ bgcolor: 'success.main', color: 'white' }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Typography variant="h3" fontWeight="bold">
-                      {metrics.total_active_protocols}
-                    </Typography>
-                    <Typography variant="body2">Active Corrective Protocols</Typography>
-                  </Box>
-                  <AssessmentIcon sx={{ fontSize: 48, opacity: 0.7 }} />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Active Protocols */}
+            <MetricCard $accent="#22c55e">
+              <MetricRow>
+                <div>
+                  <MetricValue>{metrics.total_active_protocols}</MetricValue>
+                  <MetricLabel>Active Corrective Protocols</MetricLabel>
+                </div>
+                <IconWrap $color="rgba(34, 197, 94, 0.35)">
+                  <BarChart3 size={48} />
+                </IconWrap>
+              </MetricRow>
+            </MetricCard>
 
-          {/* Avg Compliance Rate */}
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ bgcolor: 'warning.main', color: 'white' }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Typography variant="h3" fontWeight="bold">
-                      {metrics.avg_compliance_rate?.toFixed(1) || 0}%
-                    </Typography>
-                    <Typography variant="body2">Avg Homework Compliance</Typography>
-                  </Box>
-                  <TrendingUpIcon sx={{ fontSize: 48, opacity: 0.7 }} />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Avg Compliance Rate */}
+            <MetricCard $accent="#eab308">
+              <MetricRow>
+                <div>
+                  <MetricValue>{metrics.avg_compliance_rate?.toFixed(1) || 0}%</MetricValue>
+                  <MetricLabel>Avg Homework Compliance</MetricLabel>
+                </div>
+                <IconWrap $color="rgba(234, 179, 8, 0.35)">
+                  <TrendingUp size={48} />
+                </IconWrap>
+              </MetricRow>
+            </MetricCard>
 
-          {/* Certified Trainers */}
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ bgcolor: 'info.main', color: 'white' }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Typography variant="h3" fontWeight="bold">
-                      {metrics.active_cpt_trainers}
-                    </Typography>
-                    <Typography variant="body2">Active CPT Trainers</Typography>
-                  </Box>
-                  <VerifiedUserIcon sx={{ fontSize: 48, opacity: 0.7 }} />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Certified Trainers */}
+            <MetricCard $accent="#818cf8">
+              <MetricRow>
+                <div>
+                  <MetricValue>{metrics.active_cpt_trainers}</MetricValue>
+                  <MetricLabel>Active CPT Trainers</MetricLabel>
+                </div>
+                <IconWrap $color="rgba(99, 102, 241, 0.35)">
+                  <ShieldCheck size={48} />
+                </IconWrap>
+              </MetricRow>
+            </MetricCard>
+          </MetricGrid>
 
-          {/* Trainer Breakdown */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Trainer Certifications
-                </Typography>
-                <Divider sx={{ my: 2 }} />
-                <Stack spacing={2}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>NASM-CPT (Personal Trainer)</Typography>
-                    <Chip label={metrics.active_cpt_trainers} color="primary" />
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>NASM-CES (Corrective Exercise)</Typography>
-                    <Chip label={metrics.active_ces_trainers} color="success" />
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>NASM-PES (Performance)</Typography>
-                    <Chip label={metrics.active_pes_trainers} color="warning" />
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+          <TwoColGrid>
+            {/* Trainer Breakdown */}
+            <GlassCard>
+              <CardTitle>Trainer Certifications</CardTitle>
+              <HorizontalRule />
+              <StackColumn $gap={14}>
+                <RowBetween>
+                  <BodyText>NASM-CPT (Personal Trainer)</BodyText>
+                  <Chip $variant="primary">{metrics.active_cpt_trainers}</Chip>
+                </RowBetween>
+                <RowBetween>
+                  <BodyText>NASM-CES (Corrective Exercise)</BodyText>
+                  <Chip $variant="success">{metrics.active_ces_trainers}</Chip>
+                </RowBetween>
+                <RowBetween>
+                  <BodyText>NASM-PES (Performance)</BodyText>
+                  <Chip $variant="warning">{metrics.active_pes_trainers}</Chip>
+                </RowBetween>
+              </StackColumn>
+            </GlassCard>
 
-          {/* Content Library */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Content Library Status
-                </Typography>
-                <Divider sx={{ my: 2 }} />
-                <Stack spacing={2}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>Approved Exercises</Typography>
-                    <Chip label={metrics.approved_exercises} color="primary" />
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>Approved Templates</Typography>
-                    <Chip label={metrics.approved_templates} color="success" />
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+            {/* Content Library */}
+            <GlassCard>
+              <CardTitle>Content Library Status</CardTitle>
+              <HorizontalRule />
+              <StackColumn $gap={14}>
+                <RowBetween>
+                  <BodyText>Approved Exercises</BodyText>
+                  <Chip $variant="primary">{metrics.approved_exercises}</Chip>
+                </RowBetween>
+                <RowBetween>
+                  <BodyText>Approved Templates</BodyText>
+                  <Chip $variant="success">{metrics.approved_templates}</Chip>
+                </RowBetween>
+              </StackColumn>
+            </GlassCard>
+          </TwoColGrid>
 
           {/* Activity Metrics (Last 30 Days) */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Activity Metrics (Last 30 Days)
-                </Typography>
-                <Divider sx={{ my: 2 }} />
-                <Grid container spacing={3}>
-                  <Grid item xs={6}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography>Movement Assessments</Typography>
-                      <Chip label={metrics.total_assessments_30d} color="info" />
-                    </Stack>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography>Training Sessions Logged</Typography>
-                      <Chip label={metrics.total_sessions_30d} color="info" />
-                    </Stack>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+          <FullWidthRow>
+            <GlassCard>
+              <CardTitle>Activity Metrics (Last 30 Days)</CardTitle>
+              <HorizontalRule />
+              <TwoColActivityGrid>
+                <RowBetween>
+                  <BodyText>Movement Assessments</BodyText>
+                  <Chip $variant="info">{metrics.total_assessments_30d}</Chip>
+                </RowBetween>
+                <RowBetween>
+                  <BodyText>Training Sessions Logged</BodyText>
+                  <Chip $variant="info">{metrics.total_sessions_30d}</Chip>
+                </RowBetween>
+              </TwoColActivityGrid>
+            </GlassCard>
+          </FullWidthRow>
+        </>
       )}
 
       {loading && (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
+        <SpinnerCenter>
+          <Spinner />
+        </SpinnerCenter>
       )}
-    </Box>
+    </div>
   );
 
   // ========================================
   // TAB 1: TEMPLATE BUILDER
   // ========================================
   const renderTemplateBuilder = () => (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          Workout Template Manager
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setTemplateDialogOpen(true)}
-        >
+    <div>
+      <SectionHeader>
+        <SectionTitle>Workout Template Manager</SectionTitle>
+        <PrimaryButton onClick={() => setTemplateDialogOpen(true)}>
+          <Plus size={16} />
           Create Template
-        </Button>
-      </Stack>
+        </PrimaryButton>
+      </SectionHeader>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Template Name</TableCell>
-              <TableCell>Phase</TableCell>
-              <TableCell>Difficulty</TableCell>
-              <TableCell>Duration</TableCell>
-              <TableCell>Usage</TableCell>
-              <TableCell>Rating</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <TableWrapper>
+        <StyledTable>
+          <THead>
+            <tr>
+              <Th>Template Name</Th>
+              <Th>Phase</Th>
+              <Th>Difficulty</Th>
+              <Th>Duration</Th>
+              <Th>Usage</Th>
+              <Th>Rating</Th>
+              <Th>Status</Th>
+              <Th>Actions</Th>
+            </tr>
+          </THead>
+          <tbody>
             {templates.map((template) => (
-              <TableRow key={template.id}>
-                <TableCell>{template.template_name}</TableCell>
-                <TableCell>{getPhaseLabel(template.opt_phase)}</TableCell>
-                <TableCell>
+              <Tr key={template.id}>
+                <Td>{template.template_name}</Td>
+                <Td>{getPhaseLabel(template.opt_phase)}</Td>
+                <Td>
                   <Chip
-                    label={template.difficulty_level}
-                    size="small"
-                    color={
+                    $small
+                    $variant={
                       template.difficulty_level === 'beginner'
                         ? 'success'
                         : template.difficulty_level === 'intermediate'
                         ? 'warning'
                         : 'error'
                     }
-                  />
-                </TableCell>
-                <TableCell>{template.target_duration_minutes} min</TableCell>
-                <TableCell>{template.usage_count}×</TableCell>
-                <TableCell>
-                  {template.average_rating ? `${template.average_rating.toFixed(1)}⭐` : 'N/A'}
-                </TableCell>
-                <TableCell>
+                  >
+                    {template.difficulty_level}
+                  </Chip>
+                </Td>
+                <Td>{template.target_duration_minutes} min</Td>
+                <Td>{template.usage_count}x</Td>
+                <Td>
+                  {template.average_rating ? `${template.average_rating.toFixed(1)} star` : 'N/A'}
+                </Td>
+                <Td>
                   {template.approved ? (
-                    <Chip label="Approved" color="success" size="small" />
+                    <Chip $small $variant="success">Approved</Chip>
                   ) : (
-                    <Chip label="Pending" color="warning" size="small" />
+                    <Chip $small $variant="warning">Pending</Chip>
                   )}
-                </TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={1}>
+                </Td>
+                <Td>
+                  <StackRow $gap={4}>
                     {!template.approved && (
-                      <IconButton
-                        size="small"
-                        color="success"
+                      <IconBtn
+                        $color="success"
                         onClick={() => approveTemplate(template.id)}
+                        title="Approve template"
                       >
-                        <CheckCircleIcon />
-                      </IconButton>
+                        <CheckCircle size={18} />
+                      </IconBtn>
                     )}
-                    <IconButton size="small" color="primary">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
+                    <IconBtn $color="primary" title="Edit template">
+                      <Pencil size={18} />
+                    </IconBtn>
+                    <IconBtn
+                      $color="error"
                       onClick={() => deleteTemplate(template.id)}
+                      title="Delete template"
                     >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Stack>
-                </TableCell>
-              </TableRow>
+                      <Trash2 size={18} />
+                    </IconBtn>
+                  </StackRow>
+                </Td>
+              </Tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </StyledTable>
+      </TableWrapper>
 
       {templates.length === 0 && !loading && (
-        <Alert severity="info" sx={{ mt: 2 }}>
+        <AlertInfo>
           No workout templates yet. Create your first template to get started!
-        </Alert>
+        </AlertInfo>
       )}
-    </Box>
+    </div>
   );
 
   // ========================================
   // TAB 2: EXERCISE LIBRARY
   // ========================================
   const renderExerciseLibrary = () => (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          Exercise Library Manager
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setExerciseDialogOpen(true)}
-        >
+    <div>
+      <SectionHeader>
+        <SectionTitle>Exercise Library Manager</SectionTitle>
+        <PrimaryButton onClick={() => setExerciseDialogOpen(true)}>
+          <Plus size={16} />
           Add Exercise
-        </Button>
-      </Stack>
+        </PrimaryButton>
+      </SectionHeader>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Exercise Name</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Body Part</TableCell>
-              <TableCell>Equipment</TableCell>
-              <TableCell>Phases</TableCell>
-              <TableCell>Video</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <TableWrapper>
+        <StyledTable>
+          <THead>
+            <tr>
+              <Th>Exercise Name</Th>
+              <Th>Type</Th>
+              <Th>Body Part</Th>
+              <Th>Equipment</Th>
+              <Th>Phases</Th>
+              <Th>Video</Th>
+              <Th>Status</Th>
+              <Th>Actions</Th>
+            </tr>
+          </THead>
+          <tbody>
             {exercises.map((exercise) => (
-              <TableRow key={exercise.id}>
-                <TableCell>{exercise.exercise_name}</TableCell>
-                <TableCell>
-                  <Chip label={exercise.exercise_type} size="small" />
-                </TableCell>
-                <TableCell>{exercise.primary_body_part}</TableCell>
-                <TableCell>{exercise.primary_equipment}</TableCell>
-                <TableCell>
-                  {exercise.opt_phases.map((phase) => (
-                    <Chip key={phase} label={`P${phase}`} size="small" sx={{ mr: 0.5 }} />
-                  ))}
-                </TableCell>
-                <TableCell>
+              <Tr key={exercise.id}>
+                <Td>{exercise.exercise_name}</Td>
+                <Td>
+                  <Chip $small>{exercise.exercise_type}</Chip>
+                </Td>
+                <Td>{exercise.primary_body_part}</Td>
+                <Td>{exercise.primary_equipment}</Td>
+                <Td>
+                  <StackRow $gap={4} style={{ flexWrap: 'wrap' }}>
+                    {exercise.opt_phases.map((phase) => (
+                      <Chip key={phase} $small>P{phase}</Chip>
+                    ))}
+                  </StackRow>
+                </Td>
+                <Td>
                   {exercise.demo_video_url ? (
-                    <CheckCircleIcon color="success" fontSize="small" />
+                    <CheckCircle size={18} color="#22c55e" />
                   ) : (
-                    <CancelIcon color="error" fontSize="small" />
+                    <XCircle size={18} color="#ef4444" />
                   )}
-                </TableCell>
-                <TableCell>
+                </Td>
+                <Td>
                   {exercise.approved ? (
-                    <Chip label="Approved" color="success" size="small" />
+                    <Chip $small $variant="success">Approved</Chip>
                   ) : (
-                    <Chip label="Pending" color="warning" size="small" />
+                    <Chip $small $variant="warning">Pending</Chip>
                   )}
-                </TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={1}>
+                </Td>
+                <Td>
+                  <StackRow $gap={4}>
                     {!exercise.approved && (
-                      <IconButton
-                        size="small"
-                        color="success"
+                      <IconBtn
+                        $color="success"
                         onClick={() => approveExercise(exercise.id)}
+                        title="Approve exercise"
                       >
-                        <CheckCircleIcon />
-                      </IconButton>
+                        <CheckCircle size={18} />
+                      </IconBtn>
                     )}
-                    <IconButton size="small" color="primary">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
+                    <IconBtn $color="primary" title="Edit exercise">
+                      <Pencil size={18} />
+                    </IconBtn>
+                    <IconBtn
+                      $color="error"
                       onClick={() => deleteExercise(exercise.id)}
+                      title="Delete exercise"
                     >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Stack>
-                </TableCell>
-              </TableRow>
+                      <Trash2 size={18} />
+                    </IconBtn>
+                  </StackRow>
+                </Td>
+              </Tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+          </tbody>
+        </StyledTable>
+      </TableWrapper>
+    </div>
   );
 
   // ========================================
   // TAB 3: CERTIFICATION VERIFICATION
   // ========================================
   const renderCertificationVerification = () => (
-    <Box>
-      <Typography variant="h5" fontWeight="bold" mb={3}>
-        Trainer Certification Verification
-      </Typography>
+    <div>
+      <SectionHeader>
+        <SectionTitle>Trainer Certification Verification</SectionTitle>
+      </SectionHeader>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Trainer Name</TableCell>
-              <TableCell>Certification</TableCell>
-              <TableCell>Cert Number</TableCell>
-              <TableCell>Issue Date</TableCell>
-              <TableCell>Expiration</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Certificate</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <TableWrapper>
+        <StyledTable>
+          <THead>
+            <tr>
+              <Th>Trainer Name</Th>
+              <Th>Certification</Th>
+              <Th>Cert Number</Th>
+              <Th>Issue Date</Th>
+              <Th>Expiration</Th>
+              <Th>Status</Th>
+              <Th>Certificate</Th>
+              <Th>Actions</Th>
+            </tr>
+          </THead>
+          <tbody>
             {certifications.map((cert) => (
-              <TableRow key={cert.id}>
-                <TableCell>{cert.trainer_name}</TableCell>
-                <TableCell>
-                  <Chip label={cert.certification_type} color="primary" />
-                </TableCell>
-                <TableCell>{cert.certification_number}</TableCell>
-                <TableCell>{new Date(cert.issue_date).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(cert.expiration_date).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <Chip label={cert.status} color={getCertColor(cert.status)} size="small" />
-                </TableCell>
-                <TableCell>
+              <Tr key={cert.id}>
+                <Td>{cert.trainer_name}</Td>
+                <Td>
+                  <Chip $variant="primary">{cert.certification_type}</Chip>
+                </Td>
+                <Td>{cert.certification_number}</Td>
+                <Td>{new Date(cert.issue_date).toLocaleDateString()}</Td>
+                <Td>{new Date(cert.expiration_date).toLocaleDateString()}</Td>
+                <Td>
+                  <Chip $small $variant={getCertChipVariant(cert.status)}>{cert.status}</Chip>
+                </Td>
+                <Td>
                   {cert.certificate_url ? (
-                    <Button size="small" href={cert.certificate_url} target="_blank">
+                    <SmallLinkButton href={cert.certificate_url} target="_blank" rel="noopener noreferrer">
                       View PDF
-                    </Button>
+                    </SmallLinkButton>
                   ) : (
-                    'N/A'
+                    <CaptionText>N/A</CaptionText>
                   )}
-                </TableCell>
-                <TableCell>
+                </Td>
+                <Td>
                   {!cert.verified_at && cert.status === 'active' && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="success"
+                    <SmallButton
+                      $variant="success"
                       onClick={() => verifyCertification(cert.id)}
                     >
                       Verify
-                    </Button>
+                    </SmallButton>
                   )}
                   {cert.verified_at && (
-                    <Typography variant="caption" color="success.main">
-                      ✓ Verified
-                    </Typography>
+                    <VerifiedText>Verified</VerifiedText>
                   )}
-                </TableCell>
-              </TableRow>
+                </Td>
+              </Tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+          </tbody>
+        </StyledTable>
+      </TableWrapper>
+    </div>
   );
 
   // ========================================
   // MAIN RENDER
   // ========================================
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        NASM Admin Dashboard
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={4}>
-        Manage NASM templates, exercises, and trainer certifications
-      </Typography>
+    <PageContainer>
+      <PageTitle>NASM Admin Dashboard</PageTitle>
+      <PageSubtitle>Manage NASM templates, exercises, and trainer certifications</PageSubtitle>
 
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-          <Tab label="Compliance Dashboard" icon={<AssessmentIcon />} />
-          <Tab label="Template Builder" icon={<FitnessCenterIcon />} />
-          <Tab label="Exercise Library" icon={<FitnessCenterIcon />} />
-          <Tab label="Certifications" icon={<VerifiedUserIcon />} />
-        </Tabs>
-      </Paper>
+      <TabBar>
+        <TabButton $active={activeTab === 0} onClick={() => setActiveTab(0)}>
+          <BarChart3 size={18} />
+          Compliance Dashboard
+        </TabButton>
+        <TabButton $active={activeTab === 1} onClick={() => setActiveTab(1)}>
+          <Dumbbell size={18} />
+          Template Builder
+        </TabButton>
+        <TabButton $active={activeTab === 2} onClick={() => setActiveTab(2)}>
+          <Dumbbell size={18} />
+          Exercise Library
+        </TabButton>
+        <TabButton $active={activeTab === 3} onClick={() => setActiveTab(3)}>
+          <ShieldCheck size={18} />
+          Certifications
+        </TabButton>
+      </TabBar>
 
-      <Box>
+      <div>
         {activeTab === 0 && renderComplianceDashboard()}
         {activeTab === 1 && renderTemplateBuilder()}
         {activeTab === 2 && renderExerciseLibrary()}
         {activeTab === 3 && renderCertificationVerification()}
-      </Box>
-    </Container>
+      </div>
+    </PageContainer>
   );
 };
 
