@@ -2,7 +2,7 @@
  * typography.ts
  * Typography styles for the theme
  */
-import { Theme } from '@mui/material/styles';
+// MUI Theme type removed — this file is unused legacy Berry Admin infrastructure
 
 // Types for the custom typography component styles
 interface CustomTypographyOptions {
@@ -36,7 +36,7 @@ interface CustomTypographyOptions {
  * @param fontFamily - Font family for the theme
  * @returns Typography configuration
  */
-export default function Typography(theme: Theme, borderRadius: number, fontFamily: string): CustomTypographyOptions {
+export default function Typography(theme: any, borderRadius: number, fontFamily: string): CustomTypographyOptions {
   return {
     fontFamily,
     h6: {

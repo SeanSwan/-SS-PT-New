@@ -2,7 +2,15 @@
  * shadows.ts
  * Custom shadow definitions for the theme
  */
-import { alpha, Theme } from '@mui/material/styles';
+// MUI alpha/Theme removed — this file is unused legacy Berry Admin infrastructure
+const alpha = (color: string, opacity: number): string => {
+  // Simple alpha helper — converts hex to rgba
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
 
 // Type for custom shadows
 interface CustomShadows {
@@ -26,7 +34,7 @@ interface CustomShadows {
  * @param color - Base color for shadows
  * @returns Custom shadow definitions
  */
-function createCustomShadow(theme: Theme, color: string): CustomShadows {
+function createCustomShadow(theme: any, color: string): CustomShadows {
   const transparent = alpha(color, 0.24);
   
   // Safely access orange color with fallback to secondary or warning
@@ -57,6 +65,6 @@ function createCustomShadow(theme: Theme, color: string): CustomShadows {
  * @param theme - Material-UI theme object
  * @returns Custom shadow definitions
  */
-export default function customShadows(mode: 'light' | 'dark', theme: Theme): CustomShadows {
+export default function customShadows(mode: 'light' | 'dark', theme: any): CustomShadows {
   return createCustomShadow(theme, theme.palette.grey[900]);
 }

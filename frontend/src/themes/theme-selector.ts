@@ -2,7 +2,7 @@
  * theme-selector.ts
  * Exports all themes and provides utility function to select theme
  */
-import { Theme } from '@mui/material/styles';
+// MUI Theme type removed — this file is unused legacy Berry Admin infrastructure
 
 // Import all theme variants
 import berryDarkTheme from './berry-dark-theme';
@@ -27,7 +27,7 @@ export {
  * @param customization - Customization object from Redux store
  * @returns Selected theme object
  */
-export const getThemeFromCustomization = (customization?: Customization): Theme => {
+export const getThemeFromCustomization = (customization?: Customization): any => {
   const themeType = customization?.themeType || 'dark';
   
   switch(themeType) {
