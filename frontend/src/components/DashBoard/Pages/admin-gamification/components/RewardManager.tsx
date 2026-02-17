@@ -1,51 +1,28 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Typography, 
-  Dialog, 
-  DialogActions, 
-  DialogContent, 
-  DialogTitle, 
-  TextField, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem, 
-  Grid, 
-  IconButton,
-  Divider,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Tooltip,
-  InputAdornment
-} from '@mui/material';
-import { 
-  Award, 
-  Edit, 
-  Trash2, 
-  Plus, 
-  Star, 
-  Gift, 
-  TrendingUp, 
-  Trophy, 
-  Heart, 
-  Target, 
-  Zap, 
-  Calendar, 
-  Clock, 
-  Dumbbell, 
+import styled, { css } from 'styled-components';
+import {
+  Award,
+  Edit,
+  Trash2,
+  Plus,
+  Star,
+  Gift,
+  TrendingUp,
+  Trophy,
+  Heart,
+  Target,
+  Zap,
+  Calendar,
+  Clock,
+  Dumbbell,
   Medal,
   Eye,
   EyeOff,
   DollarSign,
   Image,
   Search,
-  Tag
+  Tag,
+  X
 } from 'lucide-react';
 
 import {
@@ -60,6 +37,500 @@ import {
   RewardPoints,
   RewardBadge
 } from '../styled-gamification-system';
+
+/* ─── Galaxy-Swan Theme Tokens ─── */
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgLight: 'rgba(30,41,59,0.8)',
+  border: 'rgba(14,165,233,0.2)',
+  borderHover: 'rgba(14,165,233,0.4)',
+  text: '#e2e8f0',
+  textMuted: '#94a3b8',
+  accent: '#0ea5e9',
+  accentHover: '#38bdf8',
+  error: '#ef4444',
+  errorBg: 'rgba(239,68,68,0.15)',
+  glass: 'rgba(15,23,42,0.85)',
+  overlay: 'rgba(0,0,0,0.6)',
+};
+
+/* ─── Styled Components ─── */
+
+const Container = styled.div``;
+
+const ControlsBar = styled.div`
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const SearchWrapper = styled.div`
+  position: relative;
+  flex-grow: 1;
+  min-width: 200px;
+  max-width: 300px;
+  display: flex;
+  align-items: center;
+`;
+
+const SearchIcon = styled.span`
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  color: ${theme.textMuted};
+  pointer-events: none;
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px 8px 38px;
+  background: ${theme.bgLight};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+`;
+
+const SelectWrapper = styled.div`
+  position: relative;
+  min-width: 120px;
+`;
+
+const SelectLabel = styled.label`
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  font-size: 0.7rem;
+  color: ${theme.textMuted};
+  background: rgba(15,23,42,1);
+  padding: 0 4px;
+  z-index: 1;
+`;
+
+const StyledSelect = styled.select`
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: ${theme.bgLight};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+
+  option {
+    background: #1e293b;
+    color: ${theme.text};
+  }
+`;
+
+const SwitchContainer = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  min-height: 44px;
+  user-select: none;
+  color: ${theme.text};
+  font-size: 0.875rem;
+`;
+
+const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const SwitchTrack = styled.span<{ $checked: boolean }>`
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: ${({ $checked }) => $checked ? theme.accent : 'rgba(100,116,139,0.5)'};
+  border-radius: 11px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+`;
+
+const SwitchThumb = styled.span<{ $checked: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${({ $checked }) => $checked ? '20px' : '2px'};
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+`;
+
+const PrimaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: ${theme.accent};
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background: ${theme.accentHover};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const OutlinedButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: transparent;
+  color: ${theme.accent};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+
+  &:hover {
+    border-color: ${theme.accent};
+    background: rgba(14,165,233,0.08);
+  }
+`;
+
+const GhostButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: transparent;
+  color: ${theme.textMuted};
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+
+  &:hover {
+    color: ${theme.text};
+    background: rgba(255,255,255,0.05);
+  }
+`;
+
+const StatusPositioner = styled.div`
+  position: absolute;
+  top: 8px;
+  left: 8px;
+`;
+
+const IconBtn = styled.button<{ $color?: 'accent' | 'error' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  color: ${({ $color }) =>
+    $color === 'error' ? theme.error :
+    $color === 'accent' ? theme.accent :
+    theme.textMuted
+  };
+
+  &:hover {
+    background: ${({ $color }) =>
+      $color === 'error' ? theme.errorBg :
+      'rgba(14,165,233,0.12)'
+    };
+    color: ${({ $color }) =>
+      $color === 'error' ? '#f87171' :
+      theme.accentHover
+    };
+  }
+`;
+
+const ChipsRow = styled.div`
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const Chip = styled.span<{ $variant?: 'error' | 'outlined' }>`
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: ${({ $variant }) => $variant === 'outlined' ? 'default' : 'pointer'};
+  transition: background 0.2s;
+
+  ${({ $variant }) => {
+    if ($variant === 'error') return css`
+      background: ${theme.errorBg};
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,0.3);
+    `;
+    if ($variant === 'outlined') return css`
+      background: transparent;
+      color: ${theme.accent};
+      border: 1px solid ${theme.border};
+    `;
+    return css`
+      background: rgba(14,165,233,0.12);
+      color: ${theme.accent};
+      border: 1px solid rgba(14,165,233,0.2);
+    `;
+  }}
+
+  &:hover {
+    ${({ $variant }) => $variant !== 'outlined' && css`
+      background: rgba(14,165,233,0.2);
+    `}
+  }
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+  gap: 0.25rem;
+  width: 100%;
+`;
+
+const Spacer = styled.div`
+  margin-top: auto;
+`;
+
+/* ─── Dialog / Modal ─── */
+
+const DialogOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => $open ? 'flex' : 'none'};
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  align-items: center;
+  justify-content: center;
+  background: ${theme.overlay};
+  padding: 1rem;
+`;
+
+const DialogPanel = styled.div<{ $maxWidth?: string }>`
+  width: 100%;
+  max-width: ${({ $maxWidth }) => $maxWidth || '720px'};
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: ${theme.bg};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const DialogTitleBar = styled.h2`
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${theme.text};
+  border-bottom: 1px solid ${theme.border};
+`;
+
+const DialogBody = styled.div`
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+`;
+
+const DialogFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid ${theme.border};
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormFieldFull = styled.div`
+  grid-column: 1 / -1;
+`;
+
+const FieldLabel = styled.label`
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  color: ${theme.textMuted};
+  font-weight: 500;
+`;
+
+const FieldInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: ${theme.bgLight};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+`;
+
+const FieldInputWithIcon = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const InputIconLeft = styled.span`
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  color: ${theme.textMuted};
+  pointer-events: none;
+`;
+
+const InputWithPadding = styled(FieldInput)`
+  padding-left: 38px;
+`;
+
+const FieldTextarea = styled.textarea`
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  background: ${theme.bgLight};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+`;
+
+const FieldSelect = styled.select`
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: ${theme.bgLight};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: ${theme.accent};
+  }
+
+  option {
+    background: #1e293b;
+    color: ${theme.text};
+  }
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${theme.border};
+  margin: 0.5rem 0;
+`;
+
+const SectionLabel = styled.p`
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const ImagePreview = styled.div`
+  margin-top: 0.75rem;
+
+  img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+  }
+`;
+
+const TierDot = styled.span<{ $color: string }>`
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  flex-shrink: 0;
+`;
+
+/* ─── Interfaces ─── */
 
 interface Reward {
   id: string;
@@ -137,16 +608,16 @@ const RewardManager: React.FC<RewardManagerProps> = ({
   // Get filtered rewards
   const filteredRewards = rewards.filter(r => {
     // Search filter
-    const matchesSearch = searchQuery === '' || 
-      r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = searchQuery === '' ||
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // Tier filter
     const matchesTier = filterTier === 'all' || r.tier === filterTier;
-    
+
     // Active status filter
     const matchesStatus = showInactiveOnly ? !r.isActive : true;
-    
+
     return matchesSearch && matchesTier && matchesStatus;
   });
 
@@ -212,70 +683,60 @@ const RewardManager: React.FC<RewardManagerProps> = ({
   };
 
   return (
-    <Box>
+    <Container>
       {/* Search and filter controls */}
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search rewards..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          size="small"
-          sx={{ flexGrow: 1, minWidth: 200, maxWidth: 300 }}
-          InputProps={{
-            startAdornment: (
-              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                <Search size={18} />
-              </Box>
-            ),
-          }}
-        />
+      <ControlsBar>
+        <SearchWrapper>
+          <SearchIcon><Search size={18} /></SearchIcon>
+          <StyledInput
+            placeholder="Search rewards..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </SearchWrapper>
 
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="tier-filter-label">Tier</InputLabel>
-          <Select
-            labelId="tier-filter-label"
+        <SelectWrapper>
+          <SelectLabel>Tier</SelectLabel>
+          <StyledSelect
             value={filterTier}
-            label="Tier"
             onChange={(e) => setFilterTier(e.target.value)}
           >
-            <MenuItem value="all">All Tiers</MenuItem>
+            <option value="all">All Tiers</option>
             {tiers.map(tier => (
-              <MenuItem key={tier.value} value={tier.value}>
+              <option key={tier.value} value={tier.value}>
                 {tier.label}
-              </MenuItem>
+              </option>
             ))}
-          </Select>
-        </FormControl>
+          </StyledSelect>
+        </SelectWrapper>
 
-        <FormControlLabel
-          control={
-            <Switch 
-              checked={showInactiveOnly}
-              onChange={(e) => setShowInactiveOnly(e.target.checked)}
-              size="small"
-            />
-          }
-          label="Inactive Only"
-        />
+        <SwitchContainer>
+          <HiddenCheckbox
+            checked={showInactiveOnly}
+            onChange={(e) => setShowInactiveOnly(e.target.checked)}
+          />
+          <SwitchTrack $checked={showInactiveOnly}>
+            <SwitchThumb $checked={showInactiveOnly} />
+          </SwitchTrack>
+          Inactive Only
+        </SwitchContainer>
 
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<Plus />}
+        <PrimaryButton
           onClick={handleOpenCreateDialog}
           data-testid="create-reward-button"
         >
+          <Plus size={18} />
           New Reward
-        </Button>
-      </Box>
+        </PrimaryButton>
+      </ControlsBar>
 
       {/* Display rewards in a grid */}
       <RewardGrid>
         {filteredRewards.map((reward) => (
-          <RewardItem 
+          <RewardItem
             key={reward.id}
             tier={reward.tier}
-            whileHover={{ 
+            whileHover={{
               y: -5,
               transition: { duration: 0.2 }
             }}
@@ -285,23 +746,21 @@ const RewardManager: React.FC<RewardManagerProps> = ({
               {reward.tier.toUpperCase()}
             </RewardBadge>
 
-            <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
-              <Tooltip title={reward.isActive ? "Active" : "Inactive"}>
-                <IconButton
-                  size="small"
-                  color={reward.isActive ? "primary" : "default"}
-                  onClick={() => onToggleStatus(reward.id, !reward.isActive)}
-                >
-                  {reward.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <StatusPositioner>
+              <IconBtn
+                $color="accent"
+                onClick={() => onToggleStatus(reward.id, !reward.isActive)}
+                title={reward.isActive ? "Active" : "Inactive"}
+              >
+                {reward.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+              </IconBtn>
+            </StatusPositioner>
 
             <RewardHeader>
               <RewardIcon tier={reward.tier}>
                 {getIconComponent(reward.icon)}
               </RewardIcon>
-              
+
               <RewardContent>
                 <RewardName>{reward.name}</RewardName>
                 <RewardDescription>
@@ -310,290 +769,227 @@ const RewardManager: React.FC<RewardManagerProps> = ({
               </RewardContent>
             </RewardHeader>
 
-            <Box sx={{ mt: 2 }}>
-              <Chip 
-                label={`Stock: ${reward.stock}`} 
-                size="small"
-                color={reward.stock <= 3 ? "error" : "default"}
+            <ChipsRow>
+              <Chip
+                $variant={reward.stock <= 3 ? 'error' : undefined}
                 onClick={() => handleOpenStockDialog(reward.id, reward.stock)}
-                sx={{ mr: 1, mb: 1 }}
-              />
-              <Chip 
-                label={`Redeemed: ${reward.redemptionCount}`} 
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ mb: 1 }}
-              />
-            </Box>
-            
-            <Box sx={{ mt: 'auto' }}></Box>
-            
+              >
+                Stock: {reward.stock}
+              </Chip>
+              <Chip $variant="outlined">
+                Redeemed: {reward.redemptionCount}
+              </Chip>
+            </ChipsRow>
+
+            <Spacer />
+
             <RewardFooter>
               <RewardPoints tier={reward.tier}>
                 <Star size={16} /> {reward.pointCost} points
               </RewardPoints>
             </RewardFooter>
-            
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              mt: 2, 
-              gap: 1,
-              width: '100%'
-            }}>
-              <IconButton 
-                size="small" 
+
+            <ActionRow>
+              <IconBtn
+                $color="accent"
                 onClick={() => handleOpenEditDialog(reward)}
-                color="primary"
               >
                 <Edit size={16} />
-              </IconButton>
-              <IconButton 
-                size="small" 
+              </IconBtn>
+              <IconBtn
+                $color="error"
                 onClick={() => onDeleteReward(reward.id)}
-                color="error"
               >
                 <Trash2 size={16} />
-              </IconButton>
-            </Box>
+              </IconBtn>
+            </ActionRow>
           </RewardItem>
         ))}
       </RewardGrid>
 
       {/* Create/Edit Reward Dialog */}
-      <Dialog 
-        open={dialogOpen} 
-        onClose={() => setDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingReward ? 'Edit Reward' : 'Create New Reward'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={3} sx={{ mt: 0 }}>
-            <Grid item xs={12}>
-              <TextField
-                label="Reward Name"
-                fullWidth
-                value={newReward.name}
-                onChange={(e) => setNewReward({ ...newReward, name: e.target.value })}
-                required
-              />
-            </Grid>
+      <DialogOverlay $open={dialogOpen} onClick={() => setDialogOpen(false)}>
+        <DialogPanel $maxWidth="720px" onClick={(e) => e.stopPropagation()}>
+          <DialogTitleBar>
+            {editingReward ? 'Edit Reward' : 'Create New Reward'}
+          </DialogTitleBar>
+          <DialogBody>
+            <FormGrid>
+              <FormFieldFull>
+                <FieldLabel>Reward Name *</FieldLabel>
+                <FieldInput
+                  value={newReward.name}
+                  onChange={(e) => setNewReward({ ...newReward, name: e.target.value })}
+                  placeholder="Enter reward name"
+                />
+              </FormFieldFull>
 
-            <Grid item xs={12}>
-              <TextField
-                label="Description"
-                fullWidth
-                multiline
-                rows={3}
-                value={newReward.description}
-                onChange={(e) => setNewReward({ ...newReward, description: e.target.value })}
-                required
-              />
-            </Grid>
+              <FormFieldFull>
+                <FieldLabel>Description *</FieldLabel>
+                <FieldTextarea
+                  value={newReward.description}
+                  onChange={(e) => setNewReward({ ...newReward, description: e.target.value })}
+                  placeholder="Enter reward description"
+                  rows={3}
+                />
+              </FormFieldFull>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Icon</InputLabel>
-                <Select
+              <div>
+                <FieldLabel>Icon</FieldLabel>
+                <FieldSelect
                   value={newReward.icon}
-                  label="Icon"
                   onChange={(e) => setNewReward({ ...newReward, icon: e.target.value })}
                 >
                   {icons.map(icon => (
-                    <MenuItem key={icon.name} value={icon.name}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {icon.component}
-                        <span>{icon.name}</span>
-                      </Box>
-                    </MenuItem>
+                    <option key={icon.name} value={icon.name}>
+                      {icon.name}
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </FieldSelect>
+              </div>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tier</InputLabel>
-                <Select
+              <div>
+                <FieldLabel>Tier</FieldLabel>
+                <FieldSelect
                   value={newReward.tier}
-                  label="Tier"
-                  onChange={(e) => setNewReward({ 
-                    ...newReward, 
-                    tier: e.target.value as 'bronze' | 'silver' | 'gold' | 'platinum' 
+                  onChange={(e) => setNewReward({
+                    ...newReward,
+                    tier: e.target.value as 'bronze' | 'silver' | 'gold' | 'platinum'
                   })}
                 >
                   {tiers.map(tier => (
-                    <MenuItem key={tier.value} value={tier.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ 
-                          width: 16, 
-                          height: 16, 
-                          borderRadius: '50%',
-                          bgcolor: tier.color
-                        }} />
-                        <span>{tier.label}</span>
-                      </Box>
-                    </MenuItem>
+                    <option key={tier.value} value={tier.value}>
+                      {tier.label}
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </FieldSelect>
+              </div>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Point Cost"
-                type="number"
-                fullWidth
-                value={newReward.pointCost}
-                onChange={(e) => setNewReward({ 
-                  ...newReward, 
-                  pointCost: parseInt(e.target.value) || 0 
-                })}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                      <Star size={16} color="#FFC107" />
-                    </Box>
-                  ),
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Stock"
-                type="number"
-                fullWidth
-                value={newReward.stock}
-                onChange={(e) => setNewReward({ 
-                  ...newReward, 
-                  stock: parseInt(e.target.value) || 0 
-                })}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch 
-                    checked={newReward.isActive}
-                    onChange={(e) => setNewReward({ 
-                      ...newReward, 
-                      isActive: e.target.checked 
+              <div>
+                <FieldLabel>Point Cost *</FieldLabel>
+                <FieldInputWithIcon>
+                  <InputIconLeft><Star size={16} color="#FFC107" /></InputIconLeft>
+                  <InputWithPadding
+                    type="number"
+                    value={newReward.pointCost}
+                    onChange={(e) => setNewReward({
+                      ...newReward,
+                      pointCost: parseInt(e.target.value) || 0
                     })}
                   />
-                }
-                label="Active"
-              />
-            </Grid>
+                </FieldInputWithIcon>
+              </div>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Expiration Date (Optional)"
-                type="date"
-                fullWidth
-                value={newReward.expiresAt ? new Date(newReward.expiresAt).toISOString().split('T')[0] : ''}
-                onChange={(e) => setNewReward({ 
-                  ...newReward, 
-                  expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined
-                })}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle1" gutterBottom>
-                Reward Image (Optional)
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                startIcon={<Image />}
-                component="label"
-              >
-                Upload Reward Image
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={(e) => {
-                    // File upload would be implemented in a real application
-                    // This is just a placeholder for the UI
-                    console.log("File selected:", e.target.files?.[0]);
-                  }}
+              <div>
+                <FieldLabel>Stock *</FieldLabel>
+                <FieldInput
+                  type="number"
+                  value={newReward.stock}
+                  onChange={(e) => setNewReward({
+                    ...newReward,
+                    stock: parseInt(e.target.value) || 0
+                  })}
                 />
-              </Button>
-              {newReward.imageUrl && (
-                <Box sx={{ mt: 2 }}>
-                  <img 
-                    src={newReward.imageUrl} 
-                    alt="Reward" 
-                    style={{ maxWidth: '100%', maxHeight: 200 }} 
+              </div>
+
+              <div>
+                <FieldLabel>&nbsp;</FieldLabel>
+                <SwitchContainer>
+                  <HiddenCheckbox
+                    checked={newReward.isActive}
+                    onChange={(e) => setNewReward({
+                      ...newReward,
+                      isActive: e.target.checked
+                    })}
                   />
-                </Box>
-              )}
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} color="inherit">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSaveReward} 
-            variant="contained" 
-            color="primary"
-            disabled={!newReward.name || !newReward.description}
-          >
-            {editingReward ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+                  <SwitchTrack $checked={newReward.isActive}>
+                    <SwitchThumb $checked={newReward.isActive} />
+                  </SwitchTrack>
+                  Active
+                </SwitchContainer>
+              </div>
+
+              <div>
+                <FieldLabel>Expiration Date (Optional)</FieldLabel>
+                <FieldInput
+                  type="date"
+                  value={newReward.expiresAt ? new Date(newReward.expiresAt).toISOString().split('T')[0] : ''}
+                  onChange={(e) => setNewReward({
+                    ...newReward,
+                    expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                  })}
+                />
+              </div>
+
+              <FormFieldFull>
+                <Divider />
+                <SectionLabel>Reward Image (Optional)</SectionLabel>
+              </FormFieldFull>
+
+              <FormFieldFull>
+                <OutlinedButton as="label">
+                  <Image size={18} />
+                  Upload Reward Image
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={(e) => {
+                      // File upload would be implemented in a real application
+                      // This is just a placeholder for the UI
+                      console.log("File selected:", e.target.files?.[0]);
+                    }}
+                  />
+                </OutlinedButton>
+                {newReward.imageUrl && (
+                  <ImagePreview>
+                    <img
+                      src={newReward.imageUrl}
+                      alt="Reward"
+                    />
+                  </ImagePreview>
+                )}
+              </FormFieldFull>
+            </FormGrid>
+          </DialogBody>
+          <DialogFooter>
+            <GhostButton onClick={() => setDialogOpen(false)}>
+              Cancel
+            </GhostButton>
+            <PrimaryButton
+              onClick={handleSaveReward}
+              disabled={!newReward.name || !newReward.description}
+            >
+              {editingReward ? 'Update' : 'Create'}
+            </PrimaryButton>
+          </DialogFooter>
+        </DialogPanel>
+      </DialogOverlay>
 
       {/* Update Stock Dialog */}
-      <Dialog
-        open={stockDialogOpen}
-        onClose={() => setStockDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Update Stock</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Stock Quantity"
-            type="number"
-            fullWidth
-            value={newStockValue}
-            onChange={(e) => setNewStockValue(parseInt(e.target.value) || 0)}
-            margin="normal"
-            inputProps={{ min: 0 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStockDialogOpen(false)} color="inherit">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleUpdateStock} 
-            variant="contained" 
-            color="primary"
-          >
-            Update
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      <DialogOverlay $open={stockDialogOpen} onClick={() => setStockDialogOpen(false)}>
+        <DialogPanel $maxWidth="400px" onClick={(e) => e.stopPropagation()}>
+          <DialogTitleBar>Update Stock</DialogTitleBar>
+          <DialogBody>
+            <FieldLabel>Stock Quantity</FieldLabel>
+            <FieldInput
+              type="number"
+              value={newStockValue}
+              onChange={(e) => setNewStockValue(parseInt(e.target.value) || 0)}
+              min={0}
+            />
+          </DialogBody>
+          <DialogFooter>
+            <GhostButton onClick={() => setStockDialogOpen(false)}>
+              Cancel
+            </GhostButton>
+            <PrimaryButton onClick={handleUpdateStock}>
+              Update
+            </PrimaryButton>
+          </DialogFooter>
+        </DialogPanel>
+      </DialogOverlay>
+    </Container>
   );
 };
 

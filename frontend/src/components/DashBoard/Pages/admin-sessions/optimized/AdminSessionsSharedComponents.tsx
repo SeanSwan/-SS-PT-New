@@ -1,39 +1,31 @@
 /**
  * AdminSessionsSharedComponents.tsx
  * ==================================
- * 
+ *
  * Shared UI components and utilities for Admin Sessions optimization
  * Following proven Trainer Dashboard methodology - DRY principle implementation
- * 
+ *
  * Features:
  * - Reusable UI components for consistency
  * - Common styling utilities with cosmic theme
  * - Performance-optimized with memoization
  * - Accessibility compliance (WCAG AA)
  * - Mobile-first responsive design
+ *
+ * Migrated from MUI to styled-components + lucide-react (Galaxy-Swan theme)
  */
 
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import {
-  Avatar,
-  Chip,
-  Stack,
-  Typography,
-  Box as MuiBox,
-  CircularProgress,
-  Alert,
-  Button
-} from '@mui/material';
 import { Calendar, Clock, User, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Client, Trainer, SessionStatus, StatsCardData } from './AdminSessionsTypes';
 
 // ===== STYLED COMPONENTS =====
 
-const StellarCard = styled(motion.div)<{ variant?: string }>`
+const StellarCard = styled(motion.div)<{ $variant?: string }>`
   background: ${props => {
-    switch (props.variant) {
+    switch (props.$variant) {
       case 'primary': return 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(30, 58, 138, 0.1) 100%)';
       case 'success': return 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)';
       case 'info': return 'linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(8, 145, 178, 0.1) 100%)';
@@ -42,7 +34,7 @@ const StellarCard = styled(motion.div)<{ variant?: string }>`
     }
   }};
   border: 1px solid ${props => {
-    switch (props.variant) {
+    switch (props.$variant) {
       case 'primary': return 'rgba(59, 130, 246, 0.3)';
       case 'success': return 'rgba(16, 185, 129, 0.3)';
       case 'info': return 'rgba(14, 165, 233, 0.3)';
@@ -55,7 +47,7 @@ const StellarCard = styled(motion.div)<{ variant?: string }>`
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -64,7 +56,7 @@ const StellarCard = styled(motion.div)<{ variant?: string }>`
     right: 0;
     height: 3px;
     background: ${props => {
-      switch (props.variant) {
+      switch (props.$variant) {
         case 'primary': return 'linear-gradient(90deg, #3b82f6, #0ea5e9)';
         case 'success': return 'linear-gradient(90deg, #10b981, #34d399)';
         case 'info': return 'linear-gradient(90deg, #0ea5e9, #0891b2)';
@@ -73,16 +65,16 @@ const StellarCard = styled(motion.div)<{ variant?: string }>`
       }
     }};
   }
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
   }
-  
+
   transition: all 0.3s ease;
 `;
 
-const StellarIconContainer = styled.div<{ variant?: string }>`
+const StellarIconContainer = styled.div<{ $variant?: string }>`
   width: 48px;
   height: 48px;
   border-radius: 12px;
@@ -90,7 +82,7 @@ const StellarIconContainer = styled.div<{ variant?: string }>`
   align-items: center;
   justify-content: center;
   background: ${props => {
-    switch (props.variant) {
+    switch (props.$variant) {
       case 'primary': return 'linear-gradient(135deg, #3b82f6, #0ea5e9)';
       case 'success': return 'linear-gradient(135deg, #10b981, #34d399)';
       case 'info': return 'linear-gradient(135deg, #0ea5e9, #0891b2)';
@@ -102,29 +94,77 @@ const StellarIconContainer = styled.div<{ variant?: string }>`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 `;
 
-const StellarChip = styled(Chip)<{ chipstatus?: SessionStatus }>`
-  && {
-    background: ${props => {
-      switch (props.chipstatus) {
-        case 'available': return 'linear-gradient(135deg, #10b981, #34d399)';
-        case 'scheduled': return 'linear-gradient(135deg, #3b82f6, #60a5fa)';
-        case 'confirmed': return 'linear-gradient(135deg, #0ea5e9, #0891b2)';
-        case 'completed': return 'linear-gradient(135deg, #8b5cf6, #a78bfa)';
-        case 'cancelled': return 'linear-gradient(135deg, #ef4444, #f87171)';
-        case 'requested': return 'linear-gradient(135deg, #f59e0b, #fbbf24)';
-        default: return 'linear-gradient(135deg, #6b7280, #9ca3af)';
-      }
-    }};
-    color: white;
-    font-weight: 500;
-    font-size: 0.75rem;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    
-    .MuiChip-label {
-      padding: 0 8px;
+const StellarChipStyled = styled.span<{ $chipStatus?: SessionStatus; $size?: 'small' | 'medium' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${props => props.$size === 'medium' ? '6px 14px' : '4px 10px'};
+  border-radius: 16px;
+  font-size: ${props => props.$size === 'medium' ? '0.8rem' : '0.75rem'};
+  font-weight: 500;
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  min-height: ${props => props.$size === 'medium' ? '32px' : '24px'};
+  background: ${props => {
+    switch (props.$chipStatus) {
+      case 'available': return 'linear-gradient(135deg, #10b981, #34d399)';
+      case 'scheduled': return 'linear-gradient(135deg, #3b82f6, #60a5fa)';
+      case 'confirmed': return 'linear-gradient(135deg, #0ea5e9, #0891b2)';
+      case 'completed': return 'linear-gradient(135deg, #8b5cf6, #a78bfa)';
+      case 'cancelled': return 'linear-gradient(135deg, #ef4444, #f87171)';
+      case 'requested': return 'linear-gradient(135deg, #f59e0b, #fbbf24)';
+      default: return 'linear-gradient(135deg, #6b7280, #9ca3af)';
     }
-  }
+  }};
+`;
+
+const SessionCountChip = styled.span<{ $hasAvailable: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid ${props => props.$hasAvailable
+    ? 'rgba(46, 125, 50, 0.5)'
+    : 'rgba(211, 47, 47, 0.5)'};
+  color: ${props => props.$hasAvailable
+    ? 'rgba(46, 125, 50, 1)'
+    : 'rgba(211, 47, 47, 1)'};
+  background: ${props => props.$hasAvailable
+    ? 'rgba(46, 125, 50, 0.1)'
+    : 'rgba(211, 47, 47, 0.1)'};
+`;
+
+const StatsCardRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+`;
+
+const StatsCardTextBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StatsCardValue = styled.div`
+  font-weight: 600;
+  color: white;
+  font-size: 1.75rem;
+  line-height: 1.2;
+`;
+
+const StatsCardLabel = styled.span`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-weight: 500;
 `;
 
 const LoadingSpinner = styled(motion.div)`
@@ -133,7 +173,7 @@ const LoadingSpinner = styled(motion.div)`
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  
+
   .spinner {
     width: 40px;
     height: 40px;
@@ -144,6 +184,19 @@ const LoadingSpinner = styled(motion.div)`
   }
 `;
 
+const LoadingMessage = styled.h6`
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+`;
+
+const LoadingSubMessage = styled.p`
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
 const EmptyStateContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -152,20 +205,20 @@ const EmptyStateContainer = styled.div`
   padding: 3rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
-  
+
   .icon {
     font-size: 3rem;
     margin-bottom: 1rem;
     opacity: 0.5;
   }
-  
+
   .title {
     font-size: 1.25rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
     color: rgba(255, 255, 255, 0.8);
   }
-  
+
   .description {
     font-size: 0.9rem;
     line-height: 1.5;
@@ -173,12 +226,16 @@ const EmptyStateContainer = styled.div`
   }
 `;
 
+const ActionButtonWrapper = styled.div`
+  margin-top: 16px;
+`;
+
 const SearchContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  
+
   @media (min-width: 768px) {
     flex-direction: row;
     align-items: center;
@@ -190,6 +247,75 @@ const ClientTrainerDisplay = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+`;
+
+const AvatarStyled = styled.div<{ $size: number; $borderColor: string }>`
+  width: ${props => props.$size}px;
+  height: ${props => props.$size}px;
+  min-width: ${props => props.$size}px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${props => props.$size <= 32 ? '0.8rem' : '1rem'};
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.4), rgba(59, 130, 246, 0.4));
+  border: 2px solid ${props => props.$borderColor};
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const PersonName = styled.span<{ $compact?: boolean }>`
+  font-weight: 500;
+  color: white;
+  font-size: ${props => props.$compact ? '0.875rem' : '1rem'};
+`;
+
+const PersonInfoBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const UnassignedText = styled.span`
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  font-size: 0.875rem;
+`;
+
+const RetryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 24px;
+  min-height: 44px;
+  min-width: 44px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 // ===== ANIMATION VARIANTS =====
@@ -228,44 +354,29 @@ interface StatsCardProps {
 
 export const StatsCard = memo<StatsCardProps>(({ data, index = 0, loading = false }) => {
   const IconComponent = data.icon;
-  
+
   return (
     <StellarCard
-      variant={data.variant}
+      $variant={data.variant}
       variants={staggeredVariants}
       custom={index}
       initial="hidden"
       animate="visible"
       whileHover={{ scale: 1.02 }}
     >
-      <Stack direction="row" alignItems="center" spacing={2}>
-        <StellarIconContainer variant={data.variant}>
+      <StatsCardRow>
+        <StellarIconContainer $variant={data.variant}>
           <IconComponent size={24} />
         </StellarIconContainer>
-        <MuiBox>
-          <Typography 
-            variant="h4" 
-            component="div" 
-            sx={{ 
-              fontWeight: 600, 
-              color: 'white',
-              fontSize: '1.75rem'
-            }}
-          >
+        <StatsCardTextBlock>
+          <StatsCardValue>
             {loading ? '-' : data.value}
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '0.85rem',
-              fontWeight: 500
-            }}
-          >
+          </StatsCardValue>
+          <StatsCardLabel>
             {data.label}
-          </Typography>
-        </MuiBox>
-      </Stack>
+          </StatsCardLabel>
+        </StatsCardTextBlock>
+      </StatsCardRow>
     </StellarCard>
   );
 });
@@ -284,11 +395,12 @@ export const StatusChip = memo<StatusChipProps>(({ status, size = 'small' }) => 
   };
 
   return (
-    <StellarChip
-      chipstatus={status}
-      label={getStatusLabel(status)}
-      size={size}
-    />
+    <StellarChipStyled
+      $chipStatus={status}
+      $size={size}
+    >
+      {getStatusLabel(status)}
+    </StellarChipStyled>
   );
 });
 
@@ -301,65 +413,45 @@ interface ClientDisplayProps {
   compact?: boolean;
 }
 
-export const ClientDisplay = memo<ClientDisplayProps>(({ 
-  client, 
-  showSessionCount = true, 
-  compact = false 
+export const ClientDisplay = memo<ClientDisplayProps>(({
+  client,
+  showSessionCount = true,
+  compact = false
 }) => {
   if (!client) {
     return (
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+      <UnassignedText>
         No Client Assigned
-      </Typography>
+      </UnassignedText>
     );
   }
 
   const fullName = `${client.firstName} ${client.lastName}`;
   const avatarSize = compact ? 32 : 40;
+  const hasAvailable = (client.availableSessions ?? 0) > 0;
 
   return (
     <ClientTrainerDisplay>
-      <Avatar
-        src={client.photo || undefined}
-        alt={fullName}
-        sx={{ 
-          width: avatarSize, 
-          height: avatarSize, 
-          fontSize: compact ? '0.8rem' : '1rem',
-          border: '2px solid rgba(59, 130, 246, 0.3)'
-        }}
+      <AvatarStyled
+        $size={avatarSize}
+        $borderColor="rgba(59, 130, 246, 0.3)"
+        title={fullName}
       >
-        {client.firstName?.[0]}{client.lastName?.[0]}
-      </Avatar>
-      <MuiBox>
-        <Typography 
-          variant={compact ? "body2" : "body1"} 
-          sx={{ fontWeight: 500, color: 'white' }}
-        >
+        {client.photo
+          ? <img src={client.photo} alt={fullName} />
+          : <>{client.firstName?.[0]}{client.lastName?.[0]}</>
+        }
+      </AvatarStyled>
+      <PersonInfoBlock>
+        <PersonName $compact={compact}>
           {fullName}
-        </Typography>
+        </PersonName>
         {showSessionCount && (
-          <Chip
-            label={`${client.availableSessions ?? 0} sessions`}
-            size="small"
-            variant="outlined"
-            sx={{
-              fontSize: '0.7rem',
-              height: '20px',
-              mt: 0.5,
-              borderColor: (client.availableSessions ?? 0) > 0
-                ? 'rgba(46, 125, 50, 0.5)'
-                : 'rgba(211, 47, 47, 0.5)',
-              color: (client.availableSessions ?? 0) > 0
-                ? 'rgba(46, 125, 50, 1)'
-                : 'rgba(211, 47, 47, 1)',
-              bgcolor: (client.availableSessions ?? 0) > 0
-                ? 'rgba(46, 125, 50, 0.1)'
-                : 'rgba(211, 47, 47, 0.1)',
-            }}
-          />
+          <SessionCountChip $hasAvailable={hasAvailable}>
+            {client.availableSessions ?? 0} sessions
+          </SessionCountChip>
         )}
-      </MuiBox>
+      </PersonInfoBlock>
     </ClientTrainerDisplay>
   );
 });
@@ -375,9 +467,9 @@ interface TrainerDisplayProps {
 export const TrainerDisplay = memo<TrainerDisplayProps>(({ trainer, compact = false }) => {
   if (!trainer) {
     return (
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+      <UnassignedText>
         Unassigned
-      </Typography>
+      </UnassignedText>
     );
   }
 
@@ -386,24 +478,19 @@ export const TrainerDisplay = memo<TrainerDisplayProps>(({ trainer, compact = fa
 
   return (
     <ClientTrainerDisplay>
-      <Avatar
-        src={trainer.photo || undefined}
-        alt={fullName}
-        sx={{ 
-          width: avatarSize, 
-          height: avatarSize, 
-          fontSize: compact ? '0.8rem' : '1rem',
-          border: '2px solid rgba(14, 165, 233, 0.3)'
-        }}
+      <AvatarStyled
+        $size={avatarSize}
+        $borderColor="rgba(14, 165, 233, 0.3)"
+        title={fullName}
       >
-        {trainer.firstName?.[0]}{trainer.lastName?.[0]}
-      </Avatar>
-      <Typography 
-        variant={compact ? "body2" : "body1"} 
-        sx={{ fontWeight: 500, color: 'white' }}
-      >
+        {trainer.photo
+          ? <img src={trainer.photo} alt={fullName} />
+          : <>{trainer.firstName?.[0]}{trainer.lastName?.[0]}</>
+        }
+      </AvatarStyled>
+      <PersonName $compact={compact}>
         {fullName}
-      </Typography>
+      </PersonName>
     </ClientTrainerDisplay>
   );
 });
@@ -416,23 +503,23 @@ interface LoadingStateProps {
   subMessage?: string;
 }
 
-export const LoadingState = memo<LoadingStateProps>(({ 
-  message = "Loading...", 
-  subMessage 
+export const LoadingState = memo<LoadingStateProps>(({
+  message = "Loading...",
+  subMessage
 }) => (
   <LoadingSpinner>
-    <motion.div 
+    <motion.div
       className="spinner"
       animate={{ rotate: 360 }}
       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
     />
-    <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 0.5 }}>
+    <LoadingMessage>
       {message}
-    </Typography>
+    </LoadingMessage>
     {subMessage && (
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+      <LoadingSubMessage>
         {subMessage}
-      </Typography>
+      </LoadingSubMessage>
     )}
   </LoadingSpinner>
 ));
@@ -447,20 +534,20 @@ interface EmptyStateProps {
   actionButton?: React.ReactNode;
 }
 
-export const EmptyState = memo<EmptyStateProps>(({ 
-  icon = "📅", 
-  title, 
-  description, 
-  actionButton 
+export const EmptyState = memo<EmptyStateProps>(({
+  icon = "📅",
+  title,
+  description,
+  actionButton
 }) => (
   <EmptyStateContainer>
     <div className="icon">{icon}</div>
     <div className="title">{title}</div>
     <div className="description">{description}</div>
     {actionButton && (
-      <MuiBox sx={{ mt: 2 }}>
+      <ActionButtonWrapper>
         {actionButton}
-      </MuiBox>
+      </ActionButtonWrapper>
     )}
   </EmptyStateContainer>
 ));
@@ -474,30 +561,20 @@ interface ErrorStateProps {
   retryLabel?: string;
 }
 
-export const ErrorState = memo<ErrorStateProps>(({ 
-  error, 
-  onRetry, 
-  retryLabel = "Retry" 
+export const ErrorState = memo<ErrorStateProps>(({
+  error,
+  onRetry,
+  retryLabel = "Retry"
 }) => (
   <EmptyStateContainer>
     <AlertTriangle size={48} color="#ef4444" style={{ marginBottom: '1rem' }} />
     <div className="title" style={{ color: '#ef4444' }}>Error</div>
     <div className="description">{error}</div>
     {onRetry && (
-      <Button
-        variant="contained"
-        startIcon={<RefreshCw size={16} />}
-        onClick={onRetry}
-        sx={{
-          mt: 2,
-          background: 'linear-gradient(135deg, #ef4444, #f87171)',
-          '&:hover': {
-            background: 'linear-gradient(135deg, #dc2626, #ef4444)',
-          }
-        }}
-      >
+      <RetryButton onClick={onRetry}>
+        <RefreshCw size={16} />
         {retryLabel}
-      </Button>
+      </RetryButton>
     )}
   </EmptyStateContainer>
 ));
