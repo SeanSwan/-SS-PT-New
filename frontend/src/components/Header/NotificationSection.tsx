@@ -3,22 +3,23 @@ import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 
-// material-ui
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import Avatar from '@mui/material/Avatar';
-import Chip from '@mui/material/Chip';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid2';
-import Paper from '@mui/material/Paper';
-import Popper from '@mui/material/Popper';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack'; // Add missing import
-import CardActions from '@mui/material/CardActions'; // Add missing import
-import TextField from '@mui/material/TextField';
+// Swan primitives
+import {
+  Avatar,
+  Chip,
+  ClickAwayListener,
+  Divider,
+  Grid,
+  Paper,
+  Popper,
+  Typography,
+  Box,
+  Button,
+  Stack,
+  CardActions,
+  TextField,
+} from '../ui/primitives/components';
+import { useMediaQuery, BREAKPOINT_VALUES } from '../../styles/mui-replacements';
 
 // project imports
 import MainCard from '../ui/MainCard';
@@ -30,35 +31,24 @@ import NotificationList from './NotificationList';
 
 // notification status options
 const status = [
-  {
-    value: 'all',
-    label: 'All Notification'
-  },
-  {
-    value: 'new',
-    label: 'New'
-  },
-  {
-    value: 'unread',
-    label: 'Unread'
-  },
-  {
-    value: 'other',
-    label: 'Other'
-  }
+  { value: 'all', label: 'All Notification' },
+  { value: 'new', label: 'New' },
+  { value: 'unread', label: 'Unread' },
+  { value: 'other', label: 'Other' },
 ];
 
 const NotificationBadge = styled(Avatar)`
   transition: all 0.2s ease-in-out;
   cursor: pointer;
-  
+  background: rgba(120, 81, 169, 0.15);
+  color: #7851A9;
+
   &:hover {
-    background-color: ${({ theme }) => theme.palette?.secondary?.dark || '#1565c0'};
-    color: ${({ theme }) => theme.palette?.secondary?.light || '#90caf9'};
+    background: #7851A9;
+    color: rgba(120, 81, 169, 0.15);
   }
 `;
 
-// Fix the Popper by using an sx prop instead of styled-components with a custom prop
 const NotificationScrollableContent = styled(Box)`
   height: 100%;
   max-height: calc(100vh - 205px);
@@ -69,8 +59,7 @@ const NotificationScrollableContent = styled(Box)`
 `;
 
 const NotificationSection: React.FC = () => {
-  const theme = useTheme();
-  const downMD = useMediaQuery(theme.breakpoints.down('md'));
+  const downMD = useMediaQuery(`(max-width: ${BREAKPOINT_VALUES.md - 1}px)`);
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
@@ -106,22 +95,13 @@ const NotificationSection: React.FC = () => {
 
   return (
     <>
-      <Box sx={{ ml: 2 }}>
+      <Box style={{ marginLeft: 16 }}>
         <NotificationBadge
           variant="rounded"
-          sx={{
-            backgroundColor: 'secondary.light',
-            color: 'secondary.dark',
-            '&[aria-controls="menu-list-grow"],&:hover': {
-              backgroundColor: 'secondary.dark',
-              color: 'secondary.light'
-            }
-          }}
           ref={anchorRef}
           aria-controls={open ? 'menu-list-grow' : undefined}
           aria-haspopup="true"
           onClick={handleToggle}
-          color="inherit"
         >
           <IconBell stroke={1.5} size="20px" />
         </NotificationBadge>
@@ -130,82 +110,68 @@ const NotificationSection: React.FC = () => {
         placement={downMD ? 'bottom' : 'bottom-end'}
         open={open}
         anchorEl={anchorRef.current}
-        role={undefined}
-        transition
-        disablePortal
-        sx={{
-          zIndex: 1200,
-          width: downMD ? '100%' : '360px',
-          maxWidth: downMD ? 'calc(100vw - 40px)' : '360px'
-        }}
-        modifiers={[
-          {
-            name: 'offset',
-            options: {
-              offset: [downMD ? 5 : 0, 20]
-            }
-          }
-        ]}
+        modifiers={[{ name: 'offset', options: { offset: [downMD ? 5 : 0, 20] } }]}
       >
-        {({ TransitionProps }) => (
+        {({ TransitionProps }: any) => (
           <ClickAwayListener onClickAway={handleClose}>
             <Transitions position={downMD ? 'top' : 'top-right'} in={open} {...TransitionProps}>
               <Paper>
                 {open && (
-                  <MainCard 
-                    border={false} 
-                    elevation={16} 
-                    content={false} 
-                    boxShadow // Fixed: Changed from string to boolean
-                    sx={{ boxShadow: theme.shadows[16] }} // Add shadow through sx prop
+                  <MainCard
+                    border={false}
+                    elevation={16}
+                    content={false}
+                    boxShadow="0 16px 48px rgba(0, 0, 0, 0.3)"
                   >
-                    <Grid container direction="column" spacing={2}>
-                      <Grid size={12}>
-                        <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between', pt: 2, px: 2 }}>
-                          <Grid>
+                    <Grid container style={{ flexDirection: 'column' }} spacing={2}>
+                      <Grid item xs={12}>
+                        <Grid container style={{ alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 0' }}>
+                          <Grid item>
                             <Stack direction="row" spacing={2}>
                               <Typography variant="subtitle1">All Notification</Typography>
-                              <Chip size="small" label="01" sx={{ color: 'background.default', bgcolor: 'warning.dark' }} />
+                              <Chip
+                                size="small"
+                                label="01"
+                                color="warning"
+                              />
                             </Stack>
                           </Grid>
-                          <Grid>
-                            <Typography component={Link} to="#" variant="subtitle2" color="primary">
+                          <Grid item>
+                            <Typography
+                              component={Link}
+                              to="#"
+                              variant="subtitle2"
+                              style={{ color: '#00FFFF' }}
+                            >
                               Mark as all read
                             </Typography>
                           </Grid>
                         </Grid>
                       </Grid>
-                      <Grid size={12}>
+                      <Grid item xs={12}>
                         <NotificationScrollableContent>
-                          <Grid container direction="column" spacing={2}>
-                            <Grid size={12}>
-                              <Box sx={{ px: 2, pt: 0.25 }}>
+                          <Grid container style={{ flexDirection: 'column' }} spacing={2}>
+                            <Grid item xs={12}>
+                              <Box style={{ padding: '2px 16px' }}>
                                 <TextField
                                   id="outlined-select-currency-native"
-                                  select
-                                  fullWidth
                                   value={value}
                                   onChange={handleChange}
-                                  SelectProps={{ native: true }}
-                                >
-                                  {status.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </TextField>
+                                  placeholder="Filter notifications"
+                                  style={{ width: '100%' }}
+                                />
                               </Box>
                             </Grid>
-                            <Grid size={12} sx={{ p: 0 }}>
-                              <Divider sx={{ my: 0 }} />
+                            <Grid item xs={12} style={{ padding: 0 }}>
+                              <Divider />
                             </Grid>
                           </Grid>
                           <NotificationList />
                         </NotificationScrollableContent>
                       </Grid>
                     </Grid>
-                    <CardActions sx={{ p: 1.25, justifyContent: 'center' }}>
-                      <Button size="small" disableElevation>
+                    <CardActions style={{ padding: 10, justifyContent: 'center' }}>
+                      <Button size="small">
                         View All
                       </Button>
                     </CardActions>

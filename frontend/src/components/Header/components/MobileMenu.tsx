@@ -6,12 +6,12 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IconButton } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import PersonIcon from '@mui/icons-material/Person';
-import { LayoutDashboard, Users } from 'lucide-react';
+
+// Swan primitives
+import { IconButton } from '../../ui/primitives/components';
+
+// Icons (lucide-react replacements for MUI icons)
+import { Menu, X, ShoppingBag, User, LayoutDashboard, Users } from 'lucide-react';
 
 // Galaxy Theme Colors (copied from header for consistency)
 const GALAXY_THEME_COLORS = {
@@ -31,7 +31,7 @@ const starTwinkle = keyframes`
   50% { opacity: 1; transform: scale(1.2); }
 `;
 
-// Styled components (extracted from header.tsx)
+// Styled components
 const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   display: none;
   color: ${GALAXY_THEME_COLORS.textSecondary};
@@ -39,7 +39,7 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   border-radius: 12px;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -47,8 +47,8 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${({ $isOpen }) => 
-      $isOpen 
+    background: ${({ $isOpen }) =>
+      $isOpen
         ? 'linear-gradient(135deg, rgba(255, 64, 108, 0.2) 0%, rgba(255, 0, 0, 0.1) 100%)'
         : 'linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 64, 108, 0.05) 100%)'
     };
@@ -56,22 +56,21 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
     opacity: ${({ $isOpen }) => $isOpen ? 1 : 0};
     transition: opacity 0.3s ease;
   }
-  
+
   @media (max-width: 768px) {
     display: flex;
   }
-  
+
   &:hover {
     color: ${({ $isOpen }) => $isOpen ? GALAXY_THEME_COLORS.accentLight : GALAXY_THEME_COLORS.primary};
     background: none;
     transform: scale(1.05);
-    
+
     &::before {
       opacity: 1;
     }
   }
-  
-  /* Focus state for accessibility */
+
   &:focus-visible {
     outline: 2px solid ${GALAXY_THEME_COLORS.primary};
     outline-offset: 2px;
@@ -79,24 +78,23 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
 `;
 
 const MobileMenuOverlay = styled(motion.div)`
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  right: 0; 
-  bottom: 0; 
-  background: linear-gradient(135deg, 
-    ${GALAXY_THEME_COLORS.backgroundPrimary} 0%, 
-    rgba(16, 16, 32, 0.98) 35%, 
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+    ${GALAXY_THEME_COLORS.backgroundPrimary} 0%,
+    rgba(16, 16, 32, 0.98) 35%,
     ${GALAXY_THEME_COLORS.backgroundSecondary} 100%
   );
   backdrop-filter: blur(20px) saturate(1.8);
-  padding: 80px 24px 24px; 
-  display: flex; 
-  flex-direction: column; 
-  z-index: 1001; 
+  padding: 80px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
   overflow-y: auto;
-  
-  /* Add star field effect */
+
   &::before {
     content: '';
     position: absolute;
@@ -111,7 +109,7 @@ const MobileMenuOverlay = styled(motion.div)`
     animation: ${starTwinkle} 4s ease-in-out infinite alternate;
     pointer-events: none;
   }
-  
+
   @media (max-width: 480px) {
     padding: 70px 20px 20px;
   }
@@ -130,14 +128,13 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  
-  /* Galaxy mobile link background */
-  background: ${({ $isActive }) => 
-    $isActive 
+
+  background: ${({ $isActive }) =>
+    $isActive
       ? `linear-gradient(135deg, rgba(0, 217, 255, 0.12) 0%, rgba(255, 64, 129, 0.06) 100%)`
       : 'transparent'
   };
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -151,23 +148,22 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
   }
-  
+
   &:hover {
     color: ${GALAXY_THEME_COLORS.primary};
     background: linear-gradient(135deg, rgba(0, 217, 255, 0.18) 0%, rgba(255, 64, 129, 0.09) 100%);
     text-shadow: 0 0 14px rgba(0, 217, 255, 0.7);
     transform: translateX(8px);
-    
+
     &::after {
       width: 4px;
     }
   }
-  
-  /* Icon styling */
+
   svg {
     filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
   }
-  
+
   @media (max-width: 480px) {
     font-size: 1rem;
     padding: 14px 16px;
@@ -191,14 +187,14 @@ const MobileLogoutButton = styled(motion.button)`
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  
+
   &:hover {
     color: ${GALAXY_THEME_COLORS.accentLight};
     background: linear-gradient(135deg, rgba(255, 64, 129, 0.18) 0%, rgba(244, 67, 54, 0.09) 100%);
     text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
     transform: translateX(8px);
   }
-  
+
   @media (max-width: 480px) {
     font-size: 1rem;
     padding: 14px 16px;
@@ -208,36 +204,13 @@ const MobileLogoutButton = styled(motion.button)`
 
 // Animation variants
 const mobileMenuVariants = {
-  closed: {
-    opacity: 0,
-    x: "-100%",
-    transition: {
-      duration: 0.4,
-      ease: "easeInOut"
-    }
-  },
-  open: {
-    opacity: 1,
-    x: "0%",
-    transition: {
-      duration: 0.4,
-      ease: "easeInOut",
-      when: "beforeChildren",
-      staggerChildren: 0.05
-    }
-  }
+  closed: { opacity: 0, x: "-100%", transition: { duration: 0.4, ease: "easeInOut" } },
+  open: { opacity: 1, x: "0%", transition: { duration: 0.4, ease: "easeInOut", when: "beforeChildren", staggerChildren: 0.05 } }
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: -10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { 
-      duration: 0.3,
-      ease: "easeOut"
-    }
-  }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
 };
 
 // Props interface
@@ -250,100 +223,56 @@ interface MobileMenuProps {
   onLogout: () => void;
 }
 
-const MobileMenu: React.FC<MobileMenuProps> = ({ 
-  isOpen, 
-  onToggle, 
-  user, 
-  isActive, 
-  isRoleEnabled, 
-  onLogout 
+const MobileMenu: React.FC<MobileMenuProps> = ({
+  isOpen, onToggle, user, isActive, isRoleEnabled, onLogout
 }) => {
-  
-  const closeMobileMenu = () => {
-    onToggle();
-  };
+  const closeMobileMenu = () => { onToggle(); };
 
   const renderMobileLinks = () => {
     if (user) {
       return (
         <>
           <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/store" 
-              onClick={closeMobileMenu}
-              $isActive={isActive('/store') || isActive('/shop')}
-            >
-              <ShoppingBagIcon fontSize="small" /> SwanStudios Store
+            <MobileNavLink to="/store" onClick={closeMobileMenu} $isActive={isActive('/store') || isActive('/shop')}>
+              <ShoppingBag size={20} /> SwanStudios Store
             </MobileNavLink>
           </motion.div>
-          
-          {/* Role-based dashboard links */}
           {isRoleEnabled('admin') && (
             <motion.div variants={itemVariants}>
-              <MobileNavLink
-                to="/dashboard/default" 
-                onClick={closeMobileMenu}
-                $isActive={isActive('/dashboard')}
-              >
+              <MobileNavLink to="/dashboard/default" onClick={closeMobileMenu} $isActive={isActive('/dashboard')}>
                 <LayoutDashboard size={20} /> Admin Dashboard
               </MobileNavLink>
             </motion.div>
           )}
-          
           {isRoleEnabled('trainer') && (
             <motion.div variants={itemVariants}>
-              <MobileNavLink
-                to="/trainer-dashboard"
-                onClick={closeMobileMenu}
-                $isActive={isActive('/trainer-dashboard')}
-              >
+              <MobileNavLink to="/trainer-dashboard" onClick={closeMobileMenu} $isActive={isActive('/trainer-dashboard')}>
                 <Users size={20} /> Trainer Dashboard
               </MobileNavLink>
             </motion.div>
           )}
-          
           {isRoleEnabled('client') && (
             <motion.div variants={itemVariants}>
-              <MobileNavLink
-                to="/client-dashboard"
-                onClick={closeMobileMenu}
-                $isActive={isActive('/client-dashboard')}
-              >
-                <PersonIcon fontSize="small" /> Client Dashboard
+              <MobileNavLink to="/client-dashboard" onClick={closeMobileMenu} $isActive={isActive('/client-dashboard')}>
+                <User size={20} /> Client Dashboard
               </MobileNavLink>
             </motion.div>
           )}
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink
-              to="/user-dashboard"
-              onClick={closeMobileMenu}
-              $isActive={isActive('/user-dashboard')}
-            >
-              <PersonIcon fontSize="small" /> User Dashboard
+            <MobileNavLink to="/user-dashboard" onClick={closeMobileMenu} $isActive={isActive('/user-dashboard')}>
+              <User size={20} /> User Dashboard
             </MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink
-              to="/contact"
-              onClick={closeMobileMenu}
-              $isActive={isActive('/contact')}
-            >
+            <MobileNavLink to="/contact" onClick={closeMobileMenu} $isActive={isActive('/contact')}>
               Contact
             </MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/about" 
-              onClick={closeMobileMenu}
-              $isActive={isActive('/about')}
-            >
+            <MobileNavLink to="/about" onClick={closeMobileMenu} $isActive={isActive('/about')}>
               About Us
             </MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
             <MobileLogoutButton onClick={onLogout}>
               Logout
@@ -355,53 +284,21 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       return (
         <>
           <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/store" 
-              onClick={closeMobileMenu}
-              $isActive={isActive('/store')}
-            >
-              <ShoppingBagIcon fontSize="small" /> SwanStudios Store
+            <MobileNavLink to="/store" onClick={closeMobileMenu} $isActive={isActive('/store')}>
+              <ShoppingBag size={20} /> SwanStudios Store
             </MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/contact" 
-              onClick={closeMobileMenu}
-              $isActive={isActive('/contact')}
-            >
-              Contact
-            </MobileNavLink>
+            <MobileNavLink to="/contact" onClick={closeMobileMenu} $isActive={isActive('/contact')}>Contact</MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/about" 
-              onClick={closeMobileMenu}
-              $isActive={isActive('/about')}
-            >
-              About Us
-            </MobileNavLink>
+            <MobileNavLink to="/about" onClick={closeMobileMenu} $isActive={isActive('/about')}>About Us</MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink
-              to="/login"
-              onClick={closeMobileMenu}
-              $isActive={isActive('/login')}
-            >
-              Login
-            </MobileNavLink>
+            <MobileNavLink to="/login" onClick={closeMobileMenu} $isActive={isActive('/login')}>Login</MobileNavLink>
           </motion.div>
-          
           <motion.div variants={itemVariants}>
-            <MobileNavLink
-              to="/signup"
-              onClick={closeMobileMenu}
-              $isActive={isActive('/signup')}
-            >
-              Sign Up
-            </MobileNavLink>
+            <MobileNavLink to="/signup" onClick={closeMobileMenu} $isActive={isActive('/signup')}>Sign Up</MobileNavLink>
           </motion.div>
         </>
       );
@@ -410,44 +307,16 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <MobileMenuButton
-        $isOpen={isOpen}
-        onClick={onToggle}
-        size="medium"
-        aria-label={isOpen ? 'Close menu' : 'Open menu'}
-        aria-expanded={isOpen}
-        sx={{
-          '&:focus-visible': {
-            outline: `2px solid ${GALAXY_THEME_COLORS.primary}`,
-            outlineOffset: '2px'
-          }
-        }}
-      >
-        {isOpen ? <CloseIcon /> : <MenuIcon />}
+      <MobileMenuButton $isOpen={isOpen} onClick={onToggle} aria-label={isOpen ? 'Close menu' : 'Open menu'} aria-expanded={isOpen}>
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
       </MobileMenuButton>
 
-      {/* Enhanced Mobile Menu Overlay */}
       <AnimatePresence>
         {isOpen && (
-          <MobileMenuOverlay
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={mobileMenuVariants}
-            role="navigation"
-            aria-label="Mobile navigation menu"
-          >
+          <MobileMenuOverlay initial="closed" animate="open" exit="closed" variants={mobileMenuVariants} role="navigation" aria-label="Mobile navigation menu">
             <motion.div variants={itemVariants}>
-              <MobileNavLink 
-                to="/" 
-                onClick={closeMobileMenu}
-                $isActive={isActive('/')}
-              >
-                Home
-              </MobileNavLink>
+              <MobileNavLink to="/" onClick={closeMobileMenu} $isActive={isActive('/')}>Home</MobileNavLink>
             </motion.div>
-            
             {renderMobileLinks()}
           </MobileMenuOverlay>
         )}
