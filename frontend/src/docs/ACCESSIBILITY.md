@@ -24,10 +24,7 @@ This error occurs when:
 We've created an `AccessibleMenu` component that fixes this issue. Replace MUI's Menu with our custom component:
 
 ```tsx
-// Before
-import { Menu } from '@mui/material';
-
-// After
+// Use AccessibleMenu instead of raw menu elements
 import AccessibleMenu from '../components/common/AccessibleMenu';
 
 // Usage remains the same

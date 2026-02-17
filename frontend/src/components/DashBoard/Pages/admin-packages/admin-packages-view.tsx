@@ -1,5 +1,7 @@
 // admin-packages-view.tsx
+// Migrated from MUI to styled-components + lucide-react (Galaxy-Swan theme)
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
@@ -20,37 +22,11 @@ import {
   RefreshCw,
   Zap,
   Send,
-  CheckSquare
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
-
-// Material UI Components
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Paper,
-  TextField,
-  InputAdornment,
-  Grid,
-  Stack,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Avatar,
-  Chip,
-  Box as MuiBox,
-  Switch,
-  FormControlLabel
-} from '@mui/material';
 
 // Reuse the styled components
 import {
@@ -66,7 +42,6 @@ import {
   StatsValue,
   StatsLabel,
   FilterContainer,
-  SearchField,
   FilterButtonsContainer,
   FilterButton,
   StyledTableContainer,
@@ -84,10 +59,415 @@ import {
   EmptyStateIcon,
   EmptyStateText,
   StyledDialog,
+  DialogPanel,
+  DialogTitleBar,
+  DialogContentArea,
+  DialogActionsBar,
   containerVariants,
   itemVariants,
   staggeredItemVariants
 } from '../admin-sessions/styled-admin-sessions';
+
+/* ─── Local styled-components (replacing MUI) ─── */
+
+const FlexRow = styled.div<{ $gap?: string; $align?: string; $justify?: string; $wrap?: boolean }>`
+  display: flex;
+  flex-direction: row;
+  gap: ${p => p.$gap || '0.5rem'};
+  align-items: ${p => p.$align || 'center'};
+  justify-content: ${p => p.$justify || 'flex-start'};
+  flex-wrap: ${p => p.$wrap ? 'wrap' : 'nowrap'};
+`;
+
+const FlexCol = styled.div<{ $gap?: string }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.$gap || '0'};
+`;
+
+const Heading5 = styled.span`
+  font-weight: 300;
+  font-size: 1.25rem;
+  color: #e2e8f0;
+`;
+
+const Heading6 = styled.span`
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #e2e8f0;
+`;
+
+const BodyText = styled.span<{ $weight?: number; $color?: string; $size?: string }>`
+  font-weight: ${p => p.$weight || 400};
+  font-size: ${p => p.$size || '0.875rem'};
+  color: ${p => p.$color || '#e2e8f0'};
+`;
+
+const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?: string; $truncate?: boolean }>`
+  font-size: 0.75rem;
+  color: ${p => p.$color || 'rgba(255, 255, 255, 0.7)'};
+  display: ${p => p.$block ? 'block' : 'inline'};
+  max-width: ${p => p.$maxWidth || 'none'};
+  ${p => p.$truncate ? `
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  ` : ''}
+`;
+
+const SubtitleText = styled.span`
+  font-weight: 500;
+  font-size: 1rem;
+  color: #e2e8f0;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 300px;
+
+  @media (max-width: 600px) {
+    min-width: 100%;
+  }
+`;
+
+const SearchIconSpan = styled.span`
+  position: absolute;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+  border-radius: 10px;
+  background: rgba(20, 20, 40, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  font-size: 0.95rem;
+  outline: none;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:hover,
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  }
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormGridFull = styled.div`
+  grid-column: 1 / -1;
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const FormLabel = styled.label`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+`;
+
+const FormInput = styled.input`
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &[readonly] {
+    cursor: default;
+    opacity: 0.85;
+  }
+`;
+
+const FormInputAccent = styled(FormInput)`
+  color: #00ffff;
+  font-weight: bold;
+`;
+
+const FormTextarea = styled.textarea`
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const FormSelect = styled.select`
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const SwitchLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  min-height: 44px;
+`;
+
+const SwitchTrack = styled.span<{ $checked?: boolean }>`
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${p => p.$checked ? '#10b981' : 'rgba(255, 255, 255, 0.2)'};
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+`;
+
+const SwitchThumb = styled.span<{ $checked?: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${p => p.$checked ? '22px' : '2px'};
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+`;
+
+const HiddenCheckbox = styled.input`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const InfoPanel = styled.div<{ $borderColor?: string }>`
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid ${p => p.$borderColor || 'rgba(255, 255, 255, 0.1)'};
+  border-radius: 8px;
+`;
+
+const DialogHintText = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+`;
+
+const AvatarCircle = styled.span<{ $src?: string }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: ${p => p.$src ? `url(${p.$src}) center/cover no-repeat` : 'linear-gradient(135deg, #7851a9, #00ffff)'};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+`;
+
+const ClientCheckItem = styled.label<{ $selected?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  cursor: pointer;
+  border-radius: 6px;
+  background: ${p => p.$selected ? 'rgba(14, 165, 233, 0.15)' : 'transparent'};
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.1);
+  }
+`;
+
+const ClientListContainer = styled.div`
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.25rem 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+`;
+
+const DiscountInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const DiscountSuffix = styled.span`
+  position: absolute;
+  right: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  pointer-events: none;
+`;
+
+/* Pagination */
+const PaginationContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+`;
+
+const PaginationSelect = styled.select`
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  outline: none;
+  min-height: 36px;
+  cursor: pointer;
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const PaginationButton = styled.button<{ $disabled?: boolean }>`
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: ${p => p.$disabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.7)'};
+  cursor: ${p => p.$disabled ? 'default' : 'pointer'};
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  pointer-events: ${p => p.$disabled ? 'none' : 'auto'};
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.3);
+  }
+`;
+
+const ThemeDot = styled.div<{ $theme?: string }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: ${p =>
+    p.$theme === 'cosmic' ? 'linear-gradient(135deg, #7851a9, #00ffff)' :
+    p.$theme === 'purple' ? 'linear-gradient(135deg, #9c27b0, #d500f9)' :
+    p.$theme === 'ruby' ? 'linear-gradient(135deg, #e91e63, #f50057)' :
+    p.$theme === 'emerald' ? 'linear-gradient(135deg, #4caf50, #00e676)' :
+    'linear-gradient(135deg, #7851a9, #00ffff)'
+  };
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+`;
+
+const RowOpacityWrapper = styled(motion.tr)<{ $dimmed?: boolean }>`
+  opacity: ${p => p.$dimmed ? 0.6 : 1};
+`;
 
 // Interface for session package data
 interface SessionPackage {
@@ -121,7 +501,7 @@ interface Client {
 
 /**
  * Admin Session Packages Management View
- * 
+ *
  * Provides a comprehensive interface for managing training session packages:
  * - View all available packages
  * - Edit existing packages
@@ -172,7 +552,7 @@ const AdminPackagesView: React.FC = () => {
   const [newMonths, setNewMonths] = useState<number>(3);
   const [newSessionsPerWeek, setNewSessionsPerWeek] = useState<number>(4);
   const [newTheme, setNewTheme] = useState('cosmic');
-  
+
   // State for sending special offer
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [offerDiscount, setOfferDiscount] = useState<number>(10);
@@ -204,7 +584,7 @@ const AdminPackagesView: React.FC = () => {
         const activePackagesCount = response.data.items.filter((pkg: SessionPackage) => pkg.isActive).length;
         const totalPrices = response.data.items.reduce((sum: number, pkg: SessionPackage) => sum + (pkg.price || 0), 0);
         const avgPrice = response.data.items.length > 0 ? Math.round(totalPrices / response.data.items.length) : 0;
-        
+
         setStatsData({
           totalPackages: response.data.items.length,
           activePackages: activePackagesCount,
@@ -276,24 +656,24 @@ const AdminPackagesView: React.FC = () => {
   }, []);
 
   // Handle pagination changes
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
   // Filter packages based on search term and package type filter
   const filteredPackages = packages.filter(pkg => {
-    const matchesSearch = 
+    const matchesSearch =
       (pkg.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (pkg.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (pkg.id?.toString() || '').includes(searchTerm.toLowerCase());
-    
+
     const matchesType = typeFilter === 'all' || pkg.packageType === typeFilter;
-    
+
     return matchesSearch && matchesType;
   });
 
@@ -320,7 +700,7 @@ const AdminPackagesView: React.FC = () => {
   // Calculate total price
   const calculateTotalPrice = (pkg: SessionPackage): number => {
     let totalPrice = 0;
-    
+
     if (pkg.packageType === 'fixed' && pkg.sessions) {
       totalPrice = pkg.pricePerSession * pkg.sessions;
     } else if (pkg.packageType === 'monthly' && pkg.months && pkg.sessionsPerWeek) {
@@ -328,7 +708,7 @@ const AdminPackagesView: React.FC = () => {
       const totalSessions = pkg.months * pkg.sessionsPerWeek * 4;
       totalPrice = pkg.pricePerSession * totalSessions;
     }
-    
+
     return totalPrice;
   };
 
@@ -352,10 +732,10 @@ const AdminPackagesView: React.FC = () => {
     if (!selectedPackage) return;
 
     try {
-      const totalSessions = editPackageType === 'monthly' 
-        ? editMonths * editSessionsPerWeek * 4 
+      const totalSessions = editPackageType === 'monthly'
+        ? editMonths * editSessionsPerWeek * 4
         : editSessions;
-      
+
       const totalCost = editPricePerSession * totalSessions;
 
       const updatedPackageData = {
@@ -389,7 +769,7 @@ const AdminPackagesView: React.FC = () => {
         toast({
           title: "Warning",
           description: `Package updated, but received status: ${response.status}`,
-          variant: "default", 
+          variant: "default",
         });
         fetchPackages();
         setOpenEditDialog(false);
@@ -408,10 +788,10 @@ const AdminPackagesView: React.FC = () => {
   // Handle create new package
   const handleCreateNewPackage = async () => {
     try {
-      const totalSessions = newPackageType === 'monthly' 
-        ? newMonths * newSessionsPerWeek * 4 
+      const totalSessions = newPackageType === 'monthly'
+        ? newMonths * newSessionsPerWeek * 4
         : newSessions;
-      
+
       const totalCost = newPricePerSession * totalSessions;
 
       const newPackageData = {
@@ -440,7 +820,7 @@ const AdminPackagesView: React.FC = () => {
 
         fetchPackages(); // Refresh packages list
         setOpenNewDialog(false);
-        
+
         // Reset form fields
         setNewPackageName('');
         setNewPackageDescription('');
@@ -570,6 +950,20 @@ const AdminPackagesView: React.FC = () => {
     fetchClients();
   };
 
+  // Toggle client selection for offers
+  const toggleClientSelection = (clientId: string) => {
+    setSelectedClients(prev =>
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  // Pagination computed values
+  const totalPages = Math.ceil(filteredPackages.length / rowsPerPage);
+  const startIndex = page * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, filteredPackages.length);
+
   return (
     <PageContainer>
       <ContentContainer>
@@ -578,17 +972,15 @@ const AdminPackagesView: React.FC = () => {
           animate="visible"
           variants={containerVariants}
         >
-          <StyledCard component={motion.div} variants={itemVariants}>
+          <StyledCard as={motion.div} variants={itemVariants}>
             <CardHeader>
               <CardTitle>
-                <Stack direction="row" spacing={2} alignItems="center">
+                <FlexRow $gap="0.75rem">
                   <Package size={28} />
-                  <Typography variant="h5" component="span" sx={{ fontWeight: 300 }}>
-                     Session Packages Management
-                  </Typography>
-                </Stack>
+                  <Heading5>Session Packages Management</Heading5>
+                </FlexRow>
               </CardTitle>
-              <Stack direction="row" spacing={1.5}>
+              <FlexRow $gap="0.75rem">
                 <GlowButton
                   text="Create Package"
                   theme="emerald"
@@ -604,88 +996,82 @@ const AdminPackagesView: React.FC = () => {
                   onClick={handleRefreshData}
                   isLoading={loading}
                 />
-              </Stack>
+              </FlexRow>
             </CardHeader>
 
             <CardContent>
               {/* Stats Cards */}
               <StatsGridContainer>
                  {/* Stats Card 1: Total Packages */}
-                 <StatsCard variant="primary" as={motion.div} custom={0} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="primary"><Package size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="primary" as={motion.div} custom={0} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="primary"><Package size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.totalPackages}</StatsValue>
                              <StatsLabel>Total Packages</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 2: Active Packages */}
-                 <StatsCard variant="success" as={motion.div} custom={1} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="success"><CheckCircle size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="success" as={motion.div} custom={1} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="success"><CheckCircle size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.activePackages}</StatsValue>
                              <StatsLabel>Active Packages</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 3: Purchases This Month */}
-                 <StatsCard variant="info" as={motion.div} custom={2} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="info"><Users size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="info" as={motion.div} custom={2} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="info"><Users size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.purchasesThisMonth}</StatsValue>
                              <StatsLabel>Purchases This Month</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 4: Average Price */}
-                 <StatsCard variant="warning" as={motion.div} custom={3} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="warning"><DollarSign size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="warning" as={motion.div} custom={3} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="warning"><DollarSign size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : formatCurrency(statsData.averagePrice)}</StatsValue>
                              <StatsLabel>Average Package Price</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
               </StatsGridContainer>
 
               {/* Filters and Search */}
               <FilterContainer as={motion.div} variants={itemVariants}>
-                 <SearchField
-                     size="small"
+                 <SearchInputWrapper>
+                   <SearchIconSpan><Search size={20} /></SearchIconSpan>
+                   <SearchInput
                      placeholder="Search packages..."
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}
-                     sx={{ minWidth: { xs: '100%', sm: 300 } }}
-                     InputProps={{
-                         startAdornment: (
-                             <InputAdornment position="start">
-                                 <Search size={20} />
-                             </InputAdornment>
-                         )
-                     }}
-                 />
+                   />
+                 </SearchInputWrapper>
                  <FilterButtonsContainer>
                      {/* Filter Buttons */}
                      <FilterButton
-                        isactive={(typeFilter === 'all').toString() as "true" | "false"}
+                        $isActive={typeFilter === 'all'}
                         onClick={() => setTypeFilter('all')}
                      >
                         All Types
                      </FilterButton>
                      <FilterButton
-                        isactive={(typeFilter === 'fixed').toString() as "true" | "false"}
-                        buttoncolor="primary"
+                        $isActive={typeFilter === 'fixed'}
+                        $buttonColor="primary"
                         onClick={() => setTypeFilter('fixed')}
                      >
                         Fixed Sessions
                      </FilterButton>
                      <FilterButton
-                        isactive={(typeFilter === 'monthly').toString() as "true" | "false"}
-                        buttoncolor="success"
+                        $isActive={typeFilter === 'monthly'}
+                        $buttonColor="success"
                         onClick={() => setTypeFilter('monthly')}
                      >
                         Monthly Subscriptions
@@ -703,9 +1089,9 @@ const AdminPackagesView: React.FC = () => {
                     <GlowButton text="Retry" onClick={fetchPackages} theme="ruby" size="small" />
                  </EmptyStateContainer>
               ) : (
-                <StyledTableContainer component={Paper}>
-                  <Table aria-label="session packages table" size="small">
-                    <TableHead>
+                <StyledTableContainer>
+                  <table aria-label="session packages table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
                       <StyledTableHead>
                         <StyledTableHeadCell>Package Name</StyledTableHeadCell>
                         <StyledTableHeadCell>Type</StyledTableHeadCell>
@@ -713,123 +1099,96 @@ const AdminPackagesView: React.FC = () => {
                         <StyledTableHeadCell>Price Per Session</StyledTableHeadCell>
                         <StyledTableHeadCell>Total Price</StyledTableHeadCell>
                         <StyledTableHeadCell>Status</StyledTableHeadCell>
-                        <StyledTableHeadCell align="right">Actions</StyledTableHeadCell>
+                        <StyledTableHeadCell style={{ textAlign: 'right' }}>Actions</StyledTableHeadCell>
                       </StyledTableHead>
-                    </TableHead>
-                    <TableBody>
+                    </thead>
+                    <tbody>
                       {filteredPackages.length > 0 ? (
                         filteredPackages
                           .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                           .map((pkg, index) => (
-                            <StyledTableRow
+                            <RowOpacityWrapper
                               key={pkg.id || index}
-                              component={motion.tr}
+                              $dimmed={!pkg.isActive}
                               custom={index}
                               variants={staggeredItemVariants}
                               initial="hidden"
                               animate="visible"
                               layout
-                              sx={{
-                                opacity: pkg.isActive ? 1 : 0.6,
-                              }}
                             >
                               {/* Package Name */}
                               <StyledTableCell>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  <div 
-                                    style={{ 
-                                      width: 24, 
-                                      height: 24, 
-                                      borderRadius: '50%', 
-                                      background: pkg.theme === 'cosmic' ? 'linear-gradient(135deg, #7851a9, #00ffff)' :
-                                                pkg.theme === 'purple' ? 'linear-gradient(135deg, #9c27b0, #d500f9)' :
-                                                pkg.theme === 'ruby' ? 'linear-gradient(135deg, #e91e63, #f50057)' :
-                                                pkg.theme === 'emerald' ? 'linear-gradient(135deg, #4caf50, #00e676)' :
-                                                'linear-gradient(135deg, #7851a9, #00ffff)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: 'white',
-                                      fontSize: '0.75rem',
-                                      fontWeight: 'bold',
-                                      boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-                                    }}
-                                  >
+                                <FlexRow $gap="0.5rem">
+                                  <ThemeDot $theme={pkg.theme || 'cosmic'}>
                                     {pkg.name.charAt(0)}
-                                  </div>
-                                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                  </ThemeDot>
+                                  <BodyText $weight={500}>
                                     {pkg.name}
-                                  </Typography>
-                                </Stack>
+                                  </BodyText>
+                                </FlexRow>
                                 {pkg.description && (
-                                  <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                      color: 'rgba(255, 255, 255, 0.7)',
-                                      display: 'block',
-                                      mt: 0.5,
-                                      maxWidth: '200px',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}
+                                  <CaptionText
+                                    $block
+                                    $maxWidth="200px"
+                                    $truncate
+                                    style={{ marginTop: '0.25rem' }}
                                   >
                                     {pkg.description}
-                                  </Typography>
+                                  </CaptionText>
                                 )}
                               </StyledTableCell>
-                              
+
                               {/* Package Type */}
                               <StyledTableCell>
-                                <ChipContainer 
+                                <ChipContainer
                                   chipstatus={pkg.packageType === 'fixed' ? 'available' : 'confirmed'}
-                                  sx={{ textTransform: 'capitalize' }}
+                                  style={{ textTransform: 'capitalize' }}
                                 >
                                   {pkg.packageType}
                                 </ChipContainer>
                               </StyledTableCell>
-                              
+
                               {/* Sessions/Duration */}
                               <StyledTableCell>
                                 {pkg.packageType === 'fixed' ? (
-                                  <Typography variant="body2">
+                                  <BodyText>
                                     {pkg.sessions} sessions
-                                  </Typography>
+                                  </BodyText>
                                 ) : (
-                                  <Stack>
-                                    <Typography variant="body2">
+                                  <FlexCol>
+                                    <BodyText>
                                       {pkg.months} months, {pkg.sessionsPerWeek}x/week
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                                    </BodyText>
+                                    <CaptionText>
                                       ({pkg.totalSessions || pkg.months! * pkg.sessionsPerWeek! * 4} total sessions)
-                                    </Typography>
-                                  </Stack>
+                                    </CaptionText>
+                                  </FlexCol>
                                 )}
                               </StyledTableCell>
-                              
+
                               {/* Price Per Session */}
                               <StyledTableCell>
                                 {formatCurrency(pkg.pricePerSession)}
                               </StyledTableCell>
-                              
+
                               {/* Total Price */}
                               <StyledTableCell>
-                                <Typography variant="body2" sx={{ fontWeight: 500, color: '#00ffff' }}>
+                                <BodyText $weight={500} $color="#00ffff">
                                   {formatCurrency(pkg.totalCost || pkg.price || calculateTotalPrice(pkg))}
-                                </Typography>
+                                </BodyText>
                               </StyledTableCell>
-                              
+
                               {/* Status */}
                               <StyledTableCell>
-                                <ChipContainer 
+                                <ChipContainer
                                   chipstatus={pkg.isActive ? 'completed' : 'cancelled'}
                                 >
                                   {pkg.isActive ? 'Active' : 'Inactive'}
                                 </ChipContainer>
                               </StyledTableCell>
-                              
+
                               {/* Actions */}
-                              <StyledTableCell align="right">
+                              <StyledTableCell style={{ textAlign: 'right' }}>
                                 <IconButtonContainer>
                                   <StyledIconButton
                                     btncolor="primary"
@@ -866,7 +1225,7 @@ const AdminPackagesView: React.FC = () => {
                                   </StyledIconButton>
                                 </IconButtonContainer>
                               </StyledTableCell>
-                            </StyledTableRow>
+                            </RowOpacityWrapper>
                           ))
                       ) : (
                         <StyledTableRow>
@@ -880,32 +1239,43 @@ const AdminPackagesView: React.FC = () => {
                           </StyledTableCell>
                         </StyledTableRow>
                       )}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </StyledTableContainer>
               )}
 
               {/* Pagination */}
               {filteredPackages.length > 0 && (
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25]}
-                  component="div"
-                  count={filteredPackages.length}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                    mt: 2,
-                    '.MuiTablePagination-selectIcon': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '.MuiTablePagination-displayedRows': { color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.85rem' },
-                    '.MuiTablePagination-select': { color: 'rgba(255, 255, 255, 0.9)' },
-                    '.MuiTablePagination-actions button': { color: 'rgba(255, 255, 255, 0.7)', '&:disabled': { color: 'rgba(255, 255, 255, 0.3)' } },
-                    '.MuiInputBase-root': { color: 'white !important' }
-                  }}
-                />
+                <PaginationContainer>
+                  <span>Rows per page:</span>
+                  <PaginationSelect
+                    value={rowsPerPage}
+                    onChange={handleChangeRowsPerPage}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                  </PaginationSelect>
+                  <span>
+                    {startIndex + 1}–{endIndex} of {filteredPackages.length}
+                  </span>
+                  <FlexRow $gap="0.25rem">
+                    <PaginationButton
+                      $disabled={page === 0}
+                      onClick={() => handleChangePage(page - 1)}
+                      title="Previous page"
+                    >
+                      <ChevronLeft size={18} />
+                    </PaginationButton>
+                    <PaginationButton
+                      $disabled={page >= totalPages - 1}
+                      onClick={() => handleChangePage(page + 1)}
+                      title="Next page"
+                    >
+                      <ChevronRight size={18} />
+                    </PaginationButton>
+                  </FlexRow>
+                </PaginationContainer>
               )}
 
               {/* Action Buttons */}
@@ -937,580 +1307,491 @@ const AdminPackagesView: React.FC = () => {
       {/* --- DIALOGS --- */}
 
       {/* Edit Package Dialog */}
-      <StyledDialog
-        open={openEditDialog}
-        onClose={() => setOpenEditDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Edit />
-            <Typography variant="h6">Edit Package</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Update the details for this session package.
-          </DialogContentText>
-          <Grid container spacing={2}>
-            {/* Package Name */}
-            <Grid item xs={12}>
-              <TextField
-                label="Package Name"
-                value={editPackageName}
-                onChange={(e) => setEditPackageName(e.target.value)}
-                fullWidth
-                required
-                variant="outlined"
-                size="small"
-              />
-            </Grid>
-            
-            {/* Package Type */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Package Type</InputLabel>
-                <Select
+      <StyledDialog $open={openEditDialog} onClick={() => setOpenEditDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Edit size={20} />
+              <Heading6>Edit Package</Heading6>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogHintText>
+              Update the details for this session package.
+            </DialogHintText>
+            <FormGrid>
+              {/* Package Name */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Package Name *</FormLabel>
+                  <FormInput
+                    value={editPackageName}
+                    onChange={(e) => setEditPackageName(e.target.value)}
+                    required
+                  />
+                </FormField>
+              </FormGridFull>
+
+              {/* Package Type */}
+              <FormField>
+                <FormLabel>Package Type</FormLabel>
+                <FormSelect
                   value={editPackageType}
                   onChange={(e) => setEditPackageType(e.target.value as 'fixed' | 'monthly')}
-                  label="Package Type"
                 >
-                  <MenuItem value="fixed">Fixed Sessions</MenuItem>
-                  <MenuItem value="monthly">Monthly Subscription</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            {/* Theme */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Theme</InputLabel>
-                <Select
+                  <option value="fixed">Fixed Sessions</option>
+                  <option value="monthly">Monthly Subscription</option>
+                </FormSelect>
+              </FormField>
+
+              {/* Theme */}
+              <FormField>
+                <FormLabel>Theme</FormLabel>
+                <FormSelect
                   value={editTheme}
                   onChange={(e) => setEditTheme(e.target.value)}
-                  label="Theme"
                 >
-                  <MenuItem value="cosmic">Cosmic (Blue/Purple)</MenuItem>
-                  <MenuItem value="purple">Purple</MenuItem>
-                  <MenuItem value="ruby">Ruby (Red)</MenuItem>
-                  <MenuItem value="emerald">Emerald (Green)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            {/* Price Per Session */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Price Per Session ($)"
-                type="number"
-                value={editPricePerSession}
-                onChange={(e) => setEditPricePerSession(Number(e.target.value))}
-                fullWidth
-                required
-                variant="outlined"
-                size="small"
-                InputProps={{ inputProps: { min: 0, step: 5 } }}
-              />
-            </Grid>
-            
-            {/* Sessions (for fixed packages) */}
-            {editPackageType === 'fixed' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Number of Sessions"
+                  <option value="cosmic">Cosmic (Blue/Purple)</option>
+                  <option value="purple">Purple</option>
+                  <option value="ruby">Ruby (Red)</option>
+                  <option value="emerald">Emerald (Green)</option>
+                </FormSelect>
+              </FormField>
+
+              {/* Price Per Session */}
+              <FormField>
+                <FormLabel>Price Per Session ($) *</FormLabel>
+                <FormInput
                   type="number"
-                  value={editSessions}
-                  onChange={(e) => setEditSessions(Number(e.target.value))}
-                  fullWidth
+                  value={editPricePerSession}
+                  onChange={(e) => setEditPricePerSession(Number(e.target.value))}
                   required
-                  variant="outlined"
-                  size="small"
-                  InputProps={{ inputProps: { min: 1 } }}
+                  min={0}
+                  step={5}
                 />
-              </Grid>
-            )}
-            
-            {/* Months (for monthly packages) */}
-            {editPackageType === 'monthly' && (
-              <>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Number of Months"
+              </FormField>
+
+              {/* Sessions (for fixed packages) */}
+              {editPackageType === 'fixed' && (
+                <FormField>
+                  <FormLabel>Number of Sessions *</FormLabel>
+                  <FormInput
                     type="number"
-                    value={editMonths}
-                    onChange={(e) => setEditMonths(Number(e.target.value))}
-                    fullWidth
+                    value={editSessions}
+                    onChange={(e) => setEditSessions(Number(e.target.value))}
                     required
-                    variant="outlined"
-                    size="small"
-                    InputProps={{ inputProps: { min: 1 } }}
+                    min={1}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Sessions Per Week"
-                    type="number"
-                    value={editSessionsPerWeek}
-                    onChange={(e) => setEditSessionsPerWeek(Number(e.target.value))}
-                    fullWidth
-                    required
-                    variant="outlined"
-                    size="small"
-                    InputProps={{ inputProps: { min: 1 } }}
-                  />
-                </Grid>
-              </>
-            )}
-            
-            {/* Total Price Preview */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Total Price"
-                value={formatCurrency(editPackageType === 'fixed' 
-                  ? editPricePerSession * editSessions 
-                  : editPricePerSession * editMonths * editSessionsPerWeek * 4)}
-                fullWidth
-                variant="outlined"
-                size="small"
-                InputProps={{ readOnly: true }}
-                sx={{ 
-                  '.MuiInputBase-input': { 
-                    color: '#00ffff', 
-                    fontWeight: 'bold' 
-                  }
-                }}
-              />
-            </Grid>
-            
-            {/* Active Status */}
-            <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center', pl: 2 }}>
-              <FormControlLabel
-                control={
-                  <Switch
+                </FormField>
+              )}
+
+              {/* Months (for monthly packages) */}
+              {editPackageType === 'monthly' && (
+                <>
+                  <FormField>
+                    <FormLabel>Number of Months *</FormLabel>
+                    <FormInput
+                      type="number"
+                      value={editMonths}
+                      onChange={(e) => setEditMonths(Number(e.target.value))}
+                      required
+                      min={1}
+                    />
+                  </FormField>
+                  <FormField>
+                    <FormLabel>Sessions Per Week *</FormLabel>
+                    <FormInput
+                      type="number"
+                      value={editSessionsPerWeek}
+                      onChange={(e) => setEditSessionsPerWeek(Number(e.target.value))}
+                      required
+                      min={1}
+                    />
+                  </FormField>
+                </>
+              )}
+
+              {/* Total Price Preview */}
+              <FormField>
+                <FormLabel>Total Price</FormLabel>
+                <FormInputAccent
+                  readOnly
+                  value={formatCurrency(editPackageType === 'fixed'
+                    ? editPricePerSession * editSessions
+                    : editPricePerSession * editMonths * editSessionsPerWeek * 4)}
+                />
+              </FormField>
+
+              {/* Active Status */}
+              <FormField style={{ justifyContent: 'center' }}>
+                <SwitchLabel>
+                  <HiddenCheckbox
+                    type="checkbox"
                     checked={editIsActive ?? false}
                     onChange={(e) => setEditIsActive(e.target.checked)}
-                    color="success"
                   />
-                }
-                label="Active and Visible"
-              />
-            </Grid>
-            
-            {/* Description */}
-            <Grid item xs={12}>
-              <TextField
-                label="Description"
-                value={editPackageDescription}
-                onChange={(e) => setEditPackageDescription(e.target.value)}
-                fullWidth
-                multiline
-                rows={3}
-                variant="outlined"
-                size="small"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenEditDialog(false)}
-          />
-          <GlowButton
-            text="Save Changes"
-            theme="emerald"
-            size="small"
-            leftIcon={<CheckSquare size={16} />}
-            onClick={handleSaveEditedPackage}
-          />
-        </DialogActions>
+                  <SwitchTrack $checked={editIsActive}>
+                    <SwitchThumb $checked={editIsActive} />
+                  </SwitchTrack>
+                  Active and Visible
+                </SwitchLabel>
+              </FormField>
+
+              {/* Description */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Description</FormLabel>
+                  <FormTextarea
+                    value={editPackageDescription}
+                    onChange={(e) => setEditPackageDescription(e.target.value)}
+                    rows={3}
+                  />
+                </FormField>
+              </FormGridFull>
+            </FormGrid>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenEditDialog(false)}
+            />
+            <GlowButton
+              text="Save Changes"
+              theme="emerald"
+              size="small"
+              leftIcon={<CheckSquare size={16} />}
+              onClick={handleSaveEditedPackage}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
       {/* New Package Dialog */}
-      <StyledDialog
-        open={openNewDialog}
-        onClose={() => setOpenNewDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Plus />
-            <Typography variant="h6">Create New Package</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Create a new session package to offer to clients.
-          </DialogContentText>
-          <Grid container spacing={2}>
-            {/* Package Name */}
-            <Grid item xs={12}>
-              <TextField
-                label="Package Name"
-                value={newPackageName}
-                onChange={(e) => setNewPackageName(e.target.value)}
-                fullWidth
-                required
-                variant="outlined"
-                size="small"
-                placeholder="e.g., Gold Glimmer, Platinum Plus"
-              />
-            </Grid>
-            
-            {/* Package Type */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Package Type</InputLabel>
-                <Select
+      <StyledDialog $open={openNewDialog} onClick={() => setOpenNewDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Plus size={20} />
+              <Heading6>Create New Package</Heading6>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogHintText>
+              Create a new session package to offer to clients.
+            </DialogHintText>
+            <FormGrid>
+              {/* Package Name */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Package Name *</FormLabel>
+                  <FormInput
+                    value={newPackageName}
+                    onChange={(e) => setNewPackageName(e.target.value)}
+                    required
+                    placeholder="e.g., Gold Glimmer, Platinum Plus"
+                  />
+                </FormField>
+              </FormGridFull>
+
+              {/* Package Type */}
+              <FormField>
+                <FormLabel>Package Type</FormLabel>
+                <FormSelect
                   value={newPackageType}
                   onChange={(e) => setNewPackageType(e.target.value as 'fixed' | 'monthly')}
-                  label="Package Type"
                 >
-                  <MenuItem value="fixed">Fixed Sessions</MenuItem>
-                  <MenuItem value="monthly">Monthly Subscription</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            {/* Theme */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Theme</InputLabel>
-                <Select
+                  <option value="fixed">Fixed Sessions</option>
+                  <option value="monthly">Monthly Subscription</option>
+                </FormSelect>
+              </FormField>
+
+              {/* Theme */}
+              <FormField>
+                <FormLabel>Theme</FormLabel>
+                <FormSelect
                   value={newTheme}
                   onChange={(e) => setNewTheme(e.target.value)}
-                  label="Theme"
                 >
-                  <MenuItem value="cosmic">Cosmic (Blue/Purple)</MenuItem>
-                  <MenuItem value="purple">Purple</MenuItem>
-                  <MenuItem value="ruby">Ruby (Red)</MenuItem>
-                  <MenuItem value="emerald">Emerald (Green)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            {/* Price Per Session */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Price Per Session ($)"
-                type="number"
-                value={newPricePerSession}
-                onChange={(e) => setNewPricePerSession(Number(e.target.value))}
-                fullWidth
-                required
-                variant="outlined"
-                size="small"
-                InputProps={{ inputProps: { min: 0, step: 5 } }}
-              />
-            </Grid>
-            
-            {/* Sessions (for fixed packages) */}
-            {newPackageType === 'fixed' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Number of Sessions"
+                  <option value="cosmic">Cosmic (Blue/Purple)</option>
+                  <option value="purple">Purple</option>
+                  <option value="ruby">Ruby (Red)</option>
+                  <option value="emerald">Emerald (Green)</option>
+                </FormSelect>
+              </FormField>
+
+              {/* Price Per Session */}
+              <FormField>
+                <FormLabel>Price Per Session ($) *</FormLabel>
+                <FormInput
                   type="number"
-                  value={newSessions}
-                  onChange={(e) => setNewSessions(Number(e.target.value))}
-                  fullWidth
+                  value={newPricePerSession}
+                  onChange={(e) => setNewPricePerSession(Number(e.target.value))}
                   required
-                  variant="outlined"
-                  size="small"
-                  InputProps={{ inputProps: { min: 1 } }}
+                  min={0}
+                  step={5}
                 />
-              </Grid>
-            )}
-            
-            {/* Months (for monthly packages) */}
-            {newPackageType === 'monthly' && (
-              <>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Number of Months"
+              </FormField>
+
+              {/* Sessions (for fixed packages) */}
+              {newPackageType === 'fixed' && (
+                <FormField>
+                  <FormLabel>Number of Sessions *</FormLabel>
+                  <FormInput
                     type="number"
-                    value={newMonths}
-                    onChange={(e) => setNewMonths(Number(e.target.value))}
-                    fullWidth
+                    value={newSessions}
+                    onChange={(e) => setNewSessions(Number(e.target.value))}
                     required
-                    variant="outlined"
-                    size="small"
-                    InputProps={{ inputProps: { min: 1 } }}
+                    min={1}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Sessions Per Week"
-                    type="number"
-                    value={newSessionsPerWeek}
-                    onChange={(e) => setNewSessionsPerWeek(Number(e.target.value))}
-                    fullWidth
-                    required
-                    variant="outlined"
-                    size="small"
-                    InputProps={{ inputProps: { min: 1 } }}
+                </FormField>
+              )}
+
+              {/* Months (for monthly packages) */}
+              {newPackageType === 'monthly' && (
+                <>
+                  <FormField>
+                    <FormLabel>Number of Months *</FormLabel>
+                    <FormInput
+                      type="number"
+                      value={newMonths}
+                      onChange={(e) => setNewMonths(Number(e.target.value))}
+                      required
+                      min={1}
+                    />
+                  </FormField>
+                  <FormField>
+                    <FormLabel>Sessions Per Week *</FormLabel>
+                    <FormInput
+                      type="number"
+                      value={newSessionsPerWeek}
+                      onChange={(e) => setNewSessionsPerWeek(Number(e.target.value))}
+                      required
+                      min={1}
+                    />
+                  </FormField>
+                </>
+              )}
+
+              {/* Total Price Preview */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Total Price (Preview)</FormLabel>
+                  <FormInputAccent
+                    readOnly
+                    value={formatCurrency(newPackageType === 'fixed'
+                      ? newPricePerSession * newSessions
+                      : newPricePerSession * newMonths * newSessionsPerWeek * 4)}
                   />
-                </Grid>
-              </>
-            )}
-            
-            {/* Total Price Preview */}
-            <Grid item xs={12}>
-              <TextField
-                label="Total Price (Preview)"
-                value={formatCurrency(newPackageType === 'fixed' 
-                  ? newPricePerSession * newSessions 
-                  : newPricePerSession * newMonths * newSessionsPerWeek * 4)}
-                fullWidth
-                variant="outlined"
-                size="small"
-                InputProps={{ readOnly: true }}
-                sx={{ 
-                  '.MuiInputBase-input': { 
-                    color: '#00ffff', 
-                    fontWeight: 'bold' 
-                  }
-                }}
-              />
-            </Grid>
-            
-            {/* Description */}
-            <Grid item xs={12}>
-              <TextField
-                label="Description"
-                value={newPackageDescription}
-                onChange={(e) => setNewPackageDescription(e.target.value)}
-                fullWidth
-                multiline
-                rows={3}
-                variant="outlined"
-                size="small"
-                placeholder="Describe the key benefits and features of this package..."
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenNewDialog(false)}
-          />
-          <GlowButton
-            text="Create Package"
-            theme="emerald"
-            size="small"
-            leftIcon={<Plus size={16} />}
-            onClick={handleCreateNewPackage}
-          />
-        </DialogActions>
+                </FormField>
+              </FormGridFull>
+
+              {/* Description */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Description</FormLabel>
+                  <FormTextarea
+                    value={newPackageDescription}
+                    onChange={(e) => setNewPackageDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Describe the key benefits and features of this package..."
+                  />
+                </FormField>
+              </FormGridFull>
+            </FormGrid>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenNewDialog(false)}
+            />
+            <GlowButton
+              text="Create Package"
+              theme="emerald"
+              size="small"
+              leftIcon={<Plus size={16} />}
+              onClick={handleCreateNewPackage}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
       {/* Send Special Offer Dialog */}
-      <StyledDialog
-        open={openSendOfferDialog}
-        onClose={() => setOpenSendOfferDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Send />
-            <Typography variant="h6">Send Special Offer</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Create a special promotional offer for the selected package and send it to specific clients.
-          </DialogContentText>
-          
-          {selectedPackage && (
-            <Paper variant="outlined" sx={{ 
-              p: 2, 
-              mb: 3, 
-              background: 'rgba(0, 0, 0, 0.2)', 
-              borderColor: 'rgba(255, 255, 255, 0.1)', 
-              borderRadius: '8px' 
-            }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                <Package size={20} />
-                <Typography variant="subtitle1">{selectedPackage.name}</Typography>
-              </Stack>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-                {selectedPackage.packageType === 'fixed'
-                  ? `${selectedPackage.sessions} sessions at ${formatCurrency(selectedPackage.pricePerSession)} per session`
-                  : `${selectedPackage.months} months, ${selectedPackage.sessionsPerWeek} sessions/week at ${formatCurrency(selectedPackage.pricePerSession)} per session`
-                }
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500, color: '#00ffff' }}>
-                Regular Price: {formatCurrency(selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage))}
-              </Typography>
-            </Paper>
-          )}
-          
-          <Grid container spacing={2}>
-            {/* Client Selection */}
-            <Grid item xs={12}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Select Clients</InputLabel>
-                <Select
-                  multiple
-                  value={selectedClients}
-                  onChange={(e) => setSelectedClients(typeof e.target.value === 'string' ? [e.target.value] : e.target.value)}
-                  label="Select Clients"
-                  renderValue={(selected) => `${selected.length} clients selected`}
-                >
-                  {clients.map((client) => (
-                    <MenuItem key={client.id} value={client.id}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Avatar 
-                          src={client.photo || undefined} 
-                          sx={{ width: 24, height: 24, fontSize: '0.7rem' }}
-                        >
-                          {client.firstName?.[0]}{client.lastName?.[0]}
-                        </Avatar>
+      <StyledDialog $open={openSendOfferDialog} onClick={() => setOpenSendOfferDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Send size={20} />
+              <Heading6>Send Special Offer</Heading6>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogHintText>
+              Create a special promotional offer for the selected package and send it to specific clients.
+            </DialogHintText>
+
+            {selectedPackage && (
+              <InfoPanel>
+                <FlexRow $gap="0.5rem" style={{ marginBottom: '0.5rem' }}>
+                  <Package size={20} />
+                  <SubtitleText>{selectedPackage.name}</SubtitleText>
+                </FlexRow>
+                <BodyText $color="rgba(255, 255, 255, 0.7)" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                  {selectedPackage.packageType === 'fixed'
+                    ? `${selectedPackage.sessions} sessions at ${formatCurrency(selectedPackage.pricePerSession)} per session`
+                    : `${selectedPackage.months} months, ${selectedPackage.sessionsPerWeek} sessions/week at ${formatCurrency(selectedPackage.pricePerSession)} per session`
+                  }
+                </BodyText>
+                <BodyText $weight={500} $color="#00ffff">
+                  Regular Price: {formatCurrency(selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage))}
+                </BodyText>
+              </InfoPanel>
+            )}
+
+            <FormGrid>
+              {/* Client Selection */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Select Clients ({selectedClients.length} selected)</FormLabel>
+                  <ClientListContainer>
+                    {clients.map((client) => (
+                      <ClientCheckItem
+                        key={client.id}
+                        $selected={selectedClients.includes(client.id)}
+                      >
+                        <HiddenCheckbox
+                          type="checkbox"
+                          checked={selectedClients.includes(client.id)}
+                          onChange={() => toggleClientSelection(client.id)}
+                        />
+                        <AvatarCircle $src={client.photo || undefined}>
+                          {!client.photo && `${client.firstName?.[0] || ''}${client.lastName?.[0] || ''}`}
+                        </AvatarCircle>
                         <span>{client.firstName} {client.lastName}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            {/* Discount Percentage */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Discount (%)"
-                type="number"
-                value={offerDiscount}
-                onChange={(e) => setOfferDiscount(Math.min(Math.max(0, Number(e.target.value)), 100))} // Limit 0-100%
-                fullWidth
-                required
-                variant="outlined"
-                size="small"
-                InputProps={{ 
-                  inputProps: { min: 0, max: 100 }, 
-                  endAdornment: <InputAdornment position="end">%</InputAdornment>
-                }}
-              />
-            </Grid>
-            
-            {/* Discounted Price Preview */}
-            <Grid item xs={12} sm={6}>
-              {selectedPackage && (
-                <TextField
-                  label="Special Offer Price"
-                  value={formatCurrency(
-                    (selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage)) * (1 - offerDiscount / 100)
-                  )}
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  InputProps={{ readOnly: true }}
-                  sx={{ 
-                    '.MuiInputBase-input': { 
-                      color: '#00ffff', 
-                      fontWeight: 'bold' 
-                    }
-                  }}
-                />
-              )}
-            </Grid>
-            
-            {/* Personal Message */}
-            <Grid item xs={12}>
-              <TextField
-                label="Personal Message"
-                value={offerMessage}
-                onChange={(e) => setOfferMessage(e.target.value)}
-                fullWidth
-                multiline
-                rows={3}
-                variant="outlined"
-                size="small"
-                placeholder="Add a personal message to go with your offer..."
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenSendOfferDialog(false)}
-          />
-          <GlowButton
-            text="Send Offer"
-            theme="emerald"
-            size="small"
-            leftIcon={<Send size={16} />}
-            onClick={handleSendSpecialOffer}
-            disabled={selectedClients.length === 0}
-          />
-        </DialogActions>
+                        {selectedClients.includes(client.id) && (
+                          <CheckCircle size={14} style={{ marginLeft: 'auto', color: '#0ea5e9' }} />
+                        )}
+                      </ClientCheckItem>
+                    ))}
+                  </ClientListContainer>
+                </FormField>
+              </FormGridFull>
+
+              {/* Discount Percentage */}
+              <FormField>
+                <FormLabel>Discount (%) *</FormLabel>
+                <DiscountInputWrapper>
+                  <FormInput
+                    type="number"
+                    value={offerDiscount}
+                    onChange={(e) => setOfferDiscount(Math.min(Math.max(0, Number(e.target.value)), 100))}
+                    required
+                    min={0}
+                    max={100}
+                    style={{ paddingRight: '2rem' }}
+                  />
+                  <DiscountSuffix>%</DiscountSuffix>
+                </DiscountInputWrapper>
+              </FormField>
+
+              {/* Discounted Price Preview */}
+              <FormField>
+                {selectedPackage && (
+                  <>
+                    <FormLabel>Special Offer Price</FormLabel>
+                    <FormInputAccent
+                      readOnly
+                      value={formatCurrency(
+                        (selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage)) * (1 - offerDiscount / 100)
+                      )}
+                    />
+                  </>
+                )}
+              </FormField>
+
+              {/* Personal Message */}
+              <FormGridFull>
+                <FormField>
+                  <FormLabel>Personal Message</FormLabel>
+                  <FormTextarea
+                    value={offerMessage}
+                    onChange={(e) => setOfferMessage(e.target.value)}
+                    rows={3}
+                    placeholder="Add a personal message to go with your offer..."
+                  />
+                </FormField>
+              </FormGridFull>
+            </FormGrid>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenSendOfferDialog(false)}
+            />
+            <GlowButton
+              text="Send Offer"
+              theme="emerald"
+              size="small"
+              leftIcon={<Send size={16} />}
+              onClick={handleSendSpecialOffer}
+              disabled={selectedClients.length === 0}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
       {/* Delete Confirmation Dialog */}
-      <StyledDialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Trash2 />
-            <Typography variant="h6">Delete Package</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Are you sure you want to delete this package? This action cannot be undone.
-          </DialogContentText>
-          
-          {selectedPackage && (
-            <Paper variant="outlined" sx={{ 
-              p: 2, 
-              mb: 3, 
-              background: 'rgba(0, 0, 0, 0.2)', 
-              borderColor: 'rgba(255, 0, 0, 0.2)', 
-              borderRadius: '8px' 
-            }}>
-              <Typography variant="subtitle1">{selectedPackage.name}</Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                {selectedPackage.packageType === 'fixed'
-                  ? `${selectedPackage.sessions} sessions`
-                  : `${selectedPackage.months} months subscription`
-                }
-              </Typography>
-            </Paper>
-          )}
-          
-          <Typography variant="body2" sx={{ color: '#ff6b6b' }}>
-            Note: If clients have already purchased this package, the deletion may affect their access.
-            Instead of deleting, consider setting the package as inactive.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenDeleteDialog(false)}
-          />
-          <GlowButton
-            text="Delete Package"
-            theme="ruby"
-            size="small"
-            leftIcon={<Trash2 size={16} />}
-            onClick={handleDeletePackage}
-          />
-        </DialogActions>
+      <StyledDialog $open={openDeleteDialog} onClick={() => setOpenDeleteDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Trash2 size={20} />
+              <Heading6>Delete Package</Heading6>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogHintText>
+              Are you sure you want to delete this package? This action cannot be undone.
+            </DialogHintText>
+
+            {selectedPackage && (
+              <InfoPanel $borderColor="rgba(255, 0, 0, 0.2)">
+                <SubtitleText>{selectedPackage.name}</SubtitleText>
+                <BodyText $color="rgba(255, 255, 255, 0.7)" style={{ display: 'block', marginTop: '0.25rem' }}>
+                  {selectedPackage.packageType === 'fixed'
+                    ? `${selectedPackage.sessions} sessions`
+                    : `${selectedPackage.months} months subscription`
+                  }
+                </BodyText>
+              </InfoPanel>
+            )}
+
+            <BodyText $color="#ff6b6b" $size="0.875rem" style={{ display: 'block' }}>
+              Note: If clients have already purchased this package, the deletion may affect their access.
+              Instead of deleting, consider setting the package as inactive.
+            </BodyText>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenDeleteDialog(false)}
+            />
+            <GlowButton
+              text="Delete Package"
+              theme="ruby"
+              size="small"
+              leftIcon={<Trash2 size={16} />}
+              onClick={handleDeletePackage}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
     </PageContainer>
   );

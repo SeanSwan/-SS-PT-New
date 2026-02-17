@@ -385,37 +385,40 @@ export const StyledButton = styled.button<{ $variant?: string; $buttonColor?: st
   }
 `;
 
-export const ChipContainer = styled.div<{ chipstatus: string }>`
-  background: ${props =>
-    props.chipstatus === 'completed' ? 'rgba(16, 185, 129, 0.15)' :
-    props.chipstatus === 'scheduled' ? 'rgba(59, 130, 246, 0.15)' :
-    props.chipstatus === 'confirmed' ? 'rgba(8, 145, 178, 0.15)' :
-    props.chipstatus === 'cancelled' ? 'rgba(239, 68, 68, 0.15)' :
-    props.chipstatus === 'available' ? 'rgba(14, 165, 233, 0.15)' :
-    'rgba(59, 130, 246, 0.15)'
-  };
-  color: ${props =>
-    props.chipstatus === 'completed' ? '#10b981' :
-    props.chipstatus === 'scheduled' ? '#3b82f6' :
-    props.chipstatus === 'confirmed' ? '#0891b2' :
-    props.chipstatus === 'cancelled' ? '#ef4444' :
-    props.chipstatus === 'available' ? '#0ea5e9' :
-    '#3b82f6'
-  };
+export const ChipContainer = styled.div<{ $chipStatus?: string; chipstatus?: string }>`
+  background: ${props => {
+    const s = props.$chipStatus || props.chipstatus || '';
+    return s === 'completed' ? 'rgba(16, 185, 129, 0.15)' :
+    s === 'scheduled' ? 'rgba(59, 130, 246, 0.15)' :
+    s === 'confirmed' ? 'rgba(8, 145, 178, 0.15)' :
+    s === 'cancelled' ? 'rgba(239, 68, 68, 0.15)' :
+    s === 'available' ? 'rgba(14, 165, 233, 0.15)' :
+    'rgba(59, 130, 246, 0.15)';
+  }};
+  color: ${props => {
+    const s = props.$chipStatus || props.chipstatus || '';
+    return s === 'completed' ? '#10b981' :
+    s === 'scheduled' ? '#3b82f6' :
+    s === 'confirmed' ? '#0891b2' :
+    s === 'cancelled' ? '#ef4444' :
+    s === 'available' ? '#0ea5e9' :
+    '#3b82f6';
+  }};
   border-radius: 15px;
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.3rem 0.7rem;
   display: inline-block;
   text-transform: capitalize;
-  border: 1px solid ${props =>
-    props.chipstatus === 'completed' ? 'rgba(16, 185, 129, 0.3)' :
-    props.chipstatus === 'scheduled' ? 'rgba(59, 130, 246, 0.3)' :
-    props.chipstatus === 'confirmed' ? 'rgba(8, 145, 178, 0.3)' :
-    props.chipstatus === 'cancelled' ? 'rgba(239, 68, 68, 0.3)' :
-    props.chipstatus === 'available' ? 'rgba(14, 165, 233, 0.3)' :
-    'rgba(59, 130, 246, 0.3)'
-  };
+  border: 1px solid ${props => {
+    const s = props.$chipStatus || props.chipstatus || '';
+    return s === 'completed' ? 'rgba(16, 185, 129, 0.3)' :
+    s === 'scheduled' ? 'rgba(59, 130, 246, 0.3)' :
+    s === 'confirmed' ? 'rgba(8, 145, 178, 0.3)' :
+    s === 'cancelled' ? 'rgba(239, 68, 68, 0.3)' :
+    s === 'available' ? 'rgba(14, 165, 233, 0.3)' :
+    'rgba(59, 130, 246, 0.3)';
+  }};
 `;
 
 export const IconButtonContainer = styled.div`
@@ -424,23 +427,25 @@ export const IconButtonContainer = styled.div`
   justify-content: flex-end;
 `;
 
-export const StyledIconButton = styled(motion.button)<{ btncolor?: string }>`
-  background: ${props =>
-    props.btncolor === 'primary' ? 'rgba(0, 115, 255, 0.1)' :
-    props.btncolor === 'success' ? 'rgba(0, 191, 143, 0.1)' :
-    props.btncolor === 'error' ? 'rgba(255, 65, 108, 0.1)' :
-    'rgba(0, 255, 255, 0.1)'
-  };
-  color: ${props =>
-    props.btncolor === 'primary' ? '#0073ff' :
-    props.btncolor === 'success' ? '#00bf8f' :
-    props.btncolor === 'error' ? '#ff416c' :
-    '#00ffff'
-  };
+export const StyledIconButton = styled(motion.button)<{ $btnColor?: string; btncolor?: string }>`
+  background: ${props => {
+    const c = props.$btnColor || props.btncolor || '';
+    return c === 'primary' ? 'rgba(0, 115, 255, 0.1)' :
+    c === 'success' ? 'rgba(0, 191, 143, 0.1)' :
+    c === 'error' ? 'rgba(255, 65, 108, 0.1)' :
+    'rgba(0, 255, 255, 0.1)';
+  }};
+  color: ${props => {
+    const c = props.$btnColor || props.btncolor || '';
+    return c === 'primary' ? '#0073ff' :
+    c === 'success' ? '#00bf8f' :
+    c === 'error' ? '#ff416c' :
+    '#00ffff';
+  }};
   border: none;
   border-radius: 8px;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -448,12 +453,13 @@ export const StyledIconButton = styled(motion.button)<{ btncolor?: string }>`
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${props =>
-      props.btncolor === 'primary' ? 'rgba(0, 115, 255, 0.2)' :
-      props.btncolor === 'success' ? 'rgba(0, 191, 143, 0.2)' :
-      props.btncolor === 'error' ? 'rgba(255, 65, 108, 0.2)' :
-      'rgba(0, 255, 255, 0.2)'
-    };
+    background: ${props => {
+      const c = props.$btnColor || props.btncolor || '';
+      return c === 'primary' ? 'rgba(0, 115, 255, 0.2)' :
+      c === 'success' ? 'rgba(0, 191, 143, 0.2)' :
+      c === 'error' ? 'rgba(255, 65, 108, 0.2)' :
+      'rgba(0, 255, 255, 0.2)';
+    }};
     transform: translateY(-2px);
   }
 
@@ -585,6 +591,204 @@ export const DialogActionsBar = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+`;
+
+// --- Flex Row / Stack Replacement ---
+export const FlexRow = styled.div<{ $gap?: string; $align?: string; $justify?: string; $wrap?: string }>`
+  display: flex;
+  flex-direction: row;
+  gap: ${props => props.$gap || '0.5rem'};
+  align-items: ${props => props.$align || 'center'};
+  justify-content: ${props => props.$justify || 'flex-start'};
+  flex-wrap: ${props => props.$wrap || 'nowrap'};
+`;
+
+// --- Avatar ---
+export const StyledAvatar = styled.div<{ $size?: number }>`
+  width: ${props => props.$size || 32}px;
+  height: ${props => props.$size || 32}px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(14, 165, 233, 0.3));
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${props => ((props.$size || 32) * 0.35)}px;
+  color: #e2e8f0;
+  font-weight: 600;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+`;
+
+// --- Session Count Chip (inline in table) ---
+export const SessionCountChip = styled.span<{ $hasCredits?: boolean }>`
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  margin-top: 0.25rem;
+  border: 1px solid ${props => props.$hasCredits ? 'rgba(46, 125, 50, 0.5)' : 'rgba(211, 47, 47, 0.5)'};
+  color: ${props => props.$hasCredits ? 'rgba(46, 125, 50, 1)' : 'rgba(211, 47, 47, 1)'};
+  background: ${props => props.$hasCredits ? 'rgba(46, 125, 50, 0.1)' : 'rgba(211, 47, 47, 0.1)'};
+`;
+
+// --- Date Input ---
+export const DateInput = styled.input`
+  border-radius: 8px;
+  background: rgba(20, 20, 40, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  outline: none;
+  width: 140px;
+  min-height: 44px;
+  box-sizing: border-box;
+
+  &:hover,
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+  }
+`;
+
+// --- Search Wrapper (icon + input) ---
+export const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 300px;
+
+  @media (max-width: 600px) {
+    min-width: 100%;
+  }
+`;
+
+export const SearchIconSpan = styled.span`
+  position: absolute;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+`;
+
+export const SearchInput = styled.input`
+  border-radius: 10px;
+  background: rgba(20, 20, 40, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  font-size: 0.95rem;
+  outline: none;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:hover,
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  }
+`;
+
+// --- Pagination ---
+export const PaginationContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+`;
+
+export const PaginationSelect = styled.select`
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  outline: none;
+  min-height: 36px;
+  cursor: pointer;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+  }
+
+  option {
+    background: #0a0a1a;
+    color: #e2e8f0;
+  }
+`;
+
+export const PaginationButton = styled.button<{ $disabled?: boolean }>`
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: ${props => props.$disabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.7)'};
+  padding: 0.3rem 0.6rem;
+  min-height: 36px;
+  min-width: 36px;
+  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.4);
+  }
+`;
+
+// --- Muted / Italic Text ---
+export const MutedText = styled.span`
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  font-size: 0.875rem;
+`;
+
+export const BodyText = styled.span<{ $weight?: number; $size?: string; $color?: string }>`
+  font-size: ${props => props.$size || '0.875rem'};
+  font-weight: ${props => props.$weight || 400};
+  color: ${props => props.$color || 'rgba(255, 255, 255, 0.8)'};
+`;
+
+export const CaptionText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+// --- Delete Dialog Detail Box ---
+export const DeleteDetailBox = styled.div`
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 0, 0, 0.2);
 `;
 
 // Animation variants for Framer Motion
