@@ -288,6 +288,45 @@ async function migrateShoppingCartColumns() {
     } catch (enumError) {
       logger.warn(`[Migration] shopping_carts status enum update skipped: ${enumError.message}`);
     }
+
+    // Ensure shopping_carts.userId FK references canonical "Users"(id).
+    // Some legacy environments point to lowercase users(id), which breaks
+    // cart creation for accounts created in "Users".
+    try {
+      const [fkRows] = await sequelize.query(`
+        SELECT
+          tc.constraint_name,
+          ccu.table_name AS foreign_table_name
+        FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu
+          ON tc.constraint_name = kcu.constraint_name
+          AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage AS ccu
+          ON ccu.constraint_name = tc.constraint_name
+          AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_name = 'shopping_carts'
+          AND kcu.column_name = 'userId';
+      `);
+
+      const hasUsersTarget = (fkRows || []).some((row) => row.foreign_table_name === 'Users');
+      if (!hasUsersTarget) {
+        logger.info('[Migration] Repairing shopping_carts.userId FK to reference "Users"(id)...');
+        await sequelize.query(`ALTER TABLE shopping_carts DROP CONSTRAINT IF EXISTS "shopping_carts_userId_fkey";`);
+        await sequelize.query(`
+          ALTER TABLE shopping_carts
+          ADD CONSTRAINT "shopping_carts_userId_fkey"
+          FOREIGN KEY ("userId")
+          REFERENCES "Users"(id)
+          ON UPDATE CASCADE
+          ON DELETE CASCADE
+          NOT VALID;
+        `);
+        logger.info('[Migration] shopping_carts.userId FK now references "Users"(id)');
+      }
+    } catch (fkError) {
+      logger.warn(`[Migration] shopping_carts FK alignment skipped: ${fkError.message}`);
+    }
   } catch (error) {
     logger.warn(`[Migration] shopping_carts schema fix failed (non-critical): ${error.message}`);
   }
