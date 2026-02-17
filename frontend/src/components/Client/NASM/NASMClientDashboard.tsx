@@ -19,54 +19,29 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styled, { keyframes, css } from 'styled-components';
 import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Chip,
-  Alert,
-  LinearProgress,
-  Stack,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Badge,
-  Tooltip,
-} from '@mui/material';
-import {
-  TrendingUp as TrendingUpIcon,
-  FitnessCenter as FitnessCenterIcon,
-  Assignment as AssignmentIcon,
-  CheckCircle as CheckCircleIcon,
-  RadioButtonUnchecked as RadioButtonUncheckedIcon,
-  LocalFireDepartment as LocalFireDepartmentIcon,
-  EmojiEvents as EmojiEventsIcon,
-  PlayArrow as PlayArrowIcon,
-  ExpandMore as ExpandMoreIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  Star as StarIcon,
-  Message as MessageIcon,
-} from '@mui/icons-material';
+  TrendingUp,
+  Dumbbell,
+  ClipboardList,
+  CheckCircle,
+  Circle,
+  Flame,
+  Trophy,
+  Play,
+  ChevronDown,
+  AlertTriangle,
+  Info,
+  Star,
+  MessageSquare,
+} from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../utils/api';
 import WorkoutLogger from '../../Workout/WorkoutLogger';
+
+// ========================================
+// TYPES
+// ========================================
 
 interface ClientPhaseData {
   current_phase: string;
@@ -125,6 +100,464 @@ interface SetLog {
   rpe: number;
   completed: boolean;
 }
+
+// ========================================
+// STYLED COMPONENTS
+// ========================================
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const PageContainer = styled.div`
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px;
+
+  @media (max-width: 768px) {
+    padding: 16px 12px;
+  }
+`;
+
+const PageHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const PageTitle = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 4px 0;
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 0.95rem;
+  color: rgba(226, 232, 240, 0.6);
+  margin: 0;
+`;
+
+const GridLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+`;
+
+const FullWidthRow = styled.div`
+  grid-column: 1 / -1;
+`;
+
+const GlassCard = styled.div<{ $borderColor?: string }>`
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid ${({ $borderColor }) => $borderColor || 'rgba(14, 165, 233, 0.2)'};
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const PhaseCard = styled.div<{ $phaseColor: string }>`
+  background: linear-gradient(135deg, ${({ $phaseColor }) => $phaseColor} 0%, ${({ $phaseColor }) => $phaseColor}DD 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: #ffffff;
+`;
+
+const FlexRow = styled.div<{ $justify?: string; $align?: string; $gap?: string; $wrap?: string }>`
+  display: flex;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'stretch'};
+  gap: ${({ $gap }) => $gap || '0'};
+  flex-wrap: ${({ $wrap }) => $wrap || 'nowrap'};
+`;
+
+const FlexColumn = styled.div<{ $align?: string; $gap?: string }>`
+  display: flex;
+  flex-direction: column;
+  align-items: ${({ $align }) => $align || 'stretch'};
+  gap: ${({ $gap }) => $gap || '0'};
+`;
+
+const OverlineText = styled.span`
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  opacity: 0.9;
+`;
+
+const Heading5 = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: inherit;
+`;
+
+const Heading6 = styled.h4`
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #e2e8f0;
+`;
+
+const BodyText = styled.p<{ $muted?: boolean; $small?: boolean; $center?: boolean; $bold?: boolean }>`
+  font-size: ${({ $small }) => ($small ? '0.8rem' : '0.95rem')};
+  color: ${({ $muted }) => ($muted ? 'rgba(226, 232, 240, 0.6)' : '#e2e8f0')};
+  text-align: ${({ $center }) => ($center ? 'center' : 'left')};
+  font-weight: ${({ $bold }) => ($bold ? '700' : '400')};
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const PhaseBodyText = styled.p<{ $muted?: boolean; $small?: boolean; $center?: boolean; $bold?: boolean }>`
+  font-size: ${({ $small }) => ($small ? '0.8rem' : '0.95rem')};
+  color: #ffffff;
+  opacity: ${({ $muted }) => ($muted ? 0.9 : 1)};
+  text-align: ${({ $center }) => ($center ? 'center' : 'left')};
+  font-weight: ${({ $bold }) => ($bold ? '700' : '400')};
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const SubtitleText = styled.span<{ $color?: string }>`
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: ${({ $color }) => $color || '#e2e8f0'};
+  margin-bottom: 4px;
+  display: block;
+`;
+
+const CaptionText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.5);
+`;
+
+const Chip = styled.span<{ $bgColor?: string; $textColor?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: ${({ $bgColor }) => $bgColor || 'rgba(14, 165, 233, 0.2)'};
+  color: ${({ $textColor }) => $textColor || '#0ea5e9'};
+  white-space: nowrap;
+  min-height: 28px;
+`;
+
+const PhaseChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  white-space: nowrap;
+`;
+
+const HorizontalDivider = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  margin: 16px 0;
+`;
+
+const ProgressBarContainer = styled.div<{ $bgColor?: string }>`
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: ${({ $bgColor }) => $bgColor || 'rgba(226, 232, 240, 0.15)'};
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $percent: number; $fillColor?: string }>`
+  height: 100%;
+  width: ${({ $percent }) => Math.min(100, Math.max(0, $percent))}%;
+  border-radius: 4px;
+  background: ${({ $fillColor }) => $fillColor || '#0ea5e9'};
+  transition: width 0.4s ease;
+`;
+
+const StyledList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const StyledListItem = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.08);
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ListItemContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ListItemPrimary = styled.span`
+  display: block;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+`;
+
+const ListItemSecondary = styled.span`
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(226, 232, 240, 0.5);
+`;
+
+const PrimaryButton = styled.button<{ $fullWidth?: boolean; $variant?: 'primary' | 'success'; $disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+  transition: all 0.2s ease;
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+
+  ${({ $variant }) =>
+    $variant === 'success'
+      ? css`
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: #ffffff;
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+          }
+        `
+      : css`
+          background: linear-gradient(135deg, #0ea5e9, #0284c7);
+          color: #ffffff;
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+          }
+        `}
+`;
+
+const TextButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.7);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.1);
+    color: #e2e8f0;
+  }
+`;
+
+const AlertBox = styled.div<{ $severity: 'info' | 'warning' | 'success' | 'error' }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+
+  ${({ $severity }) => {
+    switch ($severity) {
+      case 'info':
+        return css`
+          background: rgba(14, 165, 233, 0.1);
+          border: 1px solid rgba(14, 165, 233, 0.3);
+          color: #7dd3fc;
+        `;
+      case 'warning':
+        return css`
+          background: rgba(234, 179, 8, 0.1);
+          border: 1px solid rgba(234, 179, 8, 0.3);
+          color: #fde047;
+        `;
+      case 'success':
+        return css`
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.3);
+          color: #86efac;
+        `;
+      case 'error':
+        return css`
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #fca5a5;
+        `;
+    }
+  }}
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+`;
+
+const StatCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+`;
+
+const BadgeWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const BadgeCount = styled.span`
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+`;
+
+const AccordionContainer = styled.details`
+  border: 1px solid rgba(14, 165, 233, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+
+  &[open] > summary svg.chevron {
+    transform: rotate(180deg);
+  }
+`;
+
+const AccordionSummaryStyled = styled.summary`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  min-height: 44px;
+  list-style: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(14, 165, 233, 0.05);
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.1);
+  }
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  svg.chevron {
+    transition: transform 0.2s ease;
+  }
+`;
+
+const AccordionContent = styled.div`
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+/* Dialog / Modal */
+const DialogOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+`;
+
+const DialogPanel = styled.div`
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  backdrop-filter: blur(16px);
+`;
+
+const DialogHeader = styled.div`
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.12);
+`;
+
+const DialogTitleText = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+`;
+
+const DialogBody = styled.div`
+  padding: 16px 24px;
+`;
+
+const DialogFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 24px 20px;
+`;
+
+// ========================================
+// COMPONENT
+// ========================================
 
 const NASMClientDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -247,68 +680,53 @@ const NASMClientDashboard: React.FC = () => {
     const progressPercent = (phaseData.weeks_completed / phaseData.phase_target_weeks) * 100;
 
     return (
-      <Card sx={{ background: `linear-gradient(135deg, ${phaseInfo.color} 0%, ${phaseInfo.color}DD 100%)`, color: 'white' }}>
-        <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Box>
-              <Typography variant="overline" sx={{ opacity: 0.9 }}>
-                Your Current Phase
-              </Typography>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                {phaseInfo.title}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {phaseInfo.description}
-              </Typography>
-            </Box>
-            {phaseData.ready_for_next_phase && (
-              <Chip
-                label="Ready to Advance!"
-                icon={<CheckCircleIcon />}
-                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 'bold' }}
-              />
-            )}
-          </Stack>
-
-          <Divider sx={{ my: 2, bgcolor: 'rgba(255,255,255,0.3)' }} />
-
-          <Stack spacing={1}>
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="body2">Week {phaseData.weeks_completed} of {phaseData.phase_target_weeks}</Typography>
-              <Typography variant="body2" fontWeight="bold">
-                {progressPercent.toFixed(0)}%
-              </Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={progressPercent}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                bgcolor: 'rgba(255,255,255,0.3)',
-                '& .MuiLinearProgress-bar': { bgcolor: 'white' },
-              }}
-            />
-          </Stack>
-
-          <Box mt={3}>
-            <Typography variant="subtitle2" gutterBottom>
-              Phase Focus Areas
-            </Typography>
-            <Stack direction="row" flexWrap="wrap" gap={1}>
-              {phaseInfo.focusAreas.map((area, idx) => (
-                <Chip key={idx} label={area} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
-              ))}
-            </Stack>
-          </Box>
-
-          {phaseData.trainer_notes && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <strong>Trainer Note:</strong> {phaseData.trainer_notes}
-            </Alert>
+      <PhaseCard $phaseColor={phaseInfo.color}>
+        <FlexRow $justify="space-between" $align="flex-start" style={{ marginBottom: 16 }}>
+          <div>
+            <OverlineText>Your Current Phase</OverlineText>
+            <Heading5 style={{ marginTop: 4 }}>{phaseInfo.title}</Heading5>
+            <PhaseBodyText $muted>{phaseInfo.description}</PhaseBodyText>
+          </div>
+          {phaseData.ready_for_next_phase && (
+            <PhaseChip>
+              <CheckCircle size={14} />
+              Ready to Advance!
+            </PhaseChip>
           )}
-        </CardContent>
-      </Card>
+        </FlexRow>
+
+        <HorizontalDivider />
+
+        <FlexColumn $gap="8px">
+          <FlexRow $justify="space-between">
+            <PhaseBodyText $small>
+              Week {phaseData.weeks_completed} of {phaseData.phase_target_weeks}
+            </PhaseBodyText>
+            <PhaseBodyText $small $bold>
+              {progressPercent.toFixed(0)}%
+            </PhaseBodyText>
+          </FlexRow>
+          <ProgressBarContainer $bgColor="rgba(255,255,255,0.3)">
+            <ProgressBarFill $percent={progressPercent} $fillColor="#ffffff" />
+          </ProgressBarContainer>
+        </FlexColumn>
+
+        <div style={{ marginTop: 24 }}>
+          <SubtitleText $color="#ffffff" style={{ marginBottom: 8 }}>Phase Focus Areas</SubtitleText>
+          <FlexRow $wrap="wrap" $gap="8px">
+            {phaseInfo.focusAreas.map((area, idx) => (
+              <PhaseChip key={idx}>{area}</PhaseChip>
+            ))}
+          </FlexRow>
+        </div>
+
+        {phaseData.trainer_notes && (
+          <AlertBox $severity="info" style={{ marginTop: 16 }}>
+            <Info size={18} />
+            <span><strong>Trainer Note:</strong> {phaseData.trainer_notes}</span>
+          </AlertBox>
+        )}
+      </PhaseCard>
     );
   };
 
@@ -355,21 +773,17 @@ const NASMClientDashboard: React.FC = () => {
   const renderTodaysWorkout = () => {
     if (!todaysWorkout) {
       return (
-        <Card>
-          <CardContent>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <FitnessCenterIcon color="disabled" sx={{ fontSize: 48 }} />
-              <Box>
-                <Typography variant="h6" color="text.secondary">
-                  No Workout Assigned
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Your trainer hasn't assigned a workout yet. Check back later!
-                </Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
+        <GlassCard>
+          <FlexRow $gap="16px" $align="center">
+            <Dumbbell size={48} color="rgba(226, 232, 240, 0.3)" />
+            <div>
+              <Heading6 style={{ color: 'rgba(226, 232, 240, 0.6)' }}>No Workout Assigned</Heading6>
+              <BodyText $muted $small>
+                Your trainer hasn't assigned a workout yet. Check back later!
+              </BodyText>
+            </div>
+          </FlexRow>
+        </GlassCard>
       );
     }
 
@@ -378,60 +792,62 @@ const NASMClientDashboard: React.FC = () => {
     const workoutProgress = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
     return (
-      <Card>
-        <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Today's Workout
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {todaysWorkout.template_name} • {todaysWorkout.target_duration_minutes} min
-              </Typography>
-            </Box>
-            <Chip label={getPhaseInfo(todaysWorkout.opt_phase).title} color="primary" />
-          </Stack>
+      <GlassCard>
+        <FlexRow $justify="space-between" $align="flex-start" style={{ marginBottom: 16 }}>
+          <div>
+            <Heading6>Today's Workout</Heading6>
+            <BodyText $muted $small>
+              {todaysWorkout.template_name} &bull; {todaysWorkout.target_duration_minutes} min
+            </BodyText>
+          </div>
+          <Chip $bgColor="rgba(14, 165, 233, 0.2)" $textColor="#0ea5e9">
+            {getPhaseInfo(todaysWorkout.opt_phase).title}
+          </Chip>
+        </FlexRow>
 
-          {todaysWorkout.corrective_warmup_required && homework && !homework.completed_today && (
-            <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 2 }}>
-              Complete your corrective warmup first!
-            </Alert>
-          )}
+        {todaysWorkout.corrective_warmup_required && homework && !homework.completed_today && (
+          <AlertBox $severity="warning" style={{ marginBottom: 16 }}>
+            <AlertTriangle size={18} />
+            <span>Complete your corrective warmup first!</span>
+          </AlertBox>
+        )}
 
-          <LinearProgress variant="determinate" value={workoutProgress} sx={{ height: 8, borderRadius: 4, mb: 2 }} />
+        <ProgressBarContainer style={{ marginBottom: 16 }}>
+          <ProgressBarFill $percent={workoutProgress} />
+        </ProgressBarContainer>
 
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            {completedExercises} of {totalExercises} exercises completed
-          </Typography>
+        <BodyText $muted $small style={{ marginBottom: 8 }}>
+          {completedExercises} of {totalExercises} exercises completed
+        </BodyText>
 
-          <List dense>
-            {todaysWorkout.exercises.slice(0, 3).map((exercise, idx) => (
-              <ListItem key={exercise.exercise_id}>
-                <ListItemIcon>
-                  {exercise.sets_logged === exercise.sets ? (
-                    <CheckCircleIcon color="success" />
-                  ) : (
-                    <RadioButtonUncheckedIcon color="disabled" />
-                  )}
-                </ListItemIcon>
-                <ListItemText
-                  primary={exercise.exercise_name}
-                  secondary={`${exercise.sets} × ${exercise.reps} • ${exercise.tempo} tempo`}
-                />
-              </ListItem>
-            ))}
-            {todaysWorkout.exercises.length > 3 && (
-              <Typography variant="body2" color="text.secondary" textAlign="center" mt={1}>
-                +{todaysWorkout.exercises.length - 3} more exercises
-              </Typography>
-            )}
-          </List>
+        <StyledList>
+          {todaysWorkout.exercises.slice(0, 3).map((exercise) => (
+            <StyledListItem key={exercise.exercise_id}>
+              {exercise.sets_logged === exercise.sets ? (
+                <CheckCircle size={20} color="#22c55e" />
+              ) : (
+                <Circle size={20} color="rgba(226, 232, 240, 0.3)" />
+              )}
+              <ListItemContent>
+                <ListItemPrimary>{exercise.exercise_name}</ListItemPrimary>
+                <ListItemSecondary>
+                  {exercise.sets} x {exercise.reps} &bull; {exercise.tempo} tempo
+                </ListItemSecondary>
+              </ListItemContent>
+            </StyledListItem>
+          ))}
+        </StyledList>
+        {todaysWorkout.exercises.length > 3 && (
+          <BodyText $muted $small $center style={{ marginTop: 8 }}>
+            +{todaysWorkout.exercises.length - 3} more exercises
+          </BodyText>
+        )}
 
-          <Button variant="contained" fullWidth startIcon={<PlayArrowIcon />} onClick={startWorkout} sx={{ mt: 2 }}>
-            {workoutProgress > 0 ? 'Continue Workout' : 'Start Workout'}
-          </Button>
-        </CardContent>
-      </Card>
+        <PrimaryButton $fullWidth onClick={startWorkout} style={{ marginTop: 16 }}>
+          <Play size={18} />
+          {workoutProgress > 0 ? 'Continue Workout' : 'Start Workout'}
+        </PrimaryButton>
+      </GlassCard>
     );
   };
 
@@ -453,166 +869,160 @@ const NASMClientDashboard: React.FC = () => {
   const renderHomeworkTracker = () => {
     if (!homework) {
       return (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Corrective Homework
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              No active corrective protocol. Your trainer will assign one if needed.
-            </Typography>
-          </CardContent>
-        </Card>
+        <GlassCard>
+          <Heading6 style={{ marginBottom: 8 }}>Corrective Homework</Heading6>
+          <BodyText $muted $small>
+            No active corrective protocol. Your trainer will assign one if needed.
+          </BodyText>
+        </GlassCard>
       );
     }
 
+    const borderColor = homework.completed_today ? 'rgba(34, 197, 94, 0.6)' : 'rgba(234, 179, 8, 0.6)';
+
     return (
-      <Card sx={{ border: homework.completed_today ? '2px solid green' : '2px solid orange' }}>
-        <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Daily Homework
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {homework.protocol_type} Protocol
-              </Typography>
-            </Box>
-            {homework.completed_today ? (
-              <Chip label="Completed Today!" color="success" icon={<CheckCircleIcon />} />
-            ) : (
-              <Chip label="Due Today" color="warning" icon={<AssignmentIcon />} />
-            )}
-          </Stack>
-
-          <Grid container spacing={2} mb={2}>
-            <Grid item xs={4}>
-              <Stack alignItems="center">
-                <Badge badgeContent={homework.current_streak} color="error" max={99}>
-                  <LocalFireDepartmentIcon sx={{ fontSize: 32, color: 'error.main' }} />
-                </Badge>
-                <Typography variant="caption" color="text.secondary">
-                  Day Streak
-                </Typography>
-              </Stack>
-            </Grid>
-
-            <Grid item xs={4}>
-              <Stack alignItems="center">
-                <Stack direction="row" alignItems="center">
-                  <StarIcon sx={{ color: 'warning.main' }} />
-                  <Typography variant="h6" fontWeight="bold">
-                    {homework.xp_earned}
-                  </Typography>
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  XP Earned
-                </Typography>
-              </Stack>
-            </Grid>
-
-            <Grid item xs={4}>
-              <Stack alignItems="center">
-                <Typography variant="h6" fontWeight="bold">
-                  {homework.compliance_rate.toFixed(0)}%
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Compliance
-                </Typography>
-              </Stack>
-            </Grid>
-          </Grid>
-
-          <LinearProgress
-            variant="determinate"
-            value={homework.compliance_rate}
-            sx={{
-              height: 8,
-              borderRadius: 4,
-              mb: 2,
-              bgcolor: 'grey.300',
-              '& .MuiLinearProgress-bar': {
-                bgcolor: homework.compliance_rate >= 85 ? 'success.main' : homework.compliance_rate >= 70 ? 'warning.main' : 'error.main',
-              },
-            }}
-          />
-
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            {homework.days_completed} of {homework.total_days_assigned} days completed
-          </Typography>
-
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle2">View Exercises ({homework.inhibit_exercises.length + homework.lengthen_exercises.length + homework.activate_exercises.length + homework.integrate_exercises.length} total)</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle2" color="primary" gutterBottom>
-                    1. Inhibit (SMR/Foam Rolling)
-                  </Typography>
-                  {homework.inhibit_exercises.map((ex, idx) => (
-                    <Typography key={idx} variant="body2">
-                      • {ex.exercise} - {ex.duration_sec}s
-                    </Typography>
-                  ))}
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" color="success.main" gutterBottom>
-                    2. Lengthen (Static Stretching)
-                  </Typography>
-                  {homework.lengthen_exercises.map((ex, idx) => (
-                    <Typography key={idx} variant="body2">
-                      • {ex.exercise} - {ex.reps} × {ex.duration_sec}s
-                    </Typography>
-                  ))}
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" color="warning.main" gutterBottom>
-                    3. Activate (Isolated Strength)
-                  </Typography>
-                  {homework.activate_exercises.map((ex, idx) => (
-                    <Typography key={idx} variant="body2">
-                      • {ex.exercise} - {ex.sets} × {ex.reps} @ {ex.tempo}
-                    </Typography>
-                  ))}
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" color="error.main" gutterBottom>
-                    4. Integrate (Functional Movement)
-                  </Typography>
-                  {homework.integrate_exercises.map((ex, idx) => (
-                    <Typography key={idx} variant="body2">
-                      • {ex.exercise} - {ex.sets} × {ex.reps} @ {ex.tempo}
-                    </Typography>
-                  ))}
-                </Box>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          <Button
-            variant="contained"
-            fullWidth
-            color={homework.completed_today ? 'success' : 'primary'}
-            startIcon={homework.completed_today ? <CheckCircleIcon /> : <PlayArrowIcon />}
-            onClick={() => setHomeworkDialogOpen(true)}
-            sx={{ mt: 2 }}
-            disabled={homework.completed_today}
-          >
-            {homework.completed_today ? 'Completed Today!' : 'Start Homework'}
-          </Button>
-
-          {homework.current_streak >= 7 && (
-            <Alert severity="success" icon={<EmojiEventsIcon />} sx={{ mt: 2 }}>
-              <strong>{homework.current_streak}-day streak!</strong> You're crushing it! 🔥
-            </Alert>
+      <GlassCard $borderColor={borderColor} style={{ borderWidth: 2 }}>
+        <FlexRow $justify="space-between" $align="flex-start" style={{ marginBottom: 16 }}>
+          <div>
+            <Heading6>Daily Homework</Heading6>
+            <BodyText $muted $small>{homework.protocol_type} Protocol</BodyText>
+          </div>
+          {homework.completed_today ? (
+            <Chip $bgColor="rgba(34, 197, 94, 0.2)" $textColor="#22c55e">
+              <CheckCircle size={14} />
+              Completed Today!
+            </Chip>
+          ) : (
+            <Chip $bgColor="rgba(234, 179, 8, 0.2)" $textColor="#eab308">
+              <ClipboardList size={14} />
+              Due Today
+            </Chip>
           )}
-        </CardContent>
-      </Card>
+        </FlexRow>
+
+        <StatsGrid>
+          <StatCell>
+            <BadgeWrapper>
+              <Flame size={32} color="#ef4444" />
+              {homework.current_streak > 0 && (
+                <BadgeCount>{homework.current_streak > 99 ? '99+' : homework.current_streak}</BadgeCount>
+              )}
+            </BadgeWrapper>
+            <CaptionText>Day Streak</CaptionText>
+          </StatCell>
+
+          <StatCell>
+            <FlexRow $align="center" $gap="4px">
+              <Star size={20} color="#eab308" fill="#eab308" />
+              <Heading6 style={{ margin: 0 }}>{homework.xp_earned}</Heading6>
+            </FlexRow>
+            <CaptionText>XP Earned</CaptionText>
+          </StatCell>
+
+          <StatCell>
+            <Heading6 style={{ margin: 0 }}>{homework.compliance_rate.toFixed(0)}%</Heading6>
+            <CaptionText>Compliance</CaptionText>
+          </StatCell>
+        </StatsGrid>
+
+        <ProgressBarContainer style={{ marginBottom: 16 }}>
+          <ProgressBarFill
+            $percent={homework.compliance_rate}
+            $fillColor={
+              homework.compliance_rate >= 85
+                ? '#22c55e'
+                : homework.compliance_rate >= 70
+                ? '#eab308'
+                : '#ef4444'
+            }
+          />
+        </ProgressBarContainer>
+
+        <BodyText $muted $small style={{ marginBottom: 12 }}>
+          {homework.days_completed} of {homework.total_days_assigned} days completed
+        </BodyText>
+
+        <AccordionContainer>
+          <AccordionSummaryStyled>
+            <span>
+              View Exercises (
+              {homework.inhibit_exercises.length +
+                homework.lengthen_exercises.length +
+                homework.activate_exercises.length +
+                homework.integrate_exercises.length}{' '}
+              total)
+            </span>
+            <ChevronDown size={18} className="chevron" />
+          </AccordionSummaryStyled>
+          <AccordionContent>
+            <div>
+              <SubtitleText $color="#0ea5e9">1. Inhibit (SMR/Foam Rolling)</SubtitleText>
+              {homework.inhibit_exercises.map((ex, idx) => (
+                <BodyText key={idx} $small style={{ marginLeft: 8 }}>
+                  &bull; {ex.exercise} - {ex.duration_sec}s
+                </BodyText>
+              ))}
+            </div>
+
+            <div>
+              <SubtitleText $color="#22c55e">2. Lengthen (Static Stretching)</SubtitleText>
+              {homework.lengthen_exercises.map((ex, idx) => (
+                <BodyText key={idx} $small style={{ marginLeft: 8 }}>
+                  &bull; {ex.exercise} - {ex.reps} x {ex.duration_sec}s
+                </BodyText>
+              ))}
+            </div>
+
+            <div>
+              <SubtitleText $color="#eab308">3. Activate (Isolated Strength)</SubtitleText>
+              {homework.activate_exercises.map((ex, idx) => (
+                <BodyText key={idx} $small style={{ marginLeft: 8 }}>
+                  &bull; {ex.exercise} - {ex.sets} x {ex.reps} @ {ex.tempo}
+                </BodyText>
+              ))}
+            </div>
+
+            <div>
+              <SubtitleText $color="#ef4444">4. Integrate (Functional Movement)</SubtitleText>
+              {homework.integrate_exercises.map((ex, idx) => (
+                <BodyText key={idx} $small style={{ marginLeft: 8 }}>
+                  &bull; {ex.exercise} - {ex.sets} x {ex.reps} @ {ex.tempo}
+                </BodyText>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionContainer>
+
+        <PrimaryButton
+          $fullWidth
+          $variant={homework.completed_today ? 'success' : 'primary'}
+          $disabled={homework.completed_today}
+          onClick={() => !homework.completed_today && setHomeworkDialogOpen(true)}
+          disabled={homework.completed_today}
+          style={{ marginTop: 16 }}
+        >
+          {homework.completed_today ? (
+            <>
+              <CheckCircle size={18} />
+              Completed Today!
+            </>
+          ) : (
+            <>
+              <Play size={18} />
+              Start Homework
+            </>
+          )}
+        </PrimaryButton>
+
+        {homework.current_streak >= 7 && (
+          <AlertBox $severity="success" style={{ marginTop: 16 }}>
+            <Trophy size={18} />
+            <span>
+              <strong>{homework.current_streak}-day streak!</strong> You're crushing it!
+            </span>
+          </AlertBox>
+        )}
+      </GlassCard>
     );
   };
 
@@ -620,127 +1030,129 @@ const NASMClientDashboard: React.FC = () => {
   // PROGRESS TIMELINE
   // ========================================
   const renderProgressTimeline = () => (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" fontWeight="bold" gutterBottom>
-          Phase Progression History
-        </Typography>
+    <GlassCard>
+      <Heading6 style={{ marginBottom: 12 }}>Phase Progression History</Heading6>
 
-        {phaseHistory.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            No phase history yet. You're just getting started!
-          </Typography>
-        ) : (
-          <List>
-            {phaseHistory.map((entry, idx) => (
-              <ListItem key={entry.id}>
-                <ListItemIcon>
-                  <TrendingUpIcon color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary={`${entry.from_phase ? getPhaseInfo(entry.from_phase).title : 'Start'} → ${getPhaseInfo(entry.to_phase).title}`}
-                  secondary={`${new Date(entry.progression_date).toLocaleDateString()} • ${entry.weeks_in_previous_phase || 0} weeks`}
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </CardContent>
-    </Card>
+      {phaseHistory.length === 0 ? (
+        <BodyText $muted $small>
+          No phase history yet. You're just getting started!
+        </BodyText>
+      ) : (
+        <StyledList>
+          {phaseHistory.map((entry) => (
+            <StyledListItem key={entry.id}>
+              <TrendingUp size={20} color="#0ea5e9" />
+              <ListItemContent>
+                <ListItemPrimary>
+                  {entry.from_phase ? getPhaseInfo(entry.from_phase).title : 'Start'} &rarr;{' '}
+                  {getPhaseInfo(entry.to_phase).title}
+                </ListItemPrimary>
+                <ListItemSecondary>
+                  {new Date(entry.progression_date).toLocaleDateString()} &bull;{' '}
+                  {entry.weeks_in_previous_phase || 0} weeks
+                </ListItemSecondary>
+              </ListItemContent>
+            </StyledListItem>
+          ))}
+        </StyledList>
+      )}
+    </GlassCard>
   );
 
   // ========================================
   // HOMEWORK COMPLETION DIALOG
   // ========================================
   const renderHomeworkDialog = () => (
-    <Dialog open={homeworkDialogOpen} onClose={() => setHomeworkDialogOpen(false)} maxWidth="sm" fullWidth>
-      <DialogTitle>Complete Corrective Homework</DialogTitle>
-      <DialogContent>
-        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
-          Follow the 4-step CEx Continuum in order. Take your time and focus on quality movement!
-        </Alert>
+    <DialogOverlay $open={homeworkDialogOpen} onClick={() => setHomeworkDialogOpen(false)}>
+      <DialogPanel onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitleText>Complete Corrective Homework</DialogTitleText>
+        </DialogHeader>
+        <DialogBody>
+          <AlertBox $severity="info" style={{ marginBottom: 16 }}>
+            <Info size={18} />
+            <span>
+              Follow the 4-step CEx Continuum in order. Take your time and focus on quality movement!
+            </span>
+          </AlertBox>
 
-        <Typography variant="body2" color="text.secondary" mb={2}>
-          Completing today's homework will earn you:
-        </Typography>
+          <BodyText $muted $small style={{ marginBottom: 16 }}>
+            Completing today's homework will earn you:
+          </BodyText>
 
-        <Stack spacing={1} mb={3}>
-          <Chip label="+10 XP" color="primary" icon={<StarIcon />} />
-          {homework && homework.current_streak === 6 && (
-            <Chip label="+50 XP Bonus (7-day streak!)" color="error" icon={<LocalFireDepartmentIcon />} />
-          )}
-        </Stack>
+          <FlexColumn $gap="8px" style={{ marginBottom: 24 }}>
+            <Chip $bgColor="rgba(14, 165, 233, 0.2)" $textColor="#0ea5e9">
+              <Star size={14} />
+              +10 XP
+            </Chip>
+            {homework && homework.current_streak === 6 && (
+              <Chip $bgColor="rgba(239, 68, 68, 0.2)" $textColor="#ef4444">
+                <Flame size={14} />
+                +50 XP Bonus (7-day streak!)
+              </Chip>
+            )}
+          </FlexColumn>
 
-        <Typography variant="body2" color="text.secondary">
-          Once you complete all exercises, click "Mark Complete" below.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setHomeworkDialogOpen(false)}>Cancel</Button>
-        <Button variant="contained" color="success" onClick={completeHomework}>
-          Mark Complete
-        </Button>
-      </DialogActions>
-    </Dialog>
+          <BodyText $muted $small>
+            Once you complete all exercises, click "Mark Complete" below.
+          </BodyText>
+        </DialogBody>
+        <DialogFooter>
+          <TextButton onClick={() => setHomeworkDialogOpen(false)}>Cancel</TextButton>
+          <PrimaryButton $variant="success" onClick={completeHomework}>
+            Mark Complete
+          </PrimaryButton>
+        </DialogFooter>
+      </DialogPanel>
+    </DialogOverlay>
   );
 
   // ========================================
   // MAIN RENDER
   // ========================================
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            My NASM Training
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Your personalized training journey powered by NASM OPT™ methodology
-          </Typography>
-        </Box>
+    <PageContainer>
+      <PageHeader>
+        <div>
+          <PageTitle>My NASM Training</PageTitle>
+          <PageSubtitle>
+            Your personalized training journey powered by NASM OPT&trade; methodology
+          </PageSubtitle>
+        </div>
         {/* @ts-ignore */}
         {user?.assignedTrainerId && (
-          <Button
-            variant="contained"
-            startIcon={<MessageIcon />}
+          <PrimaryButton
             onClick={handleMessageTrainer}
+            $disabled={isCreatingConversation}
             disabled={isCreatingConversation}
           >
+            <MessageSquare size={18} />
             Message My Trainer
-          </Button>
+          </PrimaryButton>
         )}
-      </Stack>
+      </PageHeader>
 
-      <Grid container spacing={3}>
+      <GridLayout>
         {/* Phase Widget */}
-        <Grid item xs={12}>
-          {renderPhaseWidget()}
-        </Grid>
+        <FullWidthRow>{renderPhaseWidget()}</FullWidthRow>
 
         {/* Today's Workout */}
-        <Grid item xs={12} md={6}>
-          {renderTodaysWorkout()}
-        </Grid>
+        <div>{renderTodaysWorkout()}</div>
 
         {/* Corrective Homework */}
-        <Grid item xs={12} md={6}>
-          {renderHomeworkTracker()}
-        </Grid>
+        <div>{renderHomeworkTracker()}</div>
 
         {/* Progress Timeline */}
-        <Grid item xs={12}>
-          {renderProgressTimeline()}
-        </Grid>
+        <FullWidthRow>{renderProgressTimeline()}</FullWidthRow>
 
         {/* Workout Logger */}
-        <Grid item xs={12}>
+        <FullWidthRow>
           <WorkoutLogger />
-        </Grid>
-
-      </Grid>
+        </FullWidthRow>
+      </GridLayout>
 
       {renderHomeworkDialog()}
-    </Container>
+    </PageContainer>
   );
 };
 

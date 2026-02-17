@@ -1,56 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  Button,
-  LinearProgress,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  IconButton,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider
-} from '@mui/material';
+import styled, { css } from 'styled-components';
 import {
   Target,
   Trophy,
   Calendar,
   Plus,
   Edit,
-  Check,
-  Clock,
   TrendingUp,
   Flag,
   Star,
   Award,
   CheckCircle,
   Circle,
-  AlertCircle,
-  Timeline
+  X
 } from 'lucide-react';
 
 // Import chart components
@@ -59,9 +21,497 @@ import ProgressAreaChart from '../../../FitnessStats/charts/ProgressAreaChart';
 // Import proper type definitions
 import type { GoalProgressTrackerProps } from './types';
 
+// ─── Theme Tokens ───────────────────────────────────────────────────────────
+const THEME = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgCard: 'rgba(15,23,42,0.85)',
+  border: 'rgba(14,165,233,0.2)',
+  text: '#e2e8f0',
+  textSecondary: '#94a3b8',
+  accent: '#0ea5e9',
+  cyan: '#00ffff',
+  success: '#4CAF50',
+  warning: '#FFC107',
+  error: '#FF6B6B',
+  purple: '#7851a9',
+  muted: '#A0A0A0',
+  surface: 'rgba(255,255,255,0.05)',
+  glassBg: 'rgba(29,31,43,0.95)',
+  glassBorder: 'rgba(14,165,233,0.15)',
+};
+
+// ─── Styled Components ──────────────────────────────────────────────────────
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 0;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SummaryCard = styled.div<{ $accentColor: string }>`
+  background: ${({ $accentColor }) => `${$accentColor}15`};
+  border: 1px solid ${({ $accentColor }) => `${$accentColor}30`};
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(12px);
+`;
+
+const StatValue = styled.h4`
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${THEME.text};
+  margin: 0;
+  line-height: 1.2;
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.8rem;
+  color: ${THEME.textSecondary};
+`;
+
+const GlassPanel = styled.div`
+  background: ${THEME.glassBg};
+  border: 1px solid ${THEME.glassBorder};
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const PanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const PanelTitle = styled.h3`
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: ${THEME.text};
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ControlsRow = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
+const StyledSelect = styled.select`
+  background: ${THEME.surface};
+  border: 1px solid ${THEME.border};
+  border-radius: 8px;
+  color: ${THEME.text};
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  min-height: 44px;
+  min-width: 130px;
+  cursor: pointer;
+  outline: none;
+  appearance: auto;
+
+  &:focus {
+    border-color: ${THEME.accent};
+    box-shadow: 0 0 0 2px rgba(14,165,233,0.15);
+  }
+
+  option {
+    background: #1d1f2b;
+    color: ${THEME.text};
+  }
+`;
+
+const AccentButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: ${THEME.cyan};
+  color: #0a0a1a;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #33ffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,255,255,0.25);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const GhostButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: ${THEME.textSecondary};
+  border: 1px solid ${THEME.border};
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${THEME.surface};
+    color: ${THEME.text};
+    border-color: ${THEME.accent};
+  }
+`;
+
+const IconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: ${THEME.textSecondary};
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${THEME.surface};
+    color: ${THEME.accent};
+  }
+`;
+
+// ─── Table Styled Components ────────────────────────────────────────────────
+
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Thead = styled.thead``;
+const Tbody = styled.tbody``;
+
+const Tr = styled.tr<{ $clickable?: boolean }>`
+  border-bottom: 1px solid ${THEME.surface};
+  ${({ $clickable }) =>
+    $clickable &&
+    css`
+      cursor: pointer;
+      &:hover {
+        background: ${THEME.surface};
+      }
+    `}
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: ${THEME.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+`;
+
+const Td = styled.td`
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: ${THEME.text};
+  vertical-align: middle;
+`;
+
+const CellTitle = styled.p`
+  margin: 0;
+  font-weight: 500;
+  color: ${THEME.text};
+  font-size: 0.9rem;
+`;
+
+const CellCaption = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.textSecondary};
+`;
+
+// ─── Chip / Badge ───────────────────────────────────────────────────────────
+
+const Chip = styled.span<{ $bg?: string; $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: ${({ $bg }) => $bg || THEME.surface};
+  color: ${({ $color }) => $color || THEME.text};
+  white-space: nowrap;
+`;
+
+// ─── Progress Bar ───────────────────────────────────────────────────────────
+
+const ProgressBarOuter = styled.div`
+  width: 100px;
+  height: 6px;
+  background: ${THEME.surface};
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+`;
+
+const ProgressBarFill = styled.div<{ $value: number; $color: string }>`
+  width: ${({ $value }) => Math.min($value, 100)}%;
+  height: 100%;
+  background: ${({ $color }) => $color};
+  border-radius: 3px;
+  transition: width 0.4s ease;
+`;
+
+// ─── Modal / Dialog ─────────────────────────────────────────────────────────
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+`;
+
+const ModalPanel = styled.div`
+  background: ${THEME.glassBg};
+  border: 1px solid ${THEME.glassBorder};
+  border-radius: 16px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  backdrop-filter: blur(16px);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid ${THEME.surface};
+`;
+
+const ModalBody = styled.div`
+  padding: 24px;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid ${THEME.surface};
+`;
+
+// ─── Grid Layouts ───────────────────────────────────────────────────────────
+
+const TwoColGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const AchievementsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const AchievementCard = styled.div<{ $earned: boolean }>`
+  background: ${({ $earned }) => ($earned ? 'rgba(255,193,7,0.1)' : THEME.surface)};
+  border: 1px solid ${({ $earned }) => ($earned ? 'rgba(255,193,7,0.2)' : THEME.glassBorder)};
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  opacity: ${({ $earned }) => ($earned ? 1 : 0.6)};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+`;
+
+const AchievementTitle = styled.p`
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: ${THEME.text};
+`;
+
+const AchievementDesc = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.textSecondary};
+  line-height: 1.4;
+`;
+
+// ─── Stepper / Timeline ─────────────────────────────────────────────────────
+
+const StepperContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+`;
+
+const StepItem = styled.div`
+  display: flex;
+  gap: 12px;
+  position: relative;
+`;
+
+const StepIconCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+`;
+
+const StepConnector = styled.div<{ $visible: boolean }>`
+  flex: 1;
+  width: 2px;
+  background: ${({ $visible }) => ($visible ? THEME.border : 'transparent')};
+  min-height: 16px;
+`;
+
+const StepContent = styled.div`
+  padding-bottom: 20px;
+`;
+
+const StepTitle = styled.p`
+  margin: 0 0 4px 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${THEME.text};
+`;
+
+const StepCaption = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.textSecondary};
+  display: block;
+  line-height: 1.6;
+`;
+
+const StepCaptionSuccess = styled(StepCaption)`
+  color: ${THEME.success};
+`;
+
+const StepCaptionWarning = styled(StepCaption)`
+  color: ${THEME.warning};
+`;
+
+// ─── Insight Box ────────────────────────────────────────────────────────────
+
+const InsightBox = styled.div`
+  margin-top: 24px;
+  padding: 16px;
+  background: ${THEME.surface};
+  border-radius: 10px;
+  border: 1px solid ${THEME.glassBorder};
+`;
+
+const InsightLabel = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.textSecondary};
+  display: block;
+  margin-bottom: 2px;
+`;
+
+const InsightValue = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: ${THEME.text};
+  font-weight: 500;
+`;
+
+const InsightGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+`;
+
+const SubTitle = styled.h4`
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: ${THEME.text};
+  margin: 0 0 12px 0;
+`;
+
+const OverdueCaption = styled.span`
+  font-size: 0.75rem;
+  color: ${THEME.error};
+  display: block;
+`;
+
+const BodyText = styled.p`
+  font-size: 0.875rem;
+  color: ${THEME.text};
+  margin: 0 0 12px 0;
+  line-height: 1.6;
+`;
+
 /**
  * GoalProgressTracker Component
- * 
+ *
  * Advanced goal tracking and milestone management for trainers including:
  * - SMART goal setting and tracking
  * - Milestone breakdown and progress
@@ -104,17 +554,17 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
           startDate: '2024-01-15',
           targetDate: '2024-08-15',
           completedDate: null,
-          
+
           currentValue: 11.7,
           targetValue: 15,
           unit: 'lbs',
-          
+
           milestones: [
             { id: 'm1', title: 'Lose 5 lbs', target: 5, current: 5, completed: true, date: '2024-03-15' },
             { id: 'm2', title: 'Lose 10 lbs', target: 10, current: 10, completed: true, date: '2024-05-20' },
             { id: 'm3', title: 'Lose 15 lbs', target: 15, current: 11.7, completed: false, estimatedDate: '2024-08-01' }
           ],
-          
+
           progressHistory: [
             { date: '2024-01-15', value: 0 },
             { date: '2024-02-15', value: 2.5 },
@@ -123,7 +573,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
             { date: '2024-05-15', value: 9.8 },
             { date: '2024-06-15', value: 11.7 }
           ],
-          
+
           insights: {
             trend: 'positive',
             predictedCompletion: '2024-07-28',
@@ -143,17 +593,17 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
           startDate: '2024-02-01',
           targetDate: '2024-07-01',
           completedDate: null,
-          
+
           currentValue: 85,
           targetValue: 100,
           unit: 'kg',
-          
+
           milestones: [
             { id: 'm1', title: '80kg Bench', target: 80, current: 80, completed: true, date: '2024-04-10' },
             { id: 'm2', title: '90kg Bench', target: 90, current: 85, completed: false, estimatedDate: '2024-06-15' },
             { id: 'm3', title: '100kg Bench', target: 100, current: 85, completed: false, estimatedDate: '2024-07-01' }
           ],
-          
+
           progressHistory: [
             { date: '2024-02-01', value: 70 },
             { date: '2024-03-01', value: 75 },
@@ -161,7 +611,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
             { date: '2024-05-01', value: 82.5 },
             { date: '2024-06-01', value: 85 }
           ],
-          
+
           insights: {
             trend: 'positive',
             predictedCompletion: '2024-07-15',
@@ -181,24 +631,24 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
           startDate: '2024-03-01',
           targetDate: '2024-09-01',
           completedDate: null,
-          
+
           currentValue: 27.5,
           targetValue: 25,
           unit: 'minutes',
-          
+
           milestones: [
             { id: 'm1', title: 'Run 5K under 30min', target: 30, current: 27.5, completed: true, date: '2024-04-15' },
             { id: 'm2', title: 'Run 5K under 27min', target: 27, current: 27.5, completed: false, estimatedDate: '2024-07-15' },
             { id: 'm3', title: 'Run 5K under 25min', target: 25, current: 27.5, completed: false, estimatedDate: '2024-09-01' }
           ],
-          
+
           progressHistory: [
             { date: '2024-03-01', value: 32 },
             { date: '2024-04-01', value: 30 },
             { date: '2024-05-01', value: 28.5 },
             { date: '2024-06-01', value: 27.5 }
           ],
-          
+
           insights: {
             trend: 'positive',
             predictedCompletion: '2024-08-20',
@@ -218,17 +668,17 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
           startDate: '2024-01-01',
           targetDate: '2024-05-01',
           completedDate: '2024-04-22',
-          
+
           currentValue: 12,
           targetValue: 10,
           unit: 'reps',
-          
+
           milestones: [
             { id: 'm1', title: '5 Pull-ups', target: 5, current: 5, completed: true, date: '2024-02-15' },
             { id: 'm2', title: '8 Pull-ups', target: 8, current: 8, completed: true, date: '2024-03-20' },
             { id: 'm3', title: '10 Pull-ups', target: 10, current: 12, completed: true, date: '2024-04-22' }
           ],
-          
+
           insights: {
             trend: 'achieved',
             completedAhead: 9,
@@ -247,17 +697,17 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
           startDate: '2024-02-01',
           targetDate: '2024-06-01',
           completedDate: null,
-          
+
           currentValue: 90,
           targetValue: 120,
           unit: 'seconds',
-          
+
           milestones: [
             { id: 'm1', title: '60 second plank', target: 60, current: 60, completed: true, date: '2024-03-10' },
             { id: 'm2', title: '90 second plank', target: 90, current: 90, completed: true, date: '2024-05-15' },
             { id: 'm3', title: '120 second plank', target: 120, current: 90, completed: false, estimatedDate: '2024-07-15' }
           ],
-          
+
           insights: {
             trend: 'stalled',
             predictedCompletion: '2024-07-15',
@@ -325,7 +775,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
 
   const filteredGoals = useMemo(() => {
     if (!goalTrackingData) return [];
-    
+
     switch (goalFilter) {
       case 'active':
         return goalTrackingData.goals.filter(goal => goal.status === 'active');
@@ -344,36 +794,31 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
     const { summary } = goalTrackingData;
 
     return (
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'rgba(0, 255, 255, 0.1)', textAlign: 'center', p: 2 }}>
-            <Target color="#00ffff" size={32} style={{ marginBottom: 8 }} />
-            <Typography variant="h4">{summary.totalGoals}</Typography>
-            <Typography variant="body2" color="text.secondary">Total Goals</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'rgba(76, 175, 80, 0.1)', textAlign: 'center', p: 2 }}>
-            <TrendingUp color="#4CAF50" size={32} style={{ marginBottom: 8 }} />
-            <Typography variant="h4">{summary.activeGoals}</Typography>
-            <Typography variant="body2" color="text.secondary">Active Goals</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'rgba(255, 193, 7, 0.1)', textAlign: 'center', p: 2 }}>
-            <Trophy color="#FFC107" size={32} style={{ marginBottom: 8 }} />
-            <Typography variant="h4">{summary.completedGoals}</Typography>
-            <Typography variant="body2" color="text.secondary">Completed</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'rgba(120, 81, 169, 0.1)', textAlign: 'center', p: 2 }}>
-            <Star color="#7851a9" size={32} style={{ marginBottom: 8 }} />
-            <Typography variant="h4">{summary.averageProgress}%</Typography>
-            <Typography variant="body2" color="text.secondary">Avg Progress</Typography>
-          </Card>
-        </Grid>
-      </Grid>
+      <SummaryGrid>
+        <SummaryCard $accentColor={THEME.cyan}>
+          <Target color="#00ffff" size={32} />
+          <StatValue>{summary.totalGoals}</StatValue>
+          <StatLabel>Total Goals</StatLabel>
+        </SummaryCard>
+
+        <SummaryCard $accentColor={THEME.success}>
+          <TrendingUp color="#4CAF50" size={32} />
+          <StatValue>{summary.activeGoals}</StatValue>
+          <StatLabel>Active Goals</StatLabel>
+        </SummaryCard>
+
+        <SummaryCard $accentColor={THEME.warning}>
+          <Trophy color="#FFC107" size={32} />
+          <StatValue>{summary.completedGoals}</StatValue>
+          <StatLabel>Completed</StatLabel>
+        </SummaryCard>
+
+        <SummaryCard $accentColor={THEME.purple}>
+          <Star color="#7851a9" size={32} />
+          <StatValue>{summary.averageProgress}%</StatValue>
+          <StatLabel>Avg Progress</StatLabel>
+        </SummaryCard>
+      </SummaryGrid>
     );
   };
 
@@ -381,131 +826,106 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
     if (!goalTrackingData) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b', mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6">Goal Tracking</Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Filter</InputLabel>
-              <Select
-                value={goalFilter}
-                onChange={(e) => setGoalFilter(e.target.value as any)}
-                label="Filter"
-              >
-                <MenuItem value="all">All Goals</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="overdue">Overdue</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <Button
-              variant="contained"
-              startIcon={<Plus size={16} />}
-              onClick={() => setShowAddGoal(true)}
-              sx={{ bgcolor: '#00ffff', color: '#1d1f2b' }}
-            >
-              Add Goal
-            </Button>
-          </Box>
-        </Box>
+      <GlassPanel>
+        <PanelHeader>
+          <PanelTitle>Goal Tracking</PanelTitle>
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Goal</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Priority</TableCell>
-                <TableCell>Progress</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Target Date</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+          <ControlsRow>
+            <StyledSelect
+              value={goalFilter}
+              onChange={(e) => setGoalFilter(e.target.value as any)}
+            >
+              <option value="all">All Goals</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="overdue">Overdue</option>
+            </StyledSelect>
+
+            <AccentButton onClick={() => setShowAddGoal(true)}>
+              <Plus size={16} />
+              Add Goal
+            </AccentButton>
+          </ControlsRow>
+        </PanelHeader>
+
+        <TableWrapper>
+          <StyledTable>
+            <Thead>
+              <Tr>
+                <Th>Goal</Th>
+                <Th>Category</Th>
+                <Th>Priority</Th>
+                <Th>Progress</Th>
+                <Th>Status</Th>
+                <Th>Target Date</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
               {filteredGoals.map((goal) => (
-                <TableRow key={goal.id} hover onClick={() => setSelectedGoal(goal.id)} sx={{ cursor: 'pointer' }}>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="body1" fontWeight="medium">
-                        {goal.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                <Tr key={goal.id} $clickable onClick={() => setSelectedGoal(goal.id)}>
+                  <Td>
+                    <div>
+                      <CellTitle>{goal.title}</CellTitle>
+                      <CellCaption>
                         {goal.currentValue} / {goal.targetValue} {goal.unit}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Chip 
-                      label={goal.category} 
-                      size="small"
-                      sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Chip 
-                      label={goal.priority} 
-                      size="small"
-                      sx={{ 
-                        bgcolor: getPriorityColor(goal.priority),
-                        color: '#fff'
-                      }}
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Box sx={{ width: 100 }}>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={goal.progress} 
-                        sx={{ 
-                          mb: 1,
-                          '& .MuiLinearProgress-bar': { 
-                            bgcolor: getStatusColor(goal.status)
-                          } 
-                        }} 
-                      />
-                      <Typography variant="caption">{goal.progress}%</Typography>
-                    </Box>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Chip 
-                      label={goal.status} 
-                      size="small"
-                      sx={{ 
-                        bgcolor: getStatusColor(goal.status),
-                        color: '#fff'
-                      }}
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Typography variant="body2">
+                      </CellCaption>
+                    </div>
+                  </Td>
+
+                  <Td>
+                    <Chip $bg="rgba(255, 255, 255, 0.1)">
+                      {goal.category}
+                    </Chip>
+                  </Td>
+
+                  <Td>
+                    <Chip
+                      $bg={getPriorityColor(goal.priority)}
+                      $color="#fff"
+                    >
+                      {goal.priority}
+                    </Chip>
+                  </Td>
+
+                  <Td>
+                    <div style={{ width: 100 }}>
+                      <ProgressBarOuter>
+                        <ProgressBarFill $value={goal.progress} $color={getStatusColor(goal.status)} />
+                      </ProgressBarOuter>
+                      <CellCaption>{goal.progress}%</CellCaption>
+                    </div>
+                  </Td>
+
+                  <Td>
+                    <Chip
+                      $bg={getStatusColor(goal.status)}
+                      $color="#fff"
+                    >
+                      {goal.status}
+                    </Chip>
+                  </Td>
+
+                  <Td>
+                    <span style={{ fontSize: '0.875rem', color: THEME.text }}>
                       {new Date(goal.targetDate).toLocaleDateString()}
-                    </Typography>
+                    </span>
                     {goal.status === 'overdue' && (
-                      <Typography variant="caption" color="error">
-                        Overdue
-                      </Typography>
+                      <OverdueCaption>Overdue</OverdueCaption>
                     )}
-                  </TableCell>
-                  
-                  <TableCell>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); /* Edit goal */ }}>
+                  </Td>
+
+                  <Td>
+                    <IconBtn onClick={(e) => { e.stopPropagation(); /* Edit goal */ }}>
                       <Edit size={16} />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
+                    </IconBtn>
+                  </Td>
+                </Tr>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+            </Tbody>
+          </StyledTable>
+        </TableWrapper>
+      </GlassPanel>
     );
   };
 
@@ -516,118 +936,99 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
     if (!goal) return null;
 
     return (
-      <Dialog 
-        open={!!selectedGoal} 
-        onClose={() => setSelectedGoal(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">{goal.title}</Typography>
-            <Chip 
-              label={`${goal.progress}% Complete`}
-              sx={{ 
-                bgcolor: getStatusColor(goal.status),
-                color: '#fff'
-              }}
-            />
-          </Box>
-        </DialogTitle>
-        
-        <DialogContent>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" gutterBottom>
-                Progress Timeline
-              </Typography>
-              
-              <Stepper orientation="vertical">
-                {goal.milestones.map((milestone, index) => (
-                  <Step key={milestone.id} active={true} completed={milestone.completed}>
-                    <StepLabel
-                      StepIconComponent={() => 
-                        milestone.completed ? 
-                        <CheckCircle size={20} color="#4CAF50" /> : 
-                        <Circle size={20} color="#FFC107" />
-                      }
-                    >
-                      <Typography variant="body2">
-                        {milestone.title}
-                      </Typography>
-                    </StepLabel>
-                    <StepContent>
-                      <Typography variant="caption" color="text.secondary">
-                        Target: {milestone.target} {goal.unit} | Current: {milestone.current} {goal.unit}
-                      </Typography>
-                      {milestone.completed && milestone.date && (
-                        <Typography variant="caption" display="block" color="success.main">
-                          Completed: {new Date(milestone.date).toLocaleDateString()}
-                        </Typography>
-                      )}
-                      {!milestone.completed && milestone.estimatedDate && (
-                        <Typography variant="caption" display="block" color="warning.main">
-                          Estimated: {new Date(milestone.estimatedDate).toLocaleDateString()}
-                        </Typography>
-                      )}
-                    </StepContent>
-                  </Step>
-                ))}
-              </Stepper>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" gutterBottom>
-                Progress Chart
-              </Typography>
-              
-              <ProgressAreaChart 
-                data={goal.progressHistory.map(point => ({
-                  date: point.date,
-                  progress: (point.value / goal.targetValue) * 100
-                }))}
-                xKey="date"
-                yKeys={[{ key: 'progress', name: 'Progress %', color: getStatusColor(goal.status) }]}
-                height={200}
-              />
-              
-              <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  AI Insights
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  {goal.insights.recommendation}
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary">
-                      Predicted Completion
-                    </Typography>
-                    <Typography variant="body2">
-                      {new Date(goal.insights.predictedCompletion).toLocaleDateString()}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary">
-                      Success Likelihood
-                    </Typography>
-                    <Typography variant="body2">
-                      {goal.insights.likelihood}%
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        
-        <DialogActions>
-          <Button onClick={() => setSelectedGoal(null)}>Close</Button>
-          <Button variant="contained" sx={{ bgcolor: '#00ffff', color: '#1d1f2b' }}>
-            Update Progress
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Overlay onClick={() => setSelectedGoal(null)}>
+        <ModalPanel onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <PanelTitle>{goal.title}</PanelTitle>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Chip
+                $bg={getStatusColor(goal.status)}
+                $color="#fff"
+              >
+                {goal.progress}% Complete
+              </Chip>
+              <IconBtn onClick={() => setSelectedGoal(null)}>
+                <X size={18} />
+              </IconBtn>
+            </div>
+          </ModalHeader>
+
+          <ModalBody>
+            <TwoColGrid>
+              <div>
+                <SubTitle>Progress Timeline</SubTitle>
+
+                <StepperContainer>
+                  {goal.milestones.map((milestone, index) => (
+                    <StepItem key={milestone.id}>
+                      <StepIconCol>
+                        {milestone.completed ? (
+                          <CheckCircle size={20} color="#4CAF50" />
+                        ) : (
+                          <Circle size={20} color="#FFC107" />
+                        )}
+                        <StepConnector $visible={index < goal.milestones.length - 1} />
+                      </StepIconCol>
+                      <StepContent>
+                        <StepTitle>{milestone.title}</StepTitle>
+                        <StepCaption>
+                          Target: {milestone.target} {goal.unit} | Current: {milestone.current} {goal.unit}
+                        </StepCaption>
+                        {milestone.completed && milestone.date && (
+                          <StepCaptionSuccess>
+                            Completed: {new Date(milestone.date).toLocaleDateString()}
+                          </StepCaptionSuccess>
+                        )}
+                        {!milestone.completed && milestone.estimatedDate && (
+                          <StepCaptionWarning>
+                            Estimated: {new Date(milestone.estimatedDate).toLocaleDateString()}
+                          </StepCaptionWarning>
+                        )}
+                      </StepContent>
+                    </StepItem>
+                  ))}
+                </StepperContainer>
+              </div>
+
+              <div>
+                <SubTitle>Progress Chart</SubTitle>
+
+                <ProgressAreaChart
+                  data={goal.progressHistory.map(point => ({
+                    date: point.date,
+                    progress: (point.value / goal.targetValue) * 100
+                  }))}
+                  xKey="date"
+                  yKeys={[{ key: 'progress', name: 'Progress %', color: getStatusColor(goal.status) }]}
+                  height={200}
+                />
+
+                <InsightBox>
+                  <SubTitle>AI Insights</SubTitle>
+                  <BodyText>{goal.insights.recommendation}</BodyText>
+                  <InsightGrid>
+                    <div>
+                      <InsightLabel>Predicted Completion</InsightLabel>
+                      <InsightValue>
+                        {new Date(goal.insights.predictedCompletion).toLocaleDateString()}
+                      </InsightValue>
+                    </div>
+                    <div>
+                      <InsightLabel>Success Likelihood</InsightLabel>
+                      <InsightValue>{goal.insights.likelihood}%</InsightValue>
+                    </div>
+                  </InsightGrid>
+                </InsightBox>
+              </div>
+            </TwoColGrid>
+          </ModalBody>
+
+          <ModalFooter>
+            <GhostButton onClick={() => setSelectedGoal(null)}>Close</GhostButton>
+            <AccentButton>Update Progress</AccentButton>
+          </ModalFooter>
+        </ModalPanel>
+      </Overlay>
     );
   };
 
@@ -635,78 +1036,56 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
     if (!goalTrackingData) return null;
 
     return (
-      <Paper sx={{ p: 3, bgcolor: '#1d1f2b' }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-          <Award color="#FFC107" size={20} style={{ marginRight: 8 }} />
-          Achievements & Badges
-        </Typography>
-        
-        <Grid container spacing={2}>
+      <GlassPanel>
+        <PanelTitle style={{ marginBottom: 16 }}>
+          <Award color="#FFC107" size={20} />
+          Achievements &amp; Badges
+        </PanelTitle>
+
+        <AchievementsGrid>
           {goalTrackingData.achievements.map((achievement) => (
-            <Grid item xs={12} sm={6} md={3} key={achievement.id}>
-              <Card 
-                sx={{ 
-                  bgcolor: achievement.earned ? 'rgba(255, 193, 7, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  textAlign: 'center',
-                  opacity: achievement.earned ? 1 : 0.6
-                }}
-              >
-                <CardContent>
-                  <Box sx={{ mb: 2 }}>
-                    {achievement.icon === 'trophy' && <Trophy color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                    {achievement.icon === 'star' && <Star color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                    {achievement.icon === 'flag' && <Flag color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                    {achievement.icon === 'calendar' && <Calendar color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                  </Box>
-                  
-                  <Typography variant="subtitle2" gutterBottom>
-                    {achievement.title}
-                  </Typography>
-                  
-                  <Typography variant="caption" color="text.secondary">
-                    {achievement.description}
-                  </Typography>
-                  
-                  {achievement.earned ? (
-                    <Chip 
-                      label={`Earned ${new Date(achievement.date!).toLocaleDateString()}`}
-                      size="small"
-                      sx={{ mt: 1, bgcolor: '#4CAF50', color: '#fff' }}
-                    />
-                  ) : achievement.progress !== undefined ? (
-                    <Box sx={{ mt: 2 }}>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={achievement.progress} 
-                        sx={{ mb: 1 }}
-                      />
-                      <Typography variant="caption">
-                        {achievement.progress}% complete
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Chip 
-                      label="Locked"
-                      size="small"
-                      sx={{ mt: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+            <AchievementCard key={achievement.id} $earned={achievement.earned}>
+              <div>
+                {achievement.icon === 'trophy' && <Trophy color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+                {achievement.icon === 'star' && <Star color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+                {achievement.icon === 'flag' && <Flag color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+                {achievement.icon === 'calendar' && <Calendar color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+              </div>
+
+              <AchievementTitle>{achievement.title}</AchievementTitle>
+
+              <AchievementDesc>{achievement.description}</AchievementDesc>
+
+              {achievement.earned ? (
+                <Chip $bg="#4CAF50" $color="#fff" style={{ marginTop: 4 }}>
+                  Earned {new Date(achievement.date!).toLocaleDateString()}
+                </Chip>
+              ) : achievement.progress !== undefined ? (
+                <div style={{ width: '100%', marginTop: 8 }}>
+                  <ProgressBarOuter style={{ width: '100%' }}>
+                    <ProgressBarFill $value={achievement.progress} $color={THEME.accent} />
+                  </ProgressBarOuter>
+                  <CellCaption>{achievement.progress}% complete</CellCaption>
+                </div>
+              ) : (
+                <Chip $bg="rgba(255, 255, 255, 0.1)" style={{ marginTop: 4 }}>
+                  Locked
+                </Chip>
+              )}
+            </AchievementCard>
           ))}
-        </Grid>
-      </Paper>
+        </AchievementsGrid>
+      </GlassPanel>
     );
   };
 
   return (
-    <Box>
+    <Container>
       {renderSummaryCards()}
       {renderGoalsList()}
       {renderAchievements()}
       {renderGoalDetails()}
-    </Box>
+    </Container>
   );
 };
 
