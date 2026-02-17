@@ -21,7 +21,7 @@ const GoalSupporter = db.define('GoalSupporter', {
     references: { model: 'goals', key: 'id' },
   },
   supporterId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: { model: 'Users', key: 'id' },
     comment: 'User who is supporting this goal',

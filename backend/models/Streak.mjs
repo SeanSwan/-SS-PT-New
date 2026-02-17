@@ -16,7 +16,7 @@ const Streak = db.define('Streak', {
     allowNull: false,
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: { model: 'Users', key: 'id' },
   },

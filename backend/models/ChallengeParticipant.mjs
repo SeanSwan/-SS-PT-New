@@ -18,7 +18,7 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
   
   // Foreign Keys
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -270,7 +270,7 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
   },
   
   verifiedBy: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Users',
