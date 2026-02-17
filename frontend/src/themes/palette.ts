@@ -2,7 +2,7 @@
  * palette.ts
  * Theme palette configuration
  */
-import { createTheme, ThemeOptions } from '@mui/material/styles';
+// MUI createTheme removed — this file is unused legacy Berry Admin infrastructure
 
 // Import theme variables
 import defaultColor from '../assets/scss/_themes-vars.module.scss';
@@ -18,7 +18,7 @@ interface ColorPalette {
  * @param presetColor - Preset color palette name
  * @returns Theme with palette configuration
  */
-export default function Palette(mode: 'light' | 'dark', presetColor: string = 'default'): ThemeOptions {
+export default function Palette(mode: 'light' | 'dark', presetColor: string = 'default'): any {
   // Select color palette based on preset
   let colors: ColorPalette;
   switch (presetColor) {
@@ -27,7 +27,7 @@ export default function Palette(mode: 'light' | 'dark', presetColor: string = 'd
       colors = defaultColor;
   }
 
-  return createTheme({
+  return ({
     palette: {
       mode,
       common: {

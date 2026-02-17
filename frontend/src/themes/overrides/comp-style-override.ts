@@ -2,11 +2,11 @@
  * comp-style-override.ts
  * Component style overrides for the theme
  */
-import { Theme } from '@mui/material/styles';
+// MUI Theme type removed — this file is unused legacy Berry Admin infrastructure
 
 // Instead of importing from index.ts, we use a more descriptively named file
 // If the file doesn't exist or isn't a module, we'll use an empty object
-let customComponentOverrides: (theme: Theme) => Record<string, any> = () => ({});
+let customComponentOverrides: (theme: any) => Record<string, any> = () => ({});
 
 // Try to import the file, but handle the case when it's not a proper module
 try {
@@ -27,8 +27,8 @@ try {
  * @returns Component style overrides
  */
 export default function componentStyleOverrides(
-  theme: Theme, 
-  borderRadius: number, 
+  theme: any,
+  borderRadius: number,
   outlinedFilled: boolean
 ) {
   const bgColor = theme.palette.grey[50];

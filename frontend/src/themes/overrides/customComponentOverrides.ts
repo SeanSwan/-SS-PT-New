@@ -2,7 +2,7 @@
  * Custom component overrides for Material UI components
  * This file contains additional styling beyond the main component style overrides.
  */
-import { Theme } from '@mui/material/styles';
+// MUI Theme type removed — this file is unused legacy Berry Admin infrastructure
 
 /**
  * Provides custom style overrides for specific components
@@ -10,7 +10,7 @@ import { Theme } from '@mui/material/styles';
  * @param theme Current theme object
  * @returns Object containing component style overrides
  */
-const customComponentOverrides = (theme: Theme) => {
+const customComponentOverrides = (theme: any) => {
   return {
     // Add additional component overrides here
     // Example:

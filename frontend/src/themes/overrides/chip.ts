@@ -2,7 +2,20 @@
  * chip.ts
  * MUI Chip component overrides
  */
-import { alpha, Theme, PaletteColor } from '@mui/material/styles';
+// MUI alpha/Theme/PaletteColor removed — this file is unused legacy Berry Admin infrastructure
+const alpha = (color: string, opacity: number): string => {
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
+interface PaletteColor {
+  main: string;
+  light: string;
+  dark: string;
+}
 
 // Type for variant props in the style function
 interface VariantProps {
@@ -22,7 +35,7 @@ function isPaletteColor(color: any): color is PaletteColor {
 }
 
 // Chip component style overrides
-export default function Chip(theme: Theme) {
+export default function Chip(theme: any) {
   return {
     MuiChip: {
       defaultProps: {

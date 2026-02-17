@@ -1,21 +1,14 @@
 import React from 'react';
-import { Box, Typography, Paper, Grid, Card, CardContent, Avatar, Chip, Button } from '@mui/material';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import GroupIcon from '@mui/icons-material/Group';
-import EventIcon from '@mui/icons-material/Event';
-import ChatIcon from '@mui/icons-material/Chat';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import PeopleIcon from '@mui/icons-material/People';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import { Users, Calendar, MessageCircle, Dumbbell, Trophy, Activity } from 'lucide-react';
 
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1, 
-    transition: { 
+  visible: {
+    opacity: 1,
+    transition: {
       when: "beforeChildren",
       staggerChildren: 0.1,
       duration: 0.3
@@ -25,13 +18,13 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 10 
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10
     }
   }
 };
@@ -41,54 +34,240 @@ const DashboardContainer = styled(motion.div)`
   width: 100%;
 `;
 
-const StyledCard = styled(Card)`
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: 2fr 1fr;
+  }
+`;
+
+const GridFull = styled.div`
+  @media (min-width: 900px) {
+    grid-column: 1 / -1;
+  }
+`;
+
+const GroupsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 600px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const ChallengesGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+`;
+
+const StyledCard = styled.div`
   border-radius: 12px;
   overflow: hidden;
   height: 100%;
   transition: all 0.3s ease;
   background: rgba(30, 30, 60, 0.6);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  
+  padding: 24px;
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
   }
 `;
 
-const GlowButton = styled(Button)`
+const GlowBtn = styled.button`
   background: linear-gradient(90deg, #00ffff, #7851a9);
   color: white;
   padding: 8px 24px;
+  min-height: 44px;
   border-radius: 8px;
   border: none;
   font-weight: 600;
-  text-transform: none;
-  position: relative;
-  overflow: hidden;
-  
-  &:before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    background-size: 400%;
-    z-index: -1;
-    filter: blur(5px);
-    width: calc(100% + 4px);
-    height: calc(100% + 4px);
-    animation: glowing 20s linear infinite;
-    opacity: 0;
-    transition: opacity .3s ease-in-out;
-  }
-  
-  &:hover:before {
-    opacity: 1;
-  }
-  
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
   &:hover {
     background: linear-gradient(90deg, #00e5e5, #6a4897);
     box-shadow: 0 0 20px #00ffff;
   }
+`;
+
+const GlowBtnSmall = styled(GlowBtn)`
+  padding: 6px 16px;
+  min-height: 36px;
+  font-size: 0.8125rem;
+`;
+
+const SectionHeading = styled.h5`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #00ffff;
+  margin: 0 0 24px;
+`;
+
+const PageHeading = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+
+  h1 {
+    font-size: 2.125rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+  }
+`;
+
+const GroupCard = styled.div<{ $accent: string }>`
+  padding: 16px;
+  background: ${({ $accent }) => $accent};
+  border-radius: 8px;
+  border: 1px solid ${({ $accent }) => $accent.replace('0.1)', '0.2)')};
+`;
+
+const GroupHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+`;
+
+const AvatarCircle = styled.div<{ $bg: string; $color: string }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $bg }) => $bg};
+  color: ${({ $color }) => $color};
+  flex-shrink: 0;
+`;
+
+const GroupTitle = styled.h6`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+`;
+
+const BodyText = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px;
+  line-height: 1.5;
+`;
+
+const GroupFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ChipTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.8125rem;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const EventCard = styled.div<{ $accent: string }>`
+  padding: 16px;
+  margin-bottom: 16px;
+  background: ${({ $accent }) => $accent};
+  border-radius: 8px;
+  border: 1px solid ${({ $accent }) => $accent.replace('0.1)', '0.2)')};
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  &:last-of-type { margin-bottom: 0; }
+`;
+
+const DateBox = styled.div<{ $bg: string }>`
+  background: ${({ $bg }) => $bg};
+  padding: 12px;
+  border-radius: 4px;
+  text-align: center;
+  min-width: 60px;
+`;
+
+const DateMonth = styled.span`
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+`;
+
+const DateDay = styled.span`
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+`;
+
+const EventTitle = styled.span`
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: white;
+  display: block;
+`;
+
+const EventDetail = styled.span`
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+  margin: 4px 0 8px;
+`;
+
+const ChallengeCard = styled.div<{ $accent: string }>`
+  padding: 16px;
+  background: ${({ $accent }) => $accent};
+  border-radius: 8px;
+  border: 1px solid ${({ $accent }) => $accent.replace('0.1)', '0.2)')};
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ChallengeTitle = styled.h6`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 8px;
+`;
+
+const ChallengeFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const CaptionText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const CenterRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
 `;
 
 const CommunityDashboard = () => {
@@ -99,370 +278,181 @@ const CommunityDashboard = () => {
       variants={containerVariants}
     >
       <motion.div variants={itemVariants}>
-        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-          <GroupIcon sx={{ fontSize: 36, color: '#00ffff', mr: 2 }} />
-          <Typography variant="h4" component="h1" sx={{ color: '#fff' }}>
-            Community Hub
-          </Typography>
-        </Box>
+        <PageHeading>
+          <Users size={36} color="#00ffff" />
+          <h1>Community Hub</h1>
+        </PageHeading>
       </motion.div>
 
-      <Grid container spacing={3}>
+      <GridContainer>
         {/* Active Groups Section */}
-        <Grid item xs={12} md={8}>
-          <motion.div variants={itemVariants}>
-            <StyledCard>
-              <CardContent>
-                <Typography variant="h5" sx={{ mb: 3, color: '#00ffff' }}>
-                  Active Groups
-                </Typography>
+        <motion.div variants={itemVariants}>
+          <StyledCard>
+            <SectionHeading>Active Groups</SectionHeading>
 
-                <Grid container spacing={2}>
-                  {/* Group 1 */}
-                  <Grid item xs={12} sm={6}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(0, 255, 255, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(0, 255, 255, 0.2)'
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <Avatar sx={{ bgcolor: '#00ffff', color: '#0a0a1a', mr: 2 }}>
-                          <FitnessCenterIcon />
-                        </Avatar>
-                        <Typography variant="h6">HIIT Warriors</Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
-                        High-intensity interval training group with daily challenges
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Chip 
-                          icon={<PeopleIcon />} 
-                          label="126 members" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <GlowButton size="small">
-                          Join
-                        </GlowButton>
-                      </Box>
-                    </Paper>
-                  </Grid>
+            <GroupsGrid>
+              {/* Group 1 */}
+              <GroupCard $accent="rgba(0, 255, 255, 0.1)">
+                <GroupHeader>
+                  <AvatarCircle $bg="#00ffff" $color="#0a0a1a">
+                    <Dumbbell size={20} />
+                  </AvatarCircle>
+                  <GroupTitle>HIIT Warriors</GroupTitle>
+                </GroupHeader>
+                <BodyText>High-intensity interval training group with daily challenges</BodyText>
+                <GroupFooter>
+                  <ChipTag><Users size={14} /> 126 members</ChipTag>
+                  <GlowBtnSmall>Join</GlowBtnSmall>
+                </GroupFooter>
+              </GroupCard>
 
-                  {/* Group 2 */}
-                  <Grid item xs={12} sm={6}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(120, 81, 169, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(120, 81, 169, 0.2)'
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <Avatar sx={{ bgcolor: '#7851a9', color: '#ffffff', mr: 2 }}>
-                          <DirectionsRunIcon />
-                        </Avatar>
-                        <Typography variant="h6">Marathon Prep</Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
-                        Training together for upcoming marathon events
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Chip 
-                          icon={<PeopleIcon />} 
-                          label="89 members" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <GlowButton size="small">
-                          Join
-                        </GlowButton>
-                      </Box>
-                    </Paper>
-                  </Grid>
+              {/* Group 2 */}
+              <GroupCard $accent="rgba(120, 81, 169, 0.1)">
+                <GroupHeader>
+                  <AvatarCircle $bg="#7851a9" $color="#ffffff">
+                    <Activity size={20} />
+                  </AvatarCircle>
+                  <GroupTitle>Marathon Prep</GroupTitle>
+                </GroupHeader>
+                <BodyText>Training together for upcoming marathon events</BodyText>
+                <GroupFooter>
+                  <ChipTag><Users size={14} /> 89 members</ChipTag>
+                  <GlowBtnSmall>Join</GlowBtnSmall>
+                </GroupFooter>
+              </GroupCard>
 
-                  {/* Group 3 */}
-                  <Grid item xs={12} sm={6}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(255, 183, 0, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(255, 183, 0, 0.2)'
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <Avatar sx={{ bgcolor: '#ffb700', color: '#0a0a1a', mr: 2 }}>
-                          <EmojiEventsIcon />
-                        </Avatar>
-                        <Typography variant="h6">Wellness Journey</Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
-                        Holistic wellness combining fitness, nutrition, and mindfulness
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Chip 
-                          icon={<PeopleIcon />} 
-                          label="204 members" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <GlowButton size="small">
-                          Join
-                        </GlowButton>
-                      </Box>
-                    </Paper>
-                  </Grid>
+              {/* Group 3 */}
+              <GroupCard $accent="rgba(255, 183, 0, 0.1)">
+                <GroupHeader>
+                  <AvatarCircle $bg="#ffb700" $color="#0a0a1a">
+                    <Trophy size={20} />
+                  </AvatarCircle>
+                  <GroupTitle>Wellness Journey</GroupTitle>
+                </GroupHeader>
+                <BodyText>Holistic wellness combining fitness, nutrition, and mindfulness</BodyText>
+                <GroupFooter>
+                  <ChipTag><Users size={14} /> 204 members</ChipTag>
+                  <GlowBtnSmall>Join</GlowBtnSmall>
+                </GroupFooter>
+              </GroupCard>
 
-                  {/* Group 4 */}
-                  <Grid item xs={12} sm={6}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(0, 191, 143, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(0, 191, 143, 0.2)'
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <Avatar sx={{ bgcolor: '#00bf8f', color: '#ffffff', mr: 2 }}>
-                          <ChatIcon />
-                        </Avatar>
-                        <Typography variant="h6">Nutrition Support</Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
-                        Share meal plans, recipes, and nutrition advice
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Chip 
-                          icon={<PeopleIcon />} 
-                          label="153 members" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <GlowButton size="small">
-                          Join
-                        </GlowButton>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                </Grid>
+              {/* Group 4 */}
+              <GroupCard $accent="rgba(0, 191, 143, 0.1)">
+                <GroupHeader>
+                  <AvatarCircle $bg="#00bf8f" $color="#ffffff">
+                    <MessageCircle size={20} />
+                  </AvatarCircle>
+                  <GroupTitle>Nutrition Support</GroupTitle>
+                </GroupHeader>
+                <BodyText>Share meal plans, recipes, and nutrition advice</BodyText>
+                <GroupFooter>
+                  <ChipTag><Users size={14} /> 153 members</ChipTag>
+                  <GlowBtnSmall>Join</GlowBtnSmall>
+                </GroupFooter>
+              </GroupCard>
+            </GroupsGrid>
 
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                  <GlowButton>
-                    View All Groups
-                  </GlowButton>
-                </Box>
-              </CardContent>
-            </StyledCard>
-          </motion.div>
-        </Grid>
+            <CenterRow>
+              <GlowBtn>View All Groups</GlowBtn>
+            </CenterRow>
+          </StyledCard>
+        </motion.div>
 
         {/* Upcoming Events Section */}
-        <Grid item xs={12} md={4}>
-          <motion.div variants={itemVariants}>
-            <StyledCard>
-              <CardContent>
-                <Typography variant="h5" sx={{ mb: 3, color: '#00ffff' }}>
-                  Upcoming Events
-                </Typography>
+        <motion.div variants={itemVariants}>
+          <StyledCard>
+            <SectionHeading>Upcoming Events</SectionHeading>
 
-                {/* Event 1 */}
-                <Paper sx={{ 
-                  p: 2, 
-                  mb: 2, 
-                  bgcolor: 'rgba(255, 65, 108, 0.1)', 
-                  borderRadius: 2,
-                  border: '1px solid rgba(255, 65, 108, 0.2)'
-                }}>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <Box sx={{ 
-                      bgcolor: 'rgba(255, 65, 108, 0.2)', 
-                      p: 1.5,
-                      borderRadius: 1,
-                      textAlign: 'center',
-                      minWidth: '60px'
-                    }}>
-                      <Typography variant="subtitle2">JUN</Typography>
-                      <Typography variant="h5">15</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle1">Group HIIT Session</Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.7, mb: 1 }}>
-                        10:00 AM - 11:30 AM • Studio A
-                      </Typography>
-                      <GlowButton size="small">Register</GlowButton>
-                    </Box>
-                  </Box>
-                </Paper>
+            <EventCard $accent="rgba(255, 65, 108, 0.1)">
+              <DateBox $bg="rgba(255, 65, 108, 0.2)">
+                <DateMonth>JUN</DateMonth>
+                <DateDay>15</DateDay>
+              </DateBox>
+              <div>
+                <EventTitle>Group HIIT Session</EventTitle>
+                <EventDetail>10:00 AM - 11:30 AM &bull; Studio A</EventDetail>
+                <GlowBtnSmall>Register</GlowBtnSmall>
+              </div>
+            </EventCard>
 
-                {/* Event 2 */}
-                <Paper sx={{ 
-                  p: 2, 
-                  mb: 2, 
-                  bgcolor: 'rgba(0, 191, 143, 0.1)', 
-                  borderRadius: 2,
-                  border: '1px solid rgba(0, 191, 143, 0.2)'
-                }}>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <Box sx={{ 
-                      bgcolor: 'rgba(0, 191, 143, 0.2)', 
-                      p: 1.5,
-                      borderRadius: 1,
-                      textAlign: 'center',
-                      minWidth: '60px'
-                    }}>
-                      <Typography variant="subtitle2">JUN</Typography>
-                      <Typography variant="h5">18</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle1">Nutrition Workshop</Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.7, mb: 1 }}>
-                        6:00 PM - 7:30 PM • Online
-                      </Typography>
-                      <GlowButton size="small">Register</GlowButton>
-                    </Box>
-                  </Box>
-                </Paper>
+            <EventCard $accent="rgba(0, 191, 143, 0.1)">
+              <DateBox $bg="rgba(0, 191, 143, 0.2)">
+                <DateMonth>JUN</DateMonth>
+                <DateDay>18</DateDay>
+              </DateBox>
+              <div>
+                <EventTitle>Nutrition Workshop</EventTitle>
+                <EventDetail>6:00 PM - 7:30 PM &bull; Online</EventDetail>
+                <GlowBtnSmall>Register</GlowBtnSmall>
+              </div>
+            </EventCard>
 
-                {/* Event 3 */}
-                <Paper sx={{ 
-                  p: 2, 
-                  bgcolor: 'rgba(120, 81, 169, 0.1)', 
-                  borderRadius: 2,
-                  border: '1px solid rgba(120, 81, 169, 0.2)'
-                }}>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <Box sx={{ 
-                      bgcolor: 'rgba(120, 81, 169, 0.2)', 
-                      p: 1.5,
-                      borderRadius: 1,
-                      textAlign: 'center',
-                      minWidth: '60px'
-                    }}>
-                      <Typography variant="subtitle2">JUN</Typography>
-                      <Typography variant="h5">22</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle1">Charity Run</Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.7, mb: 1 }}>
-                        8:00 AM - 11:00 AM • City Park
-                      </Typography>
-                      <GlowButton size="small">Register</GlowButton>
-                    </Box>
-                  </Box>
-                </Paper>
+            <EventCard $accent="rgba(120, 81, 169, 0.1)">
+              <DateBox $bg="rgba(120, 81, 169, 0.2)">
+                <DateMonth>JUN</DateMonth>
+                <DateDay>22</DateDay>
+              </DateBox>
+              <div>
+                <EventTitle>Charity Run</EventTitle>
+                <EventDetail>8:00 AM - 11:00 AM &bull; City Park</EventDetail>
+                <GlowBtnSmall>Register</GlowBtnSmall>
+              </div>
+            </EventCard>
 
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                  <GlowButton>
-                    View All Events
-                  </GlowButton>
-                </Box>
-              </CardContent>
-            </StyledCard>
-          </motion.div>
-        </Grid>
+            <CenterRow>
+              <GlowBtn>View All Events</GlowBtn>
+            </CenterRow>
+          </StyledCard>
+        </motion.div>
 
         {/* Community Challenges Section */}
-        <Grid item xs={12}>
+        <GridFull>
           <motion.div variants={itemVariants}>
             <StyledCard>
-              <CardContent>
-                <Typography variant="h5" sx={{ mb: 3, color: '#00ffff' }}>
-                  Community Challenges
-                </Typography>
+              <SectionHeading>Community Challenges</SectionHeading>
 
-                <Grid container spacing={2}>
-                  {/* Challenge 1 */}
-                  <Grid item xs={12} md={4}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(0, 255, 255, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(0, 255, 255, 0.2)',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}>
-                      <Typography variant="h6" sx={{ mb: 1 }}>30-Day Fitness</Typography>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8, flex: 1 }}>
-                        Complete a workout every day for 30 days and track your progress
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Chip 
-                          label="621 participants" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          Ends in 12 days
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  </Grid>
+              <ChallengesGrid>
+                <ChallengeCard $accent="rgba(0, 255, 255, 0.1)">
+                  <ChallengeTitle>30-Day Fitness</ChallengeTitle>
+                  <BodyText style={{ flex: 1 }}>
+                    Complete a workout every day for 30 days and track your progress
+                  </BodyText>
+                  <ChallengeFooter>
+                    <ChipTag>621 participants</ChipTag>
+                    <CaptionText>Ends in 12 days</CaptionText>
+                  </ChallengeFooter>
+                </ChallengeCard>
 
-                  {/* Challenge 2 */}
-                  <Grid item xs={12} md={4}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(255, 183, 0, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(255, 183, 0, 0.2)',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}>
-                      <Typography variant="h6" sx={{ mb: 1 }}>100-Mile Club</Typography>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8, flex: 1 }}>
-                        Run, walk, or jog a total of 100 miles this month
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Chip 
-                          label="332 participants" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          Ends in 18 days
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  </Grid>
+                <ChallengeCard $accent="rgba(255, 183, 0, 0.1)">
+                  <ChallengeTitle>100-Mile Club</ChallengeTitle>
+                  <BodyText style={{ flex: 1 }}>
+                    Run, walk, or jog a total of 100 miles this month
+                  </BodyText>
+                  <ChallengeFooter>
+                    <ChipTag>332 participants</ChipTag>
+                    <CaptionText>Ends in 18 days</CaptionText>
+                  </ChallengeFooter>
+                </ChallengeCard>
 
-                  {/* Challenge 3 */}
-                  <Grid item xs={12} md={4}>
-                    <Paper sx={{ 
-                      p: 2, 
-                      bgcolor: 'rgba(120, 81, 169, 0.1)', 
-                      borderRadius: 2,
-                      border: '1px solid rgba(120, 81, 169, 0.2)',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}>
-                      <Typography variant="h6" sx={{ mb: 1 }}>Healthy Habits</Typography>
-                      <Typography variant="body2" sx={{ mb: 2, opacity: 0.8, flex: 1 }}>
-                        Build 5 new healthy habits over the course of 30 days
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Chip 
-                          label="479 participants" 
-                          size="small" 
-                          sx={{ bgcolor: 'rgba(0, 0, 0, 0.3)' }}
-                        />
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          Ends in 6 days
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                </Grid>
+                <ChallengeCard $accent="rgba(120, 81, 169, 0.1)">
+                  <ChallengeTitle>Healthy Habits</ChallengeTitle>
+                  <BodyText style={{ flex: 1 }}>
+                    Build 5 new healthy habits over the course of 30 days
+                  </BodyText>
+                  <ChallengeFooter>
+                    <ChipTag>479 participants</ChipTag>
+                    <CaptionText>Ends in 6 days</CaptionText>
+                  </ChallengeFooter>
+                </ChallengeCard>
+              </ChallengesGrid>
 
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                  <GlowButton>
-                    Join a Challenge
-                  </GlowButton>
-                </Box>
-              </CardContent>
+              <CenterRow>
+                <GlowBtn>Join a Challenge</GlowBtn>
+              </CenterRow>
             </StyledCard>
           </motion.div>
-        </Grid>
-      </Grid>
+        </GridFull>
+      </GridContainer>
     </DashboardContainer>
   );
 };
