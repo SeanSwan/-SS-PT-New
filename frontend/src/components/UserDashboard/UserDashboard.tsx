@@ -750,14 +750,27 @@ const TabNavigation = styled.div`
   border: 1px solid ${({ theme }) => theme.borders.elegant};
   border-radius: 16px;
   padding: 0.5rem;
+  gap: 0.5rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.borders.elegant};
+    border-radius: 999px;
+  }
 `;
 
 const Tab = styled(motion.button)`
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
+  min-height: 44px;
   border: none;
   border-radius: 12px;
   background: ${({ $active, theme }) => 
@@ -1106,8 +1119,10 @@ const PostOptions = styled.div`
 const PostOptionButton = styled(motion.button)`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  min-height: 44px;
+  padding: 0.625rem 1rem;
   background: ${({ theme }) => theme.background.elevated};
   border: 1px solid ${({ theme }) => theme.borders.subtle};
   border-radius: 8px;
@@ -1128,6 +1143,7 @@ const PostButton = styled(motion.button)`
   background: linear-gradient(135deg, #3B82F6, #8B5CF6);
   color: white;
   border: none;
+  min-height: 44px;
   padding: 0.75rem 2rem;
   border-radius: 12px;
   font-weight: 600;
@@ -1269,21 +1285,33 @@ const PostFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 0 1.5rem 1.5rem;
   border-top: 1px solid ${({ theme }) => theme.borders.subtle};
   margin-top: 1rem;
   padding-top: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const PostInteractions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 1.5rem;
   align-items: center;
+
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
 `;
 
 const InteractionButton = styled(motion.button)`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   background: none;
   border: none;
@@ -1291,7 +1319,9 @@ const InteractionButton = styled(motion.button)`
     $active ? theme.colors.primary : theme.text.secondary
   };
   cursor: pointer;
-  padding: 0.5rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.625rem 0.75rem;
   border-radius: 8px;
   transition: all 0.3s ease;
   
@@ -1309,6 +1339,12 @@ const InteractionButton = styled(motion.button)`
     &:hover {
       transform: none;
     }
+  }
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    gap: 0.35rem;
+    padding: 0.5rem 0.65rem;
   }
 `;
 
