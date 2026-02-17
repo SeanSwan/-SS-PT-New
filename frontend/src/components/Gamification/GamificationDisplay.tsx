@@ -1,6 +1,6 @@
 /**
  * GamificationDisplay Component
- * 
+ *
  * Displays gamification data from the MCP server, including:
  * - Achievements
  * - Game board position
@@ -11,53 +11,483 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { gamificationMcpApi } from '../../services/mcp/gamificationMcpService';
-import styled from 'styled-components';
-
-// UI Components
+import styled, { keyframes, css } from 'styled-components';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Divider,
-  Grid,
-  IconButton,
-  Paper,
-  Tooltip,
-  Typography,
-  Alert,
-  Collapse,
-  LinearProgress,
-  useTheme,
-  Avatar
-} from '@mui/material';
+  Trophy,
+  Shield,
+  Star,
+  Heart,
+  Zap,
+  Dice5,
+  Puzzle,
+  Lightbulb,
+  CheckCircle,
+  Hourglass,
+  Lock,
+  Brain,
+  Map,
+  BarChart,
+  Flag,
+  Info,
+  Wifi,
+  RefreshCw,
+  X
+} from 'lucide-react';
 
-// Icons
-import {
-  EmojiEvents as EmojiEventsIcon,
-  LocalPolice as LocalPoliceIcon,
-  Star as StarIcon,
-  Favorite as FavoriteIcon,
-  Bolt as BoltIcon,
-  Casino as CasinoIcon,
-  Extension as ExtensionIcon,
-  LightbulbOutlined as LightbulbOutlinedIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
-  HourglassEmpty as HourglassEmptyIcon,
-  Lock as LockIcon,
-  Psychology as PsychologyIcon,
-  Map as MapIcon,
-  BarChart as BarChartIcon,
-  Flag as FlagIcon,
-  Info as InfoIcon,
-  NetworkCheck as NetworkCheckIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon
-} from '@mui/icons-material';
+// ==================== Styled Components ====================
 
-// Types and interfaces
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const progressStripe = keyframes`
+  0% { background-position: 1rem 0; }
+  100% { background-position: 0 0; }
+`;
+
+const GlassCard = styled.div<{ $completed?: boolean; $borderColor?: string }>`
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid ${({ $completed, $borderColor }) =>
+    $completed && $borderColor ? $borderColor : 'rgba(14, 165, 233, 0.2)'};
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  ${({ $completed }) => $completed && css`
+    background: rgba(15, 23, 42, 0.98);
+  `}
+`;
+
+const GlassPanel = styled.div`
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const SectionTitle = styled.h5`
+  color: #e2e8f0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CompactTitle = styled.h6`
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const SubTitle = styled.h6`
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+`;
+
+const BodyText = styled.p`
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const SecondaryText = styled.span`
+  color: #94a3b8;
+  font-size: 0.75rem;
+`;
+
+const CaptionText = styled.span`
+  color: #94a3b8;
+  font-size: 0.75rem;
+`;
+
+const AccentText = styled.span`
+  color: #0ea5e9;
+  font-weight: 700;
+`;
+
+const TierText = styled.span`
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+`;
+
+const FlexRow = styled.div<{
+  $justify?: string;
+  $align?: string;
+  $gap?: string;
+  $wrap?: string;
+}>`
+  display: flex;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'stretch'};
+  gap: ${({ $gap }) => $gap || '0'};
+  flex-wrap: ${({ $wrap }) => $wrap || 'nowrap'};
+`;
+
+const FlexGrow = styled.div`
+  flex-grow: 1;
+  min-width: 0;
+`;
+
+const StatGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const AchievementGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const CompactGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+`;
+
+const StatBox = styled.div`
+  text-align: center;
+  padding: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+`;
+
+const AvatarCircle = styled.div<{ $bgColor?: string; $size?: number }>`
+  width: ${({ $size }) => $size || 40}px;
+  height: ${({ $size }) => $size || 40}px;
+  min-width: ${({ $size }) => $size || 40}px;
+  border-radius: 50%;
+  background: ${({ $bgColor }) => $bgColor || '#0ea5e9'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: ${({ $size }) => ($size ? $size * 0.4 : 16)}px;
+  font-weight: 700;
+`;
+
+const ProgressBarContainer = styled.div<{ $height?: number }>`
+  width: 100%;
+  height: ${({ $height }) => $height || 8}px;
+  background: rgba(14, 165, 233, 0.1);
+  border-radius: ${({ $height }) => ($height ? $height / 2 : 4)}px;
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $value: number; $color?: string }>`
+  height: 100%;
+  width: ${({ $value }) => Math.min($value, 100)}%;
+  background: ${({ $color }) => $color || '#0ea5e9'};
+  border-radius: inherit;
+  transition: width 0.5s ease;
+`;
+
+const Spinner = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 32}px;
+  height: ${({ $size }) => $size || 32}px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+const PrimaryButton = styled.button<{ $fullWidth?: boolean; $small?: boolean; $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: ${({ $small }) => ($small ? '8px 16px' : '12px 24px')};
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+  background: ${({ $active }) => ($active !== false ? '#0ea5e9' : 'transparent')};
+  color: ${({ $active }) => ($active !== false ? '#fff' : '#0ea5e9')};
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+  font-size: ${({ $small }) => ($small ? '0.8125rem' : '0.875rem')};
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 44px;
+
+  &:hover:not(:disabled) {
+    background: ${({ $active }) => ($active !== false ? '#0284c7' : 'rgba(14, 165, 233, 0.1)')};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const OutlineButton = styled.button<{ $small?: boolean; $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: ${({ $small }) => ($small ? '8px 16px' : '12px 24px')};
+  background: ${({ $active }) => ($active ? '#0ea5e9' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#fff' : '#0ea5e9')};
+  border: 1px solid ${({ $active }) => ($active ? '#0ea5e9' : 'rgba(14, 165, 233, 0.3)')};
+  border-radius: 8px;
+  font-size: ${({ $small }) => ($small ? '0.8125rem' : '0.875rem')};
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 44px;
+
+  &:hover {
+    background: ${({ $active }) => ($active ? '#0284c7' : 'rgba(14, 165, 233, 0.1)')};
+  }
+`;
+
+const IconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #0ea5e9;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+
+  &:hover:not(:disabled) {
+    background: rgba(14, 165, 233, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ChipBadge = styled.span<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: ${({ $color }) => {
+    switch ($color) {
+      case 'success': return 'rgba(34, 197, 94, 0.15)';
+      case 'info': return 'rgba(14, 165, 233, 0.15)';
+      case 'warning': return 'rgba(234, 179, 8, 0.15)';
+      case 'error': return 'rgba(239, 68, 68, 0.15)';
+      case 'primary': return 'rgba(14, 165, 233, 0.15)';
+      default: return 'rgba(148, 163, 184, 0.15)';
+    }
+  }};
+  color: ${({ $color }) => {
+    switch ($color) {
+      case 'success': return '#22c55e';
+      case 'info': return '#0ea5e9';
+      case 'warning': return '#eab308';
+      case 'error': return '#ef4444';
+      case 'primary': return '#0ea5e9';
+      default: return '#94a3b8';
+    }
+  }};
+  border: 1px solid ${({ $color }) => {
+    switch ($color) {
+      case 'success': return 'rgba(34, 197, 94, 0.3)';
+      case 'info': return 'rgba(14, 165, 233, 0.3)';
+      case 'warning': return 'rgba(234, 179, 8, 0.3)';
+      case 'error': return 'rgba(239, 68, 68, 0.3)';
+      case 'primary': return 'rgba(14, 165, 233, 0.3)';
+      default: return 'rgba(148, 163, 184, 0.3)';
+    }
+  }};
+`;
+
+const AlertBox = styled.div<{ $severity?: 'error' | 'warning' | 'info' | 'success' }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  background: ${({ $severity }) => {
+    switch ($severity) {
+      case 'error': return 'rgba(239, 68, 68, 0.1)';
+      case 'warning': return 'rgba(234, 179, 8, 0.1)';
+      case 'info': return 'rgba(14, 165, 233, 0.1)';
+      case 'success': return 'rgba(34, 197, 94, 0.1)';
+      default: return 'rgba(14, 165, 233, 0.1)';
+    }
+  }};
+  border: 1px solid ${({ $severity }) => {
+    switch ($severity) {
+      case 'error': return 'rgba(239, 68, 68, 0.3)';
+      case 'warning': return 'rgba(234, 179, 8, 0.3)';
+      case 'info': return 'rgba(14, 165, 233, 0.3)';
+      case 'success': return 'rgba(34, 197, 94, 0.3)';
+      default: return 'rgba(14, 165, 233, 0.3)';
+    }
+  }};
+  color: ${({ $severity }) => {
+    switch ($severity) {
+      case 'error': return '#fca5a5';
+      case 'warning': return '#fde68a';
+      case 'info': return '#7dd3fc';
+      case 'success': return '#86efac';
+      default: return '#e2e8f0';
+    }
+  }};
+`;
+
+const SpaceHighlight = styled.div`
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.05);
+  border: 1px dashed rgba(14, 165, 233, 0.3);
+`;
+
+const TierBadge = styled.div<{ $color: string }>`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const AchievementCard = styled.div<{ $completed?: boolean; $borderColor?: string }>`
+  background: ${({ $completed }) =>
+    $completed ? 'rgba(34, 197, 94, 0.05)' : 'rgba(15, 23, 42, 0.95)'};
+  border: 1px solid ${({ $completed, $borderColor }) =>
+    $completed && $borderColor ? $borderColor : 'rgba(14, 165, 233, 0.2)'};
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ChallengeCard = styled.div<{ $status?: string }>`
+  background: ${({ $status }) => {
+    switch ($status) {
+      case 'completed': return 'rgba(34, 197, 94, 0.05)';
+      case 'active': return 'rgba(14, 165, 233, 0.05)';
+      default: return 'rgba(15, 23, 42, 0.95)';
+    }
+  }};
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 32px;
+`;
+
+const NoWrapText = styled.span`
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+`;
+
+const NoWrapCaption = styled.span`
+  color: #94a3b8;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+`;
+
+const CompactAchievementRow = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.6);
+`;
+
+const StatusDot = styled.span<{ $online?: boolean }>`
+  color: ${({ $online }) => ($online ? '#22c55e' : '#64748b')};
+  display: inline-flex;
+  align-items: center;
+`;
+
+const FullWidthOutline = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #0ea5e9;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.1);
+  }
+`;
+
+const LayoutGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 2fr 1fr;
+  }
+`;
+
+// ==================== Types and interfaces ====================
+
 interface Achievement {
   id: string;
   name: string;
@@ -136,39 +566,38 @@ interface GamificationDisplayProps {
 /**
  * Component to display gamification data from the MCP server
  */
-const GamificationDisplay: React.FC<GamificationDisplayProps> = ({ 
+const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
   variant = 'full',
   onDataLoaded
 }) => {
   const { user } = useAuth();
-  const theme = useTheme();
-  
+
   // State
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mcpAvailable, setMcpAvailable] = useState<boolean>(false);
   const [showConnectionAlert, setShowConnectionAlert] = useState<boolean>(false);
-  
+
   // Gamification data
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [gameBoard, setGameBoard] = useState<GameBoard | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  
+
   // Filter state
   const [achievementFilter, setAchievementFilter] = useState<'all' | 'completed' | 'inProgress'>('all');
   const [challengeFilter, setChallengeFilter] = useState<'all' | 'active' | 'completed' | 'available'>('all');
-  
+
   // Check MCP server status
   const checkMcpStatus = useCallback(async () => {
     try {
       const available = await gamificationMcpApi.checkServerStatus()
         .then(() => true)
         .catch(() => false);
-      
+
       setMcpAvailable(available);
       setShowConnectionAlert(!available);
-      
+
       return available;
     } catch (error) {
       console.error('[Gamification] Error checking MCP server status:', error);
@@ -177,7 +606,7 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       return false;
     }
   }, []);
-  
+
   // Load gamification data
   const loadGamificationData = useCallback(async () => {
     if (!user?.id) {
@@ -185,14 +614,14 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Check if MCP server is available
       const isAvailable = await checkMcpStatus();
-      
+
       if (!isAvailable) {
         // Fall back to mock data for development
         console.log('[Gamification] Using mock data');
@@ -200,47 +629,47 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
         setLoading(false);
         return;
       }
-      
+
       // Get profile data
       const profileResponse = await gamificationMcpApi.getGamificationProfile({
         userId: user.id
       });
-      
+
       // Get achievements
       const achievementsResponse = await gamificationMcpApi.getAchievements({
         userId: user.id,
         includeCompleted: true,
         includeInProgress: true
       });
-      
+
       // Get game board position
       const boardResponse = await gamificationMcpApi.getBoardPosition({
         userId: user.id
       });
-      
+
       // Get challenges
       const challengesResponse = await gamificationMcpApi.getChallenges({
         userId: user.id,
         status: 'all'
       });
-      
+
       // Update state with real data
       if (profileResponse.data) {
         setProfile(profileResponse.data);
       }
-      
+
       if (achievementsResponse.data) {
         setAchievements(achievementsResponse.data);
       }
-      
+
       if (boardResponse.data) {
         setGameBoard(boardResponse.data);
       }
-      
+
       if (challengesResponse.data) {
         setChallenges(challengesResponse.data);
       }
-      
+
       // Combine data for callback
       const combinedData: GamificationData = {
         profile: profileResponse.data || generateMockProfile(),
@@ -248,28 +677,28 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
         gameBoard: boardResponse.data || generateMockGameBoard(),
         challenges: challengesResponse.data || generateMockChallenges()
       };
-      
+
       if (onDataLoaded) {
         onDataLoaded(combinedData);
       }
     } catch (error: any) {
       console.error('[Gamification] Error loading data:', error);
       setError(error.message || 'Error loading gamification data');
-      
+
       // Fall back to mock data for development
       setMockData();
     } finally {
       setLoading(false);
     }
   }, [user?.id, checkMcpStatus, onDataLoaded]);
-  
+
   // Set mock data for development
   const setMockData = () => {
     setProfile(generateMockProfile());
     setAchievements(generateMockAchievements());
     setGameBoard(generateMockGameBoard());
     setChallenges(generateMockChallenges());
-    
+
     // Combine data for callback
     if (onDataLoaded) {
       onDataLoaded({
@@ -280,31 +709,31 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       });
     }
   };
-  
+
   // Roll dice and move on game board
   const handleRollDice = async () => {
     if (!user?.id || !gameBoard?.nextRollAvailable) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       if (mcpAvailable) {
         // Use real MCP server
         const response = await gamificationMcpApi.rollDice({
           userId: user.id
         });
-        
+
         if (response.data) {
           // Update game board with new position
           setGameBoard(response.data);
-          
+
           // Reload profile to get updated points
           const profileResponse = await gamificationMcpApi.getGamificationProfile({
             userId: user.id
           });
-          
+
           if (profileResponse.data) {
             setProfile(profileResponse.data);
           }
@@ -312,17 +741,17 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       } else {
         // Mock roll for development
         console.log('[Gamification] Using mock dice roll');
-        
+
         // Random roll between 1-6
         const roll = Math.floor(Math.random() * 6) + 1;
         const oldPosition = gameBoard.currentPosition;
         let newPosition = oldPosition + roll;
-        
+
         // Wrap around if needed
         if (newPosition > gameBoard.totalSpaces) {
           newPosition = newPosition - gameBoard.totalSpaces;
         }
-        
+
         // Generate new game board state
         const updatedGameBoard: GameBoard = {
           ...gameBoard,
@@ -345,9 +774,9 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
             }
           }
         };
-        
+
         setGameBoard(updatedGameBoard);
-        
+
         // Update profile with reward points
         if (profile) {
           setProfile({
@@ -355,7 +784,7 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
             points: profile.points + (roll * 10)
           });
         }
-        
+
         // Simulate delay for user experience
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -366,13 +795,13 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       setLoading(false);
     }
   };
-  
+
   // Join a challenge
   const handleJoinChallenge = async (challengeId: string) => {
     if (!user?.id) {
       return;
     }
-    
+
     try {
       if (mcpAvailable) {
         // Use real MCP server
@@ -380,20 +809,20 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
           userId: user.id,
           challengeId: challengeId
         });
-        
+
         // Reload challenges
         const challengesResponse = await gamificationMcpApi.getChallenges({
           userId: user.id,
           status: 'all'
         });
-        
+
         if (challengesResponse.data) {
           setChallenges(challengesResponse.data);
         }
       } else {
         // Mock join for development
         console.log('[Gamification] Mocking challenge join:', challengeId);
-        
+
         // Update challenge status in local state
         setChallenges(challenges.map(challenge => {
           if (challenge.id === challengeId) {
@@ -410,18 +839,18 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       setError(error.message || 'Error joining challenge');
     }
   };
-  
+
   // Load data on mount
   useEffect(() => {
     loadGamificationData();
   }, [loadGamificationData]);
-  
+
   // Check MCP status regularly
   useEffect(() => {
     const interval = setInterval(checkMcpStatus, 30000);
     return () => clearInterval(interval);
   }, [checkMcpStatus]);
-  
+
   // Filter achievements
   const filteredAchievements = achievements.filter(achievement => {
     if (achievementFilter === 'all') return true;
@@ -429,13 +858,13 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
     if (achievementFilter === 'inProgress') return !achievement.completed;
     return true;
   });
-  
+
   // Filter challenges
   const filteredChallenges = challenges.filter(challenge => {
     if (challengeFilter === 'all') return true;
     return challenge.status === challengeFilter;
   });
-  
+
   // Get badge color based on tier
   const getBadgeColor = (tier: 'bronze' | 'silver' | 'gold' | 'platinum') => {
     switch (tier) {
@@ -446,806 +875,649 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
       default: return '#CD7F32';
     }
   };
-  
+
   // Get icon component based on string name
   const getIconComponent = (iconName: string, size: number = 24) => {
     switch (iconName) {
-      case 'Star': return <StarIcon sx={{ fontSize: size }} />;
-      case 'Trophy': return <EmojiEventsIcon sx={{ fontSize: size }} />;
-      case 'Medal': return <LocalPoliceIcon sx={{ fontSize: size }} />;
-      case 'Heart': return <FavoriteIcon sx={{ fontSize: size }} />;
-      case 'Lightning': return <BoltIcon sx={{ fontSize: size }} />;
-      case 'Dice': return <CasinoIcon sx={{ fontSize: size }} />;
-      case 'Puzzle': return <ExtensionIcon sx={{ fontSize: size }} />;
-      case 'Idea': return <LightbulbOutlinedIcon sx={{ fontSize: size }} />;
-      default: return <StarIcon sx={{ fontSize: size }} />;
+      case 'Star': return <Star size={size} />;
+      case 'Trophy': return <Trophy size={size} />;
+      case 'Medal': return <Shield size={size} />;
+      case 'Heart': return <Heart size={size} />;
+      case 'Lightning': return <Zap size={size} />;
+      case 'Dice': return <Dice5 size={size} />;
+      case 'Puzzle': return <Puzzle size={size} />;
+      case 'Idea': return <Lightbulb size={size} />;
+      default: return <Star size={size} />;
     }
   };
-  
+
+  // Get challenge status color
+  const getChallengeStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return '#22c55e';
+      case 'active': return '#0ea5e9';
+      case 'available': return '#eab308';
+      default: return '#64748b';
+    }
+  };
+
   // Calculate level progress percentage
   const calculateLevelProgress = () => {
     if (!profile) return 0;
-    
+
     const { points, nextLevelPoints } = profile;
     return Math.min(Math.round((points / nextLevelPoints) * 100), 100);
   };
-  
+
   // Render compact version
   if (variant === 'compact') {
     return (
-      <Card>
-        <CardContent>
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-            <Typography variant="h6">
-              <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
-              Gamification
-            </Typography>
-            <Box>
-              <Tooltip title={mcpAvailable ? "MCP Server Connected" : "MCP Server Offline"}>
-                <NetworkCheckIcon color={mcpAvailable ? "success" : "disabled"} />
-              </Tooltip>
-            </Box>
-          </Box>
-          
-          {/* Error Message */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          {/* Profile Summary */}
-          {profile && (
-            <Box mb={2}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Box textAlign="center" p={1} border={1} borderColor="divider" borderRadius={1}>
-                    <Typography variant="caption" color="text.secondary">Level</Typography>
-                    <Typography variant="h6">{profile.level}</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box textAlign="center" p={1} border={1} borderColor="divider" borderRadius={1}>
-                    <Typography variant="caption" color="text.secondary">Points</Typography>
-                    <Typography variant="h6">{profile.points}</Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-              
-              {/* Level Progress */}
-              <Box mt={2}>
-                <Box display="flex" justifyContent="space-between" mb={0.5}>
-                  <Typography variant="caption" color="text.secondary">
-                    Progress to Level {profile.level + 1}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {profile.points} / {profile.nextLevelPoints}
-                  </Typography>
-                </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={calculateLevelProgress()} 
-                  sx={{ height: 8, borderRadius: 1 }}
-                />
-              </Box>
-            </Box>
-          )}
-          
-          {/* Recent Achievements */}
-          <Typography variant="subtitle2" gutterBottom>
-            Recent Achievements
-          </Typography>
-          
-          {loading ? (
-            <Box display="flex" justifyContent="center" my={2}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : (
-            <Box>
-              {filteredAchievements.slice(0, 3).map((achievement) => (
-                <Box 
-                  key={achievement.id} 
-                  display="flex" 
-                  alignItems="center" 
-                  p={1} 
-                  mb={1} 
-                  border={1} 
-                  borderColor="divider" 
-                  borderRadius={1}
-                >
-                  <Avatar 
-                    sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      bgcolor: getBadgeColor(achievement.tier),
-                      mr: 1
-                    }}
-                  >
-                    {getIconComponent(achievement.icon, 16)}
-                  </Avatar>
-                  <Box flexGrow={1}>
-                    <Typography variant="body2" noWrap>
-                      {achievement.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap>
-                      {achievement.description}
-                    </Typography>
-                  </Box>
-                  {achievement.completed ? (
-                    <CheckCircleOutlineIcon color="success" fontSize="small" />
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      {achievement.progress}/{achievement.totalRequired}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
-              
-              <Button 
-                variant="outlined" 
-                size="small" 
-                fullWidth 
-                onClick={() => loadGamificationData()}
-              >
-                View All
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  // Render full version
-  return (
-    <Box>
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        {/* Header */}
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-          <Typography variant="h5">
-            <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
-            Wholesome Warrior's Path
-          </Typography>
-          
-          <Box>
-            <IconButton 
-              onClick={loadGamificationData} 
-              disabled={loading}
-              color="primary"
-            >
-              <Tooltip title="Refresh Data">
-                <Box sx={{ position: 'relative' }}>
-                  {loading && (
-                    <CircularProgress
-                      size={24}
-                      thickness={4}
-                      sx={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        color: theme.palette.grey[200]
-                      }}
-                    />
-                  )}
-                  <RefreshIcon />
-                </Box>
-              </Tooltip>
-            </IconButton>
-            <Tooltip title={mcpAvailable ? "MCP Server Connected" : "MCP Server Offline"}>
-              <NetworkCheckIcon color={mcpAvailable ? "success" : "disabled"} />
-            </Tooltip>
-          </Box>
-        </Box>
-        
-        {/* Connection Alert */}
-        <Collapse in={showConnectionAlert}>
-          <Alert 
-            severity="warning" 
-            sx={{ mb: 3 }}
-            action={
-              <IconButton
-                aria-label="close"
-                color="inherit"
-                size="small"
-                onClick={() => setShowConnectionAlert(false)}
-              >
-                <CloseIcon fontSize="inherit" />
-              </IconButton>
-            }
+      <GlassCard>
+        <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
+          <CompactTitle>
+            <Trophy size={20} />
+            Gamification
+          </CompactTitle>
+          <StatusDot
+            $online={mcpAvailable}
+            title={mcpAvailable ? "MCP Server Connected" : "MCP Server Offline"}
           >
-            Unable to connect to the Gamification MCP server. Using cached data.
-          </Alert>
-        </Collapse>
-        
+            <Wifi size={18} />
+          </StatusDot>
+        </FlexRow>
+
         {/* Error Message */}
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <AlertBox $severity="error">
             {error}
-          </Alert>
+          </AlertBox>
         )}
-        
+
+        {/* Profile Summary */}
+        {profile && (
+          <div style={{ marginBottom: 16 }}>
+            <CompactGrid>
+              <StatBox>
+                <CaptionText>Level</CaptionText>
+                <CompactTitle style={{ justifyContent: 'center', marginTop: 4 }}>
+                  {profile.level}
+                </CompactTitle>
+              </StatBox>
+              <StatBox>
+                <CaptionText>Points</CaptionText>
+                <CompactTitle style={{ justifyContent: 'center', marginTop: 4 }}>
+                  {profile.points}
+                </CompactTitle>
+              </StatBox>
+            </CompactGrid>
+
+            {/* Level Progress */}
+            <div style={{ marginTop: 16 }}>
+              <FlexRow $justify="space-between" style={{ marginBottom: 4 }}>
+                <CaptionText>
+                  Progress to Level {profile.level + 1}
+                </CaptionText>
+                <CaptionText>
+                  {profile.points} / {profile.nextLevelPoints}
+                </CaptionText>
+              </FlexRow>
+              <ProgressBarContainer $height={8}>
+                <ProgressBarFill $value={calculateLevelProgress()} />
+              </ProgressBarContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Recent Achievements */}
+        <SubTitle>Recent Achievements</SubTitle>
+
+        {loading ? (
+          <FlexRow $justify="center" style={{ padding: '16px 0' }}>
+            <Spinner $size={24} />
+          </FlexRow>
+        ) : (
+          <div>
+            {filteredAchievements.slice(0, 3).map((achievement) => (
+              <CompactAchievementRow key={achievement.id}>
+                <AvatarCircle
+                  $bgColor={getBadgeColor(achievement.tier)}
+                  $size={32}
+                >
+                  {getIconComponent(achievement.icon, 16)}
+                </AvatarCircle>
+                <FlexGrow>
+                  <NoWrapText>{achievement.name}</NoWrapText>
+                  <NoWrapCaption>{achievement.description}</NoWrapCaption>
+                </FlexGrow>
+                {achievement.completed ? (
+                  <CheckCircle size={18} color="#22c55e" />
+                ) : (
+                  <CaptionText>
+                    {achievement.progress}/{achievement.totalRequired}
+                  </CaptionText>
+                )}
+              </CompactAchievementRow>
+            ))}
+
+            <FullWidthOutline onClick={() => loadGamificationData()}>
+              View All
+            </FullWidthOutline>
+          </div>
+        )}
+      </GlassCard>
+    );
+  }
+
+  // Render full version
+  return (
+    <div>
+      <GlassPanel style={{ marginBottom: 24 }}>
+        {/* Header */}
+        <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
+          <SectionTitle>
+            <Trophy size={24} />
+            Wholesome Warrior's Path
+          </SectionTitle>
+
+          <FlexRow $align="center" $gap="4px">
+            <IconBtn
+              onClick={loadGamificationData}
+              disabled={loading}
+              title="Refresh Data"
+            >
+              {loading && (
+                <Spinner
+                  $size={24}
+                  style={{ position: 'absolute', top: 10, left: 10 }}
+                />
+              )}
+              <RefreshCw size={20} />
+            </IconBtn>
+            <StatusDot
+              $online={mcpAvailable}
+              title={mcpAvailable ? "MCP Server Connected" : "MCP Server Offline"}
+            >
+              <Wifi size={20} />
+            </StatusDot>
+          </FlexRow>
+        </FlexRow>
+
+        {/* Connection Alert */}
+        {showConnectionAlert && (
+          <AlertBox $severity="warning">
+            <span>Unable to connect to the Gamification MCP server. Using cached data.</span>
+            <IconBtn
+              aria-label="close"
+              onClick={() => setShowConnectionAlert(false)}
+              style={{ width: 32, height: 32, minWidth: 32 }}
+            >
+              <X size={16} />
+            </IconBtn>
+          </AlertBox>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <AlertBox $severity="error">
+            {error}
+          </AlertBox>
+        )}
+
         {/* Player Stats */}
         {profile && (
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={8}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Your Progress
-                  </Typography>
-                  
-                  <Grid container spacing={2}>
-                    {/* Level */}
-                    <Grid item xs={6} sm={3}>
-                      <Box textAlign="center">
-                        <Avatar
-                          sx={{
-                            width: 60,
-                            height: 60,
-                            bgcolor: getBadgeColor(profile.tier),
-                            fontSize: '1.5rem',
-                            fontWeight: 'bold',
-                            margin: '0 auto',
-                            mb: 1
-                          }}
-                        >
-                          {profile.level}
-                        </Avatar>
-                        <Typography variant="body2">Level</Typography>
-                      </Box>
-                    </Grid>
-                    
-                    {/* Points */}
-                    <Grid item xs={6} sm={3}>
-                      <Box textAlign="center">
-                        <Avatar
-                          sx={{
-                            width: 60,
-                            height: 60,
-                            bgcolor: theme.palette.primary.main,
-                            margin: '0 auto',
-                            mb: 1
-                          }}
-                        >
-                          <StarIcon />
-                        </Avatar>
-                        <Typography variant="body2">
-                          {profile.points} Points
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    
-                    {/* Streak */}
-                    <Grid item xs={6} sm={3}>
-                      <Box textAlign="center">
-                        <Avatar
-                          sx={{
-                            width: 60,
-                            height: 60,
-                            bgcolor: theme.palette.warning.main,
-                            margin: '0 auto',
-                            mb: 1
-                          }}
-                        >
-                          <BoltIcon />
-                        </Avatar>
-                        <Typography variant="body2">
-                          {profile.streak} Day Streak
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    
-                    {/* Tier */}
-                    <Grid item xs={6} sm={3}>
-                      <Box textAlign="center">
-                        <Avatar
-                          sx={{
-                            width: 60,
-                            height: 60,
-                            bgcolor: getBadgeColor(profile.tier),
-                            margin: '0 auto',
-                            mb: 1
-                          }}
-                        >
-                          <EmojiEventsIcon />
-                        </Avatar>
-                        <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                          {profile.tier} Tier
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                  
-                  {/* Level Progress */}
-                  <Box mt={3}>
-                    <Box display="flex" justifyContent="space-between" mb={0.5}>
-                      <Typography variant="body2">
-                        Progress to Level {profile.level + 1}
-                      </Typography>
-                      <Typography variant="body2">
-                        {profile.points} / {profile.nextLevelPoints} Points
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={calculateLevelProgress()} 
-                      sx={{ height: 10, borderRadius: 2 }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            
+          <LayoutGrid>
+            <GlassCard>
+              <SubTitle>Your Progress</SubTitle>
+
+              <StatGrid>
+                {/* Level */}
+                <div style={{ textAlign: 'center' }}>
+                  <AvatarCircle
+                    $bgColor={getBadgeColor(profile.tier)}
+                    $size={60}
+                    style={{ margin: '0 auto 8px' }}
+                  >
+                    {profile.level}
+                  </AvatarCircle>
+                  <BodyText>Level</BodyText>
+                </div>
+
+                {/* Points */}
+                <div style={{ textAlign: 'center' }}>
+                  <AvatarCircle
+                    $bgColor="#0ea5e9"
+                    $size={60}
+                    style={{ margin: '0 auto 8px' }}
+                  >
+                    <Star size={24} />
+                  </AvatarCircle>
+                  <BodyText>{profile.points} Points</BodyText>
+                </div>
+
+                {/* Streak */}
+                <div style={{ textAlign: 'center' }}>
+                  <AvatarCircle
+                    $bgColor="#eab308"
+                    $size={60}
+                    style={{ margin: '0 auto 8px' }}
+                  >
+                    <Zap size={24} />
+                  </AvatarCircle>
+                  <BodyText>{profile.streak} Day Streak</BodyText>
+                </div>
+
+                {/* Tier */}
+                <div style={{ textAlign: 'center' }}>
+                  <AvatarCircle
+                    $bgColor={getBadgeColor(profile.tier)}
+                    $size={60}
+                    style={{ margin: '0 auto 8px' }}
+                  >
+                    <Trophy size={24} />
+                  </AvatarCircle>
+                  <TierText>{profile.tier} Tier</TierText>
+                </div>
+              </StatGrid>
+
+              {/* Level Progress */}
+              <div style={{ marginTop: 24 }}>
+                <FlexRow $justify="space-between" style={{ marginBottom: 4 }}>
+                  <BodyText>Progress to Level {profile.level + 1}</BodyText>
+                  <BodyText>{profile.points} / {profile.nextLevelPoints} Points</BodyText>
+                </FlexRow>
+                <ProgressBarContainer $height={10}>
+                  <ProgressBarFill $value={calculateLevelProgress()} />
+                </ProgressBarContainer>
+              </div>
+            </GlassCard>
+
             {/* Attributes */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Attributes
-                  </Typography>
-                  
-                  {profile.attributes && (
-                    <Box>
-                      {/* Strength */}
-                      <Box mb={2}>
-                        <Typography variant="body2" gutterBottom>
-                          Strength (Lvl {profile.attributes.strength.level})
-                        </Typography>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={profile.attributes.strength.progress} 
-                          color="error"
-                          sx={{ height: 8, borderRadius: 1 }}
-                        />
-                      </Box>
-                      
-                      {/* Cardio */}
-                      <Box mb={2}>
-                        <Typography variant="body2" gutterBottom>
-                          Cardio (Lvl {profile.attributes.cardio.level})
-                        </Typography>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={profile.attributes.cardio.progress} 
-                          color="primary"
-                          sx={{ height: 8, borderRadius: 1 }}
-                        />
-                      </Box>
-                      
-                      {/* Flexibility */}
-                      <Box mb={2}>
-                        <Typography variant="body2" gutterBottom>
-                          Flexibility (Lvl {profile.attributes.flexibility.level})
-                        </Typography>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={profile.attributes.flexibility.progress} 
-                          color="success"
-                          sx={{ height: 8, borderRadius: 1 }}
-                        />
-                      </Box>
-                      
-                      {/* Balance */}
-                      <Box>
-                        <Typography variant="body2" gutterBottom>
-                          Balance (Lvl {profile.attributes.balance.level})
-                        </Typography>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={profile.attributes.balance.progress} 
-                          color="warning"
-                          sx={{ height: 8, borderRadius: 1 }}
-                        />
-                      </Box>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+            <GlassCard style={{ height: '100%' }}>
+              <SubTitle>Attributes</SubTitle>
+
+              {profile.attributes && (
+                <div>
+                  {/* Strength */}
+                  <div style={{ marginBottom: 16 }}>
+                    <BodyText style={{ marginBottom: 4 }}>
+                      Strength (Lvl {profile.attributes.strength.level})
+                    </BodyText>
+                    <ProgressBarContainer $height={8}>
+                      <ProgressBarFill
+                        $value={profile.attributes.strength.progress}
+                        $color="#ef4444"
+                      />
+                    </ProgressBarContainer>
+                  </div>
+
+                  {/* Cardio */}
+                  <div style={{ marginBottom: 16 }}>
+                    <BodyText style={{ marginBottom: 4 }}>
+                      Cardio (Lvl {profile.attributes.cardio.level})
+                    </BodyText>
+                    <ProgressBarContainer $height={8}>
+                      <ProgressBarFill
+                        $value={profile.attributes.cardio.progress}
+                        $color="#0ea5e9"
+                      />
+                    </ProgressBarContainer>
+                  </div>
+
+                  {/* Flexibility */}
+                  <div style={{ marginBottom: 16 }}>
+                    <BodyText style={{ marginBottom: 4 }}>
+                      Flexibility (Lvl {profile.attributes.flexibility.level})
+                    </BodyText>
+                    <ProgressBarContainer $height={8}>
+                      <ProgressBarFill
+                        $value={profile.attributes.flexibility.progress}
+                        $color="#22c55e"
+                      />
+                    </ProgressBarContainer>
+                  </div>
+
+                  {/* Balance */}
+                  <div>
+                    <BodyText style={{ marginBottom: 4 }}>
+                      Balance (Lvl {profile.attributes.balance.level})
+                    </BodyText>
+                    <ProgressBarContainer $height={8}>
+                      <ProgressBarFill
+                        $value={profile.attributes.balance.progress}
+                        $color="#eab308"
+                      />
+                    </ProgressBarContainer>
+                  </div>
+                </div>
+              )}
+            </GlassCard>
+          </LayoutGrid>
         )}
-        
+
         {/* Game Board */}
         {gameBoard && (
-          <Card variant="outlined" sx={{ mb: 4 }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="h6">
-                  <MapIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
-                  {gameBoard.boardName}
-                </Typography>
-                <Chip 
-                  label={`Space ${gameBoard.currentPosition} of ${gameBoard.totalSpaces}`} 
-                  color="primary" 
-                  variant="outlined" 
-                />
-              </Box>
-              
-              <Box mb={3}>
-                <Box sx={{ 
-                  p: 2, 
-                  borderRadius: 2, 
-                  bgcolor: 'rgba(0, 0, 0, 0.05)', 
-                  border: '1px dashed rgba(0, 0, 0, 0.2)'
-                }}>
-                  <Typography variant="subtitle1">
-                    {gameBoard.currentSpace.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {gameBoard.currentSpace.description}
-                  </Typography>
-                  
-                  {gameBoard.currentSpace.reward && (
-                    <Box mt={1} display="flex" alignItems="center">
-                      <StarIcon color="warning" fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2" fontWeight="medium">
-                        {gameBoard.currentSpace.reward.message || `Reward: ${gameBoard.currentSpace.reward.points} points`}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-              
-              {/* Last Roll Info */}
-              {gameBoard.lastRoll && (
-                <Box mb={3} display="flex" alignItems="center">
-                  <CasinoIcon color="action" sx={{ mr: 1 }} />
-                  <Typography variant="body2">
-                    Last roll: You rolled a{' '}
-                    <Box component="span" fontWeight="bold" color="primary.main">
-                      {gameBoard.lastRoll.value}
-                    </Box>
-                    {' '}and moved from space {gameBoard.lastRoll.fromPosition} to {gameBoard.lastRoll.toPosition}.
-                  </Typography>
-                </Box>
+          <GlassCard style={{ marginBottom: 32 }}>
+            <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
+              <SectionTitle>
+                <Map size={20} />
+                {gameBoard.boardName}
+              </SectionTitle>
+              <ChipBadge $color="primary">
+                Space {gameBoard.currentPosition} of {gameBoard.totalSpaces}
+              </ChipBadge>
+            </FlexRow>
+
+            <div style={{ marginBottom: 24 }}>
+              <SpaceHighlight>
+                <BodyText style={{ fontWeight: 600, marginBottom: 4 }}>
+                  {gameBoard.currentSpace.name}
+                </BodyText>
+                <SecondaryText>
+                  {gameBoard.currentSpace.description}
+                </SecondaryText>
+
+                {gameBoard.currentSpace.reward && (
+                  <FlexRow $align="center" $gap="4px" style={{ marginTop: 8 }}>
+                    <Star size={16} color="#eab308" />
+                    <BodyText style={{ fontWeight: 600 }}>
+                      {gameBoard.currentSpace.reward.message || `Reward: ${gameBoard.currentSpace.reward.points} points`}
+                    </BodyText>
+                  </FlexRow>
+                )}
+              </SpaceHighlight>
+            </div>
+
+            {/* Last Roll Info */}
+            {gameBoard.lastRoll && (
+              <FlexRow $align="center" $gap="8px" style={{ marginBottom: 24 }}>
+                <Dice5 size={20} color="#94a3b8" />
+                <BodyText>
+                  Last roll: You rolled a{' '}
+                  <AccentText>{gameBoard.lastRoll.value}</AccentText>
+                  {' '}and moved from space {gameBoard.lastRoll.fromPosition} to {gameBoard.lastRoll.toPosition}.
+                </BodyText>
+              </FlexRow>
+            )}
+
+            {/* Roll Button */}
+            <PrimaryButton
+              $fullWidth
+              disabled={loading || !gameBoard.nextRollAvailable}
+              onClick={handleRollDice}
+            >
+              {loading ? (
+                <Spinner $size={24} />
+              ) : gameBoard.nextRollAvailable ? (
+                <>
+                  <Dice5 size={20} />
+                  Roll Dice & Move
+                </>
+              ) : (
+                'Next Roll Available Tomorrow'
               )}
-              
-              {/* Roll Button */}
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<CasinoIcon />}
-                disabled={loading || !gameBoard.nextRollAvailable}
-                onClick={handleRollDice}
-                fullWidth
-              >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : gameBoard.nextRollAvailable ? (
-                  'Roll Dice & Move'
-                ) : (
-                  'Next Roll Available Tomorrow'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+            </PrimaryButton>
+          </GlassCard>
         )}
-        
+
         {/* Achievements */}
-        <Card variant="outlined" sx={{ mb: 4 }}>
-          <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h6">
-                <EmojiEventsIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
-                Achievements
-              </Typography>
-              <Box>
-                <Button 
-                  size="small" 
-                  variant={achievementFilter === 'all' ? 'contained' : 'outlined'}
-                  onClick={() => setAchievementFilter('all')}
-                  sx={{ mr: 1 }}
+        <GlassCard style={{ marginBottom: 32 }}>
+          <FlexRow $justify="space-between" $align="center" $wrap="wrap" $gap="12px" style={{ marginBottom: 16 }}>
+            <SectionTitle>
+              <Trophy size={20} />
+              Achievements
+            </SectionTitle>
+            <FlexRow $gap="8px" $wrap="wrap">
+              <OutlineButton
+                $small
+                $active={achievementFilter === 'all'}
+                onClick={() => setAchievementFilter('all')}
+              >
+                All
+              </OutlineButton>
+              <OutlineButton
+                $small
+                $active={achievementFilter === 'completed'}
+                onClick={() => setAchievementFilter('completed')}
+              >
+                Completed
+              </OutlineButton>
+              <OutlineButton
+                $small
+                $active={achievementFilter === 'inProgress'}
+                onClick={() => setAchievementFilter('inProgress')}
+              >
+                In Progress
+              </OutlineButton>
+            </FlexRow>
+          </FlexRow>
+
+          {/* Loading State */}
+          {loading ? (
+            <FlexRow $justify="center" style={{ padding: '32px 0' }}>
+              <Spinner />
+            </FlexRow>
+          ) : (
+            // Achievements Grid
+            <AchievementGrid>
+              {filteredAchievements.map((achievement) => (
+                <AchievementCard
+                  key={achievement.id}
+                  $completed={achievement.completed}
+                  $borderColor={getBadgeColor(achievement.tier)}
                 >
-                  All
-                </Button>
-                <Button 
-                  size="small" 
-                  variant={achievementFilter === 'completed' ? 'contained' : 'outlined'}
-                  onClick={() => setAchievementFilter('completed')}
-                  sx={{ mr: 1 }}
-                >
-                  Completed
-                </Button>
-                <Button 
-                  size="small" 
-                  variant={achievementFilter === 'inProgress' ? 'contained' : 'outlined'}
-                  onClick={() => setAchievementFilter('inProgress')}
-                >
-                  In Progress
-                </Button>
-              </Box>
-            </Box>
-            
-            {/* Loading State */}
-            {loading ? (
-              <Box display="flex" justifyContent="center" my={4}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              // Achievements Grid
-              <Grid container spacing={2}>
-                {filteredAchievements.map((achievement) => (
-                  <Grid item xs={12} sm={6} md={4} key={achievement.id}>
-                    <Card 
-                      sx={{ 
-                        height: '100%', 
-                        position: 'relative',
-                        bgcolor: achievement.completed ? 'rgba(76, 175, 80, 0.05)' : 'inherit',
-                        border: achievement.completed ? `1px solid ${getBadgeColor(achievement.tier)}` : '1px solid rgba(0,0,0,0.12)'
-                      }}
-                    >
-                      {/* Tier Badge */}
-                      <Box 
-                        sx={{ 
-                          position: 'absolute', 
-                          top: 10, 
-                          right: 10,
-                          width: 24,
-                          height: 24,
-                          borderRadius: '50%',
-                          bgcolor: getBadgeColor(achievement.tier),
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <StarIcon sx={{ fontSize: 16, color: '#fff' }} />
-                      </Box>
-                      
-                      <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <Avatar 
-                            sx={{ 
-                              bgcolor: getBadgeColor(achievement.tier),
-                              mr: 1.5
-                            }}
-                          >
-                            {getIconComponent(achievement.icon)}
-                          </Avatar>
-                          <Typography variant="h6" gutterBottom={false}>
-                            {achievement.name}
-                          </Typography>
-                        </Box>
-                        
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                          {achievement.description}
-                        </Typography>
-                        
-                        {achievement.completed ? (
-                          <Box display="flex" alignItems="center" mt={2}>
-                            <CheckCircleOutlineIcon color="success" sx={{ mr: 1 }} />
-                            <Typography variant="body2">
-                              Completed{achievement.dateCompleted && ` on ${new Date(achievement.dateCompleted).toLocaleDateString()}`}
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box mt={2}>
-                            <Box display="flex" justifyContent="space-between" mb={0.5}>
-                              <Typography variant="body2">
-                                Progress
-                              </Typography>
-                              <Typography variant="body2">
-                                {achievement.progress} / {achievement.totalRequired}
-                              </Typography>
-                            </Box>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={Math.min((achievement.progress / achievement.totalRequired) * 100, 100)} 
-                              sx={{ height: 8, borderRadius: 1 }}
-                            />
-                          </Box>
-                        )}
-                        
-                        {/* Point Value */}
-                        <Chip 
-                          icon={<StarIcon />} 
-                          label={`${achievement.pointValue} Points`}
-                          size="small"
-                          sx={{ mt: 2 }}
-                          color={achievement.completed ? "success" : "default"}
+                  {/* Tier Badge */}
+                  <TierBadge $color={getBadgeColor(achievement.tier)}>
+                    <Star size={16} color="#fff" />
+                  </TierBadge>
+
+                  <FlexRow $align="center" $gap="12px" style={{ marginBottom: 16 }}>
+                    <AvatarCircle $bgColor={getBadgeColor(achievement.tier)}>
+                      {getIconComponent(achievement.icon)}
+                    </AvatarCircle>
+                    <SectionTitle style={{ fontSize: '1rem' }}>
+                      {achievement.name}
+                    </SectionTitle>
+                  </FlexRow>
+
+                  <SecondaryText style={{ display: 'block', marginBottom: 16, fontSize: '0.875rem' }}>
+                    {achievement.description}
+                  </SecondaryText>
+
+                  {achievement.completed ? (
+                    <FlexRow $align="center" $gap="8px" style={{ marginTop: 'auto' }}>
+                      <CheckCircle size={20} color="#22c55e" />
+                      <BodyText>
+                        Completed{achievement.dateCompleted && ` on ${new Date(achievement.dateCompleted).toLocaleDateString()}`}
+                      </BodyText>
+                    </FlexRow>
+                  ) : (
+                    <div style={{ marginTop: 'auto' }}>
+                      <FlexRow $justify="space-between" style={{ marginBottom: 4 }}>
+                        <BodyText>Progress</BodyText>
+                        <BodyText>{achievement.progress} / {achievement.totalRequired}</BodyText>
+                      </FlexRow>
+                      <ProgressBarContainer $height={8}>
+                        <ProgressBarFill
+                          $value={Math.min((achievement.progress / achievement.totalRequired) * 100, 100)}
                         />
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-                
-                {filteredAchievements.length === 0 && (
-                  <Grid item xs={12}>
-                    <Box p={4} textAlign="center">
-                      <InfoIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 2 }} />
-                      <Typography variant="h6">No Achievements Found</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {achievementFilter === 'completed' ? 
-                          "You haven't completed any achievements yet. Keep going!" : 
-                          achievementFilter === 'inProgress' ? 
-                          "All achievements are either completed or not started yet." : 
-                          "No achievements available. Check back later."}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                )}
-              </Grid>
-            )}
-          </CardContent>
-        </Card>
-        
+                      </ProgressBarContainer>
+                    </div>
+                  )}
+
+                  {/* Point Value */}
+                  <div style={{ marginTop: 16 }}>
+                    <ChipBadge $color={achievement.completed ? 'success' : undefined}>
+                      <Star size={14} />
+                      {achievement.pointValue} Points
+                    </ChipBadge>
+                  </div>
+                </AchievementCard>
+              ))}
+
+              {filteredAchievements.length === 0 && (
+                <EmptyState style={{ gridColumn: '1 / -1' }}>
+                  <Info size={40} color="#94a3b8" style={{ marginBottom: 16 }} />
+                  <SectionTitle style={{ justifyContent: 'center', marginBottom: 8 }}>
+                    No Achievements Found
+                  </SectionTitle>
+                  <SecondaryText style={{ fontSize: '0.875rem' }}>
+                    {achievementFilter === 'completed' ?
+                      "You haven't completed any achievements yet. Keep going!" :
+                      achievementFilter === 'inProgress' ?
+                      "All achievements are either completed or not started yet." :
+                      "No achievements available. Check back later."}
+                  </SecondaryText>
+                </EmptyState>
+              )}
+            </AchievementGrid>
+          )}
+        </GlassCard>
+
         {/* Challenges */}
-        <Card variant="outlined">
-          <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h6">
-                <FlagIcon sx={{ mr: 1, verticalAlign: 'bottom' }} />
-                Challenges & Quests
-              </Typography>
-              <Box>
-                <Button 
-                  size="small" 
-                  variant={challengeFilter === 'all' ? 'contained' : 'outlined'}
-                  onClick={() => setChallengeFilter('all')}
-                  sx={{ mr: 1 }}
-                >
-                  All
-                </Button>
-                <Button 
-                  size="small" 
-                  variant={challengeFilter === 'active' ? 'contained' : 'outlined'}
-                  onClick={() => setChallengeFilter('active')}
-                  sx={{ mr: 1 }}
-                >
-                  Active
-                </Button>
-                <Button 
-                  size="small" 
-                  variant={challengeFilter === 'available' ? 'contained' : 'outlined'}
-                  onClick={() => setChallengeFilter('available')}
-                  sx={{ mr: 1 }}
-                >
-                  Available
-                </Button>
-                <Button 
-                  size="small" 
-                  variant={challengeFilter === 'completed' ? 'contained' : 'outlined'}
-                  onClick={() => setChallengeFilter('completed')}
-                >
-                  Completed
-                </Button>
-              </Box>
-            </Box>
-            
-            {/* Loading State */}
-            {loading ? (
-              <Box display="flex" justifyContent="center" my={4}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              // Challenges List
-              <Box>
-                {filteredChallenges.map((challenge) => (
-                  <Card 
-                    key={challenge.id} 
-                    variant="outlined" 
-                    sx={{ 
-                      mb: 2,
-                      bgcolor: 
-                        challenge.status === 'completed' ? 'rgba(76, 175, 80, 0.05)' : 
-                        challenge.status === 'active' ? 'rgba(33, 150, 243, 0.05)' : 
-                        'inherit'
-                    }}
-                  >
-                    <CardContent>
-                      <Box display="flex" alignItems="flex-start">
-                        {/* Status Icon */}
-                        <Avatar 
-                          sx={{ 
-                            bgcolor: 
-                              challenge.status === 'completed' ? theme.palette.success.main : 
-                              challenge.status === 'active' ? theme.palette.primary.main : 
-                              challenge.status === 'available' ? theme.palette.warning.main : 
-                              theme.palette.grey[500],
-                            mr: 2
-                          }}
-                        >
-                          {challenge.status === 'completed' ? <CheckCircleOutlineIcon /> : 
-                           challenge.status === 'active' ? <HourglassEmptyIcon /> : 
-                           challenge.status === 'available' ? <LightbulbOutlinedIcon /> : 
-                           <PsychologyIcon />}
-                        </Avatar>
-                        
-                        <Box flexGrow={1}>
-                          <Box display="flex" alignItems="center" justifyContent="space-between">
-                            <Typography variant="h6">
-                              {challenge.name}
-                            </Typography>
-                            <Chip 
-                              label={challenge.difficulty} 
-                              size="small"
-                              color={
-                                challenge.difficulty === 'easy' ? 'success' :
-                                challenge.difficulty === 'medium' ? 'info' :
-                                challenge.difficulty === 'hard' ? 'warning' :
-                                'error'
-                              }
+        <GlassCard>
+          <FlexRow $justify="space-between" $align="center" $wrap="wrap" $gap="12px" style={{ marginBottom: 16 }}>
+            <SectionTitle>
+              <Flag size={20} />
+              Challenges & Quests
+            </SectionTitle>
+            <FlexRow $gap="8px" $wrap="wrap">
+              <OutlineButton
+                $small
+                $active={challengeFilter === 'all'}
+                onClick={() => setChallengeFilter('all')}
+              >
+                All
+              </OutlineButton>
+              <OutlineButton
+                $small
+                $active={challengeFilter === 'active'}
+                onClick={() => setChallengeFilter('active')}
+              >
+                Active
+              </OutlineButton>
+              <OutlineButton
+                $small
+                $active={challengeFilter === 'available'}
+                onClick={() => setChallengeFilter('available')}
+              >
+                Available
+              </OutlineButton>
+              <OutlineButton
+                $small
+                $active={challengeFilter === 'completed'}
+                onClick={() => setChallengeFilter('completed')}
+              >
+                Completed
+              </OutlineButton>
+            </FlexRow>
+          </FlexRow>
+
+          {/* Loading State */}
+          {loading ? (
+            <FlexRow $justify="center" style={{ padding: '32px 0' }}>
+              <Spinner />
+            </FlexRow>
+          ) : (
+            // Challenges List
+            <div>
+              {filteredChallenges.map((challenge) => (
+                <ChallengeCard key={challenge.id} $status={challenge.status}>
+                  <FlexRow $align="flex-start" $gap="16px">
+                    {/* Status Icon */}
+                    <AvatarCircle $bgColor={getChallengeStatusColor(challenge.status)}>
+                      {challenge.status === 'completed' ? <CheckCircle size={20} /> :
+                       challenge.status === 'active' ? <Hourglass size={20} /> :
+                       challenge.status === 'available' ? <Lightbulb size={20} /> :
+                       <Brain size={20} />}
+                    </AvatarCircle>
+
+                    <FlexGrow>
+                      <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 8 }}>
+                        <SectionTitle style={{ fontSize: '1rem' }}>
+                          {challenge.name}
+                        </SectionTitle>
+                        <ChipBadge $color={
+                          challenge.difficulty === 'easy' ? 'success' :
+                          challenge.difficulty === 'medium' ? 'info' :
+                          challenge.difficulty === 'hard' ? 'warning' :
+                          'error'
+                        }>
+                          {challenge.difficulty}
+                        </ChipBadge>
+                      </FlexRow>
+
+                      <SecondaryText style={{ display: 'block', marginBottom: 12, fontSize: '0.875rem' }}>
+                        {challenge.description}
+                      </SecondaryText>
+
+                      {/* Progress (for active challenges) */}
+                      {challenge.status === 'active' && (
+                        <div style={{ marginTop: 16, marginBottom: 16 }}>
+                          <FlexRow $justify="space-between" style={{ marginBottom: 4 }}>
+                            <BodyText>Progress</BodyText>
+                            <BodyText>{challenge.progress} / {challenge.totalRequired}</BodyText>
+                          </FlexRow>
+                          <ProgressBarContainer $height={8}>
+                            <ProgressBarFill
+                              $value={Math.min((challenge.progress / challenge.totalRequired) * 100, 100)}
                             />
-                          </Box>
-                          
-                          <Typography variant="body2" color="text.secondary" paragraph>
-                            {challenge.description}
-                          </Typography>
-                          
-                          {/* Progress (for active challenges) */}
-                          {challenge.status === 'active' && (
-                            <Box mt={2} mb={2}>
-                              <Box display="flex" justifyContent="space-between" mb={0.5}>
-                                <Typography variant="body2">
-                                  Progress
-                                </Typography>
-                                <Typography variant="body2">
-                                  {challenge.progress} / {challenge.totalRequired}
-                                </Typography>
-                              </Box>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={Math.min((challenge.progress / challenge.totalRequired) * 100, 100)} 
-                                sx={{ height: 8, borderRadius: 1 }}
-                              />
-                            </Box>
-                          )}
-                          
-                          {/* Expiry Date (for active challenges) */}
-                          {challenge.status === 'active' && challenge.expiryDate && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              Expires: {new Date(challenge.expiryDate).toLocaleDateString()}
-                            </Typography>
-                          )}
-                          
-                          {/* Reward */}
-                          <Box display="flex" alignItems="center" mt={1}>
-                            <StarIcon color="warning" fontSize="small" sx={{ mr: 0.5 }} />
-                            <Typography variant="body2">
-                              Reward: {challenge.reward.points} Points
-                              {challenge.reward.badge && ` + "${challenge.reward.badge}" Badge`}
-                            </Typography>
-                          </Box>
-                          
-                          {/* Join Button (for available challenges) */}
-                          {challenge.status === 'available' && (
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              size="small"
-                              onClick={() => handleJoinChallenge(challenge.id)}
-                              sx={{ mt: 2 }}
-                            >
-                              Accept Challenge
-                            </Button>
-                          )}
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                {filteredChallenges.length === 0 && (
-                  <Box p={4} textAlign="center">
-                    <InfoIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h6">No Challenges Found</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {challengeFilter === 'completed' ? 
-                        "You haven't completed any challenges yet." : 
-                        challengeFilter === 'active' ? 
-                        "You don't have any active challenges. Try accepting some!" : 
-                        challengeFilter === 'available' ? 
-                        "There are no available challenges at the moment. Check back later." :
-                        "No challenges available in any category. Check back later."}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-      </Paper>
-    </Box>
+                          </ProgressBarContainer>
+                        </div>
+                      )}
+
+                      {/* Expiry Date (for active challenges) */}
+                      {challenge.status === 'active' && challenge.expiryDate && (
+                        <SecondaryText style={{ display: 'block', marginTop: 8, fontSize: '0.875rem' }}>
+                          Expires: {new Date(challenge.expiryDate).toLocaleDateString()}
+                        </SecondaryText>
+                      )}
+
+                      {/* Reward */}
+                      <FlexRow $align="center" $gap="4px" style={{ marginTop: 8 }}>
+                        <Star size={16} color="#eab308" />
+                        <BodyText>
+                          Reward: {challenge.reward.points} Points
+                          {challenge.reward.badge && ` + "${challenge.reward.badge}" Badge`}
+                        </BodyText>
+                      </FlexRow>
+
+                      {/* Join Button (for available challenges) */}
+                      {challenge.status === 'available' && (
+                        <PrimaryButton
+                          $small
+                          onClick={() => handleJoinChallenge(challenge.id)}
+                          style={{ marginTop: 16 }}
+                        >
+                          Accept Challenge
+                        </PrimaryButton>
+                      )}
+                    </FlexGrow>
+                  </FlexRow>
+                </ChallengeCard>
+              ))}
+
+              {filteredChallenges.length === 0 && (
+                <EmptyState>
+                  <Info size={40} color="#94a3b8" style={{ marginBottom: 16 }} />
+                  <SectionTitle style={{ justifyContent: 'center', marginBottom: 8 }}>
+                    No Challenges Found
+                  </SectionTitle>
+                  <SecondaryText style={{ fontSize: '0.875rem' }}>
+                    {challengeFilter === 'completed' ?
+                      "You haven't completed any challenges yet." :
+                      challengeFilter === 'active' ?
+                      "You don't have any active challenges. Try accepting some!" :
+                      challengeFilter === 'available' ?
+                      "There are no available challenges at the moment. Check back later." :
+                      "No challenges available in any category. Check back later."}
+                  </SecondaryText>
+                </EmptyState>
+              )}
+            </div>
+          )}
+        </GlassCard>
+      </GlassPanel>
+    </div>
   );
 };
 

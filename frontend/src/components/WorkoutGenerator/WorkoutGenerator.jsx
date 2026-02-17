@@ -1,6 +1,6 @@
 /**
  * Workout Generator Component
- * 
+ *
  * A comprehensive interface for trainers to generate personalized workouts:
  * - Uses AI-powered MCP server to create customized plans
  * - Allows selection of focus areas, equipment, and workout types
@@ -9,38 +9,40 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Button, TextField, FormControl, InputLabel, Select, MenuItem,
-  Chip, FormControlLabel, Checkbox, Paper, Divider, CircularProgress, 
-  Card, CardContent, Grid, IconButton, Tooltip, Accordion, AccordionSummary,
-  AccordionDetails, Alert, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions
-} from '@mui/material';
-import { 
-  FitnessCenter, ExpandMore, Send, Save, Refresh,
-  ContentCopy, Download, Share, Print, Edit, FilterList, Close,
-  Check, Delete, Add, PlaylistAdd, RestartAlt
-} from '@mui/icons-material';
+import {
+  Dumbbell, ChevronDown, Send, Save, RefreshCw,
+  Copy, Download, Share2, Printer, Pencil, SlidersHorizontal, X,
+  Check, Trash2, Plus, ListPlus, RotateCcw
+} from 'lucide-react';
 import { motion } from 'framer-motion';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { useSnackbar } from 'notistack';
 import MCPService from './MCPService';
 
-// Styled components
-const GeneratorContainer = styled(Box)`
-  background: rgba(30, 30, 60, 0.7);
+// ============================================================
+// Styled Components - Galaxy-Swan Theme
+// ============================================================
+
+const spinAnimation = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const GeneratorContainer = styled.div`
+  background: rgba(15, 23, 42, 0.95);
   border-radius: 16px;
   padding: 1.5rem;
   position: relative;
   width: 100%;
   min-height: 600px;
   overflow: hidden;
-  
+
   /* Glass morphism effect */
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  
+
   /* Gradient border effect */
   &:before {
     content: "";
@@ -49,24 +51,27 @@ const GeneratorContainer = styled(Box)`
     border-radius: 16px;
     padding: 1px;
     background: linear-gradient(45deg, #00ffff, #7851a9);
-    -webkit-mask: 
-      linear-gradient(#fff 0 0) content-box, 
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0.6;
     z-index: -1;
   }
-  
+
   @media (max-width: 768px) {
     padding: 1rem;
   }
 `;
 
-const GeneratorTitle = styled(Typography)`
+const GeneratorTitle = styled.h4`
   font-size: 1.8rem;
   font-weight: 300;
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background: linear-gradient(
     to right,
     #a9f8fb,
@@ -77,229 +82,383 @@ const GeneratorTitle = styled(Typography)`
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
   }
 `;
 
-const ParameterSection = styled(Box)`
+const ParameterSection = styled.div`
   margin-bottom: 2rem;
 `;
 
-const SectionTitle = styled(Typography)`
+const SectionTitle = styled.h6`
   font-size: 1.2rem;
-  color: #00ffff;
-  margin-bottom: 1rem;
+  font-weight: 500;
+  color: #0ea5e9;
+  margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+
   svg {
-    font-size: 1.4rem;
+    width: 1.2rem;
+    height: 1.2rem;
   }
 `;
 
-const StyledFormControl = styled(FormControl)`
-  && {
-    margin-bottom: 1rem;
-    width: 100%;
-    
-    .MuiInputLabel-root {
-      color: rgba(255, 255, 255, 0.7);
-    }
-    
-    .MuiOutlinedInput-root {
-      background: rgba(20, 20, 40, 0.5);
-      
-      fieldset {
-        border-color: rgba(255, 255, 255, 0.2);
-      }
-      
-      &:hover fieldset {
-        border-color: rgba(0, 255, 255, 0.5);
-      }
-      
-      &.Mui-focused fieldset {
-        border-color: #00ffff;
-      }
-    }
-    
-    .MuiOutlinedInput-input {
-      color: white;
-    }
-    
-    .MuiSelect-icon {
-      color: rgba(255, 255, 255, 0.5);
-    }
-  }
-`;
-
-const StyledTextField = styled(TextField)`
-  && {
-    margin-bottom: 1rem;
-    width: 100%;
-    
-    .MuiInputLabel-root {
-      color: rgba(255, 255, 255, 0.7);
-    }
-    
-    .MuiOutlinedInput-root {
-      background: rgba(20, 20, 40, 0.5);
-      
-      fieldset {
-        border-color: rgba(255, 255, 255, 0.2);
-      }
-      
-      &:hover fieldset {
-        border-color: rgba(0, 255, 255, 0.5);
-      }
-      
-      &.Mui-focused fieldset {
-        border-color: #00ffff;
-      }
-    }
-    
-    .MuiOutlinedInput-input {
-      color: white;
-    }
-  }
-`;
-
-const ChipContainer = styled(Box)`
+const ChipContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
 `;
 
-const StyledChip = styled(Chip)`
-  && {
-    background: ${props => props.selected ? 'rgba(0, 255, 255, 0.3)' : 'rgba(30, 30, 60, 0.5)'};
-    color: white;
-    border: 1px solid ${props => props.selected ? 'rgba(0, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.2)'};
-    
-    &:hover {
-      background: ${props => props.selected ? 'rgba(0, 255, 255, 0.4)' : 'rgba(30, 30, 60, 0.7)'};
-    }
+const StyledChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  min-height: 44px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.3)' : 'rgba(15, 23, 42, 0.5)'};
+  color: #e2e8f0;
+  border: 1px solid ${props => props.$selected ? 'rgba(14, 165, 233, 0.8)' : 'rgba(14, 165, 233, 0.2)'};
+
+  &:hover {
+    background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.4)' : 'rgba(15, 23, 42, 0.7)'};
   }
 `;
 
-const ActionButton = styled(Button)`
-  && {
-    background: linear-gradient(90deg, #00ffff, #7851a9);
-    color: white;
-    border-radius: 8px;
-    text-transform: none;
-    padding: 0.5rem 1.5rem;
-    margin-right: 1rem;
-    
-    &:hover {
-      background: linear-gradient(90deg, #7851a9, #00ffff);
-    }
-    
-    &:disabled {
-      background: rgba(128, 128, 128, 0.3);
-      color: rgba(255, 255, 255, 0.3);
-    }
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const SecondaryButton = styled(Button)`
-  && {
-    background: rgba(30, 30, 60, 0.7);
-    color: white;
-    border-radius: 8px;
-    text-transform: none;
-    padding: 0.5rem 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    
-    &:hover {
-      background: rgba(50, 50, 80, 0.7);
-    }
+const EquipmentGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const ResultCard = styled(Card)`
-  && {
-    background: rgba(20, 20, 40, 0.7);
-    color: white;
-    border-radius: 8px;
-    margin-top: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+  width: 100%;
+`;
+
+const FormLabel = styled.label`
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.7);
+  margin-bottom: 0.25rem;
+`;
+
+const StyledSelect = styled.select`
+  width: 100%;
+  min-height: 44px;
+  padding: 0.625rem 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: rgba(14, 165, 233, 0.5);
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
   }
 `;
 
-const ResultHeader = styled(Box)`
+const StyledInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 0.625rem 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &:hover {
+    border-color: rgba(14, 165, 233, 0.5);
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  &::placeholder {
+    color: rgba(226, 232, 240, 0.4);
+  }
+`;
+
+const StyledTextarea = styled.textarea`
+  width: 100%;
+  min-height: 80px;
+  padding: 0.625rem 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &:hover {
+    border-color: rgba(14, 165, 233, 0.5);
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  &::placeholder {
+    color: rgba(226, 232, 240, 0.4);
+  }
+`;
+
+const ActionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.625rem 1.5rem;
+  background: linear-gradient(90deg, #0ea5e9, #7851a9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 1rem;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(90deg, #7851a9, #0ea5e9);
+  }
+
+  &:disabled {
+    background: rgba(128, 128, 128, 0.3);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.625rem 1.5rem;
+  background: rgba(15, 23, 42, 0.7);
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(30, 41, 59, 0.7);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const IconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem;
+  background: transparent;
+  color: ${props => props.$color || '#0ea5e9'};
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.15);
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`;
+
+const TooltipWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+
+  &:hover > span {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+`;
+
+const TooltipText = styled.span`
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 0.375rem 0.75rem;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 50;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+`;
+
+const ResultCard = styled.div`
+  background: rgba(15, 23, 42, 0.7);
+  color: #e2e8f0;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+`;
+
+const ResultHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
 `;
 
-const ResultContent = styled(Box)`
+const ResultHeaderTitle = styled.h6`
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #0ea5e9;
+  margin: 0;
+`;
+
+const ResultContent = styled.div`
   padding: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(226, 232, 240, 0.9);
   max-height: 600px;
   overflow-y: auto;
-  
+
   /* Scrollbar styling */
   &::-webkit-scrollbar {
     width: 5px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
+    background: rgba(14, 165, 233, 0.3);
     border-radius: 4px;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
-    color: #00ffff;
+    color: #0ea5e9;
   }
-  
+
   strong {
     color: #a9f8fb;
   }
-  
+
   ul, ol {
     padding-left: 1.5rem;
   }
-  
+
   li {
     margin-bottom: 0.5rem;
   }
-  
+
   table {
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
   }
-  
+
   th, td {
     padding: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(14, 165, 233, 0.2);
   }
-  
+
   th {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(14, 165, 233, 0.1);
   }
 `;
 
-const ResultActions = styled(Box)`
+const ResultActions = styled.div`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   padding: 1rem;
   gap: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(14, 165, 233, 0.2);
+  flex-wrap: wrap;
 `;
 
-const LoadingOverlay = styled(Box)`
+const LoadingOverlay = styled.div`
   position: absolute;
   top: 0;
   left: 0;
@@ -309,15 +468,182 @@ const LoadingOverlay = styled(Box)`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(20, 20, 40, 0.8);
+  background: rgba(15, 23, 42, 0.8);
   z-index: 10;
   border-radius: 16px;
   backdrop-filter: blur(5px);
 `;
 
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: ${spinAnimation} 0.8s linear infinite;
+  margin-bottom: 1rem;
+`;
+
+const LoadingTitle = styled.h6`
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin: 0 0 0.5rem 0;
+`;
+
+const LoadingSubtext = styled.p`
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.7);
+  margin: 0;
+`;
+
+const AlertBox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.9375rem;
+`;
+
+const AlertCloseBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  color: #fca5a5;
+  cursor: pointer;
+  border-radius: 6px;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.2);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const AccordionWrapper = styled.div`
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+`;
+
+const AccordionHeader = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: #e2e8f0;
+  border: none;
+  border-bottom: ${props => props.$expanded ? '1px solid rgba(14, 165, 233, 0.2)' : 'none'};
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.05);
+  }
+`;
+
+const AccordionHeaderContent = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+`;
+
+const AccordionChevron = styled.span`
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s ease;
+  transform: ${props => props.$expanded ? 'rotate(180deg)' : 'rotate(0deg)'};
+  color: #e2e8f0;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`;
+
+const AccordionBody = styled.div`
+  padding: ${props => props.$expanded ? '1rem' : '0 1rem'};
+  max-height: ${props => props.$expanded ? '2000px' : '0'};
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+`;
+
+const ContentH4 = styled.h4`
+  color: #0ea5e9;
+  margin: 1rem 0 0.5rem 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+`;
+
+const ContentH5 = styled.h5`
+  color: #0ea5e9;
+  margin: 1rem 0 0.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+`;
+
+const ContentH6 = styled.h6`
+  color: #0ea5e9;
+  margin: 1rem 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+`;
+
+const ContentLi = styled.li`
+  margin-left: 1rem;
+  margin-bottom: 0.375rem;
+  color: rgba(226, 232, 240, 0.9);
+`;
+
+const ContentP = styled.p`
+  margin: 0 0 0.75rem 0;
+  color: rgba(226, 232, 240, 0.9);
+  line-height: 1.6;
+`;
+
+const Spacer = styled.div`
+  height: 0.5rem;
+`;
+
+// ============================================================
+// Constants
+// ============================================================
+
 // Available equipment options
 const EQUIPMENT_OPTIONS = [
-  'Dumbbells', 'Barbell', 'Kettlebell', 'Resistance Bands', 
+  'Dumbbells', 'Barbell', 'Kettlebell', 'Resistance Bands',
   'TRX/Suspension Trainer', 'Pull-up Bar', 'Bench', 'Medicine Ball',
   'Stability Ball', 'Foam Roller', 'Battle Ropes', 'Cable Machine',
   'Smith Machine', 'Leg Press', 'Hack Squat', 'Leg Extension',
@@ -405,7 +731,7 @@ const MOCK_CLIENT = {
 const WorkoutGenerator = ({ client, onSave, onClose }) => {
   const { user } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
-  
+
   // State for generator parameters
   const [focusAreas, setFocusAreas] = useState([]);
   const [workoutType, setWorkoutType] = useState('Full Body');
@@ -415,21 +741,21 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
   const [includeEquipment, setIncludeEquipment] = useState([]);
   const [excludeEquipment, setExcludeEquipment] = useState([]);
   const [additionalNotes, setAdditionalNotes] = useState('');
-  
+
   // State for generation results
   const [generatedWorkout, setGeneratedWorkout] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState('');
   const [mcpAvailable, setMcpAvailable] = useState(false);
-  
+
   // Check MCP server availability on mount
   useEffect(() => {
     const checkMcpServer = async () => {
       try {
         const isAvailable = await MCPService.checkServerStatus();
         setMcpAvailable(isAvailable);
-        
+
         if (!isAvailable) {
           setError('MCP server is currently unavailable. Some features may be limited.');
         }
@@ -439,10 +765,10 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
         setMcpAvailable(false);
       }
     };
-    
+
     checkMcpServer();
   }, []);
-  
+
   // Initialize with client's equipment if available
   useEffect(() => {
     if (client?.availableEquipment && client.availableEquipment.length > 0) {
@@ -450,17 +776,17 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
     } else if (MOCK_CLIENT.availableEquipment && MOCK_CLIENT.availableEquipment.length > 0) {
       setIncludeEquipment(MOCK_CLIENT.availableEquipment);
     }
-    
+
     // Initialize focus areas based on client's postural assessment if available
     if (client?.posturalAssessment?.recommendations) {
-      const recommendedFocus = client.posturalAssessment.recommendations.filter(rec => 
+      const recommendedFocus = client.posturalAssessment.recommendations.filter(rec =>
         FOCUS_AREAS.includes(rec)
       );
       if (recommendedFocus.length > 0) {
         setFocusAreas(recommendedFocus);
       }
     } else if (MOCK_CLIENT.posturalAssessment?.recommendations) {
-      const mockRecommendedFocus = MOCK_CLIENT.posturalAssessment.recommendations.filter(rec => 
+      const mockRecommendedFocus = MOCK_CLIENT.posturalAssessment.recommendations.filter(rec =>
         FOCUS_AREAS.some(area => rec.toLowerCase().includes(area.toLowerCase()))
       );
       if (mockRecommendedFocus.length > 0) {
@@ -468,7 +794,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       }
     }
   }, [client]);
-  
+
   /**
    * Toggle a focus area selection
    * @param {string} area - Focus area to toggle
@@ -480,7 +806,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       setFocusAreas([...focusAreas, area]);
     }
   };
-  
+
   /**
    * Toggle an equipment item in the include list
    * @param {string} item - Equipment item to toggle
@@ -496,7 +822,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       }
     }
   };
-  
+
   /**
    * Toggle an equipment item in the exclude list
    * @param {string} item - Equipment item to toggle
@@ -512,7 +838,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       }
     }
   };
-  
+
   /**
    * Reset all parameters to default values
    */
@@ -527,7 +853,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
     setAdditionalNotes('');
     setGeneratedWorkout('');
   };
-  
+
   /**
    * Generate a workout based on current parameters
    */
@@ -536,19 +862,19 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       setError('MCP server is unavailable. Please try again later.');
       return;
     }
-    
+
     if (focusAreas.length === 0) {
       setError('Please select at least one focus area');
       return;
     }
-    
+
     setIsGenerating(true);
     setError('');
-    
+
     try {
       // Use actual client data if available, otherwise use mock data
       const clientData = client || MOCK_CLIENT;
-      
+
       // Prepare generation options
       const options = {
         focusAreas,
@@ -562,13 +888,13 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
         temperature: 0.7, // Default creativity level
         maxTokens: 4000,
       };
-      
+
       // Call MCP service to generate workout
       const result = await MCPService.generateWorkoutPlan(clientData, options);
-      
+
       // Set the generated workout
       setGeneratedWorkout(result.workoutPlan);
-      
+
       // Show success notification
       enqueueSnackbar('Workout plan generated successfully!', {
         variant: 'success',
@@ -576,7 +902,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       });
     } catch (err) {
       console.error('Error generating workout plan:', err);
-      
+
       if (err.mcpError) {
         setError(`MCP Error: ${err.mcpError.message}`);
       } else {
@@ -586,7 +912,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
       setIsGenerating(false);
     }
   };
-  
+
   /**
    * Copy the generated workout to clipboard
    */
@@ -603,7 +929,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
         setError('Failed to copy to clipboard');
       });
   };
-  
+
   /**
    * Save the generated workout
    */
@@ -621,20 +947,20 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
         generatedAt: new Date().toISOString(),
         clientId: client?.id || MOCK_CLIENT.id
       });
-      
+
       enqueueSnackbar('Workout plan saved successfully!', {
         variant: 'success',
         autoHideDuration: 3000
       });
     }
   };
-  
+
   /**
    * Download the generated workout as a text file
    */
   const downloadWorkout = () => {
     if (!generatedWorkout) return;
-    
+
     const element = document.createElement('a');
     const file = new Blob([generatedWorkout], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
@@ -643,309 +969,304 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
     element.click();
     document.body.removeChild(element);
   };
-  
+
   return (
     <GeneratorContainer>
-      <GeneratorTitle variant="h4">
-        <FitnessCenter sx={{ mr: 1 }} />
+      <GeneratorTitle>
+        <Dumbbell size={28} />
         AI Workout Generator
       </GeneratorTitle>
-      
+
       {/* Error Alert */}
       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ 
-            mb: 2, 
-            background: 'rgba(211, 47, 47, 0.2)', 
-            color: 'white',
-            '& .MuiAlert-icon': { color: '#ff5252' }
-          }}
-          onClose={() => setError('')}
-        >
-          {error}
-        </Alert>
+        <AlertBox>
+          <span>{error}</span>
+          <AlertCloseBtn onClick={() => setError('')} aria-label="Close alert">
+            <X />
+          </AlertCloseBtn>
+        </AlertBox>
       )}
-      
+
       {!generatedWorkout && (
-        <Box component={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           {/* Focus Areas */}
           <ParameterSection>
-            <SectionTitle variant="h6">
-              <FitnessCenter fontSize="small" /> Focus Areas (Select 1-5)
+            <SectionTitle>
+              <Dumbbell /> Focus Areas (Select 1-5)
             </SectionTitle>
-            
+
             <ChipContainer>
               {FOCUS_AREAS.map((area) => (
                 <StyledChip
                   key={area}
-                  label={area}
-                  clickable
-                  selected={focusAreas.includes(area)}
+                  $selected={focusAreas.includes(area)}
                   onClick={() => toggleFocusArea(area)}
-                />
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleFocusArea(area); }}
+                >
+                  {area}
+                </StyledChip>
               ))}
             </ChipContainer>
           </ParameterSection>
-          
+
           {/* Basic Parameters */}
           <ParameterSection>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <StyledFormControl fullWidth>
-                  <InputLabel>Workout Type</InputLabel>
-                  <Select
-                    value={workoutType}
-                    onChange={(e) => setWorkoutType(e.target.value)}
-                    label="Workout Type"
-                  >
-                    {WORKOUT_TYPES.map((type) => (
-                      <MenuItem key={type} value={type}>{type}</MenuItem>
-                    ))}
-                  </Select>
-                </StyledFormControl>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <StyledFormControl fullWidth>
-                  <InputLabel>Time Frame</InputLabel>
-                  <Select
-                    value={timeFrame}
-                    onChange={(e) => setTimeFrame(e.target.value)}
-                    label="Time Frame"
-                  >
-                    {TIME_FRAMES.map((frame) => (
-                      <MenuItem key={frame} value={frame}>{frame}</MenuItem>
-                    ))}
-                  </Select>
-                </StyledFormControl>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <StyledFormControl fullWidth>
-                  <InputLabel>Intensity</InputLabel>
-                  <Select
-                    value={intensity}
-                    onChange={(e) => setIntensity(e.target.value)}
-                    label="Intensity"
-                  >
-                    {INTENSITY_LEVELS.map((level) => (
-                      <MenuItem key={level} value={level}>{level}</MenuItem>
-                    ))}
-                  </Select>
-                </StyledFormControl>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <StyledTextField
-                  label="Session Duration (minutes)"
+            <FormGrid>
+              <FormGroup>
+                <FormLabel htmlFor="workout-type">Workout Type</FormLabel>
+                <StyledSelect
+                  id="workout-type"
+                  value={workoutType}
+                  onChange={(e) => setWorkoutType(e.target.value)}
+                >
+                  {WORKOUT_TYPES.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </StyledSelect>
+              </FormGroup>
+
+              <FormGroup>
+                <FormLabel htmlFor="time-frame">Time Frame</FormLabel>
+                <StyledSelect
+                  id="time-frame"
+                  value={timeFrame}
+                  onChange={(e) => setTimeFrame(e.target.value)}
+                >
+                  {TIME_FRAMES.map((frame) => (
+                    <option key={frame} value={frame}>{frame}</option>
+                  ))}
+                </StyledSelect>
+              </FormGroup>
+
+              <FormGroup>
+                <FormLabel htmlFor="intensity">Intensity</FormLabel>
+                <StyledSelect
+                  id="intensity"
+                  value={intensity}
+                  onChange={(e) => setIntensity(e.target.value)}
+                >
+                  {INTENSITY_LEVELS.map((level) => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </StyledSelect>
+              </FormGroup>
+
+              <FormGroup>
+                <FormLabel htmlFor="session-duration">Session Duration (minutes)</FormLabel>
+                <StyledInput
+                  id="session-duration"
                   type="number"
                   value={sessionDuration}
                   onChange={(e) => setSessionDuration(Math.max(15, Math.min(180, parseInt(e.target.value) || 60)))}
-                  InputProps={{ inputProps: { min: 15, max: 180 } }}
+                  min={15}
+                  max={180}
                 />
-              </Grid>
-            </Grid>
+              </FormGroup>
+            </FormGrid>
           </ParameterSection>
-          
-          {/* Equipment */}
+
+          {/* Equipment - Accordion */}
           <ParameterSection>
-            <Accordion 
-              expanded={showAdvanced}
-              onChange={() => setShowAdvanced(!showAdvanced)}
-              sx={{ 
-                background: 'rgba(30, 30, 60, 0.5)',
-                color: 'white',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                mb: 2,
-                '&.Mui-expanded': {
-                  borderRadius: '8px',
-                },
-                '&:before': {
-                  display: 'none',
-                }
-              }}
-            >
-              <AccordionSummary 
-                expandIcon={<ExpandMore sx={{ color: 'white' }} />}
-                sx={{ 
-                  borderBottom: showAdvanced ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-                }}
+            <AccordionWrapper>
+              <AccordionHeader
+                $expanded={showAdvanced}
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                aria-expanded={showAdvanced}
               >
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FilterList /> Advanced Options
-                </Typography>
-              </AccordionSummary>
-              
-              <AccordionDetails>
-                <Grid container spacing={3}>
-                  {/* Include Equipment */}
-                  <Grid item xs={12} md={6}>
-                    <SectionTitle variant="subtitle1">Include Equipment</SectionTitle>
-                    <ChipContainer>
-                      {EQUIPMENT_OPTIONS.map((item) => (
-                        <StyledChip
-                          key={`include-${item}`}
-                          label={item}
-                          clickable
-                          selected={includeEquipment.includes(item)}
-                          onClick={() => toggleIncludeEquipment(item)}
-                        />
-                      ))}
-                    </ChipContainer>
-                  </Grid>
-                  
-                  {/* Exclude Equipment */}
-                  <Grid item xs={12} md={6}>
-                    <SectionTitle variant="subtitle1">Exclude Equipment</SectionTitle>
-                    <ChipContainer>
-                      {EQUIPMENT_OPTIONS.map((item) => (
-                        <StyledChip
-                          key={`exclude-${item}`}
-                          label={item}
-                          clickable
-                          selected={excludeEquipment.includes(item)}
-                          onClick={() => toggleExcludeEquipment(item)}
-                        />
-                      ))}
-                    </ChipContainer>
-                  </Grid>
-                </Grid>
-                
-                {/* Additional Notes */}
-                <StyledTextField
-                  label="Additional Notes or Requirements"
-                  multiline
-                  rows={3}
-                  value={additionalNotes}
-                  onChange={(e) => setAdditionalNotes(e.target.value)}
-                  fullWidth
-                  placeholder="E.g., specific exercises to include/avoid, injury considerations, etc."
-                />
-              </AccordionDetails>
-            </Accordion>
+                <AccordionHeaderContent>
+                  <SlidersHorizontal /> Advanced Options
+                </AccordionHeaderContent>
+                <AccordionChevron $expanded={showAdvanced}>
+                  <ChevronDown />
+                </AccordionChevron>
+              </AccordionHeader>
+
+              <AccordionBody $expanded={showAdvanced}>
+                {showAdvanced && (
+                  <>
+                    <EquipmentGrid>
+                      {/* Include Equipment */}
+                      <div>
+                        <SectionTitle>Include Equipment</SectionTitle>
+                        <ChipContainer>
+                          {EQUIPMENT_OPTIONS.map((item) => (
+                            <StyledChip
+                              key={`include-${item}`}
+                              $selected={includeEquipment.includes(item)}
+                              onClick={() => toggleIncludeEquipment(item)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleIncludeEquipment(item); }}
+                            >
+                              {item}
+                            </StyledChip>
+                          ))}
+                        </ChipContainer>
+                      </div>
+
+                      {/* Exclude Equipment */}
+                      <div>
+                        <SectionTitle>Exclude Equipment</SectionTitle>
+                        <ChipContainer>
+                          {EQUIPMENT_OPTIONS.map((item) => (
+                            <StyledChip
+                              key={`exclude-${item}`}
+                              $selected={excludeEquipment.includes(item)}
+                              onClick={() => toggleExcludeEquipment(item)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleExcludeEquipment(item); }}
+                            >
+                              {item}
+                            </StyledChip>
+                          ))}
+                        </ChipContainer>
+                      </div>
+                    </EquipmentGrid>
+
+                    {/* Additional Notes */}
+                    <FormGroup>
+                      <FormLabel htmlFor="additional-notes">Additional Notes or Requirements</FormLabel>
+                      <StyledTextarea
+                        id="additional-notes"
+                        value={additionalNotes}
+                        onChange={(e) => setAdditionalNotes(e.target.value)}
+                        placeholder="E.g., specific exercises to include/avoid, injury considerations, etc."
+                        rows={3}
+                      />
+                    </FormGroup>
+                  </>
+                )}
+              </AccordionBody>
+            </AccordionWrapper>
           </ParameterSection>
-          
+
           {/* Generate Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <ButtonRow>
             <ActionButton
-              startIcon={<Send />}
               onClick={generateWorkout}
               disabled={isGenerating || focusAreas.length === 0 || !mcpAvailable}
             >
+              <Send size={16} />
               Generate Workout Plan
             </ActionButton>
-            
+
             <SecondaryButton
-              startIcon={<RestartAlt />}
               onClick={resetParameters}
               disabled={isGenerating}
             >
+              <RotateCcw size={16} />
               Reset
             </SecondaryButton>
-          </Box>
-        </Box>
+          </ButtonRow>
+        </motion.div>
       )}
-      
+
       {/* Generated Workout Result */}
       {generatedWorkout && (
-        <ResultCard component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <ResultCard as={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <ResultHeader>
-            <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            <ResultHeaderTitle>
               Generated Workout Plan: {workoutType} ({timeFrame})
-            </Typography>
-            
-            <IconButton 
+            </ResultHeaderTitle>
+
+            <IconBtn
               onClick={() => setGeneratedWorkout('')}
-              sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+              $color="rgba(226, 232, 240, 0.7)"
+              aria-label="Close results"
             >
-              <Close />
-            </IconButton>
+              <X />
+            </IconBtn>
           </ResultHeader>
-          
+
           <ResultContent>
             {/* Format the generated workout plan with markdown-like styling */}
             {generatedWorkout.split('\n').map((line, index) => {
               // Handle headers
               if (line.startsWith('# ')) {
-                return <Typography key={index} variant="h4" sx={{ mt: 2, mb: 1 }}>{line.slice(2)}</Typography>;
+                return <ContentH4 key={index}>{line.slice(2)}</ContentH4>;
               } else if (line.startsWith('## ')) {
-                return <Typography key={index} variant="h5" sx={{ mt: 2, mb: 1 }}>{line.slice(3)}</Typography>;
+                return <ContentH5 key={index}>{line.slice(3)}</ContentH5>;
               } else if (line.startsWith('### ')) {
-                return <Typography key={index} variant="h6" sx={{ mt: 2, mb: 1 }}>{line.slice(4)}</Typography>;
-              } 
+                return <ContentH6 key={index}>{line.slice(4)}</ContentH6>;
+              }
               // Handle lists
               else if (line.startsWith('- ')) {
-                return <Typography key={index} component="li" sx={{ ml: 2, mb: 0.5 }}>{line.slice(2)}</Typography>;
+                return <ContentLi key={index}>{line.slice(2)}</ContentLi>;
               } else if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')) {
-                return <Typography key={index} component="li" sx={{ ml: 2, mb: 0.5 }}>{line.slice(3)}</Typography>;
-              } 
+                return <ContentLi key={index}>{line.slice(3)}</ContentLi>;
+              }
               // Handle empty lines
               else if (line.trim() === '') {
-                return <Box key={index} sx={{ height: '0.5rem' }} />;
-              } 
+                return <Spacer key={index} />;
+              }
               // Regular paragraphs
               else {
-                return <Typography key={index} paragraph>{line}</Typography>;
+                return <ContentP key={index}>{line}</ContentP>;
               }
             })}
           </ResultContent>
-          
+
           <ResultActions>
-            <Tooltip title="Copy to Clipboard">
-              <IconButton onClick={copyToClipboard} sx={{ color: '#00ffff' }}>
-                <ContentCopy />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="Download">
-              <IconButton onClick={downloadWorkout} sx={{ color: '#00ffff' }}>
+            <TooltipWrapper>
+              <TooltipText>Copy to Clipboard</TooltipText>
+              <IconBtn onClick={copyToClipboard} aria-label="Copy to Clipboard">
+                <Copy />
+              </IconBtn>
+            </TooltipWrapper>
+
+            <TooltipWrapper>
+              <TooltipText>Download</TooltipText>
+              <IconBtn onClick={downloadWorkout} aria-label="Download">
                 <Download />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="Print">
-              <IconButton onClick={() => window.print()} sx={{ color: '#00ffff' }}>
-                <Print />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="Save">
-              <IconButton onClick={handleSave} sx={{ color: '#00ffff' }}>
+              </IconBtn>
+            </TooltipWrapper>
+
+            <TooltipWrapper>
+              <TooltipText>Print</TooltipText>
+              <IconBtn onClick={() => window.print()} aria-label="Print">
+                <Printer />
+              </IconBtn>
+            </TooltipWrapper>
+
+            <TooltipWrapper>
+              <TooltipText>Save</TooltipText>
+              <IconBtn onClick={handleSave} aria-label="Save">
                 <Save />
-              </IconButton>
-            </Tooltip>
-            
+              </IconBtn>
+            </TooltipWrapper>
+
             <ActionButton
-              startIcon={<Send />}
               onClick={generateWorkout}
               disabled={isGenerating}
-              sx={{ ml: 1 }}
+              style={{ marginLeft: '0.5rem' }}
             >
+              <Send size={16} />
               Regenerate
             </ActionButton>
-            
+
             <SecondaryButton
-              startIcon={<Edit />}
               onClick={() => setGeneratedWorkout('')}
             >
+              <Pencil size={16} />
               Edit Parameters
             </SecondaryButton>
           </ResultActions>
         </ResultCard>
       )}
-      
+
       {/* Loading Overlay */}
       {isGenerating && (
         <LoadingOverlay>
-          <CircularProgress sx={{ color: '#00ffff', mb: 2 }} />
-          <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
+          <Spinner />
+          <LoadingTitle>
             Generating Workout Plan
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+          </LoadingTitle>
+          <LoadingSubtext>
             Analyzing client data and creating personalized program...
-          </Typography>
+          </LoadingSubtext>
         </LoadingOverlay>
       )}
     </GeneratorContainer>

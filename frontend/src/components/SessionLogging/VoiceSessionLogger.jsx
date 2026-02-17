@@ -1,6 +1,6 @@
 /**
  * Voice Session Logger Component
- * 
+ *
  * A mobile-optimized interface for trainers to log workout details via voice:
  * - Provides real-time voice recording and transcription
  * - Allows trainers to quickly log exercises, reps, sets, weights, etc.
@@ -9,19 +9,12 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import styled from 'styled-components';
-import { 
-  Button, IconButton, Box, Typography, Card, CardContent, Chip, 
-  TextField, Dialog, DialogTitle, DialogContent, DialogActions,
-  List, ListItem, ListItemText, ListItemIcon, Divider, CircularProgress,
-  Drawer, Grid, Paper, Avatar, Tooltip, Snackbar, Alert
-} from '@mui/material';
+import styled, { keyframes } from 'styled-components';
 import {
-  Mic, MicOff, Send, Refresh, Save, Close, PlayArrow, Check,
-  Lightbulb, MusicNote, FitnessCenter, Battery5Bar, WaterDrop,
-  Pool, DirectionsRun, SportsHandball, FormatListBulleted, DeleteOutline,
-  ArrowBack, Timer, Numbers, Add, Edit, Done, HistoryToggleOff
-} from '@mui/icons-material';
+  Mic, MicOff, Send, RefreshCw, Dumbbell, Droplets,
+  Waves, PersonStanding, List as ListIcon, Trash2,
+  ArrowLeft, Hash, Pencil, Lightbulb, Clock, MapPin
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../context/AuthContext';
@@ -29,19 +22,22 @@ import sessionLogService from './SessionLogService';
 import gamificationService from '../../services/gamification/gamification-service';
 
 // Animation keyframes
-const pulseAnimation = `
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4); }
-    70% { box-shadow: 0 0 0 15px rgba(0, 255, 255, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
-  }
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(0, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+`;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 // Styled components
 const VoiceLoggerContainer = styled.div`
   display: flex;
   flex-direction: column;
-  background: rgba(30, 30, 60, 0.8);
+  background: rgba(15, 23, 42, 0.95);
   border-radius: 16px;
   padding: 1rem;
   position: relative;
@@ -51,14 +47,12 @@ const VoiceLoggerContainer = styled.div`
   max-width: 500px;
   margin: 0 auto;
   overflow: hidden;
-  
+
   /* Glass morphism effect */
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  
-  ${pulseAnimation}
-  
+
   @media (max-width: 768px) {
     min-height: 100vh;
     border-radius: 0;
@@ -72,7 +66,7 @@ const LoggerHeader = styled.div`
   align-items: center;
   margin-bottom: 1rem;
   padding: 0.5rem;
-  
+
   h2 {
     font-size: 1.5rem;
     font-weight: 300;
@@ -90,51 +84,174 @@ const LoggerHeader = styled.div`
   }
 `;
 
-const ClientInfoCard = styled(Card)`
-  && {
-    background: rgba(20, 20, 40, 0.7);
-    color: white;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+const HeaderIconButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;
 
-const SessionDetailsList = styled(List)`
-  && {
-    background: rgba(20, 20, 40, 0.7);
-    border-radius: 8px;
-    padding: 0.5rem;
-    margin-bottom: 1rem;
-    max-height: 300px;
-    overflow-y: auto;
-    
-    /* Scrollbar styling */
-    &::-webkit-scrollbar {
-      width: 5px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: 4px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: rgba(0, 255, 255, 0.3);
-      border-radius: 4px;
-    }
+const ClientInfoCard = styled.div`
+  background: rgba(15, 23, 42, 0.95);
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 1rem;
+`;
+
+const ClientName = styled.h3`
+  color: #0ea5e9;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+`;
+
+const ClientSessionTime = styled.p`
+  color: rgba(226, 232, 240, 0.7);
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
+const LocationChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+`;
+
+const SessionDetailsList = styled.ul`
+  list-style: none;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: 0 0 1rem 0;
+  max-height: 300px;
+  overflow-y: auto;
+
+  /* Scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(14, 165, 233, 0.3);
+    border-radius: 4px;
   }
 `;
 
-const SessionDetail = styled(ListItem)`
-  && {
-    background: rgba(30, 30, 60, 0.5);
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    
-    &:last-child {
-      margin-bottom: 0;
-    }
+const SessionDetail = styled.li`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const DetailIconWrap = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0ea5e9;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+`;
+
+const DetailContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const DetailPrimary = styled.span`
+  display: block;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 500;
+`;
+
+const DetailSecondary = styled.div`
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+`;
+
+const DetailChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-right: 0.375rem;
+  margin-bottom: 0.375rem;
+  background: ${({ $muted }) => $muted ? 'rgba(120, 120, 120, 0.2)' : 'rgba(14, 165, 233, 0.1)'};
+  color: #e2e8f0;
+`;
+
+const DetailNotes = styled.p`
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.6);
+`;
+
+const DetailTimestamp = styled.p`
+  margin: 0.25rem 0 0 0;
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.4);
+`;
+
+const DeleteButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.5);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s ease, background 0.2s ease;
+
+  &:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
   }
 `;
 
@@ -145,21 +262,32 @@ const VoiceButtonContainer = styled.div`
   padding: 1rem 0;
 `;
 
-const VoiceButton = styled(IconButton)`
-  && {
-    width: 80px;
-    height: 80px;
-    background: ${props => props.isRecording ? 'linear-gradient(135deg, #ff5252, #ff1744)' : 'linear-gradient(135deg, #00ffff, #7851a9)'};
-    color: white;
-    animation: ${props => props.isRecording ? 'pulse 1s infinite' : 'none'};
-    
-    &:hover {
-      background: ${props => props.isRecording ? 'linear-gradient(135deg, #ff1744, #d50000)' : 'linear-gradient(135deg, #7851a9, #00ffff)'};
-    }
-    
-    svg {
-      font-size: 2rem;
-    }
+const VoiceButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: ${({ $isRecording }) => $isRecording ? 'linear-gradient(135deg, #ff5252, #ff1744)' : 'linear-gradient(135deg, #00ffff, #7851a9)'};
+  color: white;
+  animation: ${({ $isRecording }) => $isRecording ? pulse : 'none'} 1s infinite;
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: ${({ $isRecording }) => $isRecording ? 'linear-gradient(135deg, #ff1744, #d50000)' : 'linear-gradient(135deg, #7851a9, #00ffff)'};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 2rem;
+    height: 2rem;
   }
 `;
 
@@ -169,65 +297,62 @@ const InputContainer = styled.div`
   margin: 1rem 0;
 `;
 
-const StyledTextField = styled(TextField)`
-  && {
-    flex: 1;
-    
-    .MuiOutlinedInput-root {
-      background: rgba(20, 20, 40, 0.7);
-      border-radius: 8px;
-      
-      fieldset {
-        border-color: rgba(255, 255, 255, 0.1);
-      }
-      
-      &:hover fieldset {
-        border-color: rgba(0, 255, 255, 0.5);
-      }
-      
-      &.Mui-focused fieldset {
-        border-color: #00ffff;
-      }
-    }
-    
-    .MuiOutlinedInput-input {
-      color: white;
-    }
-    
-    .MuiInputLabel-root {
-      color: rgba(255, 255, 255, 0.7);
-    }
+const StyledTextArea = styled.textarea`
+  flex: 1;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &::placeholder {
+    color: rgba(226, 232, 240, 0.5);
+  }
+
+  &:hover {
+    border-color: rgba(14, 165, 233, 0.5);
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
-const ActionButton = styled(Button)`
-  && {
-    background: linear-gradient(90deg, #00ffff, #7851a9);
-    color: white;
-    border-radius: 8px;
-    text-transform: none;
-    
-    &:hover {
-      background: linear-gradient(90deg, #7851a9, #00ffff);
-    }
-    
-    &:disabled {
-      background: rgba(128, 128, 128, 0.3);
-      color: rgba(255, 255, 255, 0.3);
-    }
-  }
-`;
+const SendButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  align-self: flex-end;
+  background: rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
 
-const TemplateChip = styled(Chip)`
-  && {
-    margin: 0.25rem;
-    background: rgba(0, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    
-    &:hover {
-      background: rgba(0, 255, 255, 0.3);
-    }
+  &:hover {
+    background: rgba(14, 165, 233, 0.3);
+  }
+
+  &:disabled {
+    background: rgba(128, 128, 128, 0.2);
+    color: rgba(226, 232, 240, 0.3);
+    cursor: not-allowed;
   }
 `;
 
@@ -238,20 +363,207 @@ const LogTypeSelector = styled.div`
   gap: 0.5rem;
 `;
 
-const LogTypeButton = styled(Button)`
-  && {
-    background: ${props => props.active ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(30, 30, 60, 0.7)'};
-    color: white;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0.5rem 1rem;
-    text-transform: none;
-    flex: 1;
-    
-    &:hover {
-      background: ${props => props.active ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(50, 50, 80, 0.7)'};
-    }
+const LogTypeButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  background: ${({ $active }) => $active ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(15, 23, 42, 0.7)'};
+  color: #e2e8f0;
+  border-radius: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  flex: 1;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: ${({ $active }) => $active ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(50, 50, 80, 0.7)'};
   }
+`;
+
+const ErrorAlert = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(211, 47, 47, 0.2);
+  color: #e2e8f0;
+  border-radius: 8px;
+  border: 1px solid rgba(211, 47, 47, 0.3);
+  font-size: 0.875rem;
+`;
+
+const ErrorCloseButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.7);
+  cursor: pointer;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const TranscriptPanel = styled.div`
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(14, 165, 233, 0.1);
+  color: #e2e8f0;
+  border-radius: 8px;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+`;
+
+const TranscriptText = styled.p`
+  margin: 0;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+`;
+
+const RecognizedChipsContainer = styled.div`
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+`;
+
+const RecognizedChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+`;
+
+const RecordingTime = styled.p`
+  text-align: center;
+  color: #ff5252;
+  margin: 0.5rem 0 0 0;
+  font-size: 0.875rem;
+`;
+
+const HelpText = styled.p`
+  text-align: center;
+  margin: ${({ $mt }) => $mt || '1rem'} 0 0 0;
+  color: ${({ $dimmer }) => $dimmer ? 'rgba(226, 232, 240, 0.5)' : 'rgba(226, 232, 240, 0.7)'};
+  font-size: ${({ $dimmer }) => $dimmer ? '0.75rem' : '0.875rem'};
+`;
+
+const TemplateContainer = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const TemplateLabel = styled.p`
+  color: rgba(226, 232, 240, 0.7);
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const TemplateChipWrap = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+`;
+
+const TemplateChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  min-height: 44px;
+  background: rgba(14, 165, 233, 0.2);
+  color: #e2e8f0;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.3);
+  }
+`;
+
+const NoTemplatesText = styled.p`
+  color: rgba(226, 232, 240, 0.5);
+  padding: 0.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
+const SectionTitle = styled.h4`
+  color: #e2e8f0;
+  margin: 1rem 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+`;
+
+const LoadingCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+`;
+
+const Spinner = styled.div`
+  width: ${({ $size }) => $size || 30}px;
+  height: ${({ $size }) => $size || 30}px;
+  border: 3px solid rgba(14, 165, 233, 0.2);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+const NoLogsText = styled.p`
+  color: rgba(226, 232, 240, 0.5);
+  padding: 1rem;
+  text-align: center;
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
+const ProcessingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 16px;
+  z-index: 10;
+`;
+
+const ProcessingContent = styled.div`
+  text-align: center;
+`;
+
+const ProcessingText = styled.p`
+  color: #e2e8f0;
+  margin: 1rem 0 0 0;
+  font-size: 1rem;
 `;
 
 /**
@@ -260,32 +572,32 @@ const LogTypeButton = styled(Button)`
 const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
   const { user } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
-  
+
   // State for recording and processing
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognizedExercise, setRecognizedExercise] = useState(null);
-  
+
   // State for logged session details
   const [sessionLogs, setSessionLogs] = useState([]);
   const [textInput, setTextInput] = useState('');
-  
+
   // State for loading and UI
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [logType, setLogType] = useState('voice'); // 'voice', 'text', or 'template'
-  
+
   // State for templates
   const [templates, setTemplates] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
-  
+
   // Refs for media recording
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
-  
+
   // Speech recognition
   const recognitionRef = useRef(null);
 
@@ -293,53 +605,53 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
   useEffect(() => {
     // Fetch existing logs
     fetchSessionLogs();
-    
+
     // Fetch exercise templates
     fetchExerciseTemplates();
-    
+
     // Set up speech recognition if available
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      
+
       recognitionRef.current.onresult = (event) => {
         const transcript = Array.from(event.results)
           .map(result => result[0].transcript)
           .join('');
-        
+
         setTranscript(transcript);
-        
+
         // Try to recognize exercise in real-time
         const parsedDetails = sessionLogService.parseWorkoutText(transcript);
         if (parsedDetails.exercise) {
           setRecognizedExercise(parsedDetails);
         }
       };
-      
+
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setError(`Speech recognition error: ${event.error}`);
       };
     }
-    
+
     // Clean up on unmount
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      
+
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
       }
-      
+
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
   }, [sessionId]);
-  
+
   /**
    * Fetch existing session logs
    */
@@ -355,7 +667,7 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setLoading(false);
     }
   };
-  
+
   /**
    * Fetch exercise templates
    */
@@ -368,7 +680,7 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       // Not setting error state as templates are not critical
     }
   };
-  
+
   /**
    * Start voice recording
    */
@@ -377,49 +689,49 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setError('');
       setTranscript('');
       setRecognizedExercise(null);
-      
+
       // Request audio recording permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       // Create media recorder
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      
+
       // Set up data collection
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
-      
+
       // Handle recording stop
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         processRecording(audioBlob);
       };
-      
+
       // Start recording
       mediaRecorder.start();
       setIsRecording(true);
-      
+
       // Start speech recognition
       if (recognitionRef.current) {
         recognitionRef.current.start();
       }
-      
+
       // Start timer
       let seconds = 0;
       timerRef.current = setInterval(() => {
         seconds += 1;
         setRecordingTime(seconds);
-        
+
         // Automatically stop after 30 seconds
         if (seconds >= 30) {
           stopRecording();
         }
       }, 1000);
-      
+
       enqueueSnackbar('Recording started. Speak clearly and mention exercise details.', {
         variant: 'info',
         autoHideDuration: 3000
@@ -430,57 +742,57 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setIsRecording(false);
     }
   };
-  
+
   /**
    * Stop voice recording
    */
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      
+
       // Stop all audio tracks
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      
+
       // Stop recognition
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      
+
       // Clear timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      
+
       setIsRecording(false);
       setRecordingTime(0);
-      
+
       enqueueSnackbar('Recording stopped. Processing...', {
         variant: 'info',
         autoHideDuration: 2000
       });
     }
   };
-  
+
   /**
    * Process the recorded audio
    */
   const processRecording = async (audioBlob) => {
     try {
       setIsProcessing(true);
-      
+
       // Submit the recording to the server
       const result = await sessionLogService.logSessionDetailVoice(sessionId, audioBlob);
-      
+
       if (result.success) {
         // Add the new log to the list
         setSessionLogs(prev => [result.loggedDetail, ...prev]);
-        
+
         enqueueSnackbar('Successfully logged exercise details!', {
           variant: 'success',
           autoHideDuration: 3000
         });
-        
+
         // Show gamification rewards if any
         if (result.gamification && result.gamification.pointsAwarded) {
           enqueueSnackbar(`+${result.gamification.pointsAwarded} points for detailed logging!`, {
@@ -500,7 +812,7 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setRecognizedExercise(null);
     }
   };
-  
+
   /**
    * Submit text input for logging
    */
@@ -509,25 +821,25 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setError('Please enter exercise details.');
       return;
     }
-    
+
     try {
       setIsProcessing(true);
       setError('');
-      
+
       const result = await sessionLogService.logSessionDetail(sessionId, textInput);
-      
+
       if (result.success) {
         // Add the new log to the list
         setSessionLogs(prev => [result.loggedDetail, ...prev]);
-        
+
         // Clear input
         setTextInput('');
-        
+
         enqueueSnackbar('Successfully logged exercise details!', {
           variant: 'success',
           autoHideDuration: 3000
         });
-        
+
         // Show gamification rewards if any
         if (result.gamification && result.gamification.pointsAwarded) {
           enqueueSnackbar(`+${result.gamification.pointsAwarded} points for detailed logging!`, {
@@ -545,7 +857,7 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setIsProcessing(false);
     }
   };
-  
+
   /**
    * Use an exercise template
    */
@@ -554,7 +866,7 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
     setShowTemplates(false);
     setLogType('text');
   };
-  
+
   /**
    * Delete a logged detail
    */
@@ -564,15 +876,15 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       if (!window.confirm('Are you sure you want to delete this logged detail?')) {
         return;
       }
-      
+
       setIsProcessing(true);
-      
+
       // Call API to delete the log
       await sessionLogService.deleteSessionLog(sessionId, logId);
-      
+
       // Update local state
       setSessionLogs(prev => prev.filter(log => log.id !== logId));
-      
+
       enqueueSnackbar('Log entry deleted.', {
         variant: 'success',
         autoHideDuration: 2000
@@ -584,7 +896,7 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
       setIsProcessing(false);
     }
   };
-  
+
   /**
    * Generate a formatted time string from seconds
    */
@@ -593,384 +905,301 @@ const VoiceSessionLogger = ({ sessionId, sessionData, onClose }) => {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   // Icon mapping for log types
   const getIconForLogType = (logType) => {
     switch (logType) {
-      case 'exercise': return <FitnessCenter />;
-      case 'water': return <WaterDrop />;
-      case 'stretch': return <Pool />;
-      case 'cardio': return <DirectionsRun />;
-      case 'rest': return <HistoryToggleOff />;
-      case 'note': return <Lightbulb />;
-      default: return <FitnessCenter />;
+      case 'exercise': return <Dumbbell size={18} />;
+      case 'water': return <Droplets size={18} />;
+      case 'stretch': return <Waves size={18} />;
+      case 'cardio': return <PersonStanding size={18} />;
+      case 'rest': return <Clock size={18} />;
+      case 'note': return <Lightbulb size={18} />;
+      default: return <Dumbbell size={18} />;
     }
   };
-  
+
   return (
     <VoiceLoggerContainer>
       <LoggerHeader>
-        <IconButton onClick={onClose} color="inherit">
-          <ArrowBack />
-        </IconButton>
-        
+        <HeaderIconButton onClick={onClose} aria-label="Go back">
+          <ArrowLeft size={20} />
+        </HeaderIconButton>
+
         <h2>Session Logging</h2>
-        
-        <IconButton 
+
+        <HeaderIconButton
           onClick={fetchSessionLogs}
           disabled={loading || isProcessing}
-          color="inherit"
+          aria-label="Refresh logs"
         >
-          <Refresh />
-        </IconButton>
+          <RefreshCw size={20} />
+        </HeaderIconButton>
       </LoggerHeader>
-      
+
       {/* Client/Session Info */}
       <ClientInfoCard>
-        <CardContent>
-          <Typography variant="h6" sx={{ color: '#00ffff' }}>
-            {sessionData?.client ? `${sessionData.client.firstName} ${sessionData.client.lastName}` : 'Client Session'}
-          </Typography>
-          
-          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 0.5 }}>
-            {sessionData?.start ? new Date(sessionData.start).toLocaleString() : 'Ongoing Session'}
-          </Typography>
-          
-          {sessionData?.location && (
-            <Chip
-              icon={<LocationOn />}
-              label={sessionData.location}
-              sx={{ mt: 1, background: 'rgba(0, 255, 255, 0.2)', color: 'white' }}
-              size="small"
-            />
-          )}
-        </CardContent>
+        <ClientName>
+          {sessionData?.client ? `${sessionData.client.firstName} ${sessionData.client.lastName}` : 'Client Session'}
+        </ClientName>
+
+        <ClientSessionTime>
+          {sessionData?.start ? new Date(sessionData.start).toLocaleString() : 'Ongoing Session'}
+        </ClientSessionTime>
+
+        {sessionData?.location && (
+          <LocationChip>
+            <MapPin size={14} />
+            {sessionData.location}
+          </LocationChip>
+        )}
       </ClientInfoCard>
-      
+
       {/* Log Type Selector */}
       <LogTypeSelector>
-        <LogTypeButton 
-          active={logType === 'voice'} 
+        <LogTypeButton
+          $active={logType === 'voice'}
           onClick={() => setLogType('voice')}
-          startIcon={<Mic />}
         >
+          <Mic size={16} />
           Voice
         </LogTypeButton>
-        
-        <LogTypeButton 
-          active={logType === 'text'} 
+
+        <LogTypeButton
+          $active={logType === 'text'}
           onClick={() => setLogType('text')}
-          startIcon={<Edit />}
         >
+          <Pencil size={16} />
           Text
         </LogTypeButton>
-        
-        <LogTypeButton 
-          active={logType === 'template'} 
+
+        <LogTypeButton
+          $active={logType === 'template'}
           onClick={() => {
             setLogType('template');
             setShowTemplates(true);
           }}
-          startIcon={<FormatListBulleted />}
         >
+          <ListIcon size={16} />
           Templates
         </LogTypeButton>
       </LogTypeSelector>
-      
+
       {/* Error Message */}
       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 2, background: 'rgba(211, 47, 47, 0.2)', color: 'white' }}
-          onClose={() => setError('')}
-        >
-          {error}
-        </Alert>
+        <ErrorAlert>
+          <span>{error}</span>
+          <ErrorCloseButton onClick={() => setError('')} aria-label="Dismiss error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </ErrorCloseButton>
+        </ErrorAlert>
       )}
-      
+
       {/* Voice Recording UI */}
       {logType === 'voice' && (
         <>
           {transcript && (
-            <Paper 
-              elevation={0}
-              sx={{ 
-                p: 2, 
-                mb: 2, 
-                background: 'rgba(0, 255, 255, 0.1)', 
-                color: 'white',
-                borderRadius: '8px',
-                border: '1px solid rgba(0, 255, 255, 0.3)'
-              }}
-            >
-              <Typography variant="body1">{transcript}</Typography>
-              
+            <TranscriptPanel>
+              <TranscriptText>{transcript}</TranscriptText>
+
               {recognizedExercise && recognizedExercise.exercise && (
-                <Box sx={{ mt: 1 }}>
-                  <Chip 
-                    icon={<FitnessCenter />}
-                    label={`Exercise: ${recognizedExercise.exercise}`}
-                    sx={{ background: 'rgba(0, 255, 255, 0.2)', color: 'white', mr: 1, mb: 1 }}
-                  />
-                  
+                <RecognizedChipsContainer>
+                  <RecognizedChip>
+                    <Dumbbell size={14} />
+                    Exercise: {recognizedExercise.exercise}
+                  </RecognizedChip>
+
                   {recognizedExercise.reps && (
-                    <Chip 
-                      icon={<Numbers />}
-                      label={`Reps: ${recognizedExercise.reps}`}
-                      sx={{ background: 'rgba(0, 255, 255, 0.2)', color: 'white', mr: 1, mb: 1 }}
-                    />
+                    <RecognizedChip>
+                      <Hash size={14} />
+                      Reps: {recognizedExercise.reps}
+                    </RecognizedChip>
                   )}
-                  
+
                   {recognizedExercise.sets && (
-                    <Chip 
-                      icon={<FormatListBulleted />}
-                      label={`Sets: ${recognizedExercise.sets}`}
-                      sx={{ background: 'rgba(0, 255, 255, 0.2)', color: 'white', mr: 1, mb: 1 }}
-                    />
+                    <RecognizedChip>
+                      <ListIcon size={14} />
+                      Sets: {recognizedExercise.sets}
+                    </RecognizedChip>
                   )}
-                  
+
                   {recognizedExercise.weight && (
-                    <Chip 
-                      icon={<FitnessCenter />}
-                      label={`Weight: ${recognizedExercise.weight} ${recognizedExercise.weightUnit || 'lbs'}`}
-                      sx={{ background: 'rgba(0, 255, 255, 0.2)', color: 'white', mr: 1, mb: 1 }}
-                    />
+                    <RecognizedChip>
+                      <Dumbbell size={14} />
+                      Weight: {recognizedExercise.weight} {recognizedExercise.weightUnit || 'lbs'}
+                    </RecognizedChip>
                   )}
-                </Box>
+                </RecognizedChipsContainer>
               )}
-            </Paper>
+            </TranscriptPanel>
           )}
-          
+
           <VoiceButtonContainer>
             <VoiceButton
-              isRecording={isRecording}
+              $isRecording={isRecording}
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isProcessing}
+              aria-label={isRecording ? 'Stop recording' : 'Start recording'}
             >
               {isRecording ? <MicOff /> : <Mic />}
             </VoiceButton>
           </VoiceButtonContainer>
-          
+
           {isRecording && (
-            <Typography 
-              variant="body2" 
-              align="center"
-              sx={{ color: '#ff5252', mt: 1 }}
-            >
+            <RecordingTime>
               Recording: {formatTime(recordingTime)}
-            </Typography>
+            </RecordingTime>
           )}
-          
-          <Typography 
-            variant="body2" 
-            align="center"
-            sx={{ mt: 2, color: 'rgba(255, 255, 255, 0.7)' }}
-          >
+
+          <HelpText $mt="1rem">
             Tap to {isRecording ? 'stop' : 'start'} recording voice. Clearly state exercise details.
-          </Typography>
-          
-          <Typography 
-            variant="body2" 
-            align="center"
-            sx={{ mt: 1, color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem' }}
-          >
+          </HelpText>
+
+          <HelpText $mt="0.5rem" $dimmer>
             Example: "Exercise is bench press, 3 sets of 10 reps with 135 pounds"
-          </Typography>
+          </HelpText>
         </>
       )}
-      
+
       {/* Text Input UI */}
       {logType === 'text' && (
         <InputContainer>
-          <StyledTextField
-            label="Enter exercise details"
+          <StyledTextArea
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
-            fullWidth
-            multiline
-            rows={3}
-            variant="outlined"
             placeholder="E.g., Exercise bench press, 3 sets of 10 reps with 135 pounds"
             disabled={isProcessing}
+            rows={3}
           />
-          
-          <IconButton
+
+          <SendButton
             onClick={handleTextSubmit}
             disabled={!textInput.trim() || isProcessing}
-            sx={{ 
-              alignSelf: 'flex-end',
-              background: 'rgba(0, 255, 255, 0.2)',
-              color: 'white',
-              '&:hover': {
-                background: 'rgba(0, 255, 255, 0.3)'
-              },
-              '&:disabled': {
-                background: 'rgba(128, 128, 128, 0.2)',
-                color: 'rgba(255, 255, 255, 0.3)'
-              }
-            }}
+            aria-label="Submit exercise details"
           >
-            <Send />
-          </IconButton>
+            <Send size={18} />
+          </SendButton>
         </InputContainer>
       )}
-      
+
       {/* Template Selection UI */}
       {logType === 'template' && showTemplates && (
-        <Box sx={{ mb: 2 }}>
-          <Typography 
-            variant="subtitle2" 
-            sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}
-          >
+        <TemplateContainer>
+          <TemplateLabel>
             Select a template:
-          </Typography>
-          
-          <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
+          </TemplateLabel>
+
+          <TemplateChipWrap>
             {templates.map((template) => (
               <TemplateChip
                 key={template.id}
-                label={template.name}
                 onClick={() => useTemplate(template)}
-                icon={getIconForLogType(template.category)}
-                clickable
-              />
-            ))}
-            
-            {templates.length === 0 && (
-              <Typography 
-                variant="body2" 
-                sx={{ color: 'rgba(255, 255, 255, 0.5)', p: 1 }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') useTemplate(template); }}
               >
+                {getIconForLogType(template.category)}
+                {template.name}
+              </TemplateChip>
+            ))}
+
+            {templates.length === 0 && (
+              <NoTemplatesText>
                 No templates available. You can create custom templates from the admin panel.
-              </Typography>
+              </NoTemplatesText>
             )}
-          </Box>
-        </Box>
+          </TemplateChipWrap>
+        </TemplateContainer>
       )}
-      
+
       {/* Logged Details */}
-      <Typography 
-        variant="subtitle1" 
-        sx={{ 
-          color: 'white', 
-          mt: 2, 
-          mb: 1,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}
-      >
-        <FormatListBulleted fontSize="small" /> Logged Details
-      </Typography>
-      
+      <SectionTitle>
+        <ListIcon size={16} /> Logged Details
+      </SectionTitle>
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-          <CircularProgress size={30} sx={{ color: '#00ffff' }} />
-        </Box>
+        <LoadingCenter>
+          <Spinner $size={30} />
+        </LoadingCenter>
       ) : (
         <SessionDetailsList>
           {sessionLogs.length === 0 ? (
-            <Typography 
-              variant="body2" 
-              sx={{ color: 'rgba(255, 255, 255, 0.5)', p: 2, textAlign: 'center' }}
-            >
+            <NoLogsText>
               No details logged yet. Use voice or text input to log exercise details.
-            </Typography>
+            </NoLogsText>
           ) : (
             sessionLogs.map((log) => (
               <SessionDetail key={log.id}>
-                <ListItemIcon sx={{ color: '#00ffff' }}>
+                <DetailIconWrap>
                   {getIconForLogType(log.type)}
-                </ListItemIcon>
-                
-                <ListItemText
-                  primary={
-                    <Typography sx={{ color: 'white' }}>
-                      {log.exercise || log.type}
-                    </Typography>
-                  }
-                  secondary={
-                    <Box sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem', mt: 0.5 }}>
-                      {log.sets && log.reps && (
-                        <Chip 
-                          label={`${log.sets} × ${log.reps}`}
-                          size="small"
-                          sx={{ mr: 0.5, mb: 0.5, background: 'rgba(0, 255, 255, 0.1)' }}
-                        />
-                      )}
-                      
-                      {log.weight && (
-                        <Chip 
-                          label={`${log.weight} ${log.weightUnit || 'lbs'}`}
-                          size="small"
-                          sx={{ mr: 0.5, mb: 0.5, background: 'rgba(0, 255, 255, 0.1)' }}
-                        />
-                      )}
-                      
-                      {log.duration && (
-                        <Chip 
-                          label={`${log.duration} ${log.durationUnit || 'min'}`}
-                          size="small"
-                          sx={{ mr: 0.5, mb: 0.5, background: 'rgba(0, 255, 255, 0.1)' }}
-                        />
-                      )}
-                      
-                      {log.rest && (
-                        <Chip 
-                          label={`Rest: ${log.rest} ${log.restUnit || 'sec'}`}
-                          size="small"
-                          sx={{ mr: 0.5, mb: 0.5, background: 'rgba(120, 120, 120, 0.2)' }}
-                        />
-                      )}
-                      
-                      {log.notes && (
-                        <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-                          {log.notes}
-                        </Typography>
-                      )}
-                      
-                      <Typography sx={{ mt: 0.5, fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)' }}>
-                        {new Date(log.timestamp).toLocaleTimeString()}
-                      </Typography>
-                    </Box>
-                  }
-                />
-                
-                <IconButton
-                  size="small"
+                </DetailIconWrap>
+
+                <DetailContent>
+                  <DetailPrimary>
+                    {log.exercise || log.type}
+                  </DetailPrimary>
+
+                  <DetailSecondary>
+                    {log.sets && log.reps && (
+                      <DetailChip>
+                        {log.sets} &times; {log.reps}
+                      </DetailChip>
+                    )}
+
+                    {log.weight && (
+                      <DetailChip>
+                        {log.weight} {log.weightUnit || 'lbs'}
+                      </DetailChip>
+                    )}
+
+                    {log.duration && (
+                      <DetailChip>
+                        {log.duration} {log.durationUnit || 'min'}
+                      </DetailChip>
+                    )}
+
+                    {log.rest && (
+                      <DetailChip $muted>
+                        Rest: {log.rest} {log.restUnit || 'sec'}
+                      </DetailChip>
+                    )}
+
+                    {log.notes && (
+                      <DetailNotes>
+                        {log.notes}
+                      </DetailNotes>
+                    )}
+
+                    <DetailTimestamp>
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </DetailTimestamp>
+                  </DetailSecondary>
+                </DetailContent>
+
+                <DeleteButton
                   onClick={() => deleteLoggedDetail(log.id)}
-                  sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                  aria-label="Delete log entry"
                 >
-                  <DeleteOutline fontSize="small" />
-                </IconButton>
+                  <Trash2 size={16} />
+                </DeleteButton>
               </SessionDetail>
             ))
           )}
         </SessionDetailsList>
       )}
-      
+
       {/* Loading indicator */}
       {isProcessing && (
-        <Box sx={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          background: 'rgba(20, 20, 40, 0.8)',
-          borderRadius: '16px',
-          zIndex: 10
-        }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress sx={{ color: '#00ffff' }} />
-            <Typography sx={{ color: 'white', mt: 2 }}>
+        <ProcessingOverlay>
+          <ProcessingContent>
+            <Spinner $size={40} />
+            <ProcessingText>
               Processing...
-            </Typography>
-          </Box>
-        </Box>
+            </ProcessingText>
+          </ProcessingContent>
+        </ProcessingOverlay>
       )}
     </VoiceLoggerContainer>
   );
