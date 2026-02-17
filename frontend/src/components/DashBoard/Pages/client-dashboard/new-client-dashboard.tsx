@@ -7,26 +7,8 @@ import useClientDashboardMcp from '../../../../hooks/useClientDashboardMcp';
 import GamificationDisplay from '../../../../components/Gamification/GamificationDisplay';
 import FoodIntakeForm from '../../../../components/FoodTracker/FoodIntakeForm';
 import McpStatusIndicator from '../../../../components/ui/McpStatusIndicator';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import './client-dashboard.css';
-
-// material-ui
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  TextField,
-  Avatar,
-  Badge,
-  LinearProgress,
-  IconButton,
-  Divider,
-  Paper,
-  Tooltip
-} from '@mui/material';
-import Grid from '@mui/material/Grid2';
 
 // Lucide icons
 import {
@@ -58,7 +40,18 @@ import {
 import DashboardStatsCard from '../../../DashBoard/components/dashboard-stats-card';
 import DashboardSection from './components/DashboardSection';
 
-// Keyframe animations
+// ─── Theme Tokens ───────────────────────────────────────────────────
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  border: 'rgba(14,165,233,0.2)',
+  text: '#e2e8f0',
+  accent: '#0ea5e9',
+  galaxyCore: '#0a0a1a',
+  swanCyan: '#00FFFF',
+  cosmicPurple: '#7851A9',
+} as const;
+
+// ─── Keyframe Animations ────────────────────────────────────────────
 const shimmer = keyframes`
   0% { background-position: -100% 0; }
   100% { background-position: 200% 0; }
@@ -75,14 +68,19 @@ const glow = keyframes`
   50% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
 `;
 
-// Styled components
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+// ─── Styled Components ──────────────────────────────────────────────
 const DashboardContainer = styled(motion.div)`
   width: 100%;
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
-  color: white;
+  background: linear-gradient(135deg, ${theme.galaxyCore}, #1e1e3f);
+  color: ${theme.text};
   padding: 2rem 1rem;
 `;
 
@@ -94,7 +92,7 @@ const VideoBackground = styled.div`
   height: 100%;
   z-index: 0;
   overflow: hidden;
-  
+
   &:after {
     content: "";
     position: absolute;
@@ -105,7 +103,7 @@ const VideoBackground = styled.div`
     background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(10,10,30,0.8), rgba(20,20,50,0.9));
     z-index: 1;
   }
-  
+
   video {
     position: absolute;
     top: 50%;
@@ -120,23 +118,44 @@ const VideoBackground = styled.div`
   }
 `;
 
-const GlowButton = styled(Button)`
-  background: linear-gradient(90deg, #00ffff 0%, #7851a9 100%);
-  color: #fff;
-  font-weight: 500;
-  border: none;
-  text-transform: none;
+// ─── Glass Panel (replaces Paper) ───────────────────────────────────
+const GlassPanel = styled.div`
+  background: ${theme.bg};
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: ${theme.text};
+`;
+
+// ─── Action Button (replaces Button) ────────────────────────────────
+const ActionButton = styled.button<{ $fullWidth?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
   padding: 0.5rem 1.5rem;
-  transition: all 0.3s ease;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  text-transform: none;
+  background: linear-gradient(90deg, ${theme.swanCyan} 0%, ${theme.cosmicPurple} 100%);
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
-  
+  transition: all 0.3s ease;
+  ${({ $fullWidth }) => $fullWidth && 'width: 100%;'}
+
   &:hover {
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
     transform: translateY(-2px);
   }
-  
+
   &:before {
     content: "";
     position: absolute;
@@ -147,17 +166,176 @@ const GlowButton = styled(Button)`
     background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
     transition: all 0.4s ease;
   }
-  
+
   &:hover:before {
     left: 100%;
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
 `;
 
+// ─── Round Button (replaces IconButton) ─────────────────────────────
+const RoundButton = styled.button<{ $size?: 'small' | 'medium' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  width: ${({ $size }) => $size === 'small' ? '44px' : '44px'};
+  height: ${({ $size }) => $size === 'small' ? '44px' : '44px'};
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+// ─── Progress Bar (replaces LinearProgress) ─────────────────────────
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $value: number; $color?: string }>`
+  height: 100%;
+  border-radius: 4px;
+  width: ${({ $value }) => Math.min(100, Math.max(0, $value))}%;
+  background: ${({ $color }) => {
+    switch ($color) {
+      case 'secondary': return 'linear-gradient(90deg, #ce93d8, #ab47bc)';
+      case 'success': return 'linear-gradient(90deg, #66bb6a, #43a047)';
+      case 'warning': return 'linear-gradient(90deg, #ffa726, #fb8c00)';
+      default: return `linear-gradient(90deg, ${theme.swanCyan}, ${theme.accent})`;
+    }
+  }};
+  transition: width 0.6s ease;
+`;
+
+// ─── Avatar ─────────────────────────────────────────────────────────
+const AvatarCircle = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 40}px;
+  height: ${({ $size }) => $size || 40}px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+// ─── Online Badge ───────────────────────────────────────────────────
+const BadgeWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const OnlineDot = styled.span<{ $online?: boolean }>`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${({ $online }) => $online ? '#66bb6a' : '#ffa726'};
+  box-shadow: 0 0 0 2px #1E1E3F;
+  z-index: 1;
+`;
+
+// ─── Grid Layout ────────────────────────────────────────────────────
+const GridContainer = styled.div<{ $spacing?: number }>`
+  display: grid;
+  gap: ${({ $spacing }) => ($spacing || 2) * 8}px;
+`;
+
+const MainGrid = styled(GridContainer)`
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 7fr 5fr;
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 8fr 4fr;
+  }
+`;
+
+const StatsGrid = styled(GridContainer)`
+  grid-template-columns: 1fr;
+
+  @media (min-width: 375px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+// ─── Typography replacements ────────────────────────────────────────
+const Heading1 = styled.h1`
+  font-weight: 300;
+  font-size: 2rem;
+  margin: 0 0 0.5rem 0;
+  color: ${theme.text};
+  display: flex;
+  align-items: center;
+`;
+
+const Heading2 = styled.h2`
+  font-weight: 400;
+  font-size: 1.5rem;
+  margin: 0;
+  color: ${theme.text};
+`;
+
+const BodyText = styled.p`
+  font-size: 1rem;
+  margin: 0;
+  color: ${theme.text};
+`;
+
+const SubtitleText = styled.span`
+  font-size: 1rem;
+  font-weight: 500;
+  color: ${theme.text};
+`;
+
+const CaptionText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const SmallText = styled.span`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const MessageBodyText = styled.span`
+  font-size: 0.875rem;
+  color: ${theme.text};
+`;
+
+// ─── Section-specific styled components ─────────────────────────────
 const ProgressContainer = styled.div`
   margin-bottom: 1rem;
 `;
@@ -181,17 +359,7 @@ const ProgressValue = styled.div`
   color: rgba(255, 255, 255, 0.7);
 `;
 
-const StyledLinearProgress = styled(LinearProgress)`
-  height: 8px;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
-  
-  & .MuiLinearProgress-bar {
-    border-radius: 4px;
-  }
-`;
-
-// Chat components
+// ─── Chat Components ────────────────────────────────────────────────
 const ChatSection = styled(DashboardSection)`
   display: flex;
   flex-direction: column;
@@ -212,54 +380,54 @@ const ChatMessages = styled.div`
   overflow-y: auto;
   margin-bottom: 1rem;
   padding-right: 0.5rem;
-  
+
   &::-webkit-scrollbar {
     width: 5px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 3px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(120, 81, 169, 0.5);
     border-radius: 3px;
   }
 `;
 
-const MessageBubble = styled(motion.div)<{isUser?: boolean}>`
+const MessageBubble = styled(motion.div)<{ $isUser?: boolean }>`
   max-width: 75%;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   border-radius: 12px;
-  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-  background: ${props => props.isUser ? 
-    'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))' : 
+  align-self: ${({ $isUser }) => $isUser ? 'flex-end' : 'flex-start'};
+  background: ${({ $isUser }) => $isUser ?
+    'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))' :
     'rgba(30, 30, 60, 0.6)'};
-  border: 1px solid ${props => props.isUser ? 
-    'rgba(0, 255, 255, 0.3)' : 
+  border: 1px solid ${({ $isUser }) => $isUser ?
+    'rgba(0, 255, 255, 0.3)' :
     'rgba(255, 255, 255, 0.1)'};
-  margin-left: ${props => props.isUser ? 'auto' : '0'};
-  margin-right: ${props => props.isUser ? '0' : 'auto'};
+  margin-left: ${({ $isUser }) => $isUser ? 'auto' : '0'};
+  margin-right: ${({ $isUser }) => $isUser ? '0' : 'auto'};
   position: relative;
-  
+
   &:after {
     content: '';
     position: absolute;
     bottom: 0;
-    ${props => props.isUser ? 'right: -8px;' : 'left: -8px;'}
+    ${({ $isUser }) => $isUser ? 'right: -8px;' : 'left: -8px;'}
     width: 16px;
     height: 16px;
-    background: ${props => props.isUser ? 
-      'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))' : 
+    background: ${({ $isUser }) => $isUser ?
+      'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))' :
       'rgba(30, 30, 60, 0.6)'};
     transform: rotate(45deg);
-    border-${props => props.isUser ? 'right' : 'left'}: 1px solid ${props => props.isUser ? 
-      'rgba(0, 255, 255, 0.3)' : 
+    border-${({ $isUser }) => $isUser ? 'right' : 'left'}: 1px solid ${({ $isUser }) => $isUser ?
+      'rgba(0, 255, 255, 0.3)' :
       'rgba(255, 255, 255, 0.1)'};
-    border-${props => props.isUser ? 'bottom' : 'bottom'}: 1px solid ${props => props.isUser ? 
-      'rgba(0, 255, 255, 0.3)' : 
+    border-bottom: 1px solid ${({ $isUser }) => $isUser ?
+      'rgba(0, 255, 255, 0.3)' :
       'rgba(255, 255, 255, 0.1)'};
   }
 `;
@@ -282,44 +450,46 @@ const ChatInputContainer = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const ChatInput = styled(TextField)`
+const NativeInput = styled.input`
   flex: 1;
-  
-  & .MuiInputBase-root {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 0.9rem;
-    padding: 0.5rem;
-  }
-  
-  & .MuiOutlinedInput-notchedOutline {
-    border: none;
-  }
-  
-  & .MuiInputBase-input {
-    padding: 0.5rem;
-  }
-  
-  &:hover .MuiOutlinedInput-notchedOutline,
-  & .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-    border: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  font-family: inherit;
+  min-height: 44px;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
   }
 `;
 
-const SendButton = styled(IconButton)`
+const SendButtonStyled = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
   background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8));
   color: white;
-  width: 36px;
-  height: 36px;
+  cursor: pointer;
   transition: all 0.3s ease;
-  
+  padding: 0;
+  flex-shrink: 0;
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
   }
 `;
 
+// ─── Session / Workout Components ───────────────────────────────────
 const SessionCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.4);
   border-radius: 12px;
@@ -328,7 +498,7 @@ const SessionCard = styled(motion.div)`
   margin-bottom: 0.75rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-3px);
     border-color: rgba(0, 255, 255, 0.3);
@@ -359,7 +529,7 @@ const WorkoutItem = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: rgba(40, 40, 80, 0.5);
     transform: translateX(5px);
@@ -396,7 +566,7 @@ const WorkoutDetails = styled.div`
   gap: 0.75rem;
 `;
 
-// Achievement related components
+// ─── Achievement Components ─────────────────────────────────────────
 const AchievementCard = styled(motion.div)<{ $isLocked?: boolean }>`
   display: flex;
   align-items: center;
@@ -407,7 +577,7 @@ const AchievementCard = styled(motion.div)<{ $isLocked?: boolean }>`
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
-  
+
   &:before {
     content: '';
     position: absolute;
@@ -417,20 +587,20 @@ const AchievementCard = styled(motion.div)<{ $isLocked?: boolean }>`
     height: 100%;
     background: linear-gradient(to bottom, #00ffff, #7851a9);
   }
-  
+
   &:hover {
     transform: translateY(-3px);
     border-color: rgba(0, 255, 255, 0.3);
-    box-shadow: ${props => !props.$isLocked ? 
-      '0 10px 25px rgba(0, 255, 255, 0.2)' : 
+    box-shadow: ${({ $isLocked }) => !$isLocked ?
+      '0 10px 25px rgba(0, 255, 255, 0.2)' :
       '0 10px 25px rgba(0, 0, 0, 0.3)'
     };
   }
-  
-  ${props => props.$isLocked && `
+
+  ${({ $isLocked }) => $isLocked && css`
     filter: grayscale(100%);
     opacity: 0.7;
-    
+
     &:before {
       background: linear-gradient(to bottom, #666, #999);
     }
@@ -445,17 +615,17 @@ const AchievementIcon = styled.div<{ $achievementType: 'gold' | 'silver' | 'bron
   align-items: center;
   justify-content: center;
   margin-right: 0.75rem;
-  background: ${props => props.$achievementType === 'gold' ? 
-    'linear-gradient(135deg, #FFD700, #FFA500)' : 
-    props.$achievementType === 'silver' ? 
-    'linear-gradient(135deg, #E0E0E0, #C0C0C0)' : 
+  background: ${({ $achievementType }) => $achievementType === 'gold' ?
+    'linear-gradient(135deg, #FFD700, #FFA500)' :
+    $achievementType === 'silver' ?
+    'linear-gradient(135deg, #E0E0E0, #C0C0C0)' :
     'linear-gradient(135deg, #CD7F32, #A0522D)'
   };
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 10px ${props => props.$achievementType === 'gold' ? 
-    'rgba(255, 215, 0, 0.5)' : 
-    props.$achievementType === 'silver' ? 
-    'rgba(224, 224, 224, 0.5)' : 
+  box-shadow: 0 0 10px ${({ $achievementType }) => $achievementType === 'gold' ?
+    'rgba(255, 215, 0, 0.5)' :
+    $achievementType === 'silver' ?
+    'rgba(224, 224, 224, 0.5)' :
     'rgba(205, 127, 50, 0.5)'
   };
 `;
@@ -480,6 +650,74 @@ const AchievementProgress = styled.div`
   margin-top: 0.5rem;
 `;
 
+// ─── Layout helpers ─────────────────────────────────────────────────
+const FlexRow = styled.div<{ $justify?: string; $align?: string; $gap?: string }>`
+  display: flex;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'center'};
+  gap: ${({ $gap }) => $gap || '0'};
+`;
+
+const FlexEnd = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+`;
+
+const CenterBox = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+`;
+
+const FooterBar = styled.div`
+  margin-top: auto;
+  padding-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const FooterLink = styled.a`
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  margin-right: 1rem;
+
+  &:last-child {
+    margin-right: 0;
+  }
+
+  &:hover {
+    color: ${theme.accent};
+  }
+`;
+
+const EmptyStateBox = styled.div`
+  text-align: center;
+  padding: 1.5rem 0;
+`;
+
+// ─── Custom ProgressBar component ───────────────────────────────────
+const ProgressBar: React.FC<{
+  value: number;
+  color?: string;
+  ariaLabel?: string;
+}> = ({ value, color = 'primary', ariaLabel }) => (
+  <ProgressBarTrack
+    role="progressbar"
+    aria-valuemin={0}
+    aria-valuemax={100}
+    aria-valuenow={value}
+    aria-label={ariaLabel}
+  >
+    <ProgressBarFill $value={value} $color={color} />
+  </ProgressBarTrack>
+);
+
+// ─── Type Definitions ───────────────────────────────────────────────
 // Define Chat Message Type
 interface ChatMessage {
   id: string;
@@ -523,17 +761,17 @@ interface ClientStats {
  */
 const NewClientDashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
-  
+
   // Log the auth state for debugging
   useEffect(() => {
     console.log('Dashboard auth state:', { user, isAuthenticated });
   }, [user, isAuthenticated]);
-  
+
   const [isLoading, setLoading] = useState<boolean>(true);
   const [mcpStatus, setMcpStatus] = useState<{workout: boolean; gamification: boolean}>({workout: false, gamification: false});
   const [workoutData, setWorkoutData] = useState<any>(null);
   const [gamificationData, setGamificationData] = useState<any>(null);
-  
+
   // Use the custom MCP hook for dashboard
   const {
     loading: mcpLoading,
@@ -545,13 +783,13 @@ const NewClientDashboard: React.FC = () => {
     logFoodIntake,
     updateGameProgress
   } = useClientDashboardMcp();
-  
+
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [trainerOnline, setTrainerOnline] = useState(true);
-  
+
   // Client data
   const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
   const [recommendedWorkouts, setRecommendedWorkouts] = useState<Workout[]>([]);
@@ -561,7 +799,7 @@ const NewClientDashboard: React.FC = () => {
     daysActive: 0,
     weeklyProgress: 0
   });
-  
+
   // Mock achievements data (will be replaced by gamification MCP data)
   const [achievements, setAchievements] = useState<any[]>([
     {
@@ -595,7 +833,7 @@ const NewClientDashboard: React.FC = () => {
       icon: 'activity'
     }
   ]);
-  
+
   // Progress data
   const [progressData, setProgressData] = useState({
     overall: { level: 0, progress: 0 },
@@ -604,31 +842,31 @@ const NewClientDashboard: React.FC = () => {
     flexibility: { level: 0, progress: 0 },
     balance: { level: 0, progress: 0 }
   });
-  
+
   // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-  
+
   // MCP Server Status Component
   const renderMcpServerStatus = () => (
     <McpStatusIndicator status={mcpServerStatus} variant="compact" position="floating" />
   );
-  
+
   // Handle sending a message
   const handleSendMessage = () => {
     if (messageText.trim() === '') return;
-    
+
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       text: messageText,
       isUser: true,
       timestamp: new Date()
     };
-    
+
     setMessages(prev => [...prev, newMessage]);
     setMessageText('');
-    
+
     // Simulate trainer response
     setTimeout(() => {
       const responses = [
@@ -638,43 +876,43 @@ const NewClientDashboard: React.FC = () => {
         "Have you been keeping up with your nutrition plan?",
         "Your consistency is impressive! Keep up the great work!"
       ];
-      
+
       const trainerMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         text: responses[Math.floor(Math.random() * responses.length)],
         isUser: false,
         timestamp: new Date()
       };
-      
+
       setMessages(prev => [...prev, trainerMessage]);
     }, 1000);
   };
-  
+
   // Format time for chat messages
   const formatMessageTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   // Format date for upcoming sessions
   const formatSessionDate = (date: Date) => {
     return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   };
-  
+
   const formatSessionTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   // Load data (MCP or mock)
   useEffect(() => {
     // Update state with data from MCP integration hook
     if (!mcpLoading) {
       // Update MCP status
       setMcpStatus(mcpServerStatus);
-      
+
       // Update data if available from MCP
       if (mcpWorkoutData && Object.keys(mcpWorkoutData).length > 0) {
         setWorkoutData(mcpWorkoutData);
-        
+
         // Update UI with the fetched data - check data structure
         if (mcpWorkoutData.recommendations?.workouts && Array.isArray(mcpWorkoutData.recommendations.workouts)) {
           setRecommendedWorkouts(mcpWorkoutData.recommendations.workouts.map((workout: any) => ({
@@ -687,37 +925,37 @@ const NewClientDashboard: React.FC = () => {
           })));
         }
       }
-      
+
       // Update gamification data if available
       if (mcpGamificationData && Object.keys(mcpGamificationData).length > 0) {
         setGamificationData(mcpGamificationData);
-        
+
         // Update progress data based on gamification profile
         if (mcpGamificationData.profile) {
           setProgressData({
-            overall: { 
-              level: mcpGamificationData.profile.level || 22, 
-              progress: mcpGamificationData.profile.progress || 65 
+            overall: {
+              level: mcpGamificationData.profile.level || 22,
+              progress: mcpGamificationData.profile.progress || 65
             },
-            strength: { 
-              level: mcpGamificationData.profile.attributes?.strength?.level || 24, 
-              progress: mcpGamificationData.profile.attributes?.strength?.progress || 70 
+            strength: {
+              level: mcpGamificationData.profile.attributes?.strength?.level || 24,
+              progress: mcpGamificationData.profile.attributes?.strength?.progress || 70
             },
-            cardio: { 
-              level: mcpGamificationData.profile.attributes?.cardio?.level || 18, 
-              progress: mcpGamificationData.profile.attributes?.cardio?.progress || 45 
+            cardio: {
+              level: mcpGamificationData.profile.attributes?.cardio?.level || 18,
+              progress: mcpGamificationData.profile.attributes?.cardio?.progress || 45
             },
-            flexibility: { 
-              level: mcpGamificationData.profile.attributes?.flexibility?.level || 20, 
-              progress: mcpGamificationData.profile.attributes?.flexibility?.progress || 60 
+            flexibility: {
+              level: mcpGamificationData.profile.attributes?.flexibility?.level || 20,
+              progress: mcpGamificationData.profile.attributes?.flexibility?.progress || 60
             },
-            balance: { 
-              level: mcpGamificationData.profile.attributes?.balance?.level || 19, 
-              progress: mcpGamificationData.profile.attributes?.balance?.progress || 50 
+            balance: {
+              level: mcpGamificationData.profile.attributes?.balance?.level || 19,
+              progress: mcpGamificationData.profile.attributes?.balance?.progress || 50
             }
           });
         }
-        
+
         setLoading(false);
       } else {
         // If we don't have MCP gamification data, just update loading state
@@ -725,7 +963,7 @@ const NewClientDashboard: React.FC = () => {
       }
     }
   }, [mcpLoading, mcpServerStatus, mcpWorkoutData, mcpGamificationData]);
-  
+
   // Update achievements when gamification data changes
   useEffect(() => {
     if (mcpGamificationData?.achievements) {
@@ -740,9 +978,9 @@ const NewClientDashboard: React.FC = () => {
         unlocked: achievement.completed,
         icon: achievement.icon || 'award'
       }));
-      
+
       setAchievements(mappedAchievements);
-      
+
       // Update client stats based on gamification profile
       if (mcpGamificationData.profile) {
         setClientStats(prevStats => ({
@@ -753,7 +991,7 @@ const NewClientDashboard: React.FC = () => {
         }));
       }
     }
-    
+
     // Update workout data
     if (mcpWorkoutData) {
       // Update recommended workouts if available - check data structure
@@ -779,18 +1017,18 @@ const NewClientDashboard: React.FC = () => {
       }
     }
   }, [mcpGamificationData, mcpWorkoutData]);
-  
+
   // Initialize
   useEffect(() => {
     // Use the custom MCP hook instead, which handles all of this logic
     refreshData(true);
   }, [refreshData]);
-  
+
   // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
+
   // Effect to set default values when user data is loaded
   useEffect(() => {
     if (user) {
@@ -806,7 +1044,7 @@ const NewClientDashboard: React.FC = () => {
       }
     }
   }, [user]);
-  
+
   // Initialize state with mock data for chat and upcoming sessions
   useEffect(() => {
     // Set initial mock chat messages
@@ -830,7 +1068,7 @@ const NewClientDashboard: React.FC = () => {
         timestamp: new Date(Date.now() - 34000000)
       }
     ]);
-    
+
     // Set initial mock upcoming sessions
     setUpcomingSessions([
       {
@@ -851,18 +1089,18 @@ const NewClientDashboard: React.FC = () => {
       }
     ]);
   }, []);
-  
+
   // Dashboard data initialization effect - runs once when component mounts
   useEffect(() => {
     // Trigger initial data load from MCP hook
     const initDashboard = () => {
       refreshData(true);
     };
-    
+
     initDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array to run only once
-  
+
   return (
     <DashboardContainer
       initial="hidden"
@@ -871,122 +1109,96 @@ const NewClientDashboard: React.FC = () => {
     >
       {/* MCP Status Indicator */}
       {renderMcpServerStatus()}
-      
+
       {/* Video Background */}
       <VideoBackground>
         <video autoPlay loop muted playsInline>
           <source src="/Waves.mp4" type="video/mp4" />
         </video>
       </VideoBackground>
-      
+
       {/* Welcome Section */}
       <DashboardSection variants={itemVariants} style={{marginBottom: '1.5rem'}}>
         <motion.div variants={itemVariants}>
-          <Typography 
-            variant="h4" 
-            component="h1"
+          <Heading1
             id="dashboard-main-heading"
-            sx={{ 
-              fontWeight: 300, 
-              mb: 1,
-              display: 'flex',
-              alignItems: 'center'
-            }}
             aria-label={`Welcome dashboard for ${user?.firstName || 'Client'}`}
           >
             Welcome, {user?.firstName || 'Client'}!
-          </Typography>
-          <Typography 
-            variant="body1"
-            sx={{ 
-              opacity: 0.8, 
-              mb: 0
-            }}
-          >
+          </Heading1>
+          <BodyText style={{ opacity: 0.8 }}>
             Track your progress, upcoming sessions, and message your trainer
-          </Typography>
+          </BodyText>
         </motion.div>
       </DashboardSection>
-      
+
       {/* Main Content Grid */}
-      <Grid container spacing={2}>
+      <MainGrid $spacing={2}>
         {/* Left Column - Progress & Stats */}
-        <Grid xs={12} md={7} lg={8}>
+        <div>
           {/* Stats Overview */}
           <DashboardSection variants={itemVariants} style={{marginBottom: '1.5rem'}}>
             <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400}}>
-                Your Stats
-              </Typography>
+              <Heading2>Your Stats</Heading2>
             </motion.div>
-            
-            <Grid container spacing={2}>
-              <Grid xs={12} sm={6} md={3}>
-                <motion.div variants={itemVariants}>
-                  <DashboardStatsCard
-                    title="Completed Sessions"
-                    value={clientStats.sessionsCompleted.toString()}
-                    icon="book"
-                    trend={`${clientStats.sessionsRemaining} remaining`}
-                    isPositive={true}
-                    isLoading={isLoading}
-                    colorScheme="primary"
-                  />
-                </motion.div>
-              </Grid>
-              
-              <Grid xs={12} sm={6} md={3}>
-                <motion.div variants={itemVariants}>
-                  <DashboardStatsCard
-                    title="Active Days"
-                    value={clientStats.daysActive.toString()}
-                    icon="calendar"
-                    trend="This month"
-                    isPositive={true}
-                    isLoading={isLoading}
-                    colorScheme="success"
-                  />
-                </motion.div>
-              </Grid>
-              
-              <Grid xs={12} sm={6} md={3}>
-                <motion.div variants={itemVariants}>
-                  <DashboardStatsCard
-                    title="Weekly Progress"
-                    value={`${clientStats.weeklyProgress}%`}
-                    icon="chart"
-                    trend="Goal completion"
-                    isPositive={true}
-                    isLoading={isLoading}
-                    colorScheme="warning"
-                  />
-                </motion.div>
-              </Grid>
-              
-              <Grid xs={12} sm={6} md={3}>
-                <motion.div variants={itemVariants}>
-                  <DashboardStatsCard
-                    title="Fitness Level"
-                    value={progressData.overall.level.toString()}
-                    icon="dumbbell"
-                    trend={`${progressData.overall.progress}% to next level`}
-                    isPositive={true}
-                    isLoading={isLoading}
-                    colorScheme="purple"
-                  />
-                </motion.div>
-              </Grid>
-            </Grid>
+
+            <StatsGrid $spacing={2}>
+              <motion.div variants={itemVariants}>
+                <DashboardStatsCard
+                  title="Completed Sessions"
+                  value={clientStats.sessionsCompleted.toString()}
+                  icon="book"
+                  trend={`${clientStats.sessionsRemaining} remaining`}
+                  isPositive={true}
+                  isLoading={isLoading}
+                  colorScheme="primary"
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <DashboardStatsCard
+                  title="Active Days"
+                  value={clientStats.daysActive.toString()}
+                  icon="calendar"
+                  trend="This month"
+                  isPositive={true}
+                  isLoading={isLoading}
+                  colorScheme="success"
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <DashboardStatsCard
+                  title="Weekly Progress"
+                  value={`${clientStats.weeklyProgress}%`}
+                  icon="chart"
+                  trend="Goal completion"
+                  isPositive={true}
+                  isLoading={isLoading}
+                  colorScheme="warning"
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <DashboardStatsCard
+                  title="Fitness Level"
+                  value={progressData.overall.level.toString()}
+                  icon="dumbbell"
+                  trend={`${progressData.overall.progress}% to next level`}
+                  isPositive={true}
+                  isLoading={isLoading}
+                  colorScheme="purple"
+                />
+              </motion.div>
+            </StatsGrid>
           </DashboardSection>
-          
+
           {/* Progress Tracking */}
           <DashboardSection variants={itemVariants} style={{marginBottom: '1.5rem'}}>
             <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400}}>
-                Your Progress
-              </Typography>
+              <Heading2>Your Progress</Heading2>
             </motion.div>
-            
+
             <motion.div variants={itemVariants}>
               <ProgressContainer>
                 <ProgressLabel>
@@ -996,17 +1208,13 @@ const NewClientDashboard: React.FC = () => {
                   </ProgressName>
                   <ProgressValue>Level {progressData.strength.level}</ProgressValue>
                 </ProgressLabel>
-                <StyledLinearProgress 
-                  variant="determinate" 
-                  value={progressData.strength.progress} 
+                <ProgressBar
+                  value={progressData.strength.progress}
                   color="primary"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressData.strength.progress}
-                  aria-label={`Strength progress: ${progressData.strength.progress}%`}
+                  ariaLabel={`Strength progress: ${progressData.strength.progress}%`}
                 />
               </ProgressContainer>
-              
+
               <ProgressContainer>
                 <ProgressLabel>
                   <ProgressName>
@@ -1015,17 +1223,13 @@ const NewClientDashboard: React.FC = () => {
                   </ProgressName>
                   <ProgressValue>Level {progressData.cardio.level}</ProgressValue>
                 </ProgressLabel>
-                <StyledLinearProgress 
-                  variant="determinate" 
-                  value={progressData.cardio.progress} 
+                <ProgressBar
+                  value={progressData.cardio.progress}
                   color="secondary"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressData.cardio.progress}
-                  aria-label={`Cardio progress: ${progressData.cardio.progress}%`}
+                  ariaLabel={`Cardio progress: ${progressData.cardio.progress}%`}
                 />
               </ProgressContainer>
-              
+
               <ProgressContainer>
                 <ProgressLabel>
                   <ProgressName>
@@ -1034,17 +1238,13 @@ const NewClientDashboard: React.FC = () => {
                   </ProgressName>
                   <ProgressValue>Level {progressData.flexibility.level}</ProgressValue>
                 </ProgressLabel>
-                <StyledLinearProgress 
-                  variant="determinate" 
-                  value={progressData.flexibility.progress} 
+                <ProgressBar
+                  value={progressData.flexibility.progress}
                   color="success"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressData.flexibility.progress}
-                  aria-label={`Flexibility progress: ${progressData.flexibility.progress}%`}
+                  ariaLabel={`Flexibility progress: ${progressData.flexibility.progress}%`}
                 />
               </ProgressContainer>
-              
+
               <ProgressContainer>
                 <ProgressLabel>
                   <ProgressName>
@@ -1053,42 +1253,35 @@ const NewClientDashboard: React.FC = () => {
                   </ProgressName>
                   <ProgressValue>Level {progressData.balance.level}</ProgressValue>
                 </ProgressLabel>
-                <StyledLinearProgress 
-                  variant="determinate" 
-                  value={progressData.balance.progress} 
+                <ProgressBar
+                  value={progressData.balance.progress}
                   color="warning"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressData.balance.progress}
-                  aria-label={`Balance & Coordination progress: ${progressData.balance.progress}%`}
+                  ariaLabel={`Balance & Coordination progress: ${progressData.balance.progress}%`}
                 />
               </ProgressContainer>
-              
-              <Box display="flex" justifyContent="flex-end" mt={2}>
-                <GlowButton
-                  startIcon={<BarChart2 size={18} aria-hidden="true" />}
-                  size="small"
+
+              <FlexEnd>
+                <ActionButton
                   aria-label="View detailed fitness progress reports"
                 >
+                  <BarChart2 size={18} aria-hidden="true" />
                   View Detailed Progress
-                </GlowButton>
-              </Box>
+                </ActionButton>
+              </FlexEnd>
             </motion.div>
           </DashboardSection>
-          
+
           {/* Achievements Section */}
           <DashboardSection variants={itemVariants} style={{marginBottom: '1.5rem'}}>
             <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400}}>
-                Achievements
-              </Typography>
+              <Heading2>Achievements</Heading2>
             </motion.div>
-            
+
             <motion.div variants={itemVariants}>
               <div role="list" aria-label="Achievement list">
                 {achievements.map((achievement) => (
-                <AchievementCard 
-                  key={achievement.id} 
+                <AchievementCard
+                  key={achievement.id}
                   $isLocked={!achievement.unlocked}
                   whileHover={{ y: -3 }}
                   role="listitem"
@@ -1101,7 +1294,7 @@ const NewClientDashboard: React.FC = () => {
                     {achievement.icon === 'star' && <Star size={20} aria-hidden="true" />}
                     {achievement.icon === 'medal' && <Medal size={20} aria-hidden="true" />}
                   </AchievementIcon>
-                  
+
                   <AchievementInfo>
                     <AchievementName>
                       {achievement.name}
@@ -1109,7 +1302,7 @@ const NewClientDashboard: React.FC = () => {
                     <AchievementDescription>
                       {achievement.description}
                     </AchievementDescription>
-                    
+
                     {!achievement.unlocked && (
                       <AchievementProgress>
                         <ProgressLabel>
@@ -1117,47 +1310,43 @@ const NewClientDashboard: React.FC = () => {
                             {achievement.progress} / {achievement.total}
                           </ProgressValue>
                         </ProgressLabel>
-                        <StyledLinearProgress 
-                          variant="determinate" 
-                          value={(achievement.progress / achievement.total) * 100} 
+                        <ProgressBar
+                          value={(achievement.progress / achievement.total) * 100}
                           color="primary"
                         />
                       </AchievementProgress>
                     )}
                   </AchievementInfo>
-                  
+
                   {achievement.unlocked && (
                     <CheckCircle size={20} color="#00c853" style={{ marginLeft: '10px' }} />
                   )}
                 </AchievementCard>
-              ))}  
+              ))}
               </div>
-              
-              <Box display="flex" justifyContent="flex-end" mt={2}>
-              <GlowButton
-              startIcon={<Trophy size={18} aria-hidden="true" />}
-                size="small"
-              aria-label="View all achievements"
-              >
+
+              <FlexEnd>
+                <ActionButton
+                  aria-label="View all achievements"
+                >
+                  <Trophy size={18} aria-hidden="true" />
                   View All Achievements
-                </GlowButton>
-              </Box>
+                </ActionButton>
+              </FlexEnd>
             </motion.div>
           </DashboardSection>
-          
+
           {/* Recommended Workouts */}
           <DashboardSection variants={itemVariants}>
             <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400}}>
-                Recommended Workouts
-              </Typography>
+              <Heading2>Recommended Workouts</Heading2>
             </motion.div>
-            
+
             <motion.div variants={itemVariants}>
               <div role="list" aria-label="Recommended workouts">
                 {recommendedWorkouts.map((workout) => (
-                  <WorkoutItem 
-                    key={workout.id} 
+                  <WorkoutItem
+                    key={workout.id}
                     whileHover={{ x: 5 }}
                     role="listitem"
                     aria-label={`${workout.name}: ${workout.type} workout, ${workout.duration} minutes, ${workout.exercises} exercises, level ${workout.level}`}
@@ -1176,93 +1365,78 @@ const NewClientDashboard: React.FC = () => {
                       <span><Target size={14} aria-hidden="true" /> <span>Level {workout.level}</span></span>
                     </WorkoutDetails>
                   </WorkoutInfo>
-                  <IconButton 
-                    size="small" 
-                    sx={{ color: 'rgba(0, 255, 255, 0.7)' }}
+                  <RoundButton
+                    $size="small"
+                    style={{ color: 'rgba(0, 255, 255, 0.7)' }}
                     aria-label={`View details for ${workout.name}`}
                   >
                     <ChevronRight size={20} aria-hidden="true" />
-                  </IconButton>
+                  </RoundButton>
                 </WorkoutItem>
                 ))}
                 </div>
-                
-                <Box display="flex" justifyContent="flex-end" mt={2}>
-                <GlowButton
-                startIcon={<Dumbbell size={18} aria-hidden="true" />}
-                  size="small"
-                aria-label="Browse all available workouts"
-                >
-                  Browse All Workouts
-                </GlowButton>
-              </Box>
+
+                <FlexEnd>
+                  <ActionButton
+                    aria-label="Browse all available workouts"
+                  >
+                    <Dumbbell size={18} aria-hidden="true" />
+                    Browse All Workouts
+                  </ActionButton>
+                </FlexEnd>
             </motion.div>
           </DashboardSection>
-        </Grid>
-        
+        </div>
+
         {/* Right Column - Chat & Upcoming Sessions */}
-        <Grid xs={12} md={5} lg={4}>
+        <div>
           {/* Trainer Chat */}
           <ChatSection variants={itemVariants}>
             <ChatHeader>
-              <Badge
-                variant="dot"
-                color={trainerOnline ? "success" : "warning"}
-                overlap="circular"
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-                sx={{ 
-                  '& .MuiBadge-badge': { 
-                    boxShadow: '0 0 0 2px #1E1E3F',
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%'
-                  } 
-                }}
-              >
-                <Avatar
-                  alt="Trainer"
-                  src="/trainer-avatar.jpg"
-                  sx={{ width: 40, height: 40 }}
-                />
-              </Badge>
-              <Box>
-                <Typography variant="subtitle1" fontWeight="500">
-                  Alex Johnson
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+              <BadgeWrapper>
+                <AvatarCircle $size={40}>
+                  <img
+                    alt="Trainer"
+                    src="/trainer-avatar.jpg"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <User size={20} style={{ position: 'absolute', color: 'rgba(255,255,255,0.5)' }} aria-hidden="true" />
+                </AvatarCircle>
+                <OnlineDot $online={trainerOnline} />
+              </BadgeWrapper>
+              <div>
+                <SubtitleText>Alex Johnson</SubtitleText>
+                <br />
+                <CaptionText>
                   {trainerOnline ? 'Online' : 'Away'}
-                </Typography>
-              </Box>
-              <Box sx={{ ml: 'auto' }}>
-                <Tooltip title="Video call">
-                  <IconButton 
-                    size="small" 
-                    sx={{ color: 'rgba(0, 255, 255, 0.7)' }}
-                    aria-label="Start video call with trainer"
-                  >
-                    <Video size={18} aria-hidden="true" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+                </CaptionText>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <RoundButton
+                  $size="small"
+                  style={{ color: 'rgba(0, 255, 255, 0.7)' }}
+                  title="Video call"
+                  aria-label="Start video call with trainer"
+                >
+                  <Video size={18} aria-hidden="true" />
+                </RoundButton>
+              </div>
             </ChatHeader>
-            
+
             <ChatMessages>
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}
-                  isUser={message.isUser}
+                  $isUser={message.isUser}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                   role="log"
                   aria-label={`Message ${message.isUser ? 'sent' : 'received'} at ${formatMessageTime(message.timestamp)}`}
                 >
-                  <Typography variant="body2">
+                  <MessageBodyText>
                     {message.text}
-                  </Typography>
+                  </MessageBodyText>
                   <MessageTime>
                     {formatMessageTime(message.timestamp)}
                   </MessageTime>
@@ -1270,58 +1444,53 @@ const NewClientDashboard: React.FC = () => {
               ))}
               <div ref={messagesEndRef} />
             </ChatMessages>
-            
+
             <ChatInputContainer>
-              <IconButton 
-                size="small" 
-                sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+              <RoundButton
+                $size="small"
+                style={{ color: 'rgba(255, 255, 255, 0.7)' }}
                 aria-label="Attach file"
               >
                 <Paperclip size={18} />
-              </IconButton>
-              
-              <ChatInput
+              </RoundButton>
+
+              <NativeInput
                 placeholder="Type a message..."
-                fullWidth
-                variant="outlined"
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                inputProps={{
-                  'aria-label': 'Type a message to your trainer',
-                  'aria-multiline': 'false',
-                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                aria-label="Type a message to your trainer"
               />
-              
-              <IconButton 
-                size="small" 
-                sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+
+              <RoundButton
+                $size="small"
+                style={{ color: 'rgba(255, 255, 255, 0.7)' }}
                 aria-label="Insert emoji"
               >
                 <Smile size={18} />
-              </IconButton>
-              
-              <SendButton 
+              </RoundButton>
+
+              <SendButtonStyled
                 onClick={handleSendMessage}
                 aria-label="Send message"
               >
                 <Send size={18} />
-              </SendButton>
+              </SendButtonStyled>
             </ChatInputContainer>
           </ChatSection>
-          
+
           {/* Upcoming Sessions */}
           <DashboardSection variants={itemVariants}>
             <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400, marginBottom: '1rem'}}>
+              <Heading2 style={{ marginBottom: '1rem' }}>
                 Upcoming Sessions
-              </Typography>
-              
+              </Heading2>
+
               {upcomingSessions.length > 0 ? (
                 <div role="list" aria-label="Upcoming training sessions">
                   {upcomingSessions.map((session) => (
-                  <SessionCard 
-                    key={session.id} 
+                  <SessionCard
+                    key={session.id}
                     whileHover={{ y: -3 }}
                     role="listitem"
                     aria-label={`${session.title} with ${session.trainer} on ${formatSessionDate(session.dateTime)} at ${formatSessionTime(session.dateTime)}`}
@@ -1333,70 +1502,59 @@ const NewClientDashboard: React.FC = () => {
                         <span>Next Session</span>
                       </UpcomingLabel>
                     )}
-                    
-                    <Typography variant="subtitle1" fontWeight="500" sx={{ mb: 0.5 }}>
+
+                    <SubtitleText style={{ display: 'block', marginBottom: '0.25rem' }}>
                       {session.title}
-                    </Typography>
-                    
-                    <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" sx={{ mb: 1 }}>
+                    </SubtitleText>
+
+                    <SmallText style={{ display: 'block', marginBottom: '0.5rem' }}>
                       with {session.trainer}
-                    </Typography>
-                    
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
+                    </SmallText>
+
+                    <FlexRow $justify="space-between" $align="center">
+                      <SmallText>
                         <Calendar size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} aria-hidden="true" />
                         <span>{formatSessionDate(session.dateTime)}</span>
-                      </Typography>
-                      
-                      <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
+                      </SmallText>
+
+                      <SmallText>
                         <Clock size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} aria-hidden="true" />
                         <span>{formatSessionTime(session.dateTime)}</span>
-                      </Typography>
-                    </Box>
+                      </SmallText>
+                    </FlexRow>
                   </SessionCard>
                 ))}
                 </div>
               ) : (
-                <Box textAlign="center" py={3}>
-                  <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
+                <EmptyStateBox>
+                  <SmallText>
                     No upcoming sessions scheduled
-                  </Typography>
-                </Box>
+                  </SmallText>
+                </EmptyStateBox>
               )}
-              
-              <Box display="flex" justifyContent="center" mt={2}>
-                <GlowButton
-                  startIcon={<Calendar size={18} aria-hidden="true" />}
-                  fullWidth
+
+              <CenterBox>
+                <ActionButton
+                  $fullWidth
                   aria-label="Schedule a new training session"
                 >
+                  <Calendar size={18} aria-hidden="true" />
                   Schedule New Session
-                </GlowButton>
-              </Box>
+                </ActionButton>
+              </CenterBox>
             </motion.div>
           </DashboardSection>
-        </Grid>
-      </Grid>
-      
+        </div>
+      </MainGrid>
+
       {/* Compact Footer */}
-      <Box 
-        sx={{ 
-          mt: 'auto', 
-          pt: 2, 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          fontSize: '0.75rem',
-          color: 'rgba(255, 255, 255, 0.6)'
-        }}
-      >
+      <FooterBar>
         <div>&copy; 2025 Swan Studios. All rights reserved.</div>
         <div>
-          <a href="/terms" style={{color: 'rgba(255, 255, 255, 0.6)', marginRight: '1rem', textDecoration: 'none'}}>Terms</a>
-          <a href="/privacy" style={{color: 'rgba(255, 255, 255, 0.6)', textDecoration: 'none'}}>Privacy</a>
+          <FooterLink href="/terms">Terms</FooterLink>
+          <FooterLink href="/privacy">Privacy</FooterLink>
         </div>
-      </Box>
+      </FooterBar>
     </DashboardContainer>
   );
 };
