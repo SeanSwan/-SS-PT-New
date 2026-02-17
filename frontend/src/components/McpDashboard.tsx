@@ -1,11 +1,14 @@
 /**
  * MCP Dashboard Component
- * 
+ *
  * A complete dashboard for managing MCP server integration
  * with all MCP-related functionality in one place.
+ *
+ * Migrated from @mui/material to styled-components with Galaxy-Swan theme.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import useClientDashboardMcp from '../hooks/useClientDashboardMcp';
 import McpStatusIndicator from './ui/McpStatusIndicator';
@@ -15,31 +18,9 @@ import GamificationDisplay from './Gamification/GamificationDisplay';
 import { checkMcpServersStatus } from '../utils/mcp-utils';
 import { getMcpAuthHeaders, setMcpAuthToken } from '../utils/mcp-auth';
 
-// Material UI components
-import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Grid,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  Switch,
-  FormControlLabel,
-  TextField,
-  Tabs,
-  Tab,
-  FormHelperText,
-  Alert,
-  Snackbar
-} from '@mui/material';
-
 // Icons
-import { 
-  Server, 
+import {
+  Server,
   Settings,
   Play,
   PauseCircle,
@@ -47,8 +28,501 @@ import {
   UserCheck,
   Shield,
   Key,
-  SaveIcon
+  Save,
+  Trophy
 } from 'lucide-react';
+
+/* ═══════════════════════════════════════════════════════
+   Galaxy-Swan Theme Tokens
+   ═══════════════════════════════════════════════════════ */
+const GALAXY_CORE = '#0a0a1a';
+const SWAN_CYAN = '#00FFFF';
+const COSMIC_PURPLE = '#7851A9';
+const GLASS_BG = 'rgba(255, 255, 255, 0.04)';
+const GLASS_BORDER = 'rgba(255, 255, 255, 0.08)';
+const TEXT_PRIMARY = 'rgba(255, 255, 255, 0.92)';
+const TEXT_SECONDARY = 'rgba(255, 255, 255, 0.6)';
+const SUCCESS_BG = 'rgba(0, 200, 83, 0.1)';
+const SUCCESS_BORDER = 'rgba(0, 200, 83, 0.3)';
+const SUCCESS_COLOR = '#00c853';
+const ERROR_BG = 'rgba(244, 67, 54, 0.1)';
+const ERROR_BORDER = 'rgba(244, 67, 54, 0.3)';
+const ERROR_COLOR = '#f44336';
+const WARNING_COLOR = '#ff9800';
+const INFO_COLOR = '#29b6f6';
+
+/* ═══════════════════════════════════════════════════════
+   Layout Primitives
+   ═══════════════════════════════════════════════════════ */
+const PageContainer = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+  }
+`;
+
+const Section = styled.div<{ $mt?: number; $mb?: number }>`
+  margin-top: ${({ $mt }) => ($mt != null ? `${$mt}px` : '0')};
+  margin-bottom: ${({ $mb }) => ($mb != null ? `${$mb}px` : '0')};
+`;
+
+const FlexRow = styled.div<{ $gap?: number; $wrap?: boolean }>`
+  display: flex;
+  gap: ${({ $gap }) => ($gap != null ? `${$gap}px` : '0')};
+  flex-wrap: ${({ $wrap }) => ($wrap ? 'wrap' : 'nowrap')};
+  align-items: center;
+
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+  }
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Typography Primitives
+   ═══════════════════════════════════════════════════════ */
+const PageTitle = styled.h1`
+  font-size: 2rem;
+  font-weight: 600;
+  color: ${TEXT_PRIMARY};
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.3;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 1rem;
+  color: ${TEXT_SECONDARY};
+  margin: 0;
+  line-height: 1.6;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${TEXT_PRIMARY};
+  margin: 0 0 16px 0;
+`;
+
+const BodyText = styled.p`
+  font-size: 0.875rem;
+  color: ${TEXT_SECONDARY};
+  margin: 0 0 12px 0;
+  line-height: 1.6;
+`;
+
+const SmallText = styled.small`
+  font-size: 0.75rem;
+  color: ${TEXT_SECONDARY};
+  display: block;
+  margin-top: 4px;
+`;
+
+const StatusLabel = styled.span`
+  font-size: 0.875rem;
+  color: ${TEXT_PRIMARY};
+
+  strong {
+    font-weight: 600;
+  }
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Paper / Card Primitives
+   ═══════════════════════════════════════════════════════ */
+const GlassPanel = styled.div`
+  background: ${GLASS_BG};
+  border: 1px solid ${GLASS_BORDER};
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+`;
+
+const StatusChip = styled.div<{ $online: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: ${({ $online }) => ($online ? SUCCESS_BG : ERROR_BG)};
+  border: 1px solid ${({ $online }) => ($online ? SUCCESS_BORDER : ERROR_BORDER)};
+`;
+
+const CardWrapper = styled.div`
+  background: ${GLASS_BG};
+  border: 1px solid ${GLASS_BORDER};
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const CardHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  color: ${TEXT_PRIMARY};
+  font-size: 1rem;
+  font-weight: 600;
+`;
+
+const CardDivider = styled.hr`
+  border: none;
+  height: 1px;
+  background: ${GLASS_BORDER};
+  margin: 0;
+`;
+
+const CardBody = styled.div`
+  padding: 20px;
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Grid Primitives
+   ═══════════════════════════════════════════════════════ */
+const GridContainer = styled.div<{ $columns?: string; $gap?: number }>`
+  display: grid;
+  grid-template-columns: ${({ $columns }) => $columns || '1fr'};
+  gap: ${({ $gap }) => ($gap != null ? `${$gap}px` : '24px')};
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GridFullWidth = styled.div`
+  grid-column: 1 / -1;
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Button Primitives
+   ═══════════════════════════════════════════════════════ */
+const ButtonBase = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  border: none;
+  font-family: inherit;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const PrimaryButton = styled(ButtonBase)`
+  background: linear-gradient(135deg, ${SWAN_CYAN}22, ${COSMIC_PURPLE}44);
+  border: 1px solid ${SWAN_CYAN}44;
+  color: ${SWAN_CYAN};
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, ${SWAN_CYAN}33, ${COSMIC_PURPLE}55);
+    border-color: ${SWAN_CYAN}66;
+    box-shadow: 0 0 16px ${SWAN_CYAN}22;
+  }
+`;
+
+const SuccessButton = styled(ButtonBase)`
+  background: linear-gradient(135deg, ${SUCCESS_COLOR}22, ${SUCCESS_COLOR}44);
+  border: 1px solid ${SUCCESS_COLOR}44;
+  color: ${SUCCESS_COLOR};
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, ${SUCCESS_COLOR}33, ${SUCCESS_COLOR}55);
+    border-color: ${SUCCESS_COLOR}66;
+  }
+`;
+
+const DangerButton = styled(ButtonBase)`
+  background: linear-gradient(135deg, ${ERROR_COLOR}22, ${ERROR_COLOR}44);
+  border: 1px solid ${ERROR_COLOR}44;
+  color: ${ERROR_COLOR};
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, ${ERROR_COLOR}33, ${ERROR_COLOR}55);
+    border-color: ${ERROR_COLOR}66;
+  }
+`;
+
+const OutlinedButton = styled(ButtonBase)`
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: ${TEXT_PRIMARY};
+
+  &:hover:not(:disabled) {
+    border-color: ${SWAN_CYAN}66;
+    color: ${SWAN_CYAN};
+    background: rgba(0, 255, 255, 0.04);
+  }
+`;
+
+const FullWidthButton = styled(PrimaryButton)`
+  width: 100%;
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Form Primitives
+   ═══════════════════════════════════════════════════════ */
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const InputLabel = styled.label`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: ${SWAN_CYAN};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: ${TEXT_PRIMARY};
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: ${SWAN_CYAN}88;
+    box-shadow: 0 0 0 2px ${SWAN_CYAN}22;
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+`;
+
+const HelperText = styled.small`
+  font-size: 0.75rem;
+  color: ${TEXT_SECONDARY};
+  display: block;
+  margin-top: 4px;
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Toggle Switch Primitives
+   ═══════════════════════════════════════════════════════ */
+const ToggleWrapper = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+`;
+
+const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+`;
+
+const ToggleTrack = styled.div<{ $checked?: boolean }>`
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${({ $checked }) => ($checked ? SWAN_CYAN : 'rgba(255, 255, 255, 0.2)')};
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+`;
+
+const ToggleThumb = styled.div<{ $checked?: boolean }>`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  position: absolute;
+  top: 2px;
+  left: ${({ $checked }) => ($checked ? '22px' : '2px')};
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+`;
+
+const ToggleLabel = styled.span`
+  font-size: 0.875rem;
+  color: ${TEXT_PRIMARY};
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Tabs Primitives
+   ═══════════════════════════════════════════════════════ */
+const TabBar = styled.div`
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 16px;
+  overflow-x: auto;
+
+  /* Hide scrollbar but keep scroll functionality */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+`;
+
+const TabButton = styled.button<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid ${({ $active }) => ($active ? SWAN_CYAN : 'transparent')};
+  color: ${({ $active }) => ($active ? SWAN_CYAN : 'rgba(255, 255, 255, 0.6)')};
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  transition: color 0.2s, border-color 0.2s;
+
+  &:hover {
+    color: ${({ $active }) => ($active ? SWAN_CYAN : 'rgba(255, 255, 255, 0.85)')};
+  }
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Alert Primitive
+   ═══════════════════════════════════════════════════════ */
+const ALERT_COLORS: Record<string, string> = {
+  success: SUCCESS_COLOR,
+  error: ERROR_COLOR,
+  warning: WARNING_COLOR,
+  info: INFO_COLOR,
+};
+
+const AlertBox = styled.div<{ $severity: string }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: ${({ $severity }) => {
+    const c = ALERT_COLORS[$severity] || INFO_COLOR;
+    return `${c}12`;
+  }};
+  border-left: 4px solid ${({ $severity }) => ALERT_COLORS[$severity] || INFO_COLOR};
+  color: ${TEXT_PRIMARY};
+  font-size: 0.875rem;
+  line-height: 1.5;
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Toast / Snackbar Primitive
+   ═══════════════════════════════════════════════════════ */
+const ToastOverlay = styled.div<{ $visible: boolean; $severity: string }>`
+  position: fixed;
+  bottom: ${({ $visible }) => ($visible ? '24px' : '-100px')};
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 300px;
+  max-width: 560px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  background: ${GALAXY_CORE};
+  border: 1px solid ${({ $severity }) => ALERT_COLORS[$severity] || INFO_COLOR}44;
+  border-left: 4px solid ${({ $severity }) => ALERT_COLORS[$severity] || INFO_COLOR};
+  color: ${TEXT_PRIMARY};
+  font-size: 0.875rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  transition: bottom 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  backdrop-filter: blur(16px);
+`;
+
+const ToastCloseButton = styled.button`
+  background: none;
+  border: none;
+  color: ${TEXT_SECONDARY};
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px 8px;
+  line-height: 1;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: ${TEXT_PRIMARY};
+  }
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Server Control Button Row
+   ═══════════════════════════════════════════════════════ */
+const ServerControlRow = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+
+  & > * {
+    flex: 1;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+/* ═══════════════════════════════════════════════════════
+   Reusable Toggle Component
+   ═══════════════════════════════════════════════════════ */
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange?: (checked: boolean) => void;
+  label: string;
+}
+
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked, onChange, label }) => (
+  <ToggleWrapper>
+    <HiddenCheckbox
+      checked={checked}
+      onChange={(e) => onChange?.(e.target.checked)}
+    />
+    <ToggleTrack $checked={checked}>
+      <ToggleThumb $checked={checked} />
+    </ToggleTrack>
+    <ToggleLabel>{label}</ToggleLabel>
+  </ToggleWrapper>
+);
+
+/* ═══════════════════════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════════════════════ */
 
 /**
  * Admin dashboard for managing MCP server integration
@@ -63,10 +537,10 @@ const McpDashboard: React.FC = () => {
     gamificationData,
     refreshData
   } = useClientDashboardMcp();
-  
+
   // Tab state
   const [activeTab, setActiveTab] = useState<number>(0);
-  
+
   // MCP Settings
   const [workoutMcpUrl, setWorkoutMcpUrl] = useState<string>(
     process.env.REACT_APP_WORKOUT_MCP_URL || 'http://localhost:8000'
@@ -77,11 +551,11 @@ const McpDashboard: React.FC = () => {
   const [apiToken, setApiToken] = useState<string>(localStorage.getItem('auth_token') || '');
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [fallbackEnabled, setFallbackEnabled] = useState<boolean>(true);
-  
+
   // Server control
   const [serverStarting, setServerStarting] = useState<boolean>(false);
   const [serverStopping, setServerStopping] = useState<boolean>(false);
-  
+
   // Notification state
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -92,12 +566,21 @@ const McpDashboard: React.FC = () => {
     message: '',
     severity: 'info'
   });
-  
+
   // Check MCP status on mount
   useEffect(() => {
     checkMcpStatus();
   }, []);
-  
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!notification.open) return;
+    const timer = setTimeout(() => {
+      setNotification((prev) => ({ ...prev, open: false }));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [notification.open]);
+
   // Check MCP server status
   const checkMcpStatus = async () => {
     try {
@@ -107,88 +590,74 @@ const McpDashboard: React.FC = () => {
       console.error('Error checking MCP status:', error);
     }
   };
-  
+
   // Save MCP settings
   const saveSettings = () => {
     // Save to local storage
     localStorage.setItem('workout_mcp_url', workoutMcpUrl);
     localStorage.setItem('gamification_mcp_url', gamificationMcpUrl);
-    
+
     // Set auth token
     if (apiToken) {
       setMcpAuthToken(apiToken);
     }
-    
+
     // Show notification
     setNotification({
       open: true,
       message: 'MCP settings saved successfully!',
       severity: 'success'
     });
-    
+
     // Refresh data
     refreshData(true);
   };
-  
+
   // Simulate starting MCP servers
   const startServers = () => {
     setServerStarting(true);
-    
-    // Simulate server startup delay
+
     setTimeout(() => {
       setServerStarting(false);
-      
-      // Show notification
+
       setNotification({
         open: true,
         message: 'MCP servers started successfully!',
         severity: 'success'
       });
-      
-      // Refresh data
+
       refreshData(true);
     }, 2000);
   };
-  
+
   // Simulate stopping MCP servers
   const stopServers = () => {
     setServerStopping(true);
-    
-    // Simulate server stop delay
+
     setTimeout(() => {
       setServerStopping(false);
-      
-      // Show notification
+
       setNotification({
         open: true,
         message: 'MCP servers stopped!',
         severity: 'info'
       });
-      
-      // Refresh data
+
       refreshData(true);
     }, 2000);
   };
-  
-  // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
-  
+
   // Close notification
   const handleCloseNotification = () => {
-    setNotification({
-      ...notification,
-      open: false
-    });
+    setNotification((prev) => ({ ...prev, open: false }));
   };
-  
+
   // Render tab content
   const renderTabContent = () => {
     switch (activeTab) {
       case 0: // Status
         return (
-          <Box mt={2}>
+          <Section $mt={16}>
             <McpMonitor
               variant="full"
               autoRefresh={autoRefresh}
@@ -197,328 +666,220 @@ const McpDashboard: React.FC = () => {
                 console.log('MCP Status changed:', status);
               }}
             />
-          </Box>
+          </Section>
         );
-        
+
       case 1: // Settings
         return (
-          <Box mt={2}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                MCP Server Configuration
-              </Typography>
-              
-              <Grid container spacing={3}>
+          <Section $mt={16}>
+            <GlassPanel>
+              <SectionTitle>MCP Server Configuration</SectionTitle>
+
+              <GridContainer $columns="1fr 1fr" $gap={24}>
                 {/* Workout MCP URL */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Workout MCP Server URL"
+                <InputGroup>
+                  <InputLabel htmlFor="workout-mcp-url">Workout MCP Server URL</InputLabel>
+                  <StyledInput
+                    id="workout-mcp-url"
                     value={workoutMcpUrl}
                     onChange={(e) => setWorkoutMcpUrl(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    helperText="URL for the AI Workout MCP server"
+                    placeholder="http://localhost:8000"
                   />
-                </Grid>
-                
+                  <HelperText>URL for the AI Workout MCP server</HelperText>
+                </InputGroup>
+
                 {/* Gamification MCP URL */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Gamification MCP Server URL"
+                <InputGroup>
+                  <InputLabel htmlFor="gamification-mcp-url">Gamification MCP Server URL</InputLabel>
+                  <StyledInput
+                    id="gamification-mcp-url"
                     value={gamificationMcpUrl}
                     onChange={(e) => setGamificationMcpUrl(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    helperText="URL for the Gamification MCP server"
+                    placeholder="http://localhost:8001"
                   />
-                </Grid>
-                
+                  <HelperText>URL for the Gamification MCP server</HelperText>
+                </InputGroup>
+
                 {/* API Token */}
-                <Grid item xs={12}>
-                  <TextField
-                    label="API Authentication Token"
-                    value={apiToken}
-                    onChange={(e) => setApiToken(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    type="password"
-                    helperText="Authentication token for MCP server requests"
-                  />
-                </Grid>
-                
+                <GridFullWidth>
+                  <InputGroup>
+                    <InputLabel htmlFor="api-token">API Authentication Token</InputLabel>
+                    <StyledInput
+                      id="api-token"
+                      value={apiToken}
+                      onChange={(e) => setApiToken(e.target.value)}
+                      type="password"
+                      placeholder="Enter authentication token"
+                    />
+                    <HelperText>Authentication token for MCP server requests</HelperText>
+                  </InputGroup>
+                </GridFullWidth>
+
                 {/* Auto Refresh Toggle */}
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={autoRefresh}
-                        onChange={(e) => setAutoRefresh(e.target.checked)}
-                        color="primary"
-                      />
-                    }
+                <div>
+                  <ToggleSwitch
+                    checked={autoRefresh}
+                    onChange={(checked) => setAutoRefresh(checked)}
                     label="Enable Auto-Refresh"
                   />
-                  <FormHelperText>
-                    Automatically refresh MCP data at regular intervals
-                  </FormHelperText>
-                </Grid>
-                
+                  <SmallText>Automatically refresh MCP data at regular intervals</SmallText>
+                </div>
+
                 {/* Fallback Toggle */}
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={fallbackEnabled}
-                        onChange={(e) => setFallbackEnabled(e.target.checked)}
-                        color="primary"
-                      />
-                    }
+                <div>
+                  <ToggleSwitch
+                    checked={fallbackEnabled}
+                    onChange={(checked) => setFallbackEnabled(checked)}
                     label="Enable Fallback Mode"
                   />
-                  <FormHelperText>
-                    Use mock data when MCP servers are offline
-                  </FormHelperText>
-                </Grid>
-                
+                  <SmallText>Use mock data when MCP servers are offline</SmallText>
+                </div>
+
                 {/* Save Settings Button */}
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<SaveIcon size={16} />}
-                    onClick={saveSettings}
-                    fullWidth
-                  >
+                <GridFullWidth>
+                  <FullWidthButton onClick={saveSettings}>
+                    <Save size={16} />
                     Save MCP Settings
-                  </Button>
-                </Grid>
-              </Grid>
-            </Paper>
-            
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 2, mt: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Server Control
-              </Typography>
-              
-              <Box display="flex" gap={2} mt={2}>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<Play size={16} />}
+                  </FullWidthButton>
+                </GridFullWidth>
+              </GridContainer>
+            </GlassPanel>
+
+            <GlassPanel style={{ marginTop: '24px' }}>
+              <SectionTitle>Server Control</SectionTitle>
+
+              <ServerControlRow>
+                <SuccessButton
                   onClick={startServers}
                   disabled={serverStarting || (mcpStatus.workout && mcpStatus.gamification)}
-                  sx={{ flex: 1 }}
                 >
+                  <Play size={16} />
                   {serverStarting ? 'Starting Servers...' : 'Start MCP Servers'}
-                </Button>
-                
-                <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<PauseCircle size={16} />}
+                </SuccessButton>
+
+                <DangerButton
                   onClick={stopServers}
                   disabled={serverStopping || (!mcpStatus.workout && !mcpStatus.gamification)}
-                  sx={{ flex: 1 }}
                 >
+                  <PauseCircle size={16} />
                   {serverStopping ? 'Stopping Servers...' : 'Stop MCP Servers'}
-                </Button>
-                
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshCw size={16} />}
-                  onClick={() => refreshData(true)}
-                  sx={{ flex: 1 }}
-                >
+                </DangerButton>
+
+                <OutlinedButton onClick={() => refreshData(true)}>
+                  <RefreshCw size={16} />
                   Refresh Data
-                </Button>
-              </Box>
-              
-              <Alert severity="info" sx={{ mt: 3 }}>
+                </OutlinedButton>
+              </ServerControlRow>
+
+              <AlertBox $severity="info" style={{ marginTop: '24px' }}>
                 Note: Server control is simulated in this dashboard. In a production environment,
                 you would implement actual server management functionality.
-              </Alert>
-            </Paper>
-          </Box>
+              </AlertBox>
+            </GlassPanel>
+          </Section>
         );
-        
+
       case 2: // Security
         return (
-          <Box mt={2}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                MCP Security Settings
-              </Typography>
-              
-              <Grid container spacing={3}>
+          <Section $mt={16}>
+            <GlassPanel>
+              <SectionTitle>MCP Security Settings</SectionTitle>
+
+              <GridContainer $columns="1fr" $gap={24}>
                 {/* Authentication */}
-                <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardHeader 
-                      title="Authentication" 
-                      avatar={<UserCheck size={20} />}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12}>
-                          <TextField
-                            label="Current API Token"
-                            value={apiToken}
-                            onChange={(e) => setApiToken(e.target.value)}
-                            fullWidth
-                            variant="outlined"
-                            type="password"
-                          />
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Button
-                            variant="outlined"
-                            color="primary"
-                            onClick={() => {
-                              // Generate a mock token
-                              const newToken = `mcp_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
-                              setApiToken(newToken);
-                            }}
-                          >
-                            Generate New Token
-                          </Button>
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
+                <CardWrapper>
+                  <CardHeaderRow>
+                    <UserCheck size={20} />
+                    Authentication
+                  </CardHeaderRow>
+                  <CardDivider />
+                  <CardBody>
+                    <GridContainer $columns="1fr" $gap={16}>
+                      <InputGroup>
+                        <InputLabel htmlFor="security-api-token">Current API Token</InputLabel>
+                        <StyledInput
+                          id="security-api-token"
+                          value={apiToken}
+                          onChange={(e) => setApiToken(e.target.value)}
+                          type="password"
+                          placeholder="Enter API token"
+                        />
+                      </InputGroup>
+                      <div>
+                        <OutlinedButton
+                          onClick={() => {
+                            const newToken = `mcp_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
+                            setApiToken(newToken);
+                          }}
+                        >
+                          Generate New Token
+                        </OutlinedButton>
+                      </div>
+                    </GridContainer>
+                  </CardBody>
+                </CardWrapper>
+
                 {/* Access Control */}
-                <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardHeader 
-                      title="Access Control" 
-                      avatar={<Shield size={20} />}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <Typography variant="body2" paragraph>
-                        Configure which users and roles can access the MCP servers.
-                      </Typography>
-                      
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={true}
-                                color="primary"
-                              />
-                            }
-                            label="Admin Access"
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={true}
-                                color="primary"
-                              />
-                            }
-                            label="Trainer Access"
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={true}
-                                color="primary"
-                              />
-                            }
-                            label="Client Access"
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={false}
-                                color="primary"
-                              />
-                            }
-                            label="Guest Access"
-                          />
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
+                <CardWrapper>
+                  <CardHeaderRow>
+                    <Shield size={20} />
+                    Access Control
+                  </CardHeaderRow>
+                  <CardDivider />
+                  <CardBody>
+                    <BodyText>
+                      Configure which users and roles can access the MCP servers.
+                    </BodyText>
+
+                    <GridContainer $columns="1fr 1fr" $gap={16}>
+                      <ToggleSwitch checked={true} label="Admin Access" />
+                      <ToggleSwitch checked={true} label="Trainer Access" />
+                      <ToggleSwitch checked={true} label="Client Access" />
+                      <ToggleSwitch checked={false} label="Guest Access" />
+                    </GridContainer>
+                  </CardBody>
+                </CardWrapper>
+
                 {/* Encryption */}
-                <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardHeader 
-                      title="Data Encryption" 
-                      avatar={<Key size={20} />}
-                    />
-                    <Divider />
-                    <CardContent>
-                      <Typography variant="body2" paragraph>
-                        Configure encryption settings for data sent to and from MCP servers.
-                      </Typography>
-                      
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={true}
-                                color="primary"
-                              />
-                            }
-                            label="SSL/TLS Encryption"
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={true}
-                                color="primary"
-                              />
-                            }
-                            label="Encrypt Request Data"
-                          />
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
+                <CardWrapper>
+                  <CardHeaderRow>
+                    <Key size={20} />
+                    Data Encryption
+                  </CardHeaderRow>
+                  <CardDivider />
+                  <CardBody>
+                    <BodyText>
+                      Configure encryption settings for data sent to and from MCP servers.
+                    </BodyText>
+
+                    <GridContainer $columns="1fr 1fr" $gap={16}>
+                      <ToggleSwitch checked={true} label="SSL/TLS Encryption" />
+                      <ToggleSwitch checked={true} label="Encrypt Request Data" />
+                    </GridContainer>
+                  </CardBody>
+                </CardWrapper>
+
                 {/* Save Button */}
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<SaveIcon size={16} />}
-                    onClick={() => {
-                      // Save security settings
-                      setNotification({
-                        open: true,
-                        message: 'Security settings saved successfully!',
-                        severity: 'success'
-                      });
-                    }}
-                    fullWidth
-                  >
-                    Save Security Settings
-                  </Button>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Box>
+                <FullWidthButton
+                  onClick={() => {
+                    setNotification({
+                      open: true,
+                      message: 'Security settings saved successfully!',
+                      severity: 'success'
+                    });
+                  }}
+                >
+                  <Save size={16} />
+                  Save Security Settings
+                </FullWidthButton>
+              </GridContainer>
+            </GlassPanel>
+          </Section>
         );
-        
+
       case 3: // Gamification
         return (
-          <Box mt={2}>
+          <Section $mt={16}>
             <McpIntegrationWrapper
               loading={loading}
               mcpStatus={mcpStatus}
@@ -534,121 +895,81 @@ const McpDashboard: React.FC = () => {
                 }}
               />
             </McpIntegrationWrapper>
-          </Box>
+          </Section>
         );
-        
+
       default:
         return null;
     }
   };
-  
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box mb={4}>
-        <Typography variant="h4" gutterBottom>
-          <Server size={28} style={{ verticalAlign: 'middle', marginRight: '10px' }} />
+    <PageContainer>
+      <Section $mb={32}>
+        <PageTitle>
+          <Server size={28} />
           MCP Server Administration
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </PageTitle>
+        <PageSubtitle>
           Manage and monitor Model Context Protocol (MCP) servers for
           AI-powered workout recommendations and gamification.
-        </Typography>
-      </Box>
-      
+        </PageSubtitle>
+      </Section>
+
       {/* Status indicators */}
-      <Box mb={3} display="flex" gap={2}>
-        <Paper
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            display: 'inline-flex',
-            alignItems: 'center',
-            bgcolor: mcpStatus.workout ? 'rgba(0, 200, 83, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-            border: '1px solid',
-            borderColor: mcpStatus.workout ? 'rgba(0, 200, 83, 0.3)' : 'rgba(244, 67, 54, 0.3)'
-          }}
-        >
-          <Typography variant="body2">
+      <FlexRow $gap={12} $wrap style={{ marginBottom: '24px' }}>
+        <StatusChip $online={mcpStatus.workout}>
+          <StatusLabel>
             Workout MCP: <strong>{mcpStatus.workout ? 'Online' : 'Offline'}</strong>
-          </Typography>
-        </Paper>
-        
-        <Paper
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            display: 'inline-flex',
-            alignItems: 'center',
-            bgcolor: mcpStatus.gamification ? 'rgba(0, 200, 83, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-            border: '1px solid',
-            borderColor: mcpStatus.gamification ? 'rgba(0, 200, 83, 0.3)' : 'rgba(244, 67, 54, 0.3)'
-          }}
-        >
-          <Typography variant="body2">
+          </StatusLabel>
+        </StatusChip>
+
+        <StatusChip $online={mcpStatus.gamification}>
+          <StatusLabel>
             Gamification MCP: <strong>{mcpStatus.gamification ? 'Online' : 'Offline'}</strong>
-          </Typography>
-        </Paper>
-        
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<RefreshCw size={16} />}
+          </StatusLabel>
+        </StatusChip>
+
+        <OutlinedButton
+          style={{ marginLeft: 'auto' }}
           onClick={() => refreshData(true)}
-          sx={{ ml: 'auto' }}
         >
+          <RefreshCw size={16} />
           Refresh Status
-        </Button>
-      </Box>
-      
+        </OutlinedButton>
+      </FlexRow>
+
       {/* Tabs Navigation */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab
-            label="Status"
-            icon={<Server size={16} />}
-            iconPosition="start"
-          />
-          <Tab
-            label="Settings"
-            icon={<Settings size={16} />}
-            iconPosition="start"
-          />
-          <Tab
-            label="Security"
-            icon={<Shield size={16} />}
-            iconPosition="start"
-          />
-          <Tab
-            label="Gamification"
-            icon={<Trophy size={16} />}
-            iconPosition="start"
-          />
-        </Tabs>
-      </Box>
-      
+      <TabBar>
+        <TabButton $active={activeTab === 0} onClick={() => setActiveTab(0)}>
+          <Server size={16} />
+          Status
+        </TabButton>
+        <TabButton $active={activeTab === 1} onClick={() => setActiveTab(1)}>
+          <Settings size={16} />
+          Settings
+        </TabButton>
+        <TabButton $active={activeTab === 2} onClick={() => setActiveTab(2)}>
+          <Shield size={16} />
+          Security
+        </TabButton>
+        <TabButton $active={activeTab === 3} onClick={() => setActiveTab(3)}>
+          <Trophy size={16} />
+          Gamification
+        </TabButton>
+      </TabBar>
+
       {/* Tab Content */}
       {renderTabContent()}
-      
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={5000}
-        onClose={handleCloseNotification}
-      >
-        <Alert
-          onClose={handleCloseNotification}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+
+      {/* Toast Notification */}
+      <ToastOverlay $visible={notification.open} $severity={notification.severity}>
+        <span>{notification.message}</span>
+        <ToastCloseButton onClick={handleCloseNotification} aria-label="Close notification">
+          &times;
+        </ToastCloseButton>
+      </ToastOverlay>
+    </PageContainer>
   );
 };
 
