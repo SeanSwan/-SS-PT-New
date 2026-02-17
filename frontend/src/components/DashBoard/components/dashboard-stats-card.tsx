@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
-import { Box, Typography, Card, CardContent } from '@mui/material';
 
 // Lucide icons
 import {
@@ -28,14 +27,8 @@ const shimmer = keyframes`
   100% { background-position: 200% 0; }
 `;
 
-const pulse = keyframes`
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-`;
-
 // Styled components
-const StatsCardContainer = styled(Card)<{
+const StatsCardContainer = styled.div<{
   $colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
 }>`
   background: ${props => {
@@ -83,7 +76,7 @@ const StatsCardContainer = styled(Card)<{
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   height: 100%;
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
@@ -108,6 +101,11 @@ const StatsCardContainer = styled(Card)<{
       }
     }};
   }
+`;
+
+const CardContentWrapper = styled.div`
+  padding: 16px;
+  height: 100%;
 `;
 
 const IconContainer = styled.div<{
@@ -182,12 +180,13 @@ const IconContainer = styled.div<{
   }};
 `;
 
-const ValueText = styled(Typography)<{
+const ValueText = styled.span<{
   $colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
 }>`
-  font-size: 1.75rem !important;
-  font-weight: 500 !important;
-  margin-bottom: 0.25rem !important;
+  font-size: 1.75rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  display: block;
   color: ${props => {
     switch (props.$colorScheme) {
       case 'primary':
@@ -230,18 +229,25 @@ const ValueText = styled(Typography)<{
   }};
 `;
 
+const TitleText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  display: block;
+  margin-bottom: 4px;
+`;
+
 const TrendContainer = styled.div<{ $isPositive: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: ${props => props.$isPositive ? 'rgba(0, 200, 83, 0.9)' : 'rgba(244, 67, 54, 0.9)'};  
+  color: ${props => props.$isPositive ? 'rgba(0, 200, 83, 0.9)' : 'rgba(244, 67, 54, 0.9)'};
 `;
 
 const SkeletonShimmer = styled.div`
-  background: linear-gradient(90deg, 
-    rgba(255, 255, 255, 0.05) 0%, 
-    rgba(255, 255, 255, 0.1) 50%, 
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
     rgba(255, 255, 255, 0.05) 100%);
   background-size: 200% 100%;
   animation: ${shimmer} 2s infinite linear;
@@ -333,29 +339,25 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
       style={{ height: '100%' }}
     >
       <StatsCardContainer $colorScheme={colorScheme}>
-        <CardContent sx={{ p: 2, height: '100%' }}>
-          <Box display="flex" alignItems="center" mb={1}>
+        <CardContentWrapper>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
             <IconContainer $colorScheme={colorScheme}>
               {renderIcon()}
             </IconContainer>
-            <Box>
+            <div>
               {isLoading ? (
                 <>
                   <TitleSkeleton />
-                  <Box height="0.5rem" />
+                  <div style={{ height: '0.5rem' }} />
                   <ValueSkeleton />
                   <TrendSkeleton />
                 </>
               ) : (
                 <>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ mb: 0.5, display: 'block', fontSize: '0.75rem' }}
-                  >
+                  <TitleText>
                     {title}
-                  </Typography>
-                  <ValueText variant="h4" $colorScheme={colorScheme}>
+                  </TitleText>
+                  <ValueText $colorScheme={colorScheme}>
                     {value}
                   </ValueText>
                   {trend && (
@@ -370,9 +372,9 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
                   )}
                 </>
               )}
-            </Box>
-          </Box>
-        </CardContent>
+            </div>
+          </div>
+        </CardContentWrapper>
       </StatsCardContainer>
     </motion.div>
   );

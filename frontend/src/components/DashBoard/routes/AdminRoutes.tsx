@@ -1,14 +1,14 @@
 /**
  * Complete Admin Routes - Production Ready
  * =====================================
- * 
+ *
  * Replaces the minimal fallback admin routing with full functionality
  * Connects all admin components for comprehensive business management
  */
 
 import React, { Suspense } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
-import { CircularProgress, Box } from '@mui/material';
+import { CircularProgress } from '../../ui/primitives/components';
 
 // Lazy load admin components for performance
 const ClientManagementDashboard = React.lazy(() => import('../Pages/admin-clients/ClientManagementDashboard'));
@@ -20,9 +20,9 @@ const SystemHealthManagementSection = React.lazy(() => import('../Pages/admin-da
 
 // Loading component
 const LoadingFallback = () => (
-  <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
     <CircularProgress />
-  </Box>
+  </div>
 );
 
 /**
@@ -36,25 +36,25 @@ const AdminRoutes: React.FC = () => {
         {/* Admin Dashboard Overview */}
         <Route path="/" element={<Navigate to="/overview" replace />} />
         <Route path="/overview" element={<RevolutionaryAdminDashboard />} />
-        
+
         {/* CLIENT MANAGEMENT - Primary business function */}
         <Route path="/clients" element={<ClientManagementDashboard />} />
         <Route path="/clients/:clientId" element={<ClientManagementDashboard />} />
-        
+
         {/* SCHEDULING - Universal Master Schedule */}
         <Route path="/schedule" element={<UniversalSchedule mode="admin" />} />
         <Route path="/master-schedule" element={<UniversalSchedule mode="admin" />} />
-        
+
         {/* TRAINER MANAGEMENT */}
         <Route path="/trainers" element={<TrainersManagementSection />} />
-        
+
         {/* FINANCIAL MANAGEMENT */}
         <Route path="/financial" element={<RevenueAnalyticsPanel />} />
         <Route path="/revenue" element={<RevenueAnalyticsPanel />} />
-        
+
         {/* SYSTEM SETTINGS */}
         <Route path="/settings" element={<SystemHealthManagementSection />} />
-        
+
         {/* Catch all - redirect to overview */}
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Routes>
