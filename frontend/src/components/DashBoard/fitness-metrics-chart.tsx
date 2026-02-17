@@ -1,32 +1,162 @@
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Box, 
-  Tabs, 
-  Tab, 
-  Skeleton,
-  ToggleButtonGroup,
-  ToggleButton
-} from '@mui/material';
+import styled, { keyframes } from 'styled-components';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface FitnessMetricsChartProps {
   isLoading?: boolean;
 }
 
+const shimmer = keyframes`
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const CardContainer = styled.div`
+  border-radius: 12px;
+  height: 100%;
+  background: rgba(29, 31, 43, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+  }
+`;
+
+const CardBody = styled.div`
+  padding: 24px;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+`;
+
+const Title = styled.h5`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 4px;
+`;
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+`;
+
+const ToggleGroup = styled.div`
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+`;
+
+const ToggleBtn = styled.button<{ $active: boolean }>`
+  padding: 6px 16px;
+  min-height: 36px;
+  border: none;
+  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.15)' : 'transparent'};
+  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  font-size: 0.8125rem;
+  font-weight: ${props => props.$active ? '600' : '400'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.$active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+  }
+
+  & + & {
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+  }
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  padding: 10px 16px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid ${props => props.$active ? '#00ffff' : 'transparent'};
+  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  font-size: 0.875rem;
+  font-weight: ${props => props.$active ? '600' : '400'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -1px;
+
+  &:hover {
+    color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.9)'};
+  }
+`;
+
+const ChartContainer = styled.div`
+  height: 360px;
+`;
+
+const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $mt?: number }>`
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 2s infinite linear;
+  width: ${props => props.$width || '100%'};
+  height: ${props => props.$height || '20px'};
+  border-radius: 4px;
+  margin-top: ${props => props.$mt ? `${props.$mt}px` : '0'};
+`;
+
+const TooltipBox = styled.div`
+  background: rgba(15, 15, 30, 0.95);
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+`;
+
+const TooltipTitle = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  display: block;
+  margin-bottom: 4px;
+`;
+
+const TooltipEntry = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+`;
+
+const TooltipDot = styled.span<{ $color: string }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: ${props => props.$color};
+  flex-shrink: 0;
+`;
+
 /**
  * Fitness Metrics Chart Component
- * 
- * Displays a bar chart showing various fitness metrics across different program types.
- * Allows filtering by time period and metric focus.
  */
 const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = false }) => {
   const [timeRange, setTimeRange] = useState<string>('month');
   const [metricTab, setMetricTab] = useState<number>(0);
-  
-  // Sample data - in a real application, this would come from API calls
+
   const monthlyData = [
     { program: 'HIIT', performance: 84, satisfaction: 92, attendance: 88 },
     { program: 'Strength', performance: 91, satisfaction: 85, attendance: 82 },
@@ -34,7 +164,7 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
     { program: 'Yoga', performance: 72, satisfaction: 94, attendance: 68 },
     { program: 'CrossFit', performance: 89, satisfaction: 78, attendance: 85 },
   ];
-  
+
   const weeklyData = [
     { program: 'HIIT', performance: 86, satisfaction: 94, attendance: 90 },
     { program: 'Strength', performance: 93, satisfaction: 88, attendance: 84 },
@@ -42,7 +172,7 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
     { program: 'Yoga', performance: 75, satisfaction: 96, attendance: 72 },
     { program: 'CrossFit', performance: 92, satisfaction: 82, attendance: 88 },
   ];
-  
+
   const yearlyData = [
     { program: 'HIIT', performance: 81, satisfaction: 89, attendance: 85 },
     { program: 'Strength', performance: 89, satisfaction: 83, attendance: 80 },
@@ -50,204 +180,112 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
     { program: 'Yoga', performance: 69, satisfaction: 92, attendance: 65 },
     { program: 'CrossFit', performance: 86, satisfaction: 75, attendance: 82 },
   ];
-  
-  // Select which dataset to use based on time range
+
   const getChartData = () => {
-    switch(timeRange) {
-      case 'week':
-        return weeklyData;
-      case 'year':
-        return yearlyData;
-      default:
-        return monthlyData;
+    switch (timeRange) {
+      case 'week': return weeklyData;
+      case 'year': return yearlyData;
+      default: return monthlyData;
     }
   };
-  
-  // Define which data keys to display based on the selected tab
+
   const getDataKeys = () => {
-    switch(metricTab) {
-      case 0: // All metrics
-        return [
-          { key: 'performance', color: '#1976d2' },
-          { key: 'satisfaction', color: '#2e7d32' },
-          { key: 'attendance', color: '#ed6c02' }
-        ];
-      case 1: // Performance
-        return [{ key: 'performance', color: '#1976d2' }];
-      case 2: // Satisfaction
-        return [{ key: 'satisfaction', color: '#2e7d32' }];
-      case 3: // Attendance
-        return [{ key: 'attendance', color: '#ed6c02' }];
-      default:
-        return [
-          { key: 'performance', color: '#1976d2' },
-          { key: 'satisfaction', color: '#2e7d32' },
-          { key: 'attendance', color: '#ed6c02' }
-        ];
+    switch (metricTab) {
+      case 1: return [{ key: 'performance', color: '#1976d2' }];
+      case 2: return [{ key: 'satisfaction', color: '#2e7d32' }];
+      case 3: return [{ key: 'attendance', color: '#ed6c02' }];
+      default: return [
+        { key: 'performance', color: '#1976d2' },
+        { key: 'satisfaction', color: '#2e7d32' },
+        { key: 'attendance', color: '#ed6c02' }
+      ];
     }
   };
-  
-  // Custom tooltip component
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <Box
-          sx={{
-            bgcolor: 'background.paper',
-            p: 1.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            boxShadow: 1
-          }}
-        >
-          <Typography variant="subtitle2" fontWeight="bold" mb={0.5}>
-            {label}
-          </Typography>
+        <TooltipBox>
+          <TooltipTitle>{label}</TooltipTitle>
           {payload.map((entry: any, index: number) => (
-            <Typography
-              key={`item-${index}`}
-              variant="body2"
-              display="block"
-              sx={{ 
-                color: entry.color,
-                display: 'flex',
-                alignItems: 'center',
-                mt: 0.5
-              }}
-            >
-              <Box 
-                component="span" 
-                sx={{ 
-                  width: 12, 
-                  height: 12, 
-                  borderRadius: '50%', 
-                  bgcolor: entry.color,
-                  mr: 1
-                }} 
-              />
+            <TooltipEntry key={index} style={{ color: entry.color }}>
+              <TooltipDot $color={entry.color} />
               {entry.name}: {entry.value}%
-            </Typography>
+            </TooltipEntry>
           ))}
-        </Box>
+        </TooltipBox>
       );
     }
     return null;
   };
-  
-  // Handle time range change
-  const handleTimeRangeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newTimeRange: string | null,
-  ) => {
-    if (newTimeRange !== null) {
-      setTimeRange(newTimeRange);
-    }
-  };
-  
-  // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setMetricTab(newValue);
-  };
-  
-  // Helper to capitalize first letter for display
+
   const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
-  
+
   return (
-    <Card
-      sx={{
-        borderRadius: 3,
-        height: '100%',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: '0 6px 25px rgba(0, 0, 0, 0.12)'
-        }
-      }}
-    >
-      <CardContent>
+    <CardContainer>
+      <CardBody>
         {isLoading ? (
-          <Box>
-            <Skeleton variant="text" height={40} width="70%" />
-            <Skeleton variant="text" height={25} width="40%" sx={{ mt: 1 }} />
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
-              <Skeleton variant="rectangular" width={120} height={35} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" width={200} height={35} sx={{ borderRadius: 1 }} />
-            </Box>
-            <Skeleton variant="rectangular" height={320} sx={{ mt: 3, borderRadius: 1 }} />
-          </Box>
+          <div>
+            <SkeletonBlock $width="70%" $height="40px" />
+            <SkeletonBlock $width="40%" $height="25px" $mt={8} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+              <SkeletonBlock $width="120px" $height="35px" />
+              <SkeletonBlock $width="200px" $height="35px" />
+            </div>
+            <SkeletonBlock $height="320px" $mt={24} />
+          </div>
         ) : (
           <>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                mb: 2
-              }}
-            >
-              <Box>
-                <Typography variant="h5" fontWeight="600">
-                  Fitness Metrics
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Program effectiveness metrics
-                </Typography>
-              </Box>
-              
-              <ToggleButtonGroup
-                color="primary"
-                value={timeRange}
-                exclusive
-                onChange={handleTimeRangeChange}
-                size="small"
-                sx={{ mt: { xs: 2, sm: 0 }, ml: 'auto' }}
-              >
-                <ToggleButton value="week">Week</ToggleButton>
-                <ToggleButton value="month">Month</ToggleButton>
-                <ToggleButton value="year">Year</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-            
-            <Tabs
-              value={metricTab}
-              onChange={handleTabChange}
-              sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
-              indicatorColor="primary"
-              textColor="primary"
-            >
-              <Tab label="All Metrics" />
-              <Tab label="Performance" />
-              <Tab label="Satisfaction" />
-              <Tab label="Attendance" />
-            </Tabs>
-            
-            <Box sx={{ height: 360 }}>
+            <HeaderRow>
+              <div>
+                <Title>Fitness Metrics</Title>
+                <Subtitle>Program effectiveness metrics</Subtitle>
+              </div>
+              <ToggleGroup>
+                {['week', 'month', 'year'].map(range => (
+                  <ToggleBtn
+                    key={range}
+                    $active={timeRange === range}
+                    onClick={() => setTimeRange(range)}
+                  >
+                    {capitalize(range)}
+                  </ToggleBtn>
+                ))}
+              </ToggleGroup>
+            </HeaderRow>
+
+            <TabBar>
+              {['All Metrics', 'Performance', 'Satisfaction', 'Attendance'].map((label, i) => (
+                <TabButton key={i} $active={metricTab === i} onClick={() => setMetricTab(i)}>
+                  {label}
+                </TabButton>
+              ))}
+            </TabBar>
+
+            <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={getChartData()}
                   margin={{ top: 5, right: 10, left: -15, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis 
-                    dataKey="program" 
-                    tick={{ fontSize: 12 }} 
-                    tickLine={false} 
-                    axisLine={{ stroke: '#E0E0E0' }}
+                  <XAxis
+                    dataKey="program"
+                    tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.6)' }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                   />
-                  <YAxis 
-                    tick={{ fontSize: 12 }} 
-                    tickLine={false} 
-                    axisLine={{ stroke: '#E0E0E0' }}
+                  <YAxis
+                    tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.6)' }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     domain={[0, 100]}
                     tickFormatter={(value) => `${value}%`}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }} />
                   {getDataKeys().map(item => (
-                    <Bar 
+                    <Bar
                       key={item.key}
                       dataKey={item.key}
                       name={capitalize(item.key)}
@@ -258,11 +296,11 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
                   ))}
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+            </ChartContainer>
           </>
         )}
-      </CardContent>
-    </Card>
+      </CardBody>
+    </CardContainer>
   );
 };
 

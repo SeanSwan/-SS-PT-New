@@ -1,19 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Skeleton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Chip,
-  Button,
-  Card,
-  CardContent
-} from '@mui/material';
+import styled, { keyframes } from 'styled-components';
 import {
   Award,
   Gift,
@@ -29,8 +15,196 @@ import {
 import { motion } from 'framer-motion';
 import { useGamificationData, PointTransaction } from '../../../../../hooks/gamification/useGamificationData';
 
-// Create styled components using framer-motion
-const MotionListItem = motion.create(ListItem);
+const shimmer = keyframes`
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const PanelContainer = styled.div<{ $compact?: boolean }>`
+  padding: ${props => props.$compact ? '16px' : '24px'};
+  border-radius: 12px;
+  background: rgba(29, 31, 43, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const HeaderTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const FilterChip = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  min-height: 32px;
+  border-radius: 16px;
+  border: 1px solid ${props => props.$active ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.15)'};
+  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.15)' : 'transparent'};
+  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.$active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+  }
+`;
+
+const FeedList = styled.div`
+  width: 100%;
+`;
+
+const FeedItem = styled(motion.div)`
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 0;
+`;
+
+const ItemIcon = styled.div`
+  width: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2px;
+`;
+
+const ItemContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ItemPrimary = styled.span`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  display: block;
+`;
+
+const ItemSecondary = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  display: block;
+  margin-top: 2px;
+`;
+
+const ItemPoints = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  margin-left: 12px;
+`;
+
+const PointsValue = styled.span<{ $positive: boolean }>`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${props => props.$positive ? '#66bb6a' : '#ef5350'};
+`;
+
+const BalanceRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+`;
+
+const BalanceText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 0;
+`;
+
+const EmptyText = styled.p`
+  text-align: center;
+  padding: 24px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  margin: 0;
+`;
+
+const ErrorText = styled.p`
+  text-align: center;
+  color: #ef5350;
+  font-size: 0.875rem;
+  margin: 0 0 16px;
+`;
+
+const RetryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  min-height: 36px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: transparent;
+  color: #00ffff;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover { background: rgba(0, 255, 255, 0.1); }
+`;
+
+const ViewAllButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  min-height: 36px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: transparent;
+  color: #00ffff;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover { background: rgba(0, 255, 255, 0.1); }
+`;
+
+const FooterRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+`;
+
+const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $borderRadius?: string }>`
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 2s infinite linear;
+  width: ${props => props.$width || '100%'};
+  height: ${props => props.$height || '20px'};
+  border-radius: ${props => props.$borderRadius || '4px'};
+`;
 
 interface ActivityFeedProps {
   limit?: number;
@@ -51,34 +225,34 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   categoryFilter = 'all'
 }) => {
   const { profile, isLoading, error } = useGamificationData();
-  
+
   // Process transactions and filter based on category
   const transactions = useMemo(() => {
     if (!profile.data?.recentTransactions) return [];
-    
+
     let filtered = [...profile.data.recentTransactions];
-    
+
     // Apply category filter
     if (categoryFilter === 'achievements') {
       filtered = filtered.filter(t => t.source === 'achievement_earned');
     } else if (categoryFilter === 'rewards') {
       filtered = filtered.filter(t => t.source === 'reward_redemption');
     } else if (categoryFilter === 'points') {
-      filtered = filtered.filter(t => 
-        t.source !== 'achievement_earned' && 
+      filtered = filtered.filter(t =>
+        t.source !== 'achievement_earned' &&
         t.source !== 'reward_redemption'
       );
     }
-    
+
     return filtered.slice(0, limit);
   }, [profile.data?.recentTransactions, categoryFilter, limit]);
-  
+
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       return 'Just now';
     } else if (diffInHours < 24) {
@@ -89,7 +263,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   };
-  
+
   // Get icon for transaction
   const getTransactionIcon = (transaction: PointTransaction) => {
     switch (transaction.source) {
@@ -111,193 +285,126 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
         return <Activity size={20} color="#757575" />;
     }
   };
-  
+
+  const renderHeader = () => {
+    if (!showHeader) return null;
+    return (
+      <HeaderRow>
+        <HeaderLeft>
+          <Activity size={20} color="#00ffff" />
+          <HeaderTitle>{isLoading || !transactions.length ? 'Activity Feed' : 'Recent Activity'}</HeaderTitle>
+        </HeaderLeft>
+        {!compact && !isLoading && transactions.length > 0 && (
+          <FilterGroup>
+            {(['all', 'points', 'achievements', 'rewards'] as const).map(cat => (
+              <FilterChip
+                key={cat}
+                $active={categoryFilter === cat}
+                onClick={() => {/* Filter by category */}}
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </FilterChip>
+            ))}
+          </FilterGroup>
+        )}
+      </HeaderRow>
+    );
+  };
+
   // Render loading state
   if (isLoading) {
     return (
-      <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2 }}>
-        {showHeader && (
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Clock size={20} />
-            <Typography variant="h6" component="h3">
-              Activity Feed
-            </Typography>
-          </Box>
-        )}
-        
-        <List sx={{ width: '100%', p: 0 }}>
+      <PanelContainer $compact={compact}>
+        {renderHeader()}
+        <FeedList>
           {Array(limit).fill(0).map((_, index) => (
             <React.Fragment key={index}>
-              <ListItem alignItems="flex-start" sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 42 }}>
-                  <Skeleton variant="circular" width={24} height={24} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={<Skeleton variant="text" width="60%" />}
-                  secondary={<Skeleton variant="text" width="40%" />}
-                />
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <Skeleton variant="text" width={60} />
-                  <Skeleton variant="text" width={40} />
-                </Box>
-              </ListItem>
-              {index < limit - 1 && <Divider component="li" />}
+              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0' }}>
+                <div style={{ width: 42, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                  <SkeletonBlock $width="24px" $height="24px" $borderRadius="50%" />
+                </div>
+                <div style={{ flex: 1, marginLeft: 4 }}>
+                  <SkeletonBlock $width="60%" $height="16px" />
+                  <SkeletonBlock $width="40%" $height="14px" style={{ marginTop: 4 }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: 12 }}>
+                  <SkeletonBlock $width="60px" $height="16px" />
+                  <SkeletonBlock $width="40px" $height="14px" style={{ marginTop: 4 }} />
+                </div>
+              </div>
+              {index < limit - 1 && <Divider />}
             </React.Fragment>
           ))}
-        </List>
-      </Paper>
+        </FeedList>
+      </PanelContainer>
     );
   }
-  
+
   // Render error state
   if (error) {
     return (
-      <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2, textAlign: 'center' }}>
-        <Typography color="error" sx={{ mb: 2 }}>
-          Error loading activity data
-        </Typography>
-        <Button 
-          variant="outlined" 
-          color="primary"
-          onClick={() => profile.refetch()}
-          size="small"
-        >
-          Retry
-        </Button>
-      </Paper>
+      <PanelContainer $compact={compact} style={{ textAlign: 'center' }}>
+        <ErrorText>Error loading activity data</ErrorText>
+        <RetryButton onClick={() => profile.refetch()}>Retry</RetryButton>
+      </PanelContainer>
     );
   }
-  
+
   // Render empty state
   if (!transactions.length) {
     return (
-      <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2 }}>
-        {showHeader && (
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Clock size={20} />
-            <Typography variant="h6" component="h3">
-              Activity Feed
-            </Typography>
-          </Box>
-        )}
-        
-        <Box sx={{ textAlign: 'center', py: 3 }}>
-          <Typography color="text.secondary">
-            No recent activity found
-          </Typography>
-        </Box>
-      </Paper>
+      <PanelContainer $compact={compact}>
+        {renderHeader()}
+        <EmptyText>No recent activity found</EmptyText>
+      </PanelContainer>
     );
   }
-  
+
   return (
-    <Paper sx={{ p: compact ? 2 : 3, borderRadius: 2 }}>
-      {showHeader && (
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Activity size={20} color="#1976d2" />
-            <Typography variant="h6" component="h3">
-              Recent Activity
-            </Typography>
-          </Box>
-          
-          {!compact && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Chip 
-                label="All" 
-                size="small" 
-                color={categoryFilter === 'all' ? 'primary' : 'default'}
-                onClick={() => {/* Filter by all */}}
-              />
-              <Chip 
-                label="Points" 
-                size="small" 
-                color={categoryFilter === 'points' ? 'primary' : 'default'}
-                onClick={() => {/* Filter by points */}}
-              />
-              <Chip 
-                label="Achievements" 
-                size="small" 
-                color={categoryFilter === 'achievements' ? 'primary' : 'default'}
-                onClick={() => {/* Filter by achievements */}}
-              />
-              <Chip 
-                label="Rewards" 
-                size="small" 
-                color={categoryFilter === 'rewards' ? 'primary' : 'default'}
-                onClick={() => {/* Filter by rewards */}}
-              />
-            </Box>
-          )}
-        </Box>
-      )}
-      
-      <List sx={{ width: '100%', p: 0 }}>
+    <PanelContainer $compact={compact}>
+      {renderHeader()}
+
+      <FeedList>
         {transactions.map((transaction, index) => (
           <React.Fragment key={transaction.id}>
-            <MotionListItem 
-              alignItems="flex-start" 
-              sx={{ px: 0 }}
+            <FeedItem
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
               data-testid={`activity-item-${index}`}
             >
-              <ListItemIcon sx={{ minWidth: 42 }}>
+              <ItemIcon>
                 {getTransactionIcon(transaction)}
-              </ListItemIcon>
-              <ListItemText
-                primary={transaction.description}
-                secondary={formatDate(transaction.createdAt)}
-                primaryTypographyProps={{
-                  variant: 'body2',
-                  fontWeight: 'medium'
-                }}
-                secondaryTypographyProps={{
-                  variant: 'caption',
-                  color: 'text.secondary'
-                }}
-              />
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 'bold',
-                    color: transaction.transactionType === 'earn' || transaction.transactionType === 'bonus'
-                      ? 'success.main'
-                      : 'error.main'
-                  }}
-                >
+              </ItemIcon>
+              <ItemContent>
+                <ItemPrimary>{transaction.description}</ItemPrimary>
+                <ItemSecondary>{formatDate(transaction.createdAt)}</ItemSecondary>
+              </ItemContent>
+              <ItemPoints>
+                <PointsValue $positive={transaction.transactionType === 'earn' || transaction.transactionType === 'bonus'}>
                   {transaction.transactionType === 'earn' || transaction.transactionType === 'bonus'
                     ? `+${transaction.points}`
                     : `-${transaction.points}`}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                  <Star size={12} color="#FFC107" style={{ marginRight: 4 }} />
-                  <Typography variant="caption" color="text.secondary">
-                    {transaction.balance}
-                  </Typography>
-                </Box>
-              </Box>
-            </MotionListItem>
-            {index < transactions.length - 1 && <Divider component="li" />}
+                </PointsValue>
+                <BalanceRow>
+                  <Star size={12} color="#FFC107" />
+                  <BalanceText>{transaction.balance}</BalanceText>
+                </BalanceRow>
+              </ItemPoints>
+            </FeedItem>
+            {index < transactions.length - 1 && <Divider />}
           </React.Fragment>
         ))}
-      </List>
-      
+      </FeedList>
+
       {!compact && transactions.length > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Clock size={16} />}
-            onClick={() => {/* View all activity */}}
-          >
-            View All Activity
-          </Button>
-        </Box>
+        <FooterRow>
+          <ViewAllButton onClick={() => {/* View all activity */}}>
+            <Clock size={16} /> View All Activity
+          </ViewAllButton>
+        </FooterRow>
       )}
-    </Paper>
+    </PanelContainer>
   );
 };
 
