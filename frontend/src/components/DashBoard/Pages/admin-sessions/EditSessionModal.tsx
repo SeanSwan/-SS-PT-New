@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Grid,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Stack,
   Avatar,
-  TextField
-} from '@mui/material';
+  TextField,
+  Typography,
+  Box
+} from '../../../ui/primitives/components';
 import { Edit, CheckSquare } from 'lucide-react';
 import GlowButton from '../../../Button/glowButton';
-import { StyledDialog } from './styled-admin-sessions';
 import { useToast } from "../../../../hooks/use-toast";
 
 interface Client {
@@ -54,6 +53,12 @@ interface EditSessionModalProps {
   onSave: (data: any) => Promise<void>;
 }
 
+const DIALOG_PAPER_STYLE = {
+  background: 'linear-gradient(135deg, #1e3a8a, #0a0a0f)',
+  border: '1px solid rgba(59, 130, 246, 0.2)',
+  borderRadius: '12px'
+};
+
 const EditSessionModal: React.FC<EditSessionModalProps> = ({
   open,
   onClose,
@@ -65,7 +70,7 @@ const EditSessionModal: React.FC<EditSessionModalProps> = ({
   onSave
 }) => {
   const { toast } = useToast();
-  
+
   // Local state for form fields
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
@@ -103,10 +108,10 @@ const EditSessionModal: React.FC<EditSessionModalProps> = ({
       toast({ title: "Error", description: "Please provide a valid date and time.", variant: "destructive" });
       return;
     }
-    
+
     const dateTimeString = `${date}T${time}`;
     const updatedSessionDateTime = new Date(dateTimeString);
-    
+
     if (isNaN(updatedSessionDateTime.getTime())) {
       toast({ title: "Error", description: "Invalid date/time format.", variant: "destructive" });
       return;
@@ -131,92 +136,83 @@ const EditSessionModal: React.FC<EditSessionModalProps> = ({
   };
 
   return (
-    <StyledDialog
+    <Dialog
       open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      PaperProps={{ style: DIALOG_PAPER_STYLE }}
     >
-      <DialogTitle>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Edit />
+      <DialogTitle style={{ background: 'rgba(30, 58, 138, 0.3)', borderBottom: '1px solid rgba(59, 130, 246, 0.15)' }}>
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Edit size={20} />
           <Typography variant="h6">Edit Session</Typography>
-        </Stack>
+        </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+        <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 16 }}>
           Update the details for this session.
-        </DialogContentText>
-        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+        </Typography>
+        <Grid container spacing={2} style={{ marginTop: 4 }}>
           {/* Client Select */}
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" size="small">
+            <FormControl fullWidth>
               <InputLabel>Client</InputLabel>
-              <Select value={clientId} onChange={(e) => setClientId(e.target.value)} label="Client" disabled={loadingClients}>
-                <MenuItem value=""><em>Not Assigned</em></MenuItem>
+              <Select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={loadingClients} fullWidth>
+                <option value="">Not Assigned</option>
                 {clients.map(c => (
-                  <MenuItem key={c.id} value={c.id}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar src={c.photo} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{c.firstName?.[0]}{c.lastName?.[0]}</Avatar>
-                      <span>{c.firstName} {c.lastName}</span>
-                    </Stack>
-                  </MenuItem>
+                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
                 ))}
               </Select>
             </FormControl>
           </Grid>
           {/* Trainer Select */}
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" size="small">
+            <FormControl fullWidth>
               <InputLabel>Trainer</InputLabel>
-              <Select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} label="Trainer" disabled={loadingTrainers}>
-                <MenuItem value=""><em>Not Assigned</em></MenuItem>
+              <Select value={trainerId} onChange={(e) => setTrainerId(e.target.value)} disabled={loadingTrainers} fullWidth>
+                <option value="">Not Assigned</option>
                 {trainers.map(t => (
-                  <MenuItem key={t.id} value={t.id}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar src={t.photo} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{t.firstName?.[0]}{t.lastName?.[0]}</Avatar>
-                      <span>{t.firstName} {t.lastName}</span>
-                    </Stack>
-                  </MenuItem>
+                  <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
                 ))}
               </Select>
             </FormControl>
           </Grid>
           {/* Date & Time */}
           <Grid item xs={12} sm={6}>
-            <TextField label="Date" type="date" size="small" fullWidth variant="outlined" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField label="Date" type="date" style={{ width: '100%' }} value={date} onChange={(e) => setDate(e.target.value)} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField label="Time" type="time" size="small" fullWidth variant="outlined" value={time} onChange={(e) => setTime(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField label="Time" type="time" style={{ width: '100%' }} value={time} onChange={(e) => setTime(e.target.value)} />
           </Grid>
           {/* Duration & Status */}
           <Grid item xs={12} sm={6}>
-            <TextField label="Duration (min)" type="number" size="small" fullWidth variant="outlined" value={duration} onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0)} InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }} />
+            <TextField label="Duration (min)" type="number" style={{ width: '100%' }} value={duration} onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0)} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" size="small">
+            <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
-              <Select value={status} onChange={(e) => setStatus(e.target.value as Session['status'])} label="Status">
+              <Select value={status} onChange={(e) => setStatus(e.target.value as Session['status'])} fullWidth>
                 {(['available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map(s => (
-                  <MenuItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</MenuItem>
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                 ))}
               </Select>
             </FormControl>
           </Grid>
           {/* Location & Notes */}
           <Grid item xs={12}>
-            <TextField label="Location" size="small" fullWidth variant="outlined" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Main Studio, Park, Online" />
+            <TextField label="Location" style={{ width: '100%' }} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Main Studio, Park, Online" />
           </Grid>
           <Grid item xs={12}>
-            <TextField label="Session Notes" size="small" fullWidth multiline rows={3} variant="outlined" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add any relevant notes..." />
+            <TextField label="Session Notes" style={{ width: '100%' }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add any relevant notes..." />
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions>
+      <DialogActions style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <GlowButton text="Cancel" theme="cosmic" size="small" onClick={onClose} disabled={isSaving} />
         <GlowButton text="Save Changes" theme="emerald" size="small" leftIcon={<CheckSquare size={16} />} onClick={handleSave} isLoading={isSaving} />
       </DialogActions>
-    </StyledDialog>
+    </Dialog>
   );
 };
 
