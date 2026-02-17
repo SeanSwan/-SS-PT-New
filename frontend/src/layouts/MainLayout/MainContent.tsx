@@ -1,7 +1,6 @@
 // src/layouts/MainLayout/MainContent.tsx
 import React from 'react';
-import { useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
+import styled from 'styled-components';
 
 // Import UI components
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
@@ -13,6 +12,48 @@ interface MainContentProps {
   content: React.ReactNode;
 }
 
+const MainWrapper = styled.main<{ $drawerOpen: boolean; $borderRadius: number }>`
+  flex-grow: 1;
+  width: 100%;
+  background-color: #0a0a1a;
+  border-radius: ${props => props.$borderRadius}px;
+  position: relative;
+  box-sizing: border-box;
+  transition: width 0.3s ease-out, margin 0.3s ease-out;
+
+  @media (min-width: 960px) {
+    width: ${props => props.$drawerOpen ? 'calc(100% - 220px)' : '100%'};
+    margin-left: ${props => props.$drawerOpen ? '220px' : '0'};
+  }
+`;
+
+const InnerWrapper = styled.div<{ $withExternalHeader: boolean }>`
+  padding: 0 8px;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  margin-top: ${props => props.$withExternalHeader ? '0' : '64px'};
+
+  @media (min-width: 600px) {
+    padding: 0 16px;
+  }
+
+  @media (min-width: 960px) {
+    padding: 0 24px;
+  }
+`;
+
+const ContentBox = styled.div<{ $borderRadius: number }>`
+  flex: 1;
+  padding: 8px 0;
+  background-color: rgba(15, 15, 30, 0.6);
+  border-radius: ${props => props.$borderRadius}px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+`;
+
 /**
  * MainContent component for the main layout
  * Manages the content area with responsive styling
@@ -23,55 +64,15 @@ const MainContent: React.FC<MainContentProps> = ({
   borderRadius,
   content
 }) => {
-  const theme = useTheme();
-  
   return (
-    <Box
-      component="main"
-      sx={{
-        flexGrow: 1,
-        pt: withExternalHeader ? 0 : 0,
-        width: { xs: '100%', md: drawerOpen ? 'calc(100% - 220px)' : '100%' },
-        ml: { xs: 0, md: drawerOpen ? '220px' : 0 },
-        transition: theme => theme.transitions.create(['width', 'margin'], {
-          easing: theme.transitions.easing.easeOut,
-          duration: theme.transitions.duration.enteringScreen
-        }),
-        backgroundColor: theme.palette.background.default,
-        borderRadius: `${borderRadius}px`,
-        position: 'relative',
-        boxSizing: 'border-box'
-      }}
-    >
-      <Box sx={{ 
-        px: { xs: 1, sm: 2, md: 3 }, // Responsive padding
-        minHeight: 'calc(100vh - 64px)', // Adjusted without footer
-        display: 'flex', 
-        flexDirection: 'column',
-        // Adjust top margin based on whether using external header
-        mt: withExternalHeader ? 0 : '64px'
-      }}>
-        {/* Breadcrumb navigation */}
+    <MainWrapper $drawerOpen={drawerOpen} $borderRadius={borderRadius}>
+      <InnerWrapper $withExternalHeader={withExternalHeader}>
         <Breadcrumbs />
-        
-        {/* Main content */}
-        <Box sx={{ 
-          flex: 1,
-          py: 1, // Minimal vertical padding
-          px: 0, // No horizontal padding to maximize width
-          // Add a subtle background for content area in training app
-          bgcolor: 'background.paper',
-          borderRadius: `${borderRadius}px`,
-          boxShadow: theme.palette.mode === 'dark' ? 0 : 1,
-          overflow: 'hidden',
-          width: '100%', // Ensure full width usage
-          maxWidth: '100vw', // Use full viewport width
-          boxSizing: 'border-box' // Include padding in width calculation
-        }}>
+        <ContentBox $borderRadius={borderRadius}>
           {content}
-        </Box>
-      </Box>
-    </Box>
+        </ContentBox>
+      </InnerWrapper>
+    </MainWrapper>
   );
 };
 

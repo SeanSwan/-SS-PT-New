@@ -5,23 +5,22 @@
  */
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { styled } from '@mui/material/styles';
+import styled from 'styled-components';
 import { ScrollToTop } from '../../common';
 
-// Styled component for minimal layout wrapper
-const MinimalLayoutWrapper = styled('div')(({ theme }) => ({
-  height: '100%',
-  minHeight: '100vh',
-  width: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  backgroundColor: theme.palette.background.default,
-  overflow: 'hidden'
-}));
+const MinimalLayoutWrapper = styled.div`
+  height: 100%;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #0a0a1a;
+  overflow: hidden;
+`;
 
 interface MinimalLayoutProps {
   children?: React.ReactNode;
-  hideWrapper?: boolean; // Optional prop to render without the wrapper (like the index.js version)
+  hideWrapper?: boolean;
 }
 
 /**
@@ -30,7 +29,6 @@ interface MinimalLayoutProps {
  * Renders both direct children and nested routes via Outlet
  */
 const MinimalLayout: React.FC<MinimalLayoutProps> = ({ children, hideWrapper = false }) => {
-  // If hideWrapper is true, just render the Outlet directly (like the simple version)
   if (hideWrapper) {
     return (
       <>
@@ -39,18 +37,12 @@ const MinimalLayout: React.FC<MinimalLayoutProps> = ({ children, hideWrapper = f
       </>
     );
   }
-  
-  // Otherwise render with the styled wrapper
+
   return (
     <MinimalLayoutWrapper>
-      {/* Output child components if provided */}
       {children}
-      
-      {/* Outlet for nested routes */}
       <Outlet />
-      
-      {/* Scroll to top button for minimal layout */}
-      <ScrollToTop 
+      <ScrollToTop
         theme="purple"
         size="small"
         scrollThreshold={300}
