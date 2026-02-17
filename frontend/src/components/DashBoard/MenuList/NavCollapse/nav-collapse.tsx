@@ -22,7 +22,7 @@ import { alpha } from '../../../../styles/mui-replacements';
 import NavItem from '../NavItem/nav-item';
 import Transitions from '../../../../components/ui/Transitions';
 import useConfig from '../../../../hooks/useConfig';
-import { useMenuStates } from '../../../../hooks/useMenuState';
+import { useMenuState as useMenuStates } from '../../../../hooks/useMenuState';
 
 // assets
 import { IconChevronDown, IconChevronRight, IconChevronUp } from '@tabler/icons-react';

@@ -1,13 +1,10 @@
 import { memo, useState, useCallback } from 'react';
-import Divider from '@mui/material/Divider';
-import List from '@mui/material/List';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
+import { Divider, List, Typography, Box } from '../../ui/primitives/components';
 
 // project imports - corrected paths to match directory structure
 import NavItem from './NavItem/nav-item';
 import NavGroup from './NavGroup/nav-group';
-import { useMenuStates } from '../../../hooks/useMenuState';
+import { useMenuState as useMenuStates } from '../../../hooks/useMenuState';
 
 // Import menu items from your menu structure file
 import menuItems from '../../../store/menu-items';
@@ -46,7 +43,7 @@ type MenuItem = GroupMenuItem | ItemMenuItem | CollapseMenuItem;
 
 /**
  * MenuList Component
- * 
+ *
  * Renders the navigation menu structure for the dashboard.
  * Enhanced with:
  * - Performance optimizations using memo and useCallback
@@ -97,7 +94,7 @@ const MenuList = () => {
           return (
             <List key={item.id}>
               <NavItem item={item} level={1} isParents setSelectedID={resetSelectedID} />
-              {index !== 0 && <Divider sx={{ py: 0.5 }} />}
+              {index !== 0 && <Divider style={{ padding: '4px 0' }} />}
             </List>
           );
         }
@@ -115,12 +112,17 @@ const MenuList = () => {
       default:
         // Enhanced error display for debugging
         return (
-          <Typography 
-            key={item.id} 
-            variant="h6" 
-            color="error" 
-            align="center"
-            sx={{ p: 2, border: '1px dashed', borderColor: 'error.main', borderRadius: 1, m: 1 }}
+          <Typography
+            key={item.id}
+            variant="h6"
+            style={{
+              padding: 16,
+              border: '1px dashed #f44336',
+              borderRadius: 4,
+              margin: 8,
+              color: '#f44336',
+              textAlign: 'center'
+            }}
           >
             Menu Item Error: Invalid Type "{item.type}"
           </Typography>
@@ -131,8 +133,8 @@ const MenuList = () => {
   // Add a fallback for empty menu
   if (navItems.length === 0) {
     return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
+      <Box style={{ padding: 16, textAlign: 'center' }}>
+        <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
           No menu items available
         </Typography>
       </Box>
@@ -140,12 +142,12 @@ const MenuList = () => {
   }
 
   return (
-    <Box 
-      {...(drawerOpen && { 
-        sx: { 
-          mt: 1.5,
+    <Box
+      {...(drawerOpen && {
+        style: {
+          marginTop: 12,
           transition: 'margin-top 0.3s ease-in-out'
-        } 
+        }
       })}
     >
       {navItems}

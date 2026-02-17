@@ -17,7 +17,7 @@ import MiniDrawerStyled from './mini-drawer-styled';
 
 // Fixed import for useConfig - using default import
 import useConfig from '../../../../hooks/useConfig';
-import { useMenuActions, useMenuStates } from '../../../../hooks/useMenuState';
+import { useMenuActions, useMenuState as useMenuStates } from '../../../../hooks/useMenuState';
 
 // Define constant for drawer width
 const drawerWidth = 260;

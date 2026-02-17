@@ -16,7 +16,7 @@ import {
 import { useMediaQuery, alpha } from '../../../../styles/mui-replacements';
 
 // project imports
-import { useMenuStates } from '../../../../hooks/useMenuState';
+import { useMenuState as useMenuStates } from '../../../../hooks/useMenuState';
 import useConfig from '../../../../hooks/useConfig';
 
 // Small dot icon replacement for FiberManualRecordIcon
