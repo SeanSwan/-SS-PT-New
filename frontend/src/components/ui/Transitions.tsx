@@ -1,105 +1,103 @@
 // src/components/ui/Transitions.tsx
 import React, { forwardRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// material-ui
-import { Collapse, Fade, Box, Grow, Slide, Zoom } from '@mui/material';
-
-// types
 interface TransitionsProps {
   children: React.ReactNode;
   type?: 'grow' | 'fade' | 'collapse' | 'slide' | 'zoom';
   position?: 'top-left' | 'top-right' | 'top' | 'bottom-left' | 'bottom-right' | 'bottom';
   direction?: 'up' | 'down' | 'left' | 'right';
   in?: boolean;
-  sx?: any;
   [key: string]: any;
 }
 
-// ==============================|| TRANSITIONS ||============================== //
+const getTransformOrigin = (position: string) => {
+  switch (position) {
+    case 'top-right': return 'top right';
+    case 'top': return 'top';
+    case 'bottom-left': return 'bottom left';
+    case 'bottom-right': return 'bottom right';
+    case 'bottom': return 'bottom';
+    case 'top-left':
+    default: return '0 0 0';
+  }
+};
+
+const getSlideDirection = (direction: string) => {
+  switch (direction) {
+    case 'up': return { y: 50 };
+    case 'down': return { y: -50 };
+    case 'left': return { x: 50 };
+    case 'right': return { x: -50 };
+    default: return { y: 50 };
+  }
+};
 
 const Transitions = forwardRef<HTMLDivElement, TransitionsProps>(
-  ({ children, position = 'top-left', type = 'grow', direction = 'up', ...others }, ref) => {
-    let positionSX = {
-      transformOrigin: '0 0 0'
+  ({ children, position = 'top-left', type = 'grow', direction = 'up', in: show = true, style, ...others }, ref) => {
+    const transformOrigin = getTransformOrigin(position);
+
+    const getVariants = () => {
+      switch (type) {
+        case 'grow':
+          return {
+            initial: { opacity: 0, scale: 0.8 },
+            animate: { opacity: 1, scale: 1 },
+            exit: { opacity: 0, scale: 0.8 }
+          };
+        case 'fade':
+          return {
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
+            exit: { opacity: 0 },
+            transition: { duration: 0.5 }
+          };
+        case 'collapse':
+          return {
+            initial: { opacity: 0, height: 0, overflow: 'hidden' },
+            animate: { opacity: 1, height: 'auto', overflow: 'hidden' },
+            exit: { opacity: 0, height: 0, overflow: 'hidden' }
+          };
+        case 'slide':
+          return {
+            initial: { opacity: 0, ...getSlideDirection(direction) },
+            animate: { opacity: 1, x: 0, y: 0 },
+            exit: { opacity: 0, ...getSlideDirection(direction) },
+            transition: { duration: 0.3 }
+          };
+        case 'zoom':
+          return {
+            initial: { opacity: 0, scale: 0 },
+            animate: { opacity: 1, scale: 1 },
+            exit: { opacity: 0, scale: 0 }
+          };
+        default:
+          return {
+            initial: { opacity: 0 },
+            animate: { opacity: 1 },
+            exit: { opacity: 0 }
+          };
+      }
     };
 
-    switch (position) {
-      case 'top-right':
-        positionSX = {
-          transformOrigin: 'top right'
-        };
-        break;
-      case 'top':
-        positionSX = {
-          transformOrigin: 'top'
-        };
-        break;
-      case 'bottom-left':
-        positionSX = {
-          transformOrigin: 'bottom left'
-        };
-        break;
-      case 'bottom-right':
-        positionSX = {
-          transformOrigin: 'bottom right'
-        };
-        break;
-      case 'bottom':
-        positionSX = {
-          transformOrigin: 'bottom'
-        };
-        break;
-      case 'top-left':
-      default:
-        positionSX = {
-          transformOrigin: '0 0 0'
-        };
-        break;
-    }
+    const variants = getVariants();
 
     return (
-      <Box ref={ref}>
-        {type === 'grow' && (
-          <Grow {...others}>
-            <Box sx={positionSX}>{children}</Box>
-          </Grow>
-        )}
-        {type === 'collapse' && (
-          <Collapse {...others} sx={positionSX}>
-            {children}
-          </Collapse>
-        )}
-        {type === 'fade' && (
-          <Fade
-            {...others}
-            timeout={{
-              appear: 500,
-              enter: 600,
-              exit: 400
-            }}
-          >
-            <Box sx={positionSX}>{children}</Box>
-          </Fade>
-        )}
-        {type === 'slide' && (
-          <Slide
-            {...others}
-            timeout={{
-              appear: 0,
-              enter: 400,
-              exit: 200
-            }}
-            direction={direction}
-          >
-            <Box sx={positionSX}>{children}</Box>
-          </Slide>
-        )}
-        {type === 'zoom' && (
-          <Zoom {...others}>
-            <Box sx={positionSX}>{children}</Box>
-          </Zoom>
-        )}
-      </Box>
+      <div ref={ref}>
+        <AnimatePresence>
+          {show && (
+            <motion.div
+              initial={variants.initial}
+              animate={variants.animate}
+              exit={variants.exit}
+              transition={variants.transition || { duration: 0.3, ease: 'easeInOut' }}
+              style={{ ...style, transformOrigin }}
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     );
   }
 );

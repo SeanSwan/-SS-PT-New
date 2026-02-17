@@ -1,12 +1,7 @@
 /**
  * FullCalendar Component
- * 
+ *
  * A comprehensive calendar view using FullCalendar library for session scheduling.
- * Features:
- * - Displays sessions with color-coding based on status
- * - Allows different interactions based on user role (admin, trainer, client)
- * - Provides event click handlers for session details
- * - Supports mobile-responsive design
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,15 +12,54 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useDispatch, useSelector } from 'react-redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { AnyAction } from 'redux';
-import { 
-  selectAllSessions, 
-  selectScheduleStatus, 
+import styled, { keyframes } from 'styled-components';
+import {
+  selectAllSessions,
+  selectScheduleStatus,
   selectScheduleError,
   fetchSessions
 } from '../../redux/slices/scheduleSlice';
-import { Box, Typography, useTheme, useMediaQuery, CircularProgress, Alert } from '@mui/material';
 import { RootState } from '../../redux/store';
 import { SessionEvent } from '../../redux/slices/scheduleSlice';
+
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+`;
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #00ffff;
+  border-radius: 50%;
+  animation: ${spin} 1s linear infinite;
+`;
+
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #f44336;
+`;
+
+const CalendarContainer = styled.div`
+  height: 100%;
+  width: 100%;
+`;
 
 // Define types for component props
 interface FullCalendarComponentProps {
@@ -36,45 +70,55 @@ interface FullCalendarComponentProps {
 
 // Status color mapping
 const statusColors = {
-  available: '#4caf50',      // Green
-  booked: '#2196f3',         // Blue
-  scheduled: '#2196f3',      // Blue
-  confirmed: '#9c27b0',      // Purple
-  completed: '#757575',      // Gray
-  cancelled: '#f44336',      // Red
-  requested: '#ff9800',      // Orange
-  blocked: '#212121'         // Dark Gray/Black for blocked time
+  available: '#4caf50',
+  booked: '#2196f3',
+  scheduled: '#2196f3',
+  confirmed: '#9c27b0',
+  completed: '#757575',
+  cancelled: '#f44336',
+  requested: '#ff9800',
+  blocked: '#212121'
 };
 
-const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({ 
-  onEventClick, 
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 960 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 960);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+};
+
+const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({
+  onEventClick,
   userRole,
-  handleDateSelect 
+  handleDateSelect
 }) => {
   const dispatch = useDispatch<ThunkDispatch<RootState, unknown, AnyAction>>();
   const sessions = useSelector(selectAllSessions);
   const status = useSelector(selectScheduleStatus);
   const error = useSelector(selectScheduleError);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // State for selected date range
+  const isMobile = useIsMobile();
+
   const [viewDates, setViewDates] = useState({
     start: new Date(),
     end: new Date(new Date().setMonth(new Date().getMonth() + 1))
   });
 
-  // Fetch sessions when component mounts or date range changes
   useEffect(() => {
     if (status === 'idle') {
       dispatch(fetchSessions());
     }
   }, [status, dispatch]);
 
-  // Process sessions for the calendar
   const calendarEvents = sessions.map(session => ({
     id: session.id,
-    title: session.status === 'blocked' 
+    title: session.status === 'blocked'
       ? `Blocked: ${session.reason || 'Unavailable'}`
       : session.title || `Session with ${session.trainer?.firstName || 'TBD'}`,
     start: new Date(session.start),
@@ -85,7 +129,6 @@ const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({
     extendedProps: { ...session }
   }));
 
-  // Handle date range navigation
   const handleDatesSet = (dateInfo: any) => {
     setViewDates({
       start: dateInfo.start,
@@ -93,7 +136,6 @@ const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({
     });
   };
 
-  // Handle event click
   const handleEventClick = (clickInfo: any) => {
     const sessionId = clickInfo.event.id;
     const session = sessions.find(s => s.id === sessionId);
@@ -102,28 +144,24 @@ const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({
     }
   };
 
-  // If loading, show a loading indicator
   if (status === 'loading') {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-        <CircularProgress />
-      </Box>
+      <LoadingContainer>
+        <Spinner />
+      </LoadingContainer>
     );
   }
 
-  // If there was an error, show an error message
   if (status === 'failed') {
     return (
-      <Box mt={2} mb={2}>
-        <Alert severity="error">
-          Error loading sessions: {error}
-        </Alert>
-      </Box>
+      <ErrorBanner>
+        Error loading sessions: {error}
+      </ErrorBanner>
     );
   }
 
   return (
-    <Box sx={{ height: '100%', width: '100%' }}>
+    <CalendarContainer>
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         headerToolbar={{
@@ -161,7 +199,7 @@ const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({
           meridiem: 'short'
         }}
       />
-    </Box>
+    </CalendarContainer>
   );
 };
 
