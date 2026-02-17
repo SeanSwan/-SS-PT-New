@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Typography } from '@mui/material';
+import { Typography } from '../../../../../ui/primitives';
 import { Activity } from 'lucide-react';
 
 import { 
@@ -35,7 +35,7 @@ const NasmCategoryProgress: React.FC<NasmCategoryProgressProps> = ({ nasmCategor
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" mb={2}>
+        <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" style={{ marginBottom: 16 }}>
           Your progression through core NASM fitness protocol categories
         </Typography>
         
