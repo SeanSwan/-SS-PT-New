@@ -4,7 +4,7 @@
  * A complete dashboard for managing MCP server integration
  * with all MCP-related functionality in one place.
  *
- * Migrated from @mui/material to styled-components with Galaxy-Swan theme.
+ * Uses styled-components with Galaxy-Swan theme.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

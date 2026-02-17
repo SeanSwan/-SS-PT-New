@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import styled from 'styled-components';
 
-// Swan primitives + hooks (replaces @mui/material)
+// Swan primitives + hooks
 import { Box, Chip, Typography } from './primitives';
 import { alpha, useSwanTheme, useMediaQuery } from '../../styles/mui-replacements';
 
