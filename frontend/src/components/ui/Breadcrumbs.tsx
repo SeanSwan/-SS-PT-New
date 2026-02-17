@@ -1,25 +1,26 @@
 import React, { useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { styled, useTheme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import MuiBreadcrumbs from '@mui/material/Breadcrumbs';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import styled from 'styled-components';
 
-// Icons
-import HomeIcon from '@mui/icons-material/Home';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import PersonIcon from '@mui/icons-material/Person';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SettingsIcon from '@mui/icons-material/Settings';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import SportsIcon from '@mui/icons-material/Sports';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+// Swan primitives + hooks (replaces @mui/material)
+import { Box, Chip, Typography } from './primitives';
+import { alpha, useSwanTheme, useMediaQuery } from '../../styles/mui-replacements';
+
+// Icons (lucide-react replaces @mui/icons-material)
+import {
+  Home,
+  Dumbbell,
+  User,
+  CalendarDays,
+  BarChart3,
+  ShoppingCart,
+  Settings,
+  PersonStanding,
+  UtensilsCrossed,
+  Trophy,
+  Heart,
+  HeartPulse,
+} from 'lucide-react';
 
 // Hooks
 import useConfig from './../../hooks/useConfig';
@@ -29,158 +30,152 @@ import { useAuth } from '../../context/AuthContext';
 import { THEME_CONFIG } from './../../store/constant';
 
 // Styled components
-const BreadcrumbsContainer = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(2), // Reduced bottom margin
-  padding: theme.spacing(1, 1.5), // Reduced padding
-  borderRadius: THEME_CONFIG.borderRadius.medium,
-  backgroundColor: theme.palette.mode === 'dark' 
-    ? 'rgba(255, 255, 255, 0.05)' 
-    : 'rgba(0, 0, 0, 0.02)',
-  transition: `all ${THEME_CONFIG.transitions.medium}ms ease-in-out`,
-  width: '100%' // Ensure full width usage
-}));
+const BreadcrumbsContainer = styled.div`
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: ${THEME_CONFIG?.borderRadius?.medium ?? 8}px;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease-in-out;
+  width: 100%;
+`;
 
-const StyledBreadcrumbs = styled(MuiBreadcrumbs)(({ theme }) => ({
-  '& .MuiBreadcrumbs-separator': {
-    marginLeft: theme.spacing(1),
-    marginRight: theme.spacing(1),
-  }
-}));
+const StyledBreadcrumbsNav = styled.nav`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
 
-const StyledLink = styled(Link)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  textDecoration: 'none',
-  color: theme.palette.primary.main,
-  fontWeight: 400,
-  transition: `all ${THEME_CONFIG.transitions.short}ms ease-in-out`,
-  '&:hover': {
-    textDecoration: 'underline',
-    transform: 'translateY(-1px)'
-  },
-  '& .MuiSvgIcon-root': {
-    marginRight: theme.spacing(0.5),
-    width: 20,
-    height: 20,
-  }
-}));
+const Separator = styled.span`
+  margin: 0 8px;
+  color: ${alpha('#FFFFFF', 0.4)};
+  font-size: 0.875rem;
+`;
 
-const ActiveLink = styled(Typography)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  color: theme.palette.text.primary,
-  fontWeight: 500,
-  '& .MuiSvgIcon-root': {
-    marginRight: theme.spacing(0.5),
-    width: 20,
-    height: 20,
-  }
-}));
+const StyledLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: #00FFFF;
+  font-weight: 400;
+  font-size: 0.875rem;
+  transition: all 0.2s ease-in-out;
 
-const StyledChip = styled(Chip)(({ theme }) => ({
-  height: 24,
-  fontSize: '0.75rem',
-  marginLeft: theme.spacing(1),
-  backgroundColor: theme.palette.success.light,
-  color: theme.palette.success.contrastText,
-  fontWeight: 500,
-  transition: `all ${THEME_CONFIG.transitions.short}ms ease-in-out`,
-  '&:hover': {
-    backgroundColor: theme.palette.success.main
+  &:hover {
+    text-decoration: underline;
+    transform: translateY(-1px);
   }
-}));
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+const ActiveText = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #FFFFFF;
+  font-weight: 500;
+  font-size: 0.875rem;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
 
 /**
  * Enhanced Breadcrumbs Component for Fitness Training App
- * 
+ *
  * Displays the current navigation path with clickable links and fitness-specific
  * categorization for the personal training application.
- * 
+ *
  * Integration with auth system for role-specific breadcrumbs
  * and active session management.
  */
 const Breadcrumbs = () => {
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const theme = useSwanTheme();
+  const isMobile = useMediaQuery((t) => t.breakpoints.down('sm'));
   const config = useConfig();
   const { user } = useAuth();
-  
+
   // Get the fitness theme for category highlighting
   const fitnessTheme = config.getFitnessTheme ? config.getFitnessTheme() : 'general';
-  
+
   // Map of path segments to readable names and icons - fitness-specific
-  // Enhanced with dynamic role-specific sections
-  const pathMap = useMemo(() => ({
-    '': { title: 'Home', icon: <HomeIcon /> },
-    'admin-dashboard': { title: 'Dashboard', icon: <AnalyticsIcon /> },
-    'clients': { title: 'Clients', icon: <PersonIcon /> },
-    'workouts': { title: 'Workouts', icon: <FitnessCenterIcon /> },
-    'schedule': { title: 'Schedule', icon: <CalendarMonthIcon /> },
-    'store': { title: 'Store', icon: <ShoppingCartIcon /> },
-    'admin-sessions': { title: 'Training Sessions', icon: <CalendarMonthIcon /> },
-    'settings': { title: 'Settings', icon: <SettingsIcon /> },
-    'progress': { title: 'Progress Tracking', icon: <DirectionsRunIcon /> },
-    'nutrition': { title: 'Nutrition Plans', icon: <RestaurantIcon /> },
-    'exercises': { title: 'Exercise Library', icon: <SportsIcon /> },
-    'client-dashboard': { title: user?.role === 'admin' ? 'Client Dashboard' : 'My Dashboard', icon: <AnalyticsIcon /> },
-    'health': { title: 'Health Metrics', icon: <FavoriteIcon /> },
-    'vitals': { title: 'Vital Signs', icon: <MonitorHeartIcon /> }
-  }), [user]);
-  
+  const pathMap = useMemo(
+    () => ({
+      '': { title: 'Home', icon: <Home size={20} /> },
+      'admin-dashboard': { title: 'Dashboard', icon: <BarChart3 size={20} /> },
+      clients: { title: 'Clients', icon: <User size={20} /> },
+      workouts: { title: 'Workouts', icon: <Dumbbell size={20} /> },
+      schedule: { title: 'Schedule', icon: <CalendarDays size={20} /> },
+      store: { title: 'Store', icon: <ShoppingCart size={20} /> },
+      'admin-sessions': { title: 'Training Sessions', icon: <CalendarDays size={20} /> },
+      settings: { title: 'Settings', icon: <Settings size={20} /> },
+      progress: { title: 'Progress Tracking', icon: <PersonStanding size={20} /> },
+      nutrition: { title: 'Nutrition Plans', icon: <UtensilsCrossed size={20} /> },
+      exercises: { title: 'Exercise Library', icon: <Trophy size={20} /> },
+      'client-dashboard': {
+        title: user?.role === 'admin' ? 'Client Dashboard' : 'My Dashboard',
+        icon: <BarChart3 size={20} />,
+      },
+      health: { title: 'Health Metrics', icon: <Heart size={20} /> },
+      vitals: { title: 'Vital Signs', icon: <HeartPulse size={20} /> },
+    }),
+    [user]
+  );
+
   // In a real app, you would get this from your session state
-  // For now, we'll simulate an active session
   const hasActiveSession = false;
-  const activeClientName = "John Doe";
-  
+  const activeClientName = 'John Doe';
+
   // Process the current path
   const breadcrumbItems = useMemo(() => {
-    // Split and decode the pathname
-    const pathSegments = location.pathname.split('/')
-      .filter(segment => segment !== '');
-    
-    // Skip rendering if we're at the root
+    const pathSegments = location.pathname.split('/').filter((segment) => segment !== '');
+
     if (pathSegments.length === 0) {
       return [];
     }
-    
-    // Check if this is a dashboard page
-    const isDashboardPage = 
-      pathSegments[0] === 'admin-dashboard' || 
-      pathSegments[0] === 'client-dashboard';
-    
+
+    const isDashboardPage =
+      pathSegments[0] === 'admin-dashboard' || pathSegments[0] === 'client-dashboard';
+
     if (!isDashboardPage && pathSegments[0] !== 'schedule' && pathSegments[0] !== 'store') {
       return [];
     }
-    
-    // Generate breadcrumb items
-    const items = [];
-    
-    // Always start with home
+
+    const items: React.ReactNode[] = [];
+
     items.push(
       <StyledLink to="/" key="home">
-        <HomeIcon fontSize="small" />
+        <Home size={16} />
         Home
       </StyledLink>
     );
-    
-    // Build the rest of the path
+
     let currentPath = '';
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
-      
+
       const isLast = index === pathSegments.length - 1;
-      const pathInfo = pathMap[segment] || { 
-        title: segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' '), 
-        icon: null 
+      const pathInfo = (pathMap as Record<string, { title: string; icon: React.ReactNode | null }>)[
+        segment
+      ] || {
+        title: segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' '),
+        icon: null,
       };
-      
+
       if (isLast) {
         items.push(
-          <ActiveLink variant="body2" key={segment}>
+          <ActiveText key={segment}>
             {pathInfo.icon}
             {pathInfo.title}
-          </ActiveLink>
+          </ActiveText>
         );
       } else {
         items.push(
@@ -190,68 +185,74 @@ const Breadcrumbs = () => {
           </StyledLink>
         );
       }
-      
-      // If this is a client detail page, add the client name
-      if (segment === 'clients' && pathSegments[index + 1] && !isNaN(Number(pathSegments[index + 1]))) {
-        // This would be replaced with actual client data fetching
-        const clientName = "John Doe"; // Replace with real data
+
+      if (
+        segment === 'clients' &&
+        pathSegments[index + 1] &&
+        !isNaN(Number(pathSegments[index + 1]))
+      ) {
+        const clientName = 'John Doe';
         items.push(
-          <ActiveLink variant="body2" key={`client-${pathSegments[index + 1]}`}>
-            <PersonIcon />
+          <ActiveText key={`client-${pathSegments[index + 1]}`}>
+            <User size={20} />
             {clientName}
-          </ActiveLink>
+          </ActiveText>
         );
-        // Skip the next segment which is the client ID
-        index++;
       }
     });
-    
+
     return items;
   }, [location.pathname, pathMap]);
-  
-  // Don't render anything if no breadcrumbs
+
   if (breadcrumbItems.length === 0) {
     return null;
   }
-  
+
+  // On mobile, only show first and last breadcrumb
+  const displayItems = isMobile && breadcrumbItems.length > 2
+    ? [breadcrumbItems[0], breadcrumbItems[breadcrumbItems.length - 1]]
+    : breadcrumbItems;
+
   return (
     <BreadcrumbsContainer>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        flexWrap: 'wrap'
-      }}>
-        <StyledBreadcrumbs 
-          aria-label="fitness app navigation breadcrumbs"
-          maxItems={isMobile ? 2 : 4}
-          itemsAfterCollapse={1}
-          itemsBeforeCollapse={0}
-        >
-          {breadcrumbItems}
-        </StyledBreadcrumbs>
-        
-        {/* Active session indicator - only shown when a training session is active */}
+      <Box
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
+        <StyledBreadcrumbsNav aria-label="fitness app navigation breadcrumbs">
+          {displayItems.map((item, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && <Separator>/</Separator>}
+              {item}
+            </React.Fragment>
+          ))}
+        </StyledBreadcrumbsNav>
+
         {hasActiveSession && !isMobile && (
-          <StyledChip 
-            label={`Active Session: ${activeClientName}`} 
-            variant="filled" 
-            size="small" 
-            color="success" 
-            icon={<DirectionsRunIcon style={{ fontSize: 14 }} />}
+          <Chip
+            label={`Active Session: ${activeClientName}`}
+            variant="filled"
+            size="small"
+            color="#22c55e"
+            icon={<PersonStanding size={14} />}
           />
         )}
-        
-        {/* For admin users, show active client count */}
+
         {user?.role === 'admin' && !isMobile && !hasActiveSession && (
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            fontSize: '0.75rem',
-            color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary'
-          }}>
-            <PersonIcon sx={{ fontSize: 16 }} />
+          <Box
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: '0.75rem',
+              color: alpha('#FFFFFF', 0.6),
+            }}
+          >
+            <User size={16} />
             <span>Active Clients: 28</span>
           </Box>
         )}

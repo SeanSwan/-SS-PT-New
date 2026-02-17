@@ -1,16 +1,14 @@
 /**
  * HighContrastToggle.tsx
- * 
+ *
  * A component for toggling high contrast mode to improve accessibility
  * for users with visual impairments and color perception issues
  */
 
 import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { IconButton, Tooltip } from '../ui/primitives';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Local storage key for saving preference
 const HIGH_CONTRAST_KEY = 'schedule_high_contrast_mode';
@@ -139,17 +137,25 @@ const HighContrastGlobalStyle = createGlobalStyle`
 `;
 
 // The toggle button styling
-const ToggleButton = styled(IconButton)`
-  &.MuiIconButton-root {
-    position: absolute;
-    top: 10px;
-    right: 70px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    
-    &:hover {
-      background: rgba(0, 0, 0, 0.7);
-    }
+const ToggleButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 70px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
   }
 `;
 
@@ -174,9 +180,9 @@ const HighContrastToggle: React.FC = () => {
     <>
       {/* Conditionally apply global styles */}
       {highContrast && <HighContrastGlobalStyle />}
-      
+
       {/* Toggle button with appropriate tooltip */}
-      <Tooltip 
+      <Tooltip
         title={highContrast ? "Disable high contrast mode" : "Enable high contrast mode"}
         placement="bottom"
       >
@@ -185,7 +191,7 @@ const HighContrastToggle: React.FC = () => {
           aria-pressed={highContrast}
           aria-label={highContrast ? "Disable high contrast mode" : "Enable high contrast mode"}
         >
-          {highContrast ? <VisibilityOffIcon /> : <VisibilityIcon />}
+          {highContrast ? <EyeOff size={20} /> : <Eye size={20} />}
         </ToggleButton>
       </Tooltip>
     </>

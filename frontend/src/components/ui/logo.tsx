@@ -3,7 +3,6 @@
  * Logo component that renders the application logo
  */
 import React from 'react';
-import { useTheme } from '@mui/material/styles';
 
 // Import logo file from assets with the correct path
 // Based on your file tree, Logo.png is in src/assets/Logo.png
