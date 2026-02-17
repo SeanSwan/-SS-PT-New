@@ -1,4 +1,5 @@
-import React, { Children, cloneElement, forwardRef } from 'react';
+import React, { Children, cloneElement, forwardRef, useCallback, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { alpha, BREAKPOINT_VALUES, useSwanTheme } from '../../../styles/mui-replacements';
 import { getSystemStyles, mergeStyle, toSpace, type Space, type StyleSystemProps } from './style-system';
@@ -1827,3 +1828,451 @@ export const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
   }
 );
 MenuItem.displayName = 'MenuItem';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIALOG STACK
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const dialogFadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const dialogSlideUp = keyframes`
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+`;
+
+const DialogBackdrop = styled.div<{ $open: boolean }>`
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  animation: ${dialogFadeIn} 0.2s ease-out;
+`;
+
+const DialogPanel = styled.div<{ $maxWidth: string; $fullWidth: boolean }>`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1301;
+  width: ${({ $fullWidth, $maxWidth }) => {
+    if (!$fullWidth) return 'auto';
+    switch ($maxWidth) {
+      case 'xs': return 'min(444px, calc(100% - 64px))';
+      case 'sm': return 'min(600px, calc(100% - 64px))';
+      case 'md': return 'min(900px, calc(100% - 64px))';
+      case 'lg': return 'min(1200px, calc(100% - 64px))';
+      case 'xl': return 'min(1536px, calc(100% - 64px))';
+      default: return 'min(600px, calc(100% - 64px))';
+    }
+  }};
+  max-width: ${({ $maxWidth }) => {
+    switch ($maxWidth) {
+      case 'xs': return '444px';
+      case 'sm': return '600px';
+      case 'md': return '900px';
+      case 'lg': return '1200px';
+      case 'xl': return '1536px';
+      default: return '600px';
+    }
+  }};
+  max-height: calc(100% - 64px);
+  display: flex;
+  flex-direction: column;
+  background: ${alpha('#0f172a', 0.97)};
+  border: 1px solid ${alpha('#FFFFFF', 0.1)};
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: #FFFFFF;
+  overflow: hidden;
+  animation: ${dialogSlideUp} 0.25s ease-out;
+
+  @media (max-width: 600px) {
+    width: calc(100% - 32px);
+    max-height: calc(100% - 32px);
+  }
+`;
+
+export interface DialogProps extends StyleSystemProps {
+  open: boolean;
+  onClose?: () => void;
+  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
+  fullWidth?: boolean;
+  children?: React.ReactNode;
+  PaperProps?: { sx?: any; style?: React.CSSProperties; className?: string };
+  [key: string]: any;
+}
+
+export const Dialog = forwardRef<HTMLDivElement, DialogProps>(
+  ({ open, onClose, maxWidth = 'sm', fullWidth = false, children, PaperProps, sx, style, ...rest }, ref) => {
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) onClose();
+    }, [onClose]);
+
+    useEffect(() => {
+      if (open) {
+        document.addEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = 'hidden';
+        return () => {
+          document.removeEventListener('keydown', handleKeyDown);
+          document.body.style.overflow = '';
+        };
+      }
+    }, [open, handleKeyDown]);
+
+    if (!open) return null;
+
+    const paperStyle = { ...(PaperProps?.style || {}), ...(PaperProps?.sx || {}) };
+
+    return ReactDOM.createPortal(
+      <>
+        <DialogBackdrop $open={open} onClick={onClose} />
+        <DialogPanel
+          ref={ref}
+          $maxWidth={maxWidth === false ? 'sm' : maxWidth}
+          $fullWidth={fullWidth}
+          role="dialog"
+          aria-modal="true"
+          style={{ ...paperStyle, ...style }}
+          className={PaperProps?.className}
+          {...rest}
+        >
+          {children}
+        </DialogPanel>
+      </>,
+      document.body
+    );
+  }
+);
+Dialog.displayName = 'Dialog';
+
+/* ─── DialogTitle ─────────────────────────────────────────────────────────── */
+
+const DialogTitleRoot = styled.div`
+  padding: 16px 24px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+export interface DialogTitleProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {}
+
+export const DialogTitle = forwardRef<HTMLDivElement, DialogTitleProps>(
+  ({ sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <DialogTitleRoot ref={ref} style={mergeStyle(style, sx, system)} {...rest}>
+        {children}
+      </DialogTitleRoot>
+    );
+  }
+);
+DialogTitle.displayName = 'DialogTitle';
+
+/* ─── DialogContent ──────────────────────────────────────────────────────── */
+
+const DialogContentRoot = styled.div<{ $dividers: boolean }>`
+  padding: 16px 24px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  color: rgba(255, 255, 255, 0.87);
+  ${({ $dividers }) =>
+    $dividers &&
+    css`
+      border-top: 1px solid ${alpha('#FFFFFF', 0.12)};
+      border-bottom: 1px solid ${alpha('#FFFFFF', 0.12)};
+    `}
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: ${alpha('#FFFFFF', 0.2)};
+    border-radius: 3px;
+  }
+`;
+
+export interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  dividers?: boolean;
+}
+
+export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
+  ({ dividers = false, sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <DialogContentRoot ref={ref} $dividers={dividers} style={mergeStyle(style, sx, system)} {...rest}>
+        {children}
+      </DialogContentRoot>
+    );
+  }
+);
+DialogContent.displayName = 'DialogContent';
+
+/* ─── DialogActions ──────────────────────────────────────────────────────── */
+
+const DialogActionsRoot = styled.div`
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+export interface DialogActionsProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {}
+
+export const DialogActions = forwardRef<HTMLDivElement, DialogActionsProps>(
+  ({ sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <DialogActionsRoot ref={ref} style={mergeStyle(style, sx, system)} {...rest}>
+        {children}
+      </DialogActionsRoot>
+    );
+  }
+);
+DialogActions.displayName = 'DialogActions';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORM CONTROLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── FormControl ────────────────────────────────────────────────────────── */
+
+const FormControlRoot = styled.div<{ $fullWidth: boolean; $error: boolean; $disabled: boolean }>`
+  display: inline-flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+  padding: 0;
+  margin: 8px 0;
+  border: 0;
+  vertical-align: top;
+  ${({ $fullWidth }) => $fullWidth && css`width: 100%;`}
+  ${({ $disabled }) => $disabled && css`opacity: 0.6; pointer-events: none;`}
+`;
+
+export interface FormControlProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  fullWidth?: boolean;
+  error?: boolean;
+  disabled?: boolean;
+  size?: 'small' | 'medium';
+  variant?: 'outlined' | 'filled' | 'standard';
+}
+
+export const FormControl = forwardRef<HTMLDivElement, FormControlProps>(
+  ({ fullWidth = false, error = false, disabled = false, sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <FormControlRoot ref={ref} $fullWidth={fullWidth} $error={error} $disabled={disabled} style={mergeStyle(style, sx, system)} {...rest}>
+        {children}
+      </FormControlRoot>
+    );
+  }
+);
+FormControl.displayName = 'FormControl';
+
+/* ─── InputLabel ─────────────────────────────────────────────────────────── */
+
+const InputLabelRoot = styled.label<{ $shrink: boolean; $error: boolean }>`
+  display: block;
+  font-size: ${({ $shrink }) => ($shrink ? '0.75rem' : '1rem')};
+  color: ${({ $error }) => ($error ? '#f44336' : 'rgba(255, 255, 255, 0.7)')};
+  margin-bottom: 4px;
+  transition: all 0.15s ease;
+  transform-origin: top left;
+`;
+
+export interface InputLabelProps extends React.LabelHTMLAttributes<HTMLLabelElement>, StyleSystemProps {
+  shrink?: boolean;
+  error?: boolean;
+}
+
+export const InputLabel = forwardRef<HTMLLabelElement, InputLabelProps>(
+  ({ shrink = false, error = false, sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <InputLabelRoot ref={ref} $shrink={shrink} $error={error} style={mergeStyle(style, sx, system)} {...rest}>
+        {children}
+      </InputLabelRoot>
+    );
+  }
+);
+InputLabel.displayName = 'InputLabel';
+
+/* ─── Select ─────────────────────────────────────────────────────────────── */
+
+const SelectRoot = styled.select<{ $fullWidth: boolean; $error: boolean; $size: string }>`
+  appearance: none;
+  background: ${alpha('#0a0a1a', 0.6)};
+  border: 1px solid ${alpha('#FFFFFF', 0.23)};
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: ${({ $size }) => ($size === 'small' ? '0.875rem' : '1rem')};
+  padding: ${({ $size }) => ($size === 'small' ? '8px 32px 8px 12px' : '12px 36px 12px 14px')};
+  ${({ $fullWidth }) => $fullWidth && css`width: 100%;`}
+  ${({ $error }) => $error && css`border-color: #f44336;`}
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+
+  &:hover { border-color: ${alpha('#00FFFF', 0.5)}; }
+  &:focus { border-color: #00FFFF; box-shadow: 0 0 0 2px ${alpha('#00FFFF', 0.15)}; }
+
+  option {
+    background: #0f172a;
+    color: #FFFFFF;
+  }
+`;
+
+export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement>, StyleSystemProps {
+  fullWidth?: boolean;
+  error?: boolean;
+  label?: string;
+  variant?: 'outlined' | 'filled' | 'standard';
+  native?: boolean;
+}
+
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+  ({ fullWidth = false, error = false, size = 'medium', label, sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <SelectRoot ref={ref} $fullWidth={fullWidth} $error={error} $size={size} style={mergeStyle(style, sx, system)} aria-label={label} {...rest}>
+        {children}
+      </SelectRoot>
+    );
+  }
+);
+Select.displayName = 'Select';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const TabsRoot = styled.div<{ $variant: string }>`
+  display: flex;
+  border-bottom: 1px solid ${alpha('#FFFFFF', 0.12)};
+  position: relative;
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+  ${({ $variant }) =>
+    $variant === 'fullWidth' &&
+    css`
+      & > * { flex: 1; }
+    `}
+`;
+
+export interface TabsProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  value?: string | number;
+  onChange?: (event: React.SyntheticEvent, newValue: string | number) => void;
+  variant?: 'standard' | 'fullWidth' | 'scrollable';
+  indicatorColor?: string;
+  textColor?: string;
+}
+
+export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
+  ({ value, onChange, variant = 'standard', indicatorColor = '#00FFFF', sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const childrenWithProps = Children.map(children, (child) => {
+      if (!React.isValidElement(child)) return child;
+      return cloneElement(child as React.ReactElement<any>, {
+        $selected: (child as React.ReactElement<any>).props.value === value,
+        $indicatorColor: indicatorColor,
+        onClick: (e: React.MouseEvent) => {
+          (child as React.ReactElement<any>).props.onClick?.(e);
+          onChange?.(e, (child as React.ReactElement<any>).props.value);
+        },
+      });
+    });
+    return (
+      <TabsRoot ref={ref} $variant={variant} role="tablist" style={mergeStyle(style, sx, system)} {...rest}>
+        {childrenWithProps}
+      </TabsRoot>
+    );
+  }
+);
+Tabs.displayName = 'Tabs';
+
+/* ─── Tab ────────────────────────────────────────────────────────────────── */
+
+const TabRoot = styled.button<{ $selected: boolean; $indicatorColor: string; $disabled: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  color: ${({ $selected }) => ($selected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)')};
+  font-size: 0.875rem;
+  font-weight: ${({ $selected }) => ($selected ? 600 : 400)};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+  position: relative;
+  white-space: nowrap;
+  min-height: 48px;
+  transition: color 0.2s, background 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: ${({ $selected, $indicatorColor }) => ($selected ? $indicatorColor : 'transparent')};
+    transition: background 0.2s;
+  }
+
+  &:hover:not(:disabled) {
+    color: #FFFFFF;
+    background: ${alpha('#FFFFFF', 0.04)};
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00FFFF;
+    outline-offset: -2px;
+  }
+`;
+
+export interface TabProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
+  label?: React.ReactNode;
+  value?: string | number;
+  icon?: React.ReactNode;
+  iconPosition?: 'start' | 'end' | 'top' | 'bottom';
+  $selected?: boolean;
+  $indicatorColor?: string;
+}
+
+export const Tab = forwardRef<HTMLButtonElement, TabProps>(
+  ({ label, icon, iconPosition = 'start', disabled = false, $selected = false, $indicatorColor = '#00FFFF', sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <TabRoot
+        ref={ref}
+        role="tab"
+        aria-selected={$selected}
+        $selected={$selected}
+        $indicatorColor={$indicatorColor}
+        $disabled={disabled}
+        disabled={disabled}
+        style={mergeStyle(style, sx, system)}
+        {...rest}
+      >
+        {icon && iconPosition === 'start' && icon}
+        {label || children}
+        {icon && iconPosition === 'end' && icon}
+      </TabRoot>
+    );
+  }
+);
+Tab.displayName = 'Tab';
