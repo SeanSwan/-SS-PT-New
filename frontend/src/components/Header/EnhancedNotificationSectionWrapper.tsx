@@ -47,20 +47,12 @@ const EnhancedNotificationSectionWrapper = () => {
   // Guard against undefined component imports (React error #306)
   const isValidComponent = typeof EnhancedNotificationSection === 'function';
 
-  // If the notifications state is undefined, component is invalid, or temporarily disabled
+  // If the notifications state is undefined or component is invalid, show fallback
   if (!notificationsState || !isValidComponent) {
-    const reason = !notificationsState ? 'Redux state not found' :
-                   !isValidComponent ? 'Component import failed' : 'Unknown';
-    console.warn(`Notifications disabled: ${reason}, using fallback`);
-
-    // Return a version with default props to prevent errors
     return <FallbackNotificationSection />;
   }
 
-  // TEMPORARILY DISABLED: Persistent React error #306 despite all fixes
-  // TODO: Re-enable after complete MUI elimination and production testing
-  console.warn('Notifications temporarily disabled due to persistent React error #306');
-  return <FallbackNotificationSection />;
+  return <EnhancedNotificationSection />;
 };
 
 export default EnhancedNotificationSectionWrapper;

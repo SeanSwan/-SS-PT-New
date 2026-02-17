@@ -1,36 +1,77 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 
-// material-ui
-import { Badge, Box, Button, ClickAwayListener, Divider, Grow, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Popper, Typography, CircularProgress, Chip, Avatar } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import InfoIcon from '@mui/icons-material/Info';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CloseIcon from '@mui/icons-material/Close';
-import { alpha } from '@mui/material/styles';
+// Swan primitives
+import {
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  ClickAwayListener,
+  IconButton,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Paper,
+  Popper,
+  Typography,
+} from '../ui/primitives/components';
+
+// Icons (lucide-react replacements for MUI icons)
+import {
+  Bell,
+  BellOff,
+  CheckCircle,
+  Dumbbell,
+  CalendarCheck,
+  ClipboardList,
+  ShoppingCart,
+  Info,
+  Trash2,
+} from 'lucide-react';
+
+// alpha utility
+import { alpha } from '../../styles/mui-replacements';
 
 // Redux and API
 import { RootState } from '../../redux/store';
 import { fetchNotifications, markAsRead, markAllAsRead, removeNotification, Notification } from '../../store/slices/notificationSlice';
 import api from '../../services/api';
 
+// Grow animation (CSS replacement for MUI Grow)
+const growIn = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
 // Styled components
 const NotificationBell = styled(IconButton)`
   position: relative;
   transition: transform 0.2s ease-in-out;
-  
+  color: white;
+
   &:hover {
     transform: rotate(8deg);
+    color: #00a0e3;
+    background-color: rgba(0, 160, 227, 0.05);
   }
+`;
+
+const GrowWrapper = styled.div`
+  transform-origin: top right;
+  animation: ${growIn} 0.2s ease-out;
 `;
 
 const NotificationScrollArea = styled(Box)`
@@ -38,32 +79,32 @@ const NotificationScrollArea = styled(Box)`
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 160, 227, 0.3) transparent;
-  
+
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: rgba(0, 160, 227, 0.3);
     border-radius: 3px;
   }
 `;
 
-const NotificationItem = styled(ListItem)<{ read: boolean }>`
+const NotificationItem = styled(ListItem)<{ $read: boolean }>`
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background-color: ${props => props.read ? 'transparent' : 'rgba(0, 160, 227, 0.08)'};
+  background-color: ${props => props.$read ? 'transparent' : 'rgba(0, 160, 227, 0.08)'};
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background-color: rgba(0, 160, 227, 0.12);
     cursor: pointer;
   }
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -78,19 +119,36 @@ const EmptyState = styled(Box)`
   text-align: center;
 `;
 
+const DeleteButton = styled(IconButton)`
+  color: rgba(255, 255, 255, 0.5);
+
+  &:hover {
+    color: #ec4899;
+    background-color: rgba(236, 72, 153, 0.08);
+  }
+`;
+
+const MarkAllReadButton = styled(Button)`
+  color: #00a0e3;
+
+  &:hover {
+    background-color: rgba(0, 160, 227, 0.08);
+  }
+`;
+
 // Get icon based on notification type
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case 'orientation':
-      return <AssignmentIcon color="primary" />;
+      return <ClipboardList size={20} style={{ color: '#00FFFF' }} />;
     case 'workout':
-      return <FitnessCenterIcon style={{ color: '#00bf8f' }} />;
+      return <Dumbbell size={20} style={{ color: '#00bf8f' }} />;
     case 'order':
-      return <ShoppingCartIcon style={{ color: '#ec4899' }} />;
+      return <ShoppingCart size={20} style={{ color: '#ec4899' }} />;
     case 'client':
-      return <EventAvailableIcon style={{ color: '#7851a9' }} />;
+      return <CalendarCheck size={20} style={{ color: '#7851a9' }} />;
     default:
-      return <InfoIcon color="info" />;
+      return <Info size={20} style={{ color: '#03a9f4' }} />;
   }
 };
 
@@ -98,7 +156,7 @@ const getNotificationIcon = (type: string) => {
 const formatNotificationDate = (dateString: string) => {
   try {
     const date = new Date(dateString);
-    
+
     if (isToday(date)) {
       return formatDistanceToNow(date, { addSuffix: true });
     } else if (isYesterday(date)) {
@@ -118,28 +176,28 @@ const formatNotificationDate = (dateString: string) => {
 const EnhancedNotificationSection: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   // Local state
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLButtonElement>(null);
-  
+
   // Redux state
   const { notifications, unreadCount, loading, error } = useSelector(
     (state: RootState) => state.notifications
   );
-  
+
   // Fetch notifications on mount and when the dropdown is opened
   useEffect(() => {
     if (open) {
       dispatch(fetchNotifications());
     }
   }, [dispatch, open]);
-  
+
   // Toggle notification dropdown
   const handleToggle = () => {
     setOpen((prevOpen) => !prevOpen);
   };
-  
+
   // Close dropdown when clicking away
   const handleClose = (event: MouseEvent | TouchEvent) => {
     if (
@@ -148,76 +206,57 @@ const EnhancedNotificationSection: React.FC = () => {
     ) {
       return;
     }
-    
+
     setOpen(false);
   };
-  
+
   // Handle notification click
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
     dispatch(markAsRead(notification.id));
-    
+
     // Navigate to the link if provided
     if (notification.link) {
       navigate(notification.link);
       setOpen(false);
     }
   };
-  
+
   // Handle mark all as read
   const handleMarkAllAsRead = () => {
     dispatch(markAllAsRead());
   };
-  
+
   // Handle delete notification
   const handleDeleteNotification = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Prevent the parent click handler from firing
     dispatch(removeNotification(id));
-    
+
     // Call API to delete from server
     api.delete(`/notifications/${id}`).catch(err => {
       console.error('Failed to delete notification:', err);
     });
   };
-  
+
   return (
     <>
       <NotificationBell
-        color="inherit"
         ref={anchorRef}
         aria-haspopup="true"
         onClick={handleToggle}
-        sx={{ 
-          color: 'white',
-          '&:hover': {
-            color: '#00a0e3',
-            backgroundColor: 'rgba(0, 160, 227, 0.05)'
-          }
-        }}
       >
-        <Badge 
-          badgeContent={unreadCount} 
-          color="error"
-          sx={{ 
-            '& .MuiBadge-badge': {
-              backgroundColor: '#ec4899',
-              fontSize: '0.65rem',
-              minWidth: '18px',
-              height: '18px'
-            }
-          }}
+        <Badge
+          badgeContent={unreadCount}
+          color="#ec4899"
         >
-          <NotificationsIcon fontSize="small" />
+          <Bell size={20} />
         </Badge>
       </NotificationBell>
-      
+
       <Popper
         open={open}
         anchorEl={anchorRef.current}
-        role={undefined}
         placement="bottom-end"
-        transition
-        disablePortal
         style={{ zIndex: 1300 }}
         modifiers={[
           {
@@ -228,14 +267,10 @@ const EnhancedNotificationSection: React.FC = () => {
           },
         ]}
       >
-        {({ TransitionProps }) => (
-          <Grow
-            {...TransitionProps}
-            style={{ transformOrigin: 'top right' }}
-          >
+        {() => (
+          <GrowWrapper>
             <Paper
-              elevation={6}
-              sx={{
+              style={{
                 width: 320,
                 maxWidth: '100%',
                 maxHeight: '80vh',
@@ -248,41 +283,35 @@ const EnhancedNotificationSection: React.FC = () => {
               }}
             >
               <ClickAwayListener onClickAway={handleClose}>
-                <Box sx={{ width: '100%' }}>
+                <Box style={{ width: '100%' }}>
                   <Box
-                    sx={{
-                      p: 2,
+                    style={{
+                      padding: 16,
                       borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}
                   >
-                    <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                    <Typography variant="h6" style={{ fontSize: '1rem', fontWeight: 600 }}>
                       Notifications
                     </Typography>
-                    
+
                     {unreadCount > 0 && (
-                      <Button
+                      <MarkAllReadButton
                         size="small"
-                        startIcon={<CheckCircleIcon fontSize="small" />}
+                        startIcon={<CheckCircle size={16} />}
                         onClick={handleMarkAllAsRead}
-                        sx={{ 
-                          color: '#00a0e3',
-                          '&:hover': {
-                            backgroundColor: 'rgba(0, 160, 227, 0.08)'
-                          }
-                        }}
                       >
                         Mark all as read
-                      </Button>
+                      </MarkAllReadButton>
                     )}
                   </Box>
-                  
-                  <Box sx={{ position: 'relative' }}>
+
+                  <Box style={{ position: 'relative' }}>
                     {loading && (
                       <Box
-                        sx={{
+                        style={{
                           position: 'absolute',
                           top: 0,
                           left: 0,
@@ -295,51 +324,43 @@ const EnhancedNotificationSection: React.FC = () => {
                           zIndex: 10,
                         }}
                       >
-                        <CircularProgress size={32} sx={{ color: '#00a0e3' }} />
+                        <CircularProgress size={32} style={{ color: '#00a0e3' }} />
                       </Box>
                     )}
-                    
+
                     <NotificationScrollArea>
                       {notifications.length === 0 ? (
                         <EmptyState>
-                          <NotificationsOffIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.2)', mb: 2 }} />
-                          <Typography variant="body1" color="textSecondary">
+                          <BellOff size={40} style={{ color: 'rgba(255,255,255,0.2)', marginBottom: 16 }} />
+                          <Typography variant="body1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                             No notifications yet
                           </Typography>
-                          <Typography variant="body2" color="textSecondary" sx={{ mt: 1, maxWidth: 250 }}>
+                          <Typography variant="body2" style={{ color: 'rgba(255,255,255,0.6)', marginTop: 8, maxWidth: 250 }}>
                             We'll notify you here when there's new activity in your account
                           </Typography>
                         </EmptyState>
                       ) : (
-                        <List sx={{ p: 0 }}>
+                        <List style={{ padding: 0 }}>
                           {notifications.map((notification) => (
                             <NotificationItem
                               key={notification.id}
-                              read={notification.read}
+                              $read={notification.read}
                               onClick={() => handleNotificationClick(notification)}
                               secondaryAction={
-                                <IconButton
-                                  edge="end"
+                                <DeleteButton
                                   size="small"
-                                  onClick={(e) => handleDeleteNotification(e, notification.id)}
-                                  sx={{ 
-                                    color: 'rgba(255,255,255,0.5)',
-                                    '&:hover': {
-                                      color: '#ec4899',
-                                      backgroundColor: 'rgba(236, 72, 153, 0.08)'
-                                    }
-                                  }}
+                                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleDeleteNotification(e, notification.id)}
                                 >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
+                                  <Trash2 size={16} />
+                                </DeleteButton>
                               }
                             >
                               <ListItemAvatar>
                                 <Avatar
-                                  sx={{
-                                    bgcolor: notification.read ?
-                                      'rgba(255, 255, 255, 0.1)' :
-                                      alpha('#00d9ff', 0.15),
+                                  style={{
+                                    background: notification.read
+                                      ? 'rgba(255, 255, 255, 0.1)'
+                                      : alpha('#00d9ff', 0.15),
                                   }}
                                 >
                                   {getNotificationIcon(notification.type)}
@@ -349,11 +370,11 @@ const EnhancedNotificationSection: React.FC = () => {
                                 primary={
                                   <Typography
                                     variant="subtitle2"
-                                    sx={{
+                                    style={{
                                       fontWeight: notification.read ? 400 : 600,
                                       color: notification.read ? 'rgba(255,255,255,0.87)' : '#00a0e3',
                                       fontSize: '0.875rem',
-                                      mb: 0.5,
+                                      marginBottom: 4,
                                     }}
                                   >
                                     {notification.title}
@@ -363,20 +384,20 @@ const EnhancedNotificationSection: React.FC = () => {
                                   <Box>
                                     <Typography
                                       variant="body2"
-                                      sx={{
+                                      style={{
                                         color: 'rgba(255,255,255,0.6)',
                                         fontSize: '0.8rem',
                                         display: '-webkit-box',
                                         WebkitLineClamp: 2,
                                         WebkitBoxOrient: 'vertical',
                                         overflow: 'hidden',
-                                        mb: 0.5,
+                                        marginBottom: 4,
                                       }}
                                     >
                                       {notification.message}
                                     </Typography>
                                     <Box
-                                      sx={{
+                                      style={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
@@ -384,16 +405,16 @@ const EnhancedNotificationSection: React.FC = () => {
                                     >
                                       <Typography
                                         variant="caption"
-                                        sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}
+                                        style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}
                                       >
                                         {formatNotificationDate(notification.createdAt)}
                                       </Typography>
-                                      
+
                                       {!notification.read && (
                                         <Chip
                                           label="New"
                                           size="small"
-                                          sx={{
+                                          style={{
                                             height: 18,
                                             fontSize: '0.65rem',
                                             backgroundColor: '#00a0e3',
@@ -415,7 +436,7 @@ const EnhancedNotificationSection: React.FC = () => {
                 </Box>
               </ClickAwayListener>
             </Paper>
-          </Grow>
+          </GrowWrapper>
         )}
       </Popper>
     </>
