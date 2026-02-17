@@ -8,8 +8,8 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material';
-import { FitnessCenter, Close } from '@mui/icons-material';
+import { Button, Dialog, DialogContent, DialogTitle } from '../ui/primitives/components';
+import { Dumbbell, X } from 'lucide-react';
 import styled from 'styled-components';
 import WorkoutGenerator from './WorkoutGenerator';
 import { useAuth } from '../../context/AuthContext';
@@ -17,16 +17,22 @@ import { useSnackbar } from 'notistack';
 import axios from 'axios';
 
 // Styled components
-const GeneratorButton = styled(Button)`
-  && {
-    background: linear-gradient(90deg, #00ffff, #7851a9);
-    color: white;
-    border-radius: 8px;
-    text-transform: none;
-    
-    &:hover {
-      background: linear-gradient(90deg, #7851a9, #00ffff);
-    }
+const GeneratorButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #00ffff, #7851a9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+
+  &:hover {
+    background: linear-gradient(90deg, #7851a9, #00ffff);
   }
 `;
 
@@ -96,14 +102,11 @@ const WorkoutGeneratorButton = ({ client, sessionId, variant = 'desktop', onWork
   
   return (
     <>
-      <GeneratorButton
-        startIcon={<FitnessCenter />}
-        onClick={() => setDialogOpen(true)}
-        size="medium"
-      >
+      <GeneratorButton onClick={() => setDialogOpen(true)}>
+        <Dumbbell size={18} />
         Generate Workout
       </GeneratorButton>
-      
+
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -119,9 +122,9 @@ const WorkoutGeneratorButton = ({ client, sessionId, variant = 'desktop', onWork
           }
         }}
       >
-        <DialogTitle sx={{ 
-          p: 2, 
-          display: 'flex', 
+        <DialogTitle style={{
+          padding: 16,
+          display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
@@ -129,12 +132,23 @@ const WorkoutGeneratorButton = ({ client, sessionId, variant = 'desktop', onWork
           <span style={{ color: 'white' }}>
             Generate Workout for {client.firstName} {client.lastName}
           </span>
-          <IconButton onClick={() => setDialogOpen(false)} sx={{ color: 'white' }}>
-            <Close />
-          </IconButton>
+          <button
+            onClick={() => setDialogOpen(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              padding: 8,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <X size={20} />
+          </button>
         </DialogTitle>
-        
-        <DialogContent sx={{ p: { xs: 1, sm: 2 }, pt: { xs: 2, sm: 3 } }}>
+
+        <DialogContent style={{ padding: 16 }}>
           <WorkoutGenerator
             client={client}
             onSave={saveWorkout}
