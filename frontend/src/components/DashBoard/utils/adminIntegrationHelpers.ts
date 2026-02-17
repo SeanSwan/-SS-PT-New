@@ -8,7 +8,6 @@
  * and common operations needed across multiple admin components.
  */
 
-import { Theme } from '@mui/material/styles';
 import { format, parseISO, isValid, differenceInMinutes } from 'date-fns';
 import { sessionStatusConfig } from '../berryAdminConfig';
 
@@ -130,22 +129,12 @@ export const calculateDuration = (startTime: string, endTime: string): string =>
  * @param theme Current theme
  * @returns Style object for the event
  */
-export const getEventStyle = (status: Session['status'], theme: Theme) => {
+export const getEventStyle = (status: Session['status']) => {
   const statusConfig = sessionStatusConfig[status] || sessionStatusConfig.scheduled;
-  
-  // Determine background color based on status
-  const bgColor = typeof statusConfig.bgColor === 'function' 
-    ? statusConfig.bgColor(theme)
-    : theme.palette.primary.main;
-  
-  // Text color should contrast with background
-  const textColor = typeof statusConfig.textColor === 'function'
-    ? statusConfig.textColor(theme)
-    : theme.palette.getContrastText(bgColor);
-  
+
   return {
-    backgroundColor: bgColor,
-    color: textColor,
+    backgroundColor: statusConfig.bgColor,
+    color: statusConfig.textColor,
     borderRadius: '4px',
     opacity: 0.85,
     border: 'none',
