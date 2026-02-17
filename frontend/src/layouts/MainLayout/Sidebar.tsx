@@ -1,9 +1,8 @@
 // src/layouts/MainLayout/Sidebar.tsx
 import React from 'react';
-import { useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
+import styled from 'styled-components';
 
-// Import existing sidebar component - adapt this path as needed
+// Import existing sidebar component
 import DashboardSidebar from '../../components/DashBoard/MainLayout/SideBar/sidebar';
 
 interface SidebarProps {
@@ -11,6 +10,12 @@ interface SidebarProps {
   drawerOpen: boolean;
   handleDrawerOpen: (isOpen: boolean) => void;
 }
+
+const NavWrapper = styled.nav<{ $drawerOpen: boolean }>`
+  flex-shrink: 0;
+  width: ${props => props.$drawerOpen ? '220px' : '0'};
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+`;
 
 /**
  * Sidebar component for the main layout
@@ -21,23 +26,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   drawerOpen,
   handleDrawerOpen
 }) => {
-  const theme = useTheme();
-  
   return (
-    <Box
-      component="nav"
-      sx={{
-        flexShrink: 0,
-        width: drawerOpen ? 220 : 0,
-        transition: theme.transitions.create('width', {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen
-        })
-      }}
-      aria-label="main navigation"
-    >
+    <NavWrapper $drawerOpen={drawerOpen} aria-label="main navigation">
       <DashboardSidebar miniDrawer={miniDrawer} />
-    </Box>
+    </NavWrapper>
   );
 };
 
