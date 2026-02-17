@@ -19,9 +19,54 @@ import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import cartHelpers from '../utils/cartHelpers.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import {
+  normalizeAuthenticatedUserId,
+  safeFindOrCreateActiveCart
+} from '../utils/cartSchemaRecovery.mjs';
 const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
 const router = express.Router();
+const STOREFRONT_CART_ATTRIBUTES = ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions'];
+let cachedSafeStorefrontAttributes = null;
+
+const ensureNumericCartUser = (req, res, next) => {
+  try {
+    req.authUserId = normalizeAuthenticatedUserId(req.user?.id);
+    next();
+  } catch {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid authentication context for cart access'
+    });
+  }
+};
+
+const getSafeStorefrontAttributes = async (StorefrontItem) => {
+  if (cachedSafeStorefrontAttributes) return cachedSafeStorefrontAttributes;
+
+  try {
+    const queryInterface = StorefrontItem.sequelize.getQueryInterface();
+    const tableNameRef = StorefrontItem.getTableName();
+    const tableName = typeof tableNameRef === 'string' ? tableNameRef : tableNameRef.tableName;
+    const tableDefinition = await queryInterface.describeTable(tableName);
+    const existingColumns = new Set(Object.keys(tableDefinition));
+
+    cachedSafeStorefrontAttributes = STOREFRONT_CART_ATTRIBUTES.filter((column) =>
+      existingColumns.has(column)
+    );
+
+    if (cachedSafeStorefrontAttributes.length === 0) {
+      cachedSafeStorefrontAttributes = ['id', 'name', 'price'];
+    }
+  } catch (error) {
+    logger.warn('[Cart] Could not resolve storefront table columns. Falling back to minimal attributes.', {
+      message: error.message
+    });
+    cachedSafeStorefrontAttributes = ['id', 'name', 'price'];
+  }
+
+  return cachedSafeStorefrontAttributes;
+};
 
 // Role validation middleware
 const validatePurchaseRole = (req, res, next) => {
@@ -82,7 +127,7 @@ if (isStripeEnabled()) {
  * GET /api/cart
  * Retrieves the current user's active shopping cart with items
  */
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, ensureNumericCartUser, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -93,16 +138,9 @@ router.get('/', protect, async (req, res) => {
     const hasAssociation = !!CartItem.associations?.storefrontItem;
     console.log('🔍 ENHANCED DEBUG: Cart GET - Coordinated association status:', hasAssociation);
     
-    // Find or create the user's active cart
-    let [cart, created] = await ShoppingCart.findOrCreate({
-      where: { 
-        userId: req.user.id,
-        status: 'active'
-      },
-      defaults: {
-        userId: req.user.id
-      }
-    });
+    // Find or create the user's active cart with schema-drift recovery.
+    const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
+    const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
 
     // Get cart items with storefront item details - CRITICAL QUERY
     const cartItems = await CartItem.findAll({
@@ -110,7 +148,7 @@ router.get('/', protect, async (req, res) => {
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions'],
+        attributes: storefrontAttributes,
         required: false // Make it LEFT JOIN to avoid filtering out items
       }]
     });
@@ -162,7 +200,7 @@ router.get('/', protect, async (req, res) => {
  * Adds a training package to the user's cart
  * Supports role-based access and automatic user role upgrade
  */
-router.post('/add', protect, validatePurchaseRole, async (req, res) => {
+router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -194,16 +232,8 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
     
     console.log(`User ${req.user.username} (${req.user.role}) adding item ${storeFrontItem.name} to cart`);
 
-    // Find or create the user's active cart
-    let [cart, created] = await ShoppingCart.findOrCreate({
-      where: { 
-        userId: req.user.id,
-        status: 'active'
-      },
-      defaults: {
-        userId: req.user.id
-      }
-    });
+    // Find or create the user's active cart with schema-drift recovery.
+    const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
 
     // Check if item already exists in cart
     let cartItem = await CartItem.findOne({
@@ -238,12 +268,13 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
     }
 
     // Get updated cart with items
+    const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
+        attributes: storefrontAttributes
       }]
     });
     
@@ -262,7 +293,7 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
     // Check if user role should be upgraded
     let userRoleUpgraded = false;
     try {
-      const user = await User.findByPk(req.user.id);
+      const user = await User.findByPk(req.authUserId);
       userRoleUpgraded = await checkUserRoleUpgrade(user, updatedCartItems);
       if (userRoleUpgraded) {
         console.log(`User ${req.user.username} role upgraded from user to client`);
@@ -305,7 +336,7 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
  * PUT /api/cart/update/:itemId
  * Updates the quantity of an item in the cart
  */
-router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) => {
+router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -329,7 +360,7 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
         model: ShoppingCart,
         as: 'cart',
         where: { 
-          userId: req.user.id,
+          userId: req.authUserId,
           status: 'active'
         }
       }]
@@ -357,12 +388,13 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
     }
 
     // Get updated cart with items
+    const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cartItem.cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
+        attributes: storefrontAttributes
       }]
     });
 
@@ -396,7 +428,7 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
  * DELETE /api/cart/remove/:itemId
  * Removes an item from the cart
  */
-router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res) => {
+router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -412,7 +444,7 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
         model: ShoppingCart,
         as: 'cart',
         where: { 
-          userId: req.user.id,
+          userId: req.authUserId,
           status: 'active'
         }
       }]
@@ -441,12 +473,13 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
     }
 
     // Get updated cart with items
+    const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
     const updatedCartItems = await CartItem.findAll({
       where: { cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
+        attributes: storefrontAttributes
       }]
     });
 
@@ -480,7 +513,7 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
  * DELETE /api/cart/clear
  * Removes all items from the user's cart
  */
-router.delete('/clear', protect, validatePurchaseRole, async (req, res) => {
+router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -489,7 +522,7 @@ router.delete('/clear', protect, validatePurchaseRole, async (req, res) => {
     // Find the user's active cart
     const cart = await ShoppingCart.findOne({
       where: { 
-        userId: req.user.id,
+        userId: req.authUserId,
         status: 'active'
       }
     });
@@ -539,7 +572,7 @@ router.delete('/clear', protect, validatePurchaseRole, async (req, res) => {
  * POST /api/cart/checkout
  * Creates a Stripe checkout session for the cart items
  */
-router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
+router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   // --- Add check for Stripe client ---
   if (!stripeClient) {
     logger.error('Attempted /api/cart/checkout but Stripe is not enabled/initialized.');
@@ -557,7 +590,7 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
     
-    console.log('Creating checkout session for user:', req.user.id);
+    console.log('Creating checkout session for user:', req.authUserId);
     
     // 🚀 ENHANCED: Verify coordinated associations status
     console.log('🔍 ENHANCED DEBUG: CHECKOUT - Coordinated association status:', !!CartItem.associations?.storefrontItem);
@@ -565,7 +598,7 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
     // Find the user's active cart with all related items using the correct alias "cartItems"
     const cart = await ShoppingCart.findOne({
       where: { 
-        userId: req.user.id,
+        userId: req.authUserId,
         status: 'active'
       },
       include: [{
@@ -573,7 +606,8 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
         as: 'cartItems',
         include: [{
           model: StorefrontItem,
-          as: 'storefrontItem'
+          as: 'storefrontItem',
+          attributes: await getSafeStorefrontAttributes(StorefrontItem)
         }]
       }]
     });
@@ -621,7 +655,7 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
     console.log(`Using frontend URL: ${frontendUrl}`);
 
     // Retrieve user record for Stripe customer creation
-    const userRecord = await User.findByPk(req.user.id);
+    const userRecord = await User.findByPk(req.authUserId);
     if (!userRecord || !userRecord.email) {
       return res.status(400).json({ 
         success: false,
@@ -656,7 +690,7 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
     }
 
     // Generate an idempotency key to prevent duplicate checkout sessions
-    const idempotencyKey = `cart_${req.user.id}_${Date.now()}`;
+    const idempotencyKey = `cart_${req.authUserId}_${Date.now()}`;
 
     // Create a Stripe checkout session
     const sessionOptions = {
@@ -669,7 +703,7 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
       customer: customerId,
       metadata: {
         cartId: cart.id,
-        userId: req.user.id,
+        userId: req.authUserId,
         totalAmount: cartTotal.toFixed(2),
         itemCount: cart.cartItems.length,
         createdAt: new Date().toISOString()
