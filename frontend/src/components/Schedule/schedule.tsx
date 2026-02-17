@@ -264,15 +264,20 @@ const SessionActionsContainer = styled.div`
 `;
 
 // Refresh button with animation
-const RefreshButton = styled(IconButton)`
-  &.MuiIconButton-root {
-    color: #00ffff;
-    background: rgba(0, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.3);
+const RefreshButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 999px;
+  cursor: pointer;
 
-    &:hover {
-      background: rgba(0, 255, 255, 0.2);
-    }
+  &:hover {
+    background: rgba(0, 255, 255, 0.2);
   }
 `;
 
@@ -942,18 +947,25 @@ const ModalContent = styled(motion.div)`
 `;
 
 // Close button
-const CloseButton = styled(IconButton)`
-  &.MuiIconButton-root {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    color: rgba(255, 255, 255, 0.7);
-    z-index: 10;
-    
-    &:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.1);
-    }
+const CloseButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
   }
 `;
 
