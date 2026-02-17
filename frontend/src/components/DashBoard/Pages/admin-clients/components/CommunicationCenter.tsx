@@ -1,7 +1,7 @@
 /**
  * Communication Center Component
  * 7-Star AAA Personal Training & Social Media App
- * 
+ *
  * Advanced communication hub featuring:
  * - Multi-channel messaging (SMS, email, app notifications)
  * - Video calling and screen sharing
@@ -10,124 +10,39 @@
  * - Group messaging and broadcasts
  * - AI-powered response suggestions
  * - Communication analytics and insights
+ *
+ * Architecture: styled-components + lucide-react (zero MUI)
+ * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass panels)
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import styled, { keyframes, css } from 'styled-components';
 import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Avatar,
-  Chip,
-  Button,
-  IconButton,
-  Tooltip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-  Paper,
-  TextField,
-  InputAdornment,
-  Divider,
-  Badge,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  BottomNavigation,
-  BottomNavigationAction,
-  Fab,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-  FormControl,
-  InputLabel,
-  Select,
-  Autocomplete,
-  Switch,
-  FormControlLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Tab,
-  Tabs,
-  TabPanel,
-  AlertTitle,
-  Alert,
-  CircularProgress,
-  LinearProgress
-} from '@mui/material';
-import {
-  Message,
   Send,
   Phone,
-  VideoCall,
-  Email,
-  Sms,
-  NotificationsActive,
-  AttachFile,
-  PhotoCamera,
+  Video,
+  Mail,
+  MessageSquare,
+  Paperclip,
   Mic,
-  VoiceChat,
-  ScreenShare,
-  Group,
-  Broadcast,
-  Schedule,
-  History,
   Search,
-  Filter,
-  Reply,
-  Forward,
-  Archive,
+  Users,
+  Megaphone,
   Star,
-  StarBorder,
-  MoreVert,
-  Close,
-  Add,
-  PersonAdd,
-  EmojiEmotions,
-  Gif,
+  MoreVertical,
+  X,
+  UserPlus,
   Check,
-  DoneAll,
-  PersonOff,
-  Block,
-  Report,
-  Priority,
-  Assessment,
-  Analytics,
-  Insights,
-  AutorenewRounded,
-  Psychology,
-  SmartToy,
-  Translate,
-  RecordVoiceOver,
-  Headset,
-  CampaignOutlined,
-  GroupAdd,
-  MarkChatUnread,
-  ChatBubbleOutline,
-  VideoLibrary,
-  Attachment,
-  EmojiFlags,
-  Language,
-  Schedule as ScheduleIcon,
-  AccessTime,
-  CalendarToday,
-  MessageRounded,
-  VideocamOff,
-  MicOff
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
+  CheckCheck,
+  BarChart3,
+  MessageCircle,
+  Plus
+} from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
-// Define interfaces
-interface Message {
+// ─── Interfaces ──────────────────────────────────────────────────────────────
+
+interface MessageData {
   id: string;
   senderId: string;
   senderName: string;
@@ -159,7 +74,7 @@ interface Conversation {
   id: string;
   participantIds: string[];
   participants: Participant[];
-  lastMessage: Message;
+  lastMessage: MessageData;
   unreadCount: number;
   isGroup: boolean;
   groupName?: string;
@@ -225,73 +140,585 @@ interface CommunicationAnalytics {
   };
 }
 
-// Styled components
-const ChatContainer = styled(Box)(({ theme }) => ({
-  height: '600px',
-  display: 'flex',
-  flexDirection: 'column',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  borderRadius: 16,
-  overflow: 'hidden',
-  backgroundColor: '#1a1a2e',
-}));
+// ─── Theme Tokens ────────────────────────────────────────────────────────────
 
-const ConversationList = styled(Box)(({ theme }) => ({
-  width: '300px',
-  borderRight: '1px solid rgba(255, 255, 255, 0.1)',
-  backgroundColor: '#16213e',
-  overflow: 'auto',
-}));
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgDeep: '#0f172a',
+  bgCard: '#1d1f2b',
+  bgPanel: '#16213e',
+  bgChat: '#1a1a2e',
+  border: 'rgba(14,165,233,0.2)',
+  borderSubtle: 'rgba(255,255,255,0.1)',
+  text: '#e2e8f0',
+  textSecondary: '#94a3b8',
+  accent: '#0ea5e9',
+  accentGradient: 'linear-gradient(135deg, #00c9ff, #0066cc)',
+  accentGradientHover: 'linear-gradient(135deg, #0099cc, #0055bb)',
+  green: '#4caf50',
+  orange: '#ff9800',
+  gold: '#ffd700',
+  glass: 'rgba(255,255,255,0.05)',
+  radius: '16px',
+  radiusSm: '8px',
+  radiusMd: '12px',
+};
 
-const ChatArea = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  backgroundColor: '#1a1a2e',
-}));
+// ─── Animations ──────────────────────────────────────────────────────────────
 
-const MessageBubble = styled(Paper)<{ isOwn: boolean }>(({ theme, isOwn }) => ({
-  maxWidth: '70%',
-  padding: theme.spacing(1, 2),
-  borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-  backgroundColor: isOwn ? '#00c9ff' : 'rgba(255, 255, 255, 0.05)',
-  color: isOwn ? '#000' : '#e0e0e0',
-  marginLeft: isOwn ? 'auto' : 0,
-  marginRight: isOwn ? 0 : 'auto',
-  wordWrap: 'break-word',
-}));
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
 
-const CommunicationButton = styled(Button)(({ theme, variant: buttonVariant }) => ({
-  borderRadius: 12,
-  textTransform: 'none',
-  fontWeight: 600,
-  ...(buttonVariant === 'contained' && {
-    background: 'linear-gradient(135deg, #00c9ff, #0066cc)',
-    color: 'white',
-    '&:hover': {
-      background: 'linear-gradient(135deg, #0099cc, #0055bb)',
-    },
-  }),
-  ...(buttonVariant === 'outlined' && {
-    borderColor: 'rgba(0, 201, 255, 0.5)',
-    color: '#00c9ff',
-    '&:hover': {
-      borderColor: '#00c9ff',
-      backgroundColor: 'rgba(0, 201, 255, 0.1)',
-    },
-  }),
-}));
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
 
-const OnlineIndicator = styled(Box)<{ isOnline: boolean }>(({ theme, isOnline }) => ({
-  width: 12,
-  height: 12,
-  borderRadius: '50%',
-  backgroundColor: isOnline ? '#4caf50' : '#666',
-  border: '2px solid #1a1a2e',
-  position: 'absolute',
-  bottom: 0,
-  right: 0,
-}));
+// ─── Styled Components ───────────────────────────────────────────────────────
+
+const PageWrapper = styled.div`
+  padding: 24px;
+`;
+
+const GlassPanel = styled.div`
+  background: ${theme.bg};
+  backdrop-filter: blur(12px);
+  border: 1px solid ${theme.border};
+  border-radius: ${theme.radius};
+`;
+
+const SectionHeading = styled.h4`
+  color: ${theme.accent};
+  font-weight: 700;
+  font-size: 1.75rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const SubHeading = styled.h6`
+  color: ${theme.text};
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0;
+`;
+
+const BodyText = styled.p`
+  color: ${theme.textSecondary};
+  font-size: 1rem;
+  margin: 0;
+`;
+
+const CaptionText = styled.span`
+  color: ${theme.textSecondary};
+  font-size: 0.75rem;
+`;
+
+const SmallText = styled.span`
+  color: ${theme.textSecondary};
+  font-size: 0.875rem;
+`;
+
+const ChatContainer = styled.div`
+  height: 600px;
+  display: flex;
+  flex-direction: row;
+  border: 1px solid ${theme.borderSubtle};
+  border-radius: ${theme.radius};
+  overflow: hidden;
+  background-color: ${theme.bgChat};
+`;
+
+const ConversationListPanel = styled.div`
+  width: 300px;
+  border-right: 1px solid ${theme.borderSubtle};
+  background-color: ${theme.bgPanel};
+  overflow: auto;
+  flex-shrink: 0;
+`;
+
+const ChatArea = styled.div`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: ${theme.bgChat};
+  min-width: 0;
+`;
+
+const MessageBubble = styled.div<{ $isOwn: boolean }>`
+  max-width: 70%;
+  padding: 8px 16px;
+  border-radius: ${({ $isOwn }) => ($isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px')};
+  background-color: ${({ $isOwn }) => ($isOwn ? '#00c9ff' : theme.glass)};
+  color: ${({ $isOwn }) => ($isOwn ? '#000' : '#e0e0e0')};
+  margin-left: ${({ $isOwn }) => ($isOwn ? 'auto' : '0')};
+  margin-right: ${({ $isOwn }) => ($isOwn ? '0' : 'auto')};
+  word-wrap: break-word;
+  font-size: 0.875rem;
+  line-height: 1.5;
+`;
+
+const ActionButton = styled.button<{ $variant?: 'contained' | 'outlined'; $disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 20px;
+  border-radius: ${theme.radiusMd};
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+
+  ${({ $variant }) =>
+    $variant === 'contained'
+      ? css`
+          background: ${theme.accentGradient};
+          color: white;
+          &:hover { background: ${theme.accentGradientHover}; }
+        `
+      : $variant === 'outlined'
+      ? css`
+          background: transparent;
+          border: 1px solid rgba(0,201,255,0.5);
+          color: ${theme.accent};
+          &:hover {
+            border-color: ${theme.accent};
+            background: rgba(0,201,255,0.1);
+          }
+        `
+      : css`
+          background: transparent;
+          color: ${theme.text};
+          &:hover { background: rgba(255,255,255,0.05); }
+        `}
+
+  ${({ $disabled }) =>
+    $disabled &&
+    css`
+      opacity: 0.4;
+      pointer-events: none;
+    `}
+`;
+
+const RoundButton = styled.button<{ $size?: number }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: ${({ $size }) => $size || 44}px;
+  height: ${({ $size }) => $size || 44}px;
+  min-width: ${({ $size }) => $size || 44}px;
+  min-height: ${({ $size }) => $size || 44}px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: ${theme.textSecondary};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  &:hover {
+    background: rgba(255,255,255,0.08);
+    color: ${theme.text};
+  }
+`;
+
+const Avatar = styled.div<{ $size?: number; $src?: string }>`
+  width: ${({ $size }) => $size || 40}px;
+  height: ${({ $size }) => $size || 40}px;
+  border-radius: 50%;
+  background: ${({ $src }) => ($src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #0ea5e9, #7851a9)')};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+  font-size: 0.875rem;
+`;
+
+const OnlineIndicator = styled.span<{ $isOnline: boolean }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: ${({ $isOnline }) => ($isOnline ? theme.green : '#666')};
+  border: 2px solid ${theme.bgChat};
+  position: absolute;
+  bottom: 0;
+  right: 0;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  border-radius: ${theme.radiusSm};
+  border: 1px solid ${theme.borderSubtle};
+  background-color: ${theme.glass};
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  min-height: 44px;
+
+  &::placeholder { color: ${theme.textSecondary}; }
+  &:focus { border-color: ${theme.accent}; }
+`;
+
+const MessageInput = styled.textarea`
+  width: 100%;
+  padding: 12px;
+  border-radius: ${theme.radiusSm};
+  border: 1px solid ${theme.borderSubtle};
+  background-color: ${theme.glass};
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  font-family: inherit;
+  line-height: 1.5;
+
+  &::placeholder { color: ${theme.textSecondary}; }
+  &:focus { border-color: ${theme.accent}; }
+`;
+
+const ConversationItem = styled.button<{ $selected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 16px);
+  margin: 0 8px 4px;
+  padding: 10px 12px;
+  border-radius: ${theme.radiusSm};
+  border: none;
+  background: ${({ $selected }) => ($selected ? 'rgba(0,201,255,0.1)' : 'transparent')};
+  cursor: pointer;
+  text-align: left;
+  min-height: 44px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0,201,255,0.08);
+  }
+`;
+
+const UnreadBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background-color: ${theme.accent};
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+`;
+
+const ChannelChip = styled.button<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  min-height: 28px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  ${({ $active }) =>
+    $active
+      ? css`
+          background: ${theme.accent};
+          color: white;
+          border: 1px solid ${theme.accent};
+        `
+      : css`
+          background: transparent;
+          color: ${theme.textSecondary};
+          border: 1px solid ${theme.borderSubtle};
+          &:hover {
+            border-color: ${theme.accent};
+            color: ${theme.text};
+          }
+        `}
+`;
+
+const TagChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(14,165,233,0.15);
+  color: ${theme.accent};
+  font-size: 0.75rem;
+  font-weight: 500;
+`;
+
+const AttachmentChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  color: ${theme.text};
+  font-size: 0.8rem;
+`;
+
+const RemoveChipButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: ${theme.text};
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+
+  &:hover { background: rgba(255,255,255,0.25); }
+`;
+
+const CardPanel = styled.div`
+  background: ${theme.bgCard};
+  border: 1px solid ${theme.border};
+  border-radius: ${theme.radiusMd};
+  padding: 20px;
+  backdrop-filter: blur(12px);
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  gap: 24px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const GridTwoCol = styled.div`
+  display: grid;
+  gap: 16px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const ProgressBar = styled.div<{ $value: number; $color?: string }>`
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  margin-top: 12px;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    display: block;
+    width: ${({ $value }) => $value}%;
+    height: 100%;
+    border-radius: 3px;
+    background: ${({ $color }) => $color || theme.accent};
+    transition: width 0.5s ease;
+  }
+`;
+
+const Spinner = styled.span`
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid ${theme.borderSubtle};
+  border-top-color: ${theme.accent};
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid ${theme.borderSubtle};
+  margin-bottom: 24px;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  min-height: 44px;
+  border: none;
+  border-bottom: 3px solid ${({ $active }) => ($active ? theme.accent : 'transparent')};
+  background: transparent;
+  color: ${({ $active }) => ($active ? theme.accent : '#a0a0a0')};
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+
+  &:hover {
+    color: ${theme.accent};
+  }
+`;
+
+const ToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  span {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    transition: 0.3s;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+  }
+
+  input:checked + span {
+    background: ${theme.accent};
+  }
+
+  input:checked + span::before {
+    transform: translateX(20px);
+  }
+`;
+
+const SpeedDialContainer = styled.div`
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+`;
+
+const SpeedDialFab = styled.button`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: ${theme.accentGradient};
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,201,255,0.3);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${theme.accentGradientHover};
+    transform: scale(1.05);
+  }
+`;
+
+const SpeedDialActions = styled.div<{ $open: boolean }>`
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  pointer-events: ${({ $open }) => ($open ? 'auto' : 'none')};
+  transform: ${({ $open }) => ($open ? 'translateY(0)' : 'translateY(10px)')};
+  transition: all 0.2s ease;
+`;
+
+const SpeedDialActionBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 24px;
+  border: none;
+  background: ${theme.bgCard};
+  color: ${theme.text};
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  min-height: 44px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(14,165,233,0.15);
+  }
+`;
+
+const RelativeWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${theme.textSecondary};
+    pointer-events: none;
+  }
+`;
+
+const EmptyState = styled.div`
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  color: #666;
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const FlexCol = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 interface CommunicationCenterProps {
   clientId?: string;
@@ -309,7 +736,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   // State management
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageData[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<'app' | 'sms' | 'email'>('app');
@@ -320,7 +747,8 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const [showComposer, setShowComposer] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
-  
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -512,8 +940,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   // Load messages for selected conversation
   useEffect(() => {
     if (selectedConversation) {
-      // Mock messages for the conversation
-      const conversationMessages: Message[] = [
+      const conversationMessages: MessageData[] = [
         {
           id: 'msg1',
           senderId: selectedConversation.participants[0].id,
@@ -565,9 +992,9 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const filteredConversations = useMemo(() => {
     if (!searchQuery) return conversations;
     return conversations.filter(conv =>
-      conv.participants.some(p => 
+      conv.participants.some(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ) || 
+      ) ||
       conv.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [conversations, searchQuery]);
@@ -576,7 +1003,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
-    const message: Message = {
+    const message: MessageData = {
       id: `msg_${Date.now()}`,
       senderId: 'admin',
       senderName: 'Trainer',
@@ -595,13 +1022,13 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
 
     // Simulate message status updates
     setTimeout(() => {
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === message.id ? { ...msg, status: 'delivered' } : msg
       ));
     }, 1000);
 
     setTimeout(() => {
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === message.id ? { ...msg, status: 'read' } : msg
       ));
     }, 3000);
@@ -613,368 +1040,319 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
     setAttachments(prev => [...prev, ...files]);
   };
 
+  // Render status icon
+  const renderStatusIcon = (status: string, size: number = 14) => {
+    if (status === 'read') return <CheckCheck size={size} color={theme.green} />;
+    if (status === 'delivered') return <CheckCheck size={size} color="#999" />;
+    if (status === 'sent') return <Check size={size} color="#999" />;
+    return null;
+  };
+
   // Render conversation list item
   const renderConversationItem = (conversation: Conversation) => (
-    <ListItem
+    <ConversationItem
       key={conversation.id}
-      button
-      selected={selectedConversation?.id === conversation.id}
+      $selected={selectedConversation?.id === conversation.id}
       onClick={() => setSelectedConversation(conversation)}
-      sx={{
-        borderRadius: 2,
-        mx: 1,
-        mb: 1,
-        '&.Mui-selected': {
-          backgroundColor: 'rgba(0, 201, 255, 0.1)',
-        },
-      }}
     >
-      <ListItemIcon>
-        <Box sx={{ position: 'relative' }}>
-          {conversation.isGroup ? (
-            <Avatar src={conversation.groupAvatar}>
-              <Group />
-            </Avatar>
-          ) : (
-            <Avatar src={conversation.participants[0].avatar} />
-          )}
-          {!conversation.isGroup && (
-            <OnlineIndicator isOnline={conversation.participants[0].isOnline} />
-          )}
-          {conversation.isPinned && (
-            <Star sx={{ position: 'absolute', top: -5, right: -5, fontSize: 16, color: '#ffd700' }} />
-          )}
-        </Box>
-      </ListItemIcon>
-      <ListItemText
-        primary={
-          <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
-            <Typography variant="subtitle2" fontWeight={600}>
-              {conversation.isGroup ? conversation.groupName : conversation.participants[0].name}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {formatDistanceToNow(new Date(conversation.lastMessage.timestamp), { addSuffix: true })}
-            </Typography>
-          </Box>
-        }
-        secondary={
-          <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
-            <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '180px' }}>
-              {conversation.lastMessage.content}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {conversation.lastMessage.status === 'read' && <DoneAll sx={{ fontSize: 16, color: '#4caf50' }} />}
-              {conversation.lastMessage.status === 'delivered' && <DoneAll sx={{ fontSize: 16, color: '#999' }} />}
-              {conversation.lastMessage.status === 'sent' && <Check sx={{ fontSize: 16, color: '#999' }} />}
-              {conversation.unreadCount > 0 && (
-                <Chip 
-                  label={conversation.unreadCount} 
-                  size="small" 
-                  sx={{ 
-                    height: 20, 
-                    fontSize: '0.75rem',
-                    bgcolor: '#00c9ff',
-                    color: 'white'
-                  }} 
-                />
-              )}
-            </Box>
-          </Box>
-        }
-      />
-    </ListItem>
+      <RelativeWrapper>
+        {conversation.isGroup ? (
+          <Avatar $src={conversation.groupAvatar}>
+            <Users size={18} />
+          </Avatar>
+        ) : (
+          <Avatar $src={conversation.participants[0].avatar} />
+        )}
+        {!conversation.isGroup && (
+          <OnlineIndicator $isOnline={conversation.participants[0].isOnline} />
+        )}
+        {conversation.isPinned && (
+          <Star
+            size={14}
+            fill={theme.gold}
+            color={theme.gold}
+            style={{ position: 'absolute', top: -5, right: -5 }}
+          />
+        )}
+      </RelativeWrapper>
+
+      <FlexCol style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <FlexRow style={{ justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ color: theme.text, fontWeight: 600, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {conversation.isGroup ? conversation.groupName : conversation.participants[0].name}
+          </span>
+          <CaptionText style={{ flexShrink: 0 }}>
+            {formatDistanceToNow(new Date(conversation.lastMessage.timestamp), { addSuffix: true })}
+          </CaptionText>
+        </FlexRow>
+        <FlexRow style={{ justifyContent: 'space-between', gap: 8 }}>
+          <SmallText style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+            {conversation.lastMessage.content}
+          </SmallText>
+          <FlexRow style={{ gap: 6, flexShrink: 0 }}>
+            {renderStatusIcon(conversation.lastMessage.status, 16)}
+            {conversation.unreadCount > 0 && (
+              <UnreadBadge>{conversation.unreadCount}</UnreadBadge>
+            )}
+          </FlexRow>
+        </FlexRow>
+      </FlexCol>
+    </ConversationItem>
   );
 
   // Render message bubble
-  const renderMessage = (message: Message) => {
+  const renderMessage = (message: MessageData) => {
     const isOwn = message.senderId === 'admin';
     return (
-      <Box key={message.id} sx={{ mb: 2, display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row', gap: 1 }}>
-        {!isOwn && (
-          <Avatar src={message.senderAvatar} sx={{ width: 32, height: 32 }} />
-        )}
-        <Box sx={{ maxWidth: '70%' }}>
-          <MessageBubble isOwn={isOwn}>
-            <Typography variant="body2">{message.content}</Typography>
+      <div
+        key={message.id}
+        style={{
+          marginBottom: 16,
+          display: 'flex',
+          flexDirection: isOwn ? 'row-reverse' : 'row',
+          gap: 8
+        }}
+      >
+        {!isOwn && <Avatar $size={32} $src={message.senderAvatar} />}
+        <div style={{ maxWidth: '70%' }}>
+          <MessageBubble $isOwn={isOwn}>
+            {message.content}
           </MessageBubble>
-          <Box sx={{ mt: 0.5, display: 'flex', justifyContent: isOwn ? 'flex-end' : 'flex-start', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary">
+          <div
+            style={{
+              marginTop: 4,
+              display: 'flex',
+              justifyContent: isOwn ? 'flex-end' : 'flex-start',
+              gap: 6,
+              alignItems: 'center'
+            }}
+          >
+            <CaptionText>
               {format(new Date(message.timestamp), 'HH:mm')}
-            </Typography>
-            {isOwn && (
-              <>
-                {message.status === 'read' && <DoneAll sx={{ fontSize: 14, color: '#4caf50' }} />}
-                {message.status === 'delivered' && <DoneAll sx={{ fontSize: 14, color: '#999' }} />}
-                {message.status === 'sent' && <Check sx={{ fontSize: 14, color: '#999' }} />}
-              </>
-            )}
-          </Box>
-        </Box>
-      </Box>
+            </CaptionText>
+            {isOwn && renderStatusIcon(message.status)}
+          </div>
+        </div>
+      </div>
     );
   };
 
   // Render analytics dashboard
   const renderAnalytics = () => (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h6" sx={{ color: '#00c9ff', mb: 3 }}>
+    <div style={{ padding: 24 }}>
+      <h6 style={{ color: theme.accent, marginBottom: 24, fontSize: '1.15rem', fontWeight: 600, margin: '0 0 24px' }}>
         Communication Analytics
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h4" sx={{ color: '#00c9ff', fontWeight: 700 }}>
-                {mockAnalytics.totalMessages}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Messages
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={85} 
-                sx={{ mt: 2, height: 6, borderRadius: 3 }}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 700 }}>
-                {mockAnalytics.responseRate}%
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Response Rate
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={mockAnalytics.responseRate} 
-                sx={{ mt: 2, height: 6, borderRadius: 3 }}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 700 }}>
-                {mockAnalytics.avgResponseTime}min
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Avg Response Time
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={75} 
-                sx={{ mt: 2, height: 6, borderRadius: 3 }}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+      </h6>
+      <GridContainer>
+        <CardPanel>
+          <h4 style={{ color: theme.accent, fontWeight: 700, fontSize: '1.75rem', margin: 0 }}>
+            {mockAnalytics.totalMessages}
+          </h4>
+          <SmallText>Total Messages</SmallText>
+          <ProgressBar $value={85} $color={theme.accent} />
+        </CardPanel>
+        <CardPanel>
+          <h4 style={{ color: theme.green, fontWeight: 700, fontSize: '1.75rem', margin: 0 }}>
+            {mockAnalytics.responseRate}%
+          </h4>
+          <SmallText>Response Rate</SmallText>
+          <ProgressBar $value={mockAnalytics.responseRate} $color={theme.green} />
+        </CardPanel>
+        <CardPanel>
+          <h4 style={{ color: theme.orange, fontWeight: 700, fontSize: '1.75rem', margin: 0 }}>
+            {mockAnalytics.avgResponseTime}min
+          </h4>
+          <SmallText>Avg Response Time</SmallText>
+          <ProgressBar $value={75} $color={theme.orange} />
+        </CardPanel>
+      </GridContainer>
+    </div>
   );
 
   // Render templates management
   const renderTemplates = () => (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" sx={{ color: '#00c9ff' }}>
+    <div style={{ padding: 24 }}>
+      <FlexRow style={{ justifyContent: 'space-between', marginBottom: 24 }}>
+        <h6 style={{ color: theme.accent, fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
           Notification Templates
-        </Typography>
-        <CommunicationButton variant="contained" startIcon={<Add />}>
+        </h6>
+        <ActionButton $variant="contained">
+          <Plus size={18} />
           Create Template
-        </CommunicationButton>
-      </Box>
-      <Grid container spacing={2}>
+        </ActionButton>
+      </FlexRow>
+      <GridTwoCol>
         {mockNotificationTemplates.map((template) => (
-          <Grid item xs={12} md={6} key={template.id}>
-            <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'flex-start', mb: 2 }}>
-                  <Typography variant="h6">{template.name}</Typography>
-                  <Switch checked={template.isActive} />
-                </Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {template.content.substring(0, 100)}...
-                </Typography>
-                <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {template.channels.map((channel) => (
-                    <Chip key={channel} label={channel} size="small" />
-                  ))}
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Trigger: {template.triggers[0]}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          <CardPanel key={template.id}>
+            <FlexRow style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <SubHeading>{template.name}</SubHeading>
+              <ToggleSwitch>
+                <input type="checkbox" defaultChecked={template.isActive} />
+                <span />
+              </ToggleSwitch>
+            </FlexRow>
+            <SmallText style={{ display: 'block', marginBottom: 12 }}>
+              {template.content.substring(0, 100)}...
+            </SmallText>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              {template.channels.map((channel) => (
+                <TagChip key={channel}>{channel}</TagChip>
+              ))}
+            </div>
+            <CaptionText>
+              Trigger: {template.triggers[0]}
+            </CaptionText>
+          </CardPanel>
         ))}
-      </Grid>
-    </Box>
+      </GridTwoCol>
+    </div>
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <PageWrapper>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: '#00c9ff', mb: 1, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Message sx={{ fontSize: 40 }} />
+      <div style={{ marginBottom: 32 }}>
+        <SectionHeading>
+          <MessageSquare size={40} />
           Communication Center
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </SectionHeading>
+        <BodyText style={{ marginTop: 8 }}>
           Connect with clients across multiple channels and manage all communications
-        </Typography>
-      </Box>
+        </BodyText>
+      </div>
 
       {/* Tab Navigation */}
-      <Tabs 
-        value={activeTab} 
-        onChange={(e, newValue) => setActiveTab(newValue)}
-        sx={{
-          mb: 3,
-          '& .MuiTab-root': { 
-            color: '#a0a0a0',
-            textTransform: 'none',
-            fontSize: '1rem',
-            fontWeight: 500,
-            '&.Mui-selected': { color: '#00c9ff' }
-          },
-          '& .MuiTabs-indicator': { 
-            backgroundColor: '#00c9ff',
-            height: 3,
-            borderRadius: '3px 3px 0 0'
-          }
-        }}
-      >
-        <Tab icon={<ChatBubbleOutline />} iconPosition="start" label="Messages" />
-        <Tab icon={<CampaignOutlined />} iconPosition="start" label="Templates" />
-        <Tab icon={<Analytics />} iconPosition="start" label="Analytics" />
-      </Tabs>
+      <TabBar>
+        <TabButton $active={activeTab === 0} onClick={() => setActiveTab(0)}>
+          <MessageCircle size={18} />
+          Messages
+        </TabButton>
+        <TabButton $active={activeTab === 1} onClick={() => setActiveTab(1)}>
+          <Megaphone size={18} />
+          Templates
+        </TabButton>
+        <TabButton $active={activeTab === 2} onClick={() => setActiveTab(2)}>
+          <BarChart3 size={18} />
+          Analytics
+        </TabButton>
+      </TabBar>
 
       {/* Messages Tab */}
       {activeTab === 0 && (
         <ChatContainer>
           {/* Conversation List */}
-          <ConversationList>
-            <Box sx={{ p: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search sx={{ color: '#999' }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiInputBase-root': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: 2,
-                  },
-                }}
-              />
-            </Box>
-            <List sx={{ p: 0 }}>
+          <ConversationListPanel>
+            <div style={{ padding: 12, borderBottom: `1px solid ${theme.borderSubtle}` }}>
+              <SearchInputWrapper>
+                <Search size={16} />
+                <SearchInput
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </SearchInputWrapper>
+            </div>
+            <div style={{ padding: 0 }}>
               {filteredConversations.map(renderConversationItem)}
-            </List>
-          </ConversationList>
+            </div>
+          </ConversationListPanel>
 
           {/* Chat Area */}
           <ChatArea>
             {selectedConversation ? (
               <>
                 {/* Chat Header */}
-                <Box sx={{ p: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar src={selectedConversation.isGroup ? selectedConversation.groupAvatar : selectedConversation.participants[0].avatar} />
-                    <Box>
-                      <Typography variant="h6">
-                        {selectedConversation.isGroup ? selectedConversation.groupName : selectedConversation.participants[0].name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {selectedConversation.isGroup 
+                <FlexRow
+                  style={{
+                    padding: 16,
+                    borderBottom: `1px solid ${theme.borderSubtle}`,
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <FlexRow style={{ gap: 12 }}>
+                    <Avatar
+                      $src={
+                        selectedConversation.isGroup
+                          ? selectedConversation.groupAvatar
+                          : selectedConversation.participants[0].avatar
+                      }
+                    />
+                    <FlexCol>
+                      <SubHeading>
+                        {selectedConversation.isGroup
+                          ? selectedConversation.groupName
+                          : selectedConversation.participants[0].name}
+                      </SubHeading>
+                      <CaptionText>
+                        {selectedConversation.isGroup
                           ? `${selectedConversation.participants.length} members`
-                          : selectedConversation.participants[0].isOnline 
-                            ? 'Online now' 
+                          : selectedConversation.participants[0].isOnline
+                            ? 'Online now'
                             : `Last seen ${formatDistanceToNow(new Date(selectedConversation.participants[0].lastSeen))} ago`
                         }
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="Voice Call">
-                      <IconButton onClick={() => onCallStart?.('voice', selectedConversation.participants[0].id)}>
-                        <Phone />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Video Call">
-                      <IconButton onClick={() => onCallStart?.('video', selectedConversation.participants[0].id)}>
-                        <VideoCall />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="More Options">
-                      <IconButton>
-                        <MoreVert />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
+                      </CaptionText>
+                    </FlexCol>
+                  </FlexRow>
+                  <FlexRow style={{ gap: 4 }}>
+                    <RoundButton
+                      title="Voice Call"
+                      onClick={() => onCallStart?.('voice', selectedConversation.participants[0].id)}
+                    >
+                      <Phone size={20} />
+                    </RoundButton>
+                    <RoundButton
+                      title="Video Call"
+                      onClick={() => onCallStart?.('video', selectedConversation.participants[0].id)}
+                    >
+                      <Video size={20} />
+                    </RoundButton>
+                    <RoundButton title="More Options">
+                      <MoreVertical size={20} />
+                    </RoundButton>
+                  </FlexRow>
+                </FlexRow>
 
                 {/* Messages */}
-                <Box sx={{ flexGrow: 1, p: 2, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flexGrow: 1, padding: 16, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
                   {messages.map(renderMessage)}
                   {isTyping && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-                      <Avatar src={selectedConversation.participants[0].avatar} sx={{ width: 24, height: 24 }} />
-                      <Typography variant="caption" color="text.secondary">
+                    <FlexRow style={{ gap: 8, marginTop: 16 }}>
+                      <Avatar $size={24} $src={selectedConversation.participants[0].avatar} />
+                      <CaptionText>
                         {selectedConversation.participants[0].name} is typing...
-                      </Typography>
-                      <CircularProgress size={16} />
-                    </Box>
+                      </CaptionText>
+                      <Spinner />
+                    </FlexRow>
                   )}
                   <div ref={messagesEndRef} />
-                </Box>
+                </div>
 
                 {/* Message Input */}
-                <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ padding: 16, borderTop: `1px solid ${theme.borderSubtle}` }}>
                   {attachments.length > 0 && (
-                    <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {attachments.map((file, index) => (
-                        <Chip 
-                          key={index}
-                          label={file.name}
-                          onDelete={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
-                          size="small"
-                        />
+                        <AttachmentChip key={index}>
+                          {file.name}
+                          <RemoveChipButton onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}>
+                            <X size={10} />
+                          </RemoveChipButton>
+                        </AttachmentChip>
                       ))}
-                    </Box>
+                    </div>
                   )}
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      maxRows={4}
+                  <FlexRow style={{ gap: 8 }}>
+                    <MessageInput
                       placeholder="Type a message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleSendMessage();
                         }
                       }}
-                      sx={{
-                        '& .MuiInputBase-root': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: 2,
-                        },
-                      }}
+                      rows={1}
                     />
                     <input
                       type="file"
@@ -983,56 +1361,49 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       style={{ display: 'none' }}
                       onChange={handleFileUpload}
                     />
-                    <Tooltip title="Attach File">
-                      <IconButton onClick={() => fileInputRef.current?.click()}>
-                        <AttachFile />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Voice Message">
-                      <IconButton>
-                        <Mic />
-                      </IconButton>
-                    </Tooltip>
-                    <CommunicationButton variant="contained" onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                      <Send />
-                    </CommunicationButton>
-                  </Box>
-                  <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                    <Chip 
-                      label="App" 
-                      size="small" 
-                      variant={selectedChannel === 'app' ? 'filled' : 'outlined'}
+                    <RoundButton title="Attach File" onClick={() => fileInputRef.current?.click()}>
+                      <Paperclip size={20} />
+                    </RoundButton>
+                    <RoundButton title="Voice Message">
+                      <Mic size={20} />
+                    </RoundButton>
+                    <ActionButton
+                      $variant="contained"
+                      $disabled={!newMessage.trim()}
+                      onClick={handleSendMessage}
+                    >
+                      <Send size={18} />
+                    </ActionButton>
+                  </FlexRow>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                    <ChannelChip
+                      $active={selectedChannel === 'app'}
                       onClick={() => setSelectedChannel('app')}
-                    />
-                    <Chip 
-                      label="SMS" 
-                      size="small" 
-                      variant={selectedChannel === 'sms' ? 'filled' : 'outlined'}
+                    >
+                      App
+                    </ChannelChip>
+                    <ChannelChip
+                      $active={selectedChannel === 'sms'}
                       onClick={() => setSelectedChannel('sms')}
-                    />
-                    <Chip 
-                      label="Email" 
-                      size="small" 
-                      variant={selectedChannel === 'email' ? 'filled' : 'outlined'}
+                    >
+                      SMS
+                    </ChannelChip>
+                    <ChannelChip
+                      $active={selectedChannel === 'email'}
                       onClick={() => setSelectedChannel('email')}
-                    />
-                  </Box>
-                </Box>
+                    >
+                      Email
+                    </ChannelChip>
+                  </div>
+                </div>
               </>
             ) : (
-              <Box sx={{ 
-                flexGrow: 1, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                flexDirection: 'column',
-                gap: 2
-              }}>
-                <Message sx={{ fontSize: 64, color: '#666' }} />
-                <Typography variant="h6" color="text.secondary">
+              <EmptyState>
+                <MessageSquare size={64} />
+                <SubHeading style={{ color: theme.textSecondary }}>
                   Select a conversation to start messaging
-                </Typography>
-              </Box>
+                </SubHeading>
+              </EmptyState>
             )}
           </ChatArea>
         </ChatContainer>
@@ -1044,37 +1415,30 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
       {/* Analytics Tab */}
       {activeTab === 2 && renderAnalytics()}
 
-      {/* Floating Action Button */}
-      <SpeedDial
-        ariaLabel="Communication Actions"
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
-        icon={<SpeedDialIcon />}
-        FabProps={{
-          sx: {
-            background: 'linear-gradient(135deg, #00c9ff, #0066cc)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #0099cc, #0055bb)',
-            },
-          },
-        }}
-      >
-        <SpeedDialAction
-          icon={<PersonAdd />}
-          tooltipTitle="New Conversation"
-          onClick={() => setShowComposer(true)}
-        />
-        <SpeedDialAction
-          icon={<Broadcast />}
-          tooltipTitle="Broadcast Message"
-          onClick={() => setShowComposer(true)}
-        />
-        <SpeedDialAction
-          icon={<CampaignOutlined />}
-          tooltipTitle="Create Template"
-          onClick={() => setShowTemplates(true)}
-        />
-      </SpeedDial>
-    </Box>
+      {/* Speed Dial / Floating Action Button */}
+      <SpeedDialContainer>
+        <SpeedDialFab
+          onClick={() => setSpeedDialOpen(prev => !prev)}
+          aria-label="Communication Actions"
+        >
+          {speedDialOpen ? <X size={24} /> : <Plus size={24} />}
+        </SpeedDialFab>
+        <SpeedDialActions $open={speedDialOpen}>
+          <SpeedDialActionBtn onClick={() => { setShowComposer(true); setSpeedDialOpen(false); }}>
+            <UserPlus size={18} />
+            New Conversation
+          </SpeedDialActionBtn>
+          <SpeedDialActionBtn onClick={() => { setShowComposer(true); setSpeedDialOpen(false); }}>
+            <Megaphone size={18} />
+            Broadcast Message
+          </SpeedDialActionBtn>
+          <SpeedDialActionBtn onClick={() => { setShowTemplates(true); setSpeedDialOpen(false); }}>
+            <Mail size={18} />
+            Create Template
+          </SpeedDialActionBtn>
+        </SpeedDialActions>
+      </SpeedDialContainer>
+    </PageWrapper>
   );
 };
 
