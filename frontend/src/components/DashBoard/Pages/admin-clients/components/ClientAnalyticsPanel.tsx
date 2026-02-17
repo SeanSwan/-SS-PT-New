@@ -1,68 +1,29 @@
 /**
  * Client Analytics Panel Component
  * 7-Star AAA Personal Training & Social Media App
- * 
+ *
  * Advanced analytics dashboard with real-time insights, AI predictions,
  * and comprehensive performance metrics for client management
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  LinearProgress,
-  CircularProgress,
-  Avatar,
-  Chip,
-  Paper,
-  Divider,
-  Slider,
-  Switch,
-  FormControlLabel,
-  IconButton,
-  Tooltip,
-  ButtonGroup,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Alert,
-  AlertTitle
-} from '@mui/material';
+import styled, { keyframes, css } from 'styled-components';
 import {
   TrendingUp,
   TrendingDown,
-  TrendingFlat,
-  Analytics,
-  Insights,
-  Speed,
-  Psychology,
-  LocalFireDepartment,
-  FitnessCenter,
-  MonitorWeight,
-  Timer,
-  Calendar,
-  BarChart,
-  ShowChart,
-  PieChart,
-  AutoGraph,
-  Settings,
-  Refresh,
+  Minus,
+  Brain,
+  Sparkles,
+  RefreshCw,
   Download,
-  Share,
-  FilterList,
-  ZoomIn,
-  ZoomOut,
-  Fullscreen,
-  Warning,
-  CheckCircle,
-  RadioButtonUnchecked
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
+  Share2,
+  Filter,
+  CheckCircle2,
+  AlertTriangle,
+  Lightbulb,
+  BarChart3,
+  MoreVertical
+} from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -117,52 +78,404 @@ interface PredictionData {
   factors: string[];
 }
 
-// Styled components
-const MetricCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.05))',
-  backdropFilter: 'blur(20px)',
-  borderRadius: 16,
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: '0 12px 40px rgba(0, 255, 255, 0.1)',
-    border: '1px solid rgba(0, 255, 255, 0.3)',
-  },
-}));
+/* ────── Styled Components ────── */
 
-const TrendIndicator = styled(Box)<{ trend: 'up' | 'down' | 'neutral' }>(({ theme, trend }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  color: 
-    trend === 'up' ? '#4caf50' :
-    trend === 'down' ? '#f44336' :
-    '#999',
-  fontSize: '0.875rem',
-  fontWeight: 600,
-}));
+const PageWrapper = styled.div`
+  padding: 24px;
+`;
 
-const AnalyticsButton = styled(Button)(({ theme, variant: buttonVariant }) => ({
-  textTransform: 'none',
-  borderRadius: 8,
-  fontWeight: 600,
-  ...(buttonVariant === 'contained' && {
-    background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-    color: '#0a0a1a',
-    '&:hover': {
-      background: 'linear-gradient(135deg, #00e6ff, #00b3ff)',
-    },
-  }),
-  ...(buttonVariant === 'outlined' && {
-    borderColor: 'rgba(0, 255, 255, 0.5)',
-    color: '#00ffff',
-    '&:hover': {
-      borderColor: '#00ffff',
-      backgroundColor: 'rgba(0, 255, 255, 0.1)',
-    },
-  }),
-}));
+const SectionHeader = styled.div`
+  margin-bottom: 32px;
+`;
+
+const Title = styled.h2`
+  color: #00ffff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+`;
+
+const Subtitle = styled.p`
+  color: #94a3b8;
+  font-size: 1rem;
+  margin: 0;
+`;
+
+const MetricCard = styled.div`
+  background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.05));
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(14,165,233,0.2);
+  padding: 20px;
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,255,255,0.1);
+    border-color: rgba(0,255,255,0.3);
+  }
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+`;
+
+const CardTitle = styled.h3`
+  color: #00ffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const RoundButton = styled.button`
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover { background: rgba(255,255,255,0.05); }
+`;
+
+const ValueRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const BigValue = styled.span`
+  color: #e2e8f0;
+  font-size: 2.25rem;
+  font-weight: 700;
+`;
+
+const UnitText = styled.span`
+  color: #94a3b8;
+  font-size: 0.875rem;
+`;
+
+const TrendIndicator = styled.div<{ $trend: 'up' | 'down' | 'neutral' }>`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: ${p => p.$trend === 'up' ? '#4caf50' : p.$trend === 'down' ? '#f44336' : '#999'};
+  font-size: 0.875rem;
+  font-weight: 600;
+`;
+
+const ProgressBarTrack = styled.div`
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $percent: number; $color: string }>`
+  height: 100%;
+  border-radius: 4px;
+  width: ${p => Math.min(p.$percent, 100)}%;
+  background: ${p => p.$color};
+  transition: width 0.6s ease;
+`;
+
+const TargetRow = styled.div`
+  margin-top: 16px;
+`;
+
+const TargetLabels = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+`;
+
+const CaptionText = styled.span`
+  color: #94a3b8;
+  font-size: 0.75rem;
+`;
+
+const SparklineWrap = styled.div`
+  margin-top: 16px;
+  height: 60px;
+`;
+
+const MetricsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+  @media (max-width: 1024px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+`;
+
+const ChartsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  @media (max-width: 1024px) { grid-template-columns: 1fr; }
+`;
+
+const DetailedGrid = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  @media (max-width: 1024px) { grid-template-columns: 1fr; }
+`;
+
+const PredictionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+`;
+
+const GlassCard = styled.div`
+  background: rgba(29,31,43,0.98);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(14,165,233,0.2);
+  padding: 24px;
+`;
+
+const CardTitleRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const CardTitleWithIcon = styled.h3`
+  color: #00ffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ChartContainer = styled.div`
+  height: 400px;
+`;
+
+const ControlPanel = styled.div`
+  background: rgba(29,31,43,0.98);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(14,165,233,0.2);
+  padding: 16px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 16px;
+  align-items: center;
+  @media (max-width: 768px) { grid-template-columns: 1fr; }
+`;
+
+const NativeSelect = styled.select`
+  background: rgba(15,23,42,0.95);
+  border: 1px solid rgba(14,165,233,0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 8px 12px;
+  min-height: 44px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  &:focus { outline: none; border-color: #0ea5e9; }
+  option { background: #1d1f2b; color: #e2e8f0; }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0;
+  & > button:first-child { border-radius: 8px 0 0 8px; }
+  & > button:last-child { border-radius: 0 8px 8px 0; }
+  & > button:not(:first-child):not(:last-child) { border-radius: 0; }
+`;
+
+const ViewButton = styled.button<{ $active?: boolean }>`
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid rgba(0,255,255,0.5);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-transform: none;
+  transition: all 0.2s;
+  ${p => p.$active ? css`
+    background: linear-gradient(135deg, #00ffff, #00c8ff);
+    color: #0a0a1a;
+    border-color: transparent;
+  ` : css`
+    background: transparent;
+    color: #00ffff;
+    &:hover { background: rgba(0,255,255,0.1); border-color: #00ffff; }
+  `}
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+`;
+
+const OutlineButton = styled.button`
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,255,255,0.5);
+  background: transparent;
+  color: #00ffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  &:hover { border-color: #00ffff; background: rgba(0,255,255,0.1); }
+`;
+
+const InsightCard = styled.div`
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+`;
+
+const InsightRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+`;
+
+const IconBox = styled.div<{ $bg: string }>`
+  padding: 8px;
+  border-radius: 8px;
+  background: ${p => p.$bg};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const InsightBody = styled.div`
+  flex: 1;
+`;
+
+const InsightTitle = styled.h4`
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+`;
+
+const InsightDesc = styled.p`
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 0 0 8px 0;
+`;
+
+const InsightFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ChipTag = styled.span`
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  background: rgba(0,255,255,0.2);
+  color: #00ffff;
+`;
+
+const FactorChip = styled.span<{ $color: string }>`
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  margin: 0 4px 4px 0;
+  background: ${p => `${p.$color}20`};
+  color: ${p => p.$color};
+`;
+
+const PredictionCard = styled.div<{ $borderColor: string }>`
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid ${p => `${p.$borderColor}40`};
+  border-radius: 12px;
+`;
+
+const PredictionTitle = styled.h4`
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin: 0;
+`;
+
+const PredictionPeriod = styled.span`
+  color: #94a3b8;
+  font-size: 0.75rem;
+`;
+
+const CircularWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin: 16px 0;
+`;
+
+const CircularOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+`;
+
+const CircularValue = styled.span<{ $color: string }>`
+  color: ${p => p.$color};
+  font-size: 1.75rem;
+  font-weight: 700;
+`;
+
+const ComparisonWrap = styled.div`
+  text-align: center;
+  padding: 64px 0;
+`;
+
+const ComparisonTitle = styled.h3`
+  color: #00ffff;
+  font-size: 1.25rem;
+  margin: 0 0 8px 0;
+`;
+
+/* ────── SVG Circular Progress ────── */
+const CircularProgressWidget: React.FC<{ value: number; size?: number; color: string }> = ({ value, size = 100, color }) => {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (value / 100) * circ;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={4} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+    </svg>
+  );
+};
+
+/* ────── Component ────── */
 
 interface ClientAnalyticsPanelProps {
   clientId?: string;
@@ -315,443 +628,253 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
     gray: '#999'
   };
 
+  const getStatusColor = (status: string) =>
+    status === 'excellent' ? chartColors.success :
+    status === 'good' ? chartColors.primary :
+    status === 'warning' ? chartColors.warning :
+    chartColors.error;
+
   // Render metric card
   const renderMetricCard = (metric: AnalyticsMetric) => (
     <MetricCard key={metric.id}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: '#00ffff' }}>
-            {metric.title}
-          </Typography>
-          <IconButton size="small">
-            <MoreVert sx={{ color: '#666' }} />
-          </IconButton>
-        </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
-          <Typography variant="h3" sx={{ color: '#e0e0e0', fontWeight: 700 }}>
-            {metric.value}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {metric.unit}
-          </Typography>
-        </Box>
+      <CardHeader>
+        <CardTitle>{metric.title}</CardTitle>
+        <RoundButton><MoreVertical size={18} /></RoundButton>
+      </CardHeader>
 
-        <TrendIndicator trend={metric.changeType === 'increase' ? 'up' : metric.changeType === 'decrease' ? 'down' : 'neutral'}>
-          {metric.changeType === 'increase' ? <TrendingUp /> : 
-           metric.changeType === 'decrease' ? <TrendingDown /> : <TrendingFlat />}
-          {Math.abs(metric.change)}% vs last period
-        </TrendIndicator>
+      <ValueRow>
+        <BigValue>{metric.value}</BigValue>
+        <UnitText>{metric.unit}</UnitText>
+      </ValueRow>
 
-        {metric.target && (
-          <Box sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="caption" color="text.secondary">Target Progress</Typography>
-              <Typography variant="caption" color="text.secondary">
-                {metric.value}/{metric.target}
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={(metric.value / metric.target) * 100}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                bgcolor: 'rgba(255, 255, 255, 0.1)',
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: metric.status === 'excellent' ? chartColors.success :
-                          metric.status === 'good' ? chartColors.primary :
-                          metric.status === 'warning' ? chartColors.warning :
-                          chartColors.error,
-                  borderRadius: 4
-                }
-              }}
+      <TrendIndicator $trend={metric.changeType === 'increase' ? 'up' : metric.changeType === 'decrease' ? 'down' : 'neutral'}>
+        {metric.changeType === 'increase' ? <TrendingUp size={16} /> :
+         metric.changeType === 'decrease' ? <TrendingDown size={16} /> : <Minus size={16} />}
+        {Math.abs(metric.change)}% vs last period
+      </TrendIndicator>
+
+      {metric.target && (
+        <TargetRow>
+          <TargetLabels>
+            <CaptionText>Target Progress</CaptionText>
+            <CaptionText>{metric.value}/{metric.target}</CaptionText>
+          </TargetLabels>
+          <ProgressBarTrack>
+            <ProgressBarFill
+              $percent={(metric.value / metric.target) * 100}
+              $color={getStatusColor(metric.status)}
             />
-          </Box>
-        )}
+          </ProgressBarTrack>
+        </TargetRow>
+      )}
 
-        <Box sx={{ mt: 2, height: 60 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={metric.trend.slice(-7)}>
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke={chartColors.primary} 
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-      </CardContent>
+      <SparklineWrap>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={metric.trend.slice(-7)}>
+            <Line type="monotone" dataKey="value" stroke={chartColors.primary} strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </SparklineWrap>
     </MetricCard>
   );
 
   // Render workout analysis chart
   const renderWorkoutAnalysisChart = () => (
-    <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-      <CardContent>
-        <Typography variant="h6" sx={{ color: '#00ffff', mb: 3 }}>
-          Workout Analysis
-        </Typography>
-        <Box sx={{ height: 400 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={Array.from({ length: 12 }, (_, i) => ({
-              month: `Month ${i + 1}`,
-              workouts: Math.floor(Math.random() * 30) + 10,
-              duration: Math.floor(Math.random() * 60) + 30,
-              intensity: Math.floor(Math.random() * 40) + 60
-            }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-              <XAxis dataKey="month" stroke="#999" />
-              <YAxis yAxisId="left" stroke="#999" />
-              <YAxis yAxisId="right" orientation="right" stroke="#999" />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: '#252742', 
-                  border: '1px solid rgba(0, 255, 255, 0.3)',
-                  borderRadius: 8
-                }} 
-              />
-              <Legend />
-              <Bar yAxisId="left" dataKey="workouts" fill={chartColors.primary} />
-              <Line yAxisId="right" type="monotone" dataKey="intensity" stroke={chartColors.secondary} strokeWidth={3} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </Box>
-      </CardContent>
-    </Card>
+    <GlassCard>
+      <CardTitle style={{ marginBottom: 24 }}>Workout Analysis</CardTitle>
+      <ChartContainer>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={Array.from({ length: 12 }, (_, i) => ({
+            month: `Month ${i + 1}`,
+            workouts: Math.floor(Math.random() * 30) + 10,
+            duration: Math.floor(Math.random() * 60) + 30,
+            intensity: Math.floor(Math.random() * 40) + 60
+          }))}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <XAxis dataKey="month" stroke="#999" />
+            <YAxis yAxisId="left" stroke="#999" />
+            <YAxis yAxisId="right" orientation="right" stroke="#999" />
+            <RechartsTooltip
+              contentStyle={{
+                backgroundColor: '#252742',
+                border: '1px solid rgba(0,255,255,0.3)',
+                borderRadius: 8
+              }}
+            />
+            <Legend />
+            <Bar yAxisId="left" dataKey="workouts" fill={chartColors.primary} />
+            <Line yAxisId="right" type="monotone" dataKey="intensity" stroke={chartColors.secondary} strokeWidth={3} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </GlassCard>
   );
 
   // Render body composition radar chart
   const renderBodyCompositionChart = () => (
-    <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-      <CardContent>
-        <Typography variant="h6" sx={{ color: '#00ffff', mb: 3 }}>
-          Body Composition Analysis
-        </Typography>
-        <Box sx={{ height: 400 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={[
-              { metric: 'Muscle Mass', current: 85, target: 90, fullMark: 100 },
-              { metric: 'Body Fat %', current: 88, target: 92, fullMark: 100 },
-              { metric: 'Hydration', current: 92, target: 95, fullMark: 100 },
-              { metric: 'Bone Density', current: 78, target: 85, fullMark: 100 },
-              { metric: 'Metabolic Rate', current: 89, target: 95, fullMark: 100 },
-              { metric: 'Recovery', current: 83, target: 90, fullMark: 100 }
-            ]}>
-              <PolarGrid stroke="rgba(255, 255, 255, 0.1)" />
-              <PolarAngleAxis dataKey="metric" tick={{ fill: '#e0e0e0', fontSize: 12 }} />
-              <PolarRadiusAxis stroke="rgba(255, 255, 255, 0.2)" tick={false} />
-              <Radar 
-                name="Current" 
-                dataKey="current" 
-                stroke={chartColors.primary} 
-                fill={`${chartColors.primary}40`}
-                strokeWidth={2}
-              />
-              <Radar 
-                name="Target" 
-                dataKey="target" 
-                stroke={chartColors.success} 
-                strokeDasharray="5 5"
-                strokeWidth={2}
-                fill="transparent"
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        </Box>
-      </CardContent>
-    </Card>
+    <GlassCard>
+      <CardTitle style={{ marginBottom: 24 }}>Body Composition Analysis</CardTitle>
+      <ChartContainer>
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={[
+            { metric: 'Muscle Mass', current: 85, target: 90, fullMark: 100 },
+            { metric: 'Body Fat %', current: 88, target: 92, fullMark: 100 },
+            { metric: 'Hydration', current: 92, target: 95, fullMark: 100 },
+            { metric: 'Bone Density', current: 78, target: 85, fullMark: 100 },
+            { metric: 'Metabolic Rate', current: 89, target: 95, fullMark: 100 },
+            { metric: 'Recovery', current: 83, target: 90, fullMark: 100 }
+          ]}>
+            <PolarGrid stroke="rgba(255,255,255,0.1)" />
+            <PolarAngleAxis dataKey="metric" tick={{ fill: '#e2e8f0', fontSize: 12 }} />
+            <PolarRadiusAxis stroke="rgba(255,255,255,0.2)" tick={false} />
+            <Radar name="Current" dataKey="current" stroke={chartColors.primary}
+              fill={`${chartColors.primary}40`} strokeWidth={2} />
+            <Radar name="Target" dataKey="target" stroke={chartColors.success}
+              strokeDasharray="5 5" strokeWidth={2} fill="transparent" />
+          </RadarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </GlassCard>
   );
 
   // Render AI insights panel
   const renderAIInsights = () => (
-    <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6" sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Psychology />
-            AI-Powered Insights
-          </Typography>
-          <AnalyticsButton variant="outlined" size="small" startIcon={<Refresh />}>
-            Refresh
-          </AnalyticsButton>
-        </Box>
+    <GlassCard>
+      <CardTitleRow>
+        <CardTitleWithIcon><Brain size={20} /> AI-Powered Insights</CardTitleWithIcon>
+        <OutlineButton><RefreshCw size={16} /> Refresh</OutlineButton>
+      </CardTitleRow>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {insights.map((insight, index) => (
-            <Paper
-              key={index}
-              sx={{
-                p: 2,
-                bgcolor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: 2
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                <Box sx={{ 
-                  p: 1,
-                  borderRadius: 1,
-                  bgcolor: 
-                    insight.type === 'achievement' ? 'rgba(76, 175, 80, 0.2)' :
-                    insight.type === 'recommendation' ? 'rgba(33, 150, 243, 0.2)' :
-                    'rgba(255, 152, 0, 0.2)'
-                }}>
-                  {insight.type === 'achievement' ? <CheckCircle sx={{ color: '#4caf50' }} /> :
-                   insight.type === 'recommendation' ? <Insights sx={{ color: '#2196f3' }} /> :
-                   <Warning sx={{ color: '#ff9800' }} />}
-                </Box>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    {insight.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1 }}>
-                    {insight.description}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
-                    <Chip 
-                      label={`${insight.confidence}% confidence`}
-                      size="small"
-                      sx={{ 
-                        bgcolor: 'rgba(0, 255, 255, 0.2)',
-                        color: '#00ffff',
-                        fontSize: '0.75rem'
-                      }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      {insight.timestamp}
-                    </Typography>
-                  </Box>
-                </Box>
-                {insight.actionable && (
-                  <AnalyticsButton variant="outlined" size="small">
-                    Take Action
-                  </AnalyticsButton>
-                )}
-              </Box>
-            </Paper>
-          ))}
-        </Box>
-      </CardContent>
-    </Card>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {insights.map((insight, index) => (
+          <InsightCard key={index}>
+            <InsightRow>
+              <IconBox $bg={
+                insight.type === 'achievement' ? 'rgba(76,175,80,0.2)' :
+                insight.type === 'recommendation' ? 'rgba(33,150,243,0.2)' :
+                'rgba(255,152,0,0.2)'
+              }>
+                {insight.type === 'achievement' ? <CheckCircle2 size={20} color="#4caf50" /> :
+                 insight.type === 'recommendation' ? <Lightbulb size={20} color="#2196f3" /> :
+                 <AlertTriangle size={20} color="#ff9800" />}
+              </IconBox>
+              <InsightBody>
+                <InsightTitle>{insight.title}</InsightTitle>
+                <InsightDesc>{insight.description}</InsightDesc>
+                <InsightFooter>
+                  <ChipTag>{insight.confidence}% confidence</ChipTag>
+                  <CaptionText>{insight.timestamp}</CaptionText>
+                </InsightFooter>
+              </InsightBody>
+              {insight.actionable && (
+                <OutlineButton style={{ flexShrink: 0 }}>Take Action</OutlineButton>
+              )}
+            </InsightRow>
+          </InsightCard>
+        ))}
+      </div>
+    </GlassCard>
   );
 
   // Render predictions panel
   const renderPredictions = () => (
-    <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-      <CardContent>
-        <Typography variant="h6" sx={{ color: '#00ffff', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AutoGraph />
-          Predictive Analytics
-        </Typography>
+    <GlassCard>
+      <CardTitleWithIcon style={{ marginBottom: 24 }}><Sparkles size={20} /> Predictive Analytics</CardTitleWithIcon>
 
-        <Grid container spacing={2}>
-          {predictions.map((prediction, index) => {
-            const color = 
-              prediction.type === 'retention' ? chartColors.success :
-              prediction.type === 'progress' ? chartColors.primary :
-              prediction.type === 'churn' ? chartColors.error :
-              chartColors.warning;
+      <PredictionsGrid>
+        {predictions.map((prediction, index) => {
+          const color =
+            prediction.type === 'retention' ? chartColors.success :
+            prediction.type === 'progress' ? chartColors.primary :
+            prediction.type === 'churn' ? chartColors.error :
+            chartColors.warning;
 
-            return (
-              <Grid item xs={12} md={6} key={index}>
-                <Paper
-                  sx={{
-                    p: 2,
-                    bgcolor: 'rgba(255, 255, 255, 0.02)',
-                    border: `1px solid ${color}40`,
-                    borderRadius: 2
-                  }}
-                >
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
-                    {prediction.type} Prediction
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {prediction.period}
-                  </Typography>
-                  
-                  <Box sx={{ my: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-                      <CircularProgress
-                        variant="determinate"
-                        value={prediction.probability}
-                        size={100}
-                        thickness={4}
-                        sx={{
-                          color: color,
-                          '& .MuiCircularProgress-circle': {
-                            strokeLinecap: 'round',
-                          },
-                        }}
-                      />
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          bottom: 0,
-                          right: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexDirection: 'column'
-                        }}
-                      >
-                        <Typography variant="h4" fontWeight={700} sx={{ color: color }}>
-                          {prediction.probability}%
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          confidence: {prediction.confidence}%
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
+          return (
+            <PredictionCard key={index} $borderColor={color}>
+              <PredictionTitle>{prediction.type} Prediction</PredictionTitle>
+              <PredictionPeriod>{prediction.period}</PredictionPeriod>
 
-                  <Typography variant="caption" color="text.secondary">
-                    Key factors:
-                  </Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {prediction.factors.map((factor, idx) => (
-                      <Chip 
-                        key={idx}
-                        label={factor}
-                        size="small"
-                        sx={{ 
-                          mr: 0.5,
-                          mb: 0.5,
-                          bgcolor: `${color}20`,
-                          color: color,
-                          fontSize: '0.7rem'
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Paper>
-              </Grid>
-            );
-          })}
-        </Grid>
-      </CardContent>
-    </Card>
+              <CircularWrap>
+                <CircularProgressWidget value={prediction.probability} size={100} color={color} />
+                <CircularOverlay>
+                  <CircularValue $color={color}>{prediction.probability}%</CircularValue>
+                  <CaptionText>confidence: {prediction.confidence}%</CaptionText>
+                </CircularOverlay>
+              </CircularWrap>
+
+              <CaptionText>Key factors:</CaptionText>
+              <div style={{ marginTop: 8 }}>
+                {prediction.factors.map((factor, idx) => (
+                  <FactorChip key={idx} $color={color}>{factor}</FactorChip>
+                ))}
+              </div>
+            </PredictionCard>
+          );
+        })}
+      </PredictionsGrid>
+    </GlassCard>
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <PageWrapper>
       {/* Analytics Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: '#00ffff', mb: 1, fontWeight: 700 }}>
-          Advanced Analytics Dashboard
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          AI-powered insights and comprehensive performance analytics
-        </Typography>
-      </Box>
+      <SectionHeader>
+        <Title>Advanced Analytics Dashboard</Title>
+        <Subtitle>AI-powered insights and comprehensive performance analytics</Subtitle>
+      </SectionHeader>
 
       {/* Control Panel */}
-      <Paper sx={{ p: 2, mb: 3, bgcolor: '#1d1f2b', borderRadius: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel sx={{ color: '#a0a0a0' }}>Time Period</InputLabel>
-              <Select
-                value={timePeriod}
-                label="Time Period"
-                sx={{ color: '#e0e0e0' }}
-              >
-                <MenuItem value="7d">Last 7 Days</MenuItem>
-                <MenuItem value="30d">Last 30 Days</MenuItem>
-                <MenuItem value="90d">Last 90 Days</MenuItem>
-                <MenuItem value="1y">Last Year</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <ButtonGroup variant="outlined" size="small">
-              <AnalyticsButton 
-                variant={viewMode === 'overview' ? 'contained' : 'outlined'}
-                onClick={() => setViewMode('overview')}
-              >
-                Overview
-              </AnalyticsButton>
-              <AnalyticsButton 
-                variant={viewMode === 'detailed' ? 'contained' : 'outlined'}
-                onClick={() => setViewMode('detailed')}
-              >
-                Detailed
-              </AnalyticsButton>
-              <AnalyticsButton 
-                variant={viewMode === 'comparison' ? 'contained' : 'outlined'}
-                onClick={() => setViewMode('comparison')}
-              >
-                Compare
-              </AnalyticsButton>
-            </ButtonGroup>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <AnalyticsButton variant="outlined" startIcon={<FilterList />}>
-                Filters
-              </AnalyticsButton>
-              <AnalyticsButton variant="outlined" startIcon={<Download />}>
-                Export
-              </AnalyticsButton>
-              <AnalyticsButton variant="outlined" startIcon={<Share />}>
-                Share
-              </AnalyticsButton>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
+      <ControlPanel>
+        <NativeSelect defaultValue={timePeriod}>
+          <option value="7d">Last 7 Days</option>
+          <option value="30d">Last 30 Days</option>
+          <option value="90d">Last 90 Days</option>
+          <option value="1y">Last Year</option>
+        </NativeSelect>
+
+        <ButtonGroup>
+          <ViewButton $active={viewMode === 'overview'} onClick={() => setViewMode('overview')}>Overview</ViewButton>
+          <ViewButton $active={viewMode === 'detailed'} onClick={() => setViewMode('detailed')}>Detailed</ViewButton>
+          <ViewButton $active={viewMode === 'comparison'} onClick={() => setViewMode('comparison')}>Compare</ViewButton>
+        </ButtonGroup>
+
+        <ActionRow>
+          <OutlineButton><Filter size={16} /> Filters</OutlineButton>
+          <OutlineButton><Download size={16} /> Export</OutlineButton>
+          <OutlineButton><Share2 size={16} /> Share</OutlineButton>
+        </ActionRow>
+      </ControlPanel>
 
       {/* Overview Mode */}
       {viewMode === 'overview' && (
         <>
-          {/* Key Metrics Cards */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
+          <MetricsGrid>
             {mockMetrics.map(renderMetricCard)}
-          </Grid>
-
-          {/* Charts Section */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
-              {renderWorkoutAnalysisChart()}
-            </Grid>
-            <Grid item xs={12} md={4}>
-              {renderBodyCompositionChart()}
-            </Grid>
-          </Grid>
+          </MetricsGrid>
+          <ChartsGrid>
+            {renderWorkoutAnalysisChart()}
+            {renderBodyCompositionChart()}
+          </ChartsGrid>
         </>
       )}
 
       {/* Detailed Mode */}
       {viewMode === 'detailed' && (
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={8}>
-            {renderAIInsights()}
-          </Grid>
-          <Grid item xs={12} lg={4}>
-            {renderPredictions()}
-          </Grid>
-        </Grid>
+        <DetailedGrid>
+          {renderAIInsights()}
+          {renderPredictions()}
+        </DetailedGrid>
       )}
 
       {/* Comparison Mode */}
       {viewMode === 'comparison' && (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h5" color="#00ffff" gutterBottom>
-            Comparison Mode
-          </Typography>
-          <Typography color="text.secondary">
-            Compare client performance against cohorts and benchmarks
-          </Typography>
+        <ComparisonWrap>
+          <ComparisonTitle>Comparison Mode</ComparisonTitle>
+          <Subtitle>Compare client performance against cohorts and benchmarks</Subtitle>
           {/* TODO: Implement comparison charts */}
-        </Box>
+        </ComparisonWrap>
       )}
-    </Box>
+    </PageWrapper>
   );
 };
 

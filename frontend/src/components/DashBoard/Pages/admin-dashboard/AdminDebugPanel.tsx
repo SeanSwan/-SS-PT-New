@@ -1,42 +1,346 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Accordion, 
-  AccordionSummary, 
-  AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Alert,
-  CircularProgress,
-  Grid,
-  TextField,
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Chip
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import BugReportIcon from '@mui/icons-material/BugReport';
-import WarningIcon from '@mui/icons-material/Warning';
-import InfoIcon from '@mui/icons-material/Info';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import PeopleIcon from '@mui/icons-material/People';
+import styled, { keyframes } from 'styled-components';
+import {
+  Bug,
+  AlertTriangle,
+  CheckCircle2,
+  ShoppingCart,
+  CalendarDays,
+  Users,
+  ChevronDown,
+  RefreshCw,
+} from 'lucide-react';
 
 // Import GlowButton to ensure consistent styling
 import GlowButton from '../../../ui/GlowButton';
 
+/* ------------------------------------------------------------------ */
+/*  Galaxy-Swan Theme Tokens                                          */
+/* ------------------------------------------------------------------ */
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgDeep: '#1a1a2e',
+  bgSection: '#2d2d42',
+  border: 'rgba(14,165,233,0.2)',
+  text: '#e2e8f0',
+  textMuted: '#94a3b8',
+  accent: '#0ea5e9',
+  cyan: '#00ffff',
+  success: '#4caf50',
+  warning: '#f59e0b',
+  error: '#f44336',
+};
+
+/* ------------------------------------------------------------------ */
+/*  Keyframes                                                         */
+/* ------------------------------------------------------------------ */
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Styled Components                                                 */
+/* ------------------------------------------------------------------ */
+const Wrapper = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const GlassPanel = styled.div<{ $bg?: string }>`
+  background: ${({ $bg }) => $bg || theme.bg};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: ${theme.text};
+`;
+
+const FlexRow = styled.div<{ $gap?: string; $mb?: string; $justify?: string; $align?: string }>`
+  display: flex;
+  gap: ${({ $gap }) => $gap || '0.5rem'};
+  margin-bottom: ${({ $mb }) => $mb || '0'};
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'stretch'};
+`;
+
+const Heading = styled.h2`
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: ${theme.cyan};
+  margin: 0;
+`;
+
+const Subtitle = styled.p<{ $mb?: string }>`
+  font-size: 0.9rem;
+  color: ${theme.textMuted};
+  margin: 0 0 ${({ $mb }) => $mb || '0.5rem'} 0;
+`;
+
+const SmallHeading = styled.h4`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: ${theme.text};
+  margin: 0 0 0.5rem 0;
+`;
+
+const BodyText = styled.p`
+  font-size: 0.875rem;
+  color: ${theme.text};
+  margin: 0;
+`;
+
+/* ---------- Alert Box ---------- */
+interface AlertBoxProps {
+  $severity: 'success' | 'error' | 'warning' | 'info';
+}
+
+const severityColors: Record<string, { bg: string; border: string; text: string }> = {
+  success: { bg: 'rgba(76,175,80,0.12)', border: 'rgba(76,175,80,0.4)', text: '#66bb6a' },
+  error:   { bg: 'rgba(244,67,54,0.12)', border: 'rgba(244,67,54,0.4)', text: '#ef5350' },
+  warning: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.4)', text: '#f59e0b' },
+  info:    { bg: 'rgba(14,165,233,0.12)', border: 'rgba(14,165,233,0.4)', text: '#38bdf8' },
+};
+
+const AlertBox = styled.div<AlertBoxProps>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: ${({ $severity }) => severityColors[$severity].bg};
+  border: 1px solid ${({ $severity }) => severityColors[$severity].border};
+  color: ${({ $severity }) => severityColors[$severity].text};
+`;
+
+/* ---------- Spinner ---------- */
+const Spinner = styled.div`
+  width: 36px;
+  height: 36px;
+  border: 3px solid ${theme.border};
+  border-top-color: ${theme.accent};
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+/* ---------- Collapsible (Accordion replacement) ---------- */
+const CollapsibleWrapper = styled.div`
+  background: ${theme.bgSection};
+  border: 1px solid ${theme.border};
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+`;
+
+const CollapsibleHeader = styled.button<{ $open?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: ${theme.text};
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  svg:last-child {
+    transition: transform 0.25s ease;
+    transform: ${({ $open }) => ($open ? 'rotate(180deg)' : 'rotate(0deg)')};
+    flex-shrink: 0;
+  }
+`;
+
+const CollapsibleBody = styled.div<{ $open?: boolean }>`
+  display: ${({ $open }) => ($open ? 'block' : 'none')};
+  padding: 0 1rem 1rem 1rem;
+  color: ${theme.text};
+`;
+
+/* ---------- Table ---------- */
+const TableScroll = styled.div`
+  overflow-x: auto;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: ${theme.textMuted};
+  border-bottom: 1px solid ${theme.border};
+  font-weight: 600;
+  white-space: nowrap;
+`;
+
+const Td = styled.td`
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: ${theme.text};
+`;
+
+/* ---------- Chip ---------- */
+interface ChipStyledProps {
+  $variant: 'success' | 'warning' | 'error';
+}
+
+const chipColors: Record<string, { bg: string; text: string }> = {
+  success: { bg: 'rgba(76,175,80,0.2)', text: '#66bb6a' },
+  warning: { bg: 'rgba(245,158,11,0.2)', text: '#f59e0b' },
+  error:   { bg: 'rgba(244,67,54,0.2)', text: '#ef5350' },
+};
+
+const StyledChip = styled.span<ChipStyledProps>`
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: ${({ $variant }) => chipColors[$variant].bg};
+  color: ${({ $variant }) => chipColors[$variant].text};
+`;
+
+/* ---------- Grid ---------- */
+const GridRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+/* ---------- List ---------- */
+const ListWrapper = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const StyledListItem = styled.li`
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ListPrimary = styled.span<{ $color?: string }>`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${({ $color }) => $color || theme.text};
+`;
+
+const ListSecondary = styled.span`
+  display: block;
+  font-size: 0.8rem;
+  color: ${theme.textMuted};
+  margin-top: 2px;
+`;
+
+/* ---------- Input ---------- */
+const TextInput = styled.input`
+  flex: 1;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  outline: none;
+  margin-right: 0.5rem;
+
+  &::placeholder {
+    color: ${theme.textMuted};
+  }
+
+  &:focus {
+    border-color: ${theme.accent};
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+`;
+
+/* ---------- Divider ---------- */
+const StyledDivider = styled.hr`
+  border: none;
+  border-top: 1px solid ${theme.border};
+  margin: 1rem 0;
+`;
+
+/* ---------- Pre (code block) ---------- */
+const CodeBlock = styled.pre`
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: ${theme.text};
+  overflow: auto;
+  max-height: 200px;
+  margin: 0;
+`;
+
+/* ---------- Log line ---------- */
+const LogLine = styled.div`
+  font-family: monospace;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: ${theme.textMuted};
+`;
+
+const LogScroll = styled.div`
+  max-height: 300px;
+  overflow: auto;
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Collapsible helper component                                      */
+/* ------------------------------------------------------------------ */
+interface CollapsibleProps {
+  icon?: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const Collapsible: React.FC<CollapsibleProps> = ({ icon, title, children, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <CollapsibleWrapper>
+      <CollapsibleHeader $open={open} onClick={() => setOpen((v) => !v)}>
+        <FlexRow $align="center" $gap="0.5rem">
+          {icon}
+          <span>{title}</span>
+        </FlexRow>
+        <ChevronDown size={18} />
+      </CollapsibleHeader>
+      <CollapsibleBody $open={open}>{children}</CollapsibleBody>
+    </CollapsibleWrapper>
+  );
+};
+
 /**
  * AdminDebugPanel Component
- * 
+ *
  * A comprehensive debugging tool for admin dashboard with focus on:
  * - Session purchase and visibility across dashboards
  * - Cart functionality
@@ -111,7 +415,7 @@ const AdminDebugPanel: React.FC = () => {
           } else {
             try {
               const data = await response.json();
-              
+
               // Store data based on endpoint
               if (endpoint === '/api/sessions' && Array.isArray(data)) {
                 setSessionData(data);
@@ -140,7 +444,7 @@ const AdminDebugPanel: React.FC = () => {
       }
 
       setApiStatus(apiResults);
-      
+
       // Check MCP server
       try {
         debugLog('Testing MCP server connection');
@@ -173,33 +477,33 @@ const AdminDebugPanel: React.FC = () => {
       // This would detect if sessions purchased show up correctly in all dashboards
       try {
         debugLog('Analyzing session purchase flow');
-        
+
         // Get recent orders that include session packages
-        const sessionOrders = orderData.filter(order => 
+        const sessionOrders = orderData.filter(order =>
           order.items?.some((item: any) => item.itemType === 'training')
         );
-        
+
         // For each order with sessions, track the purchase flow
         const purchaseFlowData = [];
-        
+
         for (const order of sessionOrders.slice(0, 5)) { // Limit to last 5 orders
           const sessionItems = order.items.filter((item: any) => item.itemType === 'training');
-          
+
           for (const item of sessionItems) {
             const userId = order.userId;
             const purchaseDate = new Date(order.createdAt);
-            
+
             // Find corresponding client
             const client = userData.find(user => user.id === userId);
-            
+
             // Check if sessions were added to client's account
             const clientHasSessions = client && client.availableSessions > 0;
-            
+
             // Check for sessions scheduled after purchase
-            const clientSessions = sessionData.filter(session => 
+            const clientSessions = sessionData.filter(session =>
               session.userId === userId && new Date(session.bookingDate) > purchaseDate
             );
-            
+
             // Purchase flow status
             const purchaseFlow = {
               orderId: order.id,
@@ -210,12 +514,12 @@ const AdminDebugPanel: React.FC = () => {
               clientName: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
               sessionsCredited: clientHasSessions,
               sessionsScheduled: clientSessions.length,
-              status: clientHasSessions && clientSessions.length > 0 ? 'Complete' : 
+              status: clientHasSessions && clientSessions.length > 0 ? 'Complete' :
                      clientHasSessions ? 'Partial - No Sessions Scheduled' : 'Broken - No Sessions Credited'
             };
-            
+
             purchaseFlowData.push(purchaseFlow);
-            
+
             // Log issues
             if (!clientHasSessions) {
               dataIssues.push(`Order ${order.id}: Sessions not credited to client account`);
@@ -225,9 +529,9 @@ const AdminDebugPanel: React.FC = () => {
             }
           }
         }
-        
+
         setSessionPurchaseFlow(purchaseFlowData);
-        
+
       } catch (error) {
         debugLog(`Error analyzing session purchase flow: ${error instanceof Error ? error.message : 'Unknown error'}`);
         dataIssues.push('Failed to analyze session purchase flow');
@@ -275,7 +579,7 @@ const AdminDebugPanel: React.FC = () => {
   // Force synchronization of sessions across dashboards
   const syncSessionsAcrossDashboards = async () => {
     debugLog('Attempting to force session synchronization');
-    
+
     try {
       // This would call a backend endpoint that ensures session data is consistent
       const response = await fetch('/api/admin/sync-sessions', {
@@ -285,7 +589,7 @@ const AdminDebugPanel: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         debugLog('Session synchronization successful');
         // Refresh debug data
@@ -304,334 +608,293 @@ const AdminDebugPanel: React.FC = () => {
     collectDebugData();
   };
 
-  return (
-    <Box sx={{ mb: 4 }}>
-      <Paper sx={{ p: 3, mb: 3, backgroundColor: '#1a1a2e' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <BugReportIcon sx={{ fontSize: 30, mr: 1, color: '#00ffff' }} />
-          <Typography variant="h5" sx={{ color: '#00ffff' }}>
-            Admin System Diagnostic Dashboard
-          </Typography>
-        </Box>
+  // Helper to determine chip variant from flow status
+  const chipVariant = (status: string): 'success' | 'warning' | 'error' => {
+    if (status === 'Complete') return 'success';
+    if (status.includes('Partial')) return 'warning';
+    return 'error';
+  };
 
-        <Typography variant="subtitle1" gutterBottom>
+  return (
+    <Wrapper>
+      <GlassPanel $bg={theme.bgDeep}>
+        <FlexRow $align="center" $mb="0.75rem" $gap="0.5rem">
+          <Bug size={28} color={theme.cyan} />
+          <Heading>Admin System Diagnostic Dashboard</Heading>
+        </FlexRow>
+
+        <Subtitle $mb="1rem">
           This diagnostic tool focuses on session purchase and data synchronization across dashboards.
-        </Typography>
+        </Subtitle>
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
+          <FlexRow $justify="center" style={{ padding: '2rem 0' }}>
+            <Spinner />
+          </FlexRow>
         ) : (
           <>
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Alert 
-                severity={connectionIssues.length > 0 ? "error" : "success"} 
-                sx={{ flex: 1 }}
-                icon={connectionIssues.length > 0 ? <WarningIcon /> : <CheckCircleIcon />}
-              >
-                {connectionIssues.length > 0 
-                  ? `${connectionIssues.length} API Connection Issues` 
-                  : "All API endpoints connected"}
-              </Alert>
-              
-              <Alert 
-                severity={dataFlowIssues.length > 0 ? "warning" : "success"} 
-                sx={{ flex: 1 }}
-                icon={dataFlowIssues.length > 0 ? <WarningIcon /> : <CheckCircleIcon />}
-              >
-                {dataFlowIssues.length > 0 
-                  ? `${dataFlowIssues.length} Data Flow Issues` 
-                  : "Data flow is healthy"}
-              </Alert>
-            </Box>
+            {/* Status alerts */}
+            <FlexRow $gap="0.75rem" $mb="1rem">
+              <AlertBox $severity={connectionIssues.length > 0 ? 'error' : 'success'}>
+                {connectionIssues.length > 0
+                  ? <AlertTriangle size={18} />
+                  : <CheckCircle2 size={18} />}
+                {connectionIssues.length > 0
+                  ? `${connectionIssues.length} API Connection Issues`
+                  : 'All API endpoints connected'}
+              </AlertBox>
 
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <GlowButton 
-                variant="primary" 
+              <AlertBox $severity={dataFlowIssues.length > 0 ? 'warning' : 'success'}>
+                {dataFlowIssues.length > 0
+                  ? <AlertTriangle size={18} />
+                  : <CheckCircle2 size={18} />}
+                {dataFlowIssues.length > 0
+                  ? `${dataFlowIssues.length} Data Flow Issues`
+                  : 'Data flow is healthy'}
+              </AlertBox>
+            </FlexRow>
+
+            {/* Action buttons */}
+            <FlexRow $gap="0.75rem" $mb="1rem">
+              <GlowButton
+                variant="primary"
                 onClick={refreshDebugData}
-                sx={{ flex: 1 }}
+                style={{ flex: 1 }}
               >
+                <RefreshCw size={16} style={{ marginRight: 6 }} />
                 Refresh Diagnostics
               </GlowButton>
-              
-              <GlowButton 
-                variant="secondary" 
+
+              <GlowButton
+                variant="secondary"
                 onClick={syncSessionsAcrossDashboards}
-                sx={{ flex: 1 }}
+                style={{ flex: 1 }}
               >
                 Force Session Sync
               </GlowButton>
-            </Box>
+            </FlexRow>
 
-            <Accordion sx={{ mb: 2, backgroundColor: '#2d2d42' }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <CalendarMonthIcon sx={{ mr: 1 }} />
-                  <Typography>Session Purchase Flow Analysis</Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="subtitle2" gutterBottom>
-                  This analysis tracks how sessions purchases flow through your system
-                </Typography>
-                
-                {sessionPurchaseFlow.length > 0 ? (
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Order ID</TableCell>
-                          <TableCell>Date</TableCell>
-                          <TableCell>Package</TableCell>
-                          <TableCell>Client</TableCell>
-                          <TableCell>Sessions Credited</TableCell>
-                          <TableCell>Sessions Scheduled</TableCell>
-                          <TableCell>Status</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {sessionPurchaseFlow.map((flow, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{flow.orderId}</TableCell>
-                            <TableCell>{new Date(flow.orderDate).toLocaleDateString()}</TableCell>
-                            <TableCell>{flow.packageName}</TableCell>
-                            <TableCell>{flow.clientName}</TableCell>
-                            <TableCell>
-                              {flow.sessionsCredited ? 
-                                <CheckCircleIcon color="success" /> : 
-                                <WarningIcon color="error" />}
-                            </TableCell>
-                            <TableCell>{flow.sessionsScheduled}</TableCell>
-                            <TableCell>
-                              <Chip 
-                                label={flow.status} 
-                                color={flow.status === 'Complete' ? 'success' : 
-                                       flow.status.includes('Partial') ? 'warning' : 'error'} 
-                                size="small"
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Typography>No session purchases found to analyze</Typography>
-                )}
-              </AccordionDetails>
-            </Accordion>
+            {/* Session Purchase Flow Analysis */}
+            <Collapsible
+              icon={<CalendarDays size={18} color={theme.textMuted} />}
+              title="Session Purchase Flow Analysis"
+            >
+              <Subtitle>
+                This analysis tracks how sessions purchases flow through your system
+              </Subtitle>
 
-            <Accordion sx={{ mb: 2, backgroundColor: '#2d2d42' }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <ShoppingCartIcon sx={{ mr: 1 }} />
-                  <Typography>Cart & Order System Status</Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>Cart System Status</Typography>
-                    <List>
-                      <ListItem>
-                        <ListItemText 
-                          primary="API Connection" 
-                          secondary={apiStatus['/api/cart']?.ok ? 'Connected' : 'Disconnected'} 
-                          primaryTypographyProps={{
-                            style: { color: apiStatus['/api/cart']?.ok ? '#4caf50' : '#f44336' }
-                          }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText 
-                          primary="Active Cart Items" 
-                          secondary={cartData.length.toString()} 
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText 
-                          primary="Session Packages in Cart" 
-                          secondary={cartData.filter((item: any) => 
-                            item.itemType === 'training'
-                          ).length.toString()} 
-                        />
-                      </ListItem>
-                    </List>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>Order System Status</Typography>
-                    <List>
-                      <ListItem>
-                        <ListItemText 
-                          primary="API Connection" 
-                          secondary={apiStatus['/api/orders']?.ok ? 'Connected' : 'Disconnected'} 
-                          primaryTypographyProps={{
-                            style: { color: apiStatus['/api/orders']?.ok ? '#4caf50' : '#f44336' }
-                          }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText 
-                          primary="Total Orders" 
-                          secondary={orderData.length.toString()} 
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText 
-                          primary="Orders with Sessions" 
-                          secondary={orderData.filter(order => 
-                            order.items?.some((item: any) => item.itemType === 'training')
-                          ).length.toString()} 
-                        />
-                      </ListItem>
-                    </List>
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
+              {sessionPurchaseFlow.length > 0 ? (
+                <TableScroll>
+                  <StyledTable>
+                    <thead>
+                      <tr>
+                        <Th>Order ID</Th>
+                        <Th>Date</Th>
+                        <Th>Package</Th>
+                        <Th>Client</Th>
+                        <Th>Sessions Credited</Th>
+                        <Th>Sessions Scheduled</Th>
+                        <Th>Status</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessionPurchaseFlow.map((flow, index) => (
+                        <tr key={index}>
+                          <Td>{flow.orderId}</Td>
+                          <Td>{new Date(flow.orderDate).toLocaleDateString()}</Td>
+                          <Td>{flow.packageName}</Td>
+                          <Td>{flow.clientName}</Td>
+                          <Td>
+                            {flow.sessionsCredited
+                              ? <CheckCircle2 size={18} color={theme.success} />
+                              : <AlertTriangle size={18} color={theme.error} />}
+                          </Td>
+                          <Td>{flow.sessionsScheduled}</Td>
+                          <Td>
+                            <StyledChip $variant={chipVariant(flow.status)}>
+                              {flow.status}
+                            </StyledChip>
+                          </Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </StyledTable>
+                </TableScroll>
+              ) : (
+                <BodyText>No session purchases found to analyze</BodyText>
+              )}
+            </Collapsible>
 
-            <Accordion sx={{ mb: 2, backgroundColor: '#2d2d42' }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <PeopleIcon sx={{ mr: 1 }} />
-                  <Typography>Cross-Dashboard Data Status</Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="subtitle2" gutterBottom>
-                  Session data visibility across different dashboard views
-                </Typography>
-                
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Dashboard</TableCell>
-                        <TableCell>Session Visibility</TableCell>
-                        <TableCell>Update Method</TableCell>
-                        <TableCell>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Admin</TableCell>
-                        <TableCell>All sessions</TableCell>
-                        <TableCell>Real-time API</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={apiStatus['/api/sessions']?.ok ? "Connected" : "Error"} 
-                            color={apiStatus['/api/sessions']?.ok ? "success" : "error"} 
-                            size="small"
-                          />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Client</TableCell>
-                        <TableCell>User's sessions only</TableCell>
-                        <TableCell>Filtered API</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={apiStatus['/api/sessions']?.ok ? "Connected" : "Error"} 
-                            color={apiStatus['/api/sessions']?.ok ? "success" : "error"} 
-                            size="small"
-                          />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Trainer</TableCell>
-                        <TableCell>Assigned sessions only</TableCell>
-                        <TableCell>Filtered API</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={apiStatus['/api/sessions']?.ok ? "Connected" : "Error"} 
-                            color={apiStatus['/api/sessions']?.ok ? "success" : "error"} 
-                            size="small"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                
-                <Divider sx={{ my: 2 }} />
-                
-                <Typography variant="subtitle2" gutterBottom>
-                  Detected Data Flow Issues
-                </Typography>
-                
-                {dataFlowIssues.length > 0 ? (
-                  <List dense>
-                    {dataFlowIssues.map((issue, index) => (
-                      <ListItem key={index}>
-                        <ListItemText primary={issue} />
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography>No data flow issues detected</Typography>
-                )}
-              </AccordionDetails>
-            </Accordion>
+            {/* Cart & Order System Status */}
+            <Collapsible
+              icon={<ShoppingCart size={18} color={theme.textMuted} />}
+              title="Cart & Order System Status"
+            >
+              <GridRow>
+                <div>
+                  <SmallHeading>Cart System Status</SmallHeading>
+                  <ListWrapper>
+                    <StyledListItem>
+                      <ListPrimary $color={apiStatus['/api/cart']?.ok ? theme.success : theme.error}>
+                        API Connection
+                      </ListPrimary>
+                      <ListSecondary>
+                        {apiStatus['/api/cart']?.ok ? 'Connected' : 'Disconnected'}
+                      </ListSecondary>
+                    </StyledListItem>
+                    <StyledListItem>
+                      <ListPrimary>Active Cart Items</ListPrimary>
+                      <ListSecondary>{cartData.length.toString()}</ListSecondary>
+                    </StyledListItem>
+                    <StyledListItem>
+                      <ListPrimary>Session Packages in Cart</ListPrimary>
+                      <ListSecondary>
+                        {cartData.filter((item: any) => item.itemType === 'training').length.toString()}
+                      </ListSecondary>
+                    </StyledListItem>
+                  </ListWrapper>
+                </div>
 
-            <Accordion sx={{ mb: 2, backgroundColor: '#2d2d42' }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Test Custom Endpoint</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ display: 'flex', mb: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="API Endpoint"
-                    value={testEndpointUrl}
-                    onChange={(e) => setTestEndpointUrl(e.target.value)}
-                    placeholder="/api/example"
-                    size="small"
-                    variant="outlined"
-                    sx={{ mr: 1 }}
-                  />
-                  <GlowButton 
-                    variant="primary" 
-                    onClick={testEndpoint}
-                  >
-                    Test
-                  </GlowButton>
-                </Box>
+                <div>
+                  <SmallHeading>Order System Status</SmallHeading>
+                  <ListWrapper>
+                    <StyledListItem>
+                      <ListPrimary $color={apiStatus['/api/orders']?.ok ? theme.success : theme.error}>
+                        API Connection
+                      </ListPrimary>
+                      <ListSecondary>
+                        {apiStatus['/api/orders']?.ok ? 'Connected' : 'Disconnected'}
+                      </ListSecondary>
+                    </StyledListItem>
+                    <StyledListItem>
+                      <ListPrimary>Total Orders</ListPrimary>
+                      <ListSecondary>{orderData.length.toString()}</ListSecondary>
+                    </StyledListItem>
+                    <StyledListItem>
+                      <ListPrimary>Orders with Sessions</ListPrimary>
+                      <ListSecondary>
+                        {orderData.filter(order =>
+                          order.items?.some((item: any) => item.itemType === 'training')
+                        ).length.toString()}
+                      </ListSecondary>
+                    </StyledListItem>
+                  </ListWrapper>
+                </div>
+              </GridRow>
+            </Collapsible>
 
-                {testEndpointError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {testEndpointError}
-                  </Alert>
-                )}
+            {/* Cross-Dashboard Data Status */}
+            <Collapsible
+              icon={<Users size={18} color={theme.textMuted} />}
+              title="Cross-Dashboard Data Status"
+            >
+              <Subtitle>
+                Session data visibility across different dashboard views
+              </Subtitle>
 
-                {testEndpointResult && (
-                  <Paper sx={{ p: 2, maxHeight: '200px', overflow: 'auto' }}>
-                    <pre>
-                      {JSON.stringify(testEndpointResult, null, 2)}
-                    </pre>
-                  </Paper>
-                )}
-              </AccordionDetails>
-            </Accordion>
+              <TableScroll>
+                <StyledTable>
+                  <thead>
+                    <tr>
+                      <Th>Dashboard</Th>
+                      <Th>Session Visibility</Th>
+                      <Th>Update Method</Th>
+                      <Th>Status</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <Td>Admin</Td>
+                      <Td>All sessions</Td>
+                      <Td>Real-time API</Td>
+                      <Td>
+                        <StyledChip $variant={apiStatus['/api/sessions']?.ok ? 'success' : 'error'}>
+                          {apiStatus['/api/sessions']?.ok ? 'Connected' : 'Error'}
+                        </StyledChip>
+                      </Td>
+                    </tr>
+                    <tr>
+                      <Td>Client</Td>
+                      <Td>User's sessions only</Td>
+                      <Td>Filtered API</Td>
+                      <Td>
+                        <StyledChip $variant={apiStatus['/api/sessions']?.ok ? 'success' : 'error'}>
+                          {apiStatus['/api/sessions']?.ok ? 'Connected' : 'Error'}
+                        </StyledChip>
+                      </Td>
+                    </tr>
+                    <tr>
+                      <Td>Trainer</Td>
+                      <Td>Assigned sessions only</Td>
+                      <Td>Filtered API</Td>
+                      <Td>
+                        <StyledChip $variant={apiStatus['/api/sessions']?.ok ? 'success' : 'error'}>
+                          {apiStatus['/api/sessions']?.ok ? 'Connected' : 'Error'}
+                        </StyledChip>
+                      </Td>
+                    </tr>
+                  </tbody>
+                </StyledTable>
+              </TableScroll>
 
-            <Accordion sx={{ backgroundColor: '#2d2d42' }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Debug Log</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>
-                  {debugLogs.map((log, index) => (
-                    <div key={index} style={{ fontFamily: 'monospace', fontSize: '0.85rem', marginBottom: '4px' }}>
-                      {log}
-                    </div>
+              <StyledDivider />
+
+              <SmallHeading>Detected Data Flow Issues</SmallHeading>
+
+              {dataFlowIssues.length > 0 ? (
+                <ListWrapper>
+                  {dataFlowIssues.map((issue, index) => (
+                    <StyledListItem key={index}>
+                      <ListPrimary>{issue}</ListPrimary>
+                    </StyledListItem>
                   ))}
-                </Box>
-              </AccordionDetails>
-            </Accordion>
+                </ListWrapper>
+              ) : (
+                <BodyText>No data flow issues detected</BodyText>
+              )}
+            </Collapsible>
+
+            {/* Test Custom Endpoint */}
+            <Collapsible title="Test Custom Endpoint">
+              <FlexRow $mb="0.75rem">
+                <TextInput
+                  value={testEndpointUrl}
+                  onChange={(e) => setTestEndpointUrl(e.target.value)}
+                  placeholder="/api/example"
+                />
+                <GlowButton
+                  variant="primary"
+                  onClick={testEndpoint}
+                >
+                  Test
+                </GlowButton>
+              </FlexRow>
+
+              {testEndpointError && (
+                <AlertBox $severity="error" style={{ marginBottom: '0.75rem' }}>
+                  {testEndpointError}
+                </AlertBox>
+              )}
+
+              {testEndpointResult && (
+                <CodeBlock>
+                  {JSON.stringify(testEndpointResult, null, 2)}
+                </CodeBlock>
+              )}
+            </Collapsible>
+
+            {/* Debug Log */}
+            <Collapsible title="Debug Log">
+              <LogScroll>
+                {debugLogs.map((log, index) => (
+                  <LogLine key={index}>{log}</LogLine>
+                ))}
+              </LogScroll>
+            </Collapsible>
           </>
         )}
-      </Paper>
-    </Box>
+      </GlassPanel>
+    </Wrapper>
   );
 };
 
