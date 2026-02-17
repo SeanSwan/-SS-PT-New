@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
-import { IconButton, Tooltip } from '../ui/primitives';
+import { Tooltip } from '../ui/primitives';
 import { Eye, EyeOff } from 'lucide-react';
 
 // Local storage key for saving preference

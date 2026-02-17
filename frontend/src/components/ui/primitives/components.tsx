@@ -770,9 +770,16 @@ export interface ListItemButtonProps extends React.LiHTMLAttributes<HTMLLIElemen
 }
 
 export const ListItemButton = forwardRef<HTMLLIElement, ListItemButtonProps>(
-  ({ selected = false, sx, style, ...rest }, ref) => {
+  ({ selected = false, sx, style, onClick, onKeyDown, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
-    return <ListItemButtonRoot ref={ref} $selected={selected} role="button" tabIndex={0} style={mergeStyle(style, sx, system)} {...rest} />;
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLLIElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).click();
+      }
+      onKeyDown?.(e);
+    };
+    return <ListItemButtonRoot ref={ref} $selected={selected} role="button" tabIndex={0} onClick={onClick} onKeyDown={handleKeyDown} style={mergeStyle(style, sx, system)} {...rest} />;
   }
 );
 ListItemButton.displayName = 'ListItemButton';
@@ -841,11 +848,20 @@ export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
 }
 
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
-  ({ checked = false, color = '#00FFFF', disabled = false, sx, style, ...rest }, ref) => {
+  ({ checked, defaultChecked, color = '#00FFFF', disabled = false, sx, style, onChange, ...rest }, ref) => {
+    const isControlled = checked !== undefined;
+    const [internalChecked, setInternalChecked] = React.useState(defaultChecked ?? false);
+    const resolvedChecked = isControlled ? checked : internalChecked;
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!isControlled) setInternalChecked(e.target.checked);
+      onChange?.(e);
+    };
+
     return (
-      <SwitchLabel $checked={!!checked} $switchColor={color} $disabled={disabled} style={mergeStyle(style, sx, system)}>
-        <input ref={ref} type="checkbox" checked={checked} disabled={disabled} {...rest} />
+      <SwitchLabel $checked={!!resolvedChecked} $switchColor={color} $disabled={disabled} style={mergeStyle(style, sx, system)}>
+        <input ref={ref} type="checkbox" {...(isControlled ? { checked } : { defaultChecked })} disabled={disabled} onChange={handleChange} {...rest} />
         <span />
       </SwitchLabel>
     );

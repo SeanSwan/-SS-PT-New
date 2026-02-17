@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useSwanTheme, useMediaQuery } from '../../styles/mui-replacements';
+import { useMediaQuery } from '../../styles/mui-replacements';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext';
@@ -45,8 +45,7 @@ export const useHeaderState = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // ===================== MATERIAL UI HOOKS =====================
-  const swanTheme = useSwanTheme();
+  // ===================== RESPONSIVE HOOKS =====================
   const isMobile = useMediaQuery((t) => t.breakpoints.down('md'));
   const isTablet = useMediaQuery((t) => t.breakpoints.down('lg'));
   
