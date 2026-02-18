@@ -37,8 +37,8 @@ async function start() {
       ]);
       console.log('Migrations completed successfully');
     } catch (err) {
-      console.error('Migration warning (non-fatal):', err.message);
-      // Continue — server can still start even if some migrations fail
+      console.error('FATAL: Migration failed:', err.message);
+      process.exit(1);
     }
   }
 

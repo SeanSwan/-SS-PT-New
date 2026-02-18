@@ -107,7 +107,7 @@ router.get('/filters', async (req, res) => {
       sequelize.query(
         `SELECT DISTINCT el.primary_muscle
          FROM exercise_videos ev
-         JOIN exercise_library el ON ev.exercise_id = el.id
+         JOIN exercise_library el ON ev.exercise_id = el.id AND el."deletedAt" IS NULL
          WHERE ev.approved = true AND ev.is_public = true AND ev."deletedAt" IS NULL
          ORDER BY el.primary_muscle`,
         { type: QueryTypes.SELECT }
@@ -115,7 +115,7 @@ router.get('/filters', async (req, res) => {
       sequelize.query(
         `SELECT DISTINCT el.equipment
          FROM exercise_videos ev
-         JOIN exercise_library el ON ev.exercise_id = el.id
+         JOIN exercise_library el ON ev.exercise_id = el.id AND el."deletedAt" IS NULL
          WHERE ev.approved = true AND ev.is_public = true AND ev."deletedAt" IS NULL
          ORDER BY el.equipment`,
         { type: QueryTypes.SELECT }
@@ -152,7 +152,7 @@ router.get('/:id', async (req, res) => {
         el.equipment, el.difficulty, el.nasm_phases AS phases,
         el.movement_patterns, el.contraindications
       FROM exercise_videos ev
-      JOIN exercise_library el ON ev.exercise_id = el.id
+      JOIN exercise_library el ON ev.exercise_id = el.id AND el."deletedAt" IS NULL
       WHERE ev.id = :id AND ev.approved = true AND ev.is_public = true AND ev."deletedAt" IS NULL`,
       { replacements: { id: req.params.id }, type: QueryTypes.SELECT }
     );
