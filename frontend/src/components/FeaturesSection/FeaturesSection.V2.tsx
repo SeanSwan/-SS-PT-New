@@ -28,8 +28,7 @@ import ParallaxSectionWrapper from "../ui-kit/parallax/ParallaxSectionWrapper";
 
 // Hooks
 import { useReducedMotion } from "../../hooks/useReducedMotion";
-import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
-import paintAb1Image from "../../assets/paint-ab1.png";
+import SectionVideoBackground from "../ui/backgrounds/SectionVideoBackground";
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
@@ -357,7 +356,12 @@ const FeaturesSectionV2: React.FC = () => {
 
   return (
     <SectionContainer id="services" ref={ref}>
-      <ParallaxImageBackground src={paintAb1Image} overlayOpacity={0.5} overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.5), rgba(26, 26, 60, 0.5))" />
+      <SectionVideoBackground
+        src="/Swan-mov-2.mp4"
+        fallbackGradient="linear-gradient(135deg, #09041e 0%, #1a1a3c 100%)"
+        overlayOpacity={0.5}
+        overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.5), rgba(26, 26, 60, 0.5))"
+      />
       <BackgroundGlow />
 
       {/* v2.0 Parallax wrapper for mid-ground depth */}
