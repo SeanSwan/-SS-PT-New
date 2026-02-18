@@ -18,8 +18,8 @@
 
 html {
   overflow-x: hidden;
-  width: 100vw;
-  height: 100%;
+  width: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   scroll-behavior: smooth; /* Smooth scrolling for better UX */
@@ -34,15 +34,15 @@ body {
   background-color: var(--dark-bg);
   color: white;
   overflow-x: hidden;
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
-  height: 100%;
+  min-height: 100%;
   position: relative;
   text-rendering: optimizeLegibility; /* Improve text rendering */
 }
 
 #root {
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   overflow-x: hidden;
   position: relative;
@@ -75,23 +75,9 @@ h1, h2, h3, h4, h5, h6, p, ul, ol {
   margin: 0;
 }
 
-/* Additional fix for container-related issues with performance optimization */
-.container, 
-section, 
-main, 
-div, 
-header, 
-footer {
-  max-width: 100vw;
+/* Keep standard container behavior without forcing every element */
+.container {
   box-sizing: border-box;
-  will-change: transform, opacity; /* Hint for browser optimization */
-}
-
-/* Apply content-visibility for off-screen elements to improve performance */
-section:not(.hero-section),
-footer {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 500px; /* Provide size hint for better rendering */
 }
 
 /* Ensure main content containers don't overflow */
@@ -104,7 +90,7 @@ main, .content {
 body > div,
 #__next,
 #root {
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   overflow-x: hidden;
   margin: 0;
@@ -132,13 +118,6 @@ body > div,
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* Improve loading performance by telling browser which elements will animate */
-.animated, 
-.hover-effect, 
-[data-scroll] {
-  will-change: transform, opacity;
 }
 
 /* Optimize for large screens */
