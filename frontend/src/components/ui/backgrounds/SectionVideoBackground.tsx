@@ -65,13 +65,10 @@ const Overlay = styled.div<{ $opacity: number; $gradient?: string }>`
   position: absolute;
   inset: 0;
   z-index: 1;
+  /* When gradient provided, its rgba alpha values control transparency.
+     No extra opacity stacking to avoid doubly-dark overlays. */
   background: ${({ $gradient, $opacity }) =>
     $gradient || `rgba(10, 10, 26, ${$opacity})`};
-
-  ${({ $gradient, $opacity }) =>
-    $gradient && $opacity < 1
-      ? `opacity: ${$opacity};`
-      : ''}
 `;
 
 const Content = styled.div`
