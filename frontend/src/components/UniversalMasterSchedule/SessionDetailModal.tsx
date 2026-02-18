@@ -18,8 +18,8 @@ import {
   BodyText,
   Caption,
   FlexBox,
-  GlowButton
 } from './ui';
+import GlowButton from '../ui/buttons/GlowButton';
 
 interface Session {
   id: number;
