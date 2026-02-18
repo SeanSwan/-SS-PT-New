@@ -11,8 +11,8 @@ services:
     branch: main
     rootDir: ./
     buildCommand: |
-      # Install backend dependencies
-      cd backend && npm install
+      # Install backend dependencies and run migrations
+      cd backend && npm install && npm run migrate:production
       # Install frontend dependencies and build
       cd ../frontend && npm install && npm run build
     startCommand: cd backend && npm start
