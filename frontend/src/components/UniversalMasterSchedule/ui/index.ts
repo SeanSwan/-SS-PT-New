@@ -53,3 +53,7 @@ export {
   roundUpToStep,
   validateTimeRange,
 } from './TimeWheelPicker';
+
+// Searchable Select
+export { default as SearchableSelect } from './SearchableSelect';
+export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect';

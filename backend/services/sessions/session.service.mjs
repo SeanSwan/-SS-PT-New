@@ -1492,6 +1492,10 @@ class UnifiedSessionService {
             client.availableSessions = (client.availableSessions || 0) + 1;
             await client.save({ transaction });
 
+            // Mark credit as restored (idempotency flag for canonical restoreSessionCredit)
+            session.sessionCreditRestored = true;
+            await session.save({ transaction });
+
             logger.info(`[UnifiedSessionService] Restored 1 session to user ${client.id} balance after cancellation`);
           }
         }
@@ -1946,13 +1950,8 @@ class UnifiedSessionService {
       
       // **CRITICAL: Role-based filtering**
       if (user.role === 'client') {
-        // Clients see stats for their sessions only
-        whereClause = {
-          [Op.or]: [
-            { userId: user.id },
-            { status: 'available' }
-          ]
-        };
+        // Client total = only THEIR sessions (not all available system slots)
+        whereClause = { userId: user.id };
       } else if (user.role === 'trainer') {
         // Trainers see stats for their assigned sessions
         whereClause = { trainerId: user.id };
@@ -2011,6 +2010,15 @@ class UnifiedSessionService {
           }
         });
         stats.userBookedSessions = userBookedSessions;
+
+        // Available system-wide slots for booking (separate from client's own sessions)
+        const availableSlots = await this.Session.count({
+          where: {
+            status: 'available',
+            sessionDate: { [Op.gt]: now }
+          }
+        });
+        stats.availableSlots = availableSlots;
       } else if (user.role === 'trainer') {
         const assignedSessions = await this.Session.count({
           where: {
@@ -2073,7 +2081,7 @@ class UnifiedSessionService {
       if (user.role === 'admin') {
         const clients = await this.User.findAll({
           where: { role: 'client' },
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
         });
         return clients;
       }
@@ -2108,7 +2116,7 @@ class UnifiedSessionService {
           id: { [Op.in]: clientIds },
           role: 'client'
         },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
       });
 
       logger.info(`[UnifiedSessionService] Trainer ${user.id} viewing ${clients.length} assigned clients`);

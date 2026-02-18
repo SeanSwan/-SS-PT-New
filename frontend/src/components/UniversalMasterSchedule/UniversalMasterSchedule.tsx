@@ -440,13 +440,24 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setSelectedTemplateId(templateId);
     if (!templateId) return;
     const template = applyTemplate(templateId);
-    if (!template) return;
-    setFormData((prev) => ({
+    if (!template) {
+      warning('Template not found. It may have been deleted.');
+      console.warn('[Schedule] Template not found:', templateId);
+      return;
+    }
+
+    setFormData((prev: typeof formData) => ({
       ...prev,
       duration: template.duration,
       location: template.location,
-      notes: template.notes || prev.notes
+      notes: template.notes || prev.notes,
+      ...(template.sessionTypeId && { sessionTypeId: template.sessionTypeId }),
+      ...(template.trainerId && { trainerId: template.trainerId }),
+      ...(template.bufferBefore !== undefined && { bufferBefore: template.bufferBefore }),
+      ...(template.bufferAfter !== undefined && { bufferAfter: template.bufferAfter }),
     }));
+
+    success(`Template "${template.name}" applied.`);
   };
 
   const handleSaveTemplate = (name: string) => {
@@ -455,7 +466,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       name,
       duration: formData.duration,
       location: formData.location,
-      notes: formData.notes || undefined
+      notes: formData.notes || undefined,
+      ...(formData.sessionTypeId && { sessionTypeId: Number(formData.sessionTypeId) }),
+      ...(formData.trainerId && { trainerId: Number(formData.trainerId) }),
+      ...(formData.bufferBefore !== undefined && { bufferBefore: Number(formData.bufferBefore) }),
+      ...(formData.bufferAfter !== undefined && { bufferAfter: Number(formData.bufferAfter) }),
     });
     success('Template saved.');
   };

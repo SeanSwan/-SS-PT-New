@@ -84,6 +84,61 @@ const shouldNotifyClient = ({ user, channel, notifyClient = true, force = false 
   return true;
 };
 
+/**
+ * restoreSessionCredit - Canonical credit-restore function for session cancellations
+ *
+ * Idempotent: checks session.sessionCreditRestored to prevent double-crediting.
+ * Used by DELETE /cancel/:sessionId, PATCH /:sessionId/cancel, and optionally
+ * by session.service.mjs cancelSession.
+ *
+ * @param {object} session - Sequelize Session instance (must have id, userId, sessionCreditRestored)
+ * @param {object} User - Sequelize User model class (for findByPk)
+ * @param {object} options
+ * @param {string} options.chargeType - 'none' | 'full' | 'partial' | 'late_fee' (default 'none')
+ * @param {boolean} options.restoreCredit - set false to skip restoration (default true)
+ * @param {object} options.logger - logger with .info() method
+ * @returns {Promise<{restored: boolean, newBalance: number|null, reason?: string}>}
+ */
+async function restoreSessionCredit(session, User, options = {}) {
+  const { chargeType = 'none', restoreCredit = true, logger: log } = options;
+
+  // Idempotency guard - prevent double-crediting
+  if (session.sessionCreditRestored === true) {
+    if (log) log.info(`[CreditRestore] Session ${session.id} already restored, skipping`);
+    return { restored: false, newBalance: null, reason: 'already_restored' };
+  }
+
+  // Only restore for no-charge cancellations
+  if (chargeType !== 'none') {
+    return { restored: false, newBalance: null, reason: 'charged' };
+  }
+
+  // Must explicitly want restoration
+  if (restoreCredit === false) {
+    return { restored: false, newBalance: null, reason: 'opted_out' };
+  }
+
+  // Must have a client assigned
+  if (!session.userId) {
+    return { restored: false, newBalance: null, reason: 'no_client' };
+  }
+
+  const client = await User.findByPk(session.userId);
+  if (!client) {
+    return { restored: false, newBalance: null, reason: 'client_not_found' };
+  }
+
+  const newBalance = (client.availableSessions || 0) + 1;
+  await client.update({ availableSessions: newBalance });
+
+  session.sessionCreditRestored = true;
+  await session.save();
+
+  if (log) log.info(`[CreditRestore] Restored 1 credit for user ${session.userId}. New balance: ${newBalance}`);
+
+  return { restored: true, newBalance };
+}
+
 const buildRecurrenceDates = ({ startDate, recurrenceRule }) => {
   const start = new Date(startDate);
   if (Number.isNaN(start.getTime())) {
@@ -1841,6 +1896,12 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     session.cancelledBy = req.user.id;
     await session.save();
 
+    // Restore session credit (idempotent)
+    const creditResult = await restoreSessionCredit(session, User, { logger });
+    if (creditResult.restored) {
+      console.log(`[Cancel] Credit restored for user ${session.userId}. Balance: ${creditResult.newBalance}`);
+    }
+
     // Notify relevant parties
     const user = await User.findByPk(session.userId);
     const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : session.notifyClient !== false;
@@ -2031,7 +2092,7 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
     session.cancelledBy = req.user.id;
     session.cancellationChargeType = chargeType;
     session.cancellationChargeAmount = actualChargeAmount;
-    session.sessionCreditRestored = restoreCredit && chargeType === 'none';
+    // Note: sessionCreditRestored is set by restoreSessionCredit() after save, not here
     session.cancellationChargedAt = actualChargeAmount > 0 ? new Date() : null;
 
     // MindBody Parity: Set decision status for pending admin review
@@ -2041,17 +2102,13 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
 
     await session.save();
 
-    // Restore session credit to client if applicable
-    let creditRestored = false;
-    if (restoreCredit && chargeType === 'none' && session.sessionDeducted && session.userId) {
-      const client = await User.findByPk(session.userId);
-      if (client) {
-        const currentSessions = client.availableSessions || 0;
-        await client.update({ availableSessions: currentSessions + 1 });
-        creditRestored = true;
-        logger.info(`Session credit restored for user ${session.userId}. New balance: ${currentSessions + 1}`);
-      }
-    }
+    // Restore session credit (idempotent, respects charge type)
+    const creditResult = await restoreSessionCredit(session, User, {
+      chargeType,
+      restoreCredit,
+      logger
+    });
+    const creditRestored = creditResult.restored;
 
     // Format session date for notifications
     const sessionDateFormatted = new Date(session.sessionDate).toLocaleString('en-US', {
@@ -5209,6 +5266,7 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
   }
 });
 
+export { restoreSessionCredit };
 export default router;
 
 

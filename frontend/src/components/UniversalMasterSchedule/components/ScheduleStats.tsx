@@ -89,9 +89,9 @@ const CARD_CONFIGS: CardConfig[] = [
   },
   {
     key: 'other',
-    label: 'Other',
-    subtitle: 'Cancelled/blocked/etc',
-    definition: 'Sessions with cancelled, blocked, or requested status',
+    label: 'Cancelled',
+    subtitle: 'Cancelled sessions',
+    definition: 'Sessions that were cancelled',
     color: TEAL.warn,
     getValue: (s) => s.other,
   },
@@ -125,7 +125,14 @@ function getSessionDate(session: any): Date {
 const KNOWN_STATUSES = ['available', 'scheduled', 'confirmed', 'completed'];
 
 function getSessionsForFilter(sessions: any[], filterKey: string): any[] {
-  if (filterKey === 'total') return sessions;
+  if (filterKey === 'total') {
+    return sessions.filter(s => {
+      if (s.status === 'available') return isUpcoming(s);
+      if (s.status === 'scheduled' || s.status === 'confirmed') return isUpcoming(s);
+      if (s.status === 'completed') return true;
+      return false;
+    });
+  }
   if (filterKey === 'scheduled') {
     return sessions.filter(s =>
       (s.status === 'scheduled' || s.status === 'confirmed') && isUpcoming(s)
@@ -135,9 +142,7 @@ function getSessionsForFilter(sessions: any[], filterKey: string): any[] {
     return sessions.filter(s => s.status === 'available' && isUpcoming(s));
   }
   if (filterKey === 'other') {
-    return sessions.filter(s =>
-      !s.status || !KNOWN_STATUSES.includes(s.status)
-    );
+    return sessions.filter(s => s.status === 'cancelled');
   }
   return sessions.filter(s => s.status === filterKey);
 }
@@ -205,14 +210,17 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
       (s.status === 'scheduled' || s.status === 'confirmed') && isUpcoming(s)
     ).length;
     const completed = sessions.filter(s => s.status === 'completed').length;
-    const total = sessions.length;
-    const other = total - allAvailable.length - scheduled - completed;
+    const cancelled = sessions.filter(s => s.status === 'cancelled').length;
+
+    // Total = upcoming scheduled + upcoming available + completed (meaningful active count)
+    const total = upcomingAvailable.length + scheduled + completed;
+
     return {
       total,
       available: upcomingAvailable.length,
       scheduled,
       completed,
-      other,
+      other: cancelled, // Repurpose "other" field to show cancelled count
       staleAvailable,
     };
   }, [sessions]);
@@ -300,7 +308,7 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
         {stats.other > 0 && (
           <OtherStatusNote>
             <Info size={13} />
-            {stats.other} session{stats.other !== 1 ? 's' : ''} in other statuses (cancelled, blocked, requested)
+            {stats.other} cancelled session{stats.other !== 1 ? 's' : ''}
           </OtherStatusNote>
         )}
       </NotesRow>
@@ -342,7 +350,7 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
                     : statusFilter === 'scheduled'
                     ? 'Sessions will appear here once clients book'
                     : statusFilter === 'other'
-                    ? 'No cancelled, blocked, or requested sessions found'
+                    ? 'No cancelled sessions found'
                     : 'Sessions will appear here once completed'}
                 </EmptySubtext>
               </EmptyState>
