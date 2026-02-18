@@ -4,7 +4,8 @@ import styled, { css } from "styled-components";
 import { motion, useInView } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
-import SectionVideoBackground from "../../../components/ui/backgrounds/SectionVideoBackground";
+import ParallaxImageBackground from "../../../components/ui/backgrounds/ParallaxImageBackground";
+import crystalSwanImage from "../../../assets/crystal-swan.png";
 
 // ═══════════════════════════════════════════════════
 // Programs Overview V3 — Ethereal Wilderness Theme
@@ -351,9 +352,8 @@ const ProgramsOverviewV3: React.FC = () => {
 
   return (
     <Section id="programs">
-      <SectionVideoBackground
-        src="/swan-silver-wing.mp4"
-        fallbackGradient="linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 100%)"
+      <ParallaxImageBackground
+        src={crystalSwanImage}
         overlayOpacity={0.55}
       />
       <Container>
