@@ -1,71 +1,94 @@
 import React from 'react';
 import styled from 'styled-components';
-import { X, Play } from 'lucide-react';
+import { X } from 'lucide-react';
 
-interface Video {
+interface VideoData {
   id: string;
   title: string;
   thumbnail_url: string;
   duration_seconds: number;
   video_type: 'upload' | 'youtube' | 'vimeo';
+  video_id?: string;
+  video_url?: string;
   phases?: number[];
+  description?: string;
+  primary_muscle?: string;
+  equipment?: string;
 }
 
 interface VideoPlayerModalProps {
-  video: Video;
+  video: VideoData;
   onClose: () => void;
 }
 
-/**
- * Full-screen video player modal with chapters and exercise details
- *
- * Features:
- * - HLS video playback
- * - YouTube embed support
- * - Chapter navigation
- * - Exercise details sidebar
- * - Form cues overlay
- * - Analytics tracking
- *
- * TODO: Implement full video player with video.js or react-player
- */
 const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ video, onClose }) => {
+  const renderPlayer = () => {
+    if (video.video_type === 'youtube' && video.video_id) {
+      return (
+        <YouTubeEmbed
+          src={`https://www.youtube.com/embed/${video.video_id}?autoplay=1&rel=0`}
+          title={video.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    if (video.video_type === 'upload' && (video.video_url || video.video_id)) {
+      const src = video.video_url || `/uploads/videos/${video.video_id}`;
+      return (
+        <HTML5Video controls autoPlay>
+          <source src={src} type="video/mp4" />
+          Your browser does not support the video tag.
+        </HTML5Video>
+      );
+    }
+    // Fallback — try YouTube ID pattern (11 chars)
+    if (video.video_id && /^[a-zA-Z0-9_-]{11}$/.test(video.video_id)) {
+      return (
+        <YouTubeEmbed
+          src={`https://www.youtube.com/embed/${video.video_id}?autoplay=1&rel=0`}
+          title={video.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    return <NoVideoMsg>No video source available</NoVideoMsg>;
+  };
+
   return (
     <Overlay onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
         <Header>
           <Title>{video.title}</Title>
-          <CloseButton onClick={onClose}>
+          <CloseButton onClick={onClose} aria-label="Close video">
             <X size={24} />
           </CloseButton>
         </Header>
 
         <PlayerContainer>
-          <VideoPlaceholder>
-            <PlayIcon>
-              <Play size={64} />
-            </PlayIcon>
-            <PlaceholderText>Video Player - Coming Soon!</PlaceholderText>
-            <PlaceholderSubtext>
-              {video.video_type === 'youtube' ? 'YouTube Video' : 'Uploaded Video'}
-              <br />
-              Duration: {Math.floor(video.duration_seconds / 60)}:{(video.duration_seconds % 60).toString().padStart(2, '0')}
-            </PlaceholderSubtext>
-          </VideoPlaceholder>
+          {renderPlayer()}
         </PlayerContainer>
 
-        {video.phases && video.phases.length > 0 && (
-          <Details>
+        <Details>
+          {video.description && (
             <DetailSection>
-              <DetailLabel>NASM Phases:</DetailLabel>
-              <PhaseBadges>
-                {video.phases.map(phase => (
-                  <PhaseBadge key={phase}>Phase {phase}</PhaseBadge>
-                ))}
-              </PhaseBadges>
+              <DetailLabel>Description</DetailLabel>
+              <DetailText>{video.description}</DetailText>
             </DetailSection>
-          </Details>
-        )}
+          )}
+          <MetaRow>
+            {video.primary_muscle && (
+              <MetaBadge>{video.primary_muscle.replace(/_/g, ' ')}</MetaBadge>
+            )}
+            {video.equipment && (
+              <MetaBadge>{video.equipment.replace(/_/g, ' ')}</MetaBadge>
+            )}
+            {video.phases && video.phases.length > 0 && video.phases.map(phase => (
+              <PhaseBadge key={phase}>Phase {phase}</PhaseBadge>
+            ))}
+          </MetaRow>
+        </Details>
       </Modal>
     </Overlay>
   );
@@ -86,14 +109,13 @@ const Overlay = styled.div`
 `;
 
 const Modal = styled.div`
-  background: var(--dark-bg, #0a0e1a);
-  border: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
+  background: #0a0e1a;
+  border: 1px solid rgba(0, 206, 209, 0.2);
   border-radius: 16px;
   width: 95%;
   max-width: 1200px;
   max-height: 95vh;
   overflow-y: auto;
-  backdrop-filter: blur(10px);
 `;
 
 const Header = styled.div`
@@ -101,75 +123,62 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
+  border-bottom: 1px solid rgba(0, 206, 209, 0.2);
 `;
 
 const Title = styled.h2`
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-primary, #FFFFFF);
+  color: #FFFFFF;
   margin: 0;
 `;
 
 const CloseButton = styled.button`
   background: transparent;
   border: none;
-  color: var(--text-secondary, #B8B8B8);
+  color: #B8B8B8;
   cursor: pointer;
   padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
-
-  &:hover {
-    color: var(--primary-cyan, #00CED1);
-  }
+  &:hover { color: #00CED1; }
 `;
 
 const PlayerContainer = styled.div`
   position: relative;
   width: 100%;
-  padding-top: 56.25%; /* 16:9 aspect ratio */
-  background: #000000;
+  aspect-ratio: 16 / 9;
+  background: #000;
 `;
 
-const VideoPlaceholder = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
+const YouTubeEmbed = styled.iframe`
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary, #B8B8B8);
+  border: none;
 `;
 
-const PlayIcon = styled.div`
-  color: var(--primary-cyan, #00CED1);
-  opacity: 0.5;
-  margin-bottom: 16px;
+const HTML5Video = styled.video`
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 `;
 
-const PlaceholderText = styled.div`
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-primary, #FFFFFF);
-  margin-bottom: 8px;
-`;
-
-const PlaceholderSubtext = styled.div`
-  font-size: 14px;
-  color: var(--text-secondary, #B8B8B8);
-  text-align: center;
-  line-height: 1.6;
+const NoVideoMsg = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #B8B8B8;
+  font-size: 18px;
 `;
 
 const Details = styled.div`
-  padding: 24px;
-  border-top: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
+  padding: 20px 24px;
+  border-top: 1px solid rgba(0, 206, 209, 0.2);
 `;
 
 const DetailSection = styled.div`
@@ -179,26 +188,44 @@ const DetailSection = styled.div`
 const DetailLabel = styled.div`
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary, #B8B8B8);
+  color: #B8B8B8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 `;
 
-const PhaseBadges = styled.div`
+const DetailText = styled.p`
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+`;
+
+const MetaRow = styled.div`
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 `;
 
-const PhaseBadge = styled.span`
-  background: var(--glass-bg, rgba(157, 78, 221, 0.2));
-  border: 1px solid var(--accent-purple, #9D4EDD);
+const MetaBadge = styled.span`
+  background: rgba(0, 206, 209, 0.1);
+  border: 1px solid rgba(0, 206, 209, 0.3);
   border-radius: 12px;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--accent-purple, #9D4EDD);
+  color: #00CED1;
+  text-transform: capitalize;
+`;
+
+const PhaseBadge = styled.span`
+  background: rgba(157, 78, 221, 0.2);
+  border: 1px solid #9D4EDD;
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9D4EDD;
   text-transform: uppercase;
 `;
 

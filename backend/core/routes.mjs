@@ -84,6 +84,7 @@ import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
 import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
+import publicVideoRoutes from '../routes/publicVideoRoutes.mjs';
 import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
 import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
 import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
@@ -208,6 +209,7 @@ export const setupRoutes = async (app) => {
   // ===================== BUSINESS LOGIC ROUTES =====================
   app.use('/api/cart', cartRoutes);
   app.use('/api/storefront', storefrontRoutes);
+  app.use('/api/videos', publicVideoRoutes); // Public video library (no auth)
   // ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
   // app.use('/api/checkout', checkoutRoutes);
   // app.use('/api/payments', paymentRoutes);
