@@ -124,6 +124,7 @@ const StatsSection = styled.section`
   padding: 6rem 2rem;
   font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
   background: ${T.bg};
+  border-top: 1px solid rgba(0, 212, 170, 0.25);
   /* Override global content-visibility: auto that breaks Recharts offscreen */
   content-visibility: visible;
 
