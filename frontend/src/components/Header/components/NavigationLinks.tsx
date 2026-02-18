@@ -249,8 +249,16 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
         
         {renderDesktopLinks()}
         
-        <StyledNavLink 
-          to="/contact" 
+        <StyledNavLink
+          to="/video-library"
+          $isActive={isActive('/video-library')}
+          variants={itemVariants}
+        >
+          Video Library
+        </StyledNavLink>
+
+        <StyledNavLink
+          to="/contact"
           $isActive={isActive('/contact')}
           variants={itemVariants}
         >
