@@ -89,6 +89,10 @@ router.get('/', async (req, res) => {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (err) {
+    // Handle missing tables gracefully
+    if (err.message?.includes('does not exist') || err.message?.includes('relation')) {
+      return res.json({ success: true, videos: [], pagination: { page: 1, limit: 20, total: 0, pages: 0 } });
+    }
     console.error('[publicVideos] list error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to load videos' });
   }
@@ -126,6 +130,9 @@ router.get('/filters', async (req, res) => {
       types: ['youtube', 'upload'],
     });
   } catch (err) {
+    if (err.message?.includes('does not exist') || err.message?.includes('relation')) {
+      return res.json({ success: true, muscles: [], equipment: [], phases: [1,2,3,4,5], types: ['youtube','upload'] });
+    }
     console.error('[publicVideos] filters error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to load filters' });
   }
@@ -162,6 +169,9 @@ router.get('/:id', async (req, res) => {
 
     res.json({ success: true, video });
   } catch (err) {
+    if (err.message?.includes('does not exist') || err.message?.includes('relation')) {
+      return res.status(404).json({ success: false, message: 'Video not found' });
+    }
     console.error('[publicVideos] get error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to load video' });
   }
