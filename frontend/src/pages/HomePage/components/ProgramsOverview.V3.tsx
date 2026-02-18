@@ -38,7 +38,6 @@ const Section = styled.section`
   position: relative;
   overflow: hidden;
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
-  border-bottom: 1px solid rgba(0, 212, 170, 0.25);
 
   @media (max-width: 768px) {
     padding: 4rem 1rem;

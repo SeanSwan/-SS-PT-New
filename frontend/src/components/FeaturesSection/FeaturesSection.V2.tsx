@@ -65,6 +65,7 @@ const SectionContainer = styled.section`
   );
   position: relative;
   overflow: hidden;
+  border-top: 1px solid rgba(0, 212, 170, 0.25);
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 
   @media (max-width: 768px) {
