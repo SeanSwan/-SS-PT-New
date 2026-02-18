@@ -357,8 +357,8 @@ const ClearButton = styled.button`
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  min-width: 28px;
-  min-height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   flex-shrink: 0;
   transition: color 150ms ease, background 150ms ease;
 

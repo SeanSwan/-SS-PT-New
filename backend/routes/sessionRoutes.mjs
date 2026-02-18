@@ -118,6 +118,12 @@ async function restoreSessionCredit(session, User, options = {}) {
     return { restored: false, newBalance: null, reason: 'opted_out' };
   }
 
+  // Only restore if a credit was actually deducted when the session was booked
+  if (!session.sessionDeducted) {
+    if (log) log.info(`[CreditRestore] Session ${session.id} never deducted a credit, skipping restore`);
+    return { restored: false, newBalance: null, reason: 'no_deduction' };
+  }
+
   // Must have a client assigned
   if (!session.userId) {
     return { restored: false, newBalance: null, reason: 'no_client' };
@@ -695,6 +701,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
       status,
       notes,
       sessionType,
+      sessionTypeId,
       notifyClient,
       recurrenceRule,
       recurringGroupId,
@@ -714,6 +721,11 @@ router.post("/", protect, adminOnly, async (req, res) => {
     const resolvedIsBlocked = isBlocked !== undefined ? isBlocked : status === 'blocked';
     const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : !resolvedIsBlocked;
 
+    // Resolve sessionTypeId: accept numeric ID or fall back to null
+    const resolvedSessionTypeId = sessionTypeId
+      ? parseInt(sessionTypeId, 10) || null
+      : null;
+
     // Create the session
     const newSession = await Session.create({
       sessionDate: new Date(resolvedSessionDate),
@@ -723,7 +735,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
       userId: userId || null,
       status: status || 'available',
       notes: notes || null,
-      sessionType: sessionType || 'Standard Training',
+      sessionTypeId: resolvedSessionTypeId,
       notifyClient: resolvedNotifyClient,
       recurrenceRule: recurrenceRule || null,
       recurringGroupId: recurringGroupId || null,
