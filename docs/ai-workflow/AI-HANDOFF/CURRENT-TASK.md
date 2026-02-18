@@ -1,7 +1,7 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-15
-**Updated By:** Implementer (last: Claude Code / Opus 4.6)
+**Last Updated:** 2026-02-17
+**Updated By:** Codex
 
 ---
 
@@ -10,24 +10,45 @@
 ### Active Product Priorities
 1. **Social & Gamification Integration (ACTIVE)**
    - ✅ **Social Profile Page:** Foundation complete (UserProfilePage, Routes, API).
-   - ⏳ **Challenges UI:** Frontend implementation needed (currently "Coming Soon").
-   - ⏳ **Social Gamification:** Backend goals and milestones integration.
+   - ✅ **Challenges UI:** Wired to real API with mock fallback.
+   - ✅ **Challenges Backend:** Fully polished (Commit 753664cb).
+   - ✅ **Social Gamification:** Backend models & routes implemented (Commit 5db681ed).
+   - ✅ **Database Migration:** Automated via `render-start.mjs` on deploy.
+   - ✅ **Deploy Blocker Fixed:** Goal association alias collision resolved (`Goal.supporters` attribute vs association alias).
+   - ✅ **Cart Resilience:** Implemented schema recovery and self-healing migrations for shopping cart.
 
-2. **Admin Dashboard Stabilization (ACTIVE)**
+2. **Admin Dashboard Stabilization (COMPLETE)**
    - ✅ **Demo Data Transparency:** Banners added for API failures/mock data.
-   - ⏳ **Navigation Fix:** Move "Client Onboarding" to sidebar.
-   - ⏳ **Role Promotion:** Fix owner account permissions.
+   - ✅ **Navigation Fix:** Verified working.
+   - ✅ **Role Promotion:** Script ready (`backend/scripts/promote-owners.mjs`).
 
-3. **Schedule truthfulness and usability**
-   - KPI counts must match filter semantics and user expectations.
-   - "Available" must represent upcoming open slots (not stale past slots).
-   - Drill-down must be readable, high-contrast, and visibly scrollable when data is large.
-4. **Auth recovery reliability**
-   - Forgot/reset password flow is production priority.
-   - SendGrid delivery observability and suppression hygiene are required.
+3. **Schedule truthfulness and usability (COMPLETE)**
+   - ✅ **UX Overhaul:** TimeWheelPicker, KPI cards, WCAG fixes (Commit 1e6138b5).
+   - ✅ **Universal Master Schedule:** Complete refactor with WeekView, Admin Scope, and SearchableSelect.
+   - ✅ **Data Integrity:** Fixed cancellation credit restoration and session stats.
+   - ✅ **Visual Polish:** Migrated to GlowButton and Galaxy-Swan theme.
+   - ✅ **Production Fix:** Resolved TDZ crash in admin view scope (Commit a712ba23).
+
+4. **Auth recovery reliability (COMPLETE)**
+   - ✅ **Code Complete:** Forgot/Reset flows verified on production.
+   - ⚠️ **Configuration:** Pending `SENDGRID_API_KEY` in Render dashboard.
+
 5. **Quality bar**
    - Accessibility, contrast, and mobile touch targets are required deliverables.
    - No regressions in auth, sessions, checkout, or RBAC.
+   - ✅ **MUI Elimination (COMPLETE):**
+     - ✅ **100% Migration:** All ~282 files migrated from MUI to Swan primitives.
+     - ✅ **Final Push (Batches 26-38):** Migrated remaining 49 complex files (13 commits).
+     - ✅ **Verification:** Zero `@mui/` imports remaining. Build passing.
+   - 🔄 **User Dashboard Stabilization (ACTIVE):**
+     - ✅ **Mobile Layout:** Fixed tab clipping and feed interaction overflow.
+     - ✅ **Touch Targets:** Enforced 44px minimums on feed controls.
+     - ⏳ **API Reliability:** Investigating 500/403/503 errors found during audit.
+
+6. **Video Library (ACTIVE)**
+   - ✅ **Public Interface:** `VideoLibrary.tsx` + `publicVideoRoutes.mjs` deployed.
+   - ✅ **Player:** YouTube/HTML5 player integrated.
+   - ⏳ **Content:** Pending admin uploads/population.
 
 ### Multi-AI Review Quorum (Current)
 - Minimum 3 AIs per high-impact change:

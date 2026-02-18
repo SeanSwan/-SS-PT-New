@@ -1,8 +1,8 @@
 # ROO CODE STATUS
 ## Backend Specialist & Code Quality Expert (Powered by Grok Models)
 
-**Last Updated:** 2026-01-03 (Video Library Backend Complete)
-**Current Status:** ✅ COMPLETE - Video Library Backend Fully Implemented
+**Last Updated:** 2026-02-18
+**Current Status:** ✅ COMPLETE - Universal Master Schedule Logic & Fixes
 
 **NOTE:** Roo Code routes through OpenRouter and uses Grok models (Grok-beta, Grok-2, etc.)
 
@@ -28,6 +28,26 @@
 6. ✅ **Testing & Handoff** - Created automated test script and generated handoff report for next AI
 2. ✅ **Database Migrations** - 9 migrations created for exercise_library, exercise_videos, video_analytics
 3. ✅ **YouTube Integration** - Auto-metadata fetching with Redis caching and fallback
+4. ✅ **Production Fixes (2026-02-16)**
+   - Resolved `Goal` model naming collision (supporters attribute vs association).
+   - Fixed UUID vs INTEGER FK mismatches in 6 social migrations.
+   - Added missing `goals` table migration.
+   - Verified production `db:migrate` success.
+5. ✅ **Cart Schema Resilience (2026-02-17)**
+   - Implemented `cartSchemaRecovery.mjs` for raw SQL fallback on schema drift.
+   - Added `startupMigrations.mjs` to self-heal `shopping_carts` columns.
+   - Hardened `cartRoutes.mjs` against missing DB columns.
+   - Added regression tests for schema recovery.
+   - **Update (Commit 63aef338):** Fixed `UserDashboard.tsx` icon crash (`Telescope` → `Radar`) and expanded schema recovery for UUID/Integer drift and cart-item loading.
+6. ✅ **Production Readiness (2026-02-17)**
+   - **Migrations:** Automated `npm run migrate:production` in `render-start.mjs`.
+   - **Auth Recovery:** Verified existing HMAC-SHA256 token flow.
+   - **Video Library:** Implemented `publicVideoRoutes.mjs` for unauthenticated access to approved videos.
+7. ✅ **Universal Master Schedule Logic (2026-02-18)**
+   - **Cancellation Logic:** Fixed credit restoration on session cancel.
+   - **Stats:** Corrected session count logic (excluding past available).
+   - **Client Search:** Added `availableSessions` to client search response.
+   - **Critical Fix:** Resolved TDZ crash in `UniversalMasterSchedule.tsx` (Commit a712ba23).
 4. ✅ **Comprehensive Testing** - test-video-library.mjs validates all functionality
 5. ✅ **Level 5/5 Documentation** - All files have complete architecture docs and WHY sections
 6. ✅ **Status Updates** - CURRENT-TASK.md and ROO-CODE-STATUS.md updated
@@ -43,6 +63,13 @@
 ---
 
 ## 📋 QUEUED TASKS
+
+### **Social & Gamification (COMPLETE)**
+1. ✅ **Challenges Backend:**
+   - Created migrations for `challenges` and `challenge_participants`.
+   - Verified existing controller/routes at `/api/v1/gamification`.
+   - Applied fixes: Controller aliases, status fields, and migration FKs (Commit 56dcddf4).
+   - Note: Schema duplication (main vs social challenges) logged as tech debt.
 
 ### **Video Library Backend Implementation (HIGH PRIORITY)**
 1. ⏸️ **PHASE 1: Database + Basic CRUD** (8-12 hours)
@@ -64,11 +91,15 @@
    - Video player component integration
 
 ### **Backend Support (If Needed)**
-1. ⏸️ Review API contracts for MUI-converted components
+1. 🔄 **Review API contracts:** Frontend MUI elimination is complete. Verify API integrations for converted components.
 2. ⏸️ Optimize database queries if performance issues arise
 3. ⏸️ Add new API endpoints if needed for new components
 4. ⏸️ Backend validation for form hooks (useForm.ts)
 5. ⏸️ Backend pagination support for table hooks (useTable.ts)
+6. 🔍 **Investigate API Errors (Found during User Dashboard Audit):**
+   - `500 /api/profile/achievements`
+   - `403 /api/sessions/:id`
+   - `503 /notifications`
 
 ### **Homepage Refactor Backend Tasks (After Phase 0 Approval)**
 1. ⏸️ Implement performance tier detection API (`/api/user/device-capabilities`)
