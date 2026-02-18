@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { IconButton } from '../../ui/primitives/components';
 
 // Icons (lucide-react replacements for MUI icons)
-import { Menu, X, ShoppingBag, User, LayoutDashboard, Users } from 'lucide-react';
+import { Menu, X, ShoppingBag, User, LayoutDashboard, Users, Video } from 'lucide-react';
 
 // Galaxy Theme Colors (copied from header for consistency)
 const GALAXY_THEME_COLORS = {
@@ -264,6 +264,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </MobileNavLink>
           </motion.div>
           <motion.div variants={itemVariants}>
+            <MobileNavLink to="/video-library" onClick={closeMobileMenu} $isActive={isActive('/video-library')}>
+              <Video size={20} /> Video Library
+            </MobileNavLink>
+          </motion.div>
+          <motion.div variants={itemVariants}>
             <MobileNavLink to="/contact" onClick={closeMobileMenu} $isActive={isActive('/contact')}>
               Contact
             </MobileNavLink>
@@ -286,6 +291,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           <motion.div variants={itemVariants}>
             <MobileNavLink to="/store" onClick={closeMobileMenu} $isActive={isActive('/store')}>
               <ShoppingBag size={20} /> SwanStudios Store
+            </MobileNavLink>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <MobileNavLink to="/video-library" onClick={closeMobileMenu} $isActive={isActive('/video-library')}>
+              <Video size={20} /> Video Library
             </MobileNavLink>
           </motion.div>
           <motion.div variants={itemVariants}>
