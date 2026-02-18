@@ -6,7 +6,8 @@ import styled, { keyframes, css } from "styled-components";
 import { motion, useInView, MotionConfig } from "framer-motion";
 import { Music, Paintbrush, Mic, Heart } from "lucide-react";
 import SectionTitle from "../../../components/ui/SectionTitle";
-import SectionVideoBackground from "../../../components/ui/backgrounds/SectionVideoBackground";
+import ParallaxImageBackground from "../../../components/ui/backgrounds/ParallaxImageBackground";
+import canvasImage from "../../../assets/canvas.png";
 
 // === EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2) ===
 const T = {
@@ -415,9 +416,8 @@ const CreativeExpressionSection: React.FC = () => {
   return (
     <MotionConfig reducedMotion="user">
       <SectionContainer id="creative-expression" ref={ref}>
-        <SectionVideoBackground
-          src="/swan.mp4"
-          fallbackGradient={`linear-gradient(135deg, ${T.bg} 0%, #1a1a3c 100%)`}
+        <ParallaxImageBackground
+          src={canvasImage}
           overlayOpacity={0.55}
         />
         <GlowEffect />

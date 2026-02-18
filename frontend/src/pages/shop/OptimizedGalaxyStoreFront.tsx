@@ -617,10 +617,10 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
           {hasPackages && (
             <PackagesWrapper>
               <SectionVideoBackground
-                src="/forest.mp4"
+                src="/swan-golden.mp4"
                 fallbackGradient={`linear-gradient(135deg, ${T.bg} 0%, #1a1a3c 100%)`}
-                overlayOpacity={0.6}
-                overlayGradient="linear-gradient(to bottom, rgba(10, 10, 26, 0.7) 0%, rgba(10, 10, 26, 0.55) 50%, rgba(10, 10, 26, 0.7) 100%)"
+                overlayOpacity={0.55}
+                overlayGradient="linear-gradient(to bottom, rgba(10, 10, 26, 0.65) 0%, rgba(10, 10, 26, 0.5) 50%, rgba(10, 10, 26, 0.65) 100%)"
               />
               <PackagesGrid
                 packages={packages}

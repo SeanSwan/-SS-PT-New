@@ -433,10 +433,10 @@ const NewsletterSignup = () => {
   
   return (
     <NewsletterSection id="newsletter">
-      <SectionVideoBackground 
-        src="/fish.mp4"
+      <SectionVideoBackground
+        src="/Waves.mp4"
         fallbackGradient="linear-gradient(to right, rgba(10, 10, 10, 0.9), rgba(26, 26, 46, 0.9), rgba(10, 10, 10, 0.9))"
-        overlayOpacity={0.6}
+        overlayOpacity={0.50}
       />
       <BackgroundEffect />
       <GridLines />
