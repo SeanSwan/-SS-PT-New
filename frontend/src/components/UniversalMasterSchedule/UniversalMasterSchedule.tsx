@@ -117,6 +117,18 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const { success, error: toastError, warning } = useToast();
   const { templates, addTemplate, removeTemplate, applyTemplate } = useSessionTemplates();
 
+  // MindBody Parity: Admin View Scope State
+  // Defaults to 'my' so admins see only their own sessions first
+  // Persisted to localStorage for convenience
+  // NOTE: Must be declared before scopedSessions useMemo which depends on it
+  const [adminViewScope, setAdminViewScope] = useState<'my' | 'global'>(() => {
+    if (typeof window !== 'undefined' && mode === 'admin') {
+      return (localStorage.getItem('adminScheduleViewScope') as 'my' | 'global') || 'my';
+    }
+    return 'my';
+  });
+  const [selectedTrainerId, setSelectedTrainerId] = useState<number | string | null>(null);
+
   // KPI card status filter (composes with existing admin scope / trainer filters)
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
@@ -228,17 +240,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   });
   const [useManualClient, setUseManualClient] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
-
-  // MindBody Parity: Admin View Scope State
-  // Defaults to 'my' so admins see only their own sessions first
-  // Persisted to localStorage for convenience
-  const [adminViewScope, setAdminViewScope] = useState<'my' | 'global'>(() => {
-    if (typeof window !== 'undefined' && mode === 'admin') {
-      return (localStorage.getItem('adminScheduleViewScope') as 'my' | 'global') || 'my';
-    }
-    return 'my';
-  });
-  const [selectedTrainerId, setSelectedTrainerId] = useState<number | string | null>(null);
 
   // Handle admin scope change with localStorage persistence
   const handleAdminScopeChange = useCallback((scope: 'my' | 'global') => {

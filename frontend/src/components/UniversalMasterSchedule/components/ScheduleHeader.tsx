@@ -8,8 +8,8 @@ import {
   SmallText,
   IconButton as StyledIconButton,
   OutlinedButton,
-  GlowButton
 } from '../ui';
+import GlowButton from '../../ui/buttons/GlowButton';
 import ViewSelector from '../Views/ViewSelector';
 import { CalendarView } from '../types';
 import type { LayoutMode, DensityMode } from '../types';

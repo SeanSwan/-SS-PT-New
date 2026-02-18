@@ -58,5 +58,5 @@ export {
 export { default as SearchableSelect } from './SearchableSelect';
 export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect';
 
-// GlowButton (Phase 4 migration)
-export { default as GlowButton } from '../../ui/buttons/GlowButton';
+// GlowButton: import directly from '../../ui/buttons/GlowButton' in consuming files
+// NOT re-exported here to avoid circular / TDZ issues with parent-directory barrel re-exports

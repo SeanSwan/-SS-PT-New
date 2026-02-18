@@ -32,8 +32,8 @@ import {
   getLocalToday,
   getMinTimeForToday,
   getTimezoneAbbr,
-  GlowButton,
 } from '../ui';
+import GlowButton from '../../ui/buttons/GlowButton';
 import SearchableSelect from '../ui/SearchableSelect';
 
 interface ScheduleModalsProps {
