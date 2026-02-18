@@ -346,7 +346,7 @@ const ProfileHeader = styled(motion.div)`
 `;
 
 const BackgroundImageContainer = styled.div`
-  height: 300px;
+  height: ${({ $backgroundImage }) => ($backgroundImage ? '300px' : '220px')};
   position: relative;
   background: ${({ $backgroundImage, theme }) => 
     $backgroundImage 
@@ -360,7 +360,7 @@ const BackgroundImageContainer = styled.div`
   justify-content: center;
   
   @media (max-width: 768px) {
-    height: 200px;
+    height: ${({ $backgroundImage }) => ($backgroundImage ? '180px' : '120px')};
   }
 
   &::after {
@@ -386,7 +386,7 @@ const BackgroundUploadOverlay = styled(motion.div)`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
+  opacity: ${({ $hasImage }) => ($hasImage ? 0 : 1)};
   transition: opacity 0.3s ease;
 
   &:hover {
@@ -493,7 +493,7 @@ const ProfileInfo = styled(motion.div)`
   padding: 80px 2rem 2rem;
   
   @media (max-width: 768px) {
-    padding: 70px 1rem 1.5rem;
+    padding: 58px 1rem 1.25rem;
   }
 `;
 
@@ -2888,6 +2888,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
         >
           <BackgroundImageContainer $backgroundImage={backgroundImage}>
             <BackgroundUploadOverlay
+              $hasImage={Boolean(backgroundImage)}
               onClick={handleBackgroundImageClick}
               whileHover={enableLuxuryAnimations ? { opacity: 1 } : undefined}
               whileTap={enableLuxuryAnimations ? { scale: 0.98 } : undefined}
