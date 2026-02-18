@@ -8,7 +8,7 @@ import {
   SmallText,
   IconButton as StyledIconButton,
   OutlinedButton,
-  PrimaryButton
+  GlowButton
 } from '../ui';
 import ViewSelector from '../Views/ViewSelector';
 import { CalendarView } from '../types';
@@ -187,20 +187,29 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
             <RefreshCw size={20} />
           </StyledIconButton>
           {mode === 'client' && onOpenClientRecurring && (
-            <PrimaryButton onClick={onOpenClientRecurring} title="Book Recurring Sessions">
-              <Repeat size={16} />
+            <GlowButton
+              variant="primary"
+              size="medium"
+              onClick={onOpenClientRecurring}
+              title="Book Recurring Sessions"
+              leftIcon={<Repeat size={16} />}
+            >
               Book Recurring
-            </PrimaryButton>
+            </GlowButton>
           )}
           {(canCreateSessions || canCreateRecurring || canBlockTime) && (
             <Dropdown
               align="right"
               ariaLabel="Create schedule actions"
               trigger={(
-                <PrimaryButton title="Create Session (N)">
+                <GlowButton
+                  variant="primary"
+                  size="medium"
+                  title="Create Session (N)"
+                  rightIcon={<ChevronDown size={16} />}
+                >
                   Create
-                  <ChevronDown size={16} />
-                </PrimaryButton>
+                </GlowButton>
               )}
             >
               {canCreateSessions && (

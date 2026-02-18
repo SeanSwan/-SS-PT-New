@@ -565,10 +565,18 @@ export const useCalendarData = () => {
         }
       }
 
+      // Extract client contact info from nested object
+      const clientEmail = (session as any).clientEmail || (session.client as any)?.email || undefined;
+      const clientPhone = (session as any).clientPhone || (session.client as any)?.phone || undefined;
+      const clientAvailableSessions = (session as any).clientAvailableSessions ?? (session.client as any)?.availableSessions ?? undefined;
+
       return {
         ...session,
         clientName: clientName || undefined,
-        trainerName: trainerName || undefined
+        trainerName: trainerName || undefined,
+        clientEmail,
+        clientPhone,
+        clientAvailableSessions
       };
     });
   }, [sessions]);

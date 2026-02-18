@@ -57,3 +57,6 @@ export {
 // Searchable Select
 export { default as SearchableSelect } from './SearchableSelect';
 export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect';
+
+// GlowButton (Phase 4 migration)
+export { default as GlowButton } from '../../ui/buttons/GlowButton';

@@ -124,8 +124,20 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setStatusFilter(prev => prev === status ? null : status);
   }, []);
 
+  // First: filter by admin scope (my vs global)
+  const scopedSessions = useMemo(() => {
+    if (mode === 'admin' && adminViewScope === 'my' && userId) {
+      return sessions.filter((s: any) =>
+        s.trainerId === userId ||
+        s.trainerId?.toString() === userId?.toString()
+      );
+    }
+    return sessions;
+  }, [sessions, mode, adminViewScope, userId]);
+
+  // Then: apply KPI status filter on top of scoped sessions
   const displaySessions = useMemo(() => {
-    if (!statusFilter || statusFilter === 'total') return sessions;
+    if (!statusFilter || statusFilter === 'total') return scopedSessions;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const isUpcoming = (s: any) => {
@@ -134,21 +146,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       return new Date(date) >= startOfToday;
     };
     if (statusFilter === 'scheduled') {
-      return sessions.filter((s: any) =>
+      return scopedSessions.filter((s: any) =>
         (s.status === 'scheduled' || s.status === 'confirmed') && isUpcoming(s)
       );
     }
     if (statusFilter === 'available') {
-      return sessions.filter((s: any) => s.status === 'available' && isUpcoming(s));
+      return scopedSessions.filter((s: any) => s.status === 'available' && isUpcoming(s));
     }
     if (statusFilter === 'other') {
       const KNOWN_STATUSES = ['available', 'scheduled', 'confirmed', 'completed'];
-      return sessions.filter((s: any) =>
+      return scopedSessions.filter((s: any) =>
         !s.status || !KNOWN_STATUSES.includes(s.status)
       );
     }
-    return sessions.filter((s: any) => s.status === statusFilter);
-  }, [sessions, statusFilter]);
+    return scopedSessions.filter((s: any) => s.status === statusFilter);
+  }, [scopedSessions, statusFilter]);
 
   // Redux: Layout & Density
   const dispatch = useDispatch();
@@ -218,12 +230,13 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   // MindBody Parity: Admin View Scope State
+  // Defaults to 'my' so admins see only their own sessions first
   // Persisted to localStorage for convenience
   const [adminViewScope, setAdminViewScope] = useState<'my' | 'global'>(() => {
     if (typeof window !== 'undefined' && mode === 'admin') {
-      return (localStorage.getItem('adminScheduleViewScope') as 'my' | 'global') || 'global';
+      return (localStorage.getItem('adminScheduleViewScope') as 'my' | 'global') || 'my';
     }
-    return 'global';
+    return 'my';
   });
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | string | null>(null);
 
@@ -755,7 +768,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       <ScheduleStats
         mode={mode}
-        sessions={sessions}
+        sessions={displaySessions}
         creditsDisplay={creditsDisplay}
         lowCredits={lowCredits}
         statusFilter={statusFilter}
