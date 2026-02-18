@@ -1054,7 +1054,7 @@ const SocialFeed: React.FC = () => {
   // id="instagram" kept for backward-compat anchor links
   return (
     <SectionContainer id="instagram" ref={ref} aria-label="Follow Our Journey">
-      <ParallaxImageBackground src={nebulaImage} overlayOpacity={0.7} overlayGradient="linear-gradient(180deg, rgba(10, 10, 26, 0.7), rgba(12, 14, 28, 0.7), rgba(10, 10, 26, 0.7))" />
+      <ParallaxImageBackground src={nebulaImage} overlayOpacity={0.5} overlayGradient="linear-gradient(180deg, rgba(10, 10, 26, 0.5), rgba(12, 14, 28, 0.4), rgba(10, 10, 26, 0.5))" />
       <BackgroundGlow />
 
       <ContentWrapper>

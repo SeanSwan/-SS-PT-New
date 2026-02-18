@@ -1,6 +1,6 @@
 // frontend/src/components/ui/backgrounds/ParallaxImageBackground.tsx
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -10,7 +10,7 @@ export interface ParallaxImageBackgroundProps {
   src: string;
   /** Overlay opacity (0-1) for text readability */
   overlayOpacity?: number;
-  /** Custom overlay gradient CSS */
+  /** Custom overlay gradient CSS (alpha values control opacity — no extra opacity stacking) */
   overlayGradient?: string;
   /** Children rendered on top of the parallax. If omitted, renders as absolute background. */
   children?: React.ReactNode;
@@ -34,7 +34,7 @@ const BackgroundContainer = styled.div`
 
 const ParallaxLayer = styled(motion.div)`
   position: absolute;
-  inset: -15% 0;
+  inset: -20% 0;
   z-index: 0;
   will-change: transform;
 
@@ -63,13 +63,10 @@ const Overlay = styled.div<{ $opacity: number; $gradient?: string }>`
   position: absolute;
   inset: 0;
   z-index: 1;
+  /* When gradient provided, its rgba alpha values control transparency.
+     No extra opacity stacking to avoid doubly-dark overlays. */
   background: ${({ $gradient, $opacity }) =>
     $gradient || `rgba(10, 10, 26, ${$opacity})`};
-
-  ${({ $gradient, $opacity }) =>
-    $gradient && $opacity < 1
-      ? `opacity: ${$opacity};`
-      : ''}
 `;
 
 const Content = styled.div`
@@ -86,16 +83,16 @@ const Content = styled.div`
  * - **Background mode** (no children): Renders as absolute overlay inside parent section
  *
  * Features:
- * - Scroll-linked Y movement via framer-motion useScroll + useTransform
- * - Image scaled 130% (inset -15%) to prevent edge gaps during parallax
+ * - Window-scroll-based parallax (reliable across CSS positioning contexts)
+ * - Reads parent element bounds for accurate scroll range calculation
+ * - Image scaled 140% (inset -20%) to prevent edge gaps during ±100px travel
  * - Spring-smoothed for buttery 60fps feel
  * - Respects prefers-reduced-motion (falls back to static)
- * - Mobile: static background (no parallax) for performance
- * - Configurable overlay for text readability
+ * - Configurable overlay — gradient alpha controls opacity, no double-stacking
  */
 export const ParallaxImageBackground: React.FC<ParallaxImageBackgroundProps> = ({
   src,
-  overlayOpacity = 0.7,
+  overlayOpacity = 0.55,
   overlayGradient,
   children,
   className,
@@ -103,28 +100,47 @@ export const ParallaxImageBackground: React.FC<ParallaxImageBackgroundProps> = (
   const containerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  // Detect mobile
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  // Window scroll — works regardless of the element's CSS position
+  const { scrollY } = useScroll();
 
-  // Scroll-linked parallax
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start end', 'end start'],
-  });
+  // Compute parent element's scroll range once mounted (and on resize)
+  const [elementRange, setElementRange] = useState<[number, number]>([0, 1000]);
 
-  // Map scroll progress to Y offset: moves image -40px to +40px
-  const rawY = useTransform(scrollYProgress, [0, 1], [-40, 40]);
+  useEffect(() => {
+    const updateBounds = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      // For background mode (position:absolute inset:0), use parentElement for bounds
+      const target = (el.offsetParent as HTMLElement) ?? el.parentElement ?? el;
+      const rect = target.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      const height = target.offsetHeight;
+      const vh = window.innerHeight;
+      // Range: element enters viewport bottom → exits viewport top
+      setElementRange([top - vh, top + height]);
+    };
 
-  // Spring-smooth the motion for premium feel
+    updateBounds();
+    // Small delay to account for fonts/images shifting layout
+    const t = setTimeout(updateBounds, 150);
+    window.addEventListener('resize', updateBounds);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', updateBounds);
+    };
+  }, []);
+
+  // Map scrollY → Y offset: ±100px — clearly visible, premium feel
+  const rawY = useTransform(scrollY, elementRange, [-100, 100]);
+
+  // Spring-smooth for buttery motion
   const y = useSpring(rawY, {
-    stiffness: 100,
-    damping: 30,
+    stiffness: 80,
+    damping: 25,
     restDelta: 0.001,
   });
 
-  const shouldDisableParallax = prefersReducedMotion || isMobile;
-
-  const imageLayer = shouldDisableParallax ? (
+  const imageLayer = prefersReducedMotion ? (
     <StaticLayer>
       <img src={src} alt="" loading="lazy" />
     </StaticLayer>

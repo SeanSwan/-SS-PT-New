@@ -4,8 +4,7 @@ import styled, { css } from "styled-components";
 import { motion, useInView } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
-import ParallaxImageBackground from "../../../components/ui/backgrounds/ParallaxImageBackground";
-import paintAbImage from "../../../assets/paint-ab.png";
+import SectionVideoBackground from "../../../components/ui/backgrounds/SectionVideoBackground";
 
 // ═══════════════════════════════════════════════════
 // Programs Overview V3 — Ethereal Wilderness Theme
@@ -39,6 +38,7 @@ const Section = styled.section`
   position: relative;
   overflow: hidden;
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  border-bottom: 1px solid rgba(0, 212, 170, 0.25);
 
   @media (max-width: 768px) {
     padding: 4rem 1rem;
@@ -351,7 +351,11 @@ const ProgramsOverviewV3: React.FC = () => {
 
   return (
     <Section id="programs">
-      <ParallaxImageBackground src={paintAbImage} overlayOpacity={0.85} />
+      <SectionVideoBackground
+        src="/swan-silver-wing.mp4"
+        fallbackGradient="linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 100%)"
+        overlayOpacity={0.55}
+      />
       <Container>
         <Header>
           <h2>Discover Your Path</h2>
@@ -418,9 +422,9 @@ const ProgramsOverviewV3: React.FC = () => {
           <GlowButton
             text="View All Packages & Pricing"
             onClick={() => navigate('/shop')}
-            size="large"
+            size="medium"
             theme="cosmic"
-            rightIcon={<ArrowRight size={20} />}
+            rightIcon={<ArrowRight size={18} />}
           />
         </CTAFooter>
       </Container>
