@@ -361,7 +361,7 @@ const HeroSectionV2: React.FC = () => {
             preload="metadata"
             poster=""
           >
-            <source src="/smoke.mp4" type="video/mp4" />
+            <source src="/Swans.mp4" type="video/mp4" />
           </video>
         </VideoBackground>
       ) : (

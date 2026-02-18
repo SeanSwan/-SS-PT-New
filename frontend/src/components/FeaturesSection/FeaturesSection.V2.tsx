@@ -28,6 +28,8 @@ import ParallaxSectionWrapper from "../ui-kit/parallax/ParallaxSectionWrapper";
 
 // Hooks
 import { useReducedMotion } from "../../hooks/useReducedMotion";
+import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
+import paintAb1Image from "../../assets/paint-ab1.png";
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
@@ -354,6 +356,7 @@ const FeaturesSectionV2: React.FC = () => {
 
   return (
     <SectionContainer id="services" ref={ref}>
+      <ParallaxImageBackground src={paintAb1Image} overlayOpacity={0.7} overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.7), rgba(26, 26, 60, 0.7))" />
       <BackgroundGlow />
 
       {/* v2.0 Parallax wrapper for mid-ground depth */}

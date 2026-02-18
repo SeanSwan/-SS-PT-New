@@ -814,7 +814,7 @@ const FitnessStats: React.FC = () => {
             preload="none"
             aria-hidden="true"
           >
-            <source src="/smoke.mp4" type="video/mp4" />
+            <source src="/swan-silver-wing.mp4" type="video/mp4" />
           </video>
         </SectionVideoBackground>
       ) : (

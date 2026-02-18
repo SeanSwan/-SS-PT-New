@@ -4,6 +4,8 @@ import styled, { css } from "styled-components";
 import { motion, useInView } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
+import ParallaxImageBackground from "../../../components/ui/backgrounds/ParallaxImageBackground";
+import paintAbImage from "../../../assets/paint-ab.png";
 
 // ═══════════════════════════════════════════════════
 // Programs Overview V3 — Ethereal Wilderness Theme
@@ -349,6 +351,7 @@ const ProgramsOverviewV3: React.FC = () => {
 
   return (
     <Section id="programs">
+      <ParallaxImageBackground src={paintAbImage} overlayOpacity={0.85} />
       <Container>
         <Header>
           <h2>Discover Your Path</h2>

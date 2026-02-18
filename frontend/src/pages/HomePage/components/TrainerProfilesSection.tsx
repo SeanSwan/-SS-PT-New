@@ -17,6 +17,7 @@ import {
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import SectionTitle from "../../../components/ui/SectionTitle";
 import { useUniversalTheme } from "../../../context/ThemeContext";
+import SectionVideoBackground from "../../../components/ui/backgrounds/SectionVideoBackground";
 
 // === EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2) ===
 const T = {
@@ -763,6 +764,7 @@ const TrainerProfilesSection: React.FC = () => {
         onKeyDown={handleSectionKeyDown}
         tabIndex={-1}
       >
+        <SectionVideoBackground src="/galaxy1.mp4" fallbackGradient={`linear-gradient(135deg, ${T.bg}, #1a1a3c)`} overlayOpacity={0.65} />
         <GridLines />
         <ContentWrapper>
           <SectionTitle variant="ew">Meet Our Expert Coaching Team</SectionTitle>
