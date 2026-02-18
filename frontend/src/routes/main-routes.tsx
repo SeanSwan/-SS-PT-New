@@ -160,6 +160,12 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 
+// Video Library (public)
+const VideoLibrary = lazyLoadWithErrorHandling(
+  () => import('../pages/VideoLibrary'),
+  'Video Library'
+);
+
 // 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Single production store
 const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/OptimizedGalaxyStoreFront'),
@@ -342,6 +348,16 @@ const MainRoutes: RouteObject = {
       )
     },
     
+    // Video Library (public)
+    {
+      path: 'video-library',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <VideoLibrary />
+        </Suspense>
+      )
+    },
+
     // Galaxy-Swan Theme Showcase
     {
       path: 'theme-showcase',
