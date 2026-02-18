@@ -6,6 +6,8 @@ import styled, { keyframes, css } from "styled-components";
 import { motion, useInView, MotionConfig } from "framer-motion";
 import { Music, Paintbrush, Mic, Heart } from "lucide-react";
 import SectionTitle from "../../../components/ui/SectionTitle";
+import ParallaxImageBackground from "../../../components/ui/backgrounds/ParallaxImageBackground";
+import paint3Image from "../../../assets/paint-3.png";
 
 // === EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2) ===
 const T = {
@@ -413,6 +415,7 @@ const CreativeExpressionSection: React.FC = () => {
   return (
     <MotionConfig reducedMotion="user">
       <SectionContainer id="creative-expression" ref={ref}>
+        <ParallaxImageBackground src={paint3Image} overlayOpacity={0.75} />
         <GlowEffect />
         <ContentWrapper>
           <SectionTitle variant="ew">FORGE YOUR BODY, FREE YOUR SPIRIT</SectionTitle>

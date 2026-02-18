@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Check, AlertTriangle, Lock, ArrowRight, Dumbbell, Apple, Brain } from 'lucide-react';
 import SectionTitle from '../ui/SectionTitle';
 import GlowButton from '../ui/buttons/GlowButton'; // Import GlowButton component
+import { SectionVideoBackground } from '../ui/backgrounds/SectionVideoBackground';
 
 // Import background image
 import backgroundImage from '../../assets/swan-tile-big.png';
@@ -431,6 +432,11 @@ const NewsletterSignup = () => {
   
   return (
     <NewsletterSection id="newsletter">
+      <SectionVideoBackground 
+        src="/fish.mp4"
+        fallbackGradient="linear-gradient(to right, rgba(10, 10, 10, 0.9), rgba(26, 26, 46, 0.9), rgba(10, 10, 10, 0.9))"
+        overlayOpacity={0.6}
+      />
       <BackgroundEffect />
       <GridLines />
       <ContentContainer>

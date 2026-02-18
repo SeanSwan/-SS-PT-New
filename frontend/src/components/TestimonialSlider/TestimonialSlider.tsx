@@ -11,6 +11,8 @@ const reducedMotion = css`
 import { motion, AnimatePresence } from "framer-motion";
 import { Quote, Star, ArrowRight, ArrowLeft } from "lucide-react";
 import SectionTitle from "../ui/SectionTitle";
+import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
+import neonPaint2Image from "../../assets/neon-paint-2.png";
 
 // --- Animation Keyframes ---
 // Single subtle diagonal glimmer animation every 5 seconds
@@ -608,6 +610,7 @@ const TestimonialSlider: React.FC = () => {
 
   return (
     <TestimonialSection id="testimonials">
+      <ParallaxImageBackground src={neonPaint2Image} overlayOpacity={0.7} overlayGradient="linear-gradient(145deg, rgba(8, 8, 24, 0.7), rgba(26, 26, 58, 0.7))" />
       <BackgroundGlow />
       <QuoteIcon className="left" variants={iconVariants} initial="hidden" animate="visible">
         <Quote />

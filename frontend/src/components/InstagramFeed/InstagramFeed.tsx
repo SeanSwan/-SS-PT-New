@@ -30,6 +30,8 @@ import {
   FaShare,
 } from 'react-icons/fa';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import ParallaxImageBackground from '../ui/backgrounds/ParallaxImageBackground';
+import nebulaImage from '../../assets/nebula.png';
 
 // --- EW Design Tokens ---
 
@@ -1052,6 +1054,7 @@ const SocialFeed: React.FC = () => {
   // id="instagram" kept for backward-compat anchor links
   return (
     <SectionContainer id="instagram" ref={ref} aria-label="Follow Our Journey">
+      <ParallaxImageBackground src={nebulaImage} overlayOpacity={0.7} overlayGradient="linear-gradient(180deg, rgba(10, 10, 26, 0.7), rgba(12, 14, 28, 0.7), rgba(10, 10, 26, 0.7))" />
       <BackgroundGlow />
 
       <ContentWrapper>
