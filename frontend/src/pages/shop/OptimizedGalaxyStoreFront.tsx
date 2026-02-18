@@ -33,6 +33,7 @@ import FloatingCart from "./components/FloatingCart";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import { CheckoutView } from "../../components/NewCheckout";
 import { ThemedGlowButton } from '../../styles/swan-theme-utils';
+import SectionVideoBackground from "../../components/ui/backgrounds/SectionVideoBackground";
 
 // EW Design Tokens
 const T = {
@@ -208,6 +209,11 @@ const SectionContainer = styled.section`
   @media (max-width: 480px) {
     padding: 2.5rem 0.75rem;
   }
+`;
+
+const PackagesWrapper = styled.div`
+  position: relative;
+  overflow: hidden;
 `;
 
 const ConsultationButtonContainer = styled.div`
@@ -609,7 +615,13 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
           />
 
           {hasPackages && (
-            <>
+            <PackagesWrapper>
+              <SectionVideoBackground
+                src="/forest.mp4"
+                fallbackGradient={`linear-gradient(135deg, ${T.bg} 0%, #1a1a3c 100%)`}
+                overlayOpacity={0.6}
+                overlayGradient="linear-gradient(to bottom, rgba(10, 10, 26, 0.7) 0%, rgba(10, 10, 26, 0.55) 50%, rgba(10, 10, 26, 0.7) 100%)"
+              />
               <PackagesGrid
                 packages={packages}
                 canViewPrices={canViewPrices}
@@ -631,7 +643,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
                   />
                 </ConsultationButtonContainer>
               </SectionContainer>
-            </>
+            </PackagesWrapper>
           )}
         </ContentOverlay>
 
