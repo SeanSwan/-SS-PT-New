@@ -28,7 +28,8 @@ import ParallaxSectionWrapper from "../ui-kit/parallax/ParallaxSectionWrapper";
 
 // Hooks
 import { useReducedMotion } from "../../hooks/useReducedMotion";
-import SectionVideoBackground from "../ui/backgrounds/SectionVideoBackground";
+import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
+import marbleTexture from "../../assets/marble-texture.png";
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
@@ -356,11 +357,10 @@ const FeaturesSectionV2: React.FC = () => {
 
   return (
     <SectionContainer id="services" ref={ref}>
-      <SectionVideoBackground
-        src="/Swan-mov-2.mp4"
-        fallbackGradient="linear-gradient(135deg, #09041e 0%, #1a1a3c 100%)"
-        overlayOpacity={0.5}
-        overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.5), rgba(26, 26, 60, 0.5))"
+      <ParallaxImageBackground
+        src={marbleTexture}
+        overlayOpacity={0.55}
+        overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.55), rgba(26, 26, 60, 0.55))"
       />
       <BackgroundGlow />
 

@@ -90,6 +90,7 @@ const TestimonialSection = styled.section`
   background: linear-gradient(145deg, #080818, #1a1a3a);
   overflow: hidden;
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  border-top: 1px solid rgba(0, 212, 170, 0.25);
   @media (max-width: 768px) {
     padding: 4rem 1rem 6rem;
   }

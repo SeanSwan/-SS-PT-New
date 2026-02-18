@@ -49,6 +49,7 @@ const NewsletterSection = styled.section`
   margin: 0;
   box-sizing: border-box;
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  border-top: 1px solid rgba(0, 212, 170, 0.25);
 `;
 
 const BackgroundEffect = styled.div`
