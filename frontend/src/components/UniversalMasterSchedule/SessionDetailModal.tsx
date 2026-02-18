@@ -12,13 +12,13 @@ import {
   Label,
   StyledInput,
   StyledTextarea,
-  PrimaryButton,
   OutlinedButton,
   ErrorText,
   SmallText,
   BodyText,
   Caption,
-  FlexBox
+  FlexBox,
+  GlowButton
 } from './ui';
 
 interface Session {
@@ -44,6 +44,10 @@ interface Session {
     sessionsTotal?: number | null;
     purchasedAt?: string | Date | null;
   };
+  // Client contact info (admin/trainer only)
+  clientEmail?: string;
+  clientPhone?: string;
+  clientAvailableSessions?: number;
   // Attendance tracking fields (Phase D)
   attendanceStatus?: 'present' | 'no_show' | 'late' | null;
   checkInTime?: string | null;
@@ -654,13 +658,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             Close
           </OutlinedButton>
           {canCancel && !showCancelOptions && !showLateCancelWarning && (
-            <OutlinedButton
+            <GlowButton
+              variant="ruby"
+              size="medium"
               onClick={handleCancelClick}
               disabled={loading || lateCancelLoading}
-              style={{ borderColor: '#ef4444', color: '#ef4444' }}
+              isLoading={lateCancelLoading}
             >
               {lateCancelLoading ? 'Checking...' : 'Cancel Session'}
-            </OutlinedButton>
+            </GlowButton>
           )}
           {showCancelOptions && (
             <>
@@ -670,39 +676,44 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               >
                 Back
               </OutlinedButton>
-              <OutlinedButton
+              <GlowButton
+                variant="ruby"
+                size="medium"
                 onClick={handleCancel}
                 disabled={loading}
-                style={{ borderColor: '#ef4444', color: '#ef4444' }}
               >
                 Confirm Cancellation
-              </OutlinedButton>
+              </GlowButton>
             </>
           )}
           {/* Phase D: Attendance buttons */}
           {canRecordAttendance && !showCancelOptions && !showNoShowReason && (
             <>
-              <AttendanceButton
+              <GlowButton
+                variant="emerald"
+                size="medium"
                 onClick={() => handleRecordAttendance('present')}
                 disabled={attendanceLoading}
-                $variant="present"
+                isLoading={attendanceLoading}
               >
                 {attendanceLoading ? 'Recording...' : 'Present'}
-              </AttendanceButton>
-              <AttendanceButton
+              </GlowButton>
+              <GlowButton
+                variant="neonBlue"
+                size="medium"
                 onClick={() => handleRecordAttendance('late')}
                 disabled={attendanceLoading}
-                $variant="late"
               >
                 Late
-              </AttendanceButton>
-              <AttendanceButton
+              </GlowButton>
+              <GlowButton
+                variant="ruby"
+                size="medium"
                 onClick={() => handleRecordAttendance('no_show')}
                 disabled={attendanceLoading}
-                $variant="noshow"
               >
                 No-Show
-              </AttendanceButton>
+              </GlowButton>
             </>
           )}
           {showNoShowReason && (
@@ -716,19 +727,27 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               >
                 Back
               </OutlinedButton>
-              <AttendanceButton
+              <GlowButton
+                variant="ruby"
+                size="medium"
                 onClick={() => handleRecordAttendance('no_show')}
                 disabled={attendanceLoading}
-                $variant="noshow"
+                isLoading={attendanceLoading}
               >
                 {attendanceLoading ? 'Recording...' : 'Confirm No-Show'}
-              </AttendanceButton>
+              </GlowButton>
             </>
           )}
           {canComplete && !showNoShowReason && (
-            <PrimaryButton onClick={handleComplete} disabled={loading}>
+            <GlowButton
+              variant="emerald"
+              size="medium"
+              onClick={handleComplete}
+              disabled={loading}
+              isLoading={loading}
+            >
               Mark Complete
-            </PrimaryButton>
+            </GlowButton>
           )}
         </>
       )}
@@ -769,19 +788,22 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             Part of recurring series{seriesCount ? ` (${seriesCount} sessions)` : ''}.
           </SmallText>
           <FlexBox gap="0.5rem">
-            <OutlinedButton
+            <GlowButton
+              variant="purple"
+              size="small"
               onClick={() => onManageSeries?.(session.recurringGroupId as string)}
               disabled={loading}
             >
               Edit Series
-            </OutlinedButton>
-            <OutlinedButton
+            </GlowButton>
+            <GlowButton
+              variant="ruby"
+              size="small"
               onClick={handleDeleteSeries}
               disabled={loading}
-              style={{ borderColor: '#ef4444', color: '#ef4444' }}
             >
               Delete Series
-            </OutlinedButton>
+            </GlowButton>
           </FlexBox>
         </SeriesCallout>
       )}
@@ -827,6 +849,26 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <Caption secondary>Client</Caption>
           <BodyText>{session.clientName || 'Unassigned'}</BodyText>
         </DetailItem>
+        {canManage && session.clientEmail && (
+          <DetailItem>
+            <Caption secondary>Client Email</Caption>
+            <BodyText>{session.clientEmail}</BodyText>
+          </DetailItem>
+        )}
+        {canManage && session.clientPhone && (
+          <DetailItem>
+            <Caption secondary>Client Phone</Caption>
+            <BodyText>{session.clientPhone}</BodyText>
+          </DetailItem>
+        )}
+        {session.clientAvailableSessions != null && (
+          <DetailItem>
+            <Caption secondary>Sessions Remaining</Caption>
+            <SessionsRemainingBadge $low={session.clientAvailableSessions < 3}>
+              {session.clientAvailableSessions}
+            </SessionsRemainingBadge>
+          </DetailItem>
+        )}
         <DetailItem>
           <Caption secondary>Trainer</Caption>
           <BodyText>{session.trainerName || 'Unassigned'}</BodyText>
@@ -992,13 +1034,16 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 />
               </FormField>
 
-              <PrimaryButton
+              <GlowButton
+                variant="primary"
+                size="medium"
                 onClick={handleSubmitFeedback}
                 disabled={feedbackLoading || clientRating === 0}
+                isLoading={feedbackLoading}
                 style={{ marginTop: '1rem' }}
               >
                 {feedbackLoading ? 'Submitting...' : 'Submit Feedback'}
-              </PrimaryButton>
+              </GlowButton>
             </>
           ) : (
             <FeedbackThankYou>
@@ -1052,12 +1097,16 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               >
                 Go Back
               </LateCancelBackButton>
-              <LateCancelContinueButton
+              <GlowButton
+                variant="ruby"
+                size="medium"
                 onClick={handleConfirmLateCancellation}
                 disabled={loading}
+                isLoading={loading}
+                style={{ flex: 1 }}
               >
                 {loading ? 'Cancelling...' : 'I Understand, Cancel Session'}
-              </LateCancelContinueButton>
+              </GlowButton>
             </LateCancelButtonRow>
           </LateCancelWarningPanel>
         ) : (
@@ -1092,13 +1141,16 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               >
                 Go Back
               </LateCancelBackButton>
-              <LateCancelContinueButton
+              <GlowButton
+                variant="emerald"
+                size="medium"
                 onClick={handleConfirmLateCancellation}
                 disabled={loading}
-                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                isLoading={loading}
+                style={{ flex: 1 }}
               >
                 {loading ? 'Cancelling...' : 'Cancel Session (No Fee)'}
-              </LateCancelContinueButton>
+              </GlowButton>
             </LateCancelButtonRow>
           </EarlyCancelPanel>
         )
@@ -1925,4 +1977,22 @@ const NoShowReasonDisplay = styled.div`
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
+`;
+
+const SessionsRemainingBadge = styled.span<{ $low?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: ${({ $low }) => $low
+    ? 'rgba(239, 68, 68, 0.15)'
+    : 'rgba(0, 255, 136, 0.15)'};
+  color: ${({ $low }) => $low ? '#ef4444' : '#00FF88'};
+  border: 1px solid ${({ $low }) => $low
+    ? 'rgba(239, 68, 68, 0.3)'
+    : 'rgba(0, 255, 136, 0.3)'};
 `;

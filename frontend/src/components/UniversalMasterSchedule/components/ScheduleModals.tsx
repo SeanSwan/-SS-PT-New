@@ -15,7 +15,6 @@ import useSessionTypes from '../hooks/useSessionTypes';
 import {
   Modal,
   OutlinedButton,
-  PrimaryButton,
   FlexBox,
   FormField,
   Label,
@@ -33,6 +32,7 @@ import {
   getLocalToday,
   getMinTimeForToday,
   getTimezoneAbbr,
+  GlowButton,
 } from '../ui';
 import SearchableSelect from '../ui/SearchableSelect';
 
@@ -336,13 +336,21 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               <OutlinedButton onClick={() => setShowCreateDialog(false)}>
                 Cancel
               </OutlinedButton>
-              <OutlinedButton onClick={handleSaveTemplateClick}>
+              <GlowButton
+                variant="purple"
+                size="small"
+                onClick={handleSaveTemplateClick}
+              >
                 Save as Template
-              </OutlinedButton>
-              <PrimaryButton onClick={handleCreateSession}>
-                <Save size={18} />
+              </GlowButton>
+              <GlowButton
+                variant="primary"
+                size="medium"
+                onClick={handleCreateSession}
+                leftIcon={<Save size={18} />}
+              >
                 Create Session
-              </PrimaryButton>
+              </GlowButton>
             </>
           }
         >
@@ -602,9 +610,15 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               <OutlinedButton onClick={() => setShowBookingDialog(false)} disabled={bookingLoading}>
                 Cancel
               </OutlinedButton>
-              <PrimaryButton onClick={handleBookSession} disabled={bookingLoading}>
+              <GlowButton
+                variant="emerald"
+                size="medium"
+                onClick={handleBookSession}
+                disabled={bookingLoading}
+                isLoading={bookingLoading}
+              >
                 {bookingLoading ? 'Booking...' : 'Confirm Booking'}
-              </PrimaryButton>
+              </GlowButton>
             </>
           }
         >

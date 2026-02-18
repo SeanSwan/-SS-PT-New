@@ -605,10 +605,10 @@ class UnifiedSessionService {
       // Clients should never see other client's contact info
       // Trainers only see full contact info for their assigned clients
       const clientAttributes = user.role === 'admin'
-        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
         : user.role === 'trainer'
-          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo'] // Trainer sees their clients
-          : ['id', 'firstName', 'lastName', 'photo']; // Clients see minimal trainer info
+          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions'] // Trainer sees their clients
+          : ['id', 'firstName', 'lastName', 'photo']; // Clients see minimal info
 
       const trainerAttributes = user.role === 'client'
         ? ['id', 'firstName', 'lastName', 'photo', 'bio', 'specialties'] // No trainer email/phone to clients
@@ -675,8 +675,8 @@ class UnifiedSessionService {
           {
             model: this.User,
             as: 'client',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 
-              'fitnessGoal', 'trainingExperience', 'healthConcerns', 'weight', 'height']
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo',
+              'fitnessGoal', 'trainingExperience', 'healthConcerns', 'weight', 'height', 'availableSessions']
           },
           {
             model: this.User,
