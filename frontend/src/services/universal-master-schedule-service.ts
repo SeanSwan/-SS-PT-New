@@ -166,7 +166,7 @@ class UniversalMasterScheduleService {
     clientName?: string;
     location?: string;
     notes?: string;
-    sessionType?: string;
+    sessionTypeId?: number;
     notifyClient?: boolean;
   }>): Promise<{ sessions: Session[]; message: string }> {
     try {
@@ -218,7 +218,7 @@ class UniversalMasterScheduleService {
     trainerId?: string;
     location?: string;
     duration?: number;
-    sessionType?: string;
+    sessionTypeId?: number;
   }): Promise<{ success: boolean; message: string; count: number }> {
     try {
       const response: AxiosResponse<{

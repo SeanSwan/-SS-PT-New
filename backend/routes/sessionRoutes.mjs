@@ -2479,14 +2479,14 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
   try {
     const Session = getSession();
     const { 
-      startDate, 
-      endDate, 
-      daysOfWeek, 
-      times, 
-      trainerId, 
+      startDate,
+      endDate,
+      daysOfWeek,
+      times,
+      trainerId,
       location,
       duration,
-      sessionType,
+      sessionType, sessionTypeId,
       notifyClient,
       recurrenceRule,
       status,
@@ -2562,7 +2562,7 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
         trainerId: trainerId || null,
         location: location || 'Main Studio',
         status: baseStatus,
-        sessionType: sessionType || 'Standard Training',
+        sessionTypeId: sessionTypeId ? parseInt(sessionTypeId, 10) || null : null,
         notifyClient: resolvedNotifyClient,
         isRecurring: true,
         recurringGroupId,
@@ -2597,7 +2597,7 @@ router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
       trainerId,
       location,
       duration,
-      sessionType,
+      sessionType, sessionTypeId,
       notifyClient,
       status,
       isBlocked,
@@ -2609,7 +2609,9 @@ router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
     if (trainerId !== undefined) updateFields.trainerId = trainerId || null;
     if (location !== undefined) updateFields.location = location;
     if (duration !== undefined) updateFields.duration = duration;
-    if (sessionType !== undefined) updateFields.sessionType = sessionType;
+    // Support both sessionTypeId (preferred) and legacy sessionType
+    const resolvedTypeId = sessionTypeId !== undefined ? sessionTypeId : sessionType;
+    if (resolvedTypeId !== undefined) updateFields.sessionTypeId = resolvedTypeId ? parseInt(resolvedTypeId, 10) || null : null;
     if (notifyClient !== undefined) updateFields.notifyClient = notifyClient;
     if (status !== undefined) updateFields.status = status;
     if (isBlocked !== undefined) updateFields.isBlocked = isBlocked;
@@ -4213,7 +4215,7 @@ router.post("/request", protect, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
-    const { start, end, duration, notes, sessionType, location, preferredTrainerId } = req.body;
+    const { start, end, duration, notes, sessionType, sessionTypeId, location, preferredTrainerId } = req.body;
     
     if (!start) {
       return res.status(400).json({
@@ -4258,7 +4260,7 @@ router.post("/request", protect, async (req, res) => {
       userId: client.id,
       trainerId: preferredTrainerId || null,
       notes: notes || null,
-      sessionType: sessionType || 'Standard Training',
+      sessionTypeId: (sessionTypeId || sessionType) ? parseInt(sessionTypeId || sessionType, 10) || null : null,
       location: location || 'Main Studio',
       confirmed: false,
       bookingDate: new Date()
