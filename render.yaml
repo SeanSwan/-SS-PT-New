@@ -7,7 +7,7 @@ services:
   - type: web
     name: swanstudios-main
     runtime: node
-    repo: https://github.com/YOUR-USERNAME/SS-PT # Update with your repo
+    repo: https://github.com/SeanSwan/-SS-PT-New
     branch: main
     rootDir: ./
     buildCommand: |
