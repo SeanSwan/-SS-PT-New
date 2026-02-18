@@ -396,10 +396,22 @@ const BackgroundUploadOverlay = styled(motion.div)`
 
 const ProfileImageSection = styled.div`
   position: absolute;
-  bottom: -50px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  ${({ $hasBackgroundImage }) => $hasBackgroundImage ? css`
+    bottom: -50px;
+  ` : css`
+    top: 12px;
+  `}
+
+  @media (max-width: 768px) {
+    ${({ $hasBackgroundImage }) => $hasBackgroundImage ? css`
+      bottom: -42px;
+    ` : css`
+      top: 8px;
+    `}
+  }
 `;
 
 const ProfileImageContainer = styled(motion.div)`
@@ -2900,7 +2912,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             </BackgroundUploadOverlay>
           </BackgroundImageContainer>
 
-          <ProfileImageSection>
+          <ProfileImageSection $hasBackgroundImage={Boolean(backgroundImage)}>
             <ProfileImageContainer
               whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
               whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
