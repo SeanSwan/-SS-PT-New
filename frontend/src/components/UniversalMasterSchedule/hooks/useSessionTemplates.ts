@@ -6,6 +6,10 @@ export interface SessionTemplate {
   duration: number;
   location: string;
   notes?: string;
+  sessionTypeId?: number;
+  trainerId?: number;
+  bufferBefore?: number;
+  bufferAfter?: number;
   isDefault?: boolean;
 }
 

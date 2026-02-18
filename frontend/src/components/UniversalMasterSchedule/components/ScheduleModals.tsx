@@ -34,6 +34,7 @@ import {
   getMinTimeForToday,
   getTimezoneAbbr,
 } from '../ui';
+import SearchableSelect from '../ui/SearchableSelect';
 
 interface ScheduleModalsProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -74,6 +75,10 @@ interface ScheduleModalsProps {
     duration: number;
     location: string;
     notes?: string;
+    sessionTypeId?: number;
+    trainerId?: number;
+    bufferBefore?: number;
+    bufferAfter?: number;
     isDefault?: boolean;
   }>;
   selectedTemplateId: string;
@@ -499,17 +504,18 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                   placeholder="Enter client name..."
                 />
               ) : (
-                <CustomSelect
+                <SearchableSelect
+                  label="Client"
+                  placeholder="Search clients by name..."
                   value={formData.clientId?.toString() || ''}
                   onChange={(value) => setFormData({ ...formData, clientId: value ? Number(value) : undefined })}
-                  options={[
-                    { value: '', label: '-- Select Client --' },
-                    ...dbClients.map((c: any) => ({
+                  options={
+                    (dbClients || []).map((c: any) => ({
                       value: (c.id || c.userId || c._id)?.toString(),
-                      label: c.name || `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client'
+                      label: `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client',
+                      subLabel: c.availableSessions != null ? `${c.availableSessions} sessions` : undefined,
                     }))
-                  ]}
-                  aria-label="Select client"
+                  }
                 />
               )}
               {dbClients.length === 0 && !useManualClient && (
