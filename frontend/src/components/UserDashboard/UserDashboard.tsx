@@ -338,7 +338,7 @@ const ProfileHeader = styled(motion.div)`
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   background: ${({ theme }) => theme.gradients.card};
   backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.borders.elegant};
@@ -346,7 +346,7 @@ const ProfileHeader = styled(motion.div)`
 `;
 
 const BackgroundImageContainer = styled.div`
-  height: ${({ $backgroundImage }) => ($backgroundImage ? '300px' : '220px')};
+  height: ${({ $backgroundImage }) => ($backgroundImage ? '300px' : '170px')};
   position: relative;
   background: ${({ $backgroundImage, theme }) => 
     $backgroundImage 
@@ -360,7 +360,7 @@ const BackgroundImageContainer = styled.div`
   justify-content: center;
   
   @media (max-width: 768px) {
-    height: ${({ $backgroundImage }) => ($backgroundImage ? '180px' : '120px')};
+    height: ${({ $backgroundImage }) => ($backgroundImage ? '180px' : '100px')};
   }
 
   &::after {
@@ -396,7 +396,7 @@ const BackgroundUploadOverlay = styled(motion.div)`
 
 const ProfileImageSection = styled.div`
   position: absolute;
-  bottom: -60px;
+  bottom: -50px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
@@ -490,10 +490,10 @@ const ImageUploadButton = styled(motion.button)`
 
 const ProfileInfo = styled(motion.div)`
   text-align: center;
-  padding: 80px 2rem 2rem;
+  padding: 62px 2rem 1.5rem;
   
   @media (max-width: 768px) {
-    padding: 58px 1rem 1.25rem;
+    padding: 54px 1rem 1.1rem;
   }
 `;
 
@@ -567,7 +567,7 @@ const StatsContainer = styled.div`
   display: flex;
   justify-content: center;
   gap: 3rem;
-  margin: 2rem 0;
+  margin: 1.25rem 0;
 
   @media (max-width: 768px) {
     gap: 1.5rem;
