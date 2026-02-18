@@ -5,6 +5,19 @@ import styled from 'styled-components';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
+/** Reactive mobile check — updates on viewport resize (no stale static check) */
+function useIsMobile(breakpoint = 768): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 export interface ParallaxImageBackgroundProps {
   /** Image source (imported asset or URL) */
   src: string;
@@ -99,6 +112,7 @@ export const ParallaxImageBackground: React.FC<ParallaxImageBackgroundProps> = (
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   // Window scroll — works regardless of the element's CSS position
   const { scrollY } = useScroll();
@@ -140,7 +154,9 @@ export const ParallaxImageBackground: React.FC<ParallaxImageBackgroundProps> = (
     restDelta: 0.001,
   });
 
-  const imageLayer = prefersReducedMotion ? (
+  const shouldDisableParallax = prefersReducedMotion || isMobile;
+
+  const imageLayer = shouldDisableParallax ? (
     <StaticLayer>
       <img src={src} alt="" loading="lazy" />
     </StaticLayer>
