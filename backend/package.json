@@ -5,7 +5,7 @@
   "main": "server.mjs",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
+    "start": "node scripts/render-start.mjs",
     "start:minimal": "node server-minimal.mjs",
     "dev": "nodemon server.mjs",
     "dev:mongodb": "node scripts/check-mongodb.mjs && nodemon server.mjs",
