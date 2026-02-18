@@ -415,7 +415,7 @@ const CreativeExpressionSection: React.FC = () => {
   return (
     <MotionConfig reducedMotion="user">
       <SectionContainer id="creative-expression" ref={ref}>
-        <ParallaxImageBackground src={paint3Image} overlayOpacity={0.75} />
+        <ParallaxImageBackground src={paint3Image} overlayOpacity={0.55} />
         <GlowEffect />
         <ContentWrapper>
           <SectionTitle variant="ew">FORGE YOUR BODY, FREE YOUR SPIRIT</SectionTitle>

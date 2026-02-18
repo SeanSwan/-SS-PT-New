@@ -764,7 +764,7 @@ const TrainerProfilesSection: React.FC = () => {
         onKeyDown={handleSectionKeyDown}
         tabIndex={-1}
       >
-        <SectionVideoBackground src="/galaxy1.mp4" fallbackGradient={`linear-gradient(135deg, ${T.bg}, #1a1a3c)`} overlayOpacity={0.65} />
+        <SectionVideoBackground src="/galaxy1.mp4" fallbackGradient={`linear-gradient(135deg, ${T.bg}, #1a1a3c)`} overlayOpacity={0.5} />
         <GridLines />
         <ContentWrapper>
           <SectionTitle variant="ew">Meet Our Expert Coaching Team</SectionTitle>

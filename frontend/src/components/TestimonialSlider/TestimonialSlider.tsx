@@ -610,7 +610,7 @@ const TestimonialSlider: React.FC = () => {
 
   return (
     <TestimonialSection id="testimonials">
-      <ParallaxImageBackground src={neonPaint2Image} overlayOpacity={0.7} overlayGradient="linear-gradient(145deg, rgba(8, 8, 24, 0.7), rgba(26, 26, 58, 0.7))" />
+      <ParallaxImageBackground src={neonPaint2Image} overlayOpacity={0.5} overlayGradient="linear-gradient(145deg, rgba(8, 8, 24, 0.5), rgba(26, 26, 58, 0.5))" />
       <BackgroundGlow />
       <QuoteIcon className="left" variants={iconVariants} initial="hidden" animate="visible">
         <Quote />

@@ -356,7 +356,7 @@ const FeaturesSectionV2: React.FC = () => {
 
   return (
     <SectionContainer id="services" ref={ref}>
-      <ParallaxImageBackground src={paintAb1Image} overlayOpacity={0.7} overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.7), rgba(26, 26, 60, 0.7))" />
+      <ParallaxImageBackground src={paintAb1Image} overlayOpacity={0.5} overlayGradient="linear-gradient(135deg, rgba(9, 4, 30, 0.5), rgba(26, 26, 60, 0.5))" />
       <BackgroundGlow />
 
       {/* v2.0 Parallax wrapper for mid-ground depth */}

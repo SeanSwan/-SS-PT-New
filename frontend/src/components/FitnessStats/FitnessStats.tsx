@@ -32,6 +32,8 @@ import {
   Cell,
 } from "recharts";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
+import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
+import paintAbImage from "../../assets/paint-ab.png";
 
 // --- Design Tokens (Ethereal Wilderness, matches ProgramsOverview.V3) ---
 const T = {
@@ -803,23 +805,8 @@ const FitnessStats: React.FC = () => {
 
   return (
     <StatsSection id="stats" ref={sectionRef}>
-      {/* Background: video lazy-mounts when section enters viewport (desktop only) */}
-      {isDesktop && !prefersReducedMotion && isInView ? (
-        <SectionVideoBackground>
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="none"
-            aria-hidden="true"
-          >
-            <source src="/swan-silver-wing.mp4" type="video/mp4" />
-          </video>
-        </SectionVideoBackground>
-      ) : (
-        <GradientFallback />
-      )}
+      {/* Background: paint-ab.png with 3D parallax scroll effect */}
+      <ParallaxImageBackground src={paintAbImage} overlayOpacity={0.55} />
 
       <ContentWrapper>
         <Header>
