@@ -513,9 +513,13 @@ export async function getCollection(req, res) {
           if (VideoAccessGrant) {
             const grant = await VideoAccessGrant.findOne({
               where: {
-                userId: user.id,
-                collectionId: collection.id,
-                grantStatus: 'active',
+                user_id: user.id,
+                collection_id: collection.id,
+                grant_status: 'active',
+                [Op.or]: [
+                  { expires_at: null },
+                  { expires_at: { [Op.gt]: new Date() } },
+                ],
               },
             });
             if (!grant) {

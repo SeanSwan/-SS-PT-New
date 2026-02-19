@@ -806,8 +806,7 @@ const CollectionsTab: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this collection?')) return;
     try {
-      const res = await fetchWithAuth(`/api/v2/admin/collections/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data = await fetchWithAuth(`/api/v2/admin/collections/${id}`, { method: 'DELETE' });
       if (!data.success) {
         alert(data.error || 'Delete failed');
         return;
@@ -837,11 +836,10 @@ const CollectionsTab: React.FC = () => {
     setReorderSaving(true);
     try {
       const videoIds = collectionVideos.map((v) => v.id);
-      const res = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/reorder`, {
+      const data = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/reorder`, {
         method: 'PATCH',
         body: JSON.stringify({ videoIds }),
       });
-      const data = await res.json();
       if (!data.success) {
         alert(data.error || 'Reorder save failed');
         return;
@@ -859,10 +857,9 @@ const CollectionsTab: React.FC = () => {
   const handleRemoveVideo = async (videoId: string) => {
     if (!selectedCollection) return;
     try {
-      const res = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos/${videoId}`, {
+      const data = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos/${videoId}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
       if (!data.success) {
         alert(data.error || 'Remove video failed');
         return;
