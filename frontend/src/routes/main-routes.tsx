@@ -172,6 +172,12 @@ const VideoWatch = lazyLoadWithErrorHandling(
   'Video Watch'
 );
 
+// Collection Detail page (public)
+const CollectionDetail = lazyLoadWithErrorHandling(
+  () => import('../pages/CollectionDetail'),
+  'Collection Detail'
+);
+
 // Members Video Vault (authenticated)
 const MembersVault = lazyLoadWithErrorHandling(
   () => import('../pages/MembersVault'),
@@ -376,6 +382,16 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <VideoWatch />
+        </Suspense>
+      )
+    },
+
+    // Collection Detail (public)
+    {
+      path: 'collections/:slug',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <CollectionDetail />
         </Suspense>
       )
     },

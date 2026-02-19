@@ -201,6 +201,7 @@ export async function listVideos(req, res) {
       source,
       visibility,
       contentType,
+      search,
       page = 1,
       limit = 20,
     } = req.query;
@@ -210,6 +211,7 @@ export async function listVideos(req, res) {
     if (source) where.source = source;
     if (visibility) where.visibility = visibility;
     if (contentType) where.contentType = contentType;
+    if (search) where.title = { [Op.iLike]: `%${search}%` };
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
