@@ -156,6 +156,15 @@ export const getAdminSettings = () => getModel('AdminSettings');
 export const getAutomationSequence = () => getModel('AutomationSequence');
 export const getAutomationLog = () => getModel('AutomationLog');
 
+// Video Catalog Models
+export const getVideoCatalog = () => getModel('VideoCatalog');
+export const getVideoCollection = () => getModel('VideoCollection');
+export const getVideoCollectionItem = () => getModel('VideoCollectionItem');
+export const getUserWatchHistory = () => getModel('UserWatchHistory');
+export const getVideoAccessGrant = () => getModel('VideoAccessGrant');
+export const getVideoOutboundClick = () => getModel('VideoOutboundClick');
+export const getVideoJobLog = () => getModel('VideoJobLog');
+
 // Export Sequelize operators for routes
 export { Op };
 

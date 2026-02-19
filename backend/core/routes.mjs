@@ -85,6 +85,15 @@ import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 import publicVideoRoutes from '../routes/publicVideoRoutes.mjs';
+
+// ===================== VIDEO CATALOG V2 ROUTES =====================
+import videoCatalogAdminRoutes from '../routes/videoCatalogRoutes.mjs';
+import videoCatalogPublicRoutes from '../routes/videoCatalogPublicRoutes.mjs';
+import videoCatalogMemberRoutes from '../routes/videoCatalogMemberRoutes.mjs';
+import youtubeImportRoutes from '../routes/youtubeImportRoutes.mjs';
+import videoAnalyticsRoutes from '../routes/videoAnalyticsRoutes.mjs';
+import videoCollectionRoutes from '../routes/videoCollectionRoutes.mjs';
+
 import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
 import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
 import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
@@ -209,6 +218,17 @@ export const setupRoutes = async (app) => {
   // ===================== BUSINESS LOGIC ROUTES =====================
   app.use('/api/cart', cartRoutes);
   app.use('/api/storefront', storefrontRoutes);
+
+  // ===================== VIDEO CATALOG V2 ROUTES (MUST BE BEFORE LEGACY) =====================
+  // Per hardening #14: v2 routes registered first so /api/v2/* is resolved before /api/* legacy
+  app.use('/api/v2/videos', videoCatalogPublicRoutes);       // Public browse + watch (optionalAuth)
+  app.use('/api/v2/videos', videoCatalogMemberRoutes);       // Member endpoints (protect)
+  app.use('/api/v2/admin/videos', videoCatalogAdminRoutes);  // Admin CRUD + upload (admin)
+  app.use('/api/v2/admin/youtube', youtubeImportRoutes);     // YouTube import (admin)
+  app.use('/api/v2/admin/video-analytics', videoAnalyticsRoutes); // Analytics + job log (admin)
+  app.use('/api/v2/admin/collections', videoCollectionRoutes); // Collection CRUD (admin)
+
+  // ===================== LEGACY VIDEO ROUTES (unchanged) =====================
   app.use('/api/videos', publicVideoRoutes); // Public video library (no auth)
   // ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
   // app.use('/api/checkout', checkoutRoutes);

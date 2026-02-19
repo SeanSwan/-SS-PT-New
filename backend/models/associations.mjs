@@ -99,6 +99,15 @@ const setupAssociations = async () => {
     const AutomationSequenceModule = await import('./AutomationSequence.mjs');
     const AutomationLogModule = await import('./AutomationLog.mjs');
 
+    // Video Catalog Models (Sequelize)
+    const VideoCatalogModule = await import('./VideoCatalog.mjs');
+    const VideoCollectionModule = await import('./VideoCollection.mjs');
+    const VideoCollectionItemModule = await import('./VideoCollectionItem.mjs');
+    const UserWatchHistoryModule = await import('./UserWatchHistory.mjs');
+    const VideoAccessGrantModule = await import('./VideoAccessGrant.mjs');
+    const VideoOutboundClickModule = await import('./VideoOutboundClick.mjs');
+    const VideoJobLogModule = await import('./VideoJobLog.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -185,6 +194,15 @@ const setupAssociations = async () => {
     const AutomationSequence = AutomationSequenceModule.default;
     const AutomationLog = AutomationLogModule.default;
 
+    // Video Catalog Models
+    const VideoCatalog = VideoCatalogModule.default;
+    const VideoCollection = VideoCollectionModule.default;
+    const VideoCollectionItem = VideoCollectionItemModule.default;
+    const UserWatchHistory = UserWatchHistoryModule.default;
+    const VideoAccessGrant = VideoAccessGrantModule.default;
+    const VideoOutboundClick = VideoOutboundClickModule.default;
+    const VideoJobLog = VideoJobLogModule.default;
+
     console.log('Setting up Sequelize associations only...');
     
     // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
@@ -243,10 +261,13 @@ const setupAssociations = async () => {
         FinancialTransaction, BusinessMetrics, AdminNotification,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
-        AutomationSequence, AutomationLog
+        AutomationSequence, AutomationLog,
+        // Video Catalog Models
+        VideoCatalog, VideoCollection, VideoCollectionItem,
+        UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog
       };
     }
-    
+
     // USER ASSOCIATIONS (only with Sequelize models)
     // ============================================
     User.hasOne(ClientProgress, { foreignKey: 'userId', as: 'clientProgress' });
@@ -632,10 +653,64 @@ const setupAssociations = async () => {
     WorkoutExercise.hasMany(Set, { foreignKey: 'workoutExerciseId', as: 'sets' });
     Set.belongsTo(WorkoutExercise, { foreignKey: 'workoutExerciseId', as: 'workoutExercise' });
 
+    // VIDEO CATALOG ASSOCIATIONS
+    // ==========================
+
+    // User -> VideoCatalog (creator)
+    User.hasMany(VideoCatalog, { foreignKey: 'creatorId', as: 'createdVideos' });
+    VideoCatalog.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+
+    // User -> VideoCollection (creator)
+    User.hasMany(VideoCollection, { foreignKey: 'creatorId', as: 'createdCollections' });
+    VideoCollection.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+
+    // VideoCatalog <-> VideoCollection (M:N through VideoCollectionItem)
+    VideoCatalog.belongsToMany(VideoCollection, {
+      through: VideoCollectionItem,
+      foreignKey: 'videoId',
+      otherKey: 'collectionId',
+      as: 'collections'
+    });
+    VideoCollection.belongsToMany(VideoCatalog, {
+      through: VideoCollectionItem,
+      foreignKey: 'collectionId',
+      otherKey: 'videoId',
+      as: 'videos'
+    });
+
+    // Direct join table associations (for ordering queries)
+    VideoCollection.hasMany(VideoCollectionItem, { foreignKey: 'collectionId', as: 'collectionItems' });
+    VideoCollectionItem.belongsTo(VideoCollection, { foreignKey: 'collectionId', as: 'collection' });
+    VideoCatalog.hasMany(VideoCollectionItem, { foreignKey: 'videoId', as: 'collectionMemberships' });
+    VideoCollectionItem.belongsTo(VideoCatalog, { foreignKey: 'videoId', as: 'video' });
+
+    // User -> UserWatchHistory (snake_case FKs — matches migration/model column names)
+    User.hasMany(UserWatchHistory, { foreignKey: 'user_id', as: 'watchHistory' });
+    UserWatchHistory.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+    VideoCatalog.hasMany(UserWatchHistory, { foreignKey: 'video_id', as: 'watchRecords' });
+    UserWatchHistory.belongsTo(VideoCatalog, { foreignKey: 'video_id', as: 'video' });
+
+    // User -> VideoAccessGrant (snake_case FKs — matches migration/model column names)
+    User.hasMany(VideoAccessGrant, { foreignKey: 'user_id', as: 'videoAccessGrants' });
+    VideoAccessGrant.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+    User.hasMany(VideoAccessGrant, { foreignKey: 'granted_by', as: 'grantedVideoAccess' });
+    VideoAccessGrant.belongsTo(User, { foreignKey: 'granted_by', as: 'grantor' });
+    VideoCatalog.hasMany(VideoAccessGrant, { foreignKey: 'video_id', as: 'accessGrants' });
+    VideoAccessGrant.belongsTo(VideoCatalog, { foreignKey: 'video_id', as: 'video' });
+    VideoCollection.hasMany(VideoAccessGrant, { foreignKey: 'collection_id', as: 'accessGrants' });
+    VideoAccessGrant.belongsTo(VideoCollection, { foreignKey: 'collection_id', as: 'collection' });
+
+    // VideoCatalog -> VideoOutboundClick (snake_case FKs — matches migration/model column names)
+    VideoCatalog.hasMany(VideoOutboundClick, { foreignKey: 'video_id', as: 'outboundClicks' });
+    VideoOutboundClick.belongsTo(VideoCatalog, { foreignKey: 'video_id', as: 'video' });
+    User.hasMany(VideoOutboundClick, { foreignKey: 'user_id', as: 'videoOutboundClicks' });
+    VideoOutboundClick.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');
     console.log('✅ NASM Workout Tracking models integrated');
     console.log('✅ Content Moderation models integrated');
+    console.log('✅ Video Catalog models integrated');
     
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -733,7 +808,16 @@ const setupAssociations = async () => {
       ClientPhoto,
       ClientNote,
       AutomationSequence,
-      AutomationLog
+      AutomationLog,
+
+      // Video Catalog Models
+      VideoCatalog,
+      VideoCollection,
+      VideoCollectionItem,
+      UserWatchHistory,
+      VideoAccessGrant,
+      VideoOutboundClick,
+      VideoJobLog
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
