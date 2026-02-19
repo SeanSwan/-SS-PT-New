@@ -806,11 +806,17 @@ const CollectionsTab: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this collection?')) return;
     try {
-      await fetchWithAuth(`/api/v2/admin/collections/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/v2/admin/collections/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Delete failed');
+        return;
+      }
       fetchCollections();
       if (selectedCollection?.id === id) setSelectedCollection(null);
     } catch (err) {
       console.error('Delete failed:', err);
+      alert('Delete failed — check console for details');
     }
   };
 
@@ -831,13 +837,19 @@ const CollectionsTab: React.FC = () => {
     setReorderSaving(true);
     try {
       const videoIds = collectionVideos.map((v) => v.id);
-      await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/reorder`, {
+      const res = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/reorder`, {
         method: 'PATCH',
         body: JSON.stringify({ videoIds }),
       });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Reorder save failed');
+        return;
+      }
       setReorderDirty(false);
     } catch (err) {
       console.error('Reorder failed:', err);
+      alert('Reorder save failed — check console for details');
     } finally {
       setReorderSaving(false);
     }
@@ -847,12 +859,18 @@ const CollectionsTab: React.FC = () => {
   const handleRemoveVideo = async (videoId: string) => {
     if (!selectedCollection) return;
     try {
-      await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos/${videoId}`, {
+      const res = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos/${videoId}`, {
         method: 'DELETE',
       });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Remove video failed');
+        return;
+      }
       setCollectionVideos((prev) => prev.filter((v) => v.id !== videoId));
     } catch (err) {
       console.error('Remove video failed:', err);
+      alert('Remove video failed — check console for details');
     }
   };
 
@@ -1255,9 +1273,9 @@ const CollectionsTab: React.FC = () => {
               <FormField>
                 <Label>Access Tier</Label>
                 <Select value={formAccessTier} onChange={(e) => setFormAccessTier(e.target.value)}>
-                  <option value="free">Free</option>
-                  <option value="member">Member</option>
-                  <option value="premium">Premium</option>
+                  {allowedAccessTiers.includes('free') && <option value="free">Free</option>}
+                  {allowedAccessTiers.includes('member') && <option value="member">Member</option>}
+                  {allowedAccessTiers.includes('premium') && <option value="premium">Premium</option>}
                 </Select>
               </FormField>
               {formMsg && <StatusMsg $error={formMsg.error}>{formMsg.text}</StatusMsg>}
