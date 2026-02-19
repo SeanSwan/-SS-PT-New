@@ -308,6 +308,17 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     description: 'Configure achievements and engagement systems',
   },
   {
+    key: 'video-studio',
+    label: 'Video Studio',
+    icon: 'Video',
+    order: 15.5,
+    status: 'new' as TabStatus,
+    section: 'content',
+    route: '/dashboard/video-studio',
+    description: 'Video library, YouTube imports, collections, analytics',
+    isNew: true,
+  },
+  {
     key: 'notifications',
     label: 'Notifications',
     icon: 'Bell',

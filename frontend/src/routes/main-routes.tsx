@@ -166,6 +166,18 @@ const VideoLibrary = lazyLoadWithErrorHandling(
   'Video Library'
 );
 
+// Video Watch page (public with gated content)
+const VideoWatch = lazyLoadWithErrorHandling(
+  () => import('../pages/VideoWatch'),
+  'Video Watch'
+);
+
+// Members Video Vault (authenticated)
+const MembersVault = lazyLoadWithErrorHandling(
+  () => import('../pages/MembersVault'),
+  'Members Vault'
+);
+
 // 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Single production store
 const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/OptimizedGalaxyStoreFront'),
@@ -354,6 +366,26 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <VideoLibrary />
+        </Suspense>
+      )
+    },
+
+    // Video Watch page (public, handles own auth gating)
+    {
+      path: 'watch/:slug',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <VideoWatch />
+        </Suspense>
+      )
+    },
+
+    // Members Video Vault (protected)
+    {
+      path: 'members/videos',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <MembersVault />
         </Suspense>
       )
     },

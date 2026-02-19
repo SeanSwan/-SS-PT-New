@@ -43,6 +43,7 @@ import LaunchChecklist from '../Admin/LaunchChecklist';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
+import VideoStudioManager from './Pages/admin-video-studio/VideoStudioManager';
 import { TheAestheticCodex } from '../../core';
 // Design Playground — lazy-loaded only when VITE_DESIGN_PLAYGROUND=true (not shipped to prod bundle)
 const DesignPlayground = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
@@ -135,6 +136,9 @@ const UnifiedAdminRoutes: React.FC = () => (
 
     {/* Admin Exercise Command Center */}
     <Route path="/exercise-management" element={wrap(<AdminExerciseCommandCenter />)} />
+
+    {/* Video Studio — Enterprise Video Library Management */}
+    <Route path="/video-studio" element={wrap(<VideoStudioManager />)} />
 
     {/* Fallback Route */}
     <Route path="*" element={<Navigate to="/dashboard/default" replace />} />
