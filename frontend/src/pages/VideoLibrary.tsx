@@ -1,31 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Search, Filter, Play, Clock, Eye, Youtube, Upload, Video, X, ChevronDown } from 'lucide-react';
-import VideoPlayerModal from '../components/Admin/VideoPlayerModal';
+import { Search, Filter, Play, Clock, Eye, Youtube, Upload, Video, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface VideoItem {
   id: string;
   title: string;
+  slug: string;
   description: string;
-  video_type: 'upload' | 'youtube';
-  video_id: string;
-  thumbnail_url: string;
-  duration_seconds: number;
-  views: number;
+  source: 'upload' | 'youtube';
+  contentType: string;
+  visibility: string;
+  accessTier: string;
+  thumbnail: string | null;
+  durationSeconds: number;
+  viewCount: number;
+  likeCount: number;
   tags: string[];
-  createdAt: string;
-  exercise_name: string;
-  primary_muscle: string;
-  equipment: string;
-  difficulty: string;
-  phases: number[];
+  featured: boolean;
+  publishedAt: string;
+  youtubeVideoId: string | null;
+  locked: boolean;
 }
 
 interface Filters {
-  muscle: string;
-  equipment: string;
-  phase: string;
-  type: string;
+  contentType: string;
   search: string;
   sort: string;
 }
@@ -33,34 +32,27 @@ interface Filters {
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 const VideoLibrary: React.FC = () => {
+  const navigate = useNavigate();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>({
-    muscle: '', equipment: '', phase: '', type: '', search: '', sort: 'newest',
+    contentType: '', search: '', sort: 'newest',
   });
-  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
-  const [filterOptions, setFilterOptions] = useState({
-    muscles: [] as string[], equipment: [] as string[],
-  });
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
 
   const fetchVideos = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (filters.muscle) params.set('muscle', filters.muscle);
-      if (filters.equipment) params.set('equipment', filters.equipment);
-      if (filters.phase) params.set('phase', filters.phase);
-      if (filters.type) params.set('type', filters.type);
+      if (filters.contentType) params.set('contentType', filters.contentType);
       if (filters.search) params.set('search', filters.search);
-      if (filters.sort) params.set('sort', filters.sort);
 
-      const res = await fetch(`${API_URL}/api/videos?${params}`);
+      const res = await fetch(`${API_URL}/api/v2/videos?${params}`);
       const data = await res.json();
       if (data.success) {
-        setVideos(data.videos);
-        setPagination(data.pagination);
+        setVideos(data.data.videos);
+        setPagination(data.data.pagination);
       }
     } catch (err) {
       console.error('Failed to load videos:', err);
@@ -73,36 +65,24 @@ const VideoLibrary: React.FC = () => {
     fetchVideos();
   }, [fetchVideos]);
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/videos/filters`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          setFilterOptions({ muscles: data.muscles, equipment: data.equipment });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
   const formatDuration = (s: number) => {
     const m = Math.floor(s / 60);
     return `${m}:${(s % 60).toString().padStart(2, '0')}`;
   };
 
   const clearFilters = () => {
-    setFilters({ muscle: '', equipment: '', phase: '', type: '', search: '', sort: 'newest' });
+    setFilters({ contentType: '', search: '', sort: 'newest' });
   };
 
-  const hasActiveFilters = filters.muscle || filters.equipment || filters.phase || filters.type;
+  const hasActiveFilters = !!filters.contentType;
 
   return (
     <PageContainer>
       <HeroSection>
         <HeroContent>
-          <HeroTitle>Exercise Video Library</HeroTitle>
+          <HeroTitle>Video Library</HeroTitle>
           <HeroSubtitle>
-            Expert-guided exercise demonstrations with NASM-certified form cues.
-            Upload your own training videos or browse our curated YouTube collection.
+            Browse our curated collection of training videos, tutorials, and exclusive content.
           </HeroSubtitle>
         </HeroContent>
       </HeroSection>
@@ -112,7 +92,7 @@ const VideoLibrary: React.FC = () => {
           <SearchIcon><Search size={20} /></SearchIcon>
           <SearchInput
             type="text"
-            placeholder="Search exercises..."
+            placeholder="Search videos..."
             value={filters.search}
             onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
             onKeyDown={(e) => e.key === 'Enter' && fetchVideos()}
@@ -127,47 +107,15 @@ const VideoLibrary: React.FC = () => {
         {showFilters && (
           <FilterPanel>
             <FilterGroup>
-              <FilterLabel>Muscle Group</FilterLabel>
-              <FilterSelect value={filters.muscle} onChange={e => setFilters(f => ({ ...f, muscle: e.target.value }))}>
+              <FilterLabel>Content Type</FilterLabel>
+              <FilterSelect value={filters.contentType} onChange={e => setFilters(f => ({ ...f, contentType: e.target.value }))}>
                 <option value="">All</option>
-                {filterOptions.muscles.map(m => (
-                  <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>
-                ))}
-              </FilterSelect>
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>Equipment</FilterLabel>
-              <FilterSelect value={filters.equipment} onChange={e => setFilters(f => ({ ...f, equipment: e.target.value }))}>
-                <option value="">All</option>
-                {filterOptions.equipment.map(e => (
-                  <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>
-                ))}
-              </FilterSelect>
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>NASM Phase</FilterLabel>
-              <FilterSelect value={filters.phase} onChange={e => setFilters(f => ({ ...f, phase: e.target.value }))}>
-                <option value="">All</option>
-                {[1, 2, 3, 4, 5].map(p => (
-                  <option key={p} value={p}>Phase {p}</option>
-                ))}
-              </FilterSelect>
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>Video Type</FilterLabel>
-              <FilterSelect value={filters.type} onChange={e => setFilters(f => ({ ...f, type: e.target.value }))}>
-                <option value="">All</option>
-                <option value="youtube">YouTube</option>
-                <option value="upload">Uploaded</option>
-              </FilterSelect>
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>Sort By</FilterLabel>
-              <FilterSelect value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))}>
-                <option value="newest">Newest</option>
-                <option value="popular">Most Viewed</option>
-                <option value="title">A-Z</option>
-                <option value="oldest">Oldest</option>
+                <option value="exercise">Exercise</option>
+                <option value="tutorial">Tutorial</option>
+                <option value="behind_scenes">Behind the Scenes</option>
+                <option value="vlog">Vlog</option>
+                <option value="testimonial">Testimonial</option>
+                <option value="course_lesson">Course Lesson</option>
               </FilterSelect>
             </FilterGroup>
             {hasActiveFilters && (
@@ -197,44 +145,42 @@ const VideoLibrary: React.FC = () => {
             <ResultCount>{pagination.total} video{pagination.total !== 1 ? 's' : ''}</ResultCount>
             <VideoGrid>
               {videos.map(video => (
-                <VideoCard key={video.id} onClick={() => setSelectedVideo(video)}>
+                <VideoCard key={video.id} onClick={() => navigate(`/watch/${video.slug}`)}>
                   <ThumbnailWrap>
-                    {video.thumbnail_url ? (
-                      <Thumbnail src={video.thumbnail_url} alt={video.title} loading="lazy" />
+                    {video.thumbnail ? (
+                      <Thumbnail src={video.thumbnail} alt={video.title} loading="lazy" />
                     ) : (
                       <ThumbnailPlaceholder>
-                        {video.video_type === 'youtube' ? <Youtube size={40} /> : <Upload size={40} />}
+                        {video.source === 'youtube' ? <Youtube size={40} /> : <Upload size={40} />}
                       </ThumbnailPlaceholder>
                     )}
                     <PlayOverlay><Play size={40} /></PlayOverlay>
-                    {video.duration_seconds > 0 && (
-                      <DurationBadge><Clock size={12} /> {formatDuration(video.duration_seconds)}</DurationBadge>
+                    {video.durationSeconds > 0 && (
+                      <DurationBadge><Clock size={12} /> {formatDuration(video.durationSeconds)}</DurationBadge>
                     )}
                     <TypeBadge>
-                      {video.video_type === 'youtube' ? <Youtube size={14} /> : <Upload size={14} />}
+                      {video.source === 'youtube' ? <Youtube size={14} /> : <Upload size={14} />}
                     </TypeBadge>
                   </ThumbnailWrap>
                   <CardBody>
                     <CardTitle>{video.title}</CardTitle>
-                    {video.exercise_name && <ExerciseName>{video.exercise_name}</ExerciseName>}
-                    <MetaRow>
-                      {video.primary_muscle && <MetaTag>{video.primary_muscle.replace(/_/g, ' ')}</MetaTag>}
-                      {video.equipment && <MetaTag>{video.equipment.replace(/_/g, ' ')}</MetaTag>}
-                    </MetaRow>
+                    {video.contentType && (
+                      <MetaRow>
+                        <MetaTag>{video.contentType.replace(/_/g, ' ')}</MetaTag>
+                      </MetaRow>
+                    )}
                     <CardFooter>
-                      <Views><Eye size={14} /> {video.views}</Views>
-                      {video.phases && video.phases.length > 0 && (
-                        <Phases>{video.phases.map(p => `P${p}`).join(', ')}</Phases>
-                      )}
+                      <Views><Eye size={14} /> {video.viewCount}</Views>
+                      {video.locked && <Phases>Members Only</Phases>}
                     </CardFooter>
                   </CardBody>
                 </VideoCard>
               ))}
             </VideoGrid>
 
-            {pagination.pages > 1 && (
+            {pagination.totalPages > 1 && (
               <Pagination>
-                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(p => (
                   <PageButton key={p} $active={p === pagination.page} onClick={() => fetchVideos(p)}>
                     {p}
                   </PageButton>
@@ -245,9 +191,6 @@ const VideoLibrary: React.FC = () => {
         )}
       </ContentSection>
 
-      {selectedVideo && (
-        <VideoPlayerModal video={selectedVideo} onClose={() => setSelectedVideo(null)} />
-      )}
     </PageContainer>
   );
 };
@@ -506,12 +449,6 @@ const CardTitle = styled.h3`
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-`;
-
-const ExerciseName = styled.div`
-  font-size: 12px;
-  color: #00CED1;
-  margin-bottom: 8px;
 `;
 
 const MetaRow = styled.div`
