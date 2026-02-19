@@ -27,13 +27,9 @@ module.exports = {
 
     try {
       // Idempotent guard
-      const [tables] = await queryInterface.sequelize.query(
-        `SELECT table_name FROM information_schema.tables
-         WHERE table_schema = 'public' AND table_name = 'video_collection_items'`,
-        { transaction }
-      );
-      if (tables.length > 0) {
-        await transaction.commit();
+      const allTables = await queryInterface.showAllTables();
+      if (allTables.includes('video_collection_items')) {
+        await transaction.rollback();
         console.log('video_collection_items table already exists — skipping.');
         return;
       }
