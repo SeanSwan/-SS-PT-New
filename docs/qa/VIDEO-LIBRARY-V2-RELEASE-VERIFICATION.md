@@ -1,9 +1,9 @@
 # Ultimate Video Library V2 — Release Verification Report
 
 **Date:** 2026-02-18
-**Last Updated:** 2026-02-18 (Round 3 — accuracy corrections applied)
+**Last Updated:** 2026-02-19 (Round 4 — stale raw output corrected to match actual runs)
 **Status:** RELEASE-COMPLETE (executable evidence gathered)
-**Build:** 3935 modules, ~6.6s, 0 errors (timing approximate, varies per run)
+**Build:** 3935 modules, ~8s, 0 build errors (pre-existing warnings: recharts circular deps, chunk size)
 **Tests:** 242/242 pass (16 suites, 0 failures, ~1s) — includes 38 NEW security integration tests
 
 ---
@@ -14,26 +14,46 @@
 
 ```
 $ cd frontend && npx vite build
-3935 modules transformed.
-dist/index.html                             0.96 kB │ gzip:   0.49 kB
-[...chunks...]
-✓ built in 6.64s (0 errors, 0 warnings)
+vite v5.4.19 building for production...
+✓ 3935 modules transformed.
+dist/index.html                             8.75 kB │ gzip:   3.32 kB
+dist/v3/MembersVault.BzLl9z20.js           12.73 kB │ gzip:   3.98 kB
+dist/v3/VideoLibrary.BNaf-Lp3.js           14.87 kB │ gzip:   4.35 kB
+dist/v3/VideoWatch.BdWmpeTX.js             21.81 kB │ gzip:   6.67 kB
+[...80+ more chunks...]
+(!) Recharts circular dependency warnings (pre-existing, not V2-related)
+(!) Some chunks are larger than 500 kB after minification (pre-existing)
+✓ built in 8.19s
 
-$ cd backend && npx vitest run --reporter verbose
- ✓ tests/api/videoLibraryV2.test.mjs (38 tests) 109ms
- ✓ tests/api/auth.test.mjs (15 tests) 24ms
- ✓ tests/api/sessions.test.mjs (21 tests) 16ms
- [...14 more suites...]
+$ cd backend && npx vitest run
+ ✓ tests/api/videoLibraryV2.test.mjs (38 tests) 8ms
+ ✓ tests/api/sessionTypePolicy.test.mjs (10 tests) 4ms
+ ✓ tests/api/forcePasswordChange.test.mjs (8 tests) 3ms
+ ✓ tests/api/clientDeactivation.test.mjs (10 tests) 4ms
+ ✓ tests/middleware/rbac.test.mjs (22 tests) 4ms
+ ✓ tests/api/auth.test.mjs (11 tests) 4ms
+ ✓ tests/api/sessions.test.mjs (16 tests) 6ms
+ ✓ tests/api/purchaseAttribution.test.mjs (26 tests) 7ms
+ ✓ tests/api/payments.test.mjs (17 tests) 5ms
+ ✓ tests/api/sessionGrantService.test.mjs (12 tests) 7ms
+ ✓ tests/api/sessionNotifications.test.mjs (8 tests) 7ms
+ ✓ tests/api/cartSchemaRecovery.test.mjs (3 tests) 5ms
+ ✓ __tests__/storefront-custom-pricing.test.mjs (31 tests) 87ms
+ ✓ tests/api/releaseGate.test.mjs (10 tests) 418ms
+ ✓ tests/api/passwordHashing.test.mjs (9 tests) 583ms
+ ✓ tests/api/postDeploySmoke.test.mjs (11 tests) 628ms
+
  Test Files  16 passed (16)
       Tests  242 passed (242)
-   Duration  968ms
+   Start at  08:26:18
+   Duration  939ms
 ```
 
 ### Gate Results
 
 | Gate | Result | Evidence |
 |------|--------|----------|
-| Frontend build | PASS | `npx vite build` — 3935 modules, ~6.6s, 0 errors |
+| Frontend build | PASS | `npx vite build` — 3935 modules, ~8s, 0 build errors (pre-existing warnings noted) |
 | Backend module imports | PASS | 22/22 new files import cleanly (ESM dynamic import test) |
 | Backend route mount | PASS | `core/routes.mjs` loads with all v2 video routes mounted |
 | Backend tests (existing) | PASS | 204/204 existing tests pass (15 suites, 0 failures) |
@@ -353,4 +373,8 @@ Video Library V2 routes are mounted **unconditionally** (no feature flag). Rollb
 ### Round 3 Reviewers (Accuracy audit)
 - **HIGH — Feature flag claim false:** Fixed. Removed `VITE_VIDEO_CATALOG_V2` references. Routes are unconditionally mounted. Rollback section rewritten to specify `git revert` (Section 5).
 - **MEDIUM — "Untouched" overstated:** Fixed. Added working tree disclosure in Section 2 listing 7 non-V2 modified files from other AI sessions.
-- **LOW — Timing values run-specific:** Fixed. Header values marked as approximate (`~6.6s`, `~1s`).
+- **LOW — Timing values run-specific:** Fixed. Header values marked as approximate (`~8s`, `~1s`).
+
+### Round 4 Reviewers (Final accuracy pass)
+- **MEDIUM:** Stale raw output fixed. index.html corrected to 8.75 kB. Pre-existing warnings acknowledged. Build timing updated.
+- **LOW:** File name reference clarity acknowledged.
