@@ -150,6 +150,7 @@ export async function createCollection(req, res) {
 export async function listCollections(req, res) {
   try {
     const VideoCollection = getVideoCollection();
+    const VideoCollectionItem = getVideoCollectionItem();
     if (!VideoCollection) {
       logger.error('[video-collections] VideoCollection model not initialized');
       return res.status(500).json({ success: false, error: 'Server error: Models not initialized' });
@@ -159,11 +160,40 @@ export async function listCollections(req, res) {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const offset = (page - 1) * limit;
 
+    const where = {};
+    if (req.query.search) {
+      where.title = { [Op.iLike]: `%${req.query.search}%` };
+    }
+    if (req.query.type) where.type = req.query.type;
+    if (req.query.visibility) where.visibility = req.query.visibility;
+
     const { count, rows } = await VideoCollection.findAndCountAll({
+      where,
       order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']],
       limit,
       offset,
     });
+
+    // Attach video count per collection
+    if (VideoCollectionItem && rows.length > 0) {
+      const collectionIds = rows.map((r) => r.id);
+      const counts = await VideoCollectionItem.findAll({
+        where: { collectionId: { [Op.in]: collectionIds } },
+        attributes: [
+          'collectionId',
+          [VideoCollectionItem.sequelize.fn('COUNT', VideoCollectionItem.sequelize.col('id')), 'videoCount'],
+        ],
+        group: ['collectionId'],
+        raw: true,
+      });
+      const countMap = {};
+      for (const c of counts) {
+        countMap[c.collectionId] = parseInt(c.videoCount, 10);
+      }
+      for (const row of rows) {
+        row.dataValues.videoCount = countMap[row.id] || 0;
+      }
+    }
 
     logger.info(`[video-collections] Listed collections: page=${page}, total=${count}`, {
       userId: req.user?.id,

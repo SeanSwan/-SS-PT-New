@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Search, Filter, Play, Clock, Eye, Youtube, Upload, Video, X } from 'lucide-react';
+import { Search, Filter, Play, Clock, Eye, Youtube, Upload, Video, X, FolderOpen, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface VideoItem {
@@ -23,6 +23,19 @@ interface VideoItem {
   locked: boolean;
 }
 
+interface CollectionItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  type: string;
+  visibility: string;
+  accessTier: string;
+  thumbnail: string | null;
+  videoCount: number;
+  sortOrder: number;
+}
+
 interface Filters {
   contentType: string;
   search: string;
@@ -40,6 +53,8 @@ const VideoLibrary: React.FC = () => {
     contentType: '', search: '', sort: 'newest',
   });
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
 
   const fetchVideos = useCallback(async (page = 1) => {
     setLoading(true);
@@ -64,6 +79,25 @@ const VideoLibrary: React.FC = () => {
   useEffect(() => {
     fetchVideos();
   }, [fetchVideos]);
+
+  // Fetch public collections
+  useEffect(() => {
+    const fetchCollections = async () => {
+      setCollectionsLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/api/v2/videos/collections?limit=6`);
+        const data = await res.json();
+        if (data.success && data.data?.collections) {
+          setCollections(data.data.collections);
+        }
+      } catch (err) {
+        console.error('Failed to load collections:', err);
+      } finally {
+        setCollectionsLoading(false);
+      }
+    };
+    fetchCollections();
+  }, []);
 
   const formatDuration = (s: number) => {
     const m = Math.floor(s / 60);
@@ -126,6 +160,37 @@ const VideoLibrary: React.FC = () => {
           </FilterPanel>
         )}
 
+        {/* Collections Section */}
+        {!collectionsLoading && collections.length > 0 && !filters.search && !filters.contentType && (
+          <CollectionsSection>
+            <SectionHeader>
+              <SectionTitle><FolderOpen size={20} /> Collections</SectionTitle>
+            </SectionHeader>
+            <CollectionsGrid>
+              {collections.map(col => (
+                <CollectionCard key={col.id} onClick={() => navigate(`/collections/${col.slug}`)}>
+                  {col.thumbnail ? (
+                    <CollectionThumb style={{ backgroundImage: `url(${col.thumbnail})` }} />
+                  ) : (
+                    <CollectionThumb>
+                      <FolderOpen size={32} />
+                    </CollectionThumb>
+                  )}
+                  <CollectionBody>
+                    <CollectionCardTitle>{col.title}</CollectionCardTitle>
+                    <CollectionCardMeta>
+                      <span>{col.type}</span>
+                      <span>{col.videoCount} video{col.videoCount !== 1 ? 's' : ''}</span>
+                    </CollectionCardMeta>
+                  </CollectionBody>
+                  <CollectionArrow><ChevronRight size={18} /></CollectionArrow>
+                </CollectionCard>
+              ))}
+            </CollectionsGrid>
+          </CollectionsSection>
+        )}
+
+        {/* Videos Grid */}
         {loading ? (
           <LoadingGrid>
             {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -525,6 +590,106 @@ const SkeletonCard = styled.div`
   @keyframes pulse {
     0%, 100% { opacity: 0.6; }
     50% { opacity: 0.3; }
+  }
+`;
+
+// Collections Section
+const CollectionsSection = styled.div`
+  margin-bottom: 32px;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 18px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  svg {
+    color: #00CED1;
+  }
+`;
+
+const CollectionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const CollectionCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(10, 14, 26, 0.7);
+  border: 1px solid rgba(0, 206, 209, 0.15);
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: #00CED1;
+  }
+`;
+
+const CollectionThumb = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(0, 206, 209, 0.15), rgba(157, 78, 221, 0.15));
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 206, 209, 0.5);
+`;
+
+const CollectionBody = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const CollectionCardTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const CollectionCardMeta = styled.div`
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #B8B8B8;
+  text-transform: capitalize;
+`;
+
+const CollectionArrow = styled.div`
+  color: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  transition: color 0.2s;
+
+  ${CollectionCard}:hover & {
+    color: #00CED1;
   }
 `;
 

@@ -2,7 +2,17 @@
  * CollectionsTab.tsx
  * ==================
  * Collection (playlist/series/course) builder.
- * List collections, create new, reorder videos within a collection via drag-and-drop.
+ * List collections, create/edit, reorder videos within a collection via drag-and-drop.
+ *
+ * API Integration:
+ *   GET    /api/v2/admin/collections              → list (with videoCount, search, filters)
+ *   POST   /api/v2/admin/collections              → create
+ *   GET    /api/v2/admin/collections/:id          → detail with videos
+ *   PUT    /api/v2/admin/collections/:id          → update
+ *   DELETE /api/v2/admin/collections/:id          → soft delete
+ *   POST   /api/v2/admin/collections/:id/videos   → add videos { videoIds: string[] }
+ *   DELETE /api/v2/admin/collections/:id/videos/:videoId → remove video
+ *   PATCH  /api/v2/admin/collections/:id/reorder  → reorder { videoIds: string[] }
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -29,13 +39,14 @@ import {
   GripVertical,
   Trash2,
   Edit3,
-  Eye,
   X,
   Save,
-  Film,
   Loader2,
   ChevronRight,
   ArrowLeft,
+  Search,
+  Check,
+  Film,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────
@@ -54,8 +65,9 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
 // ─── Types ───────────────────────────────────────────
 interface Collection {
-  id: number;
+  id: string;
   title: string;
+  slug: string;
   description: string;
   type: string;
   visibility: string;
@@ -65,11 +77,28 @@ interface Collection {
 }
 
 interface CollectionVideo {
-  id: number;
-  videoId: number;
+  id: string;           // video catalog UUID
+  collectionItemId: string; // join table row UUID
   title: string;
+  slug: string;
+  source: 'upload' | 'youtube';
+  status: string;
   thumbnailUrl: string | null;
+  thumbnailKey: string | null;
+  durationSeconds: number;
   sortOrder: number;
+}
+
+interface CatalogVideo {
+  id: string;
+  title: string;
+  slug: string;
+  source: 'upload' | 'youtube';
+  status: string;
+  thumbnailUrl: string | null;
+  thumbnailKey: string | null;
+  durationSeconds: number;
+  viewCount: number;
 }
 
 // ─── Styled Components ──────────────────────────────
@@ -126,6 +155,10 @@ const PrimaryButton = styled.button`
   &:hover {
     opacity: 0.9;
   }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   svg {
     width: 16px;
@@ -137,7 +170,7 @@ const DangerButton = styled(PrimaryButton)`
   background: rgba(239, 68, 68, 0.3);
   border: 1px solid rgba(239, 68, 68, 0.5);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(239, 68, 68, 0.5);
   }
 `;
@@ -146,8 +179,41 @@ const SecondaryButton = styled(PrimaryButton)`
   background: rgba(30, 58, 138, 0.3);
   border: 1px solid rgba(59, 130, 246, 0.3);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(30, 58, 138, 0.5);
+  }
+`;
+
+const SearchBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  padding: 0 12px;
+  flex: 1;
+  max-width: 320px;
+  min-height: 44px;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+  }
+
+  input {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
   }
 `;
 
@@ -239,7 +305,7 @@ const ArrowIcon = styled.span`
   }
 `;
 
-// Create / Edit Form
+// Form Modal
 const FormOverlay = styled(motion.div)`
   position: fixed;
   inset: 0;
@@ -349,7 +415,7 @@ const FormActions = styled.div`
   margin-top: 20px;
 `;
 
-// Detail view with sortable videos
+// Detail view
 const DetailHeader = styled.div`
   margin-bottom: 20px;
 `;
@@ -364,9 +430,17 @@ const DetailTitle = styled.h2`
 const DetailDesc = styled.p`
   font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
-  margin: 0;
+  margin: 0 0 4px 0;
 `;
 
+const DetailMeta = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+`;
+
+// Sortable video items
 const SortableItem = styled.div<{ $isDragging?: boolean }>`
   display: flex;
   align-items: center;
@@ -384,6 +458,10 @@ const DragHandle = styled.span`
   cursor: grab;
   display: flex;
   touch-action: none;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
 
   svg {
     width: 20px;
@@ -407,6 +485,17 @@ const VideoTitle = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const SourceBadge = styled.span<{ $source: string }>`
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  background: ${(p) => p.$source === 'youtube' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)'};
+  color: ${(p) => p.$source === 'youtube' ? '#fca5a5' : '#93c5fd'};
 `;
 
 const RemoveButton = styled.button`
@@ -453,10 +542,70 @@ const StatusMsg = styled.p<{ $error?: boolean }>`
   margin: 8px 0 0;
 `;
 
+// Video Picker Modal
+const PickerGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 16px 0;
+  padding-right: 4px;
+`;
+
+const PickerRow = styled.div<{ $selected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: ${(p) => p.$selected ? 'rgba(0, 255, 255, 0.1)' : 'rgba(30, 58, 138, 0.1)'};
+  border: 1px solid ${(p) => p.$selected ? 'rgba(0, 255, 255, 0.4)' : 'rgba(59, 130, 246, 0.15)'};
+
+  &:hover {
+    border-color: rgba(0, 255, 255, 0.3);
+  }
+`;
+
+const PickerCheck = styled.div<{ $checked: boolean }>`
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 2px solid ${(p) => p.$checked ? '#00ffff' : 'rgba(255,255,255,0.2)'};
+  background: ${(p) => p.$checked ? 'rgba(0,255,255,0.2)' : 'transparent'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: #00ffff;
+  }
+`;
+
+const PickerTitle = styled.span`
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const PickerCount = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 0;
+`;
+
 // ─── Sortable Video Item ─────────────────────────────
 const SortableVideoItem: React.FC<{
   item: CollectionVideo;
-  onRemove: (id: number) => void;
+  onRemove: (videoId: string) => void;
 }> = ({ item, onRemove }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -468,29 +617,33 @@ const SortableVideoItem: React.FC<{
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const thumb = item.thumbnailUrl || item.thumbnailKey || null;
+
   return (
     <SortableItem ref={setNodeRef} style={style} $isDragging={isDragging}>
       <DragHandle {...attributes} {...listeners}>
         <GripVertical />
       </DragHandle>
-      <SmallThumb $src={item.thumbnailUrl} />
+      <SmallThumb $src={thumb} />
       <VideoTitle>{item.title}</VideoTitle>
-      <RemoveButton onClick={() => onRemove(item.id)}>
+      <SourceBadge $source={item.source}>{item.source}</SourceBadge>
+      <RemoveButton onClick={() => onRemove(item.id)} title="Remove from collection">
         <Trash2 />
       </RemoveButton>
     </SortableItem>
   );
 };
 
-// ─── Component ───────────────────────────────────────
+// ─── Main Component ──────────────────────────────────
 const CollectionsTab: React.FC = () => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formMsg, setFormMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Form fields
+  // Form state
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formMsg, setFormMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formType, setFormType] = useState('playlist');
@@ -498,36 +651,76 @@ const CollectionsTab: React.FC = () => {
   const [formAccessTier, setFormAccessTier] = useState('free');
   const [saving, setSaving] = useState(false);
 
-  // Detail view
+  // Detail view state
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [collectionVideos, setCollectionVideos] = useState<CollectionVideo[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [addVideoId, setAddVideoId] = useState('');
+  const [reorderDirty, setReorderDirty] = useState(false);
+  const [reorderSaving, setReorderSaving] = useState(false);
+
+  // Video picker state
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerVideos, setPickerVideos] = useState<CatalogVideo[]>([]);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerSelected, setPickerSelected] = useState<Set<string>>(new Set());
+  const [pickerAdding, setPickerAdding] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  // ─── Collections List ─────────────────────────────
   const fetchCollections = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchWithAuth('/api/v2/admin/collections');
-      setCollections(data.collections || data.data || []);
+      const params = new URLSearchParams();
+      if (searchQuery) params.set('search', searchQuery);
+      const data = await fetchWithAuth(`/api/v2/admin/collections?${params.toString()}`);
+      if (data.success && Array.isArray(data.data)) {
+        setCollections(data.data);
+      } else {
+        setCollections([]);
+      }
     } catch (err) {
       console.error('Failed to fetch collections:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchCollections();
   }, [fetchCollections]);
 
+  // ─── Collection Detail ─────────────────────────────
   const fetchCollectionDetail = async (col: Collection) => {
     setSelectedCollection(col);
     setDetailLoading(true);
+    setReorderDirty(false);
     try {
       const data = await fetchWithAuth(`/api/v2/admin/collections/${col.id}`);
-      setCollectionVideos(data.videos || data.items || []);
+      if (data.success && data.data) {
+        const detail = data.data;
+        // Update collection metadata from response
+        setSelectedCollection({
+          ...col,
+          title: detail.title || col.title,
+          description: detail.description || col.description,
+        });
+        // Map videos from response
+        const videos: CollectionVideo[] = (detail.videos || []).map((v: any) => ({
+          id: v.id,
+          collectionItemId: v.collectionItemId,
+          title: v.title || 'Untitled',
+          slug: v.slug || '',
+          source: v.source || 'upload',
+          status: v.status || 'draft',
+          thumbnailUrl: v.thumbnailUrl || null,
+          thumbnailKey: v.thumbnailKey || null,
+          durationSeconds: v.durationSeconds || 0,
+          sortOrder: v.sortOrder || 0,
+        }));
+        setCollectionVideos(videos);
+      }
     } catch (err) {
       console.error('Failed to fetch collection detail:', err);
     } finally {
@@ -535,6 +728,7 @@ const CollectionsTab: React.FC = () => {
     }
   };
 
+  // ─── Create / Edit Form ────────────────────────────
   const openCreate = () => {
     setEditingId(null);
     setFormTitle('');
@@ -557,6 +751,22 @@ const CollectionsTab: React.FC = () => {
     setShowForm(true);
   };
 
+  // Enforce visibility → access tier constraints (mirrors DB CHECK constraints)
+  useEffect(() => {
+    if (formVisibility === 'public' && formAccessTier !== 'free') {
+      setFormAccessTier('free');
+    } else if (formVisibility === 'unlisted' && formAccessTier === 'premium') {
+      setFormAccessTier('member');
+    }
+  }, [formVisibility, formAccessTier]);
+
+  // Determine which access tiers are allowed for current visibility
+  const allowedAccessTiers = formVisibility === 'public'
+    ? ['free']
+    : formVisibility === 'unlisted'
+      ? ['free', 'member']
+      : ['free', 'member', 'premium'];
+
   const handleSave = async () => {
     if (!formTitle.trim()) return;
     setSaving(true);
@@ -574,11 +784,17 @@ const CollectionsTab: React.FC = () => {
         : '/api/v2/admin/collections';
       const method = editingId ? 'PUT' : 'POST';
       const data = await fetchWithAuth(url, { method, body: JSON.stringify(body) });
-      if (data.error) {
-        setFormMsg({ text: data.error, error: true });
-      } else {
+      if (data.success) {
         setShowForm(false);
         fetchCollections();
+        // If editing the currently selected collection, update its details
+        if (editingId && selectedCollection?.id === editingId) {
+          setSelectedCollection((prev) =>
+            prev ? { ...prev, title: body.title, description: body.description, type: body.type, visibility: body.visibility, accessTier: body.accessTier } : prev
+          );
+        }
+      } else {
+        setFormMsg({ text: data.error || 'Save failed', error: true });
       }
     } catch (err: any) {
       setFormMsg({ text: err.message || 'Save failed', error: true });
@@ -587,7 +803,7 @@ const CollectionsTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Delete this collection?')) return;
     try {
       await fetchWithAuth(`/api/v2/admin/collections/${id}`, { method: 'DELETE' });
@@ -598,87 +814,164 @@ const CollectionsTab: React.FC = () => {
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  // ─── Drag & Drop Reorder ───────────────────────────
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !selectedCollection) return;
+    if (!over || active.id === over.id) return;
 
     const oldIndex = collectionVideos.findIndex((v) => v.id === active.id);
     const newIndex = collectionVideos.findIndex((v) => v.id === over.id);
     const reordered = arrayMove(collectionVideos, oldIndex, newIndex);
     setCollectionVideos(reordered);
+    setReorderDirty(true);
+  };
 
+  const saveReorder = async () => {
+    if (!selectedCollection || !reorderDirty) return;
+    setReorderSaving(true);
     try {
+      const videoIds = collectionVideos.map((v) => v.id);
       await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/reorder`, {
-        method: 'PUT',
-        body: JSON.stringify({ order: reordered.map((v) => v.id) }),
+        method: 'PATCH',
+        body: JSON.stringify({ videoIds }),
       });
+      setReorderDirty(false);
     } catch (err) {
       console.error('Reorder failed:', err);
+    } finally {
+      setReorderSaving(false);
     }
   };
 
-  const handleRemoveVideo = async (itemId: number) => {
+  // ─── Remove Video ──────────────────────────────────
+  const handleRemoveVideo = async (videoId: string) => {
     if (!selectedCollection) return;
     try {
-      await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos/${itemId}`, {
+      await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos/${videoId}`, {
         method: 'DELETE',
       });
-      setCollectionVideos((prev) => prev.filter((v) => v.id !== itemId));
+      setCollectionVideos((prev) => prev.filter((v) => v.id !== videoId));
     } catch (err) {
       console.error('Remove video failed:', err);
     }
   };
 
-  const handleAddVideo = async () => {
-    if (!addVideoId || !selectedCollection) return;
+  // ─── Video Picker ──────────────────────────────────
+  const openPicker = async () => {
+    setShowPicker(true);
+    setPickerSelected(new Set());
+    setPickerSearch('');
+    await searchPickerVideos('');
+  };
+
+  const searchPickerVideos = async (query: string) => {
+    setPickerLoading(true);
     try {
-      const data = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos`, {
-        method: 'POST',
-        body: JSON.stringify({ videoId: Number(addVideoId) }),
-      });
-      if (data.item || data.video) {
-        setCollectionVideos((prev) => [...prev, data.item || data.video]);
-        setAddVideoId('');
+      const params = new URLSearchParams({ limit: '50', status: 'published' });
+      if (query) params.set('search', query);
+      const data = await fetchWithAuth(`/api/v2/admin/videos?${params.toString()}`);
+      if (data.success && Array.isArray(data.data)) {
+        // Filter out videos already in the collection
+        const existingIds = new Set(collectionVideos.map((v) => v.id));
+        const available = data.data.filter((v: CatalogVideo) => !existingIds.has(v.id));
+        setPickerVideos(available);
       }
     } catch (err) {
-      console.error('Add video failed:', err);
+      console.error('Failed to search videos:', err);
+    } finally {
+      setPickerLoading(false);
     }
   };
 
-  // ─── Detail view ───────────────────────────────────
+  const togglePickerVideo = (videoId: string) => {
+    setPickerSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(videoId)) {
+        next.delete(videoId);
+      } else {
+        next.add(videoId);
+      }
+      return next;
+    });
+  };
+
+  const addSelectedVideos = async () => {
+    if (!selectedCollection || pickerSelected.size === 0) return;
+    setPickerAdding(true);
+    try {
+      const videoIds = Array.from(pickerSelected);
+      const data = await fetchWithAuth(`/api/v2/admin/collections/${selectedCollection.id}/videos`, {
+        method: 'POST',
+        body: JSON.stringify({ videoIds }),
+      });
+      if (data.success) {
+        setShowPicker(false);
+        // Refresh the detail view to get updated video list
+        fetchCollectionDetail(selectedCollection);
+      }
+    } catch (err) {
+      console.error('Add videos failed:', err);
+    } finally {
+      setPickerAdding(false);
+    }
+  };
+
+  // Debounced picker search
+  useEffect(() => {
+    if (!showPicker) return;
+    const timer = setTimeout(() => {
+      searchPickerVideos(pickerSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pickerSearch, showPicker]);
+
+  // ─── Detail View Render ────────────────────────────
   if (selectedCollection) {
     return (
       <Container>
         <TopBar>
-          <BackButton onClick={() => setSelectedCollection(null)}>
+          <BackButton onClick={() => { setSelectedCollection(null); fetchCollections(); }}>
             <ArrowLeft /> Back to Collections
           </BackButton>
-          <SecondaryButton onClick={() => openEdit(selectedCollection)}>
-            <Edit3 /> Edit Collection
-          </SecondaryButton>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <SecondaryButton onClick={() => openEdit(selectedCollection)}>
+              <Edit3 /> Edit
+            </SecondaryButton>
+            <DangerButton onClick={() => handleDelete(selectedCollection.id)}>
+              <Trash2 /> Delete
+            </DangerButton>
+          </div>
         </TopBar>
 
         <DetailHeader>
           <DetailTitle>{selectedCollection.title}</DetailTitle>
-          <DetailDesc>{selectedCollection.description}</DetailDesc>
+          {selectedCollection.description && (
+            <DetailDesc>{selectedCollection.description}</DetailDesc>
+          )}
+          <DetailMeta>
+            <TypeBadge>{selectedCollection.type}</TypeBadge>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+              {selectedCollection.visibility} · {selectedCollection.accessTier}
+            </span>
+          </DetailMeta>
         </DetailHeader>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <Input
-            placeholder="Video ID to add"
-            value={addVideoId}
-            onChange={(e) => setAddVideoId(e.target.value)}
-            style={{ maxWidth: 200 }}
-          />
-          <PrimaryButton onClick={handleAddVideo}>
-            <Plus /> Add Video
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <PrimaryButton onClick={openPicker}>
+            <Plus /> Add Videos
           </PrimaryButton>
+          {reorderDirty && (
+            <PrimaryButton onClick={saveReorder} disabled={reorderSaving}>
+              {reorderSaving ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} /> : <Save />}
+              Save Order
+            </PrimaryButton>
+          )}
         </div>
 
         {detailLoading ? (
           <LoadingText>Loading videos...</LoadingText>
         ) : collectionVideos.length === 0 ? (
-          <EmptyState>No videos in this collection. Add some above.</EmptyState>
+          <EmptyState>No videos in this collection yet. Click "Add Videos" to get started.</EmptyState>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={collectionVideos.map((v) => v.id)} strategy={verticalListSortingStrategy}>
@@ -688,17 +981,183 @@ const CollectionsTab: React.FC = () => {
             </SortableContext>
           </DndContext>
         )}
+
+        {/* Video Picker Modal */}
+        <AnimatePresence>
+          {showPicker && (
+            <FormOverlay
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPicker(false)}
+            >
+              <FormPanel
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 600 }}
+              >
+                <FormTitle>Add Videos to Collection</FormTitle>
+
+                <SearchBar style={{ maxWidth: '100%', marginBottom: 12 }}>
+                  <Search />
+                  <input
+                    placeholder="Search videos by title..."
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                    autoFocus
+                  />
+                  {pickerSearch && (
+                    <X
+                      style={{ cursor: 'pointer', width: 14, height: 14 }}
+                      onClick={() => setPickerSearch('')}
+                    />
+                  )}
+                </SearchBar>
+
+                {pickerLoading ? (
+                  <LoadingText>Searching...</LoadingText>
+                ) : pickerVideos.length === 0 ? (
+                  <EmptyState>
+                    {pickerSearch
+                      ? 'No matching videos found.'
+                      : 'No published videos available to add.'}
+                  </EmptyState>
+                ) : (
+                  <>
+                    <PickerCount>
+                      {pickerVideos.length} video{pickerVideos.length !== 1 ? 's' : ''} available
+                      {pickerSelected.size > 0 && ` · ${pickerSelected.size} selected`}
+                    </PickerCount>
+                    <PickerGrid>
+                      {pickerVideos.map((v) => (
+                        <PickerRow
+                          key={v.id}
+                          $selected={pickerSelected.has(v.id)}
+                          onClick={() => togglePickerVideo(v.id)}
+                        >
+                          <PickerCheck $checked={pickerSelected.has(v.id)}>
+                            {pickerSelected.has(v.id) && <Check />}
+                          </PickerCheck>
+                          <SmallThumb $src={v.thumbnailUrl || v.thumbnailKey} />
+                          <PickerTitle>{v.title}</PickerTitle>
+                          <SourceBadge $source={v.source}>{v.source}</SourceBadge>
+                        </PickerRow>
+                      ))}
+                    </PickerGrid>
+                  </>
+                )}
+
+                <FormActions>
+                  <SecondaryButton onClick={() => setShowPicker(false)}>
+                    <X /> Cancel
+                  </SecondaryButton>
+                  <PrimaryButton
+                    onClick={addSelectedVideos}
+                    disabled={pickerSelected.size === 0 || pickerAdding}
+                  >
+                    {pickerAdding ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} /> : <Plus />}
+                    Add {pickerSelected.size > 0 ? `${pickerSelected.size} Video${pickerSelected.size !== 1 ? 's' : ''}` : 'Videos'}
+                  </PrimaryButton>
+                </FormActions>
+              </FormPanel>
+            </FormOverlay>
+          )}
+        </AnimatePresence>
+
+        {/* Create/Edit Modal (shared) */}
+        <AnimatePresence>
+          {showForm && (
+            <FormOverlay
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowForm(false)}
+            >
+              <FormPanel
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <FormTitle>{editingId ? 'Edit Collection' : 'Create Collection'}</FormTitle>
+                <FormField>
+                  <Label>Title *</Label>
+                  <Input
+                    placeholder="Collection title"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                  />
+                </FormField>
+                <FormField>
+                  <Label>Description</Label>
+                  <TextArea
+                    placeholder="Describe this collection..."
+                    value={formDesc}
+                    onChange={(e) => setFormDesc(e.target.value)}
+                  />
+                </FormField>
+                <FormField>
+                  <Label>Type</Label>
+                  <Select value={formType} onChange={(e) => setFormType(e.target.value)}>
+                    <option value="playlist">Playlist</option>
+                    <option value="series">Series</option>
+                    <option value="course">Course</option>
+                  </Select>
+                </FormField>
+                <FormField>
+                  <Label>Visibility</Label>
+                  <Select value={formVisibility} onChange={(e) => setFormVisibility(e.target.value)}>
+                    <option value="public">Public</option>
+                    <option value="members_only">Members Only</option>
+                    <option value="unlisted">Unlisted</option>
+                  </Select>
+                </FormField>
+                <FormField>
+                  <Label>Access Tier</Label>
+                  <Select value={formAccessTier} onChange={(e) => setFormAccessTier(e.target.value)}>
+                    {allowedAccessTiers.includes('free') && <option value="free">Free</option>}
+                    {allowedAccessTiers.includes('member') && <option value="member">Member</option>}
+                    {allowedAccessTiers.includes('premium') && <option value="premium">Premium</option>}
+                  </Select>
+                </FormField>
+                {formMsg && <StatusMsg $error={formMsg.error}>{formMsg.text}</StatusMsg>}
+                <FormActions>
+                  <SecondaryButton onClick={() => setShowForm(false)}>
+                    <X /> Cancel
+                  </SecondaryButton>
+                  <PrimaryButton onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} /> : <Save />}
+                    {editingId ? 'Update' : 'Create'}
+                  </PrimaryButton>
+                </FormActions>
+              </FormPanel>
+            </FormOverlay>
+          )}
+        </AnimatePresence>
       </Container>
     );
   }
 
-  // ─── List view ─────────────────────────────────────
+  // ─── List View Render ──────────────────────────────
   return (
     <Container>
       <TopBar>
-        <span style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
-          {collections.length} Collection{collections.length !== 1 ? 's' : ''}
-        </span>
+        <SearchBar>
+          <Search />
+          <input
+            placeholder="Search collections..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <X
+              style={{ cursor: 'pointer', width: 14, height: 14 }}
+              onClick={() => setSearchQuery('')}
+            />
+          )}
+        </SearchBar>
         <PrimaryButton onClick={openCreate}>
           <Plus /> Create Collection
         </PrimaryButton>
@@ -707,7 +1166,11 @@ const CollectionsTab: React.FC = () => {
       {loading ? (
         <LoadingText>Loading collections...</LoadingText>
       ) : collections.length === 0 ? (
-        <EmptyState>No collections yet. Create your first playlist, series, or course.</EmptyState>
+        <EmptyState>
+          {searchQuery
+            ? 'No collections match your search.'
+            : 'No collections yet. Create your first playlist, series, or course.'}
+        </EmptyState>
       ) : (
         <CollectionList>
           {collections.map((col) => (
@@ -719,8 +1182,9 @@ const CollectionsTab: React.FC = () => {
                 <CollectionTitle>{col.title}</CollectionTitle>
                 <CollectionMeta>
                   <TypeBadge>{col.type}</TypeBadge>
-                  <span>{col.videoCount} video{col.videoCount !== 1 ? 's' : ''}</span>
+                  <span>{col.videoCount ?? 0} video{(col.videoCount ?? 0) !== 1 ? 's' : ''}</span>
                   <span>{col.visibility}</span>
+                  <span>{col.accessTier}</span>
                 </CollectionMeta>
               </CollectionInfo>
               <DangerButton
@@ -785,7 +1249,7 @@ const CollectionsTab: React.FC = () => {
                 <Select value={formVisibility} onChange={(e) => setFormVisibility(e.target.value)}>
                   <option value="public">Public</option>
                   <option value="members_only">Members Only</option>
-                  <option value="private">Private</option>
+                  <option value="unlisted">Unlisted</option>
                 </Select>
               </FormField>
               <FormField>
@@ -802,7 +1266,7 @@ const CollectionsTab: React.FC = () => {
                   <X /> Cancel
                 </SecondaryButton>
                 <PrimaryButton onClick={handleSave} disabled={saving}>
-                  {saving ? <Loader2 /> : <Save />}
+                  {saving ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} /> : <Save />}
                   {editingId ? 'Update' : 'Create'}
                 </PrimaryButton>
               </FormActions>
