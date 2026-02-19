@@ -440,10 +440,11 @@ export async function getCollection(req, res) {
     const VideoCatalog = getVideoCatalog();
     const { slug } = req.params;
 
+    // Find collection — allow public, unlisted (direct link), and members_only
     const collection = await VideoCollection.findOne({
       where: {
         slug,
-        visibility: ['public', 'unlisted'], // Allow public + unlisted (direct link)
+        visibility: ['public', 'unlisted', 'members_only'],
       },
       attributes: [
         'id', 'title', 'slug', 'description', 'type',
@@ -474,6 +475,59 @@ export async function getCollection(req, res) {
 
     if (!collection) {
       return res.status(404).json({ success: false, error: 'Collection not found' });
+    }
+
+    // ── Entitlement check: collection.accessTier gates browse access ──
+    const user = req.user || null;
+    const vis = collection.visibility;
+    const tier = collection.accessTier;
+
+    // members_only visibility requires authentication
+    if (vis === 'members_only' && !user) {
+      return res.status(401).json({ success: false, error: 'login_required' });
+    }
+    if (vis === 'members_only' && !['client', 'trainer', 'admin'].includes(user.role)) {
+      return res.status(403).json({ success: false, error: 'access_denied' });
+    }
+
+    // access_tier='member' requires authenticated member (any visibility)
+    if (tier === 'member') {
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'login_required' });
+      }
+      if (!['client', 'trainer', 'admin'].includes(user.role)) {
+        return res.status(403).json({ success: false, error: 'access_denied' });
+      }
+    }
+
+    // access_tier='premium' requires admin or explicit grant
+    if (tier === 'premium') {
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'login_required' });
+      }
+      if (user.role !== 'admin') {
+        // Check for explicit access grant on this collection
+        try {
+          const { getVideoAccessGrant } = await import('../models/index.mjs');
+          const VideoAccessGrant = getVideoAccessGrant();
+          if (VideoAccessGrant) {
+            const grant = await VideoAccessGrant.findOne({
+              where: {
+                userId: user.id,
+                collectionId: collection.id,
+                grantStatus: 'active',
+              },
+            });
+            if (!grant) {
+              return res.status(403).json({ success: false, error: 'access_denied' });
+            }
+          } else {
+            return res.status(403).json({ success: false, error: 'access_denied' });
+          }
+        } catch {
+          return res.status(403).json({ success: false, error: 'access_denied' });
+        }
+      }
     }
 
     const collectionData = collection.toJSON();
