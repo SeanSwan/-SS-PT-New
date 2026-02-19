@@ -57,12 +57,12 @@ $ cd backend && npx vitest run
 
 | Gate | Result | Evidence |
 |------|--------|----------|
-| Frontend build | PASS | `npx vite build` — 3935 modules, ~8s, 0 build errors (pre-existing warnings noted) |
+| Frontend build | PASS | `npx vite build` — 3935 modules, 6.28s, 0 build errors (pre-existing warnings noted) |
 | Backend module imports | PASS | 22/22 new files import cleanly (ESM dynamic import test) |
 | Backend route mount | PASS | `core/routes.mjs` loads with all v2 video routes mounted |
 | Backend tests (existing) | PASS | 204/204 existing tests pass (15 suites, 0 failures) |
 | Backend tests (NEW security) | PASS | 38/38 new integration tests pass (1 suite, 0 failures) |
-| Backend tests (combined) | PASS | **242/242 total** (16 suites, 0 failures, ~1s) |
+| Backend tests (combined) | PASS | **242/242 total** (16 suites, 0 failures, 925ms) |
 | Migration syntax | PASS | All 7 migrations validated: CJS structure, CHECK constraints, indexes, FK refs, trigger/down() |
 | Entitlement logic | PASS | 9/9 specification points verified against plan |
 | Upload flow | PASS | upload-url, upload-complete, publish gate all match spec |
