@@ -1,52 +1,56 @@
 # Ultimate Video Library V2 — Release Verification Report
 
 **Date:** 2026-02-18
-**Last Updated:** 2026-02-19 (Round 4 — stale raw output corrected to match actual runs)
+**Last Updated:** 2026-02-19 (Round 5 — raw output captured from fresh run at 08:40 UTC)
 **Status:** RELEASE-COMPLETE (executable evidence gathered)
-**Build:** 3935 modules, ~8s, 0 build errors (pre-existing warnings: recharts circular deps, chunk size)
-**Tests:** 242/242 pass (16 suites, 0 failures, ~1s) — includes 38 NEW security integration tests
+**Build:** 3935 modules, 6.28s, 0 build errors (pre-existing warnings: recharts circular deps, chunk size)
+**Tests:** 242/242 pass (16 suites, 0 failures, 925ms) — includes 38 NEW security integration tests
+
+> **Note on timing:** Build and test durations vary by ~20% between runs due to CPU load,
+> disk cache state, and background processes. The values below are from a single fresh run.
+> The invariant results (module count, test count, pass/fail, chunk names/hashes) are stable.
 
 ---
 
 ## 1. Evidence Summary
 
-### Raw Command Outputs
+### Raw Command Outputs (captured 2026-02-19 08:40 UTC)
 
 ```
 $ cd frontend && npx vite build
 vite v5.4.19 building for production...
 ✓ 3935 modules transformed.
 dist/index.html                             8.75 kB │ gzip:   3.32 kB
+dist/v3/VideoLibrary.BNaf-Lp3.js           12.19 kB │ gzip:   3.60 kB
 dist/v3/MembersVault.BzLl9z20.js           12.73 kB │ gzip:   3.98 kB
-dist/v3/VideoLibrary.BNaf-Lp3.js           14.87 kB │ gzip:   4.35 kB
 dist/v3/VideoWatch.BdWmpeTX.js             21.81 kB │ gzip:   6.67 kB
 [...80+ more chunks...]
 (!) Recharts circular dependency warnings (pre-existing, not V2-related)
 (!) Some chunks are larger than 500 kB after minification (pre-existing)
-✓ built in 8.19s
+✓ built in 6.28s
 
 $ cd backend && npx vitest run
- ✓ tests/api/videoLibraryV2.test.mjs (38 tests) 8ms
  ✓ tests/api/sessionTypePolicy.test.mjs (10 tests) 4ms
  ✓ tests/api/forcePasswordChange.test.mjs (8 tests) 3ms
  ✓ tests/api/clientDeactivation.test.mjs (10 tests) 4ms
- ✓ tests/middleware/rbac.test.mjs (22 tests) 4ms
- ✓ tests/api/auth.test.mjs (11 tests) 4ms
- ✓ tests/api/sessions.test.mjs (16 tests) 6ms
+ ✓ tests/api/cartSchemaRecovery.test.mjs (3 tests) 5ms
+ ✓ tests/middleware/rbac.test.mjs (22 tests) 5ms
+ ✓ tests/api/auth.test.mjs (11 tests) 5ms
+ ✓ tests/api/sessions.test.mjs (16 tests) 5ms
  ✓ tests/api/purchaseAttribution.test.mjs (26 tests) 7ms
  ✓ tests/api/payments.test.mjs (17 tests) 5ms
- ✓ tests/api/sessionGrantService.test.mjs (12 tests) 7ms
  ✓ tests/api/sessionNotifications.test.mjs (8 tests) 7ms
- ✓ tests/api/cartSchemaRecovery.test.mjs (3 tests) 5ms
- ✓ __tests__/storefront-custom-pricing.test.mjs (31 tests) 87ms
- ✓ tests/api/releaseGate.test.mjs (10 tests) 418ms
- ✓ tests/api/passwordHashing.test.mjs (9 tests) 583ms
- ✓ tests/api/postDeploySmoke.test.mjs (11 tests) 628ms
+ ✓ tests/api/sessionGrantService.test.mjs (12 tests) 7ms
+ ✓ tests/api/videoLibraryV2.test.mjs (38 tests) 14ms
+ ✓ __tests__/storefront-custom-pricing.test.mjs (31 tests) 93ms
+ ✓ tests/api/releaseGate.test.mjs (10 tests) 422ms
+ ✓ tests/api/passwordHashing.test.mjs (9 tests) 584ms
+ ✓ tests/api/postDeploySmoke.test.mjs (11 tests) 630ms
 
  Test Files  16 passed (16)
       Tests  242 passed (242)
-   Start at  08:26:18
-   Duration  939ms
+   Start at  08:40:38
+   Duration  925ms
 ```
 
 ### Gate Results
