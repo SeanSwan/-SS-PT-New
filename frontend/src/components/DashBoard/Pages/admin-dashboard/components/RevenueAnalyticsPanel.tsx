@@ -141,6 +141,14 @@ const StatusIndicator = styled(motion.div)<{ status: 'live' | 'updating' | 'erro
   `}
 `;
 
+const StatusDot = styled.div<{ $isLive: boolean }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: ${props => props.$isLive ? `${cosmicPulse} 2s infinite` : 'none'};
+`;
+
 const ControlsContainer = styled.div`
   display: flex;
   gap: 1rem;
@@ -659,18 +667,12 @@ const RevenueAnalyticsPanel: React.FC = () => {
             <BarChart3 size={32} />
             Revenue Analytics
           </PanelTitle>
-          <StatusIndicator 
+          <StatusIndicator
             status={status}
             animate={{ scale: status === 'live' ? [1, 1.05, 1] : 1 }}
             transition={{ duration: 2, repeat: status === 'live' ? Infinity : 0 }}
           >
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: 'currentColor',
-              animation: status === 'live' ? `${cosmicPulse} 2s infinite` : 'none'
-            }} />
+            <StatusDot $isLive={status === 'live'} />
             {status === 'live' && 'Live Data'}
             {status === 'updating' && 'Updating...'}
             {status === 'error' && 'Connection Error'}
