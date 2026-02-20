@@ -21,7 +21,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import DemoDataBanner from './DemoDataBanner';
 import {
@@ -146,7 +146,9 @@ const StatusDot = styled.div<{ $isLive: boolean }>`
   height: 8px;
   border-radius: 50%;
   background-color: currentColor;
-  animation: ${props => props.$isLive ? `${cosmicPulse} 2s infinite` : 'none'};
+  ${props => props.$isLive && css`
+    animation: ${cosmicPulse} 2s infinite;
+  `}
 `;
 
 const ControlsContainer = styled.div`
