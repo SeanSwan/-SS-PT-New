@@ -110,32 +110,7 @@ router.get('/analytics/dashboard', async (req, res) => {
   }
 });
 
-/**
- * Get revenue analytics
- * GET /api/admin/analytics/revenue
- */
-router.get('/analytics/revenue', async (req, res) => {
-  try {
-    const { range = 'month' } = req.query;
-    
-    const revenueAnalytics = await fetchRevenueAnalytics(range);
-
-    res.json({
-      success: true,
-      analytics: revenueAnalytics,
-      range,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error('Failed to fetch revenue analytics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch revenue analytics',
-      error: error.message
-    });
-  }
-});
+// NOTE: Revenue analytics endpoint removed — canonical version is in analyticsRevenueRoutes.mjs
 
 // =====================================================
 // SOCIAL MEDIA MANAGEMENT
@@ -859,19 +834,6 @@ async function fetchAdminAnalytics() {
       financials: { totalRevenue: 0, monthlyRevenue: 0, pendingPayments: 0, refunds: 0 }
     };
   }
-}
-
-async function fetchRevenueAnalytics(range) {
-  // TODO: Implement real revenue analytics based on range
-  return {
-    totalRevenue: 50000,
-    growth: 0.15,
-    trends: [],
-    breakdown: {
-      sessions: 35000,
-      packages: 15000
-    }
-  };
 }
 
 async function fetchSocialMediaPosts(filters) {

@@ -311,10 +311,6 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminEnterpriseRoutes);
 
   // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
-  // 🚀 Real Stripe Business Analytics API (replaces mock data endpoints)
-  app.use('/api/admin', analyticsRevenueRoutes);
-  app.use('/api/admin', analyticsUserRoutes);
-  app.use('/api/admin', analyticsSystemRoutes);
   // ⚙️ Admin Settings Management (system, notifications, API keys, security)
   app.use('/api/admin/settings', adminSettingsRoutes);
   // 📦 Comprehensive Order Management with Real Stripe Integration

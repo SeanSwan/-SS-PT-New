@@ -26,6 +26,7 @@ import express from "express";
 import { protect, adminOnly, trainerOrAdminOnly } from "../middleware/authMiddleware.mjs";
 import unifiedSessionService from "../services/sessions/session.service.mjs";
 import ConflictService from "../services/conflictService.mjs";
+import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
 import logger from '../utils/logger.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
@@ -279,6 +280,83 @@ router.get("/analytics", protect, async (req, res) => {
 });
 
 /**
+ * POST /api/sessions/assign-trainer
+ * Backward-compatible endpoint used by admin sessions clients.
+ */
+router.post('/assign-trainer', protect, adminOnly, async (req, res) => {
+  try {
+    const { trainerId, clientId, sessionIds = [] } = req.body || {};
+
+    if (!trainerId || !clientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID and Client ID are required'
+      });
+    }
+
+    const result = await trainerAssignmentService.assignTrainerToClient(
+      trainerId,
+      clientId,
+      Array.isArray(sessionIds) ? sessionIds : [],
+      req.user.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/assign-trainer:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to assign trainer'
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/assignment-statistics
+ * Must be defined before /:id route to prevent path collision.
+ */
+router.get('/assignment-statistics', protect, adminOnly, async (req, res) => {
+  try {
+    const statistics = await trainerAssignmentService.getAssignmentStatistics();
+    return res.status(200).json({
+      success: true,
+      data: statistics
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/assignment-statistics:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch assignment statistics',
+      degraded: true
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/trainer-assignment-health
+ * Must be defined before /:id route to prevent path collision.
+ */
+router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) => {
+  try {
+    const health = await trainerAssignmentService.healthCheck();
+    return res.status(200).json({
+      success: true,
+      data: health
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/trainer-assignment-health:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get trainer assignment health'
+    });
+  }
+});
+
+/**
  * GET /api/sessions/:id
  * Get a single session by ID with role-based access control
  */
@@ -350,19 +428,33 @@ router.post("/", protect, adminOnly, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in POST /api/sessions:', error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
     
     // Handle validation errors
-    if (error.message.includes('Admin privileges required') || error.message.includes('Invalid request')) {
+    if (normalizedMessage.includes('admin privileges required') || normalizedMessage.includes('invalid request')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: rawMessage
       });
     }
     
-    if (error.message.includes('must include') || error.message.includes('Cannot create')) {
+    if (
+      normalizedMessage.includes('must include') ||
+      normalizedMessage.includes('cannot create') ||
+      normalizedMessage.includes('invalid') ||
+      normalizedMessage.includes('missing required')
+    ) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: rawMessage
+      });
+    }
+
+    if (normalizedMessage.includes('model unavailable') || normalizedMessage.includes('models cache')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Session service is still initializing. Please retry in a few seconds.'
       });
     }
     

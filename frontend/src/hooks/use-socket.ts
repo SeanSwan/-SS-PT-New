@@ -179,6 +179,7 @@ export function useSocket(endpoint = '', options = {}) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [useMockSocket, setUseMockSocket] = useState(false);
   const connectionCheckCompletedRef = useRef(false);
+  const forceMockForLegacyWs = endpoint.startsWith('/ws/');
 
   // Custom message handler - keeps track of notifications
   const handleNotification = useCallback((notification) => {
@@ -226,6 +227,12 @@ export function useSocket(endpoint = '', options = {}) {
 
   // Improved initialization to prevent reconnection loops
   useEffect(() => {
+    if (!connectionCheckCompletedRef.current && forceMockForLegacyWs) {
+      connectionCheckCompletedRef.current = true;
+      setUseMockSocket(true);
+      return;
+    }
+
     // Initialize mock socket immediately if manually set
     if ((!connectionCheckCompletedRef.current) && 
         (typeof window !== 'undefined' && window.REACT_APP_FORCE_MOCK_WEBSOCKET === 'true')) {
@@ -247,10 +254,22 @@ export function useSocket(endpoint = '', options = {}) {
         setUseMockSocket(true);
       });
     }
-  }, []);
+  }, [forceMockForLegacyWs]);
 
   // Connect to WebSocket
   const connect = useCallback(() => {
+    if (forceMockForLegacyWs) {
+      if (socket && socket.readyState === 1) {
+        return socket;
+      }
+      const mockSocket = createMockWebSocket(false);
+      setSocket(mockSocket);
+      setUseMockSocket(true);
+      setIsConnected(true);
+      setError(null);
+      return mockSocket;
+    }
+
     // Skip connecting to real server in development mode
     // Always use mock socket instead for stability
     if (process.env.NODE_ENV === 'development') {
@@ -390,7 +409,7 @@ export function useSocket(endpoint = '', options = {}) {
       setUseMockSocket(true);
       return null;
     }
-  }, [isAuthenticated, token, endpoint, reconnectAttempts, maxReconnectAttempts, reconnectIntervalMs, handleWebSocketMessage, toast, useMockSocket]);
+  }, [forceMockForLegacyWs, isAuthenticated, token, endpoint, reconnectAttempts, maxReconnectAttempts, reconnectIntervalMs, handleWebSocketMessage, toast, useMockSocket, socket, isConnected]);
 
   // Disconnect WebSocket
   const disconnect = useCallback(() => {

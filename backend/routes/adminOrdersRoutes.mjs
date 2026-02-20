@@ -98,7 +98,7 @@ router.use(ordersRateLimit);
 // =====================================================
 
 const validateOrderId = [
-  param('id').isUUID().withMessage('Invalid order ID format'),
+  param('id').isInt({ min: 1 }).withMessage('Invalid order ID format'),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -115,7 +115,7 @@ const validateOrderId = [
 const validatePagination = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('sortBy').optional().isIn(['createdAt', 'totalAmount', 'status']).withMessage('Invalid sort field'),
+  query('sortBy').optional().isIn(['createdAt', 'completedAt', 'total', 'totalAmount', 'status']).withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
   (req, res, next) => {
     const errors = validationResult(req);
@@ -151,12 +151,12 @@ function buildOrderQuery(filters = {}) {
   
   // Amount range filter
   if (filters.minAmount || filters.maxAmount) {
-    whereClause.totalAmount = {};
+    whereClause.total = {};
     if (filters.minAmount) {
-      whereClause.totalAmount[Op.gte] = filters.minAmount;
+      whereClause.total[Op.gte] = filters.minAmount;
     }
     if (filters.maxAmount) {
-      whereClause.totalAmount[Op.lte] = filters.maxAmount;
+      whereClause.total[Op.lte] = filters.maxAmount;
     }
   }
   
@@ -170,6 +170,28 @@ function buildOrderQuery(filters = {}) {
   }
   
   return whereClause;
+}
+
+function normalizeOrderShape(order) {
+  const normalized = { ...order };
+  normalized.totalAmount = order.total;
+
+  if (Array.isArray(normalized.cartItems)) {
+    normalized.cartItems = normalized.cartItems.map((item) => {
+      const storefrontItem = item?.storefrontItem
+        ? {
+            ...item.storefrontItem,
+            itemType: item.storefrontItem.packageType || item.storefrontItem.itemType || null
+          }
+        : item?.storefrontItem;
+      return {
+        ...item,
+        storefrontItem
+      };
+    });
+  }
+
+  return normalized;
 }
 
 async function enrichOrderWithStripeData(order) {
@@ -216,7 +238,7 @@ async function calculateOrderAnalytics(timeRange = '30d') {
       attributes: [
         'status',
         [fn('COUNT', col('id')), 'count'],
-        [fn('SUM', col('totalAmount')), 'totalAmount']
+        [fn('SUM', col('total')), 'totalAmount']
       ],
       where: {
         createdAt: {
@@ -239,7 +261,7 @@ async function calculateOrderAnalytics(timeRange = '30d') {
       attributes: [
         [fn('DATE', col('createdAt')), 'date'],
         [fn('COUNT', col('id')), 'orders'],
-        [fn('SUM', col('totalAmount')), 'revenue']
+        [fn('SUM', col('total')), 'revenue']
       ],
       where: {
         createdAt: {
@@ -254,14 +276,14 @@ async function calculateOrderAnalytics(timeRange = '30d') {
     // Get top-selling packages
     const topPackages = await CartItem.findAll({
       attributes: [
-        '$storefrontItem.name$',
+        [col('storefrontItem.name'), 'name'],
         [fn('SUM', col('quantity')), 'totalSold'],
         [fn('SUM', literal('CAST(price AS DECIMAL) * quantity')), 'totalRevenue']
       ],
       include: [
         {
           model: ShoppingCart,
-          as: 'shoppingCart',
+          as: 'cart',
           where: {
             status: 'completed',
             createdAt: {
@@ -360,8 +382,9 @@ router.get('/orders/pending', validatePagination, async (req, res) => {
     logger.info(`📦 Fetching pending orders for admin ${req.user.email} (page: ${page}, limit: ${limit})`);
     
     const offset = (page - 1) * limit;
+    const sortField = sortBy === 'totalAmount' ? 'total' : sortBy;
     const whereClause = buildOrderQuery({
-      status: 'pending',
+      status: { [Op.in]: ['pending_payment', 'active'] },
       search,
       minAmount,
       maxAmount,
@@ -385,19 +408,19 @@ router.get('/orders/pending', validatePagination, async (req, res) => {
             {
               model: StorefrontItem,
               as: 'storefrontItem',
-              attributes: ['id', 'name', 'itemType', 'description']
+              attributes: ['id', 'name', 'packageType', 'description']
             }
           ]
         }
       ],
-      order: [[sortBy, sortOrder.toUpperCase()]],
+      order: [[sortField, sortOrder.toUpperCase()]],
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
     
     // Enrich with Stripe data
     const enrichedOrders = await Promise.all(
-      orders.map(order => enrichOrderWithStripeData(order.toJSON()))
+      orders.map(async (order) => normalizeOrderShape(await enrichOrderWithStripeData(order.toJSON())))
     );
     
     res.json({
@@ -445,6 +468,7 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
     logger.info(`✅ Fetching completed orders for admin ${req.user.email} (page: ${page}, limit: ${limit})`);
     
     const offset = (page - 1) * limit;
+    const sortField = sortBy === 'totalAmount' ? 'total' : sortBy;
     const whereClause = buildOrderQuery({
       status: 'completed',
       search,
@@ -470,19 +494,19 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
             {
               model: StorefrontItem,
               as: 'storefrontItem',
-              attributes: ['id', 'name', 'itemType', 'description']
+              attributes: ['id', 'name', 'packageType', 'description']
             }
           ]
         }
       ],
-      order: [[sortBy, sortOrder.toUpperCase()]],
+      order: [[sortField, sortOrder.toUpperCase()]],
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
     
     // Enrich with Stripe data
     const enrichedOrders = await Promise.all(
-      orders.map(order => enrichOrderWithStripeData(order.toJSON()))
+      orders.map(async (order) => normalizeOrderShape(await enrichOrderWithStripeData(order.toJSON())))
     );
     
     res.json({
@@ -513,9 +537,9 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
  * GET /api/admin/orders/:id
  * Get detailed order information
  */
-router.get('/orders/:id', validateOrderId, async (req, res) => {
+router.get('/orders/:id(\\d+)', validateOrderId, async (req, res) => {
   try {
-    const orderId = req.params.id;
+    const orderId = Number(req.params.id);
     logger.info(`🔍 Fetching order details for ${orderId} by admin ${req.user.email}`);
     
     const order = await ShoppingCart.findByPk(orderId, {
@@ -546,7 +570,7 @@ router.get('/orders/:id', validateOrderId, async (req, res) => {
     }
     
     // Enrich with Stripe data
-    const enrichedOrder = await enrichOrderWithStripeData(order.toJSON());
+    const enrichedOrder = normalizeOrderShape(await enrichOrderWithStripeData(order.toJSON()));
     
     res.json({
       success: true,
@@ -641,7 +665,7 @@ router.get('/orders/export', [heavyOrdersRateLimit, validatePagination], async (
         const customerEmail = order.user?.email || 'N/A';
         const completedAt = order.completedAt ? order.completedAt.toISOString() : 'N/A';
         
-        csv += `${order.id},"${customerName}","${customerEmail}",${order.status},${order.totalAmount},${order.createdAt.toISOString()},"${completedAt}"\n`;
+        csv += `${order.id},"${customerName}","${customerEmail}",${order.status},${order.total},${order.createdAt.toISOString()},"${completedAt}"\n`;
       });
       
       res.setHeader('Content-Type', 'text/csv');

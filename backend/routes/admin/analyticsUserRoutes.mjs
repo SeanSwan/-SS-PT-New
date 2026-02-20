@@ -10,8 +10,8 @@
  *
  * Architecture Overview (ASCII):
  * Admin UI -> /api/admin/analytics/users -> User analytics -> PostgreSQL
- * Admin UI -> /api/admin/statistics/users -> User stats -> PostgreSQL
- * Admin UI -> /api/admin/statistics/workouts -> Session stats -> PostgreSQL
+ * Admin UI -> /api/admin/analytics/statistics/users -> User stats -> PostgreSQL
+ * Admin UI -> /api/admin/analytics/statistics/workouts -> Session stats -> PostgreSQL
  *
  * Middleware Flow:
  * Request -> authenticateToken -> authorizeAdmin -> rateLimit -> handler -> response
@@ -19,8 +19,8 @@
  * API Endpoints:
  * - GET /api/admin/analytics/users
  * - GET /api/admin/analytics/live-users
- * - GET /api/admin/statistics/users
- * - GET /api/admin/statistics/workouts
+ * - GET /api/admin/analytics/statistics/users
+ * - GET /api/admin/analytics/statistics/workouts
  *
  * Security:
  * - JWT auth required

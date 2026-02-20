@@ -31,70 +31,22 @@ import {
   WifiOff, AlertCircle, XCircle, Target, Gauge,
   ArrowUp, ArrowDown, Signal, Cloud, Link
 } from 'lucide-react';
-// REMOVED RECHARTS IMPORTS FOR BUILD STABILITY
-// Charts temporarily replaced with placeholders - data collection still functional
-// import {
-//   LineChart as ReLineChart,
-//   Line,
-//   AreaChart,
-//   Area,
-//   BarChart as ReBarChart,
-//   Bar,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   Tooltip,
-//   ResponsiveContainer,
-//   Cell,
-//   PieChart,
-//   Pie
-// } from 'recharts';
-
-// Chart component placeholders
-const ChartPlaceholder = styled.div`
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  padding: 40px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-  min-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  
-  &::before {
-    content: '📊';
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 1rem;
-  }
-`;
-
-const ReLineChart = ({ children, ...props }) => (
-  <ChartPlaceholder>System Performance Line Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
-);
-const AreaChart = ({ children, ...props }) => (
-  <ChartPlaceholder>System Health Area Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
-);
-const ReBarChart = ({ children, ...props }) => (
-  <ChartPlaceholder>System Metrics Bar Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
-);
-const PieChart = ({ children, ...props }) => (
-  <ChartPlaceholder>System Status Pie Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
-);
-const ResponsiveContainer = ({ children, ...props }) => <div>{children}</div>;
-const Line = () => null;
-const Area = () => null;
-const Bar = () => null;
-const XAxis = () => null;
-const YAxis = () => null;
-const CartesianGrid = () => null;
-const Tooltip = () => null;
-const Cell = () => null;
-const Pie = () => null;
+import {
+  LineChart as ReLineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart as ReBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie
+} from 'recharts';
 
 // =====================================================
 // STYLED COMPONENTS - SYSTEM HEALTH DESIGN

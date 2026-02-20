@@ -9,12 +9,20 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: 'npm run dev',
-    port: 5173,
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  webServer: [
+    {
+      command: 'cd ../backend && node server.mjs',
+      port: 10000,
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
+    {
+      command: 'npm run dev',
+      port: 5173,
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+  ],
   projects: [
     { name: 'Desktop Chrome', use: { ...devices['Desktop Chrome'] } },
     { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },

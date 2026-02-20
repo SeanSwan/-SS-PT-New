@@ -67,14 +67,20 @@ authAxiosInstance.interceptors.response.use(
         // Clear local storage
         localStorage.removeItem('token');
         localStorage.removeItem('login_timestamp');
-        
+
         // Redirect to login (if not already there)
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login?expired=true';
         }
       }
     }
-    
+
+    // Degraded-mode flag: backend returns { degraded: true } when a service is temporarily unavailable
+    const errorData = error.response?.data as Record<string, unknown> | undefined;
+    if (errorData?.degraded === true) {
+      (error as any).isDegraded = true;
+    }
+
     return Promise.reject(error);
   }
 );

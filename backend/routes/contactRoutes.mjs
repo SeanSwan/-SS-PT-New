@@ -5,31 +5,35 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 const router = express.Router();
 
 // ADMIN: Get contacts list with pagination
+// Fixed sort: createdAt DESC, id DESC — sortBy/sortOrder params removed (admin-only endpoint)
 router.get("/", protect, adminOnly, async (req, res) => {
   try {
     console.log('📋 Admin fetching contacts list');
-    
-    const { limit = 10, offset = 0, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
-    
+
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+    const rawOffset = parseInt(req.query.offset, 10);
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
     const contacts = await Contact.findAll({
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [[sortBy, sortOrder]],
+      limit,
+      offset,
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
       attributes: ['id', 'name', 'email', 'message', 'priority', 'createdAt', 'updatedAt']
     });
-    
+
     const totalContacts = await Contact.count();
-    
+
     console.log(`✅ Returning ${contacts.length} contacts (total: ${totalContacts})`);
-    
+
     res.json({
       success: true,
-      contacts: contacts,
+      contacts,
       pagination: {
         total: totalContacts,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: parseInt(offset) + parseInt(limit) < totalContacts
+        limit,
+        offset,
+        hasMore: offset + limit < totalContacts
       }
     });
   } catch (error) {

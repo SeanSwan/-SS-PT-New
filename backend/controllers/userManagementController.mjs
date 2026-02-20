@@ -741,11 +741,11 @@ export const getDashboardStats = async (req, res) => {
     const weeklySignupRate = weeklySignups;
     const monthlySignupRate = monthlySignups;
     
-    // Get latest signups for preview
+    // Get latest signups for preview (summary-only, fixed 20, no pagination)
     const latestSignups = await User.findAll({
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'createdAt'],
-      order: [['createdAt', 'DESC']],
-      limit: 5
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit: 20
     });
     
     const dashboardStats = {
@@ -845,6 +845,50 @@ export const getDatabaseHealth = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/signups-list
+ * Lightweight paginated signups list (no analytics/hourly breakdown).
+ * Uses findAll with limit+1 to infer hasMore (avoids COUNT(*) on every poll).
+ * Optional includeTotal=true on first page (offset=0) adds total via COUNT(*).
+ */
+export const getSignupsList = async (req, res) => {
+  try {
+    const User = getUser();
+
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+    const rawOffset = parseInt(req.query.offset, 10);
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+    const includeTotal = req.query.includeTotal === 'true' && offset === 0;
+
+    const rows = await User.findAll({
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'createdAt'],
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit: limit + 1,
+      offset
+    });
+
+    const hasMore = rows.length > limit;
+    const signups = hasMore ? rows.slice(0, limit) : rows;
+    const pagination = { limit, offset, hasMore };
+
+    if (includeTotal) {
+      pagination.total = await User.count();
+    }
+
+    res.json({
+      success: true,
+      data: { signups, pagination }
+    });
+  } catch (error) {
+    logger.error('Error fetching signups list:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch signups list'
+    });
+  }
+};
+
 export default {
   getAllUsers,
   promoteToClient,
@@ -852,5 +896,6 @@ export default {
   updateUser,
   getRecentSignups,
   getDashboardStats,
-  getDatabaseHealth
+  getDatabaseHealth,
+  getSignupsList
 };

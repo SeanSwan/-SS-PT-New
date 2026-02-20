@@ -585,6 +585,7 @@ router.get('/notifications', async (req, res) => {
     
     largeTransactions.forEach(transaction => {
       notifications.push({
+        id: `hvp_${transaction.id}`,
         type: 'high_value_purchase',
         title: 'High Value Purchase',
         message: `${transaction.user?.firstName} ${transaction.user?.lastName} made a $${transaction.total} purchase`,
@@ -609,20 +610,36 @@ router.get('/notifications', async (req, res) => {
     }) || 0;
     
     if (todayRevenue > 1000) {
+      const dateStr = new Date().toISOString().slice(0, 10);
       notifications.push({
+        id: `rev_milestone_${dateStr}`,
         type: 'revenue_milestone',
         title: 'Daily Revenue Milestone',
         message: `Daily revenue exceeded $1,000 (currently $${todayRevenue})`,
         amount: todayRevenue,
-        timestamp: new Date(),
+        timestamp: new Date(new Date().setHours(0, 0, 0, 0)),
         priority: 'medium'
       });
     }
-    
+
+    // Deterministic sort: timestamp DESC, then id DESC
+    notifications.sort((a, b) => {
+      const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      return timeDiff !== 0 ? timeDiff : b.id.localeCompare(a.id);
+    });
+
+    // Paginate with validated input bounds
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+    const rawOffset = parseInt(req.query.offset, 10);
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+    const paginatedNotifications = notifications.slice(offset, offset + limit);
+
     res.json({
       success: true,
       data: {
-        notifications: notifications.slice(0, 10), // Limit to 10 most recent
+        notifications: paginatedNotifications,
+        pagination: { total: notifications.length, limit, offset, hasMore: offset + limit < notifications.length },
         unreadCount: notifications.length,
         generatedAt: new Date().toISOString()
       }

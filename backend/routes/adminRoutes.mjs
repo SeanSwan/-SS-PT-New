@@ -20,6 +20,7 @@ router.post('/promote-client', userManagementController.promoteToClient);
 router.post('/promote-admin', userManagementController.promoteToAdmin);
 router.get('/recent-signups', userManagementController.getRecentSignups);
 router.get('/dashboard-stats', userManagementController.getDashboardStats);
+router.get('/signups-list', userManagementController.getSignupsList);
 router.get('/database-health', userManagementController.getDatabaseHealth);
 
 // 🏋️ ENHANCED TRAINER DATA MANAGEMENT

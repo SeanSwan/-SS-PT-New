@@ -25,7 +25,7 @@ const AdminSpecialsManager: React.FC = () => {
 
   const fetchSpecials = useCallback(async () => {
     try {
-      const response = await apiService.get('/admin/specials');
+      const response = await apiService.get('/api/admin/specials');
       setSpecials(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch specials:', error);
@@ -36,7 +36,7 @@ const AdminSpecialsManager: React.FC = () => {
 
   const fetchPackages = useCallback(async () => {
     try {
-      const response = await apiService.get('/storefront');
+      const response = await apiService.get('/api/storefront');
       const pkgs = response.data.data?.packages || response.data.data || [];
       setPackages(pkgs.map((p: any) => ({ id: p.id, name: p.name })));
     } catch (error) {
@@ -78,9 +78,9 @@ const AdminSpecialsManager: React.FC = () => {
       };
 
       if (editingSpecial) {
-        await apiService.put(`/admin/specials/${editingSpecial.id}`, payload);
+        await apiService.put(`/api/admin/specials/${editingSpecial.id}`, payload);
       } else {
-        await apiService.post('/admin/specials', payload);
+        await apiService.post('/api/admin/specials', payload);
       }
 
       setShowModal(false);
@@ -92,7 +92,7 @@ const AdminSpecialsManager: React.FC = () => {
 
   const handleToggle = async (id: number) => {
     try {
-      await apiService.patch(`/admin/specials/${id}/toggle`);
+      await apiService.patch(`/api/admin/specials/${id}/toggle`);
       fetchSpecials();
     } catch (error) {
       console.error('Failed to toggle special:', error);
@@ -102,7 +102,7 @@ const AdminSpecialsManager: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this special?')) return;
     try {
-      await apiService.delete(`/admin/specials/${id}`);
+      await apiService.delete(`/api/admin/specials/${id}`);
       fetchSpecials();
     } catch (error) {
       console.error('Failed to delete special:', error);
