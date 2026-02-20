@@ -104,9 +104,11 @@ router.get('/notifications', protect, adminOnly, async (req, res) => {
       stats: summary
     });
   } catch (error) {
+    console.error('[adminNotifications] Error fetching notifications:', error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch admin notifications'
+      message: 'Failed to fetch notifications',
+      degraded: true
     });
   }
 });
@@ -234,6 +236,182 @@ router.post('/notifications/broadcast', protect, adminOnly, async (req, res) => 
     return res.status(500).json({
       success: false,
       message: 'Failed to broadcast notification'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/admin/notifications/:id
+ * @desc    Full notification detail
+ * @access  Private (Admin)
+ */
+router.get('/notifications/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const models = getAllModels();
+    const AdminNotification = models.AdminNotification;
+    const User = models.User;
+
+    const notification = await AdminNotification.findByPk(id);
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    const adminCount = await User.count({ where: { role: 'admin' } });
+
+    return res.status(200).json({
+      success: true,
+      notification: serializeAdminNotification(notification, adminCount)
+    });
+  } catch (error) {
+    console.error('[adminNotifications] Error fetching notification detail:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch notification'
+    });
+  }
+});
+
+/**
+ * @route   PATCH /api/admin/notifications/:id/resolve
+ * @desc    Mark notification as resolved / action taken
+ * @access  Private (Admin)
+ */
+router.patch('/notifications/:id/resolve', protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const models = getAllModels();
+    const AdminNotification = models.AdminNotification;
+    const User = models.User;
+
+    const notification = await AdminNotification.findByPk(id);
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    const adminUserId = req.user?.id ?? null;
+    const notes = req.body?.notes ?? null;
+
+    await notification.markActionTaken(adminUserId, notes);
+
+    const adminCount = await User.count({ where: { role: 'admin' } });
+
+    return res.status(200).json({
+      success: true,
+      notification: serializeAdminNotification(notification, adminCount)
+    });
+  } catch (error) {
+    console.error('[adminNotifications] Error resolving notification:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to resolve notification'
+    });
+  }
+});
+
+/**
+ * @route   PATCH /api/admin/notifications/:id/archive
+ * @desc    Mark notification as read / archived
+ * @access  Private (Admin)
+ */
+router.patch('/notifications/:id/archive', protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const models = getAllModels();
+    const AdminNotification = models.AdminNotification;
+    const User = models.User;
+
+    const notification = await AdminNotification.findByPk(id);
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    const adminUserId = req.user?.id ?? null;
+
+    await notification.markAsRead(adminUserId);
+
+    const adminCount = await User.count({ where: { role: 'admin' } });
+
+    return res.status(200).json({
+      success: true,
+      notification: serializeAdminNotification(notification, adminCount)
+    });
+  } catch (error) {
+    console.error('[adminNotifications] Error archiving notification:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to archive notification'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/admin/notifications/bulk
+ * @desc    Bulk archive or delete notifications
+ * @access  Private (Admin)
+ */
+router.post('/notifications/bulk', protect, adminOnly, async (req, res) => {
+  try {
+    const { ids, action } = req.body || {};
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ids must be a non-empty array'
+      });
+    }
+
+    if (!['archive', 'delete'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "action must be 'archive' or 'delete'"
+      });
+    }
+
+    const models = getAllModels();
+    const AdminNotification = models.AdminNotification;
+    let processed = 0;
+
+    if (action === 'delete') {
+      processed = await AdminNotification.destroy({
+        where: { id: { [Op.in]: ids } }
+      });
+    } else {
+      // archive — mark all as read
+      const adminUserId = req.user?.id ?? null;
+      const now = new Date();
+
+      const [affectedCount] = await AdminNotification.update(
+        {
+          isRead: true,
+          readAt: now,
+          readBy: adminUserId
+        },
+        {
+          where: { id: { [Op.in]: ids } }
+        }
+      );
+      processed = affectedCount;
+    }
+
+    return res.status(200).json({
+      success: true,
+      processed
+    });
+  } catch (error) {
+    console.error('[adminNotifications] Error in bulk operation:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process bulk operation'
     });
   }
 });

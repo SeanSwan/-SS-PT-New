@@ -83,12 +83,12 @@ async function testChatGPTRemediation() {
       assert(false, `Unexpected status: ${revenueResponse.statusCode}`, 'Revenue Analytics');
     }
 
-    // Test 2: GET /api/admin/statistics/revenue (alias)
-    console.log('\n📈 Test 2: GET /api/admin/statistics/revenue (alias)');
+    // Test 2: GET /api/admin/analytics/statistics/revenue (canonical path)
+    console.log('\n📈 Test 2: GET /api/admin/analytics/statistics/revenue');
     const statsRevenueResponse = await makeRequest({
       hostname: 'localhost',
       port: 10000,
-      path: '/api/admin/statistics/revenue',
+      path: '/api/admin/analytics/statistics/revenue',
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

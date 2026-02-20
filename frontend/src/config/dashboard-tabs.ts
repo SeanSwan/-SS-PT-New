@@ -74,7 +74,10 @@ export const COMMON_DASHBOARD_TABS: DashboardTab[] = [
   },
 ];
 
-// Admin dashboard tabs (full navigation set)
+/**
+ * @deprecated Use WORKSPACE_CONFIG instead. This array is kept for backward
+ * compatibility during migration. Will be removed in a future release.
+ */
 export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
   {
     key: 'overview',
@@ -467,9 +470,29 @@ export const CLIENT_DASHBOARD_TABS: DashboardTab[] = [
   },
 ];
 
+// ─── Workspace Configuration (Phase 1) ─────────────────
+export interface WorkspaceConfig {
+  id: string;
+  label: string;
+  icon: string;
+  prefix: string;
+  description: string;
+}
+
+export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
+  { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/home', description: 'Executive command center' },
+  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
+  { id: 'scheduling', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/scheduling', description: 'Session scheduling' },
+  { id: 'store', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/store', description: 'Orders and packages' },
+  { id: 'content', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/content', description: 'Video and content management' },
+  { id: 'analytics', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/analytics', description: 'Data analytics and insights' },
+  { id: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/system', description: 'System operations and settings' },
+];
+
 export default {
   COMMON_DASHBOARD_TABS,
   ADMIN_DASHBOARD_TABS,
   TRAINER_DASHBOARD_TABS,
   CLIENT_DASHBOARD_TABS,
+  WORKSPACE_CONFIG,
 };

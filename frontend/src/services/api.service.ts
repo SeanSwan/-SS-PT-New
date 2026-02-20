@@ -264,6 +264,12 @@ const createProductionApiClient = (): AxiosInstance => {
         }
       }
 
+      // Degraded-mode flag: backend returns { degraded: true } when a service is temporarily unavailable
+      const errorData = error.response?.data as any;
+      if (errorData?.degraded === true) {
+        (error as any).isDegraded = true;
+      }
+
       // Silently handle 503 errors for notifications endpoint (has graceful fallback)
       const isNotificationsEndpoint = originalRequest?.url?.includes('/notifications');
       const is503Error = error.response?.status === 503;

@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
   Search,
@@ -19,6 +20,8 @@ import {
   X,
   Play,
 } from 'lucide-react';
+import VideoUploadForm from '../components/VideoUploadForm';
+import YouTubeImportModal from '../components/YouTubeImportModal';
 
 // ─── Helpers ─────────────────────────────────────────
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
@@ -342,6 +345,9 @@ const LibraryTab: React.FC = () => {
   const [contentTypeFilter, setContentTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showUpload, setShowUpload] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const navigate = useNavigate();
   const limit = 12;
 
   const fetchVideos = useCallback(async () => {
@@ -416,10 +422,10 @@ const LibraryTab: React.FC = () => {
         </FilterGroup>
 
         <ActionButtons>
-          <PrimaryButton onClick={() => alert('Upload modal coming soon')}>
+          <PrimaryButton onClick={() => setShowUpload(true)}>
             <Upload /> Upload Video
           </PrimaryButton>
-          <SecondaryButton onClick={() => alert('YouTube import modal coming soon')}>
+          <SecondaryButton onClick={() => setShowImport(true)}>
             <Youtube /> Import YouTube
           </SecondaryButton>
         </ActionButtons>
@@ -440,7 +446,7 @@ const LibraryTab: React.FC = () => {
                 key={video.id}
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
-                onClick={() => alert(`Open detail for video #${video.id}`)}
+                onClick={() => navigate(`/dashboard/content/video-studio/${video.id}`)}
               >
                 <Thumbnail $src={video.thumbnailUrl}>
                   {!video.thumbnailUrl && <Play />}
@@ -486,8 +492,62 @@ const LibraryTab: React.FC = () => {
           </Pagination>
         </>
       )}
+      {/* Upload Modal */}
+      <AnimatePresence>
+        {showUpload && (
+          <ModalOverlay
+            key="upload-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowUpload(false)}
+          >
+            <ModalContent
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+              <VideoUploadForm
+                onClose={() => setShowUpload(false)}
+                onUploadComplete={() => { setShowUpload(false); fetchVideos(); }}
+              />
+            </ModalContent>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* YouTube Import Modal */}
+      <YouTubeImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onImported={() => { setShowImport(false); fetchVideos(); }}
+      />
     </Container>
   );
 };
+
+// ─── Modal Overlay ──────────────────────────────────
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+`;
+
+const ModalContent = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(15, 15, 35, 0.98), rgba(25, 25, 55, 0.95));
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+`;
 
 export default LibraryTab;

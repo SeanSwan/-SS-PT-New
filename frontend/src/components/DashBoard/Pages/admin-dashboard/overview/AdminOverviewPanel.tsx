@@ -63,10 +63,10 @@ const AdminOverviewPanel: React.FC = () => {
       setError(null);
 
       const [revenueRes, usersRes, workoutsRes, healthRes] = await Promise.all([
-        authAxios.get('/api/admin/statistics/revenue', { params: { timeRange } }),
-        authAxios.get('/api/admin/statistics/users'),
-        authAxios.get('/api/admin/statistics/workouts'),
-        authAxios.get('/api/admin/statistics/system-health'),
+        authAxios.get('/api/admin/analytics/statistics/revenue', { params: { timeRange } }),
+        authAxios.get('/api/admin/analytics/statistics/users'),
+        authAxios.get('/api/admin/analytics/statistics/workouts'),
+        authAxios.get('/api/admin/analytics/statistics/system-health'),
       ]);
 
       const revenueData = revenueRes.data?.data || {};
@@ -160,7 +160,7 @@ const AdminOverviewPanel: React.FC = () => {
   return (
     <div>
       <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
-      <ContactNotifications autoRefresh={true} maxContacts={5} showActions={true} />
+      <ContactNotifications autoRefresh={true} showActions={true} />
 
       <div
         style={{

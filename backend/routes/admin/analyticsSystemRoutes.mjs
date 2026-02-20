@@ -10,7 +10,7 @@
  *
  * Architecture Overview (ASCII):
  * Admin UI -> /api/admin/analytics/system-health -> System metrics -> runtime
- * Admin UI -> /api/admin/statistics/system-health -> System stats -> runtime
+ * Admin UI -> /api/admin/analytics/statistics/system-health -> System stats -> runtime
  * Admin UI -> /api/admin/business-intelligence/executive-summary -> BI snapshot
  *
  * Middleware Flow:
@@ -18,7 +18,7 @@
  *
  * API Endpoints:
  * - GET /api/admin/analytics/system-health
- * - GET /api/admin/statistics/system-health
+ * - GET /api/admin/analytics/statistics/system-health
  * - GET /api/admin/business-intelligence/executive-summary
  *
  * Security:

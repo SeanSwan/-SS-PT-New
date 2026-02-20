@@ -31,7 +31,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
-import { ADMIN_DASHBOARD_TABS } from '../../../../config/dashboard-tabs';
+import { WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
 
 // PWA and Mobile Optimization Hooks (with fallbacks)
 // TODO: Implement these hooks in the PWA components when available
@@ -150,7 +150,7 @@ import {
   HardDrive, BarChart, PieChart, LineChart as LineChartIcon,
   TrendingDown, Plus, Minus, UserPlus, UserMinus,
   UserCog, Cpu, Server, Globe, Menu, X,
-  CheckSquare, XSquare, Tool, Sliders, Puzzle,
+  CheckSquare, XSquare, Sliders, Puzzle,
   ExternalLink, Grid, Home, Compass,
   ChevronRight, ChevronLeft, ChevronDown, ChevronUp
 } from 'lucide-react';
@@ -848,28 +848,17 @@ const getIconNode = (iconName: string) => {
 };
 
 const getAdminNavItems = (_userRole: string): AdminNavItem[] =>
-  ADMIN_DASHBOARD_TABS
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .map((tab) => ({
-      id: tab.key,
-      label: tab.label,
-      route: tab.route || `/dashboard/${tab.key}`,
-      icon: getIconNode(tab.icon),
-      section: tab.section || 'management',
-      notification: tab.notification,
-      isNew: tab.isNew,
-      isDisabled: tab.isDisabled,
-      description: tab.description,
-      status: tab.status,
-    }));
+  WORKSPACE_CONFIG.map((ws) => ({
+    id: ws.id,
+    label: ws.label,
+    route: ws.prefix,
+    icon: getIconNode(ws.icon),
+    section: 'workspaces',
+    description: ws.description,
+  }));
 
 const navigationSections = {
-  command: 'Command Center',
-  management: 'Platform Management',
-  business: 'Business Intelligence',
-  content: 'Content & Community',
-  system: 'System Operations'
+  workspaces: 'Workspaces',
 };
 
 // === ENHANCED MAIN COMPONENT WITH MOBILE OPTIMIZATION ===
@@ -996,9 +985,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
     }
   }, [mobileMenuOpen, triggerHaptic]);
 
-  // Check if route is active
+  // Check if route is active (workspace prefix matching)
   const isActiveRoute = useCallback((route: string) => {
-    return location.pathname.includes(route.replace('/dashboard', ''));
+    return location.pathname === route || location.pathname.startsWith(route + '/');
   }, [location.pathname]);
 
   // Animation variants

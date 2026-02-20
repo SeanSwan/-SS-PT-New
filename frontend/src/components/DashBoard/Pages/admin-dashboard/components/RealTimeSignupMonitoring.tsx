@@ -287,6 +287,8 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   autoRefresh = true, 
   refreshInterval = 30000 
 }) => {
+  const SIGNUPS_PAGE_SIZE = 20;
+
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [databaseHealth, setDatabaseHealth] = useState<DatabaseHealth | null>(null);
   const [recentSignups, setRecentSignups] = useState<RecentSignup[]>([]);
@@ -294,20 +296,56 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [signupsOffset, setSignupsOffset] = useState(0);
+  const [signupsHasMore, setSignupsHasMore] = useState(true);
 
-  // Fetch dashboard statistics
+  // Upsert helper: merges fresh signups into accumulated state, dedupes by id
+  const upsertSignups = useCallback((existing: RecentSignup[], fresh: RecentSignup[]): RecentSignup[] => {
+    const merged = new Map<string, RecentSignup>();
+    for (const s of existing) merged.set(String(s.id), s);
+    for (const s of fresh) merged.set(String(s.id), s);
+    return [...merged.values()].sort((a, b) => {
+      const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      // Tie-break by id DESC (numeric comparison via string → number)
+      return Number(b.id) - Number(a.id);
+    });
+  }, []);
+
+  // Fetch dashboard statistics (summary cards only)
   const fetchDashboardStats = useCallback(async () => {
     try {
       const response = await authAxios.get('/api/admin/dashboard-stats');
       if (response.data.success) {
         setDashboardStats(response.data.data);
-        setRecentSignups(response.data.data.latestSignups || []);
       }
     } catch (err: any) {
       console.error('Error fetching dashboard stats:', err);
-      setError('Failed to fetch dashboard statistics');
+      if (!(err as any).isDegraded) {
+        setError('Failed to fetch dashboard statistics');
+      }
     }
   }, [authAxios]);
+
+  // Fetch signups list (lightweight, paginated)
+  const fetchSignupsList = useCallback(async (offset: number, includeTotal: boolean) => {
+    try {
+      const params = new URLSearchParams({
+        limit: String(SIGNUPS_PAGE_SIZE),
+        offset: String(offset)
+      });
+      if (includeTotal) params.set('includeTotal', 'true');
+      const response = await authAxios.get(`/api/admin/signups-list?${params}`);
+      if (response.data.success) {
+        const freshSignups = response.data.data.signups || [];
+        setSignupsHasMore(response.data.data.pagination?.hasMore ?? false);
+        // Upsert into accumulated state
+        setRecentSignups(prev => upsertSignups(prev, freshSignups));
+      }
+    } catch (err: any) {
+      console.error('Error fetching signups list:', err);
+    }
+  }, [authAxios, upsertSignups]);
 
   // Fetch database health
   const fetchDatabaseHealth = useCallback(async () => {
@@ -316,7 +354,7 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
       if (response.data.success) {
         setDatabaseHealth(response.data.data);
       } else {
-        setDatabaseHealth(response.data.data); // Include error status
+        setDatabaseHealth(response.data.data);
       }
     } catch (err: any) {
       console.error('Error fetching database health:', err);
@@ -337,10 +375,11 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     setError(null);
-    
+
     try {
       await Promise.all([
         fetchDashboardStats(),
+        fetchSignupsList(0, false),
         fetchDatabaseHealth()
       ]);
       setLastRefresh(new Date());
@@ -349,23 +388,42 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
     } finally {
       setIsRefreshing(false);
     }
-  }, [fetchDashboardStats, fetchDatabaseHealth]);
+  }, [fetchDashboardStats, fetchSignupsList, fetchDatabaseHealth]);
 
-  // Initial load
+  // Load More signups
+  const handleLoadMoreSignups = useCallback(async () => {
+    const nextOffset = signupsOffset + SIGNUPS_PAGE_SIZE;
+    setSignupsOffset(nextOffset);
+    await fetchSignupsList(nextOffset, false);
+  }, [signupsOffset, fetchSignupsList]);
+
+  // Initial load: dashboard-stats (summary) + signups-list (pagination bootstrap) + database-health
   useEffect(() => {
     const initialLoad = async () => {
       setLoading(true);
-      await handleRefresh();
-      setLoading(false);
+      setError(null);
+      try {
+        await Promise.all([
+          fetchDashboardStats(),
+          fetchSignupsList(0, true),
+          fetchDatabaseHealth()
+        ]);
+        setLastRefresh(new Date());
+      } catch (err) {
+        console.error('Initial load failed:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    initialLoad();
-  }, [handleRefresh]);
 
-  // Auto-refresh interval
+    initialLoad();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-refresh: upsert fresh page-1 signups (no includeTotal)
   useEffect(() => {
     if (!autoRefresh) return;
-    
+
     const interval = setInterval(handleRefresh, refreshInterval);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, handleRefresh]);
@@ -587,6 +645,27 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
             </div>
           )}
         </AnimatePresence>
+
+        {signupsHasMore && (
+          <div style={{ textAlign: 'center', padding: '0.75rem' }}>
+            <button
+              onClick={handleLoadMoreSignups}
+              disabled={isRefreshing}
+              style={{
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                borderRadius: '8px',
+                color: '#3b82f6',
+                padding: '0.5rem 1.5rem',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                minHeight: '44px'
+              }}
+            >
+              {isRefreshing ? 'Loading...' : 'Load More Signups'}
+            </button>
+          </div>
+        )}
       </RecentSignupsList>
 
       {/* Auto-refresh indicator */}

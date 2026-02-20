@@ -24,10 +24,11 @@ import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
-  Bell, BellRing, DollarSign, UserPlus, AlertTriangle, 
+  Bell, BellRing, DollarSign, UserPlus, AlertTriangle,
   CheckCircle, Clock, Mail, ShoppingBag, CreditCard,
   TrendingUp, Star, Shield, Eye, EyeOff, RefreshCw,
-  X, ExternalLink, MessageCircle, Users
+  X, ExternalLink, MessageCircle, Users, Activity,
+  RotateCcw, ShieldAlert, ChevronDown
 } from 'lucide-react';
 
 // Animations
@@ -272,7 +273,9 @@ const LoadingSpinner = styled.div`
 // Interface definitions
 interface Notification {
   id: string;
-  type: 'purchase' | 'new_user' | 'contact' | 'system_alert' | 'high_value_purchase' | 'payment_failed';
+  type: 'purchase' | 'new_user' | 'contact' | 'system_alert' | 'high_value_purchase'
+    | 'payment_failed' | 'security_alert' | 'refund_request' | 'performance_alert'
+    | 'revenue_milestone';
   title: string;
   message: string;
   amount?: number;
@@ -286,7 +289,7 @@ interface Notification {
 
 interface ContactNotificationsProps {
   autoRefresh?: boolean;
-  maxContacts?: number;
+  initialPageSize?: number;
   showActions?: boolean;
 }
 
@@ -303,13 +306,17 @@ const getPriorityColor = (priority: string) => {
 
 // Type icon mapping
 const getTypeIcon = (type: string) => {
-  const iconMap = {
+  const iconMap: Record<string, React.ReactNode> = {
     purchase: <ShoppingBag size={18} />,
     high_value_purchase: <Star size={18} />,
     new_user: <UserPlus size={18} />,
     contact: <MessageCircle size={18} />,
     system_alert: <AlertTriangle size={18} />,
-    payment_failed: <CreditCard size={18} />
+    payment_failed: <CreditCard size={18} />,
+    security_alert: <ShieldAlert size={18} />,
+    refund_request: <RotateCcw size={18} />,
+    performance_alert: <Activity size={18} />,
+    revenue_milestone: <TrendingUp size={18} />
   };
   return iconMap[type] || <Bell size={18} />;
 };
@@ -326,9 +333,24 @@ const formatTimeAgo = (timestamp: string) => {
   return `${Math.floor(diffInSeconds / 86400)}d ago`;
 };
 
+const PAGE_SIZE = 20;
+
+// Upsert helper: merges fresh data into accumulated state, dedupes by id, sorts deterministically
+const upsertNotifications = (existing: Notification[], ...newBatches: Notification[][]): Notification[] => {
+  const merged = new Map<string, Notification>();
+  for (const n of existing) merged.set(n.id, n);
+  for (const batch of newBatches) {
+    for (const n of batch) merged.set(n.id, n);
+  }
+  return [...merged.values()].sort((a, b) => {
+    const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    return timeDiff !== 0 ? timeDiff : b.id.localeCompare(a.id);
+  });
+};
+
 const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   autoRefresh = true,
-  maxContacts = 10,
+  initialPageSize = PAGE_SIZE,
   showActions = true
 }) => {
   const { authAxios } = useAuth();
@@ -337,89 +359,136 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
 
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
+  // Pagination state for each source
+  const [financeOffset, setFinanceOffset] = useState(0);
+  const [contactOffset, setContactOffset] = useState(0);
+  const [financeHasMore, setFinanceHasMore] = useState(true);
+  const [contactHasMore, setContactHasMore] = useState(true);
+
+  // Map raw API data to Notification interface
+  const mapFinanceNotifications = (data: any[]): Notification[] =>
+    data.map((notif: any) => ({
+      id: notif.id || `fin_${Math.random().toString(36).slice(2)}`,
+      type: notif.type,
+      title: notif.title,
+      message: notif.message,
+      amount: notif.amount,
+      timestamp: notif.timestamp || notif.createdAt,
+      priority: notif.priority,
+      isRead: false,
+      actionRequired: notif.type === 'payment_failed',
+      userId: notif.userId,
+      userName: notif.userName
+    }));
+
+  const mapContactNotifications = (contacts: any[]): Notification[] =>
+    contacts.map((contact: any) => ({
+      id: `contact_${contact.id}`,
+      type: 'contact' as const,
+      title: 'New Contact Form Submission',
+      message: `${contact.name} (${contact.email}) sent: "${contact.message}"`,
+      timestamp: contact.createdAt,
+      priority: (contact.priority === 'urgent' ? 'high' : 'medium') as 'high' | 'medium',
+      isRead: false,
+      actionRequired: true,
+      userName: contact.name
+    }));
+
+  // Fetch page of data from both sources and upsert into state
+  const fetchPage = useCallback(async (fOffset: number, cOffset: number, isRefresh: boolean) => {
     try {
       setRefreshing(true);
       setError(null);
 
-      // Fetch admin notifications
-      const adminResponse = await authAxios.get('/api/admin/finance/notifications');
-      
-      // Fetch contact form submissions
-      const contactResponse = await authAxios.get('/api/contact?limit=5');
+      const [financeRes, contactRes] = await Promise.all([
+        authAxios.get(`/api/admin/finance/notifications?limit=${PAGE_SIZE}&offset=${fOffset}`).catch((err: any) => {
+          if (err.isDegraded) return { data: { success: false } };
+          throw err;
+        }),
+        authAxios.get(`/api/contact?limit=${PAGE_SIZE}&offset=${cOffset}`).catch((err: any) => {
+          if (err.isDegraded) return { data: { success: false } };
+          throw err;
+        })
+      ]);
 
-      const adminNotifications = adminResponse.data.success 
-        ? adminResponse.data.data.notifications.map((notif: any) => ({
-            id: notif.id || Math.random().toString(),
-            type: notif.type,
-            title: notif.title,
-            message: notif.message,
-            amount: notif.amount,
-            timestamp: notif.timestamp || notif.createdAt,
-            priority: notif.priority,
-            isRead: false,
-            actionRequired: notif.type === 'payment_failed',
-            userId: notif.userId,
-            userName: notif.userName
-          }))
+      const newFinance = financeRes.data.success
+        ? mapFinanceNotifications(financeRes.data.data?.notifications || [])
+        : [];
+      const newContacts = contactRes.data.success
+        ? mapContactNotifications(contactRes.data.contacts || [])
         : [];
 
-      // Convert contact submissions to notifications
-      const contactNotifications = contactResponse.data.contacts
-        ? contactResponse.data.contacts.slice(0, 3).map((contact: any) => ({
-            id: `contact_${contact.id}`,
-            type: 'contact' as const,
-            title: 'New Contact Form Submission',
-            message: `${contact.name} (${contact.email}) sent: "${contact.message.substring(0, 50)}${contact.message.length > 50 ? '...' : ''}"`,
-            timestamp: contact.createdAt,
-            priority: 'medium' as const,
-            isRead: false,
-            actionRequired: true,
-            userName: contact.name
-          }))
-        : [];
+      // Update hasMore from pagination metadata
+      if (financeRes.data.data?.pagination) {
+        setFinanceHasMore(financeRes.data.data.pagination.hasMore);
+      }
+      if (contactRes.data.pagination) {
+        setContactHasMore(contactRes.data.pagination.hasMore);
+      }
 
-      // Combine and sort notifications
-      const allNotifications = [...adminNotifications, ...contactNotifications]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, maxContacts);
-
-      setNotifications(allNotifications);
+      // Upsert into accumulated state (preserves loaded history)
+      setNotifications(prev => upsertNotifications(prev, newFinance, newContacts));
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load notifications');
+      if (err.isDegraded) {
+        setError('Some data temporarily unavailable');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load notifications');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [authAxios, maxContacts]);
+  }, [authAxios]);
 
   // Initial load
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    fetchPage(0, 0, false);
+  }, [fetchPage]);
 
-  // Auto-refresh setup
+  // Auto-refresh: upsert fresh page-1 into accumulated state (preserves history)
   useEffect(() => {
     if (!autoRefresh) return;
-
-    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30 seconds
+    const interval = setInterval(() => fetchPage(0, 0, true), 30000);
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchNotifications]);
+  }, [autoRefresh, fetchPage]);
 
-  // Handle notification click
+  // Load More handler
+  const handleLoadMore = useCallback(() => {
+    const nextFinanceOffset = financeHasMore ? financeOffset + PAGE_SIZE : financeOffset;
+    const nextContactOffset = contactHasMore ? contactOffset + PAGE_SIZE : contactOffset;
+    if (financeHasMore) setFinanceOffset(nextFinanceOffset);
+    if (contactHasMore) setContactOffset(nextContactOffset);
+    fetchPage(nextFinanceOffset, nextContactOffset, false);
+  }, [financeOffset, contactOffset, financeHasMore, contactHasMore, fetchPage]);
+
+  // Handle notification click — complete type→destination mapping
   const handleNotificationClick = (notification: Notification) => {
-    if (notification.type === 'contact') {
-      // Navigate to contact management
-      window.open('/dashboard/contact-management', '_blank');
-    } else if (notification.type === 'purchase' || notification.type === 'high_value_purchase') {
-      // Navigate to revenue analytics
-      window.open('/dashboard/revenue', '_blank');
-    } else if (notification.type === 'new_user') {
-      // Navigate to user management
-      window.open('/dashboard/user-management', '_blank');
-    }
+    const destinationMap: Record<string, string> = {
+      contact: '/dashboard/home/notifications',
+      purchase: '/dashboard/analytics/revenue',
+      high_value_purchase: '/dashboard/analytics/revenue',
+      new_user: '/dashboard/people',
+      payment_failed: '/dashboard/store',
+      system_alert: '/dashboard/system/health',
+      security_alert: '/dashboard/system/security',
+      refund_request: '/dashboard/store',
+      performance_alert: '/dashboard/system/health',
+      revenue_milestone: '/dashboard/analytics/revenue'
+    };
+    const dest = destinationMap[notification.type];
+    if (dest) window.open(dest, '_blank');
+  };
+
+  // Toggle expandable message
+  const toggleMessageExpand = (id: string) => {
+    setExpandedMessages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   // Filter notifications
@@ -463,7 +532,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
             </ControlButton>
             
             <ControlButton
-              onClick={fetchNotifications}
+              onClick={() => fetchPage(0, 0, true)}
               disabled={refreshing}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -511,7 +580,26 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                   
                   <NotificationDetails>
                     <NotificationTitle>{notification.title}</NotificationTitle>
-                    <NotificationMessage>{notification.message}</NotificationMessage>
+                    <NotificationMessage>
+                      {notification.message.length > 150 && !expandedMessages.has(notification.id)
+                        ? <>
+                            {notification.message.slice(0, 150)}...
+                            <span
+                              style={{ color: '#00ffff', cursor: 'pointer', marginLeft: '4px' }}
+                              onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
+                            >show more</span>
+                          </>
+                        : <>
+                            {notification.message}
+                            {notification.message.length > 150 && (
+                              <span
+                                style={{ color: '#00ffff', cursor: 'pointer', marginLeft: '4px' }}
+                                onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
+                              >show less</span>
+                            )}
+                          </>
+                      }
+                    </NotificationMessage>
                     
                     <NotificationMeta>
                       <NotificationTime>
@@ -552,6 +640,21 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           )}
         </AnimatePresence>
       </NotificationsList>
+
+      {(financeHasMore || contactHasMore) && (
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <ControlButton
+            onClick={handleLoadMore}
+            disabled={refreshing}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{ padding: '0.5rem 1.5rem', borderRadius: '8px' }}
+          >
+            <ChevronDown size={16} />
+            <span style={{ marginLeft: '0.5rem' }}>Load More</span>
+          </ControlButton>
+        </div>
+      )}
     </NotificationsContainer>
   );
 };

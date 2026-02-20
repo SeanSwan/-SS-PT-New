@@ -10,14 +10,14 @@
  *
  * Architecture Overview (ASCII):
  * Admin UI -> /api/admin/analytics/revenue -> Revenue analytics -> PostgreSQL
- * Admin UI -> /api/admin/statistics/revenue -> Revenue stats -> PostgreSQL
+ * Admin UI -> /api/admin/analytics/statistics/revenue -> Revenue stats -> PostgreSQL
  *
  * Middleware Flow:
  * Request -> authenticateToken -> authorizeAdmin -> rateLimit -> handler -> response
  *
  * API Endpoints:
  * - GET /api/admin/analytics/revenue
- * - GET /api/admin/statistics/revenue
+ * - GET /api/admin/analytics/statistics/revenue
  *
  * Security:
  * - JWT auth required
@@ -46,6 +46,7 @@ import User from '../../models/User.mjs';
 import StorefrontItem from '../../models/StorefrontItem.mjs';
 import SessionPackage from '../../models/SessionPackage.mjs';
 import Order from '../../models/Order.mjs';
+import OrderItem from '../../models/OrderItem.mjs';
 
 const router = express.Router();
 
@@ -105,6 +106,15 @@ const calculateChangePercent = (currentValue, previousValue) => {
   return ((currentValue - previousValue) / previousValue) * 100;
 };
 
+const safeCount = async (model, label) => {
+  try {
+    return await model.count();
+  } catch (error) {
+    console.warn(`[Revenue Analytics] ${label} count unavailable:`, error.message);
+    return 0;
+  }
+};
+
 // =====================================================
 // REVENUE ANALYTICS ENDPOINT
 // =====================================================
@@ -114,40 +124,35 @@ router.get('/revenue', async (req, res) => {
     console.log('Revenue analytics API called');
 
     const { timeRange = '7d' } = req.query;
+    const { startDate, endDate, prevStart, prevEnd } = getDateRangeFromTimeRange(timeRange);
 
-    const now = new Date();
-    let startDate = new Date();
+    const revenueData = await generateRevenueAnalytics(startDate, endDate, prevStart, prevEnd);
 
-    switch (timeRange) {
-      case '24h':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case '7d':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(now.getDate() - 30);
-        break;
-      case '90d':
-        startDate.setDate(now.getDate() - 90);
-        break;
-      case '1y':
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-      default:
-        startDate.setDate(now.getDate() - 7);
-    }
-
-    const revenueData = await generateRevenueAnalytics(startDate, now);
-
+    // Stripe as reconciliation-only: compare but never override DB values
     if (stripeClient) {
       try {
-        const stripeData = await getStripeRevenueData(startDate, now);
+        const stripeData = await getStripeRevenueData(startDate, endDate);
         revenueData.stripeIntegration = true;
-        revenueData.overview.totalRevenue =
-          stripeData.totalRevenue || revenueData.overview.totalRevenue;
-        revenueData.overview.averageTransaction =
-          stripeData.averageTransaction || revenueData.overview.averageTransaction;
+
+        if (stripeData && stripeData.totalRevenue) {
+          const dbTotal = revenueData.overview.totalRevenue;
+          const stripeTotal = stripeData.totalRevenue;
+          const diff = Math.abs(dbTotal - stripeTotal);
+          const threshold = Math.max(dbTotal, stripeTotal) * 0.05; // 5% tolerance
+
+          if (diff > threshold) {
+            revenueData.reconciliationWarning = true;
+            revenueData.reconciliationDetails = {
+              dbRevenue: dbTotal,
+              stripeRevenue: stripeTotal,
+              difference: diff,
+              message: 'DB and Stripe revenue differ by more than 5%. Please investigate.',
+            };
+            console.warn(
+              `[Revenue Analytics] Reconciliation mismatch: DB=$${dbTotal} vs Stripe=$${stripeTotal} (diff=$${diff})`
+            );
+          }
+        }
       } catch (stripeError) {
         console.warn('Stripe data unavailable, using database data:', stripeError.message);
         revenueData.stripeIntegration = false;
@@ -229,73 +234,168 @@ router.get('/statistics/revenue', async (req, res) => {
 // DATA GENERATION FUNCTIONS
 // =====================================================
 
-async function generateRevenueAnalytics(startDate, endDate) {
+async function generateRevenueAnalytics(startDate, endDate, prevStart, prevEnd) {
   try {
-    const totalUsers = await User.count();
-    const activeUsers = await User.count({
-      where: {
-        updatedAt: {
-          [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    // ── Completed/paid statuses for revenue queries ──
+    const revenueStatuses = { [Op.in]: ['completed', 'paid'] };
+    const dateRange = { [Op.between]: [startDate, endDate] };
+    const prevDateRange = { [Op.between]: [prevStart, prevEnd] };
+
+    // ── Rolling 30-day window (for monthlyRecurring) ──
+    const rolling30Start = new Date(endDate);
+    rolling30Start.setDate(rolling30Start.getDate() - 30);
+
+    // ── Fire all independent queries in parallel ──
+    const [
+      totalRevenueRaw,
+      refundRevenueRaw,
+      rolling30dRevenueRaw,
+      totalTransactions,
+      totalCustomers,
+      prevRevenueRaw,
+      prevTransactions,
+      prevCustomers,
+      revenueHistoryRows,
+      topPackageRows,
+    ] = await Promise.all([
+      // 1. Total revenue (completed + paid) in period
+      Order.sum('totalAmount', {
+        where: { status: revenueStatuses, createdAt: dateRange },
+      }),
+      // 2. Refund revenue in period
+      Order.sum('totalAmount', {
+        where: { status: 'refunded', createdAt: dateRange },
+      }),
+      // 3. Rolling 30-day revenue
+      Order.sum('totalAmount', {
+        where: {
+          status: revenueStatuses,
+          createdAt: { [Op.between]: [rolling30Start, endDate] },
         },
-      },
+      }),
+      // 4. Total transaction count in period
+      Order.count({
+        where: { status: revenueStatuses, createdAt: dateRange },
+      }),
+      // 5. Distinct customers with completed orders in period
+      Order.count({
+        where: { status: revenueStatuses, createdAt: dateRange },
+        distinct: true,
+        col: 'userId',
+      }),
+      // 6. Previous-period revenue (for change calculation)
+      Order.sum('totalAmount', {
+        where: { status: revenueStatuses, createdAt: prevDateRange },
+      }),
+      // 7. Previous-period transaction count
+      Order.count({
+        where: { status: revenueStatuses, createdAt: prevDateRange },
+      }),
+      // 8. Previous-period customer count
+      Order.count({
+        where: { status: revenueStatuses, createdAt: prevDateRange },
+        distinct: true,
+        col: 'userId',
+      }),
+      // 9. Daily revenue history (GROUP BY DATE)
+      Order.findAll({
+        attributes: [
+          [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
+          [sequelize.fn('SUM', sequelize.col('totalAmount')), 'revenue'],
+          [sequelize.fn('COUNT', sequelize.col('id')), 'transactions'],
+          [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('userId'))), 'customers'],
+        ],
+        where: { status: revenueStatuses, createdAt: dateRange },
+        group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
+        order: [[sequelize.fn('DATE', sequelize.col('createdAt')), 'ASC']],
+        raw: true,
+      }),
+      // 10. Top packages by revenue (from OrderItem)
+      OrderItem.findAll({
+        attributes: [
+          'name',
+          [sequelize.fn('SUM', sequelize.col('subtotal')), 'revenue'],
+          [sequelize.fn('COUNT', sequelize.col('OrderItem.id')), 'count'],
+        ],
+        include: [{
+          model: Order,
+          as: 'order',
+          attributes: [],
+          where: { status: revenueStatuses, createdAt: dateRange },
+        }],
+        group: ['name'],
+        order: [[sequelize.fn('SUM', sequelize.col('subtotal')), 'DESC']],
+        limit: 10,
+        raw: true,
+      }).catch((err) => {
+        console.warn('[Revenue Analytics] Top packages query failed, falling back:', err.message);
+        return [];
+      }),
+    ]);
+
+    // ── Derive computed values ──
+    const totalRevenue = Number(totalRevenueRaw || 0);
+    const refundRevenue = Number(refundRevenueRaw || 0);
+    const netRevenue = totalRevenue - refundRevenue;
+    const rolling30dRevenue = Number(rolling30dRevenueRaw || 0);
+    const averageTransaction = totalTransactions > 0
+      ? Math.round(netRevenue / totalTransactions)
+      : 0;
+
+    // Previous-period values
+    const prevRevenue = Number(prevRevenueRaw || 0);
+
+    // ── Build revenueHistory array ──
+    const revenueHistory = revenueHistoryRows.map((row) => ({
+      date: typeof row.date === 'string' ? row.date : new Date(row.date).toISOString().split('T')[0],
+      revenue: Math.round(Number(row.revenue || 0)),
+      transactions: Number(row.transactions || 0),
+      customers: Number(row.customers || 0),
+      month: new Date(row.date).toLocaleString('default', { month: 'short' }),
+    }));
+
+    // ── Build topPackages with percentages ──
+    const topPackageTotalRevenue = topPackageRows.reduce(
+      (sum, row) => sum + Number(row.revenue || 0), 0
+    );
+    const topPackages = topPackageRows.map((row) => {
+      const pkgRevenue = Math.round(Number(row.revenue || 0));
+      return {
+        name: row.name || 'Unknown Package',
+        revenue: pkgRevenue,
+        percentage: topPackageTotalRevenue > 0
+          ? Number(((pkgRevenue / topPackageTotalRevenue) * 100).toFixed(1))
+          : 0,
+      };
     });
 
-    await StorefrontItem.count();
-    await SessionPackage.count();
+    // ── Conversion rate: customers / total users ──
+    const totalUsers = await safeCount(User, 'User');
+    const conversionRate = totalUsers > 0
+      ? Number(((totalCustomers / totalUsers) * 100).toFixed(1))
+      : 0;
 
-    const baseRevenue = Math.max(totalUsers * 50, 25000);
-    const monthlyGrowth = 1.15;
-
-    const revenueHistory = [];
-    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-
-    for (let i = daysDiff - 1; i >= 0; i--) {
-      const date = new Date(endDate);
-      date.setDate(date.getDate() - i);
-
-      const growthFactor = Math.pow(monthlyGrowth, (daysDiff - i) / 30);
-      const randomFactor = 0.8 + Math.random() * 0.4;
-      const weekendFactor = date.getDay() === 0 || date.getDay() === 6 ? 0.7 : 1;
-
-      const dailyRevenue = (baseRevenue * growthFactor * randomFactor * weekendFactor) / 30;
-
-      revenueHistory.push({
-        date: date.toISOString().split('T')[0],
-        revenue: Math.round(dailyRevenue),
-        transactions: Math.round(dailyRevenue / 150),
-        customers: Math.round(dailyRevenue / 300),
-        month: date.toLocaleString('default', { month: 'short' }),
-      });
-    }
-
-    const totalRevenue = revenueHistory.reduce((sum, day) => sum + day.revenue, 0);
-    const totalTransactions = revenueHistory.reduce((sum, day) => sum + day.transactions, 0);
-    const avgTransaction = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 150;
+    // ── Recent transactions (real data) ──
+    const recentTransactions = await generateRecentTransactions(5);
 
     return {
       overview: {
-        totalRevenue,
-        monthlyRecurring: Math.round(totalRevenue * 0.6),
-        averageTransaction: avgTransaction,
-        totalCustomers: totalUsers,
-        conversionRate: Math.min((activeUsers / totalUsers) * 100, 5.5) || 3.2,
-        customerLifetimeValue: avgTransaction * 12,
+        totalRevenue: Math.round(netRevenue),
+        monthlyRecurring: Math.round(rolling30dRevenue),
+        averageTransaction,
+        totalCustomers,
+        conversionRate,
+        customerLifetimeValue: averageTransaction * 12,
       },
       changes: {
-        revenue: 15.0 + Math.random() * 20,
-        transactions: 10.0 + Math.random() * 15,
-        customers: 8.0 + Math.random() * 12,
-        conversion: 5.0 + Math.random() * 10,
+        revenue: Number(calculateChangePercent(netRevenue, prevRevenue).toFixed(1)),
+        transactions: Number(calculateChangePercent(totalTransactions, prevTransactions).toFixed(1)),
+        customers: Number(calculateChangePercent(totalCustomers, prevCustomers).toFixed(1)),
+        conversion: 0, // conversion change requires historical user counts, omit synthetic
       },
       revenueHistory,
-      topPackages: [
-        { name: 'Premium Training', revenue: Math.round(totalRevenue * 0.35), percentage: 35.0 },
-        { name: 'Elite Coaching', revenue: Math.round(totalRevenue * 0.25), percentage: 25.0 },
-        { name: 'Nutrition Plans', revenue: Math.round(totalRevenue * 0.2), percentage: 20.0 },
-        { name: 'Group Sessions', revenue: Math.round(totalRevenue * 0.15), percentage: 15.0 },
-        { name: 'Supplements', revenue: Math.round(totalRevenue * 0.05), percentage: 5.0 },
-      ],
-      recentTransactions: generateRecentTransactions(5),
+      topPackages,
+      recentTransactions,
     };
   } catch (error) {
     console.error('Error generating revenue analytics:', error);
@@ -303,35 +403,57 @@ async function generateRevenueAnalytics(startDate, endDate) {
   }
 }
 
-function generateRecentTransactions(count = 5) {
-  const transactions = [];
-  const customerNames = [
-    'Marcus Johnson', 'Sarah Williams', 'David Chen', 'Jennifer Davis',
-    'Michael Brown', 'Emma Wilson', 'James Garcia', 'Lisa Martinez',
-    'Robert Taylor', 'Amanda Rodriguez', 'Kevin Lee', 'Nicole Thompson',
-  ];
-
-  const packages = [
-    'Elite Annual Plan', 'Premium Quarterly', 'Nutrition + Training',
-    'Monthly Premium', 'Group Training', 'Personal Coaching',
-    'Wellness Package', 'Fitness Transformation',
-  ];
-
-  for (let i = 0; i < count; i++) {
-    transactions.push({
-      id: `txn_${Date.now()}_${i}`,
-      customer: {
-        name: customerNames[Math.floor(Math.random() * customerNames.length)],
-        email: `customer${i}@example.com`,
+async function generateRecentTransactions(count = 5) {
+  try {
+    const recentOrders = await Order.findAll({
+      where: {
+        status: { [Op.in]: ['completed', 'paid', 'processing', 'pending'] },
       },
-      amount: 250 + Math.floor(Math.random() * 2000),
-      date: new Date(Date.now() - (i * 1000 * 60 * 30)).toISOString(),
-      status: Math.random() > 0.1 ? 'Completed' : 'Processing',
-      package: packages[Math.floor(Math.random() * packages.length)],
+      order: [['createdAt', 'DESC']],
+      limit: count,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['firstName', 'lastName', 'email'],
+        },
+        {
+          model: OrderItem,
+          as: 'orderItems',
+          attributes: ['name'],
+          limit: 1, // just grab the first item name for display
+        },
+      ],
     });
-  }
 
-  return transactions;
+    return recentOrders.map((order) => {
+      const user = order.user;
+      const customerName = user
+        ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'
+        : (order.billingName || 'Unknown');
+      const customerEmail = user
+        ? user.email
+        : (order.billingEmail || '');
+      const packageName = order.orderItems && order.orderItems.length > 0
+        ? order.orderItems[0].name
+        : (order.notes || 'Order');
+
+      return {
+        id: order.paymentId || `order_${order.id}`,
+        customer: {
+          name: customerName,
+          email: customerEmail,
+        },
+        amount: Number(order.totalAmount || 0),
+        date: order.createdAt.toISOString(),
+        status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
+        package: packageName,
+      };
+    });
+  } catch (error) {
+    console.warn('[Revenue Analytics] Recent transactions query failed:', error.message);
+    return [];
+  }
 }
 
 async function getStripeRevenueData(startDate, endDate) {

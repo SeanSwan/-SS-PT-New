@@ -374,14 +374,28 @@ class AdminClientController {
         // Strip masterPromptJson from list response (large blob, fetch on detail view only)
         const { masterPromptJson, ...clientData } = client.toJSON();
 
-        // Calculate additional metrics
-        const totalWorkouts = await WorkoutSession.count({
-          where: { userId: client.id, status: 'completed' }
-        });
+        // Calculate additional metrics with defensive fallbacks
+        let totalWorkouts = 0;
+        if (WorkoutSession?.count) {
+          try {
+            totalWorkouts = await WorkoutSession.count({
+              where: { userId: client.id, status: 'completed' }
+            });
+          } catch (metricError) {
+            logger.warn(`WorkoutSession metric unavailable for client ${client.id}: ${metricError.message}`);
+          }
+        }
 
-        const totalOrders = await Order.count({
-          where: { userId: client.id }
-        });
+        let totalOrders = 0;
+        if (Order?.count) {
+          try {
+            totalOrders = await Order.count({
+              where: { userId: client.id }
+            });
+          } catch (metricError) {
+            logger.warn(`Order metric unavailable for client ${client.id}: ${metricError.message}`);
+          }
+        }
 
         return {
           ...clientData,
