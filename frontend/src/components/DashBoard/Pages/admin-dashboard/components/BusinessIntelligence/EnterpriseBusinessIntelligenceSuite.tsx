@@ -595,12 +595,12 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
 
   // Use real data if available, otherwise fallback to mock data
   const businessData = realTimeData || mockBusinessIntelligenceData;
-  const mockKPIs: ExecutiveKPIs = businessData.kpis;
+  const mockKPIs: ExecutiveKPIs = businessData?.kpis ?? mockBusinessIntelligenceData.kpis;
   const mockPredictiveInsights: PredictiveInsights = {
-    revenueProjection: businessData.forecasts.revenueProjection,
-    churnRisk: businessData.forecasts.churnRisk,
-    growthOpportunities: businessData.trends.growthOpportunities,
-    marketTrends: businessData.trends.marketTrends
+    revenueProjection: businessData?.forecasts?.revenueProjection ?? { nextMonth: 0, nextQuarter: 0, nextYear: 0, confidence: 0 },
+    churnRisk: businessData?.forecasts?.churnRisk ?? { highRiskClients: 0, mediumRiskClients: 0, lowRiskClients: 0, preventionOpportunity: 0 },
+    growthOpportunities: businessData?.trends?.growthOpportunities ?? [],
+    marketTrends: businessData?.trends?.marketTrends ?? []
   };
   
   // Revenue trend data
