@@ -341,9 +341,11 @@ class AdminClientController {
           model: Session,
           as: 'clientSessions',
           required: false,
+          attributes: ['id', 'sessionDate', 'duration', 'status', 'location', 'trainerId'],
           where: { status: { [Op.in]: ['scheduled', 'confirmed'] } },
           separate: true,
-          limit: 5
+          limit: 5,
+          order: [['sessionDate', 'ASC']]
         }
       ];
 
@@ -369,43 +371,64 @@ class AdminClientController {
         attributes: { exclude: ['password', 'refreshTokenHash'] }
       });
 
+      // Batch-fetch workout and order counts for ALL clients in 2 queries
+      // (replaces N+1 pattern that ran 2 COUNT queries per client)
+      const clientIds = clients.map(c => c.id);
+
+      let workoutCountMap = {};
+      if (WorkoutSession?.findAll && clientIds.length > 0) {
+        try {
+          const workoutCounts = await WorkoutSession.findAll({
+            attributes: [
+              'userId',
+              [sequelize.fn('COUNT', sequelize.col('id')), 'total']
+            ],
+            where: { userId: { [Op.in]: clientIds }, status: 'completed' },
+            group: ['userId'],
+            raw: true
+          });
+          for (const row of workoutCounts) {
+            workoutCountMap[row.userId] = parseInt(row.total) || 0;
+          }
+        } catch (metricError) {
+          logger.warn(`WorkoutSession batch count unavailable: ${metricError.message}`);
+        }
+      }
+
+      let orderCountMap = {};
+      if (Order?.findAll && clientIds.length > 0) {
+        try {
+          const orderCounts = await Order.findAll({
+            attributes: [
+              'userId',
+              [sequelize.fn('COUNT', sequelize.col('id')), 'total']
+            ],
+            where: { userId: { [Op.in]: clientIds } },
+            group: ['userId'],
+            raw: true
+          });
+          for (const row of orderCounts) {
+            orderCountMap[row.userId] = parseInt(row.total) || 0;
+          }
+        } catch (metricError) {
+          logger.warn(`Order batch count unavailable: ${metricError.message}`);
+        }
+      }
+
       // Enrich client data with computed fields
-      const enrichedClients = await Promise.all(clients.map(async (client) => {
+      const enrichedClients = clients.map((client) => {
         // Strip masterPromptJson from list response (large blob, fetch on detail view only)
         const { masterPromptJson, ...clientData } = client.toJSON();
-
-        // Calculate additional metrics with defensive fallbacks
-        let totalWorkouts = 0;
-        if (WorkoutSession?.count) {
-          try {
-            totalWorkouts = await WorkoutSession.count({
-              where: { userId: client.id, status: 'completed' }
-            });
-          } catch (metricError) {
-            logger.warn(`WorkoutSession metric unavailable for client ${client.id}: ${metricError.message}`);
-          }
-        }
-
-        let totalOrders = 0;
-        if (Order?.count) {
-          try {
-            totalOrders = await Order.count({
-              where: { userId: client.id }
-            });
-          } catch (metricError) {
-            logger.warn(`Order metric unavailable for client ${client.id}: ${metricError.message}`);
-          }
-        }
 
         return {
           ...clientData,
           onboardingComplete: masterPromptJson != null,
-          totalWorkouts,
-          totalOrders,
+          totalWorkouts: workoutCountMap[client.id] || 0,
+          totalOrders: orderCountMap[client.id] || 0,
           lastWorkout: clientData.workoutSessions?.[0] || null,
           nextSession: clientData.clientSessions?.[0] || null
         };
-      }));
+      });
 
       return res.status(200).json({
         success: true,
@@ -420,11 +443,12 @@ class AdminClientController {
         }
       });
     } catch (error) {
-      logger.error('Error fetching clients:', error);
+      logger.error('Error fetching clients:', error.message);
+      logger.error('Stack:', error.stack);
       return res.status(500).json({
         success: false,
         message: 'Error fetching clients',
-        error: error.message
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
       });
     }
   }
