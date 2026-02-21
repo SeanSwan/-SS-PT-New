@@ -479,14 +479,14 @@ const DayHeaderCell = styled.div<{ $isToday: boolean }>`
 `;
 
 const DayName = styled.span`
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
 
   @media (max-width: 430px) {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
   }
 `;
 
