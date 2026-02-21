@@ -41,6 +41,34 @@ const daysOfWeekOptions = [
   { value: 6, label: 'Sat' }
 ];
 
+const durationPresets = [
+  { value: '4weeks', label: '4 Weeks' },
+  { value: '8weeks', label: '8 Weeks' },
+  { value: '12weeks', label: '12 Weeks' },
+  { value: '6months', label: '6 Months' },
+  { value: '1year', label: '1 Year' },
+  { value: 'ongoing', label: 'Ongoing (12 months max)' },
+  { value: 'custom', label: 'Custom Date Range' },
+];
+
+/** Given a start date string (YYYY-MM-DD) and a preset key, return YYYY-MM-DD end date */
+function computeEndDate(start: string, preset: string): string {
+  const d = new Date(start + 'T00:00:00'); // local midnight
+  switch (preset) {
+    case '4weeks':  d.setDate(d.getDate() + 28); break;
+    case '8weeks':  d.setDate(d.getDate() + 56); break;
+    case '12weeks': d.setDate(d.getDate() + 84); break;
+    case '6months': d.setMonth(d.getMonth() + 6); break;
+    case '1year':   d.setFullYear(d.getFullYear() + 1); break;
+    case 'ongoing': d.setMonth(d.getMonth() + 12); break;
+    default: return '';
+  }
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
   open,
   onClose,
@@ -51,6 +79,7 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [trainers, setTrainers] = useState<TrainerOption[]>([]);
 
+  const [durationPreset, setDurationPreset] = useState('8weeks');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
@@ -59,6 +88,21 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
   const [trainerId, setTrainerId] = useState('');
   const [location, setLocation] = useState('Main Studio');
   const [notifyClient, setNotifyClient] = useState(true);
+
+  // Auto-compute endDate when startDate or preset changes (non-custom)
+  useEffect(() => {
+    if (durationPreset !== 'custom' && startDate) {
+      setEndDate(computeEndDate(startDate, durationPreset));
+    }
+  }, [startDate, durationPreset]);
+
+  const handlePresetChange = (value: string | number) => {
+    const preset = String(value);
+    setDurationPreset(preset);
+    if (preset !== 'custom' && startDate) {
+      setEndDate(computeEndDate(startDate, preset));
+    }
+  };
 
   const trainerOptions = useMemo(() => {
     return [
@@ -257,6 +301,24 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
       )}
 
       <FormField>
+        <Label required>Schedule Duration</Label>
+        <CustomSelect
+          value={durationPreset}
+          onChange={handlePresetChange}
+          options={durationPresets}
+          placeholder="Select duration"
+          aria-label="Schedule duration preset"
+        />
+        <HelperText>
+          {durationPreset === 'custom'
+            ? 'Choose your own start and end dates below.'
+            : durationPreset === 'ongoing'
+              ? 'Creates sessions for 12 months (max allowed).'
+              : `Sessions will repeat for the selected period.`}
+        </HelperText>
+      </FormField>
+
+      <FormField>
         <Label htmlFor="recurring-start-date" required>
           Start Date
         </Label>
@@ -272,7 +334,7 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
 
       <FormField>
         <Label htmlFor="recurring-end-date" required>
-          End Date
+          End Date {durationPreset !== 'custom' && endDate && '(auto-calculated)'}
         </Label>
         <StyledInput
           id="recurring-end-date"
@@ -280,6 +342,7 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
           hasError={Boolean(fieldErrors.endDate)}
+          disabled={durationPreset !== 'custom'}
         />
         {fieldErrors.endDate && <ErrorText>{fieldErrors.endDate}</ErrorText>}
       </FormField>
