@@ -82,6 +82,11 @@ Session.init({
     allowNull: true,
     comment: 'Physical location for the session'
   },
+  clientName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Manual client name for sessions without a linked user account'
+  },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true,

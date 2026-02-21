@@ -697,6 +697,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
       duration,
       location,
       trainerId,
+      clientName,
       userId,
       status,
       notes,
@@ -726,13 +727,39 @@ router.post("/", protect, adminOnly, async (req, res) => {
       ? parseInt(sessionTypeId, 10) || null
       : null;
 
+    // Phase 2B: Default Trainer Auto-Assignment
+    // If no trainerId provided, assign Sean Swan by email key, fallback to first trainer
+    let resolvedTrainerId = trainerId || null;
+    if (!resolvedTrainerId) {
+      // Primary: find Sean Swan by canonical email
+      let defaultTrainer = await User.findOne({
+        where: {
+          email: 'loveswanstudios@protonmail.com',
+          role: { [Op.in]: ['trainer', 'admin'] }
+        },
+        attributes: ['id']
+      });
+      // Fallback: first trainer by creation date (stable)
+      if (!defaultTrainer) {
+        defaultTrainer = await User.findOne({
+          where: { role: 'trainer' },
+          attributes: ['id'],
+          order: [['createdAt', 'ASC']]
+        });
+      }
+      if (defaultTrainer) {
+        resolvedTrainerId = defaultTrainer.id;
+      }
+    }
+
     // Create the session
     const newSession = await Session.create({
       sessionDate: new Date(resolvedSessionDate),
       duration: duration || 60,
       location: location || 'Main Studio',
-      trainerId: trainerId || null,
+      trainerId: resolvedTrainerId,
       userId: userId || null,
+      clientName: userId ? null : (clientName || null),
       status: status || 'available',
       notes: notes || null,
       sessionTypeId: resolvedSessionTypeId,
