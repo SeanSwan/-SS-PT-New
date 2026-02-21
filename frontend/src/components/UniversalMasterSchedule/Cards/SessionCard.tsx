@@ -12,6 +12,7 @@ export interface SessionCardData {
   clientName?: string;
   trainerName?: string;
   isBlocked?: boolean;
+  clientAvailableSessions?: number;
   packageInfo?: {
     name: string;
     sessionsRemaining?: number;
@@ -55,6 +56,9 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
     );
   }
 
+  // Sessions remaining badge - show from packageInfo or clientAvailableSessions
+  const sessionsLeft = session.packageInfo?.sessionsRemaining ?? session.clientAvailableSessions;
+
   return (
     <CardContainer
       $status={status}
@@ -71,6 +75,15 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
       }}
       aria-label={`Session ${status} at ${time}`}
     >
+      {/* Sessions remaining badge - top right corner */}
+      {sessionsLeft != null && !schedulePerf.DISABLE_SESSION_BADGES && (
+        <SessionsBadge
+          $low={sessionsLeft <= 3}
+          title={`${sessionsLeft} session${sessionsLeft !== 1 ? 's' : ''} remaining`}
+        >
+          {sessionsLeft}
+        </SessionsBadge>
+      )}
       <CardHeader>
         <StatusDot $status={status} />
         <TimeLabel>{time}</TimeLabel>
@@ -123,7 +136,8 @@ const SessionCard = memo(SessionCardComponent, (prevProps, nextProps) => {
     prevS.trainerName === nextS.trainerName &&
     prevS.duration === nextS.duration &&
     prevS.location === nextS.location &&
-    // Package info (can change independently when user buys sessions)
+    // Package info & session balance (can change independently when user buys sessions)
+    prevS.clientAvailableSessions === nextS.clientAvailableSessions &&
     prevS.packageInfo?.name === nextS.packageInfo?.name &&
     prevS.packageInfo?.sessionsRemaining === nextS.packageInfo?.sessionsRemaining &&
     prevS.packageInfo?.sessionsTotal === nextS.packageInfo?.sessionsTotal &&
@@ -331,6 +345,30 @@ const MetaText = styled.span`
   font-size: 0.75rem;
   color: ${galaxySwanTheme.text.secondary};
   word-break: break-word;
+`;
+
+const SessionsBadge = styled.span<{ $low: boolean }>`
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(0, 255, 255, 0.2)'};
+  color: ${({ $low }) => $low ? '#fff' : 'rgba(0, 255, 255, 0.9)'};
+  border: 1px solid ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.5)' : 'rgba(0, 255, 255, 0.3)'};
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.3;
+  min-width: 20px;
+  text-align: center;
+  z-index: 1;
+
+  @media (max-width: 480px) {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    top: 4px;
+    right: 4px;
+  }
 `;
 
 const PackageInfo = styled.span`

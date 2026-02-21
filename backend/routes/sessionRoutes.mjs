@@ -728,27 +728,12 @@ router.post("/", protect, adminOnly, async (req, res) => {
       : null;
 
     // Phase 2B: Default Trainer Auto-Assignment
-    // If no trainerId provided, assign Sean Swan by email key, fallback to first trainer
+    // If no trainerId provided, default to the requesting admin/trainer
     let resolvedTrainerId = trainerId || null;
-    if (!resolvedTrainerId) {
-      // Primary: find Sean Swan by canonical email
-      let defaultTrainer = await User.findOne({
-        where: {
-          email: 'loveswanstudios@protonmail.com',
-          role: { [Op.in]: ['trainer', 'admin'] }
-        },
-        attributes: ['id']
-      });
-      // Fallback: first trainer by creation date (stable)
-      if (!defaultTrainer) {
-        defaultTrainer = await User.findOne({
-          where: { role: 'trainer' },
-          attributes: ['id'],
-          order: [['createdAt', 'ASC']]
-        });
-      }
-      if (defaultTrainer) {
-        resolvedTrainerId = defaultTrainer.id;
+    if (!resolvedTrainerId && req.user) {
+      // Admin or trainer creating a session => they ARE the trainer
+      if (req.user.role === 'admin' || req.user.role === 'trainer') {
+        resolvedTrainerId = req.user.id;
       }
     }
 
