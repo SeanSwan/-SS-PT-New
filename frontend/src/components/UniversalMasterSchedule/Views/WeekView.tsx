@@ -291,6 +291,14 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                       (session.client
                         ? `${session.client.firstName || ''} ${session.client.lastName || ''}`.trim()
                         : '');
+                    const trainerName =
+                      (session as any).trainerName ||
+                      (session.trainer
+                        ? `${(session.trainer as any).firstName || ''} ${(session.trainer as any).lastName || ''}`.trim()
+                        : '');
+                    const sessionsLeft = (session as any).packageInfo?.sessionsRemaining
+                      ?? (session as any).clientAvailableSessions
+                      ?? (session.client as any)?.availableSessions;
                     const timeStr = sd.toLocaleTimeString('en-US', {
                       hour: 'numeric',
                       minute: '2-digit',
@@ -303,12 +311,16 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                         $top={top}
                         $height={height}
                         onClick={(e) => handleSessionClick(session, e)}
-                        title={`${timeStr} - ${clientName || status}`}
+                        title={`${timeStr} - ${clientName || status}${trainerName ? ` / ${trainerName}` : ''}${sessionsLeft != null ? ` (${sessionsLeft} left)` : ''}`}
                         role="button"
                         tabIndex={0}
                       >
+                        {sessionsLeft != null && (
+                          <WeekSessionsBadge $low={sessionsLeft <= 3}>{sessionsLeft}</WeekSessionsBadge>
+                        )}
                         <SessionTime>{timeStr}</SessionTime>
                         {clientName && <SessionClient>{clientName}</SessionClient>}
+                        {trainerName && <SessionTrainer>{trainerName}</SessionTrainer>}
                       </WeekSessionCard>
                     );
                   })}
@@ -653,6 +665,30 @@ const SessionClient = styled.span`
   text-overflow: ellipsis;
   opacity: 0.85;
   line-height: 1.2;
+`;
+
+const SessionTrainer = styled.span`
+  display: block;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.65;
+  line-height: 1.2;
+`;
+
+const WeekSessionsBadge = styled.span<{ $low: boolean }>`
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(0, 255, 255, 0.25)'};
+  color: ${({ $low }) => $low ? '#fff' : 'rgba(0, 255, 255, 0.95)'};
+  border-radius: 6px;
+  padding: 0 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1.4;
+  z-index: 1;
 `;
 
 const CurrentTimeIndicator = styled.div`
