@@ -494,6 +494,22 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
             </FormField>
 
             <FormField>
+              <Label htmlFor="duration">Duration</Label>
+              <CustomSelect
+                value={String(formData.duration || 60)}
+                onChange={(value) => setFormData({ ...formData, duration: Number(value) })}
+                options={[
+                  { value: '30', label: '30 minutes' },
+                  { value: '45', label: '45 minutes' },
+                  { value: '60', label: '60 minutes (1 hour)' },
+                  { value: '90', label: '90 minutes (1.5 hours)' },
+                  { value: '120', label: '120 minutes (2 hours)' },
+                ]}
+                aria-label="Session duration"
+              />
+            </FormField>
+
+            <FormField>
               <Label htmlFor="location" required>Location</Label>
               <CustomSelect
                 value={customLocation ? '__custom__' : formData.location}
