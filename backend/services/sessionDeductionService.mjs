@@ -84,7 +84,7 @@ export async function processSessionDeductions() {
 
     // Process each client atomically: row-lock, atomic decrement, mark sessions
     for (const [clientIdStr, group] of Object.entries(sessionsByClient)) {
-      const clientId = parseInt(clientIdStr, 10);
+      const clientId = Number(clientIdStr);
       try {
         // Refetch with row lock for accurate availableSessions
         const client = await User.findByPk(clientId, {

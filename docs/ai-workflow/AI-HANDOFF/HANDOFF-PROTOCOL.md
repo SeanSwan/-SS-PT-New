@@ -53,7 +53,7 @@ If this document conflicts with newer execution reality, apply this override fir
 - Can inactive/deleted records be accidentally applied? (Check `isActive`, `deletedAt`, `status`)
 - Can zero-value operations succeed silently? (e.g., package with 0 sessions)
 - Are there upper/lower bounds on numeric inputs? (Prevent INT overflow, negative values)
-- Is `parseInt(value, 10)` + `isNaN()` used on all user-supplied numeric params?
+- Is `Number(value)` + `Number.isInteger()` used on all user-supplied numeric params? (`parseInt` silently accepts "10abc" as 10 — never use it on payment/financial inputs)
 
 #### 4. Security
 - Is `error.message` exposed in production API responses? (Must be gated by `NODE_ENV === 'development'`)
