@@ -176,6 +176,8 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   fetchSessions,
   openSeriesDialog
 }) => {
+  const [preselectedPaymentClientId, setPreselectedPaymentClientId] = useState<number | null>(null);
+
   const locationOptions = [
     { value: 'Main Studio', label: 'Main Studio' },
     { value: 'Gym Floor', label: 'Gym Floor' },
@@ -662,6 +664,11 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         onClose={() => setShowDetailDialog(false)}
         onUpdated={fetchSessions}
         onManageSeries={openSeriesDialog}
+        onApplyPayment={mode === 'admin' ? (clientId: number) => {
+          setShowDetailDialog(false);
+          setPreselectedPaymentClientId(clientId);
+          setShowPaymentModal(true);
+        } : undefined}
         seriesCount={detailSession?.recurringGroupId
           ? seriesSessions.length
           : undefined}
@@ -700,8 +707,12 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
       {mode === 'admin' && (
         <ApplyPaymentModal
           open={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setPreselectedPaymentClientId(null);
+          }}
           onApplied={fetchSessions}
+          preselectedClientId={preselectedPaymentClientId ?? undefined}
         />
       )}
 

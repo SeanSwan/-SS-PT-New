@@ -1,13 +1,44 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-17
-**Updated By:** Codex
+**Last Updated:** 2026-02-21
+**Updated By:** Claude Code (Opus 4.6)
 
 ---
 
-## CURRENT VISION SNAPSHOT (2026-02-15)
+## CURRENT VISION SNAPSHOT (2026-02-21)
 
 ### Active Product Priorities
+0. **Payment Recovery Flow (COMPLETE - 2026-02-21)**
+   - **What:** Admin can apply offline payments (Cash/Venmo/Zelle/Check) directly from Session Detail Card when a client reaches 0 sessions. Auto-selects last purchased package. Creates full Order/Transaction/FinancialTransaction audit trail.
+   - **Files:**
+     - `backend/services/sessionDeductionService.mjs` — 5 exported functions (processSessionDeductions, getClientsNeedingPayment, applyPaymentCredits, getClientLastPackage, applyPackagePayment)
+     - `backend/routes/sessionDeductionRoutes.mjs` — 5 endpoints under `/api/sessions/deductions/`
+     - `frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.tsx` — Full modal with client selector, package picker, payment method input
+     - `backend/tests/api/sessionDeduction.test.mjs` — 29 targeted unit tests
+   - **Business-logic bugs fixed (5 audit rounds):**
+     - CRITICAL: Sequelize eager-loading duplicate-object bug in batch deductions (grouping + atomic decrement)
+     - HIGH: Race condition in concurrent `processSessionDeductions` calls (session row lock added)
+     - HIGH: `applyPaymentCredits` used non-atomic read-modify-write (rewritten with transaction + row lock + increment)
+     - HIGH: Role inconsistency (`'client'` vs `['client', 'user']`) across 3 functions
+     - HIGH: Inactive package could be auto-applied
+     - HIGH: error.message leakage in inner catch blocks
+     - HIGH: No upper-bound on manual credit grants (capped at 500)
+     - MEDIUM: Storefront API response parsing mismatch
+     - MEDIUM: OrderItem.metadata double-JSON-encoded
+     - MEDIUM: No input validation on route params → upgraded to `Number()` + `Number.isInteger()` (rejects "10abc")
+     - MEDIUM: fetchLastPackage raced with packages loading state
+     - MEDIUM: No idempotency guard on applyPackagePayment → added 60-second duplicate-order check
+     - LOW: Stale closure in handleSelectClient
+   - **Remaining known items (documented, not blocking):**
+     - LOW: Preselected client silently fails if not in payment-needed list (UX polish, not data corruption)
+     - INFO: Manual credit mode (`/apply-payment`) creates no Order/Transaction audit trail — package mode is the recommended path
+     - INFO: Vite/Recharts chunk size warnings and React `fullWidth` DOM prop warning in test output are pre-existing framework noise, not regressions
+   - **Verification status:**
+     - 272 backend tests pass (17 files), 30 targeted session deduction tests
+     - Frontend builds clean (6.32s), chunk size warnings are pre-existing
+     - No CRITICAL or HIGH findings remain per Rule 8 audit checklist
+     - All modified files committed to VCS
+
 1. **Social & Gamification Integration (ACTIVE)**
    - ✅ **Social Profile Page:** Foundation complete (UserProfilePage, Routes, API).
    - ✅ **Challenges UI:** Wired to real API with mock fallback.
@@ -28,6 +59,7 @@
    - ✅ **Data Integrity:** Fixed cancellation credit restoration and session stats.
    - ✅ **Visual Polish:** Migrated to GlowButton and Galaxy-Swan theme.
    - ✅ **Production Fix:** Resolved TDZ crash in admin view scope (Commit a712ba23).
+   - ✅ **Verified Fixes:** Session creation (500), credit restoration logic, and touch targets (Commit d7e9b302).
 
 4. **Auth recovery reliability (COMPLETE)**
    - ✅ **Code Complete:** Forgot/Reset flows verified on production.

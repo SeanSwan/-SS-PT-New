@@ -63,6 +63,7 @@ interface SessionDetailModalProps {
   onClose: () => void;
   onUpdated: () => void;
   onManageSeries?: (groupId: string) => void;
+  onApplyPayment?: (clientId: number) => void;
   seriesCount?: number;
 }
 
@@ -82,6 +83,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onClose,
   onUpdated,
   onManageSeries,
+  onApplyPayment,
   seriesCount
 }) => {
   const [notes, setNotes] = useState('');
@@ -868,6 +870,21 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               {session.clientAvailableSessions}
             </SessionsRemainingBadge>
           </DetailItem>
+        )}
+        {/* Payment Recovery Banner - admin-only (trainers cannot access payment modal) */}
+        {mode === 'admin' && session.clientAvailableSessions != null && session.clientAvailableSessions <= 0 && session.userId && (
+          <PaymentNeededBanner>
+            <PaymentNeededText>Client has no remaining session credits</PaymentNeededText>
+            {onApplyPayment && (
+              <GlowButton
+                variant="primary"
+                size="small"
+                onClick={() => onApplyPayment(session.userId as number)}
+              >
+                Apply Payment
+              </GlowButton>
+            )}
+          </PaymentNeededBanner>
         )}
         <DetailItem>
           <Caption secondary>Trainer</Caption>
@@ -1977,6 +1994,29 @@ const NoShowReasonDisplay = styled.div`
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
+`;
+
+const PaymentNeededBanner = styled.div`
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+
+  @media (max-width: 430px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const PaymentNeededText = styled.span`
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 600;
 `;
 
 const SessionsRemainingBadge = styled.span<{ $low?: boolean }>`
