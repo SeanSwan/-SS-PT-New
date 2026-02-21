@@ -456,16 +456,17 @@ const SocialMediaCommandCenter: React.FC = () => {
     total: post.engagement.likes + post.engagement.comments + post.engagement.shares
   }));
 
-  const platformData = mockAnalytics.platformDistribution.map(item => ({
+  const platformData = (mockAnalytics.platformDistribution ?? []).map(item => ({
     name: item.platform,
     value: item.percentage,
     posts: item.posts
   }));
 
+  const sentiment = mockAnalytics.sentimentAnalysis ?? { positive: 0, neutral: 0, negative: 0 };
   const sentimentData = [
-    { name: 'Positive', value: mockAnalytics.sentimentAnalysis.positive, fill: '#10b981' },
-    { name: 'Neutral', value: mockAnalytics.sentimentAnalysis.neutral, fill: '#6b7280' },
-    { name: 'Negative', value: mockAnalytics.sentimentAnalysis.negative, fill: '#ef4444' }
+    { name: 'Positive', value: sentiment.positive, fill: '#10b981' },
+    { name: 'Neutral', value: sentiment.neutral, fill: '#6b7280' },
+    { name: 'Negative', value: sentiment.negative, fill: '#ef4444' }
   ];
 
   if (isLoading) {
@@ -646,7 +647,7 @@ const SocialMediaCommandCenter: React.FC = () => {
                         <p style={{ marginBottom: '0.5rem', lineHeight: 1.5 }}>{post.content.text}</p>
                       )}
                       
-                      {post.content.hashtags.length > 0 && (
+                      {post.content?.hashtags?.length > 0 && (
                         <div style={{ fontSize: '0.875rem', color: socialCommandTheme.colors.cyberCyan }}>
                           {post.content.hashtags.map(tag => `#${tag}`).join(' ')}
                         </div>
