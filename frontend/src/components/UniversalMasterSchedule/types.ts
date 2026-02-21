@@ -35,6 +35,15 @@ export interface Session {
   feedback?: string | null;
   feedbackProvided?: boolean;
   reminderSentDate?: string | null;
+  // Manual client name (when no user account linked)
+  clientName?: string;
+  // Package info from client's most recent order
+  packageInfo?: {
+    name: string;
+    sessionsRemaining?: number;
+    sessionsTotal?: number | null;
+    purchasedAt?: string | Date | null;
+  } | null;
 }
 
 /**

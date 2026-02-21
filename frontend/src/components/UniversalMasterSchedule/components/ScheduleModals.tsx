@@ -180,8 +180,10 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
     { value: 'Main Studio', label: 'Main Studio' },
     { value: 'Gym Floor', label: 'Gym Floor' },
     { value: 'Private Room', label: 'Private Room' },
-    { value: 'Online', label: 'Online Session' }
+    { value: 'Online', label: 'Online Session' },
+    { value: '__custom__', label: 'Other (Custom)' }
   ];
+  const [customLocation, setCustomLocation] = useState('');
 
   const [showTemplateNameInput, setShowTemplateNameInput] = useState(false);
   const [templateName, setTemplateName] = useState('');
@@ -337,13 +339,6 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                 Cancel
               </OutlinedButton>
               <GlowButton
-                variant="purple"
-                size="small"
-                onClick={handleSaveTemplateClick}
-              >
-                Save as Template
-              </GlowButton>
-              <GlowButton
                 variant="primary"
                 size="medium"
                 onClick={handleCreateSession}
@@ -355,89 +350,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
           }
         >
           <FlexBox direction="column" gap="1.5rem">
-            <FormField>
-              <Label htmlFor="sessionTemplate">Template</Label>
-              <CustomSelect
-                value={selectedTemplateId}
-                onChange={(value) => onTemplateChange(value as string)}
-                renderOptionTrailing={(option) => {
-                  const template = templates.find((t) => String(t.id) === String(option.value));
-                  if (!template || template.isDefault) {
-                    return null;
-                  }
-
-                  if (pendingDeleteId === template.id) {
-                    return (
-                      <InlineConfirm>
-                        <ConfirmText>Delete?</ConfirmText>
-                        <ConfirmButton
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDeleteTemplate(template.id);
-                            setPendingDeleteId(null);
-                          }}
-                        >
-                          Yes
-                        </ConfirmButton>
-                        <CancelButton
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setPendingDeleteId(null);
-                          }}
-                        >
-                          No
-                        </CancelButton>
-                      </InlineConfirm>
-                    );
-                  }
-
-                  return (
-                    <DeleteButton
-                      type="button"
-                      title="Delete this template?"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setPendingDeleteId(template.id);
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </DeleteButton>
-                  );
-                }}
-                options={[
-                  { value: '', label: '-- No Template --' },
-                  ...templates.map((template) => ({
-                    value: template.id,
-                    label: template.isDefault
-                      ? `${template.name} (Default)`
-                      : template.name
-                  }))
-                ]}
-                aria-label="Session template"
-              />
-            </FormField>
-
-            {showTemplateNameInput && (
-              <FormField>
-                <Label htmlFor="templateName" required>Template Name</Label>
-                <StyledInput
-                  id="templateName"
-                  ref={templateInputRef}
-                  type="text"
-                  value={templateName}
-                  onChange={(event) => {
-                    setTemplateName(event.target.value);
-                    if (templateError) setTemplateError('');
-                  }}
-                  onKeyDown={handleTemplateKeyDown}
-                  placeholder="Enter template name..."
-                  style={templateError ? { borderColor: '#ef4444' } : undefined}
-                />
-                {templateError && <HelperText style={{ color: '#ef4444' }}>{templateError}</HelperText>}
-              </FormField>
-            )}
+            {/* Template controls hidden — not useful for current workflow */}
 
             <FormField>
               <Label htmlFor="sessionDate" required>Session Date & Time</Label>
@@ -495,39 +408,55 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
 
             <FormField>
               <Label>Client</Label>
-              <CheckboxWrapper style={{ marginBottom: '0.5rem' }}>
-                <input
-                  type="checkbox"
-                  checked={useManualClient}
-                  onChange={(e) => setUseManualClient(e.target.checked)}
-                />
-                <span>Enter client name manually</span>
-              </CheckboxWrapper>
-              {useManualClient ? (
-                <StyledInput
-                  id="manualClientName"
-                  type="text"
-                  value={formData.manualClientName || ''}
-                  onChange={(e) => setFormData({ ...formData, manualClientName: e.target.value })}
-                  placeholder="Enter client name..."
-                />
+              {!useManualClient ? (
+                <>
+                  <SearchableSelect
+                    label="Client"
+                    placeholder="Search clients by name..."
+                    value={formData.clientId?.toString() || ''}
+                    onChange={(value) => {
+                      setFormData({ ...formData, clientId: value ? Number(value) : undefined, manualClientName: '' });
+                    }}
+                    options={
+                      (dbClients || []).map((c: any) => ({
+                        value: (c.id || c.userId || c._id)?.toString(),
+                        label: `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client',
+                        subLabel: c.availableSessions != null ? `${c.availableSessions} sessions remaining` : undefined,
+                      }))
+                    }
+                  />
+                  {dbClients.length === 0 && (
+                    <HelperText>No clients found in system.</HelperText>
+                  )}
+                  <ManualEntryLink
+                    type="button"
+                    onClick={() => {
+                      setUseManualClient(true);
+                      setFormData({ ...formData, clientId: undefined });
+                    }}
+                  >
+                    or enter client name manually
+                  </ManualEntryLink>
+                </>
               ) : (
-                <SearchableSelect
-                  label="Client"
-                  placeholder="Search clients by name..."
-                  value={formData.clientId?.toString() || ''}
-                  onChange={(value) => setFormData({ ...formData, clientId: value ? Number(value) : undefined })}
-                  options={
-                    (dbClients || []).map((c: any) => ({
-                      value: (c.id || c.userId || c._id)?.toString(),
-                      label: `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client',
-                      subLabel: c.availableSessions != null ? `${c.availableSessions} sessions` : undefined,
-                    }))
-                  }
-                />
-              )}
-              {dbClients.length === 0 && !useManualClient && (
-                <HelperText>No clients found. Check the toggle to enter manually.</HelperText>
+                <>
+                  <StyledInput
+                    id="manualClientName"
+                    type="text"
+                    value={formData.manualClientName || ''}
+                    onChange={(e) => setFormData({ ...formData, manualClientName: e.target.value, clientId: undefined })}
+                    placeholder="Enter client name..."
+                  />
+                  <ManualEntryLink
+                    type="button"
+                    onClick={() => {
+                      setUseManualClient(false);
+                      setFormData({ ...formData, manualClientName: '' });
+                    }}
+                  >
+                    or select from client list
+                  </ManualEntryLink>
+                </>
               )}
             </FormField>
 
@@ -567,11 +496,33 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
             <FormField>
               <Label htmlFor="location" required>Location</Label>
               <CustomSelect
-                value={formData.location}
-                onChange={(value) => setFormData({ ...formData, location: value as string })}
+                value={customLocation ? '__custom__' : formData.location}
+                onChange={(value) => {
+                  if (value === '__custom__') {
+                    setCustomLocation(' '); // trigger custom mode
+                    setFormData({ ...formData, location: '' });
+                  } else {
+                    setCustomLocation('');
+                    setFormData({ ...formData, location: value as string });
+                  }
+                }}
                 options={locationOptions}
                 aria-label="Session location"
               />
+              {customLocation && (
+                <StyledInput
+                  id="customLocation"
+                  type="text"
+                  value={customLocation.trim()}
+                  onChange={(e) => {
+                    setCustomLocation(e.target.value || ' ');
+                    setFormData({ ...formData, location: e.target.value.trim() });
+                  }}
+                  placeholder="Enter custom location..."
+                  style={{ marginTop: '0.5rem' }}
+                  autoFocus
+                />
+              )}
             </FormField>
 
             <FormField>
@@ -844,4 +795,23 @@ const CancelButton = styled.button`
   cursor: pointer;
   font-size: 0.65rem;
   font-weight: 600;
+`;
+
+const ManualEntryLink = styled.button`
+  background: none;
+  border: none;
+  color: rgba(0, 255, 255, 0.7);
+  font-size: 0.75rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s ease;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: rgba(0, 255, 255, 1);
+    text-decoration: underline;
+  }
 `;
