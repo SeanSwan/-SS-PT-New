@@ -786,38 +786,56 @@ class UnifiedSessionService {
         }
       }
 
-      // Create all sessions in a single transaction
-      const createdSessions = await this.Session.bulkCreate(
-        sessions.map(session => {
-          const startDate = new Date(session.start);
-          const endDate = session.end ? new Date(session.end) :
-                         new Date(startDate.getTime() + (session.duration || 60) * 60000);
+      // Build session rows. When stripTrainer is true, all trainerIds are forced to null
+      // (used as FK-violation fallback).
+      const buildRows = (trainerFallback, stripTrainer = false) => sessions.map(session => {
+        const startDate = new Date(session.start);
+        const endDate = session.end ? new Date(session.end) :
+                       new Date(startDate.getTime() + (session.duration || 60) * 60000);
 
-          // Build notes: include clientName if provided (for manual entry)
-          let sessionNotes = session.notes || '';
-          if (session.clientName && !session.userId) {
-            sessionNotes = sessionNotes ? `${sessionNotes}\nClient: ${session.clientName}` : `Client: ${session.clientName}`;
-          }
+        // Build notes: include clientName if provided (for manual entry)
+        let sessionNotes = session.notes || '';
+        if (session.clientName && !session.userId) {
+          sessionNotes = sessionNotes ? `${sessionNotes}\nClient: ${session.clientName}` : `Client: ${session.clientName}`;
+        }
 
-          // Determine status: if client is assigned, mark as scheduled instead of available
-          const sessionStatus = session.userId ? 'scheduled' : 'available';
-          const typeName = session.sessionType || 'Standard Training';
+        // Determine status: if client is assigned, mark as scheduled instead of available
+        const sessionStatus = session.userId ? 'scheduled' : 'available';
+        const typeName = session.sessionType || 'Standard Training';
 
-          return {
-            sessionDate: startDate,
-            endDate: endDate,
-            duration: session.duration || 60,
-            status: sessionStatus,
-            trainerId: (session.trainerId ? parseInt(session.trainerId, 10) : null) || defaultTrainerId,
-            userId: session.userId || null,
-            location: session.location || 'Main Studio',
-            notes: sessionNotes,
-            sessionTypeId: session.sessionTypeId || typeNameToId[typeName] || null,
-            notifyClient: session.notifyClient !== false
-          };
-        }),
-        { transaction, returning: true }
-      );
+        return {
+          sessionDate: startDate,
+          endDate: endDate,
+          duration: session.duration || 60,
+          status: sessionStatus,
+          trainerId: stripTrainer ? null : ((session.trainerId ? parseInt(session.trainerId, 10) : null) || trainerFallback),
+          userId: session.userId || null,
+          location: session.location || 'Main Studio',
+          notes: sessionNotes,
+          sessionTypeId: session.sessionTypeId || typeNameToId[typeName] || null,
+          notifyClient: session.notifyClient !== false
+        };
+      });
+
+      // Create all sessions — retry with trainerId=null if FK constraint fails
+      // (FK mismatch can occur when "Users" vs "users" table names diverge in PostgreSQL)
+      let createdSessions;
+      try {
+        createdSessions = await this.Session.bulkCreate(
+          buildRows(defaultTrainerId),
+          { transaction, returning: true }
+        );
+      } catch (fkErr) {
+        if (fkErr.name === 'SequelizeForeignKeyConstraintError') {
+          logger.warn(`[UnifiedSessionService] FK constraint violation on trainerId — retrying with trainerId=null`);
+          createdSessions = await this.Session.bulkCreate(
+            buildRows(null, true),
+            { transaction, returning: true }
+          );
+        } else {
+          throw fkErr;
+        }
+      }
 
       await transaction.commit();
 
