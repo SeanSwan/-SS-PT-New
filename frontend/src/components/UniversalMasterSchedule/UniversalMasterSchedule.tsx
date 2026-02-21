@@ -436,7 +436,26 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           manualClientName: ''
         });
         setUseManualClient(false);
-        refreshData(true);
+        // Switch to global view so newly created session is visible
+        // (default trainer may differ from admin's own user ID)
+        const shouldSwitchToGlobal = mode === 'admin' && adminViewScope === 'my';
+        if (shouldSwitchToGlobal) {
+          setAdminViewScope('global');
+        }
+        // Clear any status filter that might hide the new 'available' session
+        if (statusFilter && statusFilter !== 'total') {
+          setStatusFilter(null);
+        }
+        // Pass scope explicitly to avoid stale closure
+        refreshData(true, shouldSwitchToGlobal ? {
+          adminScope: 'global',
+          trainerId: '',
+          clientId: '',
+          status: 'all',
+          dateRange: 'all',
+          location: '',
+          searchTerm: ''
+        } : undefined);
       } else {
         toastError('Session may have been created but could not be confirmed. Please refresh.');
       }
