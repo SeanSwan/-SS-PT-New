@@ -31,6 +31,54 @@ If this document conflicts with newer execution reality, apply this override fir
 - UI compliance: run `web-design-guidelines` for contrast/accessibility
 - Auth/email changes: application logs + provider event interpretation
 
+### MANDATORY: Business-Logic Audit Before Completion (Rule 8)
+
+**Context:** AI agents historically catch syntax/build/alias errors but miss deeper business-logic bugs that cause data corruption, race conditions, and financial inconsistencies in production. This rule ensures AI agents audit at the business-logic level, not just "does it compile."
+
+**Before claiming ANY work is "done" or "zero errors," run a recursive audit that checks ALL of the following categories:**
+
+#### 1. Race Conditions & Concurrency
+- Are Sequelize `findAll` results used for read-modify-write? (BUG: Sequelize creates separate JS objects per row for the same FK — use grouping + atomic operations instead)
+- Are concurrent API calls safe? (e.g., two admins clicking the same button simultaneously)
+- Is `lock: transaction.LOCK.UPDATE` used on rows being modified?
+- Are `increment()`/`decrement()` used instead of `field -= 1; save()`?
+
+#### 2. Cross-Function Consistency
+- Are role checks identical across all related functions? (e.g., don't accept `['client', 'user']` in one function but only `'client'` in another)
+- Are the same validation rules enforced in BOTH the route layer AND the service layer?
+- Do Sequelize `include` aliases match `associations.mjs` exactly?
+- Are API response shapes consumed correctly by the frontend? (Read the actual route handler, not just the docs)
+
+#### 3. Data Integrity
+- Can inactive/deleted records be accidentally applied? (Check `isActive`, `deletedAt`, `status`)
+- Can zero-value operations succeed silently? (e.g., package with 0 sessions)
+- Are there upper/lower bounds on numeric inputs? (Prevent INT overflow, negative values)
+- Is `parseInt(value, 10)` + `isNaN()` used on all user-supplied numeric params?
+
+#### 4. Security
+- Is `error.message` exposed in production API responses? (Must be gated by `NODE_ENV === 'development'`)
+- Can an admin grant privileges to themselves? (Self-enrichment guard)
+- Are there idempotency guards on financial operations? (Double-click, network retry)
+- Is `DataTypes.JSON` vs `DataTypes.TEXT` used correctly? (JSON auto-serializes, TEXT needs `JSON.stringify`)
+
+#### 5. Frontend-Backend Contract
+- Does the frontend parse API responses using the ACTUAL response shape (not assumed)?
+- Are `useCallback` dependencies correct? (Stale closures cause silent bugs)
+- Do `useEffect` guards wait for ALL required data to load before acting?
+- Is the UI guard (disabled button, loading state) backed by a server-side guard?
+
+#### Audit Process
+1. Read every file in the change set (not just the ones you wrote)
+2. For each function, ask: "What happens if this runs twice concurrently?"
+3. For each data write, ask: "Is this atomic? What if the server crashes mid-operation?"
+4. For each role check, ask: "Is this consistent with every other role check in the flow?"
+5. For each API response parsing, ask: "Did I read the actual route handler to verify the shape?"
+6. Report findings using severity: CRITICAL / HIGH / MEDIUM / LOW / INFO
+7. Fix all CRITICAL and HIGH issues. Document accepted MEDIUM/LOW/INFO risks.
+8. Re-audit after fixes until no CRITICAL or HIGH issues remain.
+
+**"ZERO ERRORS" means:** No CRITICAL or HIGH issues remain. All MEDIUM/LOW/INFO are documented with accepted risk rationale. This is NOT the same as "the build passes."
+
 ### Skills infrastructure
 All AIs must be aware of the installed skills. See `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md` for the full registry, usage guidelines, and skill chains.
 
@@ -198,6 +246,8 @@ Before marking work complete, verify:
 - [ ] Performance implications documented
 - [ ] Files reference blueprint document
 - [ ] No "vibe coding" - everything is intentional
+- [ ] **Business-logic audit completed (Rule 8)** — race conditions, cross-function consistency, data integrity, security, frontend-backend contract ALL checked
+- [ ] **No CRITICAL or HIGH audit findings remain** — MEDIUM/LOW/INFO documented with accepted risk rationale
 
 ---
 
