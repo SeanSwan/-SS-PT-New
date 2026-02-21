@@ -478,7 +478,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                   { value: '', label: sessionTypesLoading ? 'Loading session types...' : '-- Select Session Type --' },
                   ...sessionTypes.map((type) => ({
                     value: type.id.toString(),
-                    label: `${type.name} (${type.duration} min)`
+                    label: type.name
                   }))
                 ]}
                 aria-label="Session type"

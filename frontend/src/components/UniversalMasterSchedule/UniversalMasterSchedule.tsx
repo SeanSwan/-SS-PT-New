@@ -642,10 +642,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   }, [sessions, refreshData]);
 
   const handleSelectSlot = useCallback(
-    ({ hour, trainerId }: { hour: number; trainerId?: string | number }) => {
+    ({ date, hour, trainerId }: { date?: Date; hour: number; trainerId?: string | number }) => {
       if (!canCreateSessions) return;
 
-      const slotDate = new Date(currentDate);
+      const slotDate = new Date(date ?? currentDate);
       slotDate.setHours(hour, 0, 0, 0);
 
       // Prevent creating sessions in the past (admin can bypass this check)
