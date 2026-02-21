@@ -902,9 +902,9 @@ class UnifiedSessionService {
       throw new Error('Admin privileges required to create recurring sessions');
     }
 
-    const { 
-      startDate, 
-      endDate, 
+    const {
+      startDate,
+      endDate,
       daysOfWeek,  // Array of days: [0,1,2,3,4,5,6] (0 = Sunday)
       times,       // Array of times: ["09:00", "14:00"]
       recurrenceRule,
@@ -913,7 +913,8 @@ class UnifiedSessionService {
       duration,
       sessionType,
       notifyClient,
-      isBlocked
+      isBlocked,
+      timezoneOffsetMinutes  // Client timezone offset (e.g., 480 for PST = UTC-8)
     } = recurringData;
     
     if (!startDate) {
@@ -1016,8 +1017,15 @@ class UnifiedSessionService {
               const [hours, minutes] = time.split(':').map(Number);
 
               // Create date for this specific time slot
+              // Times from the frontend are in the user's local timezone.
+              // Since the server runs in UTC, we need to offset by the client's
+              // timezone to store the correct UTC moment. E.g., 9:00 AM PST
+              // should be stored as 17:00 UTC (offset = 480 min for PST).
               const sessionDate = new Date(currentDate);
               sessionDate.setHours(hours, minutes, 0, 0);
+              if (timezoneOffsetMinutes) {
+                sessionDate.setMinutes(sessionDate.getMinutes() + timezoneOffsetMinutes);
+              }
 
               // Only add future sessions
               if (sessionDate >= new Date()) {
