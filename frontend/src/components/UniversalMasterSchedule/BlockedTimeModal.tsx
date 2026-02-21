@@ -177,8 +177,13 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
         return;
       }
 
+      // Convert naive local datetime to UTC ISO string so the backend
+      // (which runs in UTC on Render) stores the correct moment in time.
+      // new Date("2026-02-21T14:00:00") in the browser = 14:00 LOCAL time.
+      const utcSessionDate = new Date(sessionDate).toISOString();
+
       const payload = {
-        sessionDate,
+        sessionDate: utcSessionDate,
         duration,
         trainerId: trainerId || null,
         location,

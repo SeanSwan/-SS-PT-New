@@ -197,7 +197,10 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
         duration,
         trainerId: trainerId || null,
         location,
-        notifyClient
+        notifyClient,
+        // Send client timezone offset so the backend (UTC) can store correct local times.
+        // getTimezoneOffset() returns minutes BEHIND UTC (e.g., 480 for PST = UTC-8).
+        timezoneOffsetMinutes: new Date().getTimezoneOffset()
       };
 
       const response = await fetch('/api/sessions/recurring', {
