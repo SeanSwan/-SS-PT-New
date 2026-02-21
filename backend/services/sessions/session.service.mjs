@@ -768,8 +768,9 @@ class UnifiedSessionService {
 
       // Default Trainer Auto-Assignment:
       // If no trainerId provided, default to the requesting admin/trainer
+      // parseInt() ensures the value is numeric (req.user.id may be a string from toStringId)
       const defaultTrainerId = (user.role === 'admin' || user.role === 'trainer')
-        ? user.id
+        ? (parseInt(user.id, 10) || null)
         : null;
 
       // Create all sessions in a single transaction
@@ -794,7 +795,7 @@ class UnifiedSessionService {
             endDate: endDate,
             duration: session.duration || 60,
             status: sessionStatus,
-            trainerId: session.trainerId || defaultTrainerId,
+            trainerId: (session.trainerId ? parseInt(session.trainerId, 10) : null) || defaultTrainerId,
             userId: session.userId || null,
             location: session.location || 'Main Studio',
             notes: sessionNotes,
@@ -934,8 +935,9 @@ class UnifiedSessionService {
       const resolvedSessionTypeId = await this.resolveSessionTypeId(resolvedSessionType, transaction);
 
       // Default Trainer Auto-Assignment for recurring sessions
+      // parseInt() ensures the value is numeric (req.user.id may be a string from toStringId)
       const defaultTrainerId = trainerId || (
-        (user.role === 'admin' || user.role === 'trainer') ? user.id : null
+        (user.role === 'admin' || user.role === 'trainer') ? (parseInt(user.id, 10) || null) : null
       );
 
       // Generate session slots
