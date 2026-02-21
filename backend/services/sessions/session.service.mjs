@@ -766,6 +766,12 @@ class UnifiedSessionService {
         typeNameToId[name] = await this.resolveSessionTypeId(name, transaction);
       }
 
+      // Default Trainer Auto-Assignment:
+      // If no trainerId provided, default to the requesting admin/trainer
+      const defaultTrainerId = (user.role === 'admin' || user.role === 'trainer')
+        ? user.id
+        : null;
+
       // Create all sessions in a single transaction
       const createdSessions = await this.Session.bulkCreate(
         sessions.map(session => {
@@ -788,7 +794,7 @@ class UnifiedSessionService {
             endDate: endDate,
             duration: session.duration || 60,
             status: sessionStatus,
-            trainerId: session.trainerId || null,
+            trainerId: session.trainerId || defaultTrainerId,
             userId: session.userId || null,
             location: session.location || 'Main Studio',
             notes: sessionNotes,
@@ -927,6 +933,11 @@ class UnifiedSessionService {
       // Resolve sessionType name to sessionTypeId FK
       const resolvedSessionTypeId = await this.resolveSessionTypeId(resolvedSessionType, transaction);
 
+      // Default Trainer Auto-Assignment for recurring sessions
+      const defaultTrainerId = trainerId || (
+        (user.role === 'admin' || user.role === 'trainer') ? user.id : null
+      );
+
       // Generate session slots
       const sessions = [];
 
@@ -947,7 +958,7 @@ class UnifiedSessionService {
             endDate: endDateForOccurrence,
             duration: duration || 60,
             status: resolvedStatus,
-            trainerId: trainerId || null,
+            trainerId: defaultTrainerId,
             location: location || 'Main Studio',
             sessionTypeId: resolvedSessionTypeId,
             notifyClient: resolvedNotifyClient,
@@ -986,7 +997,7 @@ class UnifiedSessionService {
                   endDate: endDateForOccurrence,
                   duration: duration || 60,
                   status: resolvedStatus,
-                  trainerId: trainerId || null,
+                  trainerId: defaultTrainerId,
                   location: location || 'Main Studio',
                   sessionTypeId: resolvedSessionTypeId,
                   notifyClient: resolvedNotifyClient,
@@ -2049,15 +2060,17 @@ class UnifiedSessionService {
 
   /**
    * Get all trainers (for dropdown selection)
-   * @returns {Array} List of trainers
+   * Includes admin users since admins also conduct training sessions
+   * @returns {Array} List of trainers and admins
    */
   async getTrainers() {
     try {
       const trainers = await this.User.findAll({
-        where: { role: 'trainer' },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio']
+        where: { role: { [Op.in]: ['trainer', 'admin'] } },
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio'],
+        order: [['role', 'ASC'], ['firstName', 'ASC']]
       });
-      
+
       return trainers;
     } catch (error) {
       logger.error(`[UnifiedSessionService] Error fetching trainers:`, error);
