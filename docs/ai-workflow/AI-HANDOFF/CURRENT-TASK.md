@@ -14,7 +14,7 @@
      - `backend/services/sessionDeductionService.mjs` — 5 exported functions (processSessionDeductions, getClientsNeedingPayment, applyPaymentCredits, getClientLastPackage, applyPackagePayment)
      - `backend/routes/sessionDeductionRoutes.mjs` — 5 endpoints under `/api/sessions/deductions/`
      - `frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.tsx` — Full modal with client selector, package picker, payment method input
-     - `backend/tests/api/sessionDeduction.test.mjs` — 29 targeted unit tests
+     - `backend/tests/api/sessionDeduction.test.mjs` — 30 targeted unit tests
    - **Business-logic bugs fixed (5 audit rounds):**
      - CRITICAL: Sequelize eager-loading duplicate-object bug in batch deductions (grouping + atomic decrement)
      - HIGH: Race condition in concurrent `processSessionDeductions` calls (session row lock added)
@@ -37,7 +37,7 @@
      - 272 backend tests pass (17 files), 30 targeted session deduction tests
      - Frontend builds clean (6.32s), chunk size warnings are pre-existing
      - No CRITICAL or HIGH findings remain per Rule 8 audit checklist
-     - All modified files committed to VCS
+     - Payment recovery files committed to VCS (abb4816b); unrelated working-tree changes remain
 
 1. **Social & Gamification Integration (ACTIVE)**
    - ✅ **Social Profile Page:** Foundation complete (UserProfilePage, Routes, API).
