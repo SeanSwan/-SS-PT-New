@@ -767,11 +767,24 @@ class UnifiedSessionService {
       }
 
       // Default Trainer Auto-Assignment:
-      // If no trainerId provided, default to the requesting admin/trainer
-      // parseInt() ensures the value is numeric (req.user.id may be a string from toStringId)
-      const defaultTrainerId = (user.role === 'admin' || user.role === 'trainer')
-        ? (parseInt(user.id, 10) || null)
-        : null;
+      // If no trainerId provided, default to the requesting admin/trainer.
+      // Validate the user exists in the DB to avoid FK constraint violations
+      // (e.g. if the admin account was created outside normal model flow).
+      let defaultTrainerId = null;
+      if (user.role === 'admin' || user.role === 'trainer') {
+        const parsedUserId = parseInt(user.id, 10) || null;
+        if (parsedUserId) {
+          const trainerExists = await this.User.findByPk(parsedUserId, {
+            attributes: ['id'],
+            paranoid: false,   // include soft-deleted to avoid false negatives
+            transaction
+          });
+          defaultTrainerId = trainerExists ? parsedUserId : null;
+          if (!trainerExists) {
+            logger.warn(`[UnifiedSessionService] Default trainer ID ${parsedUserId} not found in Users FK target — sessions will have trainerId=null`);
+          }
+        }
+      }
 
       // Create all sessions in a single transaction
       const createdSessions = await this.Session.bulkCreate(
