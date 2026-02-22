@@ -61,8 +61,11 @@ ClientOnboardingQuestionnaire.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       validate: {
-        min: 1,
-        max: 10,
+        commitmentRange(value) {
+          if (value !== null && (value < 1 || value > 10)) {
+            throw new Error('commitmentLevel must be between 1 and 10');
+          }
+        },
       },
     },
     healthRisk: {
