@@ -4,6 +4,9 @@
  * Create workout_logs table (normalized per-set logging)
  * ------------------------------------------------------
  * One row per set for analytics-friendly aggregation.
+ *
+ * Guard: ensures workout_sessions exists first (its original migration
+ * may be recorded in SequelizeMeta without the table actually present).
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -13,6 +16,66 @@ module.exports = {
       if (entry && typeof entry.tableName === 'string') return entry.tableName;
       return '';
     });
+
+    // --- Ensure workout_sessions exists (FK target) ---
+    if (!tableNames.includes('workout_sessions')) {
+      console.log('[Migration] workout_sessions missing — creating prerequisite table');
+      await queryInterface.createTable('workout_sessions', {
+        id: {
+          type: Sequelize.UUID,
+          defaultValue: Sequelize.UUIDV4,
+          primaryKey: true,
+          allowNull: false
+        },
+        userId: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+          references: { model: 'users', key: 'id' },
+          onUpdate: 'CASCADE',
+          onDelete: 'CASCADE'
+        },
+        title: { type: Sequelize.STRING, allowNull: false },
+        date: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+        },
+        duration: { type: Sequelize.INTEGER, allowNull: true },
+        notes: { type: Sequelize.TEXT, allowNull: true },
+        totalWeight: { type: Sequelize.FLOAT, allowNull: true, defaultValue: 0 },
+        totalReps: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+        totalSets: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+        isActive: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+        avgRPE: { type: Sequelize.FLOAT, allowNull: true },
+        experiencePoints: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+        workoutPlanId: { type: Sequelize.UUID, allowNull: true },
+        workoutPlanDayId: { type: Sequelize.UUID, allowNull: true },
+        status: {
+          type: Sequelize.ENUM('planned', 'in_progress', 'completed', 'skipped', 'cancelled'),
+          allowNull: false,
+          defaultValue: 'planned'
+        },
+        startedAt: { type: Sequelize.DATE, allowNull: true },
+        completedAt: { type: Sequelize.DATE, allowNull: true },
+        intensity: { type: Sequelize.INTEGER, allowNull: true },
+        sessionType: { type: Sequelize.STRING, allowNull: true },
+        trainerId: { type: Sequelize.INTEGER, allowNull: true },
+        sessionId: { type: Sequelize.INTEGER, allowNull: true },
+        isMilestone: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+        milestoneType: { type: Sequelize.STRING, allowNull: true, defaultValue: null },
+        createdAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+        },
+        updatedAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+        }
+      });
+      console.log('[Migration] Created workout_sessions prerequisite table');
+    }
 
     if (tableNames.includes('workout_logs')) {
       console.log('[Migration] workout_logs already exists, skipping table creation');
