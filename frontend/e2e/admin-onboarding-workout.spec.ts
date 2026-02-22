@@ -28,14 +28,31 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const isProduction = !BASE_URL.includes('localhost');
+
+// Fail fast: don't run against production with fallback credentials — repeated
+// wrong-password attempts will lock the admin account (10-attempt threshold).
+if (isProduction && (!process.env.TEST_EMAIL || !process.env.TEST_PASSWORD)) {
+  throw new Error(
+    'TEST_EMAIL and TEST_PASSWORD env vars are required for production runs.\n' +
+    'Usage: BASE_URL=https://sswanstudios.com TEST_EMAIL=<admin> TEST_PASSWORD=<pw> npx playwright test ...'
+  );
+}
+
+// All tests need generous timeout for Render cold-start + login + navigation
+test.setTimeout(120_000);
 
 // Helper: log in as admin and navigate to client management (Clients tab)
 async function loginAndNavigateToClients(page: Page) {
   await page.goto(`${BASE_URL}/login`);
 
-  // Wait for backend connection — login form appears after server connects
+  // Wait for backend connection — the login form's "Server Connected" indicator
+  // appears after the health check succeeds. On cold-start Render backends this
+  // can take 30-60s. The form is non-functional until the server connects.
+  await expect(page.locator('text=Server Connected')).toBeVisible({ timeout: 90000 });
+
   const usernameInput = page.locator('input[placeholder*="Username" i], input[placeholder*="email" i]').first();
-  await expect(usernameInput).toBeVisible({ timeout: 30000 });
+  await expect(usernameInput).toBeVisible({ timeout: 5000 });
 
   const passwordInput = page.locator('input[type="password"]').first();
   await expect(passwordInput).toBeVisible({ timeout: 5000 });
@@ -43,14 +60,13 @@ async function loginAndNavigateToClients(page: Page) {
   await usernameInput.fill(process.env.TEST_EMAIL || 'admin@sswanstudios.com');
   await passwordInput.fill(process.env.TEST_PASSWORD || 'testpassword');
 
-  // Click the form's Sign In submit button (there may be a nav bar sign-in too)
+  // Click the Sign In button (use type=submit to avoid matching the nav bar sign-in)
   await page.locator('button[type="submit"]').first().click();
 
-  // Wait for auth to complete — either URL changes or "Dashboard" nav item appears
-  // Don't use waitForURL because SPA redirects can be slow on cold-start backends
+  // Wait for auth to complete — URL changes to /dashboard/* or Dashboard nav appears
   await expect(
     page.getByRole('button', { name: /dashboard/i }).or(
-      page.locator('text=Dashboard')
+      page.locator('h1:has-text("Dashboard")')
     )
   ).toBeVisible({ timeout: 30000 });
 
