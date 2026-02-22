@@ -28,14 +28,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
-  Users, UserPlus, UserCheck, UserX, Edit3, Eye, 
+  Users, UserPlus, UserCheck, UserX, Edit3, Eye,
   Search, Filter, Download, RefreshCw, MoreVertical,
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star, DollarSign,
   TrendingUp, Target, Award, CreditCard, MessageSquare,
-  BarChart3, Zap, Heart, Gift, User
+  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
+import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModal';
 
 // === STYLED COMPONENTS ===
 
@@ -586,6 +588,11 @@ const ClientsManagementSection: React.FC = () => {
   const [tierFilter, setTierFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
 
+  // Phase 1C: Onboarding + Workout Logger state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [actionClient, setActionClient] = useState<{ id: number; name: string } | null>(null);
+
   // Helper function to check if data is loading
   const isLoadingData = (dataType: keyof typeof loading) => loading[dataType];
   const hasError = (dataType: keyof typeof errors) => !!errors[dataType];
@@ -871,9 +878,23 @@ const ClientsManagementSection: React.FC = () => {
   };
 
   const handleViewRevenue = (clientId: string) => {
-    console.log('💰 Revenue details for client:', clientId);
+    console.log('Revenue details for client:', clientId);
     setActiveActionMenu(null);
     // TODO: Implement revenue details modal
+  };
+
+  // Phase 1C: Open onboarding panel for a client
+  const openOnboarding = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowOnboarding(true);
+    setActiveActionMenu(null);
+  };
+
+  // Phase 1C: Open workout logger for a client
+  const openWorkoutLogger = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowWorkoutLogger(true);
+    setActiveActionMenu(null);
   };
 
   const getUserInitials = (name: string) => {
@@ -1113,6 +1134,22 @@ const ClientsManagementSection: React.FC = () => {
                           View Revenue
                         </ActionItem>
                         <ActionItem
+                          data-testid="menu-start-onboarding"
+                          whileHover={{ x: 4 }}
+                          onClick={() => openOnboarding(client)}
+                        >
+                          <ClipboardList size={16} />
+                          Start Onboarding
+                        </ActionItem>
+                        <ActionItem
+                          data-testid="menu-log-workout"
+                          whileHover={{ x: 4 }}
+                          onClick={() => openWorkoutLogger(client)}
+                        >
+                          <Dumbbell size={16} />
+                          Log Workout
+                        </ActionItem>
+                        <ActionItem
                           whileHover={{ x: 4 }}
                           onClick={() => handlePromoteToTrainer(client.id)}
                         >
@@ -1258,6 +1295,33 @@ const ClientsManagementSection: React.FC = () => {
           <h3>No clients found</h3>
           <p>Try adjusting your search or filters</p>
         </motion.div>
+      )}
+
+      {/* Phase 1C: Admin Onboarding Panel */}
+      {showOnboarding && actionClient && (
+        <AdminOnboardingPanel
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowOnboarding(false);
+            setActionClient(null);
+          }}
+          onComplete={() => fetchClients()}
+        />
+      )}
+
+      {/* Phase 1C: Workout Logger Modal */}
+      {actionClient && (
+        <WorkoutLoggerModal
+          open={showWorkoutLogger}
+          onClose={() => {
+            setShowWorkoutLogger(false);
+            setActionClient(null);
+          }}
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onSuccess={() => fetchClients()}
+        />
       )}
     </ManagementContainer>
   );
