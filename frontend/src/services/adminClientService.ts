@@ -408,6 +408,116 @@ class AdminClientService {
     }
   }
 
+  // ==================== PHASE 1C: ONBOARDING & WORKOUT LOGGING ====================
+
+  /**
+   * Get onboarding status for a client.
+   * Returns { status: 'not_found', questionnaire: null } on 404 (no questionnaire yet).
+   */
+  async getOnboardingStatus(clientId: number | string) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}/onboarding`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return { status: 'not_found', questionnaire: null };
+      }
+      throw new Error(error.response?.data?.message || 'Failed to fetch onboarding status');
+    }
+  }
+
+  /**
+   * Save onboarding draft for a client.
+   * Body: { mode: 'draft', responsesJson }
+   */
+  async saveOnboardingDraft(clientId: number | string, responsesJson: Record<string, any>) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/onboarding`, {
+        mode: 'draft',
+        responsesJson,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to save onboarding draft');
+    }
+  }
+
+  /**
+   * Submit completed onboarding for a client.
+   * Body: { mode: 'submit', responsesJson }
+   */
+  async submitOnboarding(clientId: number | string, responsesJson: Record<string, any>) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/onboarding`, {
+        mode: 'submit',
+        responsesJson,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to submit onboarding');
+    }
+  }
+
+  /**
+   * Reset (delete) onboarding data for a client.
+   */
+  async resetOnboarding(clientId: number | string) {
+    try {
+      const response = await api.delete(`/admin/clients/${clientId}/onboarding`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to reset onboarding');
+    }
+  }
+
+  /**
+   * Log a workout for a client.
+   * Response includes xp field (null if same-day/already-awarded/failed).
+   */
+  async logWorkout(clientId: number | string, workoutData: {
+    title: string;
+    date: string;
+    duration: number;
+    intensity: number;
+    notes?: string;
+    exercises: Array<{
+      name: string;
+      sets: Array<{
+        setNumber: number;
+        reps: number;
+        weight: number;
+        tempo?: string;
+        rest?: number;
+        rpe?: number;
+        notes?: string;
+      }>;
+    }>;
+  }) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/workouts`, workoutData);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to log workout');
+    }
+  }
+
+  /**
+   * Get workout history for a client.
+   */
+  async getWorkoutHistory(clientId: number | string, params?: {
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}/workouts`, { params });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch workout history');
+    }
+  }
+
   // ==================== UTILITY FUNCTIONS ====================
   
   /**
@@ -589,6 +699,13 @@ export interface AdminClientServiceInterface {
   applyPayment(orderId: string | number, paymentData: ApplyPaymentData): Promise<any>;
   bookSessionForClient(data: BookSessionData): Promise<any>;
   addSessionCredits(clientId: string | number, data: AddSessionCreditsData): Promise<any>;
+  // Phase 1C: Admin onboarding + workout methods
+  getOnboardingStatus(clientId: number | string): Promise<any>;
+  saveOnboardingDraft(clientId: number | string, responsesJson: any): Promise<any>;
+  submitOnboarding(clientId: number | string, responsesJson: any): Promise<any>;
+  resetOnboarding(clientId: number | string): Promise<any>;
+  logWorkout(clientId: number | string, workoutData: any): Promise<any>;
+  getWorkoutHistory(clientId: number | string, params?: any): Promise<any>;
 }
 
 // Factory function for creating the service with custom API instance
