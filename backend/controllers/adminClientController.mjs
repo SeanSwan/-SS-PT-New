@@ -264,11 +264,13 @@
  */
 
 // backend/controllers/adminClientController.mjs
+import crypto from 'crypto';
 import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import bcrypt from 'bcryptjs';
+import { sendGridEmail } from '../services/sendgridService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -558,6 +560,10 @@ class AdminClientController {
         forcePasswordChange = true // Default true for admin-created accounts
       } = req.body;
 
+      // Determine password: use admin-supplied or generate a secure one
+      const passwordSource = password ? 'admin-supplied' : 'generated';
+      const effectivePassword = password || crypto.randomBytes(12).toString('base64url');
+
       // Check if email/username already exists
       const existingUser = await User.findOne({
         where: {
@@ -579,7 +585,7 @@ class AdminClientController {
         lastName,
         email,
         username,
-        password,
+        password: effectivePassword,
         phone,
         dateOfBirth,
         gender,
@@ -614,11 +620,27 @@ class AdminClientController {
         await Session.bulkCreate(sessions, { transaction });
       }
 
-      // Gamification initialization skipped — MCP servers disabled
-
       await transaction.commit();
 
-      logger.info(`Admin ${req.user.id} created client ${newClient.id} (${email}), forcePasswordChange=${forcePasswordChange}`);
+      // Send welcome email with temp password (non-blocking, only for generated passwords)
+      let emailSent = false;
+      if (passwordSource === 'generated') {
+        try {
+          const safeFirst = String(firstName || '').replace(/[<>&"']/g, '');
+          const safeEmail = String(email).replace(/[<>&"']/g, '');
+          const result = await sendGridEmail({
+            to: email,
+            subject: 'Welcome to SwanStudios — Your Account is Ready',
+            text: `Hi ${firstName},\n\nYour SwanStudios account has been created.\nEmail: ${email}\nTemporary Password: ${effectivePassword}\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
+            html: `<p>Hi ${safeFirst},</p><p>Your SwanStudios account has been created.</p><p><strong>Email:</strong> ${safeEmail}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>Please log in and change your password at your earliest convenience.</p><p>&mdash; SwanStudios Team</p>`,
+          });
+          emailSent = result?.success === true;
+        } catch (emailError) {
+          logger.warn(`Welcome email failed for ${email}: ${emailError.message}`);
+        }
+      }
+
+      logger.info(`Admin ${req.user.id} created client ${newClient.id} (${email}), passwordSource=${passwordSource}, emailSent=${emailSent}`);
 
       return res.status(201).json({
         success: true,
@@ -631,9 +653,9 @@ class AdminClientController {
             email: newClient.email,
             forcePasswordChange
           },
-          // Admin sees temp password once to hand off verbally or via secure channel
-          // Masked in logs by logger config; never persisted beyond this response
-          temporaryPassword: password
+          temporaryPassword: effectivePassword,
+          passwordSource,
+          emailSent
         }
       });
     } catch (error) {
