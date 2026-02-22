@@ -34,6 +34,7 @@ const {
 
   const mockSequelize = {
     transaction: vi.fn().mockResolvedValue(mockTransaction),
+    query: vi.fn().mockResolvedValue([]),  // advisory lock
     models: {},
   };
 
@@ -119,6 +120,7 @@ describe('SessionDeductionService', () => {
     vi.clearAllMocks();
     mockTransaction.commit.mockResolvedValue(true);
     mockTransaction.rollback.mockResolvedValue(true);
+    mockSequelize.query.mockResolvedValue([]);
     // Reset sequelize.models
     mockSequelize.models = {};
   });
@@ -262,6 +264,7 @@ describe('SessionDeductionService', () => {
   // applyPackagePayment
   // ═══════════════════════════════════════════════════════════
   describe('applyPackagePayment', () => {
+    const VALID_TOKEN = 'a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5';
     const baseParams = {
       clientId: 4,
       storefrontItemId: 1,
@@ -269,6 +272,7 @@ describe('SessionDeductionService', () => {
       paymentReference: 'CASH-001',
       adminNotes: 'Test recovery',
       adminUserId: 1,
+      idempotencyToken: VALID_TOKEN,
     };
 
     it('throws when required models are missing', async () => {
@@ -488,6 +492,200 @@ describe('SessionDeductionService', () => {
       expect(typeof createArgs.metadata).not.toBe('string');
       expect(createArgs.metadata.sessionsGranted).toBe(10);
       expect(createArgs.metadata.adminRecovery).toBe(true);
+    });
+
+    // ─── Error code tests (v9.5 additions) ─────────────────────
+
+    it('throws INVALID_IDEMPOTENCY_TOKEN for missing token', async () => {
+      mockSequelize.models = {
+        Order: {}, StorefrontItem: {}, ShoppingCart: {},
+      };
+
+      const paramsNoToken = { ...baseParams, idempotencyToken: undefined };
+      try {
+        await applyPackagePayment(paramsNoToken);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('INVALID_IDEMPOTENCY_TOKEN');
+      }
+    });
+
+    it('throws INVALID_IDEMPOTENCY_TOKEN for malformed UUID', async () => {
+      mockSequelize.models = {
+        Order: {}, StorefrontItem: {}, ShoppingCart: {},
+      };
+
+      const paramsBadToken = { ...baseParams, idempotencyToken: 'not-a-uuid' };
+      try {
+        await applyPackagePayment(paramsBadToken);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('INVALID_IDEMPOTENCY_TOKEN');
+      }
+    });
+
+    it('throws INVALID_PAYMENT_METHOD for invalid method', async () => {
+      mockSequelize.models = {
+        Order: {}, StorefrontItem: {}, ShoppingCart: {},
+      };
+
+      const paramsBadMethod = { ...baseParams, paymentMethod: 'bitcoin' };
+      try {
+        await applyPackagePayment(paramsBadMethod);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('INVALID_PAYMENT_METHOD');
+      }
+    });
+
+    it('throws MISSING_PAYMENT_REFERENCE for venmo without reference', async () => {
+      mockSequelize.models = {
+        Order: {}, StorefrontItem: {}, ShoppingCart: {},
+      };
+
+      const paramsNoRef = { ...baseParams, paymentMethod: 'venmo', paymentReference: '' };
+      try {
+        await applyPackagePayment(paramsNoRef);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('MISSING_PAYMENT_REFERENCE');
+      }
+    });
+
+    it('throws MISSING_FORCE_REASON when force=true without reason', async () => {
+      mockSequelize.models = {
+        Order: {}, StorefrontItem: {}, ShoppingCart: {},
+      };
+
+      const paramsForceNoReason = { ...baseParams, force: true, forceReason: '' };
+      try {
+        await applyPackagePayment(paramsForceNoReason);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('MISSING_FORCE_REASON');
+      }
+    });
+
+    it('throws MISSING_FORCE_REASON when forceReason is too short', async () => {
+      mockSequelize.models = {
+        Order: {}, StorefrontItem: {}, ShoppingCart: {},
+      };
+
+      const paramsShortReason = { ...baseParams, force: true, forceReason: 'short' };
+      try {
+        await applyPackagePayment(paramsShortReason);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('MISSING_FORCE_REASON');
+      }
+    });
+
+    it('allows force=true with valid reason and bypasses duplicate guard', async () => {
+      const client = makeClient(4);
+      const pkg = makeStorefrontItem();
+      const recentOrder = {
+        id: 99,
+        orderNumber: 'REC-EXISTING-ABCD',
+        completedAt: new Date(Date.now() - 10000),
+      };
+
+      mockUserModel.findByPk.mockResolvedValue(client);
+      mockSequelize.models = {
+        Order: { create: vi.fn().mockResolvedValue({ id: 60 }), findOne: vi.fn().mockResolvedValue(recentOrder) },
+        OrderItem: { create: vi.fn().mockResolvedValue({}) },
+        StorefrontItem: { findByPk: vi.fn().mockResolvedValue(pkg) },
+        ShoppingCart: { create: vi.fn().mockResolvedValue({ id: 110 }) },
+        FinancialTransaction: { create: vi.fn().mockResolvedValue({}) },
+      };
+
+      // Should NOT throw despite recent duplicate — force bypasses the guard
+      const result = await applyPackagePayment({
+        ...baseParams,
+        force: true,
+        forceReason: 'Client paid twice intentionally for double sessions'
+      });
+
+      expect(result.orderId).toBe(60);
+      expect(result.sessionsAdded).toBe(10);
+    });
+
+    it('throws DUPLICATE_PAYMENT_WINDOW with correct error code', async () => {
+      const client = makeClient(4);
+      const pkg = makeStorefrontItem();
+      const recentOrder = {
+        id: 99,
+        orderNumber: 'REC-EXISTING-ABCD',
+        completedAt: new Date(Date.now() - 10000),
+      };
+
+      mockUserModel.findByPk.mockResolvedValue(client);
+      mockSequelize.models = {
+        Order: { create: vi.fn(), findOne: vi.fn().mockResolvedValue(recentOrder) },
+        OrderItem: { create: vi.fn() },
+        StorefrontItem: { findByPk: vi.fn().mockResolvedValue(pkg) },
+        ShoppingCart: { create: vi.fn() },
+        FinancialTransaction: { create: vi.fn() },
+      };
+
+      try {
+        await applyPackagePayment(baseParams);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('DUPLICATE_PAYMENT_WINDOW');
+        expect(err.message).toContain('Duplicate payment detected');
+      }
+    });
+
+    it('throws MODELS_UNAVAILABLE with correct error code', async () => {
+      mockSequelize.models = {};
+
+      try {
+        await applyPackagePayment(baseParams);
+        expect.fail('should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('MODELS_UNAVAILABLE');
+      }
+    });
+
+    it('stores idempotencyKey on Order.create', async () => {
+      const client = makeClient(4);
+      const pkg = makeStorefrontItem();
+      const orderCreate = vi.fn().mockResolvedValue({ id: 70 });
+
+      mockUserModel.findByPk.mockResolvedValue(client);
+      mockSequelize.models = {
+        Order: { create: orderCreate, findOne: vi.fn().mockResolvedValue(null) },
+        OrderItem: { create: vi.fn().mockResolvedValue({}) },
+        StorefrontItem: { findByPk: vi.fn().mockResolvedValue(pkg) },
+        ShoppingCart: { create: vi.fn().mockResolvedValue({ id: 120 }) },
+        FinancialTransaction: { create: vi.fn().mockResolvedValue({}) },
+      };
+
+      await applyPackagePayment(baseParams);
+
+      const createArgs = orderCreate.mock.calls[0][0];
+      expect(createArgs.idempotencyKey).toBe(VALID_TOKEN);
+    });
+
+    it('calls advisory lock with clientId and storefrontItemId', async () => {
+      const client = makeClient(4);
+      const pkg = makeStorefrontItem();
+
+      mockUserModel.findByPk.mockResolvedValue(client);
+      mockSequelize.models = {
+        Order: { create: vi.fn().mockResolvedValue({ id: 71 }), findOne: vi.fn().mockResolvedValue(null) },
+        OrderItem: { create: vi.fn().mockResolvedValue({}) },
+        StorefrontItem: { findByPk: vi.fn().mockResolvedValue(pkg) },
+        ShoppingCart: { create: vi.fn().mockResolvedValue({ id: 121 }) },
+        FinancialTransaction: { create: vi.fn().mockResolvedValue({}) },
+      };
+
+      await applyPackagePayment(baseParams);
+
+      expect(mockSequelize.query).toHaveBeenCalledWith(
+        'SELECT pg_advisory_xact_lock($1, $2)',
+        { bind: [4, 1], transaction: mockTransaction }
+      );
     });
   });
 

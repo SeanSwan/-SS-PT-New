@@ -28,6 +28,8 @@ import {
   Spinner
 } from './ui';
 import GlowButton from '../ui/buttons/GlowButton';
+import DuplicatePaymentWarning from './DuplicatePaymentWarning';
+import { usePaymentIdempotency, generateUUID } from '../../hooks/usePaymentIdempotency';
 import { AlertTriangle, CreditCard, User, Calendar, Package, DollarSign } from 'lucide-react';
 
 interface ClientNeedingPayment {
@@ -90,6 +92,19 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<ClientNeedingPayment | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Idempotency & duplicate detection
+  const { token: idempotencyToken, reset: resetIdempotencyToken } = usePaymentIdempotency();
+  const [duplicateInfo, setDuplicateInfo] = useState<{
+    orderId: number;
+    orderNumber?: string;
+    newBalance: number;
+  } | null>(null);
+
+  // Force override (shown when DUPLICATE_PAYMENT_WINDOW 409 is received)
+  const [showForceOverride, setShowForceOverride] = useState(false);
+  const [forceReason, setForceReason] = useState('');
+  const [duplicateWindowMessage, setDuplicateWindowMessage] = useState('');
 
   // Mode toggle
   const [modalMode, setModalMode] = useState<ModalMode>('package');
@@ -197,12 +212,17 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       setSessionsToAdd('');
       setPaymentNote('');
       setSuccess(null);
+      setDuplicateInfo(null);
+      setShowForceOverride(false);
+      setForceReason('');
+      setDuplicateWindowMessage('');
       setSelectedPackageId(null);
       setLastPackage(null);
       setPaymentMethod('cash');
       setPaymentReference('');
       setAdminNotes('');
       setModalMode('package');
+      resetIdempotencyToken();
     }
   }, [open, fetchClientsNeedingPayment, fetchPackages]);
 
@@ -229,8 +249,8 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   const handleApplyManual = async () => {
     if (!selectedClient) { setError('Please select a client.'); return; }
 
-    const sessions = parseInt(sessionsToAdd, 10);
-    if (isNaN(sessions) || sessions < 1) {
+    const sessions = Number(sessionsToAdd);
+    if (!Number.isInteger(sessions) || sessions < 1) {
       setError('Please enter a valid number of sessions (at least 1).');
       return;
     }
@@ -271,32 +291,68 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     }
   };
 
-  // Package-based payment (Phase 2)
-  const handleApplyPackage = async () => {
+  // Package-based payment (Phase 2) with idempotency + 409 handling
+  const handleApplyPackage = async (forceOverride?: { force: boolean; forceReason: string }) => {
     if (!selectedClient) { setError('Please select a client.'); return; }
     if (!selectedPackageId) { setError('Please select a package.'); return; }
 
     setApplying(true);
     setError(null);
     setSuccess(null);
+    setDuplicateInfo(null);
 
     try {
-      const token = getToken();
-      if (!token) { setError('Please log in.'); return; }
+      const authToken = getToken();
+      if (!authToken) { setError('Please log in.'); return; }
+
+      // For force overrides, generate a fresh token synchronously
+      // (resetIdempotencyToken is async via setState, so we can't rely on it here)
+      const effectiveToken = forceOverride?.force ? generateUUID() : idempotencyToken;
+
+      const payload: Record<string, unknown> = {
+        clientId: selectedClient.id,
+        storefrontItemId: selectedPackageId,
+        paymentMethod,
+        paymentReference: paymentReference.trim() || '',
+        adminNotes: adminNotes.trim() || '',
+        idempotencyToken: effectiveToken
+      };
+
+      // Attach force override if provided
+      if (forceOverride?.force) {
+        payload.force = true;
+        payload.forceReason = forceOverride.forceReason;
+      }
 
       const response = await fetch('/api/sessions/deductions/apply-package-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          clientId: selectedClient.id,
-          storefrontItemId: selectedPackageId,
-          paymentMethod,
-          paymentReference: paymentReference.trim() || '',
-          adminNotes: adminNotes.trim() || ''
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();
+
+      // Handle 409 — duplicate detection
+      if (response.status === 409) {
+        const code = result?.errorCode;
+
+        if (code === 'DUPLICATE_IDEMPOTENCY_KEY' && result?.data?.orderId && result?.data?.newBalance != null) {
+          // Exact retry: show existing order info, no harm done
+          setDuplicateInfo({
+            orderId: result.data.orderId,
+            orderNumber: result.data.orderNumber,
+            newBalance: result.data.newBalance
+          });
+        } else if (code === 'DUPLICATE_PAYMENT_WINDOW') {
+          // Show force-override prompt so admin can intentionally proceed
+          setDuplicateWindowMessage(result?.message || 'A similar payment was recently applied for this client and package.');
+          setShowForceOverride(true);
+        } else {
+          setError(result?.message || 'A similar payment was recently applied. Please wait before retrying.');
+        }
+        return;
+      }
+
       if (!response.ok || result?.success === false) {
         setError(result?.message || 'Failed to apply package payment.');
         return;
@@ -305,6 +361,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       const d = result.data;
       setSuccess(`Applied ${d.packageName}: ${d.sessionsAdded} sessions to ${selectedClient.name}. New balance: ${d.newBalance}`);
       resetForm();
+      resetIdempotencyToken();
       fetchClientsNeedingPayment();
       onApplied?.();
     } catch (err) {
@@ -313,6 +370,17 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     } finally {
       setApplying(false);
     }
+  };
+
+  // Force override handler — called from the override prompt
+  const handleForceOverride = () => {
+    if (forceReason.trim().length < 10) {
+      setError('Force reason must be at least 10 characters.');
+      return;
+    }
+    setShowForceOverride(false);
+    setDuplicateWindowMessage('');
+    handleApplyPackage({ force: true, forceReason: forceReason.trim() });
   };
 
   const handleProcessDeductions = async () => {
@@ -354,6 +422,11 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setLastPackage(null);
     setPaymentReference('');
     setAdminNotes('');
+    setDuplicateInfo(null);
+    setShowForceOverride(false);
+    setForceReason('');
+    setDuplicateWindowMessage('');
+    resetIdempotencyToken();
   };
 
   const selectedPkg = packages.find(p => p.id === selectedPackageId);
@@ -384,8 +457,8 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
               <GlowButton
                 variant="primary"
                 size="medium"
-                onClick={handleApplyPackage}
-                disabled={applying || !selectedPackageId}
+                onClick={() => handleApplyPackage()}
+                disabled={applying || !selectedPackageId || showForceOverride}
                 isLoading={applying}
               >
                 Apply Package
@@ -406,6 +479,65 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
 
       {success && (
         <SuccessMessage>{success}</SuccessMessage>
+      )}
+
+      {duplicateInfo && (
+        <DuplicatePaymentWarning
+          orderId={duplicateInfo.orderId}
+          orderNumber={duplicateInfo.orderNumber}
+          newBalance={duplicateInfo.newBalance}
+          clientName={selectedClient?.name}
+          onDismiss={() => {
+            setDuplicateInfo(null);
+            resetIdempotencyToken();
+            resetForm();
+            fetchClientsNeedingPayment();
+            onApplied?.();
+          }}
+        />
+      )}
+
+      {/* Force Override Prompt — shown on DUPLICATE_PAYMENT_WINDOW */}
+      {showForceOverride && (
+        <ForceOverrideContainer>
+          <ForceOverrideHeader>
+            <AlertTriangle size={18} />
+            <span>Duplicate Payment Detected</span>
+          </ForceOverrideHeader>
+          <ForceOverrideBody>{duplicateWindowMessage}</ForceOverrideBody>
+          <FormField>
+            <Label htmlFor="force-reason">
+              Reason for override (min 10 characters)
+            </Label>
+            <StyledTextarea
+              id="force-reason"
+              value={forceReason}
+              onChange={(e) => setForceReason(e.target.value)}
+              rows={2}
+              placeholder="e.g., Client intentionally purchasing a second package today"
+            />
+            <Caption secondary>{forceReason.trim().length}/10 min characters</Caption>
+          </FormField>
+          <FlexBox gap="0.5rem" style={{ marginTop: '0.5rem' }}>
+            <OutlinedButton
+              onClick={() => {
+                setShowForceOverride(false);
+                setForceReason('');
+                setDuplicateWindowMessage('');
+              }}
+            >
+              Cancel
+            </OutlinedButton>
+            <ForceOverrideButton
+              onClick={handleForceOverride}
+              disabled={applying || forceReason.trim().length < 10}
+              type="button"
+            >
+              {applying ? <Spinner size={16} /> : <AlertTriangle size={16} />}
+              Confirm Override
+            </ForceOverrideButton>
+          </FlexBox>
+        </ForceOverrideContainer>
       )}
 
       {/* Client List */}
@@ -866,5 +998,52 @@ const SummaryRow = styled.div`
 
   & + & {
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+`;
+
+const ForceOverrideContainer = styled.div`
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  margin-bottom: 1rem;
+`;
+
+const ForceOverrideHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ef4444;
+  margin-bottom: 0.5rem;
+`;
+
+const ForceOverrideBody = styled.div`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+`;
+
+const ForceOverrideButton = styled.button<{ disabled?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${({ disabled }) => disabled ? 0.5 : 1};
+  transition: all 150ms ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.7);
   }
 `;
