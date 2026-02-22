@@ -25,6 +25,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
@@ -453,14 +454,13 @@ const ActionDropdown = styled(motion.div)<{ $top?: number; $left?: number }>`
   position: fixed;
   top: ${props => props.$top ?? 0}px;
   left: ${props => props.$left ?? 0}px;
-  background: rgba(10, 10, 15, 0.95);
-  backdrop-filter: blur(20px);
+  background: rgba(10, 10, 15, 0.98);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   padding: 0.5rem 0;
   min-width: 200px;
-  z-index: 9999;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 99999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 `;
 
 const ActionItem = styled(motion.button)<{ $danger?: boolean }>`
@@ -1127,80 +1127,79 @@ const ClientsManagementSection: React.FC = () => {
                     }
                   </ActionButton>
 
-                  <AnimatePresence>
-                    {activeActionMenu === client.id && (
-                      <ActionDropdown
-                        data-action-menu
-                        $top={menuPos.top}
-                        $left={menuPos.left}
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <ActionItem
-                          whileHover={{ x: 4 }}
-                          onClick={() => handleViewClient(client.id)}
-                        >
-                          <Eye size={16} />
-                          View Details
-                        </ActionItem>
-                        <ActionItem
-                          whileHover={{ x: 4 }}
-                          onClick={() => handleEditClient(client.id)}
-                        >
-                          <Edit3 size={16} />
-                          Edit Client
-                        </ActionItem>
-                        <ActionItem
-                          whileHover={{ x: 4 }}
-                          onClick={() => handleViewSessions(client.id)}
-                        >
-                          <Calendar size={16} />
-                          View Sessions
-                        </ActionItem>
-                        <ActionItem
-                          whileHover={{ x: 4 }}
-                          onClick={() => handleViewRevenue(client.id)}
-                        >
-                          <DollarSign size={16} />
-                          View Revenue
-                        </ActionItem>
-                        <ActionItem
-                          data-testid="menu-start-onboarding"
-                          whileHover={{ x: 4 }}
-                          onClick={() => openOnboarding(client)}
-                        >
-                          <ClipboardList size={16} />
-                          Start Onboarding
-                        </ActionItem>
-                        <ActionItem
-                          data-testid="menu-log-workout"
-                          whileHover={{ x: 4 }}
-                          onClick={() => openWorkoutLogger(client)}
-                        >
-                          <Dumbbell size={16} />
-                          Log Workout
-                        </ActionItem>
-                        <ActionItem
-                          whileHover={{ x: 4 }}
-                          onClick={() => handlePromoteToTrainer(client.id)}
-                        >
-                          <UserCheck size={16} />
-                          Promote to Trainer
-                        </ActionItem>
-                        <ActionItem
-                          $danger
-                          whileHover={{ x: 4 }}
-                          onClick={() => handleDeactivateClient(client.id)}
-                        >
-                          <UserX size={16} />
-                          Deactivate
-                        </ActionItem>
-                      </ActionDropdown>
-                    )}
-                  </AnimatePresence>
                 </ActionMenu>
+                {activeActionMenu === client.id && ReactDOM.createPortal(
+                  <ActionDropdown
+                    data-action-menu
+                    $top={menuPos.top}
+                    $left={menuPos.left}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => handleViewClient(client.id)}
+                    >
+                      <Eye size={16} />
+                      View Details
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => handleEditClient(client.id)}
+                    >
+                      <Edit3 size={16} />
+                      Edit Client
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => handleViewSessions(client.id)}
+                    >
+                      <Calendar size={16} />
+                      View Sessions
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => handleViewRevenue(client.id)}
+                    >
+                      <DollarSign size={16} />
+                      View Revenue
+                    </ActionItem>
+                    <ActionItem
+                      data-testid="menu-start-onboarding"
+                      whileHover={{ x: 4 }}
+                      onClick={() => openOnboarding(client)}
+                    >
+                      <ClipboardList size={16} />
+                      Start Onboarding
+                    </ActionItem>
+                    <ActionItem
+                      data-testid="menu-log-workout"
+                      whileHover={{ x: 4 }}
+                      onClick={() => openWorkoutLogger(client)}
+                    >
+                      <Dumbbell size={16} />
+                      Log Workout
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => handlePromoteToTrainer(client.id)}
+                    >
+                      <UserCheck size={16} />
+                      Promote to Trainer
+                    </ActionItem>
+                    <ActionItem
+                      $danger
+                      whileHover={{ x: 4 }}
+                      onClick={() => handleDeactivateClient(client.id)}
+                    >
+                      <UserX size={16} />
+                      Deactivate
+                    </ActionItem>
+                  </ActionDropdown>,
+                  document.body
+                )}
               </ClientHeader>
 
               {/* Assigned Trainer */}
