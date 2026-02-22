@@ -24,7 +24,7 @@
  * - /api/admin/clients/:id/reset-password (POST)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
@@ -449,18 +449,17 @@ const ActionButton = styled(motion.button)`
   }
 `;
 
-const ActionDropdown = styled(motion.div)`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 0.5rem;
+const ActionDropdown = styled(motion.div)<{ $top?: number; $left?: number }>`
+  position: fixed;
+  top: ${props => props.$top ?? 0}px;
+  left: ${props => props.$left ?? 0}px;
   background: rgba(10, 10, 15, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   padding: 0.5rem 0;
-  min-width: 180px;
-  z-index: 1000;
+  min-width: 200px;
+  z-index: 9999;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 `;
 
@@ -587,6 +586,8 @@ const ClientsManagementSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const actionBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Phase 1C: Onboarding + Workout Logger state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -772,6 +773,19 @@ const ClientsManagementSection: React.FC = () => {
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
+
+  // Close action menu when clicking outside
+  useEffect(() => {
+    if (!activeActionMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-action-menu]')) {
+        setActiveActionMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeActionMenu]);
 
   // Filter clients based on search and filters
   const filteredClients = clients.filter(client => {
@@ -1082,13 +1096,29 @@ const ClientsManagementSection: React.FC = () => {
                   </ClientInfo>
                 </div>
                 
-                <ActionMenu>
+                <ActionMenu data-action-menu>
                   <ActionButton
+                    ref={(el: HTMLButtonElement | null) => { actionBtnRefs.current[client.id] = el; }}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setActiveActionMenu(
-                      activeActionMenu === client.id ? null : client.id
-                    )}
+                    onClick={() => {
+                      if (activeActionMenu === client.id) {
+                        setActiveActionMenu(null);
+                      } else {
+                        const btn = actionBtnRefs.current[client.id];
+                        if (btn) {
+                          const rect = btn.getBoundingClientRect();
+                          const menuHeight = 400; // approximate dropdown height
+                          const spaceBelow = window.innerHeight - rect.bottom;
+                          const openAbove = spaceBelow < menuHeight && rect.top > menuHeight;
+                          setMenuPos({
+                            top: openAbove ? rect.top - menuHeight : rect.bottom + 4,
+                            left: Math.max(8, rect.right - 210),
+                          });
+                        }
+                        setActiveActionMenu(client.id);
+                      }
+                    }}
                     disabled={isLoadingData('operations')}
                   >
                     {isLoadingData('operations') ?
@@ -1096,10 +1126,13 @@ const ClientsManagementSection: React.FC = () => {
                       <MoreVertical size={16} />
                     }
                   </ActionButton>
-                  
+
                   <AnimatePresence>
                     {activeActionMenu === client.id && (
                       <ActionDropdown
+                        data-action-menu
+                        $top={menuPos.top}
+                        $left={menuPos.left}
                         initial={{ opacity: 0, scale: 0.95, y: -10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
