@@ -43,7 +43,7 @@ describe('Shared onboarding helpers (onboardingHelpers.mjs)', () => {
     expect(helpers.toNumber('42')).toBe(42);
     expect(helpers.toNumber(3.14)).toBe(3.14);
     expect(helpers.toNumber('abc')).toBe(null);
-    expect(helpers.toNumber(null)).toBe(0); // Number(null) === 0, which is finite
+    expect(helpers.toNumber(null)).toBe(null); // null input → null (not 0)
     expect(helpers.toNumber(Infinity)).toBe(null);
   });
 
@@ -64,14 +64,14 @@ describe('Shared onboarding helpers (onboardingHelpers.mjs)', () => {
   test('6 — extractCommitmentLevel returns rounded integer or null', () => {
     expect(helpers.extractCommitmentLevel({ section3_lifestyle: { commitment_level: '7.6' } })).toBe(8);
     expect(helpers.extractCommitmentLevel({ goals: { commitmentLevel: 5 } })).toBe(5);
-    expect(helpers.extractCommitmentLevel({})).toBe(0); // null → toNumber(null) = 0 → Math.round(0) = 0
+    expect(helpers.extractCommitmentLevel({})).toBe(null); // null → toNumber(null) = null → null
   });
 
   test('7 — extractNutritionPrefs returns defaults for empty input', () => {
     const result = helpers.extractNutritionPrefs({});
     expect(result).toEqual({
       dietary_restrictions: [],
-      meal_frequency: 0, // toNumber(null) = 0, and 0 ?? 3 stays 0 (not nullish)
+      meal_frequency: 3, // toNumber(null) = null, and null ?? 3 = 3
       allergies: [],
     });
   });

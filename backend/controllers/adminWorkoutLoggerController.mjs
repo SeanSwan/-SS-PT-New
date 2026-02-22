@@ -178,7 +178,7 @@ export const logWorkout = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     logger.error('Workout logging failed:', error);
-    return res.status(500).json({ success: false, message: 'Failed to log workout' });
+    return res.status(500).json({ success: false, message: 'Failed to log workout', error: error.message });
   }
 };
 
