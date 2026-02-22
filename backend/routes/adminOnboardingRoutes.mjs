@@ -5,6 +5,11 @@ import {
   createBaselineMeasurements,
   getBaselineMeasurementsHistory,
 } from '../controllers/clientOnboardingController.mjs';
+import {
+  saveOrSubmitOnboarding,
+  getOnboardingStatus,
+  resetOnboarding,
+} from '../controllers/adminOnboardingController.mjs';
 
 const router = express.Router();
 
@@ -30,5 +35,16 @@ router.post('/baseline-measurements', createBaselineMeasurements);
  * Get baseline measurements history for a specific user
  */
 router.get('/baseline-measurements/:userId', getBaselineMeasurementsHistory);
+
+// --- Phase 1B: Per-client onboarding management ---
+
+/** POST /api/admin/clients/:clientId/onboarding — save draft or submit */
+router.post('/clients/:clientId/onboarding', saveOrSubmitOnboarding);
+
+/** GET /api/admin/clients/:clientId/onboarding — get onboarding status */
+router.get('/clients/:clientId/onboarding', getOnboardingStatus);
+
+/** DELETE /api/admin/clients/:clientId/onboarding — reset to in_progress */
+router.delete('/clients/:clientId/onboarding', resetOnboarding);
 
 export default router;

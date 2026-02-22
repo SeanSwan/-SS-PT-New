@@ -145,7 +145,7 @@ export const getSessionPackage = () => getModel('SessionPackage');
 export const getExercise = () => getModel('Exercise');
 
 // Workout Session Models (aliases for compatibility)
-export const getWorkoutSession = () => getModel('Session'); // Alias for Session model
+export const getWorkoutSession = () => getModel('WorkoutSession');
 export const getWorkoutLog = () => getModel('WorkoutLog');
 
 // NASM Workout Tracking Models

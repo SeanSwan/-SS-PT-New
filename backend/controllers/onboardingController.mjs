@@ -16,7 +16,7 @@ import { generateChallengesFromGoals } from '../services/gamification/goalChalle
 /**
  * Generate spirit name from preferences or auto-generate
  */
-const generateSpiritName = (formData) => {
+export const generateSpiritName = (formData) => {
   // If client provided a preferred alias, use it
   if (formData.preferredAlias) {
     return formData.preferredAlias;
@@ -38,7 +38,7 @@ const generateSpiritName = (formData) => {
  * Transform 85-question CLIENT-ONBOARDING-QUESTIONNAIRE.md data
  * into Master Prompt JSON (v3.0 schema)
  */
-const transformQuestionnaireToMasterPrompt = (formData, userId) => {
+export const transformQuestionnaireToMasterPrompt = (formData, userId) => {
   // Extract all 85 data points from questionnaire
   const masterPrompt = {
     version: '3.0',
