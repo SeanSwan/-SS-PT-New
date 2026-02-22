@@ -316,6 +316,16 @@ interface ClientOnboardingWizardProps {
   selfSubmit?: boolean;
   onComplete?: (result: any) => void;
   onCancel?: () => void;
+  /** Admin override: custom submit handler (bypasses default API call) */
+  onSubmit?: (formData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  /** Pre-populate wizard with existing draft data */
+  initialData?: Record<string, any>;
+  /** Called on step navigation with current step index and form data */
+  onStepChange?: (stepIndex: number, formData: any) => void;
+  /** Called whenever form data changes within a step */
+  onFormDataChange?: (formData: any) => void;
+  /** Skip the built-in success modal (admin flow shows its own feedback) */
+  skipSuccessModal?: boolean;
 }
 
 const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
@@ -323,13 +333,18 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   selfSubmit = false,
   onComplete,
   onCancel,
+  onSubmit,
+  initialData,
+  onStepChange,
+  onFormDataChange,
+  skipSuccessModal = false,
 }) => {
   // Force dark mode for this wizard (Galaxy-Swan is always dark)
   const _themeCtx = useUniversalTheme();
   void _themeCtx; // consumed but we always render dark
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<any>(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submissionResult, setSubmissionResult] = useState<any>(null);
@@ -350,24 +365,31 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      onStepChange?.(newStep, formData);
     }
   };
 
   const handlePrev = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      onStepChange?.(newStep, formData);
     }
   };
 
   const handleJumpToStep = (index: number) => {
     if (index <= currentStep) {
       setCurrentStep(index);
+      onStepChange?.(index, formData);
     }
   };
 
   const updateFormData = (sectionData: any) => {
-    setFormData({ ...formData, ...sectionData });
+    const merged = { ...formData, ...sectionData };
+    setFormData(merged);
+    onFormDataChange?.(merged);
   };
 
   const handleExit = () => {
@@ -383,6 +405,25 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
     setError(null);
 
     try {
+      // Admin override: use custom onSubmit handler if provided
+      if (onSubmit) {
+        const result = await onSubmit(formData);
+        if (result.success) {
+          if (skipSuccessModal) {
+            onComplete?.(result.data);
+          } else {
+            setSubmissionResult(result.data);
+            setShowSuccessModal(true);
+            onComplete?.(result.data);
+          }
+        } else {
+          setError(result.error || "Submission failed");
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Default client-facing API path
       const endpoint = selfSubmit ? "/api/onboarding/self" : "/api/onboarding";
       const response = await apiService.post(endpoint, formData);
       const data = response.data;

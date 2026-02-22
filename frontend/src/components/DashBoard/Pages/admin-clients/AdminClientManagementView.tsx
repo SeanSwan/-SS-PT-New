@@ -20,6 +20,9 @@ import {
   createAdminClientService
 } from '../../../../services/adminClientService';
 import CreateClientModal from './CreateClientModal';
+import AdminOnboardingPanel from './components/AdminOnboardingPanel';
+import WorkoutLoggerModal from './components/WorkoutLoggerModal';
+import { useClientActions } from './hooks/useClientActions';
 
 // Import icons from lucide-react
 import {
@@ -47,7 +50,9 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Save
+  Save,
+  ClipboardList,
+  Dumbbell
 } from 'lucide-react';
 
 // ─── Keyframes ───────────────────────────────────────────────
@@ -634,6 +639,9 @@ const AdminClientManagementView: React.FC = () => {
   const [menuClient, setMenuClient] = useState<AdminClient | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [mcpStatus, setMcpStatus] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [actionClient, setActionClient] = useState<AdminClient | null>(null);
 
   // Add socket connection for real-time updates
   const {
@@ -843,100 +851,34 @@ const AdminClientManagementView: React.FC = () => {
     setMenuClient(null);
   };
 
-  const handleViewDetails = async (client: AdminClient) => {
-    setSelectedClient(client);
-    setShowDetailsModal(true);
+  // Extracted action handlers
+  const {
+    handleViewDetails,
+    handleEdit,
+    handleDelete,
+    handleResetPassword,
+    handleCreateClient,
+  } = useClientActions({
+    adminClientService,
+    toast,
+    fetchClients,
+    setSelectedClient,
+    setShowDetailsModal,
+    setShowEditModal,
+    setShowCreateModal,
+    handleMenuClose,
+  });
+
+  const openOnboarding = (client: AdminClient) => {
+    setActionClient(client);
+    setShowOnboarding(true);
     handleMenuClose();
   };
 
-  const handleEdit = (client: AdminClient) => {
-    setSelectedClient(client);
-    setShowEditModal(true);
+  const openWorkoutLogger = (client: AdminClient) => {
+    setActionClient(client);
+    setShowWorkoutLogger(true);
     handleMenuClose();
-  };
-
-  const handleDelete = async (client: AdminClient) => {
-    if (window.confirm(`Are you sure you want to deactivate ${client.firstName} ${client.lastName}?`)) {
-      try {
-        const response = await adminClientService.deleteClient(client.id, true);
-        if (response.success) {
-          toast({
-            title: "Success",
-            description: "Client deactivated successfully",
-            variant: "default"
-          });
-          fetchClients();
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to deactivate client",
-            variant: "destructive"
-          });
-        }
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to deactivate client",
-          variant: "destructive"
-        });
-      }
-    }
-    handleMenuClose();
-  };
-
-  const handleResetPassword = async (client: AdminClient) => {
-    const newPassword = prompt("Enter new password for client:");
-    if (newPassword && newPassword.length >= 6) {
-      try {
-        const response = await adminClientService.resetClientPassword(client.id, { newPassword });
-        if (response.success) {
-          toast({
-            title: "Success",
-            description: "Password reset successfully",
-            variant: "default"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to reset password",
-            variant: "destructive"
-          });
-        }
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to reset password",
-          variant: "destructive"
-        });
-      }
-    } else if (newPassword !== null) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive"
-      });
-    }
-    handleMenuClose();
-  };
-
-  const handleCreateClient = async (data: CreateClientRequest) => {
-    try {
-      const response = await adminClientService.createClient(data);
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Client created successfully",
-          variant: "default"
-        });
-        setShowCreateModal(false);
-        fetchClients();
-      } else {
-        throw new Error(response.message || "Failed to create client");
-      }
-    } catch (error: any) {
-      console.error('Error creating client:', error);
-      throw error; // Re-throw to let modal handle it
-    }
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -1271,6 +1213,21 @@ const AdminClientManagementView: React.FC = () => {
             </ContextMenuItem>
             <MenuDivider />
             <ContextMenuItem
+              data-testid="menu-start-onboarding"
+              onClick={() => menuClient && openOnboarding(menuClient)}
+            >
+              <ClipboardList size={18} />
+              Start Onboarding
+            </ContextMenuItem>
+            <ContextMenuItem
+              data-testid="menu-log-workout"
+              onClick={() => menuClient && openWorkoutLogger(menuClient)}
+            >
+              <Dumbbell size={18} />
+              Log Workout
+            </ContextMenuItem>
+            <MenuDivider />
+            <ContextMenuItem
               $danger
               onClick={() => menuClient && handleDelete(menuClient)}
             >
@@ -1287,6 +1244,23 @@ const AdminClientManagementView: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateClient}
         trainers={[]} // TODO: Add trainers list when available
+      />
+
+      {showOnboarding && actionClient && (
+        <AdminOnboardingPanel
+          clientId={Number(actionClient.id)}
+          clientName={`${actionClient.firstName} ${actionClient.lastName}`}
+          onClose={() => { setShowOnboarding(false); setActionClient(null); }}
+          onComplete={fetchClients}
+        />
+      )}
+
+      <WorkoutLoggerModal
+        open={showWorkoutLogger}
+        onClose={() => { setShowWorkoutLogger(false); setActionClient(null); }}
+        clientId={Number(actionClient?.id || 0)}
+        clientName={actionClient ? `${actionClient.firstName} ${actionClient.lastName}` : ''}
+        onSuccess={fetchClients}
       />
     </PageWrapper>
   );

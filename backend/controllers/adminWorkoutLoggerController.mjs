@@ -13,6 +13,7 @@ import { getAllModels } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
+import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
 
 /**
  * POST /api/admin/clients/:clientId/workouts
@@ -160,6 +161,44 @@ export const logWorkout = async (req, res) => {
 
     logger.info(`Workout logged for client ${clientId}: ${session.id} (${totalSets} sets, ${exercises.length} exercises)`);
 
+    // --- Best-effort XP award (separate transaction) ---
+    let xpResult = null;
+    let xpTx = null;
+    try {
+      xpTx = await sequelize.transaction();
+      xpResult = await awardWorkoutXP({
+        userId: clientId,
+        workoutId: session.id,
+        duration: parsedDuration,
+        exercisesCompleted: exercises.length,
+        workoutDate: parsedDate,
+        awardedBy: req.user?.id,
+      }, xpTx);
+
+      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+        const { WorkoutSession: WS } = getAllModels();
+        await WS.update(
+          { experiencePoints: xpResult.pointsAwarded },
+          { where: { id: session.id }, transaction: xpTx }
+        );
+      }
+      await xpTx.commit();
+    } catch (xpErr) {
+      try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
+      logger.warn(`XP award failed for workout ${session.id}: ${xpErr.message}`);
+      xpResult = null;
+    }
+
+    // Collapse sameDay/alreadyAwarded to null for response
+    const xpResponse = (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded)
+      ? {
+          pointsAwarded: xpResult.pointsAwarded,
+          newBalance: xpResult.newBalance,
+          streakDays: xpResult.streakDays,
+          milestones: (xpResult.awardedMilestones || []).map((m) => m.name),
+        }
+      : null;
+
     return res.status(201).json({
       success: true,
       workout: {
@@ -174,6 +213,7 @@ export const logWorkout = async (req, res) => {
         totalWeight,
         exerciseCount: exercises.length,
       },
+      xp: xpResponse,
     });
   } catch (error) {
     await transaction.rollback();
