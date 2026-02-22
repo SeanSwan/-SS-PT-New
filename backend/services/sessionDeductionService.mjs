@@ -7,6 +7,51 @@
 
 import { getSession, getUser, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
+import logger from '../utils/logger.mjs';
+import {
+  VALID_PAYMENT_METHODS,
+  METHODS_REQUIRING_REFERENCE,
+  MAX_REFERENCE_LENGTH,
+  MAX_NOTES_LENGTH,
+  MIN_FORCE_REASON_LENGTH,
+  MAX_FORCE_REASON_LENGTH,
+  sanitizeString,
+  isValidUUID,
+  maskReference,
+  isIdempotencyViolation
+} from '../utils/paymentRecovery.constants.mjs';
+
+// ── Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Create an error with a stable .code property for route-layer mapping.
+ * Optionally attach a data payload for reconciliation responses.
+ */
+function serviceError(message, code, data) {
+  const err = new Error(message);
+  err.code = code;
+  if (data) err.data = data;
+  return err;
+}
+
+/**
+ * Safely append a marker note to session.notes, skipping if already present.
+ * Caps total notes at 5000 characters (truncates oldest content).
+ */
+function appendNoteOnce(currentNotes, marker) {
+  const notes = currentNotes || '';
+  if (notes.includes(marker)) return notes;
+  return (notes + '\n' + marker).slice(-5000);
+}
+
+/**
+ * Sleep helper for reconciliation retry backoff.
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ── Main Functions ──────────────────────────────────────────────
 
 /**
  * Process session deductions for past sessions that haven't been deducted yet
@@ -28,47 +73,31 @@ export async function processSessionDeductions() {
   const transaction = await sequelize.transaction();
 
   try {
-    // Find sessions that:
-    // 1. Are scheduled or confirmed (not cancelled, not completed, not available)
-    // 2. Have a session date in the past
-    // 3. Haven't been deducted yet
-    // 4. Have a client assigned
     const eligibleSessions = await Session.findAll({
       where: {
-        status: {
-          [Op.in]: ['scheduled', 'confirmed']
-        },
-        sessionDate: {
-          [Op.lt]: new Date()
-        },
+        status: { [Op.in]: ['scheduled', 'confirmed'] },
+        sessionDate: { [Op.lt]: new Date() },
         sessionDeducted: false,
-        userId: {
-          [Op.not]: null
-        },
+        userId: { [Op.not]: null },
         isBlocked: false
       },
-      include: [
-        {
-          model: User,
-          as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
-        }
-      ],
+      include: [{
+        model: User,
+        as: 'client',
+        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
+      }],
       lock: transaction.LOCK.UPDATE,
       transaction
     });
 
-    // Group sessions by client to avoid Sequelize duplicate-object bug:
-    // findAll with include creates separate JS objects per row for the same FK,
-    // so read-modify-write on session.client loses deductions for multi-session clients.
+    // Group sessions by client to avoid Sequelize duplicate-object bug
     const sessionsByClient = {};
     for (const session of eligibleSessions) {
       results.processed++;
       if (!session.client) {
         results.errors.push({ sessionId: session.id, reason: 'No client found' });
-        // Mark orphan session completed
         session.status = 'completed';
-        session.notes = (session.notes || '') + '\n[Auto] Session completed - No client found';
+        session.notes = appendNoteOnce(session.notes, '[Auto] Session completed - No client found');
         await session.save({ transaction });
         continue;
       }
@@ -82,11 +111,10 @@ export async function processSessionDeductions() {
       sessionsByClient[cid].sessions.push(session);
     }
 
-    // Process each client atomically: row-lock, atomic decrement, mark sessions
+    // Process each client atomically
     for (const [clientIdStr, group] of Object.entries(sessionsByClient)) {
       const clientId = Number(clientIdStr);
       try {
-        // Refetch with row lock for accurate availableSessions
         const client = await User.findByPk(clientId, {
           lock: transaction.LOCK.UPDATE,
           transaction
@@ -103,23 +131,20 @@ export async function processSessionDeductions() {
         const totalSessions = group.sessions.length;
         const deductible = Math.min(totalSessions, currentCredits);
 
-        // Mark sessions that CAN be deducted (up to available credits)
         for (let i = 0; i < deductible; i++) {
           const session = group.sessions[i];
           session.status = 'completed';
           session.sessionDeducted = true;
           session.deductionDate = new Date();
-          session.notes = (session.notes || '') + '\n[Auto] Session credit deducted automatically';
+          session.notes = appendNoteOnce(session.notes, '[Auto] Session credit deducted automatically');
           await session.save({ transaction });
           results.deducted++;
         }
 
-        // Atomically decrement credits for all deductible sessions at once
         if (deductible > 0) {
           await client.decrement('availableSessions', { by: deductible, transaction });
         }
 
-        // Mark remaining sessions (no credits) as completed without deduction
         for (let i = deductible; i < totalSessions; i++) {
           const session = group.sessions[i];
           results.noCredits.push({
@@ -129,7 +154,7 @@ export async function processSessionDeductions() {
             reason: 'No available session credits'
           });
           session.status = 'completed';
-          session.notes = (session.notes || '') + '\n[Auto] Session completed - No credits to deduct';
+          session.notes = appendNoteOnce(session.notes, '[Auto] Session completed - No credits to deduct');
           await session.save({ transaction });
         }
       } catch (error) {
@@ -144,26 +169,49 @@ export async function processSessionDeductions() {
 
     await transaction.commit();
 
-    console.log(`[SessionDeduction] Processed ${results.processed} sessions, deducted ${results.deducted} credits`);
+    logger.info('Session deductions processed', {
+      domain: 'payment_recovery',
+      event: 'deduction_batch_processed',
+      processed: results.processed,
+      deducted: results.deducted,
+      noCredits: results.noCredits.length,
+      errors: results.errors.length
+    });
+
     if (results.noCredits.length > 0) {
-      console.log(`[SessionDeduction] ${results.noCredits.length} clients had no credits available`);
+      logger.warn('Clients had no credits for deduction', {
+        domain: 'payment_recovery',
+        event: 'deduction_no_credits',
+        count: results.noCredits.length,
+        clientIds: results.noCredits.map(nc => nc.clientId)
+      });
     }
+
     if (results.errors.length > 0) {
-      console.error(`[SessionDeduction] ${results.errors.length} errors occurred`);
+      logger.error('Errors during session deduction', {
+        domain: 'payment_recovery',
+        event: 'deduction_errors',
+        count: results.errors.length,
+        errors: results.errors
+      });
     }
 
     return results;
 
   } catch (error) {
     await transaction.rollback();
-    console.error('[SessionDeduction] Error processing deductions:', error);
+    logger.error('Failed to process session deductions', {
+      domain: 'payment_recovery',
+      event: 'deduction_batch_failed',
+      error: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 }
 
 /**
  * Get clients with exhausted session credits who have pending sessions
- * These clients need to apply payment / purchase more sessions
  *
  * @returns {Array} List of clients needing payment
  */
@@ -172,32 +220,22 @@ export async function getClientsNeedingPayment() {
   const User = getUser();
 
   try {
-    // Find clients/users with 0 or less available sessions
-    // Includes both 'client' and 'user' roles to match applyPackagePayment eligibility
     const clients = await User.findAll({
       where: {
         role: { [Op.in]: ['client', 'user'] },
-        availableSessions: {
-          [Op.lte]: 0
-        }
+        availableSessions: { [Op.lte]: 0 }
       },
       attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions'],
-      include: [
-        {
-          model: Session,
-          as: 'clientSessions',
-          where: {
-            status: {
-              [Op.in]: ['scheduled', 'confirmed']
-            },
-            sessionDate: {
-              [Op.gte]: new Date()
-            }
-          },
-          required: true,
-          attributes: ['id', 'sessionDate', 'status']
-        }
-      ],
+      include: [{
+        model: Session,
+        as: 'clientSessions',
+        where: {
+          status: { [Op.in]: ['scheduled', 'confirmed'] },
+          sessionDate: { [Op.gte]: new Date() }
+        },
+        required: true,
+        attributes: ['id', 'sessionDate', 'status']
+      }],
       order: [[{ model: Session, as: 'clientSessions' }, 'sessionDate', 'ASC']]
     });
 
@@ -212,7 +250,10 @@ export async function getClientsNeedingPayment() {
     }));
 
   } catch (error) {
-    console.error('[SessionDeduction] Error getting clients needing payment:', error);
+    logger.error('Failed to get clients needing payment', {
+      domain: 'payment_recovery',
+      error: error.message
+    });
     throw error;
   }
 }
@@ -236,11 +277,11 @@ export async function applyPaymentCredits(clientId, sessionsToAdd, paymentNote =
     });
 
     if (!client) {
-      throw new Error('Client not found');
+      throw serviceError('Client not found', 'CLIENT_NOT_FOUND');
     }
 
     if (!['client', 'user'].includes(client.role)) {
-      throw new Error('User is not a client or user');
+      throw serviceError('User is not a client or user', 'INVALID_ROLE');
     }
 
     const previousCredits = client.availableSessions || 0;
@@ -249,7 +290,14 @@ export async function applyPaymentCredits(clientId, sessionsToAdd, paymentNote =
     await transaction.commit();
 
     const newBalance = previousCredits + sessionsToAdd;
-    console.log(`[SessionDeduction] Applied ${sessionsToAdd} credits to client ${clientId}. ${previousCredits} -> ${newBalance}`);
+    logger.info('Payment credits applied', {
+      domain: 'payment_recovery',
+      event: 'payment_recovery_success',
+      clientId: client.id,
+      creditsAdded: sessionsToAdd,
+      previousBalance: previousCredits,
+      newBalance
+    });
 
     return {
       clientId: client.id,
@@ -262,14 +310,18 @@ export async function applyPaymentCredits(clientId, sessionsToAdd, paymentNote =
 
   } catch (error) {
     await transaction.rollback();
-    console.error('[SessionDeduction] Error applying payment credits:', error);
+    logger.error('Failed to apply payment credits', {
+      domain: 'payment_recovery',
+      event: 'payment_recovery_failed',
+      clientId,
+      error: error.message
+    });
     throw error;
   }
 }
 
 /**
  * Get the last package a client successfully purchased.
- * Filters to completed orders only (not failed/refunded/pending).
  *
  * @param {number} clientId - Client user ID
  * @returns {Object|null} Last package info or null
@@ -282,29 +334,24 @@ export async function getClientLastPackage(clientId) {
     const SIModel = models.StorefrontItem;
 
     if (!OModel || !OIModel || !SIModel) {
-      console.warn('[SessionDeduction] Order/OrderItem/StorefrontItem models not available');
+      logger.warn('Order/OrderItem/StorefrontItem models not available', {
+        domain: 'payment_recovery'
+      });
       return null;
     }
 
     const lastOrder = await OModel.findOne({
-      where: {
-        userId: clientId,
-        status: 'completed'
-      },
+      where: { userId: clientId, status: 'completed' },
       order: [['createdAt', 'DESC']],
-      include: [
-        {
-          model: OIModel,
-          as: 'orderItems',
-          include: [
-            {
-              model: SIModel,
-              as: 'storefrontItem',
-              attributes: ['id', 'name', 'sessions', 'totalSessions', 'pricePerSession', 'totalCost', 'price', 'packageType']
-            }
-          ]
-        }
-      ]
+      include: [{
+        model: OIModel,
+        as: 'orderItems',
+        include: [{
+          model: SIModel,
+          as: 'storefrontItem',
+          attributes: ['id', 'name', 'sessions', 'totalSessions', 'pricePerSession', 'totalCost', 'price', 'packageType']
+        }]
+      }]
     });
 
     if (!lastOrder || !lastOrder.orderItems || lastOrder.orderItems.length === 0) {
@@ -314,9 +361,7 @@ export async function getClientLastPackage(clientId) {
     const item = lastOrder.orderItems[0];
     const pkg = item.storefrontItem;
 
-    if (!pkg) {
-      return null;
-    }
+    if (!pkg) return null;
 
     return {
       packageId: pkg.id,
@@ -328,23 +373,29 @@ export async function getClientLastPackage(clientId) {
       orderId: lastOrder.id
     };
   } catch (error) {
-    console.error('[SessionDeduction] Error getting client last package:', error);
+    logger.error('Failed to get client last package', {
+      domain: 'payment_recovery',
+      clientId,
+      error: error.message
+    });
     return null;
   }
 }
 
 /**
- * Apply a package payment to a client - creates proper Order/Transaction records.
- * Uses a recovery cart to satisfy Order.cartId NOT NULL constraint.
- * Follows the atomic pattern from SessionGrantService.mjs.
+ * Apply a package payment to a client — creates Order/Transaction audit trail.
+ * Two-layer idempotency: 60-second business guard + DB unique key.
  *
  * @param {Object} params
- * @param {number} params.clientId - Client user ID
- * @param {number} params.storefrontItemId - Package to apply
- * @param {string} params.paymentMethod - 'cash' | 'venmo' | 'zelle' | 'check'
- * @param {string} params.paymentReference - External reference (receipt #, etc.)
- * @param {string} [params.adminNotes] - Optional admin notes
- * @param {number} params.adminUserId - Admin user performing the action
+ * @param {number} params.clientId
+ * @param {number} params.storefrontItemId
+ * @param {string} params.paymentMethod
+ * @param {string} params.paymentReference
+ * @param {string} [params.adminNotes]
+ * @param {number} params.adminUserId
+ * @param {string} params.idempotencyToken - Frontend-generated UUID v4
+ * @param {boolean} [params.force] - Skip 60-second guard (requires forceReason)
+ * @param {string} [params.forceReason] - Required when force=true
  * @returns {Object} Result with orderId, sessionsAdded, newBalance
  */
 export async function applyPackagePayment({
@@ -353,7 +404,10 @@ export async function applyPackagePayment({
   paymentMethod,
   paymentReference,
   adminNotes,
-  adminUserId
+  adminUserId,
+  idempotencyToken,
+  force,
+  forceReason
 }) {
   const User = getUser();
   const models = sequelize.models;
@@ -364,8 +418,71 @@ export async function applyPackagePayment({
   const FinancialTransaction = models.FinancialTransaction;
 
   if (!Order || !StorefrontItem || !ShoppingCart) {
-    throw new Error('Required models (Order, StorefrontItem, ShoppingCart) not available');
+    throw serviceError('Required models (Order, StorefrontItem, ShoppingCart) not available', 'MODELS_UNAVAILABLE');
   }
+
+  // ── Service-level validation (caller-safe) ────────────────────
+  if (!Number.isInteger(clientId) || clientId <= 0) {
+    throw serviceError('clientId must be a positive integer', 'INVALID_CLIENT_ID');
+  }
+  if (!Number.isInteger(storefrontItemId) || storefrontItemId <= 0) {
+    throw serviceError('storefrontItemId must be a positive integer', 'INVALID_STOREFRONT_ITEM_ID');
+  }
+  if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+    throw serviceError(`paymentMethod must be one of: ${VALID_PAYMENT_METHODS.join(', ')}`, 'INVALID_PAYMENT_METHOD');
+  }
+
+  // Sanitize and validate string fields
+  const refResult = sanitizeString(paymentReference, MAX_REFERENCE_LENGTH);
+  if (refResult.error) {
+    throw serviceError(`paymentReference: ${refResult.error}`, 'PAYMENT_REFERENCE_TOO_LONG');
+  }
+  const sanitizedReference = refResult.value;
+
+  if (METHODS_REQUIRING_REFERENCE.includes(paymentMethod) && !sanitizedReference) {
+    throw serviceError(`paymentReference is required for ${paymentMethod} payments`, 'MISSING_PAYMENT_REFERENCE');
+  }
+
+  const notesResult = sanitizeString(adminNotes, MAX_NOTES_LENGTH, true);
+  if (notesResult.error) {
+    throw serviceError(`adminNotes: ${notesResult.error}`, 'ADMIN_NOTES_TOO_LONG');
+  }
+  const sanitizedNotes = notesResult.value;
+
+  // Idempotency token validation
+  if (!idempotencyToken || typeof idempotencyToken !== 'string') {
+    throw serviceError('idempotencyToken is required', 'INVALID_IDEMPOTENCY_TOKEN');
+  }
+  if (!isValidUUID(idempotencyToken)) {
+    throw serviceError('idempotencyToken must be a valid UUID v4', 'INVALID_IDEMPOTENCY_TOKEN');
+  }
+
+  // Force validation
+  if (force === true) {
+    if (!forceReason || typeof forceReason !== 'string') {
+      throw serviceError('forceReason is required when force is true', 'MISSING_FORCE_REASON');
+    }
+    const reasonResult = sanitizeString(forceReason, MAX_FORCE_REASON_LENGTH, true);
+    if (reasonResult.error) {
+      throw serviceError(`forceReason: ${reasonResult.error}`, 'FORCE_REASON_TOO_LONG');
+    }
+    if (reasonResult.value.length < MIN_FORCE_REASON_LENGTH) {
+      throw serviceError(`forceReason must be at least ${MIN_FORCE_REASON_LENGTH} characters`, 'MISSING_FORCE_REASON');
+    }
+    forceReason = reasonResult.value;
+  }
+
+  logger.info('Payment recovery attempt', {
+    domain: 'payment_recovery',
+    event: 'payment_recovery_attempt',
+    clientId,
+    storefrontItemId,
+    paymentMethod,
+    adminUserId,
+    idempotencyKey: idempotencyToken,
+    force: !!force,
+    paymentReference: maskReference(sanitizedReference)
+  });
 
   const transaction = await sequelize.transaction();
 
@@ -377,55 +494,82 @@ export async function applyPackagePayment({
     });
 
     if (!client) {
-      throw new Error('Client not found');
+      throw serviceError('Client not found', 'CLIENT_NOT_FOUND');
     }
 
     if (!['client', 'user'].includes(client.role)) {
-      throw new Error('User is not a client or user');
+      throw serviceError('User is not a client or user', 'INVALID_ROLE');
     }
 
-    // 2. Idempotency guard: reject duplicate within 60 seconds
-    const sixtySecondsAgo = new Date(Date.now() - 60000);
-    const recentDuplicate = await Order.findOne({
-      where: {
-        userId: clientId,
-        paymentAppliedBy: adminUserId,
-        status: 'completed',
-        completedAt: { [Op.gte]: sixtySecondsAgo }
-      },
-      include: OrderItem ? [{
-        model: OrderItem,
-        as: 'orderItems',
-        where: { storefrontItemId },
-        required: true
-      }] : [],
-      transaction
-    });
+    // 2. Advisory lock — serialize concurrent requests for same client+package
+    await sequelize.query(
+      'SELECT pg_advisory_xact_lock($1, $2)',
+      { bind: [clientId, storefrontItemId], transaction }
+    );
 
-    if (recentDuplicate) {
-      throw new Error(
-        `Duplicate payment detected: Order #${recentDuplicate.orderNumber} was created ${Math.round((Date.now() - new Date(recentDuplicate.completedAt).getTime()) / 1000)}s ago for the same client and package. Please wait 60 seconds before retrying.`
-      );
+    // 3. Business-scoped duplicate guard (60-second window, admin-agnostic)
+    if (force !== true) {
+      const sixtySecondsAgo = new Date(Date.now() - 60000);
+      const recentDuplicate = await Order.findOne({
+        where: {
+          userId: clientId,
+          status: 'completed',
+          completedAt: { [Op.gte]: sixtySecondsAgo }
+        },
+        include: OrderItem ? [{
+          model: OrderItem,
+          as: 'orderItems',
+          where: { storefrontItemId },
+          required: true
+        }] : [],
+        transaction
+      });
+
+      if (recentDuplicate) {
+        logger.warn('Duplicate payment blocked by time-window check', {
+          domain: 'payment_recovery',
+          event: 'payment_recovery_duplicate_blocked',
+          clientId,
+          storefrontItemId,
+          adminUserId,
+          existingOrderId: recentDuplicate.id,
+          existingOrderNumber: recentDuplicate.orderNumber
+        });
+        throw serviceError(
+          `Duplicate payment detected: Order #${recentDuplicate.orderNumber} was created ${Math.round((Date.now() - new Date(recentDuplicate.completedAt).getTime()) / 1000)}s ago for the same client and package. Use force override if this is intentional.`,
+          'DUPLICATE_PAYMENT_WINDOW'
+        );
+      }
+    } else {
+      // Force override — log the bypass
+      logger.warn('60-second duplicate guard bypassed via force override', {
+        domain: 'payment_recovery',
+        event: 'payment_recovery_force_override',
+        clientId,
+        storefrontItemId,
+        adminUserId,
+        forceReason
+      });
     }
 
-    // 3. Fetch the package
+    // 4. Fetch the package
     const pkg = await StorefrontItem.findByPk(storefrontItemId, { transaction });
     if (!pkg) {
-      throw new Error('Package not found');
+      throw serviceError('Package not found', 'PACKAGE_NOT_FOUND');
     }
 
     if (pkg.isActive === false) {
-      throw new Error('Package is inactive and cannot be applied');
+      throw serviceError('Package is inactive and cannot be applied', 'PACKAGE_INACTIVE');
     }
 
     const sessionsToAdd = pkg.sessions || pkg.totalSessions || 0;
     if (sessionsToAdd <= 0) {
-      throw new Error('Package has no sessions to grant');
+      throw serviceError('Package has no sessions to grant', 'NO_SESSIONS_IN_PACKAGE');
     }
 
     const totalAmount = parseFloat(pkg.totalCost || pkg.price || 0);
 
-    // 4. Create recovery cart (satisfies Order.cartId NOT NULL constraint)
+    // 5. Create recovery cart
     let cartId = null;
     if (ShoppingCart) {
       const recoveryCart = await ShoppingCart.create({
@@ -441,19 +585,25 @@ export async function applyPackagePayment({
           type: 'admin_recovery',
           adminUserId,
           paymentMethod,
-          paymentReference,
+          paymentReference: sanitizedReference,
           createdAt: new Date().toISOString()
         })
       }, { transaction });
       cartId = recoveryCart.id;
     }
 
-    // 5. Generate unique order number
+    // 6. Generate order number
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderNumber = `REC-${timestamp}-${random}`;
 
-    // 6. Create Order
+    // Build order notes (include force reason if applicable)
+    let orderNotes = sanitizedNotes || `Admin recovery payment via ${paymentMethod}`;
+    if (force === true && forceReason) {
+      orderNotes += `\n[Force Override] Reason: ${forceReason}`;
+    }
+
+    // 7. Create Order (with idempotency key — DB unique index catches races)
     const order = await Order.create({
       userId: clientId,
       cartId,
@@ -461,17 +611,18 @@ export async function applyPackagePayment({
       totalAmount,
       status: 'completed',
       paymentMethod,
-      paymentId: paymentReference || null,
+      paymentId: sanitizedReference || null,
       billingName: `${client.firstName} ${client.lastName}`,
       billingEmail: client.email,
-      notes: adminNotes || `Admin recovery payment via ${paymentMethod}`,
+      notes: orderNotes,
       completedAt: new Date(),
       paymentAppliedAt: new Date(),
       paymentAppliedBy: adminUserId,
-      paymentReference: paymentReference || null
+      paymentReference: sanitizedReference || null,
+      idempotencyKey: idempotencyToken
     }, { transaction });
 
-    // 7. Create OrderItem
+    // 8. Create OrderItem
     if (OrderItem) {
       await OrderItem.create({
         orderId: order.id,
@@ -485,12 +636,13 @@ export async function applyPackagePayment({
         metadata: {
           sessionsGranted: sessionsToAdd,
           pricePerSession: parseFloat(pkg.pricePerSession || 0),
-          adminRecovery: true
+          adminRecovery: true,
+          ...(force === true ? { forceOverride: true, forceReason } : {})
         }
       }, { transaction });
     }
 
-    // 8. Create FinancialTransaction (audit trail)
+    // 9. Create FinancialTransaction (audit trail)
     if (FinancialTransaction) {
       await FinancialTransaction.create({
         userId: clientId,
@@ -503,11 +655,13 @@ export async function applyPackagePayment({
         description: `Admin recovery: ${pkg.name} (${sessionsToAdd} sessions) via ${paymentMethod}`,
         metadata: JSON.stringify({
           adminUserId,
-          paymentReference,
+          paymentReference: sanitizedReference,
           packageId: pkg.id,
           packageName: pkg.name,
           sessionsAdded: sessionsToAdd,
-          type: 'admin_recovery'
+          type: 'admin_recovery',
+          idempotencyKey: idempotencyToken,
+          ...(force === true ? { forceOverride: true, forceReason } : {})
         }),
         processedAt: new Date(),
         netAmount: totalAmount,
@@ -515,11 +669,11 @@ export async function applyPackagePayment({
       }, { transaction });
     }
 
-    // 9. Atomically increment sessions (row-locked above)
+    // 10. Atomically increment sessions
     const previousCredits = client.availableSessions || 0;
     await client.increment('availableSessions', { by: sessionsToAdd, transaction });
 
-    // 10. Upgrade role if needed (user → client on purchase)
+    // 11. Upgrade role if needed (user → client on purchase)
     if (client.role === 'user') {
       client.role = 'client';
       await client.save({ transaction });
@@ -527,7 +681,19 @@ export async function applyPackagePayment({
 
     await transaction.commit();
 
-    console.log(`[SessionDeduction] Admin recovery: ${sessionsToAdd} sessions from ${pkg.name} applied to client ${clientId} by admin ${adminUserId}`);
+    logger.info('Admin recovery payment applied', {
+      domain: 'payment_recovery',
+      event: 'payment_recovery_success',
+      clientId,
+      adminUserId,
+      packageName: pkg.name,
+      sessionsAdded: sessionsToAdd,
+      orderId: order.id,
+      orderNumber,
+      totalAmount,
+      idempotencyKey: idempotencyToken,
+      paymentReference: maskReference(sanitizedReference)
+    });
 
     return {
       orderId: order.id,
@@ -541,9 +707,104 @@ export async function applyPackagePayment({
 
   } catch (error) {
     await transaction.rollback();
-    console.error('[SessionDeduction] Error applying package payment:', error);
+
+    // Check for idempotency key collision — reconcile from committed state
+    if (isIdempotencyViolation(error)) {
+      return await reconcileIdempotencyCollision(
+        idempotencyToken, clientId, storefrontItemId, adminUserId
+      );
+    }
+
+    // Re-throw coded errors as-is, log unknown errors
+    if (!error.code) {
+      logger.error('Failed to apply package payment', {
+        domain: 'payment_recovery',
+        event: 'payment_recovery_failed',
+        clientId,
+        storefrontItemId,
+        adminUserId,
+        idempotencyKey: idempotencyToken,
+        error: error.message
+      });
+    }
     throw error;
   }
+}
+
+/**
+ * Reconcile an idempotency key collision by fetching the existing order.
+ * Retries up to 3 times with exponential backoff in case the winning
+ * transaction hasn't committed yet.
+ */
+async function reconcileIdempotencyCollision(idempotencyToken, clientId, storefrontItemId, adminUserId) {
+  const models = sequelize.models;
+  const Order = models.Order;
+  const OrderItem = models.OrderItem;
+  const User = getUser();
+
+  const delays = [150, 300, 450];
+
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    await sleep(delays[attempt]);
+
+    try {
+      const existingOrder = await Order.findOne({
+        where: {
+          idempotencyKey: idempotencyToken,
+          userId: clientId
+        },
+        include: OrderItem ? [{
+          model: OrderItem,
+          as: 'orderItems',
+          where: { storefrontItemId },
+          required: true
+        }] : []
+      });
+
+      if (existingOrder && existingOrder.status === 'completed') {
+        const client = await User.findByPk(clientId, {
+          attributes: ['availableSessions']
+        });
+
+        logger.warn('Idempotency key collision reconciled', {
+          domain: 'payment_recovery',
+          event: 'payment_recovery_duplicate_blocked',
+          clientId,
+          storefrontItemId,
+          adminUserId,
+          existingOrderId: existingOrder.id,
+          existingOrderNumber: existingOrder.orderNumber,
+          idempotencyKey: idempotencyToken
+        });
+
+        throw serviceError(
+          'Payment already processed.',
+          'DUPLICATE_IDEMPOTENCY_KEY',
+          {
+            orderId: existingOrder.id,
+            orderNumber: existingOrder.orderNumber,
+            newBalance: client?.availableSessions ?? null
+          }
+        );
+      }
+    } catch (err) {
+      // If it's our serviceError, re-throw it
+      if (err.code === 'DUPLICATE_IDEMPOTENCY_KEY') throw err;
+      // Otherwise keep retrying
+    }
+  }
+
+  // All retries failed — the winning transaction didn't commit or something else went wrong
+  logger.error('Idempotency collision reconciliation failed after retries', {
+    domain: 'payment_recovery',
+    event: 'payment_recovery_failed',
+    clientId,
+    storefrontItemId,
+    adminUserId,
+    idempotencyKey: idempotencyToken
+  });
+
+  throw serviceError('An unexpected error occurred during payment processing', 'INTERNAL_ERROR');
 }
 
 export default {

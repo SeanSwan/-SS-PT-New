@@ -1,7 +1,9 @@
 /**
  * Session Deduction Routes
  * ========================
- * API endpoints for session deduction and payment application
+ * API endpoints for session deduction and payment application.
+ * Shape validation (400) at route level; business validation (4xx) in service.
+ * All catch blocks use mapServiceError for consistent envelope.
  */
 
 import express from 'express';
@@ -13,8 +15,45 @@ import {
   getClientLastPackage,
   applyPackagePayment
 } from '../services/sessionDeductionService.mjs';
+import { mapServiceError } from './sessionDeductionRoute.helpers.mjs';
+import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+// ── Response helpers ────────────────────────────────────────────
+
+function errorResponse(res, statusCode, message, errorCode, data) {
+  const body = { success: false, message, errorCode };
+  if (data !== undefined) body.data = data;
+  return res.status(statusCode).json(body);
+}
+
+function handleServiceError(res, error, fallbackMessage) {
+  const mapped = mapServiceError(error);
+  if (mapped) {
+    return errorResponse(
+      res,
+      mapped.statusCode,
+      error.message,
+      mapped.errorCode,
+      error.data
+    );
+  }
+  // Unknown / unmapped → 500, sanitized message
+  logger.error(fallbackMessage, {
+    domain: 'payment_recovery',
+    error: error.message,
+    stack: error.stack
+  });
+  return errorResponse(
+    res,
+    500,
+    fallbackMessage,
+    'INTERNAL_ERROR'
+  );
+}
+
+// ── Routes ──────────────────────────────────────────────────────
 
 /**
  * POST /api/sessions/deductions/process
@@ -31,12 +70,7 @@ router.post('/process', authenticateToken, adminOnly, async (req, res) => {
       data: results
     });
   } catch (error) {
-    console.error('Error processing session deductions:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process session deductions',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleServiceError(res, error, 'Failed to process session deductions');
   }
 });
 
@@ -55,12 +89,7 @@ router.get('/clients-needing-payment', authenticateToken, trainerOrAdminOnly, as
       count: clients.length
     });
   } catch (error) {
-    console.error('Error getting clients needing payment:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to get clients needing payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleServiceError(res, error, 'Failed to get clients needing payment');
   }
 });
 
@@ -77,17 +106,11 @@ router.post('/apply-payment', authenticateToken, adminOnly, async (req, res) => 
     const sessions = Number(sessionsToAdd);
 
     if (!Number.isInteger(cid) || cid <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'clientId must be a positive integer'
-      });
+      return errorResponse(res, 400, 'clientId must be a positive integer', 'INVALID_CLIENT_ID');
     }
 
     if (!Number.isInteger(sessions) || sessions < 1 || sessions > 500) {
-      return res.status(400).json({
-        success: false,
-        message: 'sessionsToAdd must be an integer between 1 and 500'
-      });
+      return errorResponse(res, 400, 'sessionsToAdd must be an integer between 1 and 500', 'INVALID_SESSIONS_COUNT');
     }
 
     const result = await applyPaymentCredits(cid, sessions, paymentNote);
@@ -98,12 +121,7 @@ router.post('/apply-payment', authenticateToken, adminOnly, async (req, res) => 
       data: result
     });
   } catch (error) {
-    console.error('Error applying payment credits:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to apply payment credits',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleServiceError(res, error, 'Failed to apply payment credits');
   }
 });
 
@@ -117,10 +135,7 @@ router.get('/client-last-package/:clientId', authenticateToken, trainerOrAdminOn
   try {
     const clientId = Number(req.params.clientId);
     if (!Number.isInteger(clientId) || clientId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'clientId must be a positive integer'
-      });
+      return errorResponse(res, 400, 'clientId must be a positive integer', 'INVALID_CLIENT_ID');
     }
 
     const data = await getClientLastPackage(clientId);
@@ -130,12 +145,7 @@ router.get('/client-last-package/:clientId', authenticateToken, trainerOrAdminOn
       data
     });
   } catch (error) {
-    console.error('Error getting client last package:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to get client last package',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleServiceError(res, error, 'Failed to get client last package');
   }
 });
 
@@ -144,36 +154,60 @@ router.get('/client-last-package/:clientId', authenticateToken, trainerOrAdminOn
  * Apply a package payment to a client with full Order/Transaction audit trail.
  * Creates recovery cart, Order, OrderItem, FinancialTransaction, and grants sessions.
  * Admin only
+ *
+ * Shape validation (400):
+ *   INVALID_CLIENT_ID, INVALID_STOREFRONT_ITEM_ID,
+ *   MISSING_IDEMPOTENCY_TOKEN, MISSING_PAYMENT_METHOD, INVALID_FORCE_TYPE
+ *
+ * Business validation (4xx) delegated to service via mapServiceError.
  */
 router.post('/apply-package-payment', authenticateToken, adminOnly, async (req, res) => {
   try {
-    const { clientId, storefrontItemId, paymentMethod, paymentReference, adminNotes } = req.body;
+    const {
+      clientId,
+      storefrontItemId,
+      paymentMethod,
+      paymentReference,
+      adminNotes,
+      idempotencyToken,
+      force,
+      forceReason
+    } = req.body;
 
+    // ── Shape validation (400) ────────────────────────────────────
     const cid = Number(clientId);
+    if (!Number.isInteger(cid) || cid <= 0) {
+      return errorResponse(res, 400, 'clientId must be a positive integer', 'INVALID_CLIENT_ID');
+    }
+
     const sid = Number(storefrontItemId);
-
-    if (!Number.isInteger(cid) || cid <= 0 || !Number.isInteger(sid) || sid <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'clientId and storefrontItemId must be positive integers'
-      });
+    if (!Number.isInteger(sid) || sid <= 0) {
+      return errorResponse(res, 400, 'storefrontItemId must be a positive integer', 'INVALID_STOREFRONT_ITEM_ID');
     }
 
-    const validMethods = ['cash', 'venmo', 'zelle', 'check'];
-    if (!paymentMethod || !validMethods.includes(paymentMethod)) {
-      return res.status(400).json({
-        success: false,
-        message: `paymentMethod must be one of: ${validMethods.join(', ')}`
-      });
+    if (!idempotencyToken) {
+      return errorResponse(res, 400, 'idempotencyToken is required', 'MISSING_IDEMPOTENCY_TOKEN');
     }
 
+    if (!paymentMethod) {
+      return errorResponse(res, 400, 'paymentMethod is required', 'MISSING_PAYMENT_METHOD');
+    }
+
+    if (force !== undefined && typeof force !== 'boolean') {
+      return errorResponse(res, 400, 'force must be a boolean', 'INVALID_FORCE_TYPE');
+    }
+
+    // ── Delegate to service (business validation + execution) ─────
     const result = await applyPackagePayment({
       clientId: cid,
       storefrontItemId: sid,
       paymentMethod,
       paymentReference: paymentReference || '',
       adminNotes: adminNotes || '',
-      adminUserId: req.user.id
+      adminUserId: req.user.id,
+      idempotencyToken,
+      force: force || false,
+      forceReason: forceReason || ''
     });
 
     return res.status(200).json({
@@ -182,12 +216,7 @@ router.post('/apply-package-payment', authenticateToken, adminOnly, async (req, 
       data: result
     });
   } catch (error) {
-    console.error('Error applying package payment:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to apply package payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return handleServiceError(res, error, 'Failed to apply package payment');
   }
 });
 

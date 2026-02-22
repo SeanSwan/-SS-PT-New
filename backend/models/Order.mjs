@@ -77,6 +77,11 @@ Order.init(
       allowNull: true,
       comment: 'External payment reference (Venmo ID, cash receipt, check #, Stripe PI)'
     },
+    idempotencyKey: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'Idempotency key for payment recovery dedup (frontend UUID v4)'
+    },
   },
   {
     sequelize,
