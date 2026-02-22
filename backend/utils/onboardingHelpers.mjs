@@ -11,6 +11,7 @@ export const isPlainObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export const toNumber = (value) => {
+  if (value === null || value === undefined) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
