@@ -109,8 +109,11 @@ WorkoutSession.init({
     type: DataTypes.FLOAT,
     allowNull: true,
     validate: {
-      min: 1,
-      max: 10
+      rpeRange(value) {
+        if (value !== null && (value < 1 || value > 10)) {
+          throw new Error('avgRPE must be between 1 and 10');
+        }
+      },
     },
     comment: 'Average Rate of Perceived Exertion for the session'
   },
