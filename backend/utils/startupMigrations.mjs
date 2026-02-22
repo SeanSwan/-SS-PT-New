@@ -333,6 +333,78 @@ async function migrateShoppingCartColumns() {
 }
 
 /**
+ * Migration 6: Fix FK constraints on Phase 1B tables that reference
+ * lowercase "users" instead of the actual "Users" table.
+ * Same pattern as shopping_carts FK fix in Migration 5.
+ */
+async function migratePhase1bForeignKeys() {
+  const fixTableColumnFk = async (tableName, columnName, onDeleteAction) => {
+    try {
+      const [tableCheck] = await sequelize.query(
+        `SELECT tablename FROM pg_tables WHERE tablename = '${tableName}';`
+      );
+      if (!tableCheck || tableCheck.length === 0) {
+        logger.info(`[Migration] ${tableName} table does not exist yet, skipping FK fix`);
+        return;
+      }
+
+      const [fkRows] = await sequelize.query(`
+        SELECT
+          tc.constraint_name,
+          ccu.table_name AS foreign_table_name
+        FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu
+          ON tc.constraint_name = kcu.constraint_name
+          AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage AS ccu
+          ON ccu.constraint_name = tc.constraint_name
+          AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_name = '${tableName}'
+          AND kcu.column_name = '${columnName}';
+      `);
+
+      const hasUsersTarget = (fkRows || []).some((row) => row.foreign_table_name === 'Users');
+      if (hasUsersTarget) {
+        logger.info(`[Migration] ${tableName}.${columnName} FK already references "Users" — OK`);
+        return;
+      }
+
+      logger.info(`[Migration] Repairing ${tableName}.${columnName} FK to reference "Users"(id)...`);
+
+      // Drop all existing FK constraints on this column
+      for (const fk of (fkRows || [])) {
+        await sequelize.query(`ALTER TABLE "${tableName}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}";`);
+        logger.info(`[Migration]   Dropped ${fk.constraint_name} -> "${fk.foreign_table_name}"`);
+      }
+
+      // Re-create with correct reference
+      const constraintName = `${tableName}_${columnName}_Users_fk`;
+      await sequelize.query(`
+        ALTER TABLE "${tableName}"
+        ADD CONSTRAINT "${constraintName}"
+        FOREIGN KEY ("${columnName}")
+        REFERENCES "Users"(id)
+        ON UPDATE CASCADE
+        ON DELETE ${onDeleteAction}
+        NOT VALID;
+      `);
+      logger.info(`[Migration]   Created ${constraintName} -> "Users"(id)`);
+    } catch (error) {
+      logger.warn(`[Migration] ${tableName}.${columnName} FK fix failed (non-critical): ${error.message}`);
+    }
+  };
+
+  // client_onboarding_questionnaires
+  await fixTableColumnFk('client_onboarding_questionnaires', 'userId', 'CASCADE');
+  await fixTableColumnFk('client_onboarding_questionnaires', 'createdBy', 'SET NULL');
+
+  // workout_sessions
+  await fixTableColumnFk('workout_sessions', 'userId', 'CASCADE');
+  await fixTableColumnFk('workout_sessions', 'trainerId', 'CASCADE');
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -345,6 +417,7 @@ export async function runStartupMigrations() {
     await migrateStabilizationColumns();
     await migrateResetPasswordColumns();
     await migrateShoppingCartColumns();
+    await migratePhase1bForeignKeys();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;
