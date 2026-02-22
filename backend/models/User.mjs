@@ -188,6 +188,12 @@ User.init(
       defaultValue: false,
       comment: 'Requires password change on next login (admin-created accounts)'
     },
+    isOnboardingComplete: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Whether user completed onboarding questionnaire'
+    },
     lastLogin: {
       type: DataTypes.DATE,
       allowNull: true,

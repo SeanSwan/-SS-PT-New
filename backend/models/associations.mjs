@@ -64,6 +64,7 @@ const setupAssociations = async () => {
     const WorkoutPlanDayModule = await import('./WorkoutPlanDay.mjs');
     const WorkoutPlanDayExerciseModule = await import('./WorkoutPlanDayExercise.mjs');
     const WorkoutSessionModule = await import('./WorkoutSession.mjs');
+    const WorkoutLogModule = await import('./WorkoutLog.mjs');
     const WorkoutExerciseModule = await import('./WorkoutExercise.mjs');
     const ExerciseModule = await import('./Exercise.mjs');
     const SetModule = await import('./Set.mjs');
@@ -159,6 +160,7 @@ const setupAssociations = async () => {
     const WorkoutPlanDay = WorkoutPlanDayModule.default;
     const WorkoutPlanDayExercise = WorkoutPlanDayExerciseModule.default;
     const WorkoutSession = WorkoutSessionModule.default;
+    const WorkoutLog = WorkoutLogModule.default;
     const WorkoutExercise = WorkoutExerciseModule.default;
     const Exercise = ExerciseModule.default;
     const Set = SetModule.default;
@@ -255,7 +257,7 @@ const setupAssociations = async () => {
         PostReport, ModerationAction,
         Challenge, ChallengeParticipant, Goal, ProgressData, UserFollow,
         Streak, GoalSupporter, GoalComment, GoalLike, GoalMilestone,
-        WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
+        WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutLog, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
         FinancialTransaction, BusinessMetrics, AdminNotification,
@@ -644,6 +646,10 @@ const setupAssociations = async () => {
     Session.hasMany(ClientNote, { foreignKey: 'relatedSessionId', as: 'sessionNotes' });
     
     // Workout Exercise Associations
+    WorkoutSession.hasMany(WorkoutLog, { foreignKey: 'sessionId', as: 'logs' });
+    WorkoutLog.belongsTo(WorkoutSession, { foreignKey: 'sessionId', as: 'session' });
+
+    // Workout Exercise Associations
     WorkoutSession.hasMany(WorkoutExercise, { foreignKey: 'workoutSessionId', as: 'exercises' });
     WorkoutExercise.belongsTo(WorkoutSession, { foreignKey: 'workoutSessionId', as: 'workoutSession' });
     WorkoutExercise.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
@@ -775,6 +781,7 @@ const setupAssociations = async () => {
       WorkoutPlanDay,
       WorkoutPlanDayExercise,
       WorkoutSession,
+      WorkoutLog,
       WorkoutExercise,
       Exercise,
       Set,

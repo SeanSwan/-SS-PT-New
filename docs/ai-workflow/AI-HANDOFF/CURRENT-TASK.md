@@ -8,6 +8,16 @@
 ## CURRENT VISION SNAPSHOT (2026-02-21)
 
 ### Active Product Priorities
+0. **NASM Admin Operations - Phase 1A Data Layer (IN PROGRESS - 2026-02-22)**
+   - **What:** Add normalized workout log storage and onboarding completion flag to support admin provisioning/onboarding/workout logging workflow.
+   - **Scope completed in this phase:**
+     - `backend/migrations/20260222000001-add-is-onboarding-complete.cjs` (adds `Users.isOnboardingComplete`)
+     - `backend/migrations/20260222000002-create-workout-logs.cjs` (creates `workout_logs` with analytics-friendly indexes)
+     - `backend/models/WorkoutLog.mjs` (normalized one-row-per-set model)
+     - `backend/models/User.mjs` update (`isOnboardingComplete`)
+     - `backend/models/associations.mjs` update (`WorkoutSession.hasMany(WorkoutLog)` / `WorkoutLog.belongsTo(WorkoutSession)`)
+   - **Deferred by design:** controller logic, SendGrid provisioning, onboarding API behavior, NASM logger UI, and Playwright E2E remain in later phases.
+
 0. **Payment Recovery Flow (COMPLETE - 2026-02-21)**
    - **What:** Admin can apply offline payments (Cash/Venmo/Zelle/Check) directly from Session Detail Card when a client reaches 0 sessions. Auto-selects last purchased package. Creates full Order/Transaction/FinancialTransaction audit trail.
    - **Files:**
