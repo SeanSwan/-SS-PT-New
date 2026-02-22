@@ -185,7 +185,7 @@ export const saveOrSubmitOnboarding = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     logger.error('Admin onboarding save/submit failed:', error);
-    return res.status(500).json({ success: false, message: 'Failed to process onboarding' });
+    return res.status(500).json({ success: false, message: 'Failed to process onboarding', error: error.message, stack: error.stack?.split('\n').slice(0, 5) });
   }
 };
 
