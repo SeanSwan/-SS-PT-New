@@ -301,6 +301,16 @@ const RevolutionaryClientDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Listen for internal tab navigation events (from child components)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tabId = (e as CustomEvent).detail;
+      if (typeof tabId === 'string') handleSectionChange(tabId);
+    };
+    window.addEventListener('dashboard:navigate', handler);
+    return () => window.removeEventListener('dashboard:navigate', handler);
+  }, []);
+
   // Generate particles for background effect
   useEffect(() => {
     const generateParticles = () => {
@@ -373,7 +383,7 @@ const RevolutionaryClientDashboard: React.FC = () => {
         
         {/* Stellar Sidebar */}
         <StellarSidebar
-          activeSection={activeSection}
+          activeSection={resolvedSection}
           onSectionChange={handleSectionChange}
         />
         

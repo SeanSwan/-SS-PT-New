@@ -25,10 +25,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, Trophy, Target, Rocket, Zap,
   TrendingUp, Activity, Award, Sparkles,
-  Calendar, Package
+  Calendar, Package, Dumbbell, BarChart3, ChevronRight
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useEnhancedClientDashboard } from '../../hooks/useEnhancedClientDashboard';
 import { useSessionCredits } from '../UniversalMasterSchedule/hooks/useSessionCredits';
+import { useWorkoutHistory } from '../../hooks/useWorkoutHistory';
+import { useClientStats } from '../../hooks/useClientStats';
 import { useAuth } from '../../hooks/useAuth';
 import OnboardingStatusCard from './OnboardingStatusCard';
 
@@ -229,9 +232,18 @@ const StatGrid = styled.div`
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
   margin: 2rem 0;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 380px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
 `;
 
 const StatCard = styled(motion.div)`
@@ -424,10 +436,21 @@ const EnhancedOverviewGalaxy: React.FC = () => {
   } = useEnhancedClientDashboard();
 
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isClient = user?.role === 'client';
   const { data: credits } = useSessionCredits(isClient);
   const sessionsRemaining = credits?.sessionsRemaining ?? 0;
   const packageName = credits?.packageName ?? null;
+
+  // Workout history + progress stats hooks
+  const { data: workoutHistory, isLoading: workoutsLoading } = useWorkoutHistory(user?.id, 5, isClient);
+  const { data: clientStats } = useClientStats(user?.id, isClient);
+
+  // Internal tab navigation helper (dispatches event to parent dashboard)
+  const goToTab = (tabId: string) => {
+    try { localStorage.setItem('clientDashboardTab', tabId); } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent('dashboard:navigate', { detail: tabId }));
+  };
 
   // Find next upcoming session
   const nextSession = sessions
@@ -524,6 +547,9 @@ const EnhancedOverviewGalaxy: React.FC = () => {
           />
         ))}
       </ParticleField>
+
+      {/* Onboarding Status — shown first so new users take action */}
+      <OnboardingStatusCard />
 
       <SectionCard>
         <SectionTitle>
@@ -627,9 +653,6 @@ const EnhancedOverviewGalaxy: React.FC = () => {
         </StatGrid>
       </SectionCard>
 
-      {/* Phase 1.1 Onboarding Status Integration */}
-      <OnboardingStatusCard />
-
       {/* Next Session + Session Credits */}
       <div style={{
         display: 'grid',
@@ -660,7 +683,13 @@ const EnhancedOverviewGalaxy: React.FC = () => {
               </div>
             ) : (
               <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.95rem' }}>
-                No upcoming sessions — book one from the Schedule tab!
+                No upcoming sessions —{' '}
+                <button
+                  onClick={() => goToTab('schedule')}
+                  style={{ background: 'none', border: 'none', color: '#00ffff', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0, fontFamily: 'inherit' }}
+                >
+                  book one from the Schedule tab
+                </button>!
               </div>
             )}
           </div>
@@ -689,17 +718,108 @@ const EnhancedOverviewGalaxy: React.FC = () => {
               </div>
             ) : (
               <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.95rem' }}>
-                No active package — visit the store to get started.
+                No active package —{' '}
+                <button
+                  onClick={() => navigate('/store')}
+                  style={{ background: 'none', border: 'none', color: '#ffd700', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0, fontFamily: 'inherit' }}
+                >
+                  visit the store
+                </button>{' '}to get started.
               </div>
             )}
           </div>
         </SectionCard>
       </div>
 
+      {/* Recent Workouts */}
+      <SectionCard
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.25 }}
+      >
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#00ffff', fontSize: '1.1rem', fontWeight: 600 }}>
+              <Dumbbell size={20} />
+              Recent Workouts
+            </div>
+            {(workoutHistory?.length ?? 0) > 0 && (
+              <button
+                onClick={() => goToTab('workouts')}
+                style={{ background: 'none', border: 'none', color: '#00ffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontFamily: 'inherit' }}
+              >
+                View All <ChevronRight size={14} />
+              </button>
+            )}
+          </div>
+          {workoutsLoading ? (
+            <div style={{ color: 'rgba(255,255,255,0.5)', padding: '1rem', textAlign: 'center' }}>Loading workouts...</div>
+          ) : (workoutHistory?.length ?? 0) > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {workoutHistory!.slice(0, 3).map((w: any) => (
+                <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(0,255,255,0.05)', borderRadius: '10px', border: '1px solid rgba(0,255,255,0.1)' }}>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>{w.name}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>
+                      {new Date(w.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      {w.duration ? ` · ${w.duration}` : ''}
+                    </div>
+                  </div>
+                  {w.exercises != null && (
+                    <div style={{ color: '#00ffff', fontSize: '0.85rem' }}>{w.exercises} exercises</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem', textAlign: 'center', padding: '1.5rem', background: 'rgba(0,255,255,0.03)', borderRadius: '12px', border: '1px dashed rgba(0,255,255,0.15)' }}>
+              <Activity size={28} style={{ color: 'rgba(0,255,255,0.3)', marginBottom: '0.5rem', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
+              Your trainer will log workouts after each session
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* Progress Snapshot */}
+      <SectionCard
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#7851a9', fontSize: '1.1rem', fontWeight: 600 }}>
+              <BarChart3 size={20} />
+              Progress Snapshot
+            </div>
+            <button
+              onClick={() => goToTab('progress')}
+              style={{ background: 'none', border: 'none', color: '#7851a9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontFamily: 'inherit' }}
+            >
+              Full Progress <ChevronRight size={14} />
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(120,81,169,0.1)', borderRadius: '12px', border: '1px solid rgba(120,81,169,0.2)' }}>
+              <div style={{ color: '#7851a9', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.totalWorkouts ?? 0}</div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>Total Workouts</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(120,81,169,0.1)', borderRadius: '12px', border: '1px solid rgba(120,81,169,0.2)' }}>
+              <div style={{ color: '#7851a9', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.sleepAvg != null ? `${clientStats.sleepAvg}h` : '--'}</div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>Avg Sleep</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(120,81,169,0.1)', borderRadius: '12px', border: '1px solid rgba(120,81,169,0.2)' }}>
+              <div style={{ color: '#7851a9', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.goalConsistency != null ? `${clientStats.goalConsistency}%` : '--'}</div>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>Goal Consistency</div>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
       <AchievementsSection
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
+        transition={{ duration: 0.6, delay: 0.35 }}
       >
         <div style={{ 
           display: 'flex', 
