@@ -24,10 +24,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import {
-  OverviewGalaxy, WorkoutUniverse, ProgressConstellation, 
-  AchievementNebula, TimeWarp, SocialGalaxy,
-  CommunicationHub, PersonalStarmap, PersonalizedVideoHub,
-  LogsAndTrackers, PackageSubscription, OnboardingGalaxy
+  OverviewGalaxy, WorkoutUniverse, ProgressConstellation,
+  AchievementNebula, TimeWarp, OnboardingGalaxy,
+  AccountGalaxy
 } from './GalaxySections';
 import StellarSidebar from './StellarSidebar';
 import { useAuth } from '../../context/AuthContext';
@@ -243,62 +242,65 @@ const Particle = styled(motion.div)`
   opacity: 0;
 `;
 
-// === SECTION MAPPING ===
+// === TAB MIGRATION: old IDs → new IDs ===
+const TAB_MIGRATION: Record<string, string> = {
+  messages: 'overview',
+  community: 'overview',
+  videos: 'overview',
+  settings: 'account',
+  logs: 'workouts',
+  packages: 'account',
+  profile: 'account',
+  achievements: 'gamification', // renamed tab ID
+};
+const migrateTabId = (id: string): string => TAB_MIGRATION[id] ?? id;
+
+// === SECTION MAPPING (7 tabs) ===
 const sectionComponents: Record<string, React.FC> = {
   overview: OverviewGalaxy,
   onboarding: OnboardingGalaxy,
-  workouts: WorkoutUniverse,
-  videos: PersonalizedVideoHub,
-  progress: ProgressConstellation,
-  logs: LogsAndTrackers,
-  achievements: AchievementNebula,
-  packages: PackageSubscription,
   schedule: TimeWarp,
-  community: SocialGalaxy,
-  messages: CommunicationHub,
-  profile: PersonalStarmap,
-  settings: PersonalStarmap // Using profile as placeholder for settings
+  workouts: WorkoutUniverse,
+  progress: ProgressConstellation,
+  gamification: AchievementNebula,
+  account: AccountGalaxy,
 };
 
 const sectionTitles: Record<string, string> = {
   overview: 'Mission Control',
   onboarding: 'Your Fitness Profile',
-  workouts: 'Training Universe',
-  videos: 'Stellar Cinema',
-  progress: 'Progress Constellation',
-  logs: 'Cosmic Journal',
-  achievements: 'Achievement Nebula',
-  packages: 'Galactic Marketplace',
   schedule: 'Time Warp Chamber',
-  community: 'Social Galaxy',
-  messages: 'Communication Hub',
-  profile: 'Personal Starmap',
-  settings: 'Control Panel'
+  workouts: 'Training Universe',
+  progress: 'Progress Constellation',
+  gamification: 'Achievement Nebula',
+  account: 'My Account',
 };
 
 const sectionDescriptions: Record<string, string> = {
   overview: 'Your complete fitness command center',
   onboarding: 'Complete your profile to unlock personalized training',
-  workouts: 'Explore training programs and exercise galaxies',
-  videos: 'Discover personalized content in our stellar library',
-  progress: 'Track your transformation through the cosmos',
-  logs: 'Chronicle your fitness journey through space and time',
-  achievements: 'Celebrate your stellar accomplishments',
-  packages: 'Upgrade your galactic training experience',
   schedule: 'Navigate your training appointments through time',
-  community: 'Connect with fellow space travelers',
-  messages: 'Communicate across the galaxy',
-  profile: 'Your personal star chart and identity',
-  settings: 'Configure your galactic preferences'
+  workouts: 'Explore training programs and exercise galaxies',
+  progress: 'Track your transformation through the cosmos',
+  gamification: 'Celebrate your stellar accomplishments',
+  account: 'Session credits, profile, and account settings',
 };
 
 // === MAIN COMPONENT ===
 const RevolutionaryClientDashboard: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('overview');
+  // Apply tab migration on initial hydration (handles stale localStorage values)
+  const [activeSection, setActiveSection] = useState(() => {
+    try {
+      const stored = localStorage.getItem('clientDashboardTab');
+      return stored ? migrateTabId(stored) : 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   // Generate particles for background effect
   useEffect(() => {
     const generateParticles = () => {
@@ -310,21 +312,26 @@ const RevolutionaryClientDashboard: React.FC = () => {
       }));
       setParticles(newParticles);
     };
-    
+
     generateParticles();
     const interval = setInterval(generateParticles, 15000);
     return () => clearInterval(interval);
   }, []);
-  
-  // Handle section change
+
+  // Handle section change with migration
   const handleSectionChange = (sectionId: string) => {
-    setActiveSection(sectionId);
+    const migrated = migrateTabId(sectionId);
+    setActiveSection(migrated);
+    try {
+      localStorage.setItem('clientDashboardTab', migrated);
+    } catch { /* ignore storage errors */ }
   };
-  
-  // Get current section component and title
-  const CurrentSectionComponent = sectionComponents[activeSection as keyof typeof sectionComponents] || OverviewGalaxy;
-  const currentTitle = sectionTitles[activeSection as keyof typeof sectionTitles] || 'Galaxy Dashboard';
-  const currentDescription = sectionDescriptions[activeSection as keyof typeof sectionDescriptions] || 'Welcome to your cosmic fitness journey';
+
+  // Resolve section with fallback — prevents blank panels from unknown tab IDs
+  const resolvedSection = activeSection in sectionComponents ? activeSection : 'overview';
+  const CurrentSectionComponent = sectionComponents[resolvedSection];
+  const currentTitle = sectionTitles[resolvedSection] ?? 'Galaxy Dashboard';
+  const currentDescription = sectionDescriptions[resolvedSection] ?? 'Welcome to your cosmic fitness journey';
   
   return (
     <ThemeProvider theme={galaxyTheme}>

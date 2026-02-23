@@ -23,10 +23,13 @@ import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Star, Trophy, Shield, Target, Rocket, Zap,
-  TrendingUp, Activity, Award, Sparkles
+  Star, Trophy, Target, Rocket, Zap,
+  TrendingUp, Activity, Award, Sparkles,
+  Calendar, Package
 } from 'lucide-react';
 import { useEnhancedClientDashboard } from '../../hooks/useEnhancedClientDashboard';
+import { useSessionCredits } from '../UniversalMasterSchedule/hooks/useSessionCredits';
+import { useAuth } from '../../hooks/useAuth';
 import OnboardingStatusCard from './OnboardingStatusCard';
 
 // === KEYFRAMES ===
@@ -413,11 +416,23 @@ const EnhancedOverviewGalaxy: React.FC = () => {
   const {
     gamificationData,
     stats,
+    sessions,
     isLoading,
     error,
     isConnected,
     connectionStatus,
   } = useEnhancedClientDashboard();
+
+  const { user } = useAuth();
+  const isClient = user?.role === 'client';
+  const { data: credits } = useSessionCredits(isClient);
+  const sessionsRemaining = credits?.sessionsRemaining ?? 0;
+  const packageName = credits?.packageName ?? null;
+
+  // Find next upcoming session
+  const nextSession = sessions
+    ?.filter((s: any) => new Date(s.startTime) > new Date() && (s.status === 'booked' || s.status === 'confirmed'))
+    ?.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())?.[0] ?? null;
 
   const [isLevelUpAnimating, setIsLevelUpAnimating] = useState(false);
   const [particles, setParticles] = useState<Array<{ id: number; delay: number }>>([]);
@@ -549,7 +564,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             $isAnimating={isLevelUpAnimating}
           >
             <div className="progress-content">
-              <span className="level">Level {gamificationData?.level || 1}</span>
+              <span className="level">Level {gamificationData?.level ?? 1}</span>
               <div className="level-label">Stellar Warrior</div>
             </div>
           </ProgressOrb>
@@ -560,8 +575,8 @@ const EnhancedOverviewGalaxy: React.FC = () => {
           />
           
           <XpText>
-            <span className="xp-highlight">{gamificationData?.xp || 0}</span> / {' '}
-            <span>{(gamificationData?.xp || 0) + (gamificationData?.xpToNextLevel || 1000)}</span> XP to next level
+            <span className="xp-highlight">{gamificationData?.xp ?? 0}</span> / {' '}
+            <span>{(gamificationData?.xp ?? 0) + (gamificationData?.xpToNextLevel ?? 1000)}</span> XP to next level
           </XpText>
         </ProgressOrbContainer>
         
@@ -573,7 +588,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             <div className="stat-icon">
               <Activity size={24} color="#fff" />
             </div>
-            <span className="stat-value">{stats?.monthlyWorkouts || 24}</span>
+            <span className="stat-value">{stats?.monthlyWorkouts ?? 0}</span>
             <div className="stat-label">Workouts This Month</div>
           </StatCard>
           
@@ -584,7 +599,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             <div className="stat-icon">
               <Zap size={24} color="#fff" />
             </div>
-            <span className="stat-value">{gamificationData?.streak || 7}</span>
+            <span className="stat-value">{gamificationData?.streak ?? 0}</span>
             <div className="stat-label">Day Streak</div>
           </StatCard>
           
@@ -595,7 +610,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             <div className="stat-icon">
               <Trophy size={24} color="#fff" />
             </div>
-            <span className="stat-value">{gamificationData?.badges?.filter(b => b.isUnlocked).length || 12}</span>
+            <span className="stat-value">{gamificationData?.badges?.filter(b => b.isUnlocked).length ?? 0}</span>
             <div className="stat-label">Achievements</div>
           </StatCard>
           
@@ -606,7 +621,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             <div className="stat-icon">
               <TrendingUp size={24} color="#fff" />
             </div>
-            <span className="stat-value">{gamificationData?.totalXp?.toLocaleString() || '8.2k'}</span>
+            <span className="stat-value">{(gamificationData?.totalXp ?? 0).toLocaleString()}</span>
             <div className="stat-label">Total XP</div>
           </StatCard>
         </StatGrid>
@@ -614,6 +629,72 @@ const EnhancedOverviewGalaxy: React.FC = () => {
 
       {/* Phase 1.1 Onboarding Status Integration */}
       <OnboardingStatusCard />
+
+      {/* Next Session + Session Credits */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '1.5rem',
+        marginBottom: '2rem'
+      }}>
+        {/* Next Session Card */}
+        <SectionCard
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          style={{ marginBottom: 0 }}
+        >
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#00ffff', fontSize: '1.1rem', fontWeight: 600 }}>
+              <Calendar size={20} />
+              Next Session
+            </div>
+            {nextSession ? (
+              <div>
+                <div style={{ color: '#fff', fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                  {new Date(nextSession.startTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                </div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.95rem' }}>
+                  {new Date(nextSession.startTime).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.95rem' }}>
+                No upcoming sessions — book one from the Schedule tab!
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        {/* Session Credits Card */}
+        <SectionCard
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          style={{ marginBottom: 0 }}
+        >
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#ffd700', fontSize: '1.1rem', fontWeight: 600 }}>
+              <Package size={20} />
+              Session Credits
+            </div>
+            {packageName ? (
+              <div>
+                <div style={{ color: '#00ffff', fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                  {sessionsRemaining}
+                </div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>
+                  sessions remaining &middot; {packageName}
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.95rem' }}>
+                No active package — visit the store to get started.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+      </div>
 
       <AchievementsSection
         initial={{ opacity: 0, y: 20 }}
@@ -634,45 +715,42 @@ const EnhancedOverviewGalaxy: React.FC = () => {
         </div>
         
         <AnimatePresence>
-          {gamificationData?.badges?.filter(badge => badge.isUnlocked).slice(0, 3).map((badge, index) => (
-            <AchievementCard
-              key={badge.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              whileHover={{ scale: 1.02, x: 10 }}
+          {(gamificationData?.badges?.filter(badge => badge.isUnlocked) ?? []).length > 0 ? (
+            gamificationData!.badges!.filter(badge => badge.isUnlocked).slice(0, 3).map((badge, index) => (
+              <AchievementCard
+                key={badge.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02, x: 10 }}
+              >
+                <div className="achievement-icon">
+                  {badge.icon || <Award size={24} />}
+                </div>
+                <div className="achievement-content">
+                  <h4>{badge.name}</h4>
+                  <p>{badge.description}</p>
+                </div>
+              </AchievementCard>
+            ))
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{
+                textAlign: 'center',
+                padding: '2rem',
+                color: 'rgba(255, 255, 255, 0.6)',
+                background: 'rgba(255, 215, 0, 0.05)',
+                borderRadius: '12px',
+                border: '1px dashed rgba(255, 215, 0, 0.2)'
+              }}
             >
-              <div className="achievement-icon">
-                {badge.icon || <Award size={24} />}
-              </div>
-              <div className="achievement-content">
-                <h4>{badge.name}</h4>
-                <p>{badge.description}</p>
-              </div>
-            </AchievementCard>
-          )) || [
-            // Fallback achievements
-            { id: 'consistency', icon: <Shield size={24} />, title: 'Consistency Champion', desc: 'Completed 7 days in a row' },
-            { id: 'goal', icon: <Target size={24} />, title: 'Goal Crusher', desc: 'Hit weekly workout target' },
-            { id: 'pr', icon: <Rocket size={24} />, title: 'Personal Best', desc: 'New squat record!' }
-          ].map((achievement, index) => (
-            <AchievementCard
-              key={achievement.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              whileHover={{ scale: 1.02, x: 10 }}
-            >
-              <div className="achievement-icon">
-                {achievement.icon}
-              </div>
-              <div className="achievement-content">
-                <h4>{achievement.title}</h4>
-                <p>{achievement.desc}</p>
-              </div>
-            </AchievementCard>
-          ))}
+              <Award size={32} style={{ color: 'rgba(255, 215, 0, 0.4)', marginBottom: '0.5rem' }} />
+              <p style={{ margin: 0 }}>Complete workouts to unlock achievements</p>
+            </motion.div>
+          )}
         </AnimatePresence>
       </AchievementsSection>
     </OverviewContainer>
