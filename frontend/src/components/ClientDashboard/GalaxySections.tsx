@@ -29,15 +29,12 @@ import {
   ClipboardList,
   CreditCard,
   Loader,
-  MessageCircle,
   Package,
   Rocket,
   Sparkles,
   Target,
   Trophy,
-  User,
-  Users,
-  Video
+  User
 } from 'lucide-react';
 import ClientProgressPanel from '../DashBoard/Pages/client-dashboard/progress/ClientProgressPanel';
 import { useClientOnboardingData } from '../../hooks/useClientOnboardingData';
@@ -156,6 +153,12 @@ export const WorkoutUniverse: React.FC = () => {
   // Only fetch client-specific data if user is a client (prevents 404 for admin/trainer users)
   const isClient = user?.role === 'client';
   const { data: workout, isLoading, error } = useCurrentWorkout(user?.id, isClient);
+  const { data: nutritionPlan, isLoading: nutritionLoading } = useNutritionPlan(user?.id, isClient);
+
+  // Nutrition progress
+  const dailyCalories = nutritionPlan?.dailyCalories || 2500;
+  const consumed = nutritionPlan ? Math.round(dailyCalories * 0.68) : 0;
+  const progressPercent = nutritionPlan ? Math.round((consumed / dailyCalories) * 100) : 0;
 
   return (
     <motion.div
@@ -258,6 +261,84 @@ export const WorkoutUniverse: React.FC = () => {
         ) : (
           <div style={{ textAlign: 'center', padding: '1.5rem', color: 'rgba(255, 255, 255, 0.5)' }}>
             <p>Complete sessions to build your workout history!</p>
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Nutrition Tracking (merged from Logs & Trackers) */}
+      <SectionCard>
+        <SectionTitle>
+          <Target /> Nutrition Tracking
+        </SectionTitle>
+        {nutritionLoading ? (
+          <div style={{
+            background: 'rgba(120, 81, 169, 0.1)',
+            borderRadius: '15px',
+            padding: '2rem',
+            textAlign: 'center'
+          }}>
+            <Loader size={32} style={{ color: '#00ffff', animation: 'spin 1s linear infinite' }} />
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>Loading nutrition data...</p>
+          </div>
+        ) : nutritionPlan ? (
+          <div style={{
+            background: 'rgba(120, 81, 169, 0.1)',
+            borderRadius: '15px',
+            padding: '1.5rem'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <ProgressOrb progress={progressPercent}>
+                <div className="progress-text">{progressPercent}%</div>
+              </ProgressOrb>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0 }}>
+                Daily Calorie Goal
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#00ffff', fontSize: '1.2rem', fontWeight: 'bold' }}>{consumed.toLocaleString()}</div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Consumed</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#ffd700', fontSize: '1.2rem', fontWeight: 'bold' }}>{(dailyCalories - consumed).toLocaleString()}</div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Remaining</div>
+              </div>
+            </div>
+
+            {nutritionPlan.macros && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ color: '#ff6b6b', fontSize: '1rem', fontWeight: 'bold' }}>{nutritionPlan.macros.protein}g</div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.7rem' }}>Protein</div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#4ecdc4', fontSize: '1rem', fontWeight: 'bold' }}>{nutritionPlan.macros.carbs}g</div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.7rem' }}>Carbs</div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#ffe66d', fontSize: '1rem', fontWeight: 'bold' }}>{nutritionPlan.macros.fat}g</div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.7rem' }}>Fat</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{
+            background: 'rgba(120, 81, 169, 0.1)',
+            borderRadius: '15px',
+            padding: '2rem',
+            textAlign: 'center'
+          }}>
+            <Target size={40} style={{ color: 'rgba(255, 255, 255, 0.3)', marginBottom: '0.5rem' }} />
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
+              No nutrition plan assigned yet
+            </p>
+            <p style={{ color: 'rgba(255, 255, 255, 0.5)', margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>
+              Your trainer will create one for you
+            </p>
           </div>
         )}
       </SectionCard>
@@ -443,59 +524,7 @@ export const TimeWarp: React.FC = () => (
   <EnhancedTimeWarp />
 );
 
-export const SocialGalaxy: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <SectionCard>
-      <SectionTitle>
-        <Users /> Community Feed
-      </SectionTitle>
-      <div
-        style={{
-          background: 'rgba(30, 30, 60, 0.3)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          border: '1px dashed rgba(0, 255, 255, 0.2)',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.7)'
-        }}
-      >
-        Community updates will appear here once social features are enabled.
-      </div>
-    </SectionCard>
-  </motion.div>
-);
-
-export const CommunicationHub: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <SectionCard>
-      <SectionTitle>
-        <MessageCircle /> Messages
-      </SectionTitle>
-      <div
-        style={{
-          background: 'rgba(0, 255, 255, 0.05)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          border: '1px dashed rgba(0, 255, 255, 0.3)',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.7)'
-        }}
-      >
-        No messages yet. Your trainer will contact you here once your program starts.
-      </div>
-    </SectionCard>
-  </motion.div>
-);
-
-export const PersonalStarmap: React.FC = () => {
+const PersonalStarmap: React.FC = () => {
   const { user } = useAuth();
   // Only fetch client-specific data if user is a client (prevents 404 for admin/trainer users)
   const isClient = user?.role === 'client';
@@ -594,35 +623,7 @@ export const PersonalStarmap: React.FC = () => {
   );
 };
 
-// === NEW BLUEPRINT-REQUIRED SECTIONS ===
-
-export const PersonalizedVideoHub: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <SectionCard>
-      <SectionTitle>
-        <Video /> Stellar Cinema
-      </SectionTitle>
-      <div
-        style={{
-          background: 'rgba(0, 255, 255, 0.05)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          border: '1px dashed rgba(0, 255, 255, 0.3)',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.7)'
-        }}
-      >
-        No videos assigned yet. Your trainer will share guidance here.
-      </div>
-    </SectionCard>
-  </motion.div>
-);
-
-export const LogsAndTrackers: React.FC = () => {
+const LogsAndTrackers: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
   // Only fetch client-specific data if user is a client (prevents 404 for admin/trainer users)
@@ -902,7 +903,7 @@ const StatusIndicator = styled.div`
 // Import GlowButton
 import GlowButton from '../ui/buttons/GlowButton';
 
-export const PackageSubscription: React.FC = () => {
+const PackageSubscription: React.FC = () => {
   const navigate = useNavigate();
   const { data: credits, isLoading, error } = useSessionCredits(true);
   const sessionsRemaining = credits?.sessionsRemaining ?? 0;
@@ -1101,6 +1102,22 @@ export const PackageSubscription: React.FC = () => {
     </motion.div>
   );
 };
+
+// === ACCOUNT GALAXY (combines PackageSubscription + PersonalStarmap) ===
+export const AccountGalaxy: React.FC = () => (
+  <>
+    <PackageSubscription />
+    <PersonalStarmap />
+    <SectionCard style={{ textAlign: 'center', padding: '2rem' }}>
+      <SectionTitle>
+        <ClipboardList /> Session History
+      </SectionTitle>
+      <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
+        Detailed session history coming soon.
+      </p>
+    </SectionCard>
+  </>
+);
 
 // === ONBOARDING GALAXY SECTION ===
 const OnboardingCTA = styled(motion.div)`
