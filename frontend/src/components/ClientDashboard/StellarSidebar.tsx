@@ -201,7 +201,7 @@ const StellarSidebar: React.FC<StellarSidebarProps> = ({
                   const isActive = activeSection === item.id;
                   const statusConfig = item.status ? navStatusMeta[item.status] : null;
                   const StatusIcon = statusConfig?.Icon;
-                  const tooltipLabel = statusConfig
+                  const tooltipLabel = (import.meta.env.DEV && statusConfig)
                     ? `${item.label} (${statusConfig.label})`
                     : item.label;
 
@@ -223,7 +223,7 @@ const StellarSidebar: React.FC<StellarSidebarProps> = ({
                       </div>
                       <span className="nav-text">{item.label}</span>
                       <div className="nav-meta">
-                        {item.status && statusConfig && StatusIcon && (
+                        {import.meta.env.DEV && item.status && statusConfig && StatusIcon && (
                           <NavStatusBadge
                             status={item.status}
                             isCollapsed={isMobile ? !isMobileOpen : isCollapsed}

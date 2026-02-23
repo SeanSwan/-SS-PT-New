@@ -907,13 +907,16 @@ const PackageSubscription: React.FC = () => {
   const navigate = useNavigate();
   const { data: credits, isLoading, error } = useSessionCredits(true);
   const sessionsRemaining = credits?.sessionsRemaining ?? 0;
-  const packageName = credits?.packageName || 'No Active Package';
+  const rawPackageName = credits?.packageName ?? null;
+  // Show meaningful title: real package name > "Session Credits" (has credits) > "No Active Package"
+  const packageName = rawPackageName || (sessionsRemaining > 0 ? 'Session Credits' : 'No Active Package');
   const expiresAt = credits?.expiresAt ? new Date(credits.expiresAt) : null;
   const hasValidExpiry = expiresAt && !Number.isNaN(expiresAt.getTime());
   const daysRemaining = hasValidExpiry
     ? Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 86400000))
     : null;
-  const statusLabel = sessionsRemaining > 0 ? 'ACTIVE' : 'NO ACTIVE PACKAGE';
+  const hasActiveCredits = sessionsRemaining > 0;
+  const statusLabel = hasActiveCredits ? 'ACTIVE' : 'NO PACKAGE';
 
   return (
     <motion.div
@@ -959,8 +962,8 @@ const PackageSubscription: React.FC = () => {
                   fontSize: '1.1rem'
                 }}
               >
-                {sessionsRemaining > 0
-                  ? 'Credits ready for booking sessions.'
+                {hasActiveCredits
+                  ? `${sessionsRemaining} session${sessionsRemaining !== 1 ? 's' : ''} ready for booking.`
                   : 'No active package yet. Visit the store to get started.'}
               </p>
             </div>
