@@ -504,7 +504,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             border: '1px solid rgba(255, 107, 107, 0.3)'
           }}>
             <p style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0' }}>
-              📡 Connection Status: <strong>{connectionStatus}</strong>
+              Connection Status: <strong>{connectionStatus}</strong>
             </p>
             <p style={{ fontSize: '0.8rem', margin: 0, color: 'rgba(255, 255, 255, 0.7)' }}>
               The dashboard is running in {isConnected ? 'real-time' : 'polling'} mode.
@@ -548,7 +548,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
         ))}
       </ParticleField>
 
-      {/* Onboarding Status — shown first so new users take action */}
+      {/* Onboarding Status - shown first so new users take action */}
       <OnboardingStatusCard />
 
       <SectionCard>
@@ -683,7 +683,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
               </div>
             ) : (
               <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.95rem' }}>
-                No upcoming sessions —{' '}
+                No upcoming sessions &mdash;{' '}
                 <button
                   onClick={() => goToTab('schedule')}
                   style={{ background: 'none', border: 'none', color: '#00ffff', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0, fontFamily: 'inherit' }}
@@ -718,7 +718,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
               </div>
             ) : (
               <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.95rem' }}>
-                No active package —{' '}
+                No active package &mdash;{' '}
                 <button
                   onClick={() => navigate('/store')}
                   style={{ background: 'none', border: 'none', color: '#ffd700', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0, fontFamily: 'inherit' }}
@@ -762,7 +762,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
                     <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>{w.name}</div>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>
                       {new Date(w.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      {w.duration ? ` · ${w.duration}` : ''}
+                      {w.duration ? ` \u00B7 ${w.duration}` : ''}
                     </div>
                   </div>
                   {w.exercises != null && (
