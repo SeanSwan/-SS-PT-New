@@ -582,7 +582,7 @@ const AdminPackagesView: React.FC = () => {
 
         // Calculate stats
         const activePackagesCount = response.data.items.filter((pkg: SessionPackage) => pkg.isActive).length;
-        const totalPrices = response.data.items.reduce((sum: number, pkg: SessionPackage) => sum + (pkg.price || 0), 0);
+        const totalPrices = response.data.items.reduce((sum: number, pkg: SessionPackage) => sum + (Number(pkg.price) || 0), 0);
         const avgPrice = response.data.items.length > 0 ? Math.round(totalPrices / response.data.items.length) : 0;
 
         setStatsData({
@@ -679,7 +679,7 @@ const AdminPackagesView: React.FC = () => {
 
   // Format currency for display
   const formatCurrency = (value: number | null | undefined): string => {
-    if (value === null || value === undefined) return '$0';
+    if (value === null || value === undefined || isNaN(value)) return '$0';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
   };
 

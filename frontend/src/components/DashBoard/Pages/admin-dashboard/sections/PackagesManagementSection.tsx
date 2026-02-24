@@ -655,7 +655,7 @@ const PackagesManagementSection: React.FC = () => {
     const activePackages = packagesData.filter(p => p.isActive).length;
     const totalRevenue = packagesData.reduce((sum, p) => sum + p.metrics.revenue, 0);
     const totalSubscriptions = packagesData.reduce((sum, p) => sum + p.metrics.activeSubscriptions, 0);
-    const averagePrice = packagesData.reduce((sum, p) => sum + p.price, 0) / totalPackages || 0;
+    const averagePrice = totalPackages > 0 ? packagesData.reduce((sum, p) => sum + (Number(p.price) || 0), 0) / totalPackages : 0;
     
     setStats({
       totalPackages,
