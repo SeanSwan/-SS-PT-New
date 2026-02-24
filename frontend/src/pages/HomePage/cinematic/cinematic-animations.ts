@@ -176,6 +176,96 @@ export const heroTextItem = (intensity: MotionIntensity): Variants => ({
   },
 });
 
+// ─── Radial Scale In (Nebula Crown) ─────────────────────────────────
+
+export const radialScaleIn = (intensity: MotionIntensity): Variants => ({
+  hidden: {
+    opacity: 0,
+    scale: 0.6 + (0.3 * (1 - INTENSITY_SCALE[intensity])),
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: INTENSITY_DURATION[intensity] * 1.5,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+});
+
+// ─── Diagonal Slash In (Ember Realm) ────────────────────────────────
+
+export const diagonalSlashIn = (intensity: MotionIntensity): Variants => ({
+  hidden: {
+    opacity: 0,
+    x: -40 * INTENSITY_SCALE[intensity],
+    y: 30 * INTENSITY_SCALE[intensity],
+    rotate: -3 * INTENSITY_SCALE[intensity],
+  },
+  visible: {
+    opacity: 1,
+    x: 0,
+    y: 0,
+    rotate: 0,
+    transition: weightedTransition(intensity, {
+      duration: 0.5,
+    }),
+  },
+});
+
+// ─── Float Up (Twilight Lagoon — organic rise) ──────────────────────
+
+export const floatUpVariants = (intensity: MotionIntensity): Variants => ({
+  hidden: {
+    opacity: 0,
+    y: 60 * INTENSITY_SCALE[intensity],
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: INTENSITY_DURATION[intensity] * 1.3,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+});
+
+// ─── Drift In (Obsidian Bloom — slow editorial) ────────────────────
+
+export const driftInVariants = (intensity: MotionIntensity): Variants => ({
+  hidden: {
+    opacity: 0,
+    y: 20 * INTENSITY_SCALE[intensity],
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: INTENSITY_DURATION[intensity] * 1.8,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+});
+
+// ─── Ice Crack Reveal (Frozen Canopy) ──────────────────────────────
+
+export const iceCrackReveal = (intensity: MotionIntensity): Variants => ({
+  hidden: {
+    opacity: 0,
+    scale: 1.05,
+    filter: intensity === 'low' ? 'none' : 'blur(8px)',
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: {
+      duration: INTENSITY_DURATION[intensity] * 1.4,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+});
+
 // ─── Viewport Settings ──────────────────────────────────────────────
 
 export const defaultViewport = {
