@@ -1,7 +1,7 @@
 /**
  * HomepageDesignLab.tsx — Admin preview page for cinematic homepage variants.
  *
- * Renders all 3 variants in a chromeless full-viewport portal overlay.
+ * Renders 5 unique cinematic homepage designs in a chromeless full-viewport portal.
  * Uses ReactDOM.createPortal to escape WorkspaceContainer's animated DOM tree.
  * Selection state is ephemeral (component state only, no backend persistence).
  */
@@ -10,16 +10,18 @@ import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, X, Star, Zap, Feather, ArrowRight } from 'lucide-react';
+import { Eye, X, Star, Feather, ArrowRight, Flame, Droplets, Crown } from 'lucide-react';
 
-// Lazy-load variants to avoid shipping all 3 in the admin chunk
-const VariantA = lazy(() => import('../../../../pages/HomePage/cinematic/variants/VariantA'));
-const VariantB = lazy(() => import('../../../../pages/HomePage/cinematic/variants/VariantB'));
-const VariantC = lazy(() => import('../../../../pages/HomePage/cinematic/variants/VariantC'));
+// Lazy-load variants to keep admin chunk light
+const ObsidianBloom = lazy(() => import('../../../../pages/HomePage/cinematic/variants/ObsidianBloom'));
+const FrozenCanopy = lazy(() => import('../../../../pages/HomePage/cinematic/variants/FrozenCanopy'));
+const EmberRealm = lazy(() => import('../../../../pages/HomePage/cinematic/variants/EmberRealm'));
+const TwilightLagoon = lazy(() => import('../../../../pages/HomePage/cinematic/variants/TwilightLagoon'));
+const NebulaCrown = lazy(() => import('../../../../pages/HomePage/cinematic/variants/NebulaCrown'));
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-type VariantId = 'A' | 'B' | 'C';
+type VariantId = 'obsidian-bloom' | 'frozen-canopy' | 'ember-realm' | 'twilight-lagoon' | 'nebula-crown';
 
 interface VariantMeta {
   id: VariantId;
@@ -29,35 +31,59 @@ interface VariantMeta {
   icon: React.FC<{ size?: number }>;
   recommended: boolean;
   component: React.LazyExoticComponent<React.FC>;
+  accentColor: string;
 }
 
 const VARIANTS: VariantMeta[] = [
   {
-    id: 'A',
-    name: 'Enchanted Apex',
-    preset: 'Preset F',
-    description: 'Warm enchanted forest, bioluminescent particles, gold-leaf UI, high fantasy energy.',
-    icon: Star,
-    recommended: false,
-    component: VariantA,
-  },
-  {
-    id: 'B',
-    name: 'Crystalline Swan',
-    preset: 'Preset F-Alt',
-    description: 'Frozen enchanted forest, aurora borealis, sapphire glass. Brand-exact match to SwanStudios logo palette.',
+    id: 'obsidian-bloom',
+    name: 'Obsidian Bloom',
+    preset: 'Dark Gothic Garden',
+    description: 'Dark botanical garden at midnight. Oversized serif text, rose-tinted fog, floating petals, sharp editorial cards. Like a dark luxury magazine.',
     icon: Feather,
-    recommended: true,
-    component: VariantB,
+    recommended: false,
+    component: ObsidianBloom,
+    accentColor: '#8B1A4A',
   },
   {
-    id: 'C',
-    name: 'Hybrid Editorial',
-    preset: 'F-Alt + Low Motion',
-    description: 'Crystalline Swan palette with editorial restraint, fewer particles, sharper hierarchy, premium professional feel.',
-    icon: Zap,
+    id: 'frozen-canopy',
+    name: 'Frozen Canopy',
+    preset: 'Arctic Enchanted Forest',
+    description: 'Aurora borealis gradient, falling ice crystals, frosted glass cards with thick blur. Horizontal scroll carousel. Like walking through an ice palace.',
+    icon: Star,
+    recommended: true,
+    component: FrozenCanopy,
+    accentColor: '#60C0F0',
+  },
+  {
+    id: 'ember-realm',
+    name: 'Ember Realm',
+    preset: 'Warrior Forge',
+    description: 'Rising ember particles, fire glow shimmer, bold 800-weight condensed type. Diagonal section dividers, masonry grids. Bold, powerful, unapologetically intense.',
+    icon: Flame,
     recommended: false,
-    component: VariantC,
+    component: EmberRealm,
+    accentColor: '#FF6B2C',
+  },
+  {
+    id: 'twilight-lagoon',
+    name: 'Twilight Lagoon',
+    preset: 'Bioluminescent Depths',
+    description: 'Floating bioluminescent orbs, wave-shaped SVG dividers, gradient text teal→cyan→gold. Pill-shaped cards, bubble stats. Calming yet awe-inspiring.',
+    icon: Droplets,
+    recommended: false,
+    component: TwilightLagoon,
+    accentColor: '#00FFB2',
+  },
+  {
+    id: 'nebula-crown',
+    name: 'Nebula Crown',
+    preset: 'Cosmic Throne',
+    description: 'Twinkling star field, slow-rotating nebula gradient, radial spotlight. Ultra-wide letter-spacing. Centered theatrical layout. Grand, cosmic, transcendent.',
+    icon: Crown,
+    recommended: false,
+    component: NebulaCrown,
+    accentColor: '#9333EA',
   },
 ];
 
@@ -90,53 +116,57 @@ const VariantGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const VariantCard = styled(motion.div)<{ $active: boolean; $recommended: boolean }>`
+const VariantCard = styled(motion.div)<{ $active: boolean; $recommended: boolean; $accent: string }>`
   position: relative;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(10px);
-  border: 2px solid ${({ $active, $recommended }) =>
-    $active ? '#C6A84B' : $recommended ? 'rgba(96, 192, 240, 0.4)' : 'rgba(255, 255, 255, 0.08)'};
+  border: 2px solid ${({ $active, $recommended, $accent }) =>
+    $active ? '#C6A84B' : $recommended ? `${$accent}60` : 'rgba(255, 255, 255, 0.08)'};
   border-radius: 1.5rem;
   padding: 1.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: ${({ $active }) => ($active ? '#C6A84B' : 'rgba(255, 255, 255, 0.2)')};
+    border-color: ${({ $active, $accent }) => ($active ? '#C6A84B' : `${$accent}40`)};
     background: rgba(255, 255, 255, 0.06);
   }
 `;
 
-const RecommendedBadge = styled.div`
+const RecommendedBadge = styled.div<{ $accent: string }>`
   position: absolute;
   top: -10px;
   right: 1rem;
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
-  background: linear-gradient(135deg, #C6A84B, #60C0F0);
-  color: #002060;
+  background: linear-gradient(135deg, #C6A84B, ${({ $accent }) => $accent});
+  color: #000;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 `;
 
-const CardIcon = styled.div<{ $active: boolean }>`
+const CardIcon = styled.div<{ $active: boolean; $accent: string }>`
   width: 48px;
   height: 48px;
   border-radius: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${({ $active }) => ($active ? 'rgba(198, 168, 75, 0.15)' : 'rgba(255, 255, 255, 0.05)')};
-  color: ${({ $active }) => ($active ? '#C6A84B' : 'rgba(255, 255, 255, 0.5)')};
+  background: ${({ $active, $accent }) => ($active ? `${$accent}20` : 'rgba(255, 255, 255, 0.05)')};
+  color: ${({ $active, $accent }) => ($active ? $accent : 'rgba(255, 255, 255, 0.5)')};
   margin-bottom: 1rem;
 `;
 
@@ -155,13 +185,13 @@ const CardPreset = styled.span`
 `;
 
 const CardDesc = styled.p`
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   line-height: 1.6;
   margin: 0.75rem 0 0;
 `;
 
-const PreviewButton = styled.button<{ $active: boolean }>`
+const PreviewButton = styled.button<{ $active: boolean; $accent: string }>`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -169,9 +199,9 @@ const PreviewButton = styled.button<{ $active: boolean }>`
   padding: 0.625rem 1.25rem;
   border-radius: 1rem;
   border: none;
-  background: ${({ $active }) =>
-    $active ? 'linear-gradient(135deg, #C6A84B, #60C0F0)' : 'rgba(255, 255, 255, 0.08)'};
-  color: ${({ $active }) => ($active ? '#002060' : 'rgba(255, 255, 255, 0.7)')};
+  background: ${({ $active, $accent }) =>
+    $active ? `linear-gradient(135deg, #C6A84B, ${$accent})` : 'rgba(255, 255, 255, 0.08)'};
+  color: ${({ $active }) => ($active ? '#000' : 'rgba(255, 255, 255, 0.7)')};
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
@@ -179,8 +209,8 @@ const PreviewButton = styled.button<{ $active: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${({ $active }) =>
-      $active ? 'linear-gradient(135deg, #C6A84B, #60C0F0)' : 'rgba(255, 255, 255, 0.12)'};
+    background: ${({ $active, $accent }) =>
+      $active ? `linear-gradient(135deg, #C6A84B, ${$accent})` : 'rgba(255, 255, 255, 0.12)'};
   }
 `;
 
@@ -241,7 +271,7 @@ const LoadingFallback = styled.div`
 // ─── Component ───────────────────────────────────────────────────────
 
 const HomepageDesignLab: React.FC = () => {
-  const [selectedVariant, setSelectedVariant] = useState<VariantId>('B');
+  const [selectedVariant, setSelectedVariant] = useState<VariantId>('frozen-canopy');
   const [previewVariant, setPreviewVariant] = useState<VariantId | null>(null);
 
   const openPreview = useCallback((id: VariantId) => {
@@ -261,9 +291,9 @@ const HomepageDesignLab: React.FC = () => {
       <Header>
         <Title>Homepage Design Lab</Title>
         <Subtitle>
-          Preview and compare 3 cinematic homepage redesign variants. Click "Preview" to see
-          a full-viewport render. Selection is for review only — the cutover to production
-          requires a separate approval step.
+          Preview and compare 5 unique cinematic homepage designs. Each has its own visual identity,
+          particle effects, layout patterns, and typography treatment. Click "Preview" to see a
+          full-viewport render.
         </Subtitle>
       </Header>
 
@@ -276,12 +306,13 @@ const HomepageDesignLab: React.FC = () => {
               key={variant.id}
               $active={isSelected}
               $recommended={variant.recommended}
+              $accent={variant.accentColor}
               onClick={() => setSelectedVariant(variant.id)}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
-              {variant.recommended && <RecommendedBadge>Recommended</RecommendedBadge>}
-              <CardIcon $active={isSelected}>
+              {variant.recommended && <RecommendedBadge $accent={variant.accentColor}>Recommended</RecommendedBadge>}
+              <CardIcon $active={isSelected} $accent={variant.accentColor}>
                 <Icon size={24} />
               </CardIcon>
               <CardName>{variant.name}</CardName>
@@ -289,6 +320,7 @@ const HomepageDesignLab: React.FC = () => {
               <CardDesc>{variant.description}</CardDesc>
               <PreviewButton
                 $active={isSelected}
+                $accent={variant.accentColor}
                 onClick={(e) => {
                   e.stopPropagation();
                   openPreview(variant.id);
@@ -305,9 +337,9 @@ const HomepageDesignLab: React.FC = () => {
 
       <InfoBox>
         <strong>How this works:</strong> Each variant uses the same content (text, CTAs, sections)
-        but different color palettes, motion intensities, and surface styles. Variant B (Crystalline
-        Swan) is recommended as it matches the SwanStudios brand palette most closely. The final
-        cutover to production will be done in a separate step after your approval.
+        but completely different visual identities — unique palettes, particle effects, section layouts,
+        card shapes, and typography treatments. All stay within the Preset F enchanted family with gold
+        accent constant. The final cutover to production will be done after your approval.
       </InfoBox>
 
       {/* Chromeless Portal Preview */}
