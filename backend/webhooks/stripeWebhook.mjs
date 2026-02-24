@@ -97,6 +97,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         // Process any necessary follow-up actions (e.g., provision digital products, etc.)
         await processCompletedOrder(cartId);
 
+        // Backfill stripeCustomerId (write-if-empty rule)
+        if (session.customer && cart.userId) {
+          try {
+            const webhookUser = await User.findByPk(cart.userId);
+            if (webhookUser && !webhookUser.stripeCustomerId) {
+              await webhookUser.update({ stripeCustomerId: session.customer });
+              logger.info(`[Webhook] Backfilled stripeCustomerId for user ${cart.userId}`);
+            }
+          } catch (backfillErr) {
+            logger.warn(`[Webhook] stripeCustomerId backfill failed: ${backfillErr.message}`);
+          }
+        }
+
         logger.info(`Order completed for cart ID: ${cartId} (via webhook)`);
         console.log(`✅ [Webhook] Sessions granted via webhook (idempotency flag set)`);
         break;

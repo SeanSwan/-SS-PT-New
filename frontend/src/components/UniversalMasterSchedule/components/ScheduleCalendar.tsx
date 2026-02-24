@@ -246,6 +246,27 @@ const CalendarContainer = styled.div`
     border-radius: 8px;
   }
 
+  @media (max-width: 430px) {
+    margin: 0 0.25rem 0.25rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+  }
+
+  @media (max-width: 375px) {
+    margin: 0;
+    padding: 0.5rem 0.375rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  @media (max-width: 320px) {
+    margin: 0;
+    padding: 0.375rem 0.25rem;
+    border-radius: 0;
+    border: none;
+  }
+
   /* Large-screen scaling */
   @media (min-width: 2560px) {
     margin: 0 2.5rem 2.5rem;

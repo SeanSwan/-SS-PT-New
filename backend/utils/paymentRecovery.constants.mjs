@@ -5,7 +5,7 @@
  */
 
 // ── Payment method constants ────────────────────────────────────
-export const VALID_PAYMENT_METHODS = ['cash', 'venmo', 'zelle', 'check'];
+export const VALID_PAYMENT_METHODS = ['cash', 'venmo', 'zelle', 'check', 'stripe'];
 export const METHODS_REQUIRING_REFERENCE = ['venmo', 'zelle', 'check'];
 
 // ── Field length limits ─────────────────────────────────────────
@@ -37,7 +37,12 @@ export const ERROR_CODE_MAP = {
   INVALID_CLIENT_ID: 422,
   INVALID_STOREFRONT_ITEM_ID: 422,
   MODELS_UNAVAILABLE: 503,
-  INTERNAL_ERROR: 500
+  INTERNAL_ERROR: 500,
+  STRIPE_CHARGE_FAILED: 422,
+  STRIPE_NO_PAYMENT_METHODS: 422,
+  STRIPE_CUSTOMER_NOT_FOUND: 404,
+  STRIPE_OWNERSHIP_MISMATCH: 403,
+  STRIPE_REFUND_FAILED: 500
 };
 
 // ── Control character regexes ───────────────────────────────────
