@@ -204,19 +204,15 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     let stripeCustomer = null;
     const user = cart.user;
     
-    // TODO: Uncomment after migration adds stripeCustomerId column
-    // if (user.stripeCustomerId) {
-    //   try {
-    //     stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
-    //     console.log('👤 [v2 Payment] Using existing Stripe customer:', user.stripeCustomerId);
-    //   } catch (error) {
-    //     logger.warn('[v2 Payment] Existing Stripe customer not found, creating new one');
-    //     stripeCustomer = null;
-    //   }
-    // }
-    
-    // TEMPORARY: Always create new customer until migration is complete
-    console.log('⚠️ [v2 Payment] Creating new customer (stripeCustomerId not yet available)');
+    if (user.stripeCustomerId) {
+      try {
+        stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
+        console.log('👤 [v2 Payment] Using existing Stripe customer:', user.stripeCustomerId);
+      } catch (error) {
+        logger.warn('[v2 Payment] Existing Stripe customer not found, creating new one');
+        stripeCustomer = null;
+      }
+    }
 
     if (!stripeCustomer) {
       stripeCustomer = await stripe.customers.create({
@@ -229,17 +225,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         }
       });
 
-      // Update user with Stripe Customer ID for admin dashboard
-      // TODO: Uncomment after migration adds stripeCustomerId column
+      // Update user with Stripe Customer ID (write-if-empty rule)
       await user.update({
-        // stripeCustomerId: stripeCustomer.id, // TODO: Enable after migration
-        // Update customer info if provided
+        ...(!user.stripeCustomerId ? { stripeCustomerId: stripeCustomer.id } : {}),
         ...(customerInfo?.email && { email: customerInfo.email }),
         ...(customerInfo?.phone && { phone: customerInfo.phone })
       });
-      
-      // TEMPORARY: Log the Stripe customer ID for manual tracking
-      console.log('⚠️ [v2 Payment] Stripe Customer ID created but not stored:', stripeCustomer.id);
 
       console.log('✅ [v2 Payment] Created new Stripe customer:', stripeCustomer.id);
     }

@@ -63,7 +63,7 @@ interface LastPackageInfo {
   orderId: number;
 }
 
-type PaymentMethod = 'cash' | 'venmo' | 'zelle' | 'check';
+type PaymentMethod = 'stripe' | 'cash' | 'venmo' | 'zelle' | 'check';
 type ModalMode = 'manual' | 'package';
 
 interface ApplyPaymentModalProps {
@@ -74,11 +74,48 @@ interface ApplyPaymentModalProps {
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: 'stripe', label: 'Card on File' },
   { value: 'cash', label: 'Cash' },
   { value: 'venmo', label: 'Venmo' },
   { value: 'zelle', label: 'Zelle' },
   { value: 'check', label: 'Check' },
 ];
+
+interface SavedCard {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
+const PAYMENT_METHOD_CONFIG: Record<string, {
+  placeholder: string;
+  label: string;
+  validation?: RegExp;
+  validationMsg?: string;
+  instructions?: string;
+}> = {
+  venmo: {
+    placeholder: '@username',
+    label: 'Venmo Handle',
+    validation: /^@\w{1,50}$/,
+    validationMsg: 'Venmo handle must start with @ (e.g., @username)',
+    instructions: 'Confirm you have received the Venmo payment before applying.'
+  },
+  zelle: {
+    placeholder: 'email@example.com or phone number',
+    label: 'Zelle Email/Phone',
+    validation: /^([^\s@]+@[^\s@]+\.[^\s@]+|\+?\d{10,15})$/,
+    validationMsg: 'Enter a valid email address or phone number',
+    instructions: 'Confirm you have received the Zelle payment before applying.'
+  },
+  check: {
+    placeholder: 'Check #1234',
+    label: 'Check Number',
+    instructions: 'Enter the check number for record-keeping.'
+  }
+};
 
 const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   open,
@@ -121,6 +158,16 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   const [paymentReference, setPaymentReference] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [packagesLoading, setPackagesLoading] = useState(false);
+
+  // Stripe card-on-file state
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardsLoading, setCardsLoading] = useState(false);
+  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
+  const [attachingTestCard, setAttachingTestCard] = useState(false);
+
+  // Venmo/Zelle confirmation gate
+  const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
 
   const getToken = () => localStorage.getItem('token');
 
@@ -203,6 +250,29 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     }
   }, [packages]);
 
+  const fetchSavedCards = useCallback(async (clientId: number) => {
+    setCardsLoading(true);
+    setSavedCards([]);
+    setSelectedCardId(null);
+    setHasStripeCustomer(false);
+    try {
+      const token = getToken();
+      if (!token) return;
+      const response = await fetch(`/api/admin/charge-card/payment-methods/${clientId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setSavedCards(result.paymentMethods || []);
+        setHasStripeCustomer(result.hasStripeCustomer || false);
+      }
+    } catch (err) {
+      console.error('Error fetching saved cards:', err);
+    } finally {
+      setCardsLoading(false);
+    }
+  }, []);
+
   // Initialize on open
   useEffect(() => {
     if (open) {
@@ -218,10 +288,14 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       setDuplicateWindowMessage('');
       setSelectedPackageId(null);
       setLastPackage(null);
-      setPaymentMethod('cash');
+      setPaymentMethod('stripe');
       setPaymentReference('');
       setAdminNotes('');
       setModalMode('package');
+      setSavedCards([]);
+      setSelectedCardId(null);
+      setHasStripeCustomer(false);
+      setShowPaymentConfirmation(false);
       resetIdempotencyToken();
     }
   }, [open, fetchClientsNeedingPayment, fetchPackages]);
@@ -233,16 +307,19 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       if (match) {
         setSelectedClient(match);
         fetchLastPackage(match.id, packages);
+        fetchSavedCards(match.id);
       }
     }
   }, [preselectedClientId, clients, packages, fetchLastPackage]);
 
-  // Fetch last package when client is manually selected
+  // Fetch last package and saved cards when client is manually selected
   const handleSelectClient = (client: ClientNeedingPayment) => {
     setSelectedClient(client);
     setSelectedPackageId(null);
     setLastPackage(null);
+    setShowPaymentConfirmation(false);
     fetchLastPackage(client.id, packages);
+    fetchSavedCards(client.id);
   };
 
   // Manual credit apply (legacy mode)
@@ -372,7 +449,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     }
   };
 
-  // Force override handler — called from the override prompt
+  // Force override handler — called from the override prompt (works for all methods)
   const handleForceOverride = () => {
     if (forceReason.trim().length < 10) {
       setError('Force reason must be at least 10 characters.');
@@ -380,7 +457,113 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     }
     setShowForceOverride(false);
     setDuplicateWindowMessage('');
-    handleApplyPackage({ force: true, forceReason: forceReason.trim() });
+    if (paymentMethod === 'stripe') {
+      handleChargeCard({ force: true, forceReason: forceReason.trim() });
+    } else {
+      handleApplyPackage({ force: true, forceReason: forceReason.trim() });
+    }
+  };
+
+  // Stripe card-on-file charge handler
+  const handleChargeCard = async (forceOverride?: { force: boolean; forceReason: string }) => {
+    if (!selectedClient) { setError('Please select a client.'); return; }
+    if (!selectedPackageId) { setError('Please select a package.'); return; }
+    if (!selectedCardId) { setError('Please select a card.'); return; }
+
+    setApplying(true);
+    setError(null);
+    setSuccess(null);
+    setDuplicateInfo(null);
+
+    try {
+      const authToken = getToken();
+      if (!authToken) { setError('Please log in.'); return; }
+
+      const effectiveToken = forceOverride?.force ? generateUUID() : idempotencyToken;
+
+      const payload: Record<string, unknown> = {
+        clientId: selectedClient.id,
+        storefrontItemId: selectedPackageId,
+        paymentMethodId: selectedCardId,
+        idempotencyToken: effectiveToken
+      };
+
+      if (forceOverride?.force) {
+        payload.force = true;
+        payload.forceReason = forceOverride.forceReason;
+      }
+
+      const response = await fetch('/api/admin/charge-card/charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      // Handle 409 — duplicate detection (same flow as other methods)
+      if (response.status === 409) {
+        const code = result?.code;
+        if (code === 'DUPLICATE_PAYMENT_WINDOW') {
+          setDuplicateWindowMessage(result?.error || 'A similar payment was recently applied for this client and package.');
+          setShowForceOverride(true);
+        } else {
+          setError(result?.error || 'A duplicate payment was detected.');
+        }
+        return;
+      }
+
+      if (!response.ok || !result?.success) {
+        setError(result?.error || 'Card charge failed.');
+        return;
+      }
+
+      setSuccess(
+        `Charged $${result.chargedAmount?.toFixed(2)} to ${result.paymentMethodBrand} ****${result.paymentMethodLast4}. ` +
+        `Added ${result.sessionsAdded} sessions to ${selectedClient.name}. New balance: ${result.newBalance}`
+      );
+      resetForm();
+      resetIdempotencyToken();
+      fetchClientsNeedingPayment();
+      onApplied?.();
+    } catch (err) {
+      console.error('Error charging card:', err);
+      setError('Failed to charge card. Please try again.');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  // Attach test card handler
+  const handleAttachTestCard = async () => {
+    if (!selectedClient) return;
+    setAttachingTestCard(true);
+    setError(null);
+
+    try {
+      const authToken = getToken();
+      if (!authToken) { setError('Please log in.'); return; }
+
+      const response = await fetch('/api/admin/charge-card/test-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ clientId: selectedClient.id })
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        setError(result?.error || 'Failed to attach test card.');
+        return;
+      }
+
+      // Refetch saved cards
+      await fetchSavedCards(selectedClient.id);
+    } catch (err) {
+      console.error('Error attaching test card:', err);
+      setError('Failed to attach test card.');
+    } finally {
+      setAttachingTestCard(false);
+    }
   };
 
   const handleProcessDeductions = async () => {
@@ -426,6 +609,10 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setShowForceOverride(false);
     setForceReason('');
     setDuplicateWindowMessage('');
+    setSelectedCardId(null);
+    setSavedCards([]);
+    setHasStripeCustomer(false);
+    setShowPaymentConfirmation(false);
     resetIdempotencyToken();
   };
 
@@ -454,15 +641,49 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
           </OutlinedButton>
           {selectedClient && (
             modalMode === 'package' ? (
-              <GlowButton
-                variant="primary"
-                size="medium"
-                onClick={() => handleApplyPackage()}
-                disabled={applying || !selectedPackageId || showForceOverride}
-                isLoading={applying}
-              >
-                Apply Package
-              </GlowButton>
+              paymentMethod === 'stripe' ? (
+                <GlowButton
+                  variant="primary"
+                  size="medium"
+                  onClick={() => handleChargeCard()}
+                  disabled={applying || !selectedPackageId || !selectedCardId || showForceOverride}
+                  isLoading={applying}
+                >
+                  Charge Card
+                </GlowButton>
+              ) : ['venmo', 'zelle'].includes(paymentMethod) && !showPaymentConfirmation ? (
+                <GlowButton
+                  variant="primary"
+                  size="medium"
+                  onClick={() => {
+                    // Validate reference before showing confirmation
+                    const config = PAYMENT_METHOD_CONFIG[paymentMethod];
+                    if (config?.validation && !config.validation.test(paymentReference.trim())) {
+                      setError(config.validationMsg || 'Invalid payment reference');
+                      return;
+                    }
+                    if (!paymentReference.trim()) {
+                      setError(`${config?.label || 'Payment reference'} is required for ${paymentMethod} payments.`);
+                      return;
+                    }
+                    setShowPaymentConfirmation(true);
+                  }}
+                  disabled={applying || !selectedPackageId || showForceOverride}
+                  isLoading={applying}
+                >
+                  Confirm Payment
+                </GlowButton>
+              ) : (
+                <GlowButton
+                  variant="primary"
+                  size="medium"
+                  onClick={() => handleApplyPackage()}
+                  disabled={applying || !selectedPackageId || showForceOverride || showPaymentConfirmation}
+                  isLoading={applying}
+                >
+                  Apply Package
+                </GlowButton>
+              )
             ) : (
               <PrimaryButton onClick={handleApplyManual} disabled={applying || !sessionsToAdd}>
                 {applying ? <Spinner size={16} /> : <CreditCard size={16} />}
@@ -663,7 +884,11 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                     <PaymentMethodButton
                       key={m.value}
                       $selected={paymentMethod === m.value}
-                      onClick={() => setPaymentMethod(m.value)}
+                      onClick={() => {
+                        setPaymentMethod(m.value);
+                        setShowPaymentConfirmation(false);
+                        setPaymentReference('');
+                      }}
                       type="button"
                     >
                       {m.label}
@@ -672,17 +897,108 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                 </PaymentMethodGrid>
               </FormField>
 
-              {/* Payment Reference */}
-              <FormField>
-                <Label htmlFor="payment-ref">Payment Reference (optional)</Label>
-                <StyledInput
-                  id="payment-ref"
-                  type="text"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder="e.g., Venmo @handle, check #1234"
-                />
-              </FormField>
+              {/* Stripe Card-on-File Section */}
+              {paymentMethod === 'stripe' && selectedClient && (
+                <StripeCardSection>
+                  {cardsLoading ? (
+                    <FlexBox justify="center" style={{ padding: '1rem' }}>
+                      <Spinner size={24} />
+                    </FlexBox>
+                  ) : savedCards.length > 0 ? (
+                    <>
+                      <Label>Select Card</Label>
+                      <CardGrid>
+                        {savedCards.map((card) => (
+                          <CardOption
+                            key={card.id}
+                            $selected={selectedCardId === card.id}
+                            onClick={() => setSelectedCardId(card.id)}
+                          >
+                            <CreditCard size={16} />
+                            <span style={{ textTransform: 'capitalize' }}>{card.brand}</span>
+                            <span>****{card.last4}</span>
+                            <Caption secondary>{card.expMonth}/{card.expYear}</Caption>
+                          </CardOption>
+                        ))}
+                      </CardGrid>
+                    </>
+                  ) : (
+                    <NoCardsMessage>
+                      <Caption secondary>No cards on file for this client.</Caption>
+                    </NoCardsMessage>
+                  )}
+                  <TestCardButton
+                    type="button"
+                    onClick={handleAttachTestCard}
+                    disabled={attachingTestCard}
+                  >
+                    {attachingTestCard ? <Spinner size={14} /> : <CreditCard size={14} />}
+                    Attach Test Card (Visa ****4242)
+                  </TestCardButton>
+                </StripeCardSection>
+              )}
+
+              {/* Payment Reference — method-specific validation */}
+              {paymentMethod !== 'stripe' && (
+                <FormField>
+                  <Label htmlFor="payment-ref">
+                    {PAYMENT_METHOD_CONFIG[paymentMethod]?.label || 'Payment Reference'}{' '}
+                    {['venmo', 'zelle', 'check'].includes(paymentMethod) ? '(required)' : '(optional)'}
+                  </Label>
+                  <StyledInput
+                    id="payment-ref"
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder={PAYMENT_METHOD_CONFIG[paymentMethod]?.placeholder || 'Payment reference'}
+                  />
+                  {PAYMENT_METHOD_CONFIG[paymentMethod]?.validationMsg && paymentReference && (
+                    (() => {
+                      const config = PAYMENT_METHOD_CONFIG[paymentMethod];
+                      const isValid = !config?.validation || config.validation.test(paymentReference.trim());
+                      return !isValid ? (
+                        <Caption style={{ color: '#ef4444', marginTop: '0.25rem' }}>
+                          {config?.validationMsg}
+                        </Caption>
+                      ) : null;
+                    })()
+                  )}
+                  {PAYMENT_METHOD_CONFIG[paymentMethod]?.instructions && (
+                    <Caption secondary style={{ marginTop: '0.25rem' }}>
+                      {PAYMENT_METHOD_CONFIG[paymentMethod].instructions}
+                    </Caption>
+                  )}
+                </FormField>
+              )}
+
+              {/* Venmo/Zelle Confirmation Gate */}
+              {showPaymentConfirmation && ['venmo', 'zelle'].includes(paymentMethod) && (
+                <ConfirmationBanner>
+                  <ConfirmationHeader>
+                    <AlertTriangle size={16} />
+                    Confirm Payment Received
+                  </ConfirmationHeader>
+                  <Caption secondary>
+                    Please confirm you have received the {paymentMethod === 'venmo' ? 'Venmo' : 'Zelle'} payment
+                    from {selectedClient.name} before applying credits.
+                  </Caption>
+                  <FlexBox gap="0.5rem" style={{ marginTop: '0.75rem' }}>
+                    <OutlinedButton onClick={() => setShowPaymentConfirmation(false)}>
+                      Cancel
+                    </OutlinedButton>
+                    <GlowButton
+                      variant="primary"
+                      size="small"
+                      onClick={() => {
+                        setShowPaymentConfirmation(false);
+                        handleApplyPackage();
+                      }}
+                    >
+                      Confirm & Apply
+                    </GlowButton>
+                  </FlexBox>
+                </ConfirmationBanner>
+              )}
 
               {/* Admin Notes */}
               <FormField>
@@ -1024,6 +1340,91 @@ const ForceOverrideBody = styled.div`
   color: rgba(255, 255, 255, 0.7);
   line-height: 1.5;
   margin-bottom: 0.75rem;
+`;
+
+const StripeCardSection = styled.div`
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const CardGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+`;
+
+const CardOption = styled.div<{ $selected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  min-height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.8)'};
+  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)'};
+  border: 2px solid ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.1)'};
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.08);
+    border-color: rgba(0, 255, 255, 0.3);
+  }
+`;
+
+const NoCardsMessage = styled.div`
+  padding: 1rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+`;
+
+const TestCardButton = styled.button<{ disabled?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px dashed rgba(120, 81, 169, 0.5);
+  background: rgba(120, 81, 169, 0.08);
+  color: rgba(120, 81, 169, 0.9);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${({ disabled }) => disabled ? 0.5 : 1};
+  transition: all 150ms ease;
+  width: 100%;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: rgba(120, 81, 169, 0.15);
+    border-color: rgba(120, 81, 169, 0.7);
+  }
+`;
+
+const ConfirmationBanner = styled.div`
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+`;
+
+const ConfirmationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fbbf24;
+  margin-bottom: 0.5rem;
 `;
 
 const ForceOverrideButton = styled.button<{ disabled?: boolean }>`

@@ -64,8 +64,11 @@ interface UniversalMasterScheduleProps {
   userId?: string | number;
 }
 
-// Responsive Breakpoints (Consistent with Theme)
+// Responsive Breakpoints (10-point matrix per CLAUDE.md)
 const BREAKPOINTS = {
+  SMALL_PHONE: '320px',
+  PHONE: '375px',
+  LARGE_PHONE: '430px',
   MOBILE: '480px',
   TABLET: '768px',
   DESKTOP: '1024px',
@@ -922,6 +925,14 @@ const ScheduleContainer = styled.div`
 
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
     --shell-chrome: 64px;
+  }
+
+  @media (max-width: ${BREAKPOINTS.LARGE_PHONE}) {
+    --shell-chrome: 60px;
+  }
+
+  @media (max-width: ${BREAKPOINTS.SMALL_PHONE}) {
+    --shell-chrome: 56px;
   }
 
   /* Large-screen scaling: constrain content width + increase breathing room */

@@ -310,6 +310,21 @@ const HeaderContainer = styled.div`
     background: rgba(0, 0, 0, 0.6);
   }
 
+  @media (max-width: 430px) {
+    padding: 0.75rem 0.5rem;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 375px) {
+    padding: 0.625rem 0.375rem;
+    gap: 0.625rem;
+  }
+
+  @media (max-width: 320px) {
+    padding: 0.5rem 0.25rem;
+    gap: 0.5rem;
+  }
+
   /* Large-screen scaling */
   @media (min-width: 2560px) {
     padding: 2rem 2.5rem;
@@ -350,6 +365,26 @@ const HeaderActions = styled.div`
       font-size: 0.75rem;
       padding: 0.55rem 0.6rem;
       min-height: 44px;
+    }
+  }
+
+  @media (max-width: 375px) {
+    grid-template-columns: 1fr;
+    gap: 0.375rem;
+
+    button {
+      font-size: 0.7rem;
+      padding: 0.5rem;
+    }
+  }
+
+  @media (max-width: 320px) {
+    gap: 0.25rem;
+
+    button {
+      min-height: 40px;
+      font-size: 0.68rem;
+      padding: 0.4rem;
     }
   }
 

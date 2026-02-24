@@ -148,6 +148,24 @@ const SelectorContainer = styled.div`
     border-radius: 10px;
   }
 
+  @media (max-width: 430px) {
+    padding: 0.5rem;
+    border-radius: 6px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 0.5rem 0.375rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  @media (max-width: 320px) {
+    padding: 0.375rem 0.25rem;
+    border-radius: 0;
+    border: none;
+  }
+
   /* Large-screen scaling */
   @media (min-width: 2560px) {
     padding: 1.25rem 2rem;
