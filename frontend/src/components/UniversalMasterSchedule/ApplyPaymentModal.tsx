@@ -807,7 +807,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       {/* Apply Section - shown when client is selected */}
       {selectedClient && (
         <ApplySection>
-          <FlexBox justify="space-between" align="center" style={{ marginBottom: '1rem' }}>
+          <FlexBox justify="space-between" align="center" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <SectionHeader style={{ marginBottom: 0 }}>
               <CreditCard size={18} />
               <SmallText>Apply Credits to {selectedClient.name}</SmallText>
@@ -1029,7 +1029,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                   </SummaryRow>
                   <SummaryRow>
                     <Caption secondary>Payment</Caption>
-                    <BodyText style={{ textTransform: 'capitalize' }}>{paymentMethod}</BodyText>
+                    <BodyText style={{ textTransform: 'capitalize' }}>{paymentMethod === 'stripe' ? 'Card on File' : paymentMethod}</BodyText>
                   </SummaryRow>
                   <SummaryRow>
                     <Caption secondary>New Balance</Caption>
@@ -1194,9 +1194,15 @@ const ModeButton = styled.button<{ $active: boolean }>`
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 600;
+  white-space: nowrap;
   transition: all 150ms ease;
   background: ${({ $active }) => $active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.04)'};
   color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+
+  @media (max-width: 375px) {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
 `;
 
 const LastPackageBanner = styled.div`
@@ -1287,6 +1293,7 @@ const PaymentMethodButton = styled.button<{ $selected: boolean }>`
   cursor: pointer;
   font-weight: 600;
   font-size: 0.85rem;
+  white-space: nowrap;
   transition: all 150ms ease;
   border: 2px solid ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.15)'};
   background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
@@ -1295,6 +1302,11 @@ const PaymentMethodButton = styled.button<{ $selected: boolean }>`
   &:hover {
     border-color: rgba(0, 255, 255, 0.4);
     background: rgba(0, 255, 255, 0.08);
+  }
+
+  @media (max-width: 375px) {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
   }
 `;
 
