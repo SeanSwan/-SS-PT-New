@@ -256,12 +256,14 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
   ctaPath,
 }) => {
   const {
-    isAuthenticated,
     user,
-    isCartOpen,
-    setIsCartOpen,
+    cartOpen,
+    openCart,
+    closeCart,
     handleLogout,
   } = useHeaderState();
+
+  const isAuthenticated = !!user;
 
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -328,7 +330,7 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
             {/* Cart */}
             <IconButton
               $tokens={tokens}
-              onClick={() => setIsCartOpen(!isCartOpen)}
+              onClick={() => (cartOpen ? closeCart() : openCart())}
               aria-label="Open shopping cart"
             >
               <CartIcon size={20} />
@@ -387,7 +389,7 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
       </NavContainer>
 
       {/* Shopping Cart Modal */}
-      <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {cartOpen && <ShoppingCart onClose={closeCart} />}
 
       {/* Mobile Menu */}
       <AnimatePresence>
