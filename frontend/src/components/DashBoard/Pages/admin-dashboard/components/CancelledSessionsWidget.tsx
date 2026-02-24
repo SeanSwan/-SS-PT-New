@@ -326,8 +326,8 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                       <DollarSign size={14} />
                       <span>
                         {priceInfo.packageName
-                          ? `Package: ${priceInfo.packageName} - $${priceInfo.pricePerSession}/session`
-                          : `Standard rate: $${priceInfo.fallbackPrice}/session`}
+                          ? `Package: ${priceInfo.packageName} - $${priceInfo.pricePerSession ?? 0}/session`
+                          : `Standard rate: $${priceInfo.fallbackPrice ?? 0}/session`}
                       </span>
                     </PackageInfo>
                   )}
@@ -372,7 +372,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                           >
                             {chargingId === session.id
                               ? 'Processing...'
-                              : `Late Fee $${priceInfo.lateFeeAmount}`}
+                              : `Late Fee $${priceInfo.lateFeeAmount ?? 0}`}
                           </ChargeButton>
                           <ChargeButton
                             onClick={() => handleCharge(session.id, 'full')}
@@ -381,7 +381,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                           >
                             {chargingId === session.id
                               ? 'Processing...'
-                              : `Full $${priceInfo.defaultChargeAmount}`}
+                              : `Full $${priceInfo.defaultChargeAmount ?? 0}`}
                           </ChargeButton>
                           <ExpandButton
                             onClick={() => setExpandedSession(session.id)}
@@ -398,14 +398,14 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                               disabled={chargingId === session.id}
                               $variant="fee"
                             >
-                              Late Fee ${priceInfo.lateFeeAmount}
+                              Late Fee ${priceInfo.lateFeeAmount ?? 0}
                             </ChargeButton>
                             <ChargeButton
                               onClick={() => handleCharge(session.id, 'full')}
                               disabled={chargingId === session.id}
                               $variant="full"
                             >
-                              Full Session ${priceInfo.defaultChargeAmount}
+                              Full Session ${priceInfo.defaultChargeAmount ?? 0}
                             </ChargeButton>
                           </ChargeOptionRow>
 

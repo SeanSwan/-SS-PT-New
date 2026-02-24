@@ -283,7 +283,14 @@ let DailyWorkoutForm;
 
 const ensureModels = () => {
   if (User && ClientProgress && Session && WorkoutSession && Order && DailyWorkoutForm) return;
-  ({ User, ClientProgress, Session, WorkoutSession, Order, DailyWorkoutForm } = getAllModels());
+  const models = getAllModels();
+  User = models.User;
+  ClientProgress = models.ClientProgress;
+  Session = models.Session;
+  WorkoutSession = models.WorkoutSession;
+  Order = models.Order;
+  DailyWorkoutForm = models.DailyWorkoutForm;
+  if (!User) throw new Error('User model not available — model cache may not be initialized');
 };
 
 /**

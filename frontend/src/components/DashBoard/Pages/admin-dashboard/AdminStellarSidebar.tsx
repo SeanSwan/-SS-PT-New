@@ -1145,7 +1145,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                     >
                       <NavigationIcon isCollapsed={isCollapsed}>
                         {item.icon}
-                        {item.isNew && (
+                        {import.meta.env.DEV && item.isNew && (
                           <motion.div
                             style={{
                               position: 'absolute',
@@ -1169,7 +1169,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                       
                       {(item.status || item.notification) && (
                         <NavigationMeta isCollapsed={isCollapsed}>
-                          {item.status && statusConfig && StatusIcon && (
+                          {import.meta.env.DEV && item.status && statusConfig && StatusIcon && (
                             <NavStatusBadge status={item.status}>
                               <StatusIcon size={10} />
                               <span>{statusConfig.label}</span>
@@ -1193,7 +1193,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                             {item.description}
                           </div>
                         )}
-                        {statusConfig && (
+                        {import.meta.env.DEV && statusConfig && (
                           <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem' }}>
                             Status: {statusConfig.label}
                           </div>
