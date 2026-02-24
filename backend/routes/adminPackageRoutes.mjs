@@ -32,6 +32,10 @@ router.use(requireAdmin);
 router.get('/', async (req, res) => {
   try {
     const { StorefrontItem } = getAllModels();
+    if (!StorefrontItem) {
+      logger.error('StorefrontItem model not available — model cache may not be initialized');
+      return res.status(503).json({ success: false, message: 'Package data temporarily unavailable' });
+    }
     const {
       sortBy = 'id',
       sortOrder = 'ASC',
@@ -53,7 +57,7 @@ router.get('/', async (req, res) => {
     }
 
     // Check if the sortBy field exists in the model
-    const validColumns = Object.keys(StorefrontItem.rawAttributes);
+    const validColumns = Object.keys(StorefrontItem.rawAttributes || {});
     const validSortBy = validColumns.includes(sortBy) ? sortBy : 'id';
     const validSortOrder = ['ASC', 'DESC'].includes(sortOrder) ? sortOrder : 'ASC';
     

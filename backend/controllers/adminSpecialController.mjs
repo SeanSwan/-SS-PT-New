@@ -24,6 +24,10 @@ const getAdminSpecialModel = () => getModel('AdminSpecial');
 export const listSpecials = async (req, res) => {
   try {
     const AdminSpecial = getAdminSpecialModel();
+    if (!AdminSpecial) {
+      logger.warn('[AdminSpecialController] AdminSpecial model not registered');
+      return res.status(503).json({ success: false, error: 'Specials data temporarily unavailable' });
+    }
     const specials = await AdminSpecial.findAll({
       order: [['startDate', 'DESC']],
       include: [{ association: 'creator', attributes: ['id', 'firstName', 'lastName'] }]
@@ -39,6 +43,9 @@ export const listSpecials = async (req, res) => {
 export const listActiveSpecials = async (req, res) => {
   try {
     const AdminSpecial = getAdminSpecialModel();
+    if (!AdminSpecial) {
+      return res.json({ success: true, data: [] });
+    }
     const specials = await AdminSpecial.getActiveSpecials();
     return res.json({ success: true, data: specials });
   } catch (error) {

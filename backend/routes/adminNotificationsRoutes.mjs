@@ -75,6 +75,15 @@ router.get('/notifications', protect, adminOnly, async (req, res) => {
     const AdminNotification = models.AdminNotification;
     const User = models.User;
 
+    if (!AdminNotification) {
+      return res.status(200).json({
+        success: true,
+        notifications: [],
+        stats: { total: 0, unread: 0, highPriority: 0, actionRequired: 0 },
+        degraded: true
+      });
+    }
+
     const adminCount = await User.count({ where: { role: 'admin' } });
     const notifications = await AdminNotification.findAll({
       where: {

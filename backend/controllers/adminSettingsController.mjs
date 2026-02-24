@@ -32,7 +32,13 @@ async function findSettingsByCategory(category) {
     );
     if (rows && rows.length > 0) {
       const row = rows[0];
-      const settingsVal = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+      let settingsVal;
+      try {
+        settingsVal = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+      } catch (parseErr) {
+        logger.warn(`[AdminSettings] Malformed JSON in category ${category}: ${parseErr.message}`);
+        settingsVal = {};
+      }
       return {
         settings: settingsVal,
         updatedAt: row.updatedAt || row.updated_at || row.updatedat || null

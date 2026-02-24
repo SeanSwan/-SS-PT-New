@@ -214,8 +214,8 @@ async function enrichOrderWithStripeData(order) {
       amountTotal: session.amount_total,
       currency: session.currency,
       paymentMethodTypes: session.payment_method_types,
-      createdAt: new Date(session.created * 1000).toISOString(),
-      expiresAt: new Date(session.expires_at * 1000).toISOString()
+      createdAt: session.created ? new Date(session.created * 1000).toISOString() : null,
+      expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null
     };
     
     return order;
@@ -438,7 +438,17 @@ router.get('/orders/pending', validatePagination, async (req, res) => {
     
   } catch (error) {
     logger.error(`❌ Failed to fetch pending orders for ${req.user.email}:`, error);
-    
+
+    // Return 503 with empty data if table doesn't exist (migration not run)
+    if (error.message?.includes('does not exist') || error.message?.includes('relation')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Order data temporarily unavailable (pending database setup)',
+        orders: [],
+        pagination: { page: 1, limit: 25, total: 0, pages: 0 }
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve pending orders',

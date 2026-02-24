@@ -69,78 +69,78 @@ const AdminOverviewPanel: React.FC = () => {
         authAxios.get('/api/admin/analytics/statistics/system-health'),
       ]);
 
-      const revenueData = revenueRes.data?.data || {};
-      const usersData = usersRes.data?.data || {};
-      const workoutsData = workoutsRes.data?.data || {};
-      const healthData = healthRes.data?.data || {};
+      const revenueData = revenueRes.data?.data ?? {};
+      const usersData = usersRes.data?.data ?? {};
+      const workoutsData = workoutsRes.data?.data ?? {};
+      const healthData = healthRes.data?.data ?? {};
 
       const nextMetrics: AdminDashboardMetric[] = [
         {
           id: 'total-revenue',
           title: 'Total Revenue',
-          value: revenueData.totalRevenue || 0,
-          change: Number(revenueData.changePercent || 0),
-          changeType: mapChangeType(Number(revenueData.changePercent || 0)),
+          value: revenueData.totalRevenue ?? 0,
+          change: Number(revenueData.changePercent ?? 0),
+          changeType: mapChangeType(Number(revenueData.changePercent ?? 0)),
           icon: <DollarSign size={24} />,
           color: '#10b981',
           description: 'Monthly recurring revenue',
-          trend: revenueData.trend || [],
-          target: revenueData.target || undefined,
+          trend: revenueData.trend ?? [],
+          target: revenueData.target ?? undefined,
           format: 'currency',
         },
         {
           id: 'active-users',
           title: 'Active Users',
-          value: usersData.activeUsers || usersData.totalUsers || 0,
-          change: Number(usersData.changePercent || 0),
-          changeType: mapChangeType(Number(usersData.changePercent || 0)),
+          value: (usersData.activeUsers ?? usersData.totalUsers) ?? 0,
+          change: Number(usersData.changePercent ?? 0),
+          changeType: mapChangeType(Number(usersData.changePercent ?? 0)),
           icon: <Users size={24} />,
           color: '#3b82f6',
           description: 'Daily active users',
-          trend: usersData.trend || [],
-          target: usersData.target || undefined,
+          trend: usersData.trend ?? [],
+          target: usersData.target ?? undefined,
           format: 'number',
         },
         {
           id: 'completion-rate',
           title: 'Workout Completion',
-          value: Number(workoutsData.completionRate || 0).toFixed(1),
-          change: Number(workoutsData.changePercent || 0),
-          changeType: mapChangeType(Number(workoutsData.changePercent || 0)),
+          value: Number(workoutsData.completionRate ?? 0).toFixed(1),
+          change: Number(workoutsData.changePercent ?? 0),
+          changeType: mapChangeType(Number(workoutsData.changePercent ?? 0)),
           icon: <Dumbbell size={24} />,
           color: '#f59e0b',
           description: 'Average workout completion rate',
-          trend: workoutsData.trend || [],
-          target: workoutsData.target || undefined,
+          trend: workoutsData.trend ?? [],
+          target: workoutsData.target ?? undefined,
           format: 'percentage',
         },
         {
           id: 'system-health',
           title: 'System Health',
-          value: Number(healthData.uptime || 0).toFixed(2),
-          change: Number(healthData.changePercent || 0),
-          changeType: mapChangeType(Number(healthData.changePercent || 0)),
+          value: Number(healthData.uptime ?? 0).toFixed(2),
+          change: Number(healthData.changePercent ?? 0),
+          changeType: mapChangeType(Number(healthData.changePercent ?? 0)),
           icon: <Monitor size={24} />,
           color: '#10b981',
           description: 'Overall system uptime',
-          trend: healthData.trend || [],
+          trend: healthData.trend ?? [],
           target: 99.9,
           format: 'percentage',
         },
       ];
 
-      const nextSystemHealth: SystemHealthMetric[] = (healthData.services || []).map((service: any) => ({
-        service: service.name || 'Service',
+      const nextSystemHealth: SystemHealthMetric[] = (healthData.services ?? []).map((service: any) => ({
+        service: service.name ?? 'Service',
         status:
           service.status === 'online'
             ? 'healthy'
             : service.status === 'degraded'
               ? 'warning'
               : 'error',
-        uptime: Number(service.uptime || 0),
-        responseTime: Number(service.responseTime || 0),
-        errorRate: Number(healthData.systemMetrics?.errorRate || 0),
-        throughput: Number(service.requestsPerMin || healthData.systemMetrics?.throughput || 0),
+        uptime: Number(service.uptime ?? 0),
+        responseTime: Number(service.responseTime ?? 0),
+        errorRate: Number(healthData.systemMetrics?.errorRate ?? 0),
+        throughput: Number((service.requestsPerMin ?? healthData.systemMetrics?.throughput) ?? 0),
         details: service.status === 'online' ? 'All endpoints responding normally' : 'Performance degraded',
       }));
 

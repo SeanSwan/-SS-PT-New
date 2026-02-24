@@ -123,13 +123,13 @@ const UnifiedAdminRoutes: React.FC = () => (
     {/* Analytics workspace redirects */}
     <Route path="/analytics" element={<Navigate to="/dashboard/analytics" replace />} />
     <Route path="/revenue" element={<Navigate to="/dashboard/analytics/revenue" replace />} />
-    <Route path="/reports" element={<Navigate to="/dashboard/analytics/performance" replace />} />
+    <Route path="/reports" element={<Navigate to={import.meta.env.DEV ? "/dashboard/analytics/performance" : "/dashboard/analytics"} replace />} />
     <Route path="/business-intelligence" element={<Navigate to="/dashboard/analytics/bi" replace />} />
     <Route path="/social-overview" element={<Navigate to="/dashboard/analytics/social" replace />} />
 
     {/* System workspace redirects */}
     <Route path="/system-health" element={<Navigate to="/dashboard/system" replace />} />
-    <Route path="/security" element={<Navigate to="/dashboard/system/security" replace />} />
+    <Route path="/security" element={<Navigate to={import.meta.env.DEV ? "/dashboard/system/security" : "/dashboard/system"} replace />} />
     <Route path="/admin/automation" element={<Navigate to="/dashboard/system/automation" replace />} />
     <Route path="/mcp-servers" element={<Navigate to="/dashboard/system/mcp" replace />} />
     <Route path="/mcp-overview" element={<Navigate to="/dashboard/system/mcp" replace />} />
@@ -214,7 +214,9 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/analytics" element={<AnalyticsWorkspace />}>
       <Route index element={<UserAnalyticsPanel />} />
       <Route path="revenue" element={<RevenueAnalyticsPanel />} />
-      <Route path="performance" element={<PerformanceReportsPanel />} />
+      <Route path="performance" element={
+        import.meta.env.DEV ? <PerformanceReportsPanel /> : <Navigate to="/dashboard/analytics" replace />
+      } />
       <Route path="bi" element={
         <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
           <EnterpriseBusinessIntelligenceSuite />
@@ -230,7 +232,9 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/system" element={<SystemWorkspace />}>
       <Route index element={<SystemHealthPanel />} />
       <Route path="health" element={<SystemHealthPanel />} />
-      <Route path="security" element={<SecurityMonitoringPanel />} />
+      <Route path="security" element={
+        import.meta.env.DEV ? <SecurityMonitoringPanel /> : <Navigate to="/dashboard/system" replace />
+      } />
       <Route path="automation" element={<AutomationManager />} />
       <Route path="mcp" element={<MCPServersSection />} />
       <Route path="settings" element={<AdminSettingsSection />} />

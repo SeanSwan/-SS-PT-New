@@ -15,9 +15,21 @@ import { QueryTypes } from 'sequelize';
  * GET /api/messaging/conversations
  */
 export const getConversations = async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
 
   try {
+    // Check if messaging tables exist before running complex query
+    const [tableCheck] = await sequelize.query(
+      `SELECT COUNT(*) as cnt FROM pg_tables WHERE schemaname='public' AND tablename IN ('conversations','conversation_participants','messages','message_receipts')`,
+      { type: QueryTypes.SELECT }
+    );
+    if (!tableCheck || parseInt(tableCheck.cnt) < 4) {
+      return res.json([]);  // Tables not yet created — return empty rather than 500
+    }
+
     const conversations = await sequelize.query(
       `
       WITH user_conversations AS (
