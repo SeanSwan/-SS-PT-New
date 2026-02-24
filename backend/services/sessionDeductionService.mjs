@@ -84,6 +84,7 @@ export async function processSessionDeductions() {
       include: [{
         model: User,
         as: 'client',
+        required: true, // INNER JOIN — required for FOR UPDATE (PostgreSQL rejects FOR UPDATE on outer joins)
         attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
       }],
       lock: transaction.LOCK.UPDATE,
