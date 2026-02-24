@@ -48,6 +48,8 @@ import { TheAestheticCodex } from '../../core';
 import ContactNotifications from './Pages/admin-dashboard/components/ContactNotifications';
 import ParamRedirect from './ParamRedirect';
 
+const HomepageDesignLab = React.lazy(() => import('./Pages/admin-design/HomepageDesignLab'));
+
 // Workspace containers
 import DashboardWorkspace from './workspaces/DashboardWorkspace';
 import ClientsWorkspace from './workspaces/ClientsWorkspace';
@@ -202,6 +204,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="moderation" element={<ContentModerationSection />} />
       <Route path="exercises" element={<AdminExerciseCommandCenter />} />
       <Route path="gamification" element={<AdminGamificationView />} />
+      <Route path="design" element={
+        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading Design Lab...</div>}>
+          <HomepageDesignLab />
+        </React.Suspense>
+      } />
     </Route>
 
     <Route path="/analytics" element={<AnalyticsWorkspace />}>

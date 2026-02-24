@@ -1,22 +1,80 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-23
 **Updated By:** Claude Code (Opus 4.6)
 
 ---
 
-## CURRENT VISION SNAPSHOT (2026-02-21)
+## ACTIVE: Homepage Cinematic Overhaul (2026-02-23)
+
+**Status:** Implementation complete (Phases 0-4). Awaiting admin review in Design Lab.
+
+**What was done:**
+- Phase 0: Playwright baseline audit of production homepage at 3 viewports (375px, 768px, 1280px)
+- Phase 1-4: Built complete cinematic redesign system with 3 design variants
+  - **Variant A (Enchanted Apex):** Warm forest/gold/biolume palette, high motion
+  - **Variant B (Crystalline Swan):** Sapphire/ice/gold palette, medium-high motion — RECOMMENDED
+  - **Variant C (Hybrid Editorial):** Same palette as B, low motion, editorial restraint
+- Admin Design Lab at `/dashboard/content/design` — portal-based chromeless preview
+- 11 shared section components parameterized by design tokens
+- Shared content model (`HomepageContent.ts`) extracted from production homepage
+- Build passes cleanly, all new code in separate lazy-loaded chunks
+
+**Files created:** 19 new files in `frontend/src/pages/HomePage/cinematic/` + 1 admin component
+**Files modified:** 3 (`index.html`, `ContentWorkspace.tsx`, `UnifiedAdminRoutes.tsx`)
+**Current homepage:** UNCHANGED — no visual or functional regression
+
+**Next step:** Admin reviews variants in Design Lab. If approved, Phase 5 creates `HomePage.V3.component.tsx` with layout chrome suppression on `/` route.
+
+**Documentation:**
+- `docs/qa/HOMEPAGE-CINEMATIC-BASELINE-AUDIT.md` — pre-change screenshots + content map
+- `docs/design/HOMEPAGE-CINEMATIC-VARIANTS-SPEC.md` — variant rationale + token differences
+- `frontend/src/pages/HomePage/cinematic/ASSET-MANIFEST.md` — asset tracking
+
+---
+
+## CURRENT VISION SNAPSHOT (2026-02-22)
 
 ### Active Product Priorities
-0. **NASM Admin Operations - Phase 1A Data Layer (IN PROGRESS - 2026-02-22)**
-   - **What:** Add normalized workout log storage and onboarding completion flag to support admin provisioning/onboarding/workout logging workflow.
-   - **Scope completed in this phase:**
-     - `backend/migrations/20260222000001-add-is-onboarding-complete.cjs` (adds `Users.isOnboardingComplete`)
-     - `backend/migrations/20260222000002-create-workout-logs.cjs` (creates `workout_logs` with analytics-friendly indexes)
-     - `backend/models/WorkoutLog.mjs` (normalized one-row-per-set model)
-     - `backend/models/User.mjs` update (`isOnboardingComplete`)
-     - `backend/models/associations.mjs` update (`WorkoutSession.hasMany(WorkoutLog)` / `WorkoutLog.belongsTo(WorkoutSession)`)
-   - **Deferred by design:** controller logic, SendGrid provisioning, onboarding API behavior, NASM logger UI, and Playwright E2E remain in later phases.
+0. **NASM Admin Operations - Phase 1C Frontend UI & Gamification XP (COMPLETE - 2026-02-22)**
+   - **What:** Admin frontend UI for onboarding/workout endpoints, gamification XP on workout log, Playwright E2E tests. All features deployed and verified on production via Playwright.
+   - **Phase 1A (Data Layer) — committed `1052a977`:**
+     - `Users.isOnboardingComplete`, `workout_logs` table, `WorkoutLog` model, associations
+   - **Phase 1B (Controllers & Routes) — committed `57adee17` + bug fixes:**
+     - `backend/controllers/adminOnboardingController.mjs` — save draft, submit, get status, reset
+     - `backend/controllers/adminWorkoutLoggerController.mjs` — log workout, get history
+     - `backend/utils/onboardingHelpers.mjs` — shared helpers extracted from client controller
+     - `backend/utils/clientAccess.mjs` — RBAC guard (admin bypass, trainer assignment check)
+     - `backend/routes/adminOnboardingRoutes.mjs` — 3 routes (POST/GET/DELETE)
+     - `backend/routes/adminWorkoutLoggerRoutes.mjs` — 2 routes (POST/GET)
+     - `backend/tests/api/phase1bControllers.test.mjs` — 28 tests
+   - **Phase 1C (Frontend + XP + E2E) — committed `01827cf4` + production fix `d604e56b`:**
+     - `backend/services/awardWorkoutXP.mjs` — XP service with triple guard (idempotency, day-level, same-day)
+     - `backend/tests/api/phase1cXpIntegration.test.mjs` — 16 behavioral XP tests
+     - `frontend/src/services/adminClientService.ts` — 6 new API methods (onboarding CRUD + workout log/history)
+     - `frontend/src/pages/onboarding/ClientOnboardingWizard.tsx` — 5 new props (onSubmit, initialData, callbacks, skipSuccessModal)
+     - `frontend/src/components/.../AdminOnboardingPanel.tsx` — Admin onboarding wrapper with loading gate + autosave
+     - `frontend/src/components/.../WorkoutLoggerModal.tsx` — Workout logging form with dynamic exercises/sets + XP toast
+     - `frontend/src/components/.../hooks/useClientActions.ts` — Extracted handlers (~90 lines out of monolith)
+     - `frontend/src/components/.../AdminClientManagementView.tsx` — Menu items for legacy route
+     - `frontend/src/components/.../ClientsManagementSection.tsx` — **CRITICAL:** Menu items wired into production Clients tab
+     - `frontend/e2e/admin-onboarding-workout.spec.ts` — 12 Playwright E2E test specs
+   - **Production bug fixed:** Phase 1C originally wired menu items to `AdminClientManagementView.tsx` but production dashboard uses `ClientsManagementSection.tsx` — fixed in `d604e56b`
+   - **Production verification (Playwright on sswanstudios.com):**
+     - Start Onboarding → Panel opens with 7-step wizard, draft data, status badge ✅
+     - Log Workout → Modal opens with title/date/duration/intensity/exercises/sets ✅
+     - All dashboard workspaces verified: Scheduling, Store & Revenue, Analytics, System, Content Studio, Gamification ✅
+   - **371 backend tests pass, frontend build clean**
+
+   **Key commits (Phases 1A-1C):**
+   - `1052a977` — Phase 1A data layer
+   - `57adee17` — Phase 1B controllers, routes, tests
+   - `a48b519e` — Migration guard for missing workout_sessions table
+   - `e856897a` — Fix toNumber null coercion + null-safe validators
+   - `06522f63` — Fix model FK references (Users case-sensitivity)
+   - `a2f87698` — Startup migration 6: post-sync FK repair
+   - `01827cf4` — Phase 1C frontend UI, XP service, E2E tests (10 files, +2458/-95 lines)
+   - `d604e56b` — Fix: wire Phase 1C menu items into production Clients tab
 
 0. **Payment Recovery Flow (COMPLETE - 2026-02-21)**
    - **What:** Admin can apply offline payments (Cash/Venmo/Zelle/Check) directly from Session Detail Card when a client reaches 0 sessions. Auto-selects last purchased package. Creates full Order/Transaction/FinancialTransaction audit trail.
