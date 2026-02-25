@@ -2,7 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiKillSwitch } from '../middleware/aiConsent.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
-import { generateWorkoutPlan } from '../controllers/aiWorkoutController.mjs';
+import { generateWorkoutPlan, approveDraftPlan } from '../controllers/aiWorkoutController.mjs';
 import {
   grantAiConsent,
   withdrawAiConsent,
@@ -29,6 +29,14 @@ router.post(
   aiKillSwitch,
   aiRateLimiter,
   generateWorkoutPlan
+);
+
+// POST /api/ai/workout-generation/approve (Phase 5A — coach-in-the-loop approval)
+router.post(
+  '/workout-generation/approve',
+  protect,
+  aiKillSwitch,
+  approveDraftPlan
 );
 
 // Consent management endpoints

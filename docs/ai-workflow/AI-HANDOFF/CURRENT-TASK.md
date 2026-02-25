@@ -1,13 +1,65 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-24
+**Last Updated:** 2026-02-25
 **Updated By:** Claude Code (Opus 4.6)
 
 ---
 
-## ACTIVE: Smart Workout Logger — Phase 1 Closeout (2026-02-24)
+## ACTIVE: Smart Workout Logger — Phase 5A Complete (2026-02-25)
 
-**Status:** Phase 1 COMPLETE (2 review rounds, all findings resolved). Backend hardened, consent UI integrated into active client dashboard, onboarding wired, backfill script ready. Awaiting production deploy.
+**Status:** Phase 5A COMPLETE (2 hardening rounds, all findings resolved). Coach Copilot MVP: progress-aware generation, draft mode, coach-in-the-loop approval with hardened RBAC/consent/validation ordering. 823/823 tests passing across 38 files. Ready for deploy + smoke test.
+
+**What was done (Phase 5A — Smart Workout Logger MVP Coach Copilot):**
+
+### Phase 5A New Files
+1. **`backend/services/ai/oneRepMax.mjs`** — NASM-aligned 1RM estimation (Epley), load recommendations by OPT phase, RPE↔intensity conversion
+2. **`backend/services/ai/progressContextBuilder.mjs`** — PII-free training history summarizer (exercise history, volume trends, frequency, recency)
+3. **`backend/services/ai/contextBuilder.mjs`** — Unified AI context builder merging de-identified profile + NASM constraints + template + progress + 1RM data. Produces generation modes: `full`, `template_guided`, `progress_aware`, `basic`, `unavailable`
+4. **`backend/tests/unit/oneRepMax.test.mjs`** — 22 tests
+5. **`backend/tests/unit/progressContextBuilder.test.mjs`** — 20 tests
+6. **`backend/tests/unit/contextBuilder.test.mjs`** — 22 tests
+7. **`backend/tests/unit/phase5aIntegration.test.mjs`** — 8 integration tests (full pipeline, privacy regression, safety constraints, draft contract)
+8. **`backend/tests/unit/aiWorkoutApproval.test.mjs`** — 31 tests (16 validator + 15 controller with mocked models)
+
+### Phase 5A Modified Files
+9. **`backend/controllers/aiWorkoutController.mjs`** — Extended `generateWorkoutPlan` with progress context + draft mode + explainability. Added `approveDraftPlan` with hardened security ordering
+10. **`backend/routes/aiRoutes.mjs`** — Added `POST /api/ai/workout-generation/approve`
+11. **`backend/services/ai/outputValidator.mjs`** — Added `validateApprovedDraftPlan()` last-mile gate
+
+### Phase 5A Security Hardening (2 review rounds)
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| 1 | HIGH | `/approve` lacked trainer-assignment RBAC | Added `ClientTrainerAssignment` check (admin bypasses) |
+| 2 | HIGH | `/approve` bypassed consent re-check | Added `AiPrivacyProfile` consent verification |
+| 3 | HIGH | `AiInteractionLog` wrote nonexistent `metadata` field | Changed to `tokenUsage` JSONB merge with approval provenance |
+| 4 | MEDIUM | Validation ran before authz (ordering leak) | Reordered: auth → role → input → user existence → assignment → consent → validation |
+| 5 | MEDIUM | No target user existence check | Added `User.findByPk` with 404 |
+| 6 | MEDIUM | Test coverage overstated (only 6 controller tests) | Expanded to 31 tests: assignment 403, consent 403, user 404, admin bypass, ordering precedence |
+
+### Phase 5A Test Summary
+- **823/823 tests passing across 38 files** (zero regressions)
+- Approval controller tests prove: authz errors take precedence over validation errors (ordering verification)
+
+### Phase 5A Approval Endpoint Security Ordering
+```
+1. Auth (401) → 2. Role trainer/admin (403) → 3. Input presence (400)
+→ 4. User exists (404) → 5. Trainer assigned (403) → 6. Consent active (403)
+→ 7. Draft validation (422) → 8. Persist in transaction → 9. Audit log
+```
+
+### Phase 5A Production Deploy Checklist
+- [ ] Push to main for Render deploy
+- [ ] Smoke test: `POST /api/ai/workout-generation` (draft mode)
+- [ ] Smoke test: `POST /api/ai/workout-generation/approve`
+- [ ] Smoke test: trainer unassigned → 403
+- [ ] Smoke test: consent withdrawn → 403
+- [ ] Smoke test: invalid draft → 422
+
+---
+
+## PREVIOUS: Smart Workout Logger — Phase 1 Closeout (2026-02-24)
+
+**Status:** Phase 1 COMPLETE (2 review rounds, all findings resolved).
 
 **What was done (Phase 0 → Phase 1 → Hardening → Closeout → Closeout R2):**
 - **Phase 0 (Baseline Audit):** Comprehensive code audit of AI workout generation pipeline, privacy services, NASM integration. Playwright evidence (14 unauthenticated + 8 authenticated captures).
