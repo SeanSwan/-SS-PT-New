@@ -25,10 +25,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import styled, { ThemeProvider, keyframes, css } from 'styled-components';
-import { 
+import {
   Home, Dumbbell, TrendingUp, Calendar, MessageSquare, Users,
   ChevronLeft, ChevronRight, Menu, X, Star, Trophy, Brain, UtensilsCrossed,
-  User, Award, Compass, Zap, Target
+  User, Award, Compass, Zap, Target, Shield
 } from 'lucide-react';
 
 // === CLIENT GALACTIC THEME ===
@@ -346,11 +346,17 @@ const clientNavigationConfig = [
         icon: Brain,
         description: 'Generate personalized AI workouts (if package allows)'
       },
-      { 
-        label: 'AI Meal Planner', 
-        path: '/client/meal-planner', 
+      {
+        label: 'AI Meal Planner',
+        path: '/client/meal-planner',
         icon: UtensilsCrossed,
         description: 'Access to the Culinary Codex meal planning system'
+      },
+      {
+        label: 'AI Privacy & Consent',
+        path: '/client/ai-consent',
+        icon: Shield,
+        description: 'Manage your AI data consent and privacy settings'
       }
     ]
   },

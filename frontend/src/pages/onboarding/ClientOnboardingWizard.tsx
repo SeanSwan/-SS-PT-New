@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeContext";
 import { useNavigate } from "react-router-dom";
 import apiService from "../../services/api.service";
+import { grantConsent } from "../../services/aiConsentService";
 
 import BasicInfo from "./components/BasicInfoSection";
 import HealthSection from "./components/HealthSection";
@@ -11,6 +12,7 @@ import GoalsSection from "./components/GoalsSection";
 import NutritionSection from "./components/NutritionSection";
 import LifestyleSection from "./components/LifestyleSection";
 import TrainingSection from "./components/TrainingSection";
+import ConsentSection from "./components/ConsentSection";
 import SummarySection from "./components/SummarySection";
 
 /* ── Galaxy-Swan theme tokens ── */
@@ -357,7 +359,8 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
     { id: 4, label: "Nutrition", component: NutritionSection },
     { id: 5, label: "Lifestyle", component: LifestyleSection },
     { id: 6, label: "Training", component: TrainingSection },
-    { id: 7, label: "Summary", component: SummarySection },
+    { id: 7, label: "AI Consent", component: ConsentSection },
+    { id: 8, label: "Summary", component: SummarySection },
   ];
 
   const CurrentSection = steps[currentStep].component;
@@ -400,6 +403,22 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
     navigate("/");
   };
 
+  /**
+   * After successful onboarding, grant AI consent if the user opted in.
+   * Non-blocking: consent failure doesn't break onboarding.
+   */
+  const maybeGrantAiConsent = async () => {
+    if (formData?.aiConsentGranted) {
+      try {
+        await grantConsent();
+      } catch {
+        // Consent grant is best-effort during onboarding.
+        // User can always grant later from AI Privacy & Consent page.
+        console.warn('[Onboarding] AI consent grant failed — user can grant later.');
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -409,6 +428,9 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
       if (onSubmit) {
         const result = await onSubmit(formData);
         if (result.success) {
+          // Skip self-consent grant in admin flow — admin creates the profile
+          // server-side; calling grantConsent() here would try to grant consent
+          // for the admin's own account (no userId param), which is incorrect.
           if (skipSuccessModal) {
             onComplete?.(result.data);
           } else {
@@ -431,6 +453,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
       if (!data.success) {
         setError(data.error || data.message || "Submission failed. Please try again.");
       } else {
+        await maybeGrantAiConsent();
         setSubmissionResult(data.data);
         setShowSuccessModal(true);
         if (onComplete) {

@@ -44,6 +44,7 @@ import { useUserGoals } from '../../hooks/useUserGoals';
 import GoalProgressChart from './charts/GoalProgressChart';
 import ChallengeActivityChart from './charts/ChallengeActivityChart';
 import StreakCalendarChart from './charts/StreakCalendarChart';
+import AiConsentPanel from './AiConsentPanel';
 
 // === SHARED STYLED COMPONENTS ===
 const SectionCard = styled(motion.div)`
@@ -1106,11 +1107,12 @@ const PackageSubscription: React.FC = () => {
   );
 };
 
-// === ACCOUNT GALAXY (combines PackageSubscription + PersonalStarmap) ===
+// === ACCOUNT GALAXY (combines PackageSubscription + PersonalStarmap + AiConsent) ===
 export const AccountGalaxy: React.FC = () => (
   <>
     <PackageSubscription />
     <PersonalStarmap />
+    <AiConsentPanel />
     <SectionCard style={{ textAlign: 'center', padding: '2rem' }}>
       <SectionTitle>
         <ClipboardList /> Session History

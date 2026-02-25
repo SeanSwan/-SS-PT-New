@@ -1,0 +1,418 @@
+[
+  {
+    "role": "admin",
+    "name": "dashboard-home",
+    "viewport": "375-mobile",
+    "route": "/dashboard",
+    "finalUrl": "/login?returnUrl=%2Fdashboard",
+    "redirectedToLogin": true,
+    "screenshot": "admin-dashboard-home-375-mobile.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "loginSucceeded",
+        "pass": false
+      },
+      {
+        "name": "leftLoginPage",
+        "pass": false
+      },
+      {
+        "name": "adminLandingPathObserved",
+        "pass": false
+      },
+      {
+        "name": "adminDashboardLoaded",
+        "pass": false
+      },
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": null,
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "clients-page",
+    "viewport": "375-mobile",
+    "route": "/dashboard/people/clients",
+    "finalUrl": "/login?returnUrl=%2Fdashboard%2Fpeople%2Fclients",
+    "redirectedToLogin": true,
+    "screenshot": "admin-clients-page-375-mobile.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "clientsPageLoaded",
+        "pass": false
+      },
+      {
+        "name": "clientsContentVisible",
+        "pass": true
+      },
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": null,
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "client-onboarding-panel",
+    "viewport": "375-mobile",
+    "route": "/dashboard/people/clients",
+    "finalUrl": "/login?returnUrl=%2Fdashboard%2Fpeople%2Fclients",
+    "redirectedToLogin": true,
+    "screenshot": "admin-client-onboarding-panel-375-mobile.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"tabpanel\"] button:has(svg)').filter({ hasNotText: /\\w/ }).first() to be visible\u001b[22m\n",
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "client-workout-logger-modal",
+    "viewport": "375-mobile",
+    "route": "/dashboard/people/clients",
+    "finalUrl": "/login?returnUrl=%2Fdashboard%2Fpeople%2Fclients",
+    "redirectedToLogin": true,
+    "screenshot": "admin-client-workout-logger-modal-375-mobile.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"tabpanel\"] button:has(svg)').filter({ hasNotText: /\\w/ }).first() to be visible\u001b[22m\n",
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "dashboard-home",
+    "viewport": "1280-desktop",
+    "route": "/dashboard",
+    "finalUrl": "/login?returnUrl=%2Fdashboard",
+    "redirectedToLogin": true,
+    "screenshot": "admin-dashboard-home-1280-desktop.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "loginSucceeded",
+        "pass": false
+      },
+      {
+        "name": "leftLoginPage",
+        "pass": false
+      },
+      {
+        "name": "adminLandingPathObserved",
+        "pass": false
+      },
+      {
+        "name": "adminDashboardLoaded",
+        "pass": false
+      },
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": null,
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "clients-page",
+    "viewport": "1280-desktop",
+    "route": "/dashboard/people/clients",
+    "finalUrl": "/login?returnUrl=%2Fdashboard%2Fpeople%2Fclients",
+    "redirectedToLogin": true,
+    "screenshot": "admin-clients-page-1280-desktop.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "clientsPageLoaded",
+        "pass": false
+      },
+      {
+        "name": "clientsContentVisible",
+        "pass": true
+      },
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": null,
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "client-onboarding-panel",
+    "viewport": "1280-desktop",
+    "route": "/dashboard/people/clients",
+    "finalUrl": "/login?returnUrl=%2Fdashboard%2Fpeople%2Fclients",
+    "redirectedToLogin": true,
+    "screenshot": "admin-client-onboarding-panel-1280-desktop.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"tabpanel\"] button:has(svg)').filter({ hasNotText: /\\w/ }).first() to be visible\u001b[22m\n",
+    "notes": ""
+  },
+  {
+    "role": "admin",
+    "name": "client-workout-logger-modal",
+    "viewport": "1280-desktop",
+    "route": "/dashboard/people/clients",
+    "finalUrl": "/login?returnUrl=%2Fdashboard%2Fpeople%2Fclients",
+    "redirectedToLogin": true,
+    "screenshot": "admin-client-workout-logger-modal-1280-desktop.png",
+    "consoleErrors": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 ()",
+        "location": "/api/auth/login"
+      },
+      {
+        "type": "error",
+        "text": "[API] Response error: {status: 401, message: Request failed with status code 401, url: /api/auth/login}",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "[API] Login error: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      },
+      {
+        "type": "error",
+        "text": "Login failed: J",
+        "location": "/v3/index.B2XPhJ_Q.js"
+      }
+    ],
+    "failedRequests": [
+      {
+        "status": 401,
+        "method": "POST",
+        "url": "/api/auth/login"
+      }
+    ],
+    "assertions": [
+      {
+        "name": "notRedirectedToLogin",
+        "pass": false
+      }
+    ],
+    "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"tabpanel\"] button:has(svg)').filter({ hasNotText: /\\w/ }).first() to be visible\u001b[22m\n",
+    "notes": ""
+  }
+]

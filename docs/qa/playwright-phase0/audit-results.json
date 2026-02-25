@@ -1,0 +1,156 @@
+[
+  {
+    "route": "/",
+    "name": "homepage",
+    "viewport": "375-mobile",
+    "screenshot": "homepage-375-mobile.png",
+    "finalUrl": "/",
+    "redirected": false,
+    "authGated": false,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/",
+    "name": "homepage",
+    "viewport": "1280-desktop",
+    "screenshot": "homepage-1280-desktop.png",
+    "finalUrl": "/",
+    "redirected": false,
+    "authGated": false,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/client-onboarding",
+    "name": "client-onboarding",
+    "viewport": "375-mobile",
+    "screenshot": "client-onboarding-375-mobile.png",
+    "finalUrl": "/",
+    "redirected": true,
+    "authGated": false,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/client-onboarding",
+    "name": "client-onboarding",
+    "viewport": "1280-desktop",
+    "screenshot": "client-onboarding-1280-desktop.png",
+    "finalUrl": "/",
+    "redirected": true,
+    "authGated": false,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/workout",
+    "name": "workout-dashboard",
+    "viewport": "375-mobile",
+    "screenshot": "workout-dashboard-375-mobile.png",
+    "finalUrl": "/login?returnUrl=%2Fworkout",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/workout",
+    "name": "workout-dashboard",
+    "viewport": "1280-desktop",
+    "screenshot": "workout-dashboard-1280-desktop.png",
+    "finalUrl": "/login?returnUrl=%2Fworkout",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "viewport": "375-mobile",
+    "screenshot": "login-375-mobile.png",
+    "finalUrl": "/login",
+    "redirected": false,
+    "authGated": false,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "viewport": "1280-desktop",
+    "screenshot": "login-1280-desktop.png",
+    "finalUrl": "/login",
+    "redirected": false,
+    "authGated": false,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/schedule",
+    "name": "schedule",
+    "viewport": "375-mobile",
+    "screenshot": "schedule-375-mobile.png",
+    "finalUrl": "/login?returnUrl=%2Fschedule",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/schedule",
+    "name": "schedule",
+    "viewport": "1280-desktop",
+    "screenshot": "schedule-1280-desktop.png",
+    "finalUrl": "/login?returnUrl=%2Fschedule",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/dashboard",
+    "name": "admin-dashboard",
+    "viewport": "375-mobile",
+    "screenshot": "admin-dashboard-375-mobile.png",
+    "finalUrl": "/login?returnUrl=%2Fdashboard",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/dashboard",
+    "name": "admin-dashboard",
+    "viewport": "1280-desktop",
+    "screenshot": "admin-dashboard-1280-desktop.png",
+    "finalUrl": "/login?returnUrl=%2Fdashboard",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/gamification",
+    "name": "gamification",
+    "viewport": "375-mobile",
+    "screenshot": "gamification-375-mobile.png",
+    "finalUrl": "/login?returnUrl=%2Fgamification",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  {
+    "route": "/gamification",
+    "name": "gamification",
+    "viewport": "1280-desktop",
+    "screenshot": "gamification-1280-desktop.png",
+    "finalUrl": "/login?returnUrl=%2Fgamification",
+    "redirected": true,
+    "authGated": true,
+    "consoleErrors": [],
+    "failedRequests": []
+  }
+]

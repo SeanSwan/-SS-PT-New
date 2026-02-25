@@ -1,11 +1,118 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-24
 **Updated By:** Claude Code (Opus 4.6)
 
 ---
 
-## ACTIVE: Homepage Cinematic Overhaul (2026-02-23)
+## ACTIVE: Smart Workout Logger — Phase 1 Closeout (2026-02-24)
+
+**Status:** Phase 1 COMPLETE (2 review rounds, all findings resolved). Backend hardened, consent UI integrated into active client dashboard, onboarding wired, backfill script ready. Awaiting production deploy.
+
+**What was done (Phase 0 → Phase 1 → Hardening → Closeout → Closeout R2):**
+- **Phase 0 (Baseline Audit):** Comprehensive code audit of AI workout generation pipeline, privacy services, NASM integration. Playwright evidence (14 unauthenticated + 8 authenticated captures).
+- **Phase 1 (Privacy Foundation):** End-to-end de-identification pipeline for AI workout generation.
+- **Phase 1 Hardening:** Fixed 2 HIGH + 3 MEDIUM findings from cross-AI review.
+- **Phase 1 Closeout:** Consent UI, onboarding integration, backend polish, backfill script.
+- **Phase 1 Closeout R2:** Fixed 2 HIGH + 1 MEDIUM from second cross-AI review (routing, API service, admin guard).
+
+**Phase 1 complete deliverables:**
+
+### Backend (Privacy Infrastructure)
+1. **Models + Migrations:**
+   - `backend/models/AiPrivacyProfile.mjs` — per-user AI consent state
+   - `backend/models/AiInteractionLog.mjs` — audit trail
+   - `backend/migrations/20260225000001-create-ai-privacy-profiles.cjs`
+   - `backend/migrations/20260225000002-create-ai-interaction-logs.cjs`
+2. **De-identification Service:**
+   - `backend/services/deIdentificationService.mjs` — strips PII, preserves training context, fail-closed
+3. **Kill Switch Middleware:**
+   - `backend/middleware/aiConsent.mjs` — `aiKillSwitch` (env toggle → 503)
+4. **Controller Wiring:**
+   - `backend/controllers/aiWorkoutController.mjs` — de-identified payload, server-derived constraints only, RBAC-before-consent, audit log lifecycle
+5. **Consent Management Controller (with closeout polish):**
+   - `backend/controllers/aiConsentController.mjs` — grant/withdraw/read endpoints
+   - **[CLOSEOUT]** Target user existence validation (404 for non-existent users)
+   - **[CLOSEOUT]** Role validation (400 for non-client targets on grant)
+   - **[CLOSEOUT]** consentVersion validation against whitelist
+   - **[CLOSEOUT]** JSDoc for `resolveTargetUser` route semantics
+6. **Route Wiring:**
+   - `backend/routes/aiRoutes.mjs` — workout + consent routes
+7. **Model Registration:**
+   - `backend/models/associations.mjs` + `backend/models/index.mjs`
+
+### Frontend (Consent UX)
+8. **AI Consent Service:**
+   - `frontend/src/services/aiConsentService.ts` — typed API layer for consent endpoints
+   - **[CLOSEOUT R2]** Uses production `apiService` (token refresh, auth headers, correct base URL)
+9. **AI Consent Panel (active client dashboard):**
+   - `frontend/src/components/ClientDashboard/AiConsentPanel.tsx` — embeddable consent panel
+   - Full consent management: status display, grant/withdraw with confirmation, privacy disclosures
+   - Galaxy-Swan themed, 44px touch targets, accessible
+   - **[CLOSEOUT R2]** Integrated into `AccountGalaxy` in `GalaxySections.tsx` (active client dashboard)
+   - Placed between PersonalStarmap and Session History sections
+10. **Legacy Consent Screen (inactive, kept for reference):**
+    - `frontend/src/components/DashBoard/Pages/client-dashboard/AiConsentScreen.tsx`
+    - Route-based page wired into `UniversalDashboardLayout.tsx` (admin-only route tree)
+    - NOTE: Clients use `RevolutionaryClientDashboard` (section-based), not this route tree
+11. **Onboarding Integration:**
+    - `frontend/src/pages/onboarding/components/ConsentSection.tsx` — step 7 of 8 in wizard
+    - Opt-in toggle with privacy disclosures, disclosure v1.0 text, skip-friendly UX
+    - `ClientOnboardingWizard.tsx` — calls `grantConsent()` on successful self-submit if opted in (best-effort, non-blocking)
+    - **[CLOSEOUT R2]** Admin override path (`onSubmit`) does NOT call self-consent grant (prevents admin granting consent to own account)
+
+### Rollout
+12. **Backfill Script:**
+    - `backend/scripts/backfill-ai-consent-profiles.mjs`
+    - **Policy: default deny / opt-in required**
+    - Creates `AiPrivacyProfile` with `aiEnabled=false` for all existing clients without a profile
+    - Supports `--dry-run` flag
+    - New users prompted during onboarding step 7
+
+### Tests
+13. **Backend Tests:**
+    - `backend/tests/api/aiPrivacy.test.mjs` — 43 unit tests
+    - `backend/tests/api/aiPrivacyIntegration.test.mjs` — 24 integration tests (18 original + 6 closeout validation tests)
+    - 474/474 total backend tests passing (25 test files, zero regressions)
+14. **Frontend Build:**
+    - Clean build in 7.5s, consent panel bundled into `RevolutionaryClientDashboard` chunk
+
+**Closeout R1 findings addressed (1 MEDIUM, 2 LOW):**
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| 1 | MEDIUM | grant/withdraw/status don't validate target user existence | 404 for non-existent users, 400 for non-client role on grant |
+| 2 | LOW | consentVersion not validated at controller level | Whitelist validation against `VALID_CONSENT_VERSIONS` |
+| 3 | LOW | Consent status route semantics ambiguous for non-client self | JSDoc on `resolveTargetUser` explaining role-based behavior |
+
+**Closeout R2 findings addressed (2 HIGH, 1 MEDIUM):**
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| 4 | HIGH | AiConsentScreen wired into admin-only route tree (`UniversalDashboardLayout`), unreachable by clients | Created `AiConsentPanel.tsx`, integrated into `AccountGalaxy` in active `RevolutionaryClientDashboard` |
+| 5 | HIGH | `aiConsentService.ts` bypassed production API client (raw fetch + localhost fallback) | Rewritten to use production `apiService` with token refresh and auth headers |
+| 6 | MEDIUM | Admin onboarding silently calls `grantConsent()` for admin's own account | Guarded: only self-submit path calls consent grant; admin override path skips it |
+
+**Production deploy checklist:**
+- [ ] Run migrations: `npx sequelize-cli db:migrate`
+- [ ] Run backfill (dry-run first): `node backend/scripts/backfill-ai-consent-profiles.mjs --dry-run`
+- [ ] Run backfill: `node backend/scripts/backfill-ai-consent-profiles.mjs`
+- [ ] Push to main for Render deploy
+- [ ] Smoke test: consent status → grant → AI generate → withdraw → AI blocked
+
+**Remaining items (not blocking closeout):**
+- Additional PII fields may need review (foodAllergies, age combined with measurements)
+- Admin consent management UI (currently API-only for admin role)
+
+**Next steps (Phase 3 — Unified v4 Plan):**
+- **Design proposal written:** `docs/ai-workflow/blueprints/PHASE-3-PROVIDER-ROUTER-DESIGN.md`
+- **Status:** Awaiting cross-AI review + owner approval before implementation
+- **Scope:** Provider abstraction (OpenAI/Anthropic/Gemini), failover chain, circuit breaker, degraded mode, Zod validation, rate limiting, audit integration
+- **Estimated new files:** 14 (services, adapters, middleware, migration, tests)
+- **Estimated modified files:** 5 (controller, routes, model, monitoring, package.json)
+- **No frontend changes** — backend-only phase
+
+---
+
+## PREVIOUS: Homepage Cinematic Overhaul (2026-02-23)
 
 **Status:** Implementation complete (Phases 0-4). Awaiting admin review in Design Lab.
 

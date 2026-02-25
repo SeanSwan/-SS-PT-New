@@ -48,6 +48,7 @@
    - **Stats:** Corrected session count logic (excluding past available).
    - **Client Search:** Added `availableSessions` to client search response.
    - **Critical Fix:** Resolved TDZ crash in `UniversalMasterSchedule.tsx` (Commit a712ba23).
+   - **Production Fixes:** Resolved session creation 500 error and credit restoration logic (Commit d7e9b302).
 4. ✅ **Comprehensive Testing** - test-video-library.mjs validates all functionality
 5. ✅ **Level 5/5 Documentation** - All files have complete architecture docs and WHY sections
 6. ✅ **Status Updates** - CURRENT-TASK.md and ROO-CODE-STATUS.md updated
