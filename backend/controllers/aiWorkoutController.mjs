@@ -47,11 +47,13 @@ import logger from '../utils/logger.mjs';
 import { updateMetrics } from '../routes/aiMonitoringRoutes.mjs';
 import { deIdentify, hashPayload } from '../services/deIdentificationService.mjs';
 import { routeAiGeneration } from '../services/ai/providerRouter.mjs';
-import { runValidationPipeline } from '../services/ai/outputValidator.mjs';
+import { runValidationPipeline, validateApprovedDraftPlan } from '../services/ai/outputValidator.mjs';
 import { buildDegradedResponse } from '../services/ai/degradedResponse.mjs';
 import { releaseConcurrent } from '../services/ai/rateLimiter.mjs';
 import { PROMPT_VERSION } from '../services/ai/types.mjs';
 import { buildTemplateContext } from '../services/ai/templateContextBuilder.mjs';
+import { buildProgressContext } from '../services/ai/progressContextBuilder.mjs';
+import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
 
 const ALLOWED_DAY_TYPES = new Set([
   'training',
@@ -230,7 +232,8 @@ export const generateWorkoutPlan = async (req, res) => {
   let auditLog = null;
 
   try {
-    const { userId: rawUserId, masterPromptJson } = req.body || {};
+    const { userId: rawUserId, masterPromptJson, mode } = req.body || {};
+    const isDraftMode = mode === 'draft';
     const requesterRole = req.user?.role;
 
     if (!requesterId || !requesterRole) {
@@ -399,6 +402,49 @@ export const generateWorkoutPlan = async (req, res) => {
       serverConstraints.templateContext = templateContext;
     }
 
+    // Phase 5A: Build progress context from recent workout sessions
+    const { WorkoutSession, WorkoutLog } = models;
+    let progressContext = null;
+    if (WorkoutSession) {
+      try {
+        const recentSessions = await WorkoutSession.findAll({
+          where: { userId: targetUserId },
+          order: [['date', 'DESC']],
+          limit: 30,
+          include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
+        });
+
+        if (recentSessions && recentSessions.length > 0) {
+          const sessionData = recentSessions.map(s => {
+            const plain = s.get({ plain: true });
+            return {
+              ...plain,
+              workoutLogs: plain.logs || [],
+            };
+          });
+          progressContext = buildProgressContext(sessionData);
+        }
+      } catch (progressErr) {
+        logger.warn('Failed to build progress context (non-blocking):', progressErr.message);
+      }
+    }
+
+    // Phase 5A: Build unified generation context
+    const unifiedContext = buildUnifiedContext({
+      deIdentifiedPayload: safePayload,
+      nasmConstraints,
+      templateContext,
+      progressContext,
+    });
+
+    // Attach progress + unified context to serverConstraints for prompt enrichment
+    if (progressContext && progressContext.recentSessionCount > 0) {
+      serverConstraints.progressContext = progressContext;
+    }
+    if (unifiedContext.exerciseRecommendations?.length > 0) {
+      serverConstraints.exerciseRecommendations = unifiedContext.exerciseRecommendations;
+    }
+
     const payloadHash = hashPayload(safePayload);
 
     // --- Phase 3A: Create audit log entry (pending) ---
@@ -538,6 +584,41 @@ export const generateWorkoutPlan = async (req, res) => {
 
     const aiPlan = validation.data;
 
+    // --- Phase 5A: Draft mode — return plan for coach review without persisting ---
+    if (isDraftMode) {
+      await updateAuditLog(auditLog, {
+        provider: providerResult.provider,
+        model: providerResult.model,
+        status: 'draft',
+        outputHash: hashPayload(providerResult.rawText),
+        durationMs: routerDurationMs,
+        tokenUsage: providerResult.tokenUsage || {},
+        promptVersion: PROMPT_VERSION,
+      });
+
+      const responseTime = Date.now() - startTime;
+      const tokensUsed = providerResult.tokenUsage?.totalTokens || 0;
+      updateMetrics('workoutGeneration', true, responseTime, tokensUsed, requesterId);
+
+      return res.status(200).json({
+        success: true,
+        draft: true,
+        plan: aiPlan,
+        generationMode: unifiedContext.generationMode,
+        explainability: unifiedContext.explainability,
+        safetyConstraints: unifiedContext.safetyConstraints,
+        exerciseRecommendations: unifiedContext.exerciseRecommendations,
+        warnings: [
+          ...(unifiedContext.explainability?.progressFlags || []),
+          ...(unifiedContext.explainability?.safetyFlags || []),
+          ...(validation.warnings || []),
+        ],
+        missingInputs: unifiedContext.missingInputs,
+        provider: providerResult.provider,
+        auditLogId: auditLog?.id || null,
+      });
+    }
+
     // --- Persist workout plan (unchanged from Phase 1) ---
     const transaction = await sequelize.transaction();
     const unmatchedExercises = [];
@@ -664,10 +745,19 @@ export const generateWorkoutPlan = async (req, res) => {
 
       return res.status(200).json({
         success: true,
+        draft: false,
         planId: workoutPlan.id,
         summary: aiPlan.summary || 'Workout plan generated',
         workouts,
         unmatchedExercises,
+        generationMode: unifiedContext.generationMode,
+        explainability: unifiedContext.explainability,
+        warnings: [
+          ...(unifiedContext.explainability?.progressFlags || []),
+          ...(unifiedContext.explainability?.safetyFlags || []),
+          ...(validation.warnings || []),
+        ],
+        missingInputs: unifiedContext.missingInputs,
       });
     } catch (error) {
       await transaction.rollback();
@@ -699,5 +789,272 @@ export const generateWorkoutPlan = async (req, res) => {
     if (requesterId) {
       releaseConcurrent(requesterId);
     }
+  }
+};
+
+/**
+ * Phase 5A: Approve and persist a draft workout plan.
+ *
+ * POST /api/ai/workout-generation/approve
+ * Body: { userId, plan, auditLogId?, trainerNotes? }
+ *
+ * The plan object should match the AI output schema (planName, days, exercises).
+ * The coach/trainer may have modified exercises before approval.
+ */
+export const approveDraftPlan = async (req, res) => {
+  try {
+    const { userId: rawUserId, plan, auditLogId, trainerNotes } = req.body || {};
+    const requesterId = req.user?.id;
+    const requesterRole = req.user?.role;
+
+    // --- 1. Auth check ---
+    if (!requesterId || !requesterRole) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    // --- 2. Role check: Only trainers and admins can approve drafts ---
+    if (requesterRole !== 'trainer' && requesterRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only trainers and admins can approve workout plans',
+      });
+    }
+
+    // --- 3. Input presence ---
+    const parsedUserId = Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : null;
+    if (!parsedUserId) {
+      return res.status(400).json({ success: false, message: 'Missing or invalid userId' });
+    }
+
+    if (!plan || typeof plan !== 'object') {
+      return res.status(400).json({ success: false, message: 'Missing plan data' });
+    }
+
+    const models = getAllModels();
+    const { User, Exercise, WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, ClientTrainerAssignment } = models;
+
+    // --- 4. Target user existence check ---
+    const targetUser = await User.findByPk(parsedUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'Target user not found',
+      });
+    }
+
+    // --- 5. Trainer assignment RBAC (mirrors generation path — BEFORE validation) ---
+    if (requesterRole === 'trainer' && ClientTrainerAssignment) {
+      const assignment = await ClientTrainerAssignment.findOne({
+        where: {
+          clientId: parsedUserId,
+          trainerId: requesterId,
+          status: 'active',
+        },
+      });
+
+      if (!assignment) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Trainer is not assigned to this client',
+        });
+      }
+    }
+
+    // --- 6. Re-check AI consent at approval time (BEFORE validation) ---
+    const { AiPrivacyProfile } = models;
+    if (AiPrivacyProfile) {
+      const consentProfile = await AiPrivacyProfile.findOne({
+        where: { userId: parsedUserId },
+      });
+
+      if (!consentProfile) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI consent has not been granted. Please complete the AI consent flow before using AI-powered features.',
+          code: 'AI_CONSENT_MISSING',
+        });
+      }
+
+      if (!consentProfile.aiEnabled) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI features are currently disabled for this account.',
+          code: 'AI_CONSENT_DISABLED',
+        });
+      }
+
+      if (consentProfile.withdrawnAt) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI consent has been withdrawn. Please re-consent to use AI-powered features.',
+          code: 'AI_CONSENT_WITHDRAWN',
+        });
+      }
+    }
+
+    // --- 7. Validate edited draft (AFTER authz + consent) ---
+    const draftValidation = validateApprovedDraftPlan({ draft: plan });
+    if (!draftValidation.valid) {
+      return res.status(422).json({
+        success: false,
+        message: 'Approved draft validation failed',
+        code: 'APPROVED_DRAFT_INVALID',
+        errors: draftValidation.errors,
+        warnings: draftValidation.warnings,
+      });
+    }
+
+    // --- 8. Persist validated draft ---
+    const approvedPlan = draftValidation.normalizedDraft;
+    const transaction = await sequelize.transaction();
+    const unmatchedExercises = [];
+    let createdExerciseCount = 0;
+
+    try {
+      const durationWeeks = Number.isFinite(Number(approvedPlan.durationWeeks))
+        ? Math.max(1, Number(approvedPlan.durationWeeks))
+        : 4;
+
+      const workoutPlan = await WorkoutPlan.create(
+        {
+          userId: parsedUserId,
+          title: approvedPlan.planName || 'AI Workout Plan (Coach Approved)',
+          description: approvedPlan.summary || 'AI-generated workout plan approved by coach',
+          durationWeeks,
+          status: 'active',
+          tags: ['ai_generated', 'coach_approved'],
+        },
+        { transaction }
+      );
+
+      const days = Array.isArray(approvedPlan.days) ? approvedPlan.days : [];
+      for (let i = 0; i < days.length; i += 1) {
+        const day = days[i] || {};
+        const dayNumber = Number.isFinite(Number(day.dayNumber)) ? Number(day.dayNumber) : i + 1;
+
+        const workoutPlanDay = await WorkoutPlanDay.create(
+          {
+            workoutPlanId: workoutPlan.id,
+            dayNumber,
+            name: day.name || `Day ${dayNumber}`,
+            focus: day.focus || null,
+            dayType: normalizeDayType(day.dayType),
+            optPhase: normalizeOptPhase(day.optPhase),
+            notes: day.notes || null,
+            warmupInstructions: day.warmupInstructions || null,
+            cooldownInstructions: day.cooldownInstructions || null,
+            estimatedDuration: Number.isFinite(Number(day.estimatedDuration))
+              ? Number(day.estimatedDuration)
+              : null,
+            sortOrder: Number.isFinite(Number(day.sortOrder)) ? Number(day.sortOrder) : i + 1,
+          },
+          { transaction }
+        );
+
+        const exercises = Array.isArray(day.exercises) ? day.exercises : [];
+        for (let j = 0; j < exercises.length; j += 1) {
+          const exercise = exercises[j] || {};
+          const exerciseName = exercise.name ? String(exercise.name) : '';
+          const exerciseRecord = await findExerciseByName(Exercise, exerciseName, transaction);
+
+          if (!exerciseRecord) {
+            unmatchedExercises.push({ dayNumber, name: exerciseName });
+            continue;
+          }
+
+          await WorkoutPlanDayExercise.create(
+            {
+              workoutPlanDayId: workoutPlanDay.id,
+              exerciseId: exerciseRecord.id,
+              orderInWorkout: Number.isFinite(Number(exercise.orderInWorkout))
+                ? Number(exercise.orderInWorkout)
+                : j + 1,
+              setScheme: exercise.setScheme || null,
+              repGoal: exercise.repGoal || null,
+              restPeriod: Number.isFinite(Number(exercise.restPeriod))
+                ? Number(exercise.restPeriod)
+                : null,
+              tempo: exercise.tempo || null,
+              intensityGuideline: exercise.intensityGuideline || null,
+              notes: exercise.notes || null,
+              isOptional: Boolean(exercise.isOptional),
+            },
+            { transaction }
+          );
+
+          createdExerciseCount += 1;
+        }
+      }
+
+      if (createdExerciseCount === 0) {
+        await transaction.rollback();
+        return res.status(422).json({
+          success: false,
+          message: 'No exercises matched existing library entries',
+          unmatchedExercises,
+        });
+      }
+
+      await transaction.commit();
+
+      // --- Phase 5A Hardening: Update audit log via tokenUsage merge (no metadata field) ---
+      if (auditLogId) {
+        const { AiInteractionLog } = models;
+        if (AiInteractionLog) {
+          try {
+            const existingLog = await AiInteractionLog.findByPk(auditLogId);
+            if (existingLog) {
+              const existingTokenUsage = existingLog.tokenUsage || {};
+              await existingLog.update({
+                status: 'approved',
+                tokenUsage: {
+                  ...existingTokenUsage,
+                  approval: {
+                    approvedAt: new Date().toISOString(),
+                    approvedByUserId: requesterId,
+                    sourceType: 'coach_approved',
+                    trainerNotes: trainerNotes || null,
+                    validationPassed: true,
+                    warningsCount: draftValidation.warnings.length,
+                  },
+                },
+              });
+            }
+          } catch (logErr) {
+            logger.warn('Failed to update audit log on approval:', logErr.message);
+          }
+        }
+      }
+
+      logger.info('Draft workout plan approved and persisted', {
+        planId: workoutPlan.id,
+        approvedBy: requesterId,
+        clientUserId: parsedUserId,
+        exerciseCount: createdExerciseCount,
+      });
+
+      return res.status(200).json({
+        success: true,
+        planId: workoutPlan.id,
+        sourceType: 'coach_approved',
+        summary: approvedPlan.summary || 'Workout plan approved and saved',
+        unmatchedExercises,
+        validationWarnings: draftValidation.warnings,
+      });
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  } catch (error) {
+    logger.error('Draft plan approval failed', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to approve workout plan',
+    });
   }
 };

@@ -226,3 +226,120 @@ export function runValidationPipeline(rawText, opts = {}) {
     warnings: rulesResult.warnings,
   };
 }
+
+// ── Approved Draft Validation (Phase 5A Hardening) ────────────────────────────
+
+/**
+ * Validate a coach-edited workout draft before persistence.
+ * Last-mile gate — shape checks, required fields, critical safety, soft warnings.
+ *
+ * @param {Object} params
+ * @param {unknown} params.draft - Edited draft payload from request body
+ * @returns {{
+ *   valid: boolean,
+ *   errors: Array<{ code: string, field?: string, message: string }>,
+ *   warnings: Array<{ code: string, field?: string, message: string }>,
+ *   normalizedDraft?: object
+ * }}
+ */
+export function validateApprovedDraftPlan({ draft } = {}) {
+  const errors = [];
+  const warnings = [];
+
+  // ── Top-level shape ──────────────────────────────────────────
+  if (!draft || typeof draft !== 'object' || Array.isArray(draft)) {
+    errors.push({ code: 'INVALID_DRAFT_PAYLOAD', message: 'Draft must be a non-null object' });
+    return { valid: false, errors, warnings };
+  }
+
+  // ── Required title ───────────────────────────────────────────
+  if (!draft.planName || typeof draft.planName !== 'string' || !draft.planName.trim()) {
+    errors.push({ code: 'MISSING_DRAFT_TITLE', field: 'planName', message: 'Draft title (planName) is required' });
+  }
+
+  // ── Required days structure ──────────────────────────────────
+  if (!Array.isArray(draft.days) || draft.days.length === 0) {
+    errors.push({ code: 'MISSING_DRAFT_STRUCTURE', field: 'days', message: 'Draft must contain at least one day' });
+  }
+
+  // If critical shape errors, return early
+  if (errors.length > 0) {
+    return { valid: false, errors, warnings };
+  }
+
+  // ── Per-day + exercise validation ────────────────────────────
+  const durationWeeks = Number.isFinite(Number(draft.durationWeeks))
+    ? Math.max(1, Number(draft.durationWeeks))
+    : 4;
+  const maxDays = durationWeeks * 7;
+
+  if (draft.days.length > maxDays) {
+    errors.push({
+      code: 'TOO_MANY_DAYS',
+      field: 'days',
+      message: `Too many days (${draft.days.length}) for ${durationWeeks}-week plan (max ${maxDays})`,
+    });
+  }
+
+  const dayNumbers = draft.days.map(d => d.dayNumber);
+  const uniqueDayNumbers = new Set(dayNumbers.filter(n => n != null));
+  if (uniqueDayNumbers.size !== dayNumbers.filter(n => n != null).length) {
+    errors.push({ code: 'DUPLICATE_DAY_NUMBERS', field: 'days', message: 'Duplicate day numbers detected' });
+  }
+
+  for (let i = 0; i < draft.days.length; i++) {
+    const day = draft.days[i];
+    const dayLabel = `days[${i}]`;
+
+    if (!Array.isArray(day.exercises) || day.exercises.length === 0) {
+      errors.push({
+        code: 'INVALID_EXERCISE_LIST',
+        field: `${dayLabel}.exercises`,
+        message: `Day "${day.name || i + 1}" must have at least one exercise`,
+      });
+      continue;
+    }
+
+    if (day.exercises.length > 20) {
+      warnings.push({
+        code: 'EXCESSIVE_EXERCISES',
+        field: `${dayLabel}.exercises`,
+        message: `Day "${day.name || i + 1}" has ${day.exercises.length} exercises (recommended max: 20)`,
+      });
+    }
+
+    for (let j = 0; j < day.exercises.length; j++) {
+      const ex = day.exercises[j];
+      const exLabel = `${dayLabel}.exercises[${j}]`;
+
+      if (!ex.name || typeof ex.name !== 'string' || !ex.name.trim()) {
+        errors.push({
+          code: 'INVALID_EXERCISE_LIST',
+          field: `${exLabel}.name`,
+          message: `Exercise at ${exLabel} is missing a name`,
+        });
+      }
+
+      if (ex.restPeriod != null && (typeof ex.restPeriod !== 'number' || ex.restPeriod < 0 || ex.restPeriod > 600)) {
+        errors.push({
+          code: 'INVALID_REST_PERIOD',
+          field: `${exLabel}.restPeriod`,
+          message: `Exercise "${ex.name || '?'}" has invalid rest period: ${ex.restPeriod}s (valid: 0-600)`,
+        });
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, errors, warnings };
+  }
+
+  // ── Normalize (minimal, safe) ────────────────────────────────
+  const normalizedDraft = JSON.parse(JSON.stringify(draft));
+  normalizedDraft.planName = normalizedDraft.planName.trim();
+  if (normalizedDraft.summary && typeof normalizedDraft.summary === 'string') {
+    normalizedDraft.summary = normalizedDraft.summary.trim();
+  }
+
+  return { valid: true, errors: [], warnings, normalizedDraft };
+}
