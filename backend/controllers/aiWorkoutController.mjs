@@ -3,61 +3,56 @@
  * SYSTEM: AI Workout Generation (NASM-Aware)
  *
  * PURPOSE:
- * - Generate structured workout plans using Master Prompt JSON.
+ * - Generate structured workout plans via the AI provider router.
  * - Enforce NASM OPT phase guidance and safety constraints from movement screen data.
  *
  * ARCHITECTURE:
  * ```mermaid
  * graph TD
  *   A[Client/Trainer Request] --> B[aiWorkoutController]
- *   B --> C[OpenAI API]
- *   B --> D[ClientBaselineMeasurements]
- *   B --> E[WorkoutPlan Tables]
- *   B --> F[Exercise Library]
+ *   B --> C[Provider Router]
+ *   C --> D[OpenAI Adapter]
+ *   C --> E[Anthropic Adapter]
+ *   C --> F[Gemini Adapter]
+ *   C --> G[Degraded Mode]
+ *   B --> H[Output Validator]
+ *   B --> I[WorkoutPlan Tables]
  * ```
  *
- * DATABASE ERD:
- * ```
- * users (id) 1--N workout_plans
- * users (id) 1--N client_baseline_measurements
- * workout_plans (id) 1--N workout_plan_days
- * workout_plan_days (id) 1--N workout_plan_day_exercises
- * ```
- *
- * DATA FLOW:
- * 1. Validate requester role and access
- * 2. Load Master Prompt JSON + latest baseline measurements
- * 3. Build NASM constraints (opt phase, corrective strategy)
- * 4. Call OpenAI with constraints
- * 5. Validate response and persist plan
- *
- * ERROR STATES:
- * - 400: Missing userId or invalid masterPromptJson
- * - 401: Not authenticated
- * - 403: Access denied
- * - 404: User or masterPromptJson missing
- * - 502: Empty/invalid AI response
- * - 500: Unexpected server error
- *
- * WHY Include NASM Data in AI Prompt?
- * - Aligns programming with OPT phase requirements.
- * - Reduces injury risk by avoiding movement compensations.
- *
- * DEPENDENCIES:
- * - OpenAI SDK
- * - ClientBaselineMeasurements (NASM data)
- * - WorkoutPlan + Exercise models
+ * DATA FLOW (Phase 3A — 18-step pipeline):
+ * 1. Auth + kill switch (middleware)
+ * 2. Rate limiter (middleware)
+ * 3. RBAC check
+ * 4. Per-user consent check
+ * 5. Resolve masterPromptJson
+ * 6. De-identify payload (fail-closed)
+ * 7. Build server-derived NASM constraints
+ * 8. Create audit log (pending)
+ * 9. Call provider router (failover chain)
+ * 10. If router fails → degraded response (HTTP 200, template suggestions)
+ * 11. PII detection scan (reject-on-detect)
+ * 12. Zod schema validation
+ * 13. Rule-engine validation
+ * 14. Persist workout plan
+ * 15. Update audit log (success)
+ * 16. Return success response
  *
  * CREATED: 2026-01-10
- * LAST MODIFIED: 2026-01-18
+ * LAST MODIFIED: 2026-02-24 (Phase 3A: Provider router integration)
  */
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { updateMetrics } from '../routes/aiMonitoringRoutes.mjs';
+import { deIdentify, hashPayload } from '../services/deIdentificationService.mjs';
+import { routeAiGeneration } from '../services/ai/providerRouter.mjs';
+import { runValidationPipeline } from '../services/ai/outputValidator.mjs';
+import { buildDegradedResponse } from '../services/ai/degradedResponse.mjs';
+import { releaseConcurrent } from '../services/ai/rateLimiter.mjs';
+import { PROMPT_VERSION } from '../services/ai/types.mjs';
+import { buildTemplateContext } from '../services/ai/templateContextBuilder.mjs';
 
-const WORKOUT_MODEL = 'gpt-4';
 const ALLOWED_DAY_TYPES = new Set([
   'training',
   'active_recovery',
@@ -82,70 +77,6 @@ const OPT_PHASE_KEY_BY_NUMBER = {
 
 const isPlainObject = (value) => {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
-
-const getOpenAIClient = async () => {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
-  let OpenAI;
-  try {
-    const openaiModule = await import('openai');
-    OpenAI = openaiModule.OpenAI || openaiModule.default;
-  } catch (error) {
-    throw new Error('OpenAI SDK not installed. Run: npm install openai');
-  }
-
-  if (!OpenAI) {
-    throw new Error('OpenAI SDK is unavailable');
-  }
-
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-};
-
-const buildPrompt = (masterPromptJson, constraints) => {
-  const constraintsBlock = constraints && Object.keys(constraints).length > 0
-    ? JSON.stringify(constraints, null, 2)
-    : '{}';
-
-  return [
-    'You are a certified personal trainer generating a structured workout plan.',
-    'Return ONLY valid JSON matching this schema:',
-    '{',
-    '  "planName": "string",',
-    '  "durationWeeks": number,',
-    '  "summary": "string",',
-    '  "days": [',
-    '    {',
-    '      "dayNumber": number,',
-    '      "name": "string",',
-    '      "focus": "string",',
-    '      "dayType": "training|active_recovery|rest|assessment|specialization",',
-    '      "estimatedDuration": number,',
-    '      "exercises": [',
-    '        {',
-    '          "name": "string",',
-    '          "setScheme": "string",',
-    '          "repGoal": "string",',
-    '          "restPeriod": number,',
-    '          "tempo": "string",',
-    '          "intensityGuideline": "string",',
-    '          "notes": "string",',
-    '          "isOptional": boolean',
-    '        }',
-    '      ]',
-    '    }',
-    '  ]',
-    '}',
-    'Do not include markdown code fences or extra commentary.',
-    '',
-    'Client master prompt JSON:',
-    JSON.stringify(masterPromptJson, null, 2),
-    '',
-    'Additional constraints:',
-    constraintsBlock,
-  ].join('\n');
 };
 
 const normalizeDayType = (dayType) => {
@@ -281,11 +212,25 @@ const findExerciseByName = async (Exercise, name, transaction) => {
   });
 };
 
+/**
+ * Update the audit log entry. Non-blocking — failures are logged but don't break the request.
+ */
+async function updateAuditLog(auditLog, fields) {
+  if (!auditLog) return;
+  try {
+    await auditLog.update(fields);
+  } catch (logErr) {
+    logger.warn('Failed to update AI audit log:', logErr.message);
+  }
+}
+
 export const generateWorkoutPlan = async (req, res) => {
   const startTime = Date.now();
+  const requesterId = req.user?.id;
+  let auditLog = null;
+
   try {
-    const { userId: rawUserId, masterPromptJson, constraints } = req.body || {};
-    const requesterId = req.user?.id;
+    const { userId: rawUserId, masterPromptJson } = req.body || {};
     const requesterRole = req.user?.role;
 
     if (!requesterId || !requesterRole) {
@@ -351,6 +296,38 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     }
 
+    // --- Phase 1: Per-user AI consent check (AFTER RBAC) ---
+    const { AiPrivacyProfile } = models;
+    if (AiPrivacyProfile) {
+      const consentProfile = await AiPrivacyProfile.findOne({
+        where: { userId: targetUserId },
+      });
+
+      if (!consentProfile) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI consent has not been granted. Please complete the AI consent flow before using AI-powered features.',
+          code: 'AI_CONSENT_MISSING',
+        });
+      }
+
+      if (!consentProfile.aiEnabled) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI features are currently disabled for this account.',
+          code: 'AI_CONSENT_DISABLED',
+        });
+      }
+
+      if (consentProfile.withdrawnAt) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI consent has been withdrawn. Please re-consent to use AI-powered features.',
+          code: 'AI_CONSENT_WITHDRAWN',
+        });
+      }
+    }
+
     const targetUser = await User.findByPk(targetUserId);
     if (!targetUser) {
       return res.status(404).json({
@@ -378,61 +355,190 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     }
 
-    const normalizedConstraints = isPlainObject(constraints) ? constraints : {};
+    // --- Phase 1: De-identify masterPromptJson before AI call ---
+    const deIdResult = deIdentify(resolvedMasterPrompt, {
+      spiritName: targetUser.spiritName || undefined,
+    });
+
+    if (!deIdResult) {
+      logger.warn('AI workout generation blocked: de-identification failed (fail-closed)', {
+        targetUserId,
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to prepare data for AI processing. Please ensure your profile is complete.',
+        code: 'DEIDENTIFICATION_FAILED',
+      });
+    }
+
+    const { deIdentified: safePayload, strippedFields } = deIdResult;
+    logger.info('De-identification complete', {
+      targetUserId,
+      strippedFields,
+      strippedCount: strippedFields.length,
+    });
+
+    // --- Phase 1: Constraints are server-derived only (NASM baseline) ---
     const latestBaseline = await ClientBaselineMeasurements.findOne({
       where: { userId: targetUserId },
       order: [['takenAt', 'DESC']],
     });
     const nasmConstraints = buildNasmConstraints(latestBaseline, resolvedMasterPrompt);
-    const constraintsWithNasm = { ...normalizedConstraints };
+    const serverConstraints = {};
     if (nasmConstraints) {
-      constraintsWithNasm.nasm = nasmConstraints;
+      serverConstraints.nasm = nasmConstraints;
       if (nasmConstraints.optPhase) {
-        constraintsWithNasm.optPhase = nasmConstraints.optPhase;
-        constraintsWithNasm.optPhaseConfig = nasmConstraints.optPhaseConfig ?? null;
+        serverConstraints.optPhase = nasmConstraints.optPhase;
+        serverConstraints.optPhaseConfig = nasmConstraints.optPhaseConfig ?? null;
       }
     }
-    const openai = await getOpenAIClient();
-    const prompt = buildPrompt(resolvedMasterPrompt, constraintsWithNasm);
 
-    const completion = await openai.chat.completions.create({
-      model: WORKOUT_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You generate structured workout plans as JSON only.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
+    // Phase 4A: Resolve NASM templates from constraints (zero PII, pure protocol data)
+    const templateContext = buildTemplateContext(nasmConstraints);
+    if (templateContext) {
+      serverConstraints.templateContext = templateContext;
+    }
+
+    const payloadHash = hashPayload(safePayload);
+
+    // --- Phase 3A: Create audit log entry (pending) ---
+    const { AiInteractionLog } = models;
+    if (AiInteractionLog) {
+      try {
+        auditLog = await AiInteractionLog.create({
+          userId: targetUserId,
+          provider: 'pending',
+          model: 'pending',
+          requestType: 'workout_generation',
+          payloadHash,
+          status: 'pending',
+          promptVersion: PROMPT_VERSION,
+        });
+      } catch (logErr) {
+        logger.warn('Failed to create AI audit log (non-blocking):', logErr.message);
+      }
+    }
+
+    // --- Phase 3A: Route through provider chain ---
+    // Resolve the user's original name for PII detection in provider output
+    const originalName = resolvedMasterPrompt?.client?.name;
+    const routerStartMs = Date.now();
+
+    const routerOutcome = await routeAiGeneration({
+      requestType: 'workout_generation',
+      userId: targetUserId,
+      deidentifiedPayload: safePayload,
+      serverConstraints,
+      payloadHash,
+      promptVersion: PROMPT_VERSION,
     });
 
-    const content = completion.choices?.[0]?.message?.content;
-    if (!content) {
-      return res.status(502).json({
+    const routerDurationMs = Date.now() - routerStartMs;
+
+    logger.info('[Router] Outcome', {
+      ok: routerOutcome.ok,
+      failoverTrace: routerOutcome.failoverTrace,
+      durationMs: routerDurationMs,
+    });
+
+    // --- Phase 3A: Handle router failure → degraded mode (HTTP 200) ---
+    if (!routerOutcome.ok) {
+      // Check if all errors are auth-related (config error, not transient)
+      const allAuth = routerOutcome.errors.length > 0
+        && routerOutcome.errors.every(e => e.code === 'PROVIDER_AUTH');
+      const allRateLimit = routerOutcome.errors.length > 0
+        && routerOutcome.errors.every(e => e.code === 'PROVIDER_RATE_LIMIT');
+
+      await updateAuditLog(auditLog, {
+        provider: 'degraded',
+        model: 'none',
+        status: 'degraded',
+        errorCode: routerOutcome.errors[0]?.code || 'UNKNOWN_PROVIDER_ERROR',
+        durationMs: routerDurationMs,
+      });
+
+      const responseTime = Date.now() - startTime;
+      updateMetrics('workoutGeneration', false, responseTime, 0, requesterId);
+
+      if (allAuth) {
+        return res.status(502).json({
+          success: false,
+          code: 'AI_CONFIG_ERROR',
+          message: 'AI provider configuration error. Please contact support.',
+        });
+      }
+
+      if (allRateLimit) {
+        return res.status(429).json({
+          success: false,
+          code: 'AI_RATE_LIMITED',
+          message: 'AI providers are rate-limited. Please try again shortly.',
+        });
+      }
+
+      // Standard degraded response (HTTP 200)
+      return res.status(200).json(
+        buildDegradedResponse(routerOutcome.errors, routerOutcome.failoverTrace)
+      );
+    }
+
+    // --- Phase 3A: Validate provider output (PII → Zod → Rules) ---
+    const { result: providerResult } = routerOutcome;
+
+    const validation = runValidationPipeline(providerResult.rawText, {
+      userName: originalName || undefined,
+    });
+
+    if (!validation.ok) {
+      const statusMap = {
+        pii_leak: 422,
+        parse_error: 502,
+        validation_error: 422,
+      };
+      const codeMap = {
+        pii_leak: 'AI_PII_LEAK',
+        parse_error: 'AI_PARSE_ERROR',
+        validation_error: 'AI_VALIDATION_ERROR',
+      };
+
+      await updateAuditLog(auditLog, {
+        provider: providerResult.provider,
+        model: providerResult.model,
+        status: validation.failStage,
+        errorCode: validation.failStage,
+        durationMs: routerDurationMs,
+        tokenUsage: {
+          ...(providerResult.tokenUsage || {}),
+          ...(templateContext ? {
+            templateRefs: templateContext.templateRefs,
+            primaryTemplateId: templateContext.primaryTemplateId,
+            registryVersion: templateContext.registryVersion,
+          } : {}),
+        },
+      });
+
+      const responseTime = Date.now() - startTime;
+      updateMetrics('workoutGeneration', false, responseTime, 0, requesterId);
+
+      return res.status(statusMap[validation.failStage] || 500).json({
         success: false,
-        message: 'Empty response from OpenAI',
+        code: codeMap[validation.failStage] || 'AI_VALIDATION_ERROR',
+        message: validation.failStage === 'pii_leak'
+          ? 'AI output contained personal information and was rejected for privacy.'
+          : validation.failStage === 'parse_error'
+            ? 'AI response was not valid JSON'
+            : `AI output validation failed: ${validation.failReason}`,
       });
     }
 
-    let aiPlan;
-    try {
-      aiPlan = JSON.parse(content);
-    } catch (error) {
-      logger.error('AI workout generation returned invalid JSON', {
-        error: error.message,
-        contentSnippet: content.slice(0, 200),
-      });
-      return res.status(502).json({
-        success: false,
-        message: 'AI response was not valid JSON',
-      });
+    // Log warnings from rule engine (non-blocking)
+    if (validation.warnings.length > 0) {
+      logger.info('[Validator] Warnings on AI output', { warnings: validation.warnings });
     }
 
+    const aiPlan = validation.data;
+
+    // --- Persist workout plan (unchanged from Phase 1) ---
     const transaction = await sequelize.transaction();
     const unmatchedExercises = [];
     let createdExerciseCount = 0;
@@ -524,8 +630,26 @@ export const generateWorkoutPlan = async (req, res) => {
 
       await transaction.commit();
 
+      // --- Update audit log: success ---
+      await updateAuditLog(auditLog, {
+        provider: providerResult.provider,
+        model: providerResult.model,
+        status: 'success',
+        outputHash: hashPayload(providerResult.rawText),
+        durationMs: routerDurationMs,
+        tokenUsage: {
+          ...(providerResult.tokenUsage || {}),
+          ...(templateContext ? {
+            templateRefs: templateContext.templateRefs,
+            primaryTemplateId: templateContext.primaryTemplateId,
+            registryVersion: templateContext.registryVersion,
+          } : {}),
+        },
+        promptVersion: PROMPT_VERSION,
+      });
+
       const responseTime = Date.now() - startTime;
-      const tokensUsed = completion.usage?.total_tokens || 0;
+      const tokensUsed = providerResult.tokenUsage?.totalTokens || 0;
       updateMetrics('workoutGeneration', true, responseTime, tokensUsed, requesterId);
 
       const workouts = (Array.isArray(aiPlan.days) ? aiPlan.days : []).map((day) => ({
@@ -553,6 +677,13 @@ export const generateWorkoutPlan = async (req, res) => {
     const responseTime = Date.now() - startTime;
     updateMetrics('workoutGeneration', false, responseTime, 0, req.user?.id);
 
+    // Finalize audit log so no rows stay stuck in 'pending'
+    await updateAuditLog(auditLog, {
+      status: 'error',
+      errorCode: 'INTERNAL_ERROR',
+      durationMs: responseTime,
+    });
+
     logger.error('AI workout generation failed', {
       error: error.message,
       stack: error.stack,
@@ -563,5 +694,10 @@ export const generateWorkoutPlan = async (req, res) => {
       success: false,
       message: error.message || 'Failed to generate workout plan',
     });
+  } finally {
+    // Always release the concurrent rate-limit lock
+    if (requesterId) {
+      releaseConcurrent(requesterId);
+    }
   }
 };

@@ -1,0 +1,962 @@
+﻿[
+    {
+        "File":  "AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Link":  "../docs/ai-workflow/PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Link":  "../docs/ai-workflow/AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\CONTRIBUTING.md",
+        "Link":  "../current/NEW_DOCUMENT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\current\\NEW_DOCUMENT.md"
+    },
+    {
+        "File":  "docs\\CONTRIBUTING.md",
+        "Link":  "path/to/doc1.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\path\\to\\doc1.md"
+    },
+    {
+        "File":  "docs\\CONTRIBUTING.md",
+        "Link":  "path/to/doc2.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\path\\to\\doc2.md"
+    },
+    {
+        "File":  "docs\\CONTRIBUTING.md",
+        "Link":  "WRONG_PATH.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\WRONG_PATH.md"
+    },
+    {
+        "File":  "docs\\CONTRIBUTING.md",
+        "Link":  "current/REALTIME_COLLABORATION.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\current\\REALTIME_COLLABORATION.md"
+    },
+    {
+        "File":  "docs\\CONTRIBUTING.md",
+        "Link":  "../current/UI-KIT-MIGRATION-GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\current\\UI-KIT-MIGRATION-GUIDE.md"
+    },
+    {
+        "File":  "docs\\CUSTOM-PACKAGE-USER-GUIDE.md",
+        "Link":  "../frontend/src/pages/shop/components/CustomPackageBuilder.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\frontend\\src\\pages\\shop\\components\\CustomPackageBuilder.tsx"
+    },
+    {
+        "File":  "docs\\CUSTOM-PACKAGE-USER-GUIDE.md",
+        "Link":  "../frontend/src/pages/shop/components/__tests__/CustomPackageFlow.e2e.test.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\frontend\\src\\pages\\shop\\components\\__tests__\\CustomPackageFlow.e2e.test.tsx"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "../backend/mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\README.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "../backend/mcp_server/gamification_mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\gamification_mcp_server\\README.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "../backend/mcp_server/workout_mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\workout_mcp_server\\README.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "../backend/mcp_server/yolo_mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\yolo_mcp_server\\README.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "../backend/scripts/backup/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\scripts\\backup\\README.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "DEVELOPMENT_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\DEVELOPMENT_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\deployment\\DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "deployment/DEPLOYMENT_COMMANDS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\deployment\\DEPLOYMENT_COMMANDS.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "guides/MOBILE_PWA_TESTING_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\guides\\MOBILE_PWA_TESTING_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "guides/STRIPE_DATA_VERIFICATION_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\guides\\STRIPE_DATA_VERIFICATION_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "DEVELOPMENT_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\DEVELOPMENT_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "DEVELOPMENT_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\DEVELOPMENT_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "../backend/mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\README.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "DEVELOPMENT_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\DEVELOPMENT_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\deployment\\DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "deployment/DEPLOYMENT_COMMANDS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\deployment\\DEPLOYMENT_COMMANDS.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "guides/STRIPE_DATA_VERIFICATION_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\guides\\STRIPE_DATA_VERIFICATION_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "DEVELOPMENT_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\DEVELOPMENT_GUIDE.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\deployment\\DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "deployment/DEPLOYMENT_COMMANDS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\deployment\\DEPLOYMENT_COMMANDS.md"
+    },
+    {
+        "File":  "docs\\index.md",
+        "Link":  "guides/STRIPE_DATA_VERIFICATION_GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\guides\\STRIPE_DATA_VERIFICATION_GUIDE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-REVIEW-CONSOLIDATED-FEEDBACK.md",
+        "Link":  "GAMIFICATION-MASTER-PROMPT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\GAMIFICATION-MASTER-PROMPT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-REVIEW-CONSOLIDATED-FEEDBACK.md",
+        "Link":  "GAMIFICATION-MASTER-PROMPT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\GAMIFICATION-MASTER-PROMPT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md",
+        "Link":  "../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\AI-Village-Documentation\\AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\CLIENT-TO-UI-INTEGRATION-ARCHITECTURE.md",
+        "Link":  "../client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\client-data\\templates\\MASTER-PROMPT-SCHEMA-v3.0.json"
+    },
+    {
+        "File":  "docs\\ai-workflow\\CLIENT-TO-UI-INTEGRATION-ARCHITECTURE.md",
+        "Link":  "../client-data/guides/SECURITY-PRIVACY-IMPLEMENTATION.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\client-data\\guides\\SECURITY-PRIVACY-IMPLEMENTATION.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\NEW-FILE-STRUCTURE-GUIDE.md",
+        "Link":  "reviews/my-feature-name.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\reviews\\my-feature-name.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\NEW-FILE-STRUCTURE-GUIDE.md",
+        "Link":  "reviews/my-feature-name.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\reviews\\my-feature-name.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\NEW-FILE-STRUCTURE-GUIDE.md",
+        "Link":  "reviews/my-feature-name.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\reviews\\my-feature-name.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\NEW-FILE-STRUCTURE-GUIDE.md",
+        "Link":  "archive/completed-2025-10.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\completed-2025-10.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\PHASE-0-REGISTRY.md",
+        "Link":  "HOMEPAGE-REFACTOR-FINAL-PLAN.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\HOMEPAGE-REFACTOR-FINAL-PLAN.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\PHASE-0-REGISTRY.md",
+        "Link":  "archive/completed-2025-10.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\completed-2025-10.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\VIDEO-LIBRARY-BACKEND-TEST-PLAN.md",
+        "Link":  "docs/ai-workflow/ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\docs\\ai-workflow\\ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\VIDEO-LIBRARY-BACKEND-TEST-PLAN.md",
+        "Link":  "backend/controllers/videoLibraryController.mjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\backend\\controllers\\videoLibraryController.mjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../../client-data/WHERE-ARE-MY-FILES.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\WHERE-ARE-MY-FILES.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../../client-data/CREATE-NEW-CLIENT-NOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\CREATE-NEW-CLIENT-NOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../../client-data/guides/REAL-CLIENT-EXAMPLE-WALKTHROUGHS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\guides\\REAL-CLIENT-EXAMPLE-WALKTHROUGHS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\personal-training\\PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../COACH-CORTEX-V3.0-ULTIMATE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\COACH-CORTEX-V3.0-ULTIMATE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../../client-data/QUICK-REFERENCE-CARD.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\QUICK-REFERENCE-CARD.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../../client-data/CLIENT-REGISTRY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\CLIENT-REGISTRY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\YOUR-DAILY-WORKFLOW-CHECKLIST.md",
+        "Link":  "../../client-data/templates/MASTER-PROMPT-TEMPLATE.json",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\templates\\MASTER-PROMPT-TEMPLATE.json"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "backend/controllers/aiWorkoutController.mjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\backend\\controllers\\aiWorkoutController.mjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\AI-HANDOFF\\CURRENT-TASK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\frontend\\src\\components\\ClientDashboard\\RevolutionaryClientDashboard.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "backend/models/ClientNutritionPlan.mjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\backend\\models\\ClientNutritionPlan.mjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\AI-HANDOFF\\CURRENT-TASK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\AI-HANDOFF\\CURRENT-TASK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\AI-HANDOFF\\CURRENT-TASK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\AI-HANDOFF\\CURRENT-TASK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\CHATGPT-IMPLEMENTATION-DIRECTIVE.md",
+        "Link":  "docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\KILO-CODE-STATUS.md",
+        "Link":  "docs/ai-workflow/ADMIN-DASHBOARD-ERROR-ANALYSIS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\ADMIN-DASHBOARD-ERROR-ANALYSIS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\KILO-CODE-STATUS.md",
+        "Link":  "docs/ai-workflow/AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\docs\\ai-workflow\\AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/mcp_server/launch.py",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\launch.py"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/migrations/20251113000000-create-exercise-videos-table.cjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\migrations\\20251113000000-create-exercise-videos-table.cjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/migrations/20251113000001-create-video-analytics-table.cjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\migrations\\20251113000001-create-video-analytics-table.cjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\migrations\\20251113000002-add-video-library-to-exercise-library.cjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/migrations/20251113000000-create-exercise-videos-table.cjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\migrations\\20251113000000-create-exercise-videos-table.cjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/migrations/20251113000001-create-video-analytics-table.cjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\migrations\\20251113000001-create-video-analytics-table.cjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\PHASE-1-COMPLETE-STATUS.md",
+        "Link":  "../../../backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\migrations\\20251113000002-add-video-library-to-exercise-library.cjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\VIDEO-LIBRARY-COMPLETE-STATUS.md",
+        "Link":  "backend/middleware/adminAuth.mjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\backend\\middleware\\adminAuth.mjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\VIDEO-LIBRARY-COMPLETE-STATUS.md",
+        "Link":  "backend/controllers/videoLibraryController.mjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\backend\\controllers\\videoLibraryController.mjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\AI-HANDOFF\\VIDEO-LIBRARY-COMPLETE-STATUS.md",
+        "Link":  "backend/run-video-library-migrations.mjs",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\backend\\run-video-library-migrations.mjs"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\homepage-refactor\\HOMEPAGE-REFACTOR-FINAL-PLAN.md",
+        "Link":  "docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\homepage-refactor\\docs\\ai-workflow\\AI-HANDOFF\\CURRENT-TASK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "./GIT-AUTOMATION-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\GIT-AUTOMATION-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "./GOOGLE-DOCS-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\GOOGLE-DOCS-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "./GIT-AUTOMATION-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\GIT-AUTOMATION-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "./GOOGLE-DOCS-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\GOOGLE-DOCS-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "./PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\AI-ROLE-PROMPTS-ENHANCED.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "PHASE-0-REGISTRY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\PHASE-0-REGISTRY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "templates/PHASE-0-REVIEW-TEMPLATE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\templates\\PHASE-0-REVIEW-TEMPLATE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "NEW-FILE-STRUCTURE-GUIDE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\NEW-FILE-STRUCTURE-GUIDE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "PHASE-0-REGISTRY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\PHASE-0-REGISTRY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "reviews/homepage-hero-enhancement.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\reviews\\homepage-hero-enhancement.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "PHASE-0-REGISTRY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\PHASE-0-REGISTRY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "PHASE-0-REGISTRY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\PHASE-0-REGISTRY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\old-versions\\BRAINSTORM-CONSENSUS-DEPRECATED.md",
+        "Link":  "templates/PHASE-0-REVIEW-TEMPLATE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\old-versions\\templates\\PHASE-0-REVIEW-TEMPLATE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/DiagnosticsDashboard.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\DiagnosticsDashboard.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/AdminDebugPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\AdminDebugPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/components/AIMonitoringPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\components\\AIMonitoringPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/components/SecurityMonitoringPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\components\\SecurityMonitoringPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/DataManagementPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\DataManagementPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/components/PerformanceMetricsPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\components\\PerformanceMetricsPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/AnalyticsControlCenter.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\AnalyticsControlCenter.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/NotificationCenter.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\NotificationCenter.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/SettingsPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\SettingsPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/UserManagementPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\UserManagementPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\components\\RevenueAnalyticsPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/components/SystemHealthPanel.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\components\\SystemHealthPanel.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\DashBoard\\Pages\\admin-dashboard\\admin-dashboard-view.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-CLIENT-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/ClientDashboard/ProgressChart.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ClientDashboard\\ProgressChart.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-CLIENT-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/ClientDashboard/GamificationSection.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ClientDashboard\\GamificationSection.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-CLIENT-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ClientDashboard\\RevolutionaryClientDashboard.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-CLIENT-DASHBOARD-AUDIT.md",
+        "Link":  "frontend/src/components/ClientDashboard/GalaxySections.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ClientDashboard\\GalaxySections.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/ui-kit/Typography.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ui-kit\\Typography.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/ui-kit/Button.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ui-kit\\Button.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/ui-kit/Input.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ui-kit\\Input.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/ui-kit/Card.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ui-kit\\Card.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/ui-kit/Table.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ui-kit\\Table.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/Gamification/GamificationDashboard.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\Gamification\\GamificationDashboard.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Link":  "frontend/src/components/Gamification/GamificationDisplay.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\Gamification\\GamificationDisplay.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-WEEK-0-SUMMARY.md",
+        "Link":  "frontend/src/components/ClientDashboard/GalaxySections.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\ClientDashboard\\GalaxySections.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-WEEK-0-SUMMARY.md",
+        "Link":  "frontend/src/components/Gamification/GamificationDashboard.tsx",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\frontend\\src\\components\\Gamification\\GamificationDashboard.tsx"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\phase-0\\PHASE-0-WEEK-0-SUMMARY.md",
+        "Link":  "./SWANSTUDIOS-V3.1-ULTRA-COMPREHENSIVE-REFACTOR.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\phase-0\\SWANSTUDIOS-V3.1-ULTRA-COMPREHENSIVE-REFACTOR.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-CLIENT-DASHBOARD-AUDIT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-CLIENT-DASHBOARD-AUDIT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./GIT-AUTOMATION-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\GIT-AUTOMATION-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./GOOGLE-DOCS-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\GOOGLE-DOCS-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./AI-ROLE-PROMPTS-ENHANCED.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\AI-ROLE-PROMPTS-ENHANCED.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-WEEK-0-SUMMARY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-WEEK-0-SUMMARY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-WEEK-0-SUMMARY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-WEEK-0-SUMMARY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./SLACK-INTEGRATION-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\SLACK-INTEGRATION-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-ADMIN-DASHBOARD-AUDIT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-ADMIN-DASHBOARD-AUDIT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-CLIENT-DASHBOARD-AUDIT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-CLIENT-DASHBOARD-AUDIT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./PHASE-0-WEEK-0-SUMMARY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\PHASE-0-WEEK-0-SUMMARY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./GIT-AUTOMATION-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\GIT-AUTOMATION-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./GOOGLE-DOCS-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\GOOGLE-DOCS-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./AI-ROLE-PROMPTS-ENHANCED.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\AI-ROLE-PROMPTS-ENHANCED.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\README.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/component-template.mermaid.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\component-template.mermaid.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/component-template.wireframe.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\component-template.wireframe.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/component-template.flowchart.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\component-template.flowchart.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/component-template.api-spec.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\component-template.api-spec.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/component-template.test-spec.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\component-template.test-spec.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./component-docs/templates/component-template.a11y.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\component-docs\\templates\\component-template.a11y.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\archive\\week-reports\\WEEK-0-COMPLETION-REPORT.md",
+        "Link":  "./SLACK-INTEGRATION-WORKFLOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\archive\\week-reports\\SLACK-INTEGRATION-WORKFLOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\component-docs\\scheduling-system\\universal-master-schedule\\README.md",
+        "Link":  "/docs/ai-workflow/blueprints/UX-UI-DESIGN-PROTOCOL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\component-docs\\scheduling-system\\universal-master-schedule\\docs\\ai-workflow\\blueprints\\UX-UI-DESIGN-PROTOCOL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\gamification\\GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md",
+        "Link":  "AI-REVIEW-CONSOLIDATED-FEEDBACK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\gamification\\AI-REVIEW-CONSOLIDATED-FEEDBACK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\MANUAL-ONBOARDING-FALLBACK-WORKFLOW.md",
+        "Link":  "../../../client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\templates\\MASTER-PROMPT-SCHEMA-v3.0.json"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\MANUAL-ONBOARDING-FALLBACK-WORKFLOW.md",
+        "Link":  "../../../client-data/templates/MASTER-PROMPT-TEMPLATE.json",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\templates\\MASTER-PROMPT-TEMPLATE.json"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md",
+        "Link":  "ENHANCED-PERSONAL-TRAINING-PROMPT.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\personal-training\\ENHANCED-PERSONAL-TRAINING-PROMPT.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md",
+        "Link":  "AI-REVIEW-CONSOLIDATED-FEEDBACK.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\personal-training\\AI-REVIEW-CONSOLIDATED-FEEDBACK.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\START-HERE-SEAN-IMPLEMENTATION-GUIDE.md",
+        "Link":  "../../../client-data/WHERE-ARE-MY-FILES.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\WHERE-ARE-MY-FILES.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\START-HERE-SEAN-IMPLEMENTATION-GUIDE.md",
+        "Link":  "../../../client-data/CREATE-NEW-CLIENT-NOW.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\CREATE-NEW-CLIENT-NOW.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\START-HERE-SEAN-IMPLEMENTATION-GUIDE.md",
+        "Link":  "../../../client-data/templates/MASTER-PROMPT-TEMPLATE.json",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\client-data\\templates\\MASTER-PROMPT-TEMPLATE.json"
+    },
+    {
+        "File":  "docs\\ai-workflow\\personal-training\\STEP-BY-STEP-IMPLEMENTATION-GUIDE.md",
+        "Link":  "CLIENT-REGISTRY.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\personal-training\\CLIENT-REGISTRY.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\homepage-hero-enhancement.md",
+        "Link":  "../AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\homepage-hero-enhancement.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\homepage-hero-enhancement.md",
+        "Link":  "../CURRENT-PAGES-ANALYSIS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\CURRENT-PAGES-ANALYSIS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\homepage-hero-enhancement.md",
+        "Link":  "../CURRENT-PAGES-ANALYSIS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\CURRENT-PAGES-ANALYSIS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\react-error-306-fix.md",
+        "Link":  "../AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\react-error-306-fix.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\react-error-306-fix.md",
+        "Link":  "../FEATURE-TEMPLATE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\FEATURE-TEMPLATE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\test-feature-example.md",
+        "Link":  "../AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\test-feature-example.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\test-feature-example.md",
+        "Link":  "../FEATURE-TEMPLATE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\FEATURE-TEMPLATE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\universal-master-schedule-mindbody-parity.md",
+        "Link":  "../AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\universal-master-schedule-mindbody-parity.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\universal-schedule-architecture.md",
+        "Link":  "../AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\reviews\\universal-schedule-architecture.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\PHASE-0-REVIEW-TEMPLATE.md",
+        "Link":  "../AI-ROLE-PROMPTS.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-ROLE-PROMPTS.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\PHASE-0-REVIEW-TEMPLATE.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\PHASE-0-REVIEW-TEMPLATE.md",
+        "Link":  "../FEATURE-TEMPLATE.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\FEATURE-TEMPLATE.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\component-templates\\README.md",
+        "Link":  "../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\component-templates\\README.md",
+        "Link":  "../PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\templates\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\component-templates\\README.md",
+        "Link":  "./examples/",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\templates\\component-templates\\examples\\"
+    },
+    {
+        "File":  "docs\\ai-workflow\\templates\\component-templates\\README.md",
+        "Link":  "../../../scripts/ci/documentation-completeness-checker.js",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\scripts\\ci\\documentation-completeness-checker.js"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\AI-VILLAGE-COORDINATION-PROTOCOL.md",
+        "Link":  "../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\personal-training\\PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\AUTONOMOUS-COACHING-LOOP-WORKFLOW.md",
+        "Link":  "../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\personal-training\\PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\AUTONOMOUS-COACHING-LOOP-WORKFLOW.md",
+        "Link":  "../../client-data/templates/MASTER-PROMPT-TEMPLATE.json",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\client-data\\templates\\MASTER-PROMPT-TEMPLATE.json"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\GIT-AUTOMATION-WORKFLOW.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\GIT-AUTOMATION-WORKFLOW.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\GIT-AUTOMATION-WORKFLOW.md",
+        "Link":  "./PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\workflows\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\GOOGLE-DOCS-WORKFLOW.md",
+        "Link":  "url",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\workflows\\url"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\GOOGLE-DOCS-WORKFLOW.md",
+        "Link":  "../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-Village-Documentation\\SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md"
+    },
+    {
+        "File":  "docs\\ai-workflow\\workflows\\GOOGLE-DOCS-WORKFLOW.md",
+        "Link":  "./PHASE-0-DESIGN-APPROVAL.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\workflows\\PHASE-0-DESIGN-APPROVAL.md"
+    },
+    {
+        "File":  "docs\\current\\CURRENT_ARCHITECTURE.md",
+        "Link":  "../../backend/mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\README.md"
+    },
+    {
+        "File":  "docs\\current\\CURRENT_ARCHITECTURE.md",
+        "Link":  "../../backend/mcp_server/README.md",
+        "Resolved":  "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\backend\\mcp_server\\README.md"
+    }
+]

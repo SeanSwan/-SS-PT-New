@@ -157,6 +157,10 @@ export const getAdminSettings = () => getModel('AdminSettings');
 export const getAutomationSequence = () => getModel('AutomationSequence');
 export const getAutomationLog = () => getModel('AutomationLog');
 
+// AI Privacy Models
+export const getAiPrivacyProfile = () => getModel('AiPrivacyProfile');
+export const getAiInteractionLog = () => getModel('AiInteractionLog');
+
 // Video Catalog Models
 export const getVideoCatalog = () => getModel('VideoCatalog');
 export const getVideoCollection = () => getModel('VideoCollection');

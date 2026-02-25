@@ -100,6 +100,10 @@ const setupAssociations = async () => {
     const AutomationSequenceModule = await import('./AutomationSequence.mjs');
     const AutomationLogModule = await import('./AutomationLog.mjs');
 
+    // AI Privacy Models (Phase 1)
+    const AiPrivacyProfileModule = await import('./AiPrivacyProfile.mjs');
+    const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
+
     // Video Catalog Models (Sequelize)
     const VideoCatalogModule = await import('./VideoCatalog.mjs');
     const VideoCollectionModule = await import('./VideoCollection.mjs');
@@ -196,6 +200,10 @@ const setupAssociations = async () => {
     const AutomationSequence = AutomationSequenceModule.default;
     const AutomationLog = AutomationLogModule.default;
 
+    // AI Privacy Models
+    const AiPrivacyProfile = AiPrivacyProfileModule.default;
+    const AiInteractionLog = AiInteractionLogModule.default;
+
     // Video Catalog Models
     const VideoCatalog = VideoCatalogModule.default;
     const VideoCollection = VideoCollectionModule.default;
@@ -264,6 +272,8 @@ const setupAssociations = async () => {
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
+        // AI Privacy Models
+        AiPrivacyProfile, AiInteractionLog,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog
@@ -712,11 +722,18 @@ const setupAssociations = async () => {
     User.hasMany(VideoOutboundClick, { foreignKey: 'user_id', as: 'videoOutboundClicks' });
     VideoOutboundClick.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+    // AI Privacy Associations
+    User.hasOne(AiPrivacyProfile, { foreignKey: 'userId', as: 'aiPrivacyProfile' });
+    AiPrivacyProfile.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(AiInteractionLog, { foreignKey: 'userId', as: 'aiInteractionLogs' });
+    AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');
     console.log('✅ NASM Workout Tracking models integrated');
     console.log('✅ Content Moderation models integrated');
     console.log('✅ Video Catalog models integrated');
+    console.log('✅ AI Privacy models integrated');
     
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -816,6 +833,10 @@ const setupAssociations = async () => {
       ClientNote,
       AutomationSequence,
       AutomationLog,
+
+      // AI Privacy Models
+      AiPrivacyProfile,
+      AiInteractionLog,
 
       // Video Catalog Models
       VideoCatalog,

@@ -88,8 +88,9 @@ import MyClientsView from '../TrainerDashboard/ClientManagement';
 import EnhancedWorkoutLogger from '../TrainerDashboard/WorkoutLogging';
 import { EnhancedClientProgressView } from '../TrainerDashboard/ClientProgress';
 
-// Lazy load the UniversalSchedule (unified for all roles)
+// Lazy load components
 const UniversalScheduleLazy = React.lazy(() => import('../Schedule/UniversalSchedule'));
+const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard/AiConsentScreen'));
 
 // === UNIVERSAL THEME SYSTEM ===
 const universalTheme = {
@@ -451,6 +452,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/workouts', component: () => <div>My Workouts (Coming Soon)</div>, title: 'My Workouts', description: 'Assigned workout plans' },
       { path: '/progress', component: () => <NASMProgressCharts clientId={user?.id || 0} />, title: 'My Progress', description: 'NASM progress visualization dashboard' },
       { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Self-serve workout generation' },
+      { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
       { path: '/meal-planner', component: () => <div>AI Meal Planner (Coming Soon)</div>, title: 'AI Meal Planner', description: 'Culinary Codex interface' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: () => <div>Community & Challenges (Coming Soon)</div>, title: 'Community', description: 'Social feed and challenges' },

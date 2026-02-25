@@ -340,9 +340,25 @@ router.post('/test-card', protect, adminOnly, async (req, res) => {
     try {
       await stripe.paymentMethods.attach('pm_card_visa', { customer: customerId });
     } catch (attachErr) {
-      // If already attached to same customer, treat as success
+      // "Already attached" could mean same customer (idempotent) or different customer (reject)
       if (attachErr.code === 'resource_already_exists' ||
           attachErr.message?.includes('already been attached')) {
+        // Verify the PM is attached to THIS customer, not a different one
+        try {
+          const existingPm = await stripe.paymentMethods.retrieve('pm_card_visa');
+          if (existingPm.customer !== customerId) {
+            return res.status(422).json({
+              success: false,
+              error: 'Test card is already attached to a different customer',
+              code: 'TEST_CARD_OWNERSHIP_CONFLICT'
+            });
+          }
+        } catch (retrieveErr) {
+          return res.status(422).json({
+            success: false,
+            error: `Failed to verify test card ownership: ${retrieveErr.message}`
+          });
+        }
         logger.info(`[AdminChargeCard] Test card already attached to customer ${customerId}`);
       } else {
         return res.status(422).json({

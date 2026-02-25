@@ -268,7 +268,7 @@ describe('mapServiceError', () => {
 // ═══════════════════════════════════════════════════════════════
 describe('Constants', () => {
   it('VALID_PAYMENT_METHODS includes expected methods', () => {
-    expect(VALID_PAYMENT_METHODS).toEqual(['cash', 'venmo', 'zelle', 'check']);
+    expect(VALID_PAYMENT_METHODS).toEqual(['cash', 'venmo', 'zelle', 'check', 'stripe']);
   });
 
   it('METHODS_REQUIRING_REFERENCE is a subset of VALID_PAYMENT_METHODS', () => {
