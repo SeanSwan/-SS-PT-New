@@ -106,7 +106,19 @@ export const grantAiConsent = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AI Consent] Error granting consent:', error);
-    return res.status(500).json({ success: false, message: 'Failed to grant AI consent.' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to grant AI consent.',
+      // Diagnostic detail (temporary — remove after debugging)
+      _debug: {
+        errorMessage: error.message,
+        errorName: error.name,
+        sql: error.sql || null,
+        fields: error.fields || null,
+        parent: error.parent?.message || null,
+        original: error.original?.message || null,
+      },
+    });
   }
 };
 
