@@ -56,8 +56,18 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
   // Extract per-set logs from sessions
   const workoutLogs = extractWorkoutLogs(sessions);
 
-  // Reuse existing progress context builder for session-level aggregates
-  const progressSummary = buildProgressContext(sessions);
+  // Normalize session log alias for buildProgressContext compatibility.
+  // Our Sequelize include uses `as: 'logs'`, but buildProgressContext
+  // reads `session.workoutLogs` (progressContextBuilder.mjs:164).
+  const normalizedSessions = sessions.map(s => {
+    if (s.logs && !s.workoutLogs) {
+      const plain = s.get ? s.get({ plain: true }) : { ...s };
+      plain.workoutLogs = plain.logs;
+      return plain;
+    }
+    return s;
+  });
+  const progressSummary = buildProgressContext(normalizedSessions);
 
   // Compute long-horizon specific data
   const progressionTrends = computeProgressionTrends(workoutLogs, window);
@@ -137,14 +147,18 @@ async function fetchActiveGoals(userId, models) {
 async function fetchBodyMeasurements(userId, cutoffDate, models) {
   try {
     const { BodyMeasurement } = models;
-    if (!BodyMeasurement) return [];
+    if (!BodyMeasurement) {
+      // BodyMeasurement uses factory pattern and is not yet registered
+      // in the model registry (pre-existing gap). Returns null gracefully.
+      return [];
+    }
 
     return await BodyMeasurement.findAll({
       where: {
         userId,
-        createdAt: { [Op.gte]: cutoffDate },
+        measurementDate: { [Op.gte]: cutoffDate },
       },
-      order: [['createdAt', 'ASC']],
+      order: [['measurementDate', 'ASC']],
     });
   } catch (err) {
     logger.warn('5C-B: Failed to fetch body measurements:', err.message);
@@ -401,6 +415,8 @@ export function extractInjuryRestrictions(baseline) {
 
 /**
  * Extract goal progress from active Goal records.
+ * Uses category (ENUM, PII-safe) rather than user-authored title/label
+ * text which could contain names or identifying information.
  *
  * @param {Array} goals - Goal rows sorted by priority
  * @returns {{ primaryGoal, milestones }}
@@ -410,6 +426,7 @@ export function extractGoalProgress(goals) {
     return { primaryGoal: null, milestones: [] };
   }
 
+  // Use category ENUM (PII-safe) as primary goal, not user-authored title
   const primary = goals[0];
   const milestones = [];
 
@@ -418,7 +435,8 @@ export function extractGoalProgress(goals) {
     if (Array.isArray(goalMilestones)) {
       for (const m of goalMilestones) {
         milestones.push({
-          label: m.label || `${goal.title} — ${m.percentage || 0}%`,
+          // Use percentage-based label only — never user-authored text
+          label: `${goal.category || 'goal'} milestone at ${m.percentage || 0}%`,
           achieved: !!m.achieved,
           achievedOn: m.achievedAt
             ? new Date(m.achievedAt).toISOString().split('T')[0]
@@ -429,7 +447,7 @@ export function extractGoalProgress(goals) {
   }
 
   return {
-    primaryGoal: primary.title || primary.category || null,
+    primaryGoal: primary.category || null,
     milestones,
   };
 }

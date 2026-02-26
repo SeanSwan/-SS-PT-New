@@ -370,24 +370,24 @@ describe('extractGoalProgress', () => {
     expect(extractGoalProgress([]).primaryGoal).toBeNull();
   });
 
-  it('34 — extracts primary goal title', () => {
+  it('34 — uses category ENUM as primaryGoal (not user-authored title)', () => {
     const goals = [{ title: 'Build Muscle', category: 'strength', milestones: [] }];
     const result = extractGoalProgress(goals);
-    expect(result.primaryGoal).toBe('Build Muscle');
+    expect(result.primaryGoal).toBe('strength');
   });
 
-  it('35 — falls back to category when title is missing', () => {
-    const goals = [{ title: null, category: 'cardio', milestones: [] }];
+  it('35 — returns null when category is missing', () => {
+    const goals = [{ title: 'Custom Goal', category: null, milestones: [] }];
     const result = extractGoalProgress(goals);
-    expect(result.primaryGoal).toBe('cardio');
+    expect(result.primaryGoal).toBeNull();
   });
 
   it('36 — extracts milestones with achieved status', () => {
     const goals = [{
-      title: 'Lose Weight',
+      category: 'weight',
       milestones: [
-        { label: '5 lbs lost', achieved: true, achievedAt: '2026-02-10T00:00:00Z' },
-        { label: '10 lbs lost', achieved: false, achievedAt: null },
+        { percentage: 50, achieved: true, achievedAt: '2026-02-10T00:00:00Z' },
+        { percentage: 100, achieved: false, achievedAt: null },
       ],
     }];
     const result = extractGoalProgress(goals);
@@ -398,19 +398,33 @@ describe('extractGoalProgress', () => {
     expect(result.milestones[1].achievedOn).toBeNull();
   });
 
-  it('37 — generates label from title + percentage when label missing', () => {
+  it('37 — milestone labels use percentage format (no user text)', () => {
     const goals = [{
-      title: 'Get Stronger',
+      category: 'strength',
       milestones: [{ percentage: 50, achieved: false }],
     }];
     const result = extractGoalProgress(goals);
-    expect(result.milestones[0].label).toBe('Get Stronger — 50%');
+    expect(result.milestones[0].label).toBe('strength milestone at 50%');
   });
 
   it('38 — handles goals with no milestones array', () => {
-    const goals = [{ title: 'Flexibility', milestones: null }];
+    const goals = [{ category: 'flexibility', milestones: null }];
     const result = extractGoalProgress(goals);
     expect(result.milestones).toEqual([]);
+  });
+
+  it('38a — goal titles never appear in output (PII safety)', () => {
+    const goals = [{
+      title: 'Help John Smith lose weight',
+      category: 'weight',
+      milestones: [{ label: 'John target reached', percentage: 75, achieved: false }],
+    }];
+    const result = extractGoalProgress(goals);
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain('John');
+    expect(serialized).not.toContain('Smith');
+    expect(serialized).not.toContain('Help');
+    expect(result.primaryGoal).toBe('weight');
   });
 });
 
@@ -523,15 +537,24 @@ describe('PII safety — no identifying fields in output', () => {
     }
   });
 
-  it('49 — extractGoalProgress output has no PII', () => {
+  it('49 — extractGoalProgress output has no PII fields or user-authored text', () => {
     const goals = [{
-      title: 'Build Muscle',
-      milestones: [{ label: '50%', achieved: true, achievedAt: '2026-02-10T00:00:00Z' }],
+      title: 'Help Jane Doe reach her goals',
+      category: 'fitness',
+      milestones: [{ label: 'Jane hit 50%', percentage: 50, achieved: true, achievedAt: '2026-02-10T00:00:00Z' }],
     }];
-    const serialized = JSON.stringify(extractGoalProgress(goals));
+    const result = extractGoalProgress(goals);
+    const serialized = JSON.stringify(result);
+    // No PII field names
     for (const field of PII_FIELDS) {
       expect(serialized).not.toContain(`"${field}"`);
     }
+    // No user-authored text leaking through
+    expect(serialized).not.toContain('Jane');
+    expect(serialized).not.toContain('Doe');
+    expect(serialized).not.toContain('Help');
+    // Uses category ENUM instead
+    expect(result.primaryGoal).toBe('fitness');
   });
 });
 
