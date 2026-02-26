@@ -85,6 +85,17 @@
 - **Optional:** Configure one AI provider key in Render to capture remaining 2 production screenshots (draft review, approve success)
 - **Optional:** Manual smoke with trainer account (assigned + unassigned paths)
 
+### Next-Phase Planning Source
+- **V5 Unified Plan (core):** `AI-Village-Documentation/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN.md` (180 lines)
+- **V5 Unified Plan (appendix):** `AI-Village-Documentation/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN-APPENDIX.md` (detailed 5C/5D/5E scope, Claude prompt)
+- **Phase 5C Contract (core):** `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT.md` (385 lines)
+- **Phase 5C Contract (appendix):** `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT-APPENDIX.md` (JSON examples, tests, UI details)
+- **Security Protocol:** `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`
+- **Next phase:** Phase 5C (Long-Horizon Planning Engine, NASM Protocol-First)
+- **Phase 5C status:** Blueprint DRAFTED + doc cleanup applied — awaiting 5-Brain review before implementation
+- **Execution model:** 4 AI agents (Claude/Roo/ChatGPT/Gemini) + human coordinator = 5-Brain Protocol
+- **Open decisions:** Coach sandbox scope, Venice priority, persistence depth (MVP = plan + blocks only), STT provider policy
+
 ---
 
 ## PREVIOUS: Smart Workout Logger — Phase 5A Complete (2026-02-25)

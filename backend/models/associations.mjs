@@ -104,6 +104,10 @@ const setupAssociations = async () => {
     const AiPrivacyProfileModule = await import('./AiPrivacyProfile.mjs');
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
 
+    // Long-Horizon Planning Models (Phase 5C)
+    const LongTermProgramPlanModule = await import('./LongTermProgramPlan.mjs');
+    const ProgramMesocycleBlockModule = await import('./ProgramMesocycleBlock.mjs');
+
     // Video Catalog Models (Sequelize)
     const VideoCatalogModule = await import('./VideoCatalog.mjs');
     const VideoCollectionModule = await import('./VideoCollection.mjs');
@@ -203,6 +207,10 @@ const setupAssociations = async () => {
     // AI Privacy Models
     const AiPrivacyProfile = AiPrivacyProfileModule.default;
     const AiInteractionLog = AiInteractionLogModule.default;
+
+    // Long-Horizon Planning Models (Phase 5C)
+    const LongTermProgramPlan = LongTermProgramPlanModule.default;
+    const ProgramMesocycleBlock = ProgramMesocycleBlockModule.default;
 
     // Video Catalog Models
     const VideoCatalog = VideoCatalogModule.default;
@@ -728,12 +736,22 @@ const setupAssociations = async () => {
     User.hasMany(AiInteractionLog, { foreignKey: 'userId', as: 'aiInteractionLogs' });
     AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+    // Long-Horizon Planning Associations (Phase 5C)
+    User.hasMany(LongTermProgramPlan, { foreignKey: 'userId', as: 'programPlans' });
+    LongTermProgramPlan.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    LongTermProgramPlan.belongsTo(User, { foreignKey: 'createdByUserId', as: 'creator' });
+    LongTermProgramPlan.belongsTo(User, { foreignKey: 'approvedByUserId', as: 'approver' });
+    LongTermProgramPlan.belongsTo(AiInteractionLog, { foreignKey: 'aiGenerationRequestId', as: 'generationLog' });
+    LongTermProgramPlan.hasMany(ProgramMesocycleBlock, { foreignKey: 'planId', as: 'mesocycleBlocks' });
+    ProgramMesocycleBlock.belongsTo(LongTermProgramPlan, { foreignKey: 'planId', as: 'programPlan' });
+
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');
     console.log('✅ NASM Workout Tracking models integrated');
     console.log('✅ Content Moderation models integrated');
     console.log('✅ Video Catalog models integrated');
     console.log('✅ AI Privacy models integrated');
+    console.log('✅ Long-Horizon Planning models integrated');
     
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -837,6 +855,10 @@ const setupAssociations = async () => {
       // AI Privacy Models
       AiPrivacyProfile,
       AiInteractionLog,
+
+      // Long-Horizon Planning Models (Phase 5C)
+      LongTermProgramPlan,
+      ProgramMesocycleBlock,
 
       // Video Catalog Models
       VideoCatalog,
