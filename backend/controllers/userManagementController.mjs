@@ -517,7 +517,8 @@ export const updateUser = async (req, res) => {
       trainingExperience,
       availableSessions,
       specialties,
-      certifications
+      certifications,
+      masterPromptJson
     } = req.body;
     
     // Find the user
@@ -545,6 +546,7 @@ export const updateUser = async (req, res) => {
       if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
       if (trainingExperience !== undefined) updateData.trainingExperience = trainingExperience;
       if (availableSessions !== undefined) updateData.availableSessions = parseInt(availableSessions);
+      if (masterPromptJson !== undefined) updateData.masterPromptJson = masterPromptJson;
     }
     
     if (role === 'trainer' || user.role === 'trainer') {
