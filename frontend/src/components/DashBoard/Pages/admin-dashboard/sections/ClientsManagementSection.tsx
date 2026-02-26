@@ -34,11 +34,12 @@ import {
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star, DollarSign,
   TrendingUp, Target, Award, CreditCard, MessageSquare,
-  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell
+  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
 import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModal';
+import WorkoutCopilotPanel from '../../admin-clients/components/WorkoutCopilotPanel';
 
 // === STYLED COMPONENTS ===
 
@@ -592,6 +593,7 @@ const ClientsManagementSection: React.FC = () => {
   // Phase 1C: Onboarding + Workout Logger state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(false);
   const [actionClient, setActionClient] = useState<{ id: number; name: string } | null>(null);
 
   // Helper function to check if data is loading
@@ -911,6 +913,13 @@ const ClientsManagementSection: React.FC = () => {
     setActiveActionMenu(null);
   };
 
+  // Phase 5B: Open AI Workout Copilot for a client
+  const openCopilot = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowCopilot(true);
+    setActiveActionMenu(null);
+  };
+
   const getUserInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -1184,6 +1193,13 @@ const ClientsManagementSection: React.FC = () => {
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
+                      onClick={() => openCopilot(client)}
+                    >
+                      <Sparkles size={16} />
+                      AI Workout Copilot
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
                       onClick={() => handlePromoteToTrainer(client.id)}
                     >
                       <UserCheck size={16} />
@@ -1348,6 +1364,20 @@ const ClientsManagementSection: React.FC = () => {
           open={showWorkoutLogger}
           onClose={() => {
             setShowWorkoutLogger(false);
+            setActionClient(null);
+          }}
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onSuccess={() => fetchClients()}
+        />
+      )}
+
+      {/* Phase 5B: AI Workout Copilot */}
+      {actionClient && (
+        <WorkoutCopilotPanel
+          open={showCopilot}
+          onClose={() => {
+            setShowCopilot(false);
             setActionClient(null);
           }}
           clientId={actionClient.id}

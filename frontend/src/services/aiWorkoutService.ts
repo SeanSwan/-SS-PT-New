@@ -1,0 +1,196 @@
+/**
+ * AI Workout Service
+ * ==================
+ * Typed API layer for the Smart Workout Logger Coach Copilot.
+ * Uses the production apiService (authAxios) for token refresh and auth headers.
+ *
+ * Phase 5B -- Frontend Integration
+ */
+
+// ── Types (aligned with Phase 5B contract + live backend shapes) ──────────
+
+export interface Exercise {
+  name: string;
+  setScheme?: string | null;
+  repGoal?: string | null;
+  restPeriod?: number | null;
+  tempo?: string | null;
+  intensityGuideline?: string | null;
+  notes?: string | null;
+  isOptional?: boolean | null;
+}
+
+export interface WorkoutDay {
+  dayNumber: number;
+  name: string;
+  focus?: string | null;
+  dayType?: string;
+  estimatedDuration?: number | null;
+  exercises: Exercise[];
+}
+
+export interface WorkoutPlan {
+  planName: string;
+  durationWeeks: number;
+  summary?: string;
+  days: WorkoutDay[];
+}
+
+export interface LoadRecommendation {
+  minLoad: number;
+  maxLoad: number;
+  targetReps: string;
+  explanation: string;
+}
+
+export interface ExerciseRecommendation {
+  exerciseName: string;
+  totalSets: number;
+  bestWeight: number;
+  bestReps: number;
+  avgRpe: number;
+  estimated1RM: number;
+  loadRecommendation: LoadRecommendation | null;
+}
+
+export interface Explainability {
+  dataSources: string[];
+  phaseRationale: string;
+  progressFlags: string[];
+  safetyFlags: string[];
+  dataQuality: string;
+}
+
+export interface SafetyConstraints {
+  medicalClearanceRequired: boolean;
+  maxIntensityPct: number;
+  movementRestrictions: string[];
+}
+
+export interface ValidationError {
+  code: string;
+  field?: string;
+  message: string;
+}
+
+export interface TemplateSuggestion {
+  id: string;
+  label: string;
+  category: string;
+}
+
+export interface TemplateEntry {
+  id: string;
+  label: string;
+  category: string;
+  status: string;
+  nasmFramework: string;
+  optPhase?: number;
+  supportsAiContext: boolean;
+  tags: string[];
+}
+
+// ── Response types ────────────────────────────────────────────────────────
+
+export interface DraftSuccessResponse {
+  success: true;
+  draft: true;
+  plan: WorkoutPlan;
+  generationMode: string;
+  explainability: Explainability;
+  safetyConstraints: SafetyConstraints;
+  exerciseRecommendations: ExerciseRecommendation[];
+  warnings: string[];
+  missingInputs: string[];
+  provider: string;
+  auditLogId: number | null;
+}
+
+export interface DegradedResponse {
+  success: true;
+  degraded: true;
+  code: 'AI_DEGRADED_MODE';
+  message: string;
+  fallback: {
+    type: string;
+    templateSuggestions: TemplateSuggestion[];
+    reasons: string[];
+  };
+  failoverTrace: string[];
+}
+
+export interface ApproveSuccessResponse {
+  success: true;
+  planId: number;
+  sourceType: string;
+  summary: string;
+  unmatchedExercises: Array<{ dayNumber: number; name: string }>;
+  validationWarnings: ValidationError[];
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  code?: string;
+  errors?: ValidationError[];
+  warnings?: ValidationError[];
+}
+
+export type GenerateResponse = DraftSuccessResponse | DegradedResponse;
+
+export function isDegraded(resp: GenerateResponse): resp is DegradedResponse {
+  return 'degraded' in resp && (resp as DegradedResponse).degraded === true;
+}
+
+export function isDraftSuccess(resp: GenerateResponse): resp is DraftSuccessResponse {
+  return 'draft' in resp && (resp as DraftSuccessResponse).draft === true;
+}
+
+// ── Service factory ───────────────────────────────────────────────────────
+
+export function createAiWorkoutService(authAxios: any) {
+  const BASE = '/api/ai';
+
+  return {
+    /** Fetch active NASM templates for template selector */
+    async listTemplates(): Promise<{
+      success: boolean;
+      templates: TemplateEntry[];
+      count: number;
+      registryVersion: string;
+    }> {
+      const { data } = await authAxios.get(`${BASE}/templates`, {
+        params: { status: 'active', includeSchema: 'false' },
+      });
+      return data;
+    },
+
+    /** Generate a draft workout plan for coach review */
+    async generateDraft(userId: number): Promise<GenerateResponse> {
+      const { data } = await authAxios.post(`${BASE}/workout-generation`, {
+        userId,
+        mode: 'draft',
+      });
+      return data;
+    },
+
+    /** Approve and persist a coach-reviewed draft */
+    async approveDraft(params: {
+      userId: number;
+      plan: WorkoutPlan;
+      auditLogId?: number | null;
+      trainerNotes?: string;
+    }): Promise<ApproveSuccessResponse> {
+      const { data } = await authAxios.post(
+        `${BASE}/workout-generation/approve`,
+        {
+          userId: params.userId,
+          plan: params.plan,
+          auditLogId: params.auditLogId ?? undefined,
+          trainerNotes: params.trainerNotes || undefined,
+        },
+      );
+      return data;
+    },
+  };
+}
