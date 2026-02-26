@@ -9,6 +9,9 @@
  * Touch targets: 44px minimum on all interactive elements
  *
  * Phase 5B -- Smart Workout Logger MVP Coach Copilot
+ *
+ * TODO (follow-up): Extract styled components, editor, and explainability
+ * into sub-modules to reduce monolith size (~1150 lines).
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -34,6 +37,7 @@ import {
   type ExerciseRecommendation,
   type ValidationError,
   type TemplateSuggestion,
+  type TemplateEntry,
 } from '../../../../../services/aiWorkoutService';
 
 // ── Theme Tokens ──────────────────────────────────────────────────────────
@@ -497,6 +501,10 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   // ── Expanded days ───────────────────────────────────────────
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
+  // ── Template catalog ──────────────────────────────────────────
+  const [templates, setTemplates] = useState<TemplateEntry[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+
   // ── Double-submit guard ─────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -522,6 +530,12 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setApproveErrors([]);
       setExpandedDays(new Set());
       setIsSubmitting(false);
+      setTemplates([]);
+      setTemplatesLoading(true);
+      service.listTemplates()
+        .then((resp) => { if (resp.success) setTemplates(resp.templates); })
+        .catch(() => { /* silent -- templates are informational for coach awareness */ })
+        .finally(() => setTemplatesLoading(false));
     }
   }, [open]);
 
@@ -685,6 +699,35 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                 <Sparkles size={16} />
                 Generate Draft
               </PrimaryButton>
+
+              {/* Template catalog (informational -- backend auto-selects from NASM constraints) */}
+              {templatesLoading && (
+                <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Loading templates...</p>
+              )}
+              {!templatesLoading && templates.length > 0 && (
+                <>
+                  <SectionTitle style={{ marginTop: 16 }}>
+                    <Info size={16} /> Available NASM Templates
+                  </SectionTitle>
+                  <TemplateList>
+                    {templates.map((t) => (
+                      <TemplateItem key={t.id}>
+                        <Badge>{t.nasmFramework}</Badge>
+                        <span>{t.label}</span>
+                        {t.tags.length > 0 && (
+                          <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: 'auto' }}>
+                            {t.tags.join(', ')}
+                          </span>
+                        )}
+                      </TemplateItem>
+                    ))}
+                  </TemplateList>
+                  <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 8, maxWidth: 500 }}>
+                    The AI automatically selects the best template based on {clientName}'s
+                    NASM assessment and training goals.
+                  </p>
+                </>
+              )}
             </CenterContent>
           )}
 
@@ -727,8 +770,9 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                 <InfoPanel $variant="warning">
                   <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
                   <InfoContent>
-                    AI consent is required. Please ask the client to enable AI features
-                    in their account settings.
+                    This client has not granted AI consent. The client must enable
+                    AI features from their own account settings before AI workout
+                    generation can be used.
                   </InfoContent>
                 </InfoPanel>
               )}
