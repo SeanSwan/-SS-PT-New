@@ -5,7 +5,89 @@
 
 ---
 
-## ACTIVE: Smart Workout Logger — Phase 5A Complete (2026-02-25)
+## ACTIVE: Smart Workout Logger — Phase 5B Admin Surface Complete (2026-02-25)
+
+**Status:** Phase 5B Admin Surface DEPLOYED + VERIFIED. Tests 100/100 frontend, all production smoke passing.
+
+**What was done (Phase 5B — Coach Copilot Frontend Admin Surface):**
+
+### Phase 5B New Files
+1. **`frontend/src/services/aiWorkoutService.ts`** — Typed API layer: `createAiWorkoutService(authAxios)` factory with `listTemplates()`, `generateDraft(userId)`, `approveDraft(params)`. Discriminated union responses (`DraftSuccessResponse | DegradedResponse`), type guards (`isDegraded`, `isDraftSuccess`)
+2. **`frontend/src/components/.../WorkoutCopilotPanel.tsx`** — Full Coach Copilot modal (1163 lines). State machine: `IDLE → GENERATING → DRAFT_REVIEW | DEGRADED | ERROR → APPROVING → SAVED | APPROVE_ERROR`. Galaxy-Swan themed, 44px touch targets, styled-components + lucide-react (zero MUI)
+3. **`frontend/src/components/.../WorkoutCopilotPanel.test.tsx`** — 13 unit tests covering all state machine transitions
+
+### Phase 5B Modified Files
+4. **`frontend/src/components/.../ClientsManagementSection.tsx`** — Added "AI Copilot" menu item in client action dropdown, wired to `WorkoutCopilotPanel`
+5. **`backend/controllers/userManagementController.mjs`** — Added `masterPromptJson` to admin user update whitelist
+6. **`backend/models/AiPrivacyProfile.mjs`** — Fixed FK reference from `'users'` to `'Users'` (case-sensitive PostgreSQL)
+7. **`backend/migrations/20260225000001-create-ai-privacy-profiles.cjs`** — Fixed FK reference for source consistency
+8. **`backend/migrations/20260226000001-fix-ai-privacy-profiles-userid-fk.cjs`** — NEW: Runtime FK fix using `resolveUsersTable` helper
+
+### Phase 5B Bug Fixes
+| # | Severity | Finding | Fix | Commit |
+|---|----------|---------|-----|--------|
+| 1 | HIGH | `POST /api/ai/consent/grant` 500 — FK constraint referenced `"users"` (lowercase) but table is `"Users"` | New migration drops/recreates FK with `resolveUsersTable` helper | `64529de3` |
+| 2 | MEDIUM | Admin user update silently ignored `masterPromptJson` | Added field to destructured whitelist in `userManagementController.mjs` | `0692fb18` |
+| 3 | LOW | De-identification 400 with flat JSON structure | Documented: requires `training`, `client.goals`, `measurements` nesting | N/A (data fix) |
+
+### Phase 5B Verification Evidence
+**Production smoke (live on sswanstudios.com):**
+- [x] IDLE state with template catalog — `phase5b-idle-with-templates.png`
+- [x] Consent error (before grant) — `phase5b-consent-error.png`
+- [x] Consent grant 200 (after FK fix) — verified via API
+- [x] Degraded mode (no AI provider keys) — `phase5b-degraded-mode.png`
+- [ ] Draft review + explainability — **blocked: no AI API keys configured** (covered by unit tests)
+- [ ] Approve success — **blocked: no AI API keys configured** (covered by unit tests)
+
+**Frontend unit tests (13 cases, mocked API):**
+- IDLE renders template catalog from `listTemplates()`
+- Generate → DRAFT_REVIEW renders explainability, safety constraints, warnings, missing inputs
+- Generate → DRAFT_REVIEW renders plan days with exercise count
+- Generate → DEGRADED renders fallback suggestions and failure reasons
+- Generate → consent error renders corrected client-side wording
+- Approve → SAVED state with plan ID, toast notification, `onSuccess` callback
+- Approve → SAVED displays unmatched exercises when present
+- Double-submit prevention: generate button gone during generation
+- Double-submit prevention: approve button disabled + "Saving..." during approval
+- Double-submit prevention: single `generateDraft` call on rapid clicks
+- Retryable errors show Retry button (`AI_RATE_LIMITED`)
+
+### Phase 5B Commits
+- `13d583cf` — feat(copilot): Phase 5B Coach Copilot admin surface
+- `b8b8bc4b` — fix(copilot): add missing aiWorkoutService.ts
+- `d1daa67b` — debug(consent): temporary diagnostic detail
+- `64529de3` — fix(consent): FK references lowercase "users" instead of "Users" table
+- `0692fb18` — fix(admin): allow masterPromptJson in admin user update
+- `2de978a9` — test(copilot): add WorkoutCopilotPanel unit tests (13 cases)
+
+### Phase 5B.1 Trainer Surface Reuse (2026-02-25)
+
+**Status:** COMPLETE. Trainer copilot wired, assignment 403 classified, all tests passing.
+
+**What was done:**
+1. **Backend:** Added `code: 'AI_ASSIGNMENT_DENIED'` to both generation (line 291) and approval (line 857) trainer-assignment 403 responses in `aiWorkoutController.mjs`
+2. **Frontend panel:** Added `isAssignmentError` classification + distinct info panel ("not currently assigned to this client") in `WorkoutCopilotPanel.tsx`
+3. **Trainer UI:** Wired `WorkoutCopilotPanel` into `MyClientsView.tsx` — Sparkles button in client action row, same component/service/state machine as admin
+4. **Backend tests:** Extended test #22 to assert `code: 'AI_ASSIGNMENT_DENIED'`, added test #32 for generation path, updated integration test assertion
+5. **Frontend tests:** 2 new tests — assignment 403 renders specific wording + is distinct from consent error
+
+**Test results:** 824/824 backend, 102/102 frontend, build clean
+
+**Files changed:**
+- `backend/controllers/aiWorkoutController.mjs` — 2 lines (code field added)
+- `backend/tests/unit/aiWorkoutApproval.test.mjs` — extended + 1 new test
+- `backend/tests/api/aiPrivacyIntegration.test.mjs` — updated assertion
+- `frontend/src/components/.../WorkoutCopilotPanel.tsx` — assignment error classification + panel
+- `frontend/src/components/.../WorkoutCopilotPanel.test.tsx` — 2 new tests
+- `frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.tsx` — copilot wiring
+
+### Phase 5B Remaining Items
+- **Optional:** Configure one AI provider key in Render to capture remaining 2 production screenshots (draft review, approve success)
+- **Optional:** Manual smoke with trainer account (assigned + unassigned paths)
+
+---
+
+## PREVIOUS: Smart Workout Logger — Phase 5A Complete (2026-02-25)
 
 **Status:** Phase 5A DEPLOYED + VERIFIED. Commit `beb2f48c`, 823/823 tests, 6/6 production smoke tests. Ordering confirmed live.
 

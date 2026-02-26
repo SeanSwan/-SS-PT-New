@@ -34,15 +34,15 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, Plus, Search, MoreVertical, User, 
+import {
+  Users, Plus, Search, MoreVertical, User,
   Calendar, TrendingUp, MessageSquare, Star,
   Activity, Target, Clock, CheckCircle,
   AlertCircle, Edit, Eye, BookOpen,
   Zap, Award, BarChart3, Timer,
   Phone, Mail, MapPin, Filter,
   ArrowRight, RefreshCw, Download,
-  FileText, Settings, UserPlus
+  FileText, Settings, UserPlus, Sparkles
 } from 'lucide-react';
 
 // Context and Services
@@ -54,6 +54,7 @@ import { useToast } from '../../../hooks/use-toast';
 // Components
 import GlowButton from '../../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import WorkoutCopilotPanel from '../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel';
 
 // Types
 interface Client {
@@ -597,7 +598,8 @@ const MyClientsView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'pending'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  
+  const [copilotClient, setCopilotClient] = useState<{ id: number; name: string } | null>(null);
+
   // Computed values
   const filteredClients = useMemo(() => {
     return clients.filter(assignment => {
@@ -1028,6 +1030,21 @@ const MyClientsView: React.FC = () => {
                     >
                       <BarChart3 size={16} />
                     </ActionButton>
+                    <ActionButton
+                      variant="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCopilotClient({
+                          id: Number(client.id),
+                          name: `${client.firstName} ${client.lastName}`,
+                        });
+                      }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      title="AI Workout Copilot"
+                    >
+                      <Sparkles size={16} />
+                    </ActionButton>
                   </ClientActions>
                 </ClientCard>
               );
@@ -1058,6 +1075,16 @@ const MyClientsView: React.FC = () => {
             />
           )}
         </EmptyState>
+      )}
+
+      {copilotClient && (
+        <WorkoutCopilotPanel
+          open={!!copilotClient}
+          onClose={() => setCopilotClient(null)}
+          clientId={copilotClient.id}
+          clientName={copilotClient.name}
+          onSuccess={() => loadClients()}
+        />
       )}
     </ClientsContainer>
   );
