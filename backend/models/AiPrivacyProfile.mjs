@@ -24,7 +24,7 @@ AiPrivacyProfile.init(
       allowNull: false,
       unique: true,
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id',
       },
       comment: 'FK to users table — one profile per user',

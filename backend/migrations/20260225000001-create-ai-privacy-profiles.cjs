@@ -14,7 +14,7 @@ module.exports = {
         allowNull: false,
         unique: true,
         references: {
-          model: 'users',
+          model: 'Users',
           key: 'id',
         },
         onUpdate: 'CASCADE',
