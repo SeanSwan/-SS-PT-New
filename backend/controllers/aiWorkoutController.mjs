@@ -289,6 +289,7 @@ export const generateWorkoutPlan = async (req, res) => {
       if (!assignment) {
         return res.status(403).json({
           success: false,
+          code: 'AI_ASSIGNMENT_DENIED',
           message: 'Access denied: Trainer is not assigned to this client',
         });
       }
@@ -855,6 +856,7 @@ export const approveDraftPlan = async (req, res) => {
       if (!assignment) {
         return res.status(403).json({
           success: false,
+          code: 'AI_ASSIGNMENT_DENIED',
           message: 'Access denied: Trainer is not assigned to this client',
         });
       }

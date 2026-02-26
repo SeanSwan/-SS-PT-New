@@ -668,6 +668,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   // ── Error classification ────────────────────────────────────
 
   const isConsentError = errorCode?.startsWith('AI_CONSENT');
+  const isAssignmentError = errorCode === 'AI_ASSIGNMENT_DENIED';
   const isRetryable = ['AI_RATE_LIMITED', 'AI_PII_LEAK', 'AI_PARSE_ERROR', 'AI_VALIDATION_ERROR'].includes(errorCode);
 
   // ── Render ──────────────────────────────────────────────────
@@ -773,6 +774,16 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                     This client has not granted AI consent. The client must enable
                     AI features from their own account settings before AI workout
                     generation can be used.
+                  </InfoContent>
+                </InfoPanel>
+              )}
+
+              {isAssignmentError && (
+                <InfoPanel $variant="warning">
+                  <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <InfoContent>
+                    You are not currently assigned to this client. Please contact an
+                    administrator to update your client assignments.
                   </InfoContent>
                 </InfoPanel>
               )}

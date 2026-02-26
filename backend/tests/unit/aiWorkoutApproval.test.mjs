@@ -340,7 +340,7 @@ describe('approveDraftPlan — trainer assignment RBAC', () => {
     approveDraftPlan = mod.approveDraftPlan;
   });
 
-  it('22 — returns 403 for trainer not assigned to client', async () => {
+  it('22 — returns 403 with AI_ASSIGNMENT_DENIED code for unassigned trainer', async () => {
     getAllModels.mockReturnValue(makeMockModels({
       ClientTrainerAssignment: {
         findOne: vi.fn().mockResolvedValue(null), // no assignment
@@ -355,6 +355,7 @@ describe('approveDraftPlan — trainer assignment RBAC', () => {
     await approveDraftPlan(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'AI_ASSIGNMENT_DENIED',
       message: expect.stringContaining('not assigned'),
     }));
   });
@@ -560,5 +561,37 @@ describe('approveDraftPlan — check ordering verification', () => {
     const res = mockRes();
     await approveDraftPlan(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+});
+
+// ─── generateWorkoutPlan — trainer assignment RBAC ────────────────
+
+describe('generateWorkoutPlan — trainer assignment RBAC', () => {
+  let generateWorkoutPlan;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const mod = await import('../../controllers/aiWorkoutController.mjs');
+    generateWorkoutPlan = mod.generateWorkoutPlan;
+  });
+
+  it('32 — generation returns 403 with AI_ASSIGNMENT_DENIED for unassigned trainer', async () => {
+    getAllModels.mockReturnValue(makeMockModels({
+      ClientTrainerAssignment: {
+        findOne: vi.fn().mockResolvedValue(null), // no assignment
+      },
+    }));
+
+    const req = {
+      body: { userId: 1, mode: 'draft' },
+      user: { id: 50, role: 'trainer' },
+    };
+    const res = mockRes();
+    await generateWorkoutPlan(req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'AI_ASSIGNMENT_DENIED',
+      message: expect.stringContaining('not assigned'),
+    }));
   });
 });

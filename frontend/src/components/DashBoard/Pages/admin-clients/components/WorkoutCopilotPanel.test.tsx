@@ -469,4 +469,66 @@ describe('WorkoutCopilotPanel', () => {
       expect(screen.getByText('Retry')).toBeInTheDocument();
     });
   });
+
+  // ── 8. Assignment error (trainer 403) ─────────────────────────────────
+
+  describe('Assignment error (trainer 403)', () => {
+    it('renders assignment-specific wording and no retry button', async () => {
+      mockGenerateDraft.mockRejectedValue({
+        response: {
+          data: {
+            success: false,
+            message: 'Access denied: Trainer is not assigned to this client',
+            code: 'AI_ASSIGNMENT_DENIED',
+          },
+        },
+      });
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Generate Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Generation Failed')).toBeInTheDocument();
+      });
+
+      // Assignment-specific wording
+      expect(
+        screen.getByText(/not currently assigned to this client/)
+      ).toBeInTheDocument();
+
+      // No retry button (not retryable)
+      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+    });
+
+    it('is distinct from consent error — no consent wording shown', async () => {
+      mockGenerateDraft.mockRejectedValue({
+        response: {
+          data: {
+            success: false,
+            message: 'Access denied: Trainer is not assigned to this client',
+            code: 'AI_ASSIGNMENT_DENIED',
+          },
+        },
+      });
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Generate Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Generation Failed')).toBeInTheDocument();
+      });
+
+      // Assignment wording present
+      expect(
+        screen.getByText(/not currently assigned to this client/)
+      ).toBeInTheDocument();
+
+      // Consent wording NOT present
+      expect(
+        screen.queryByText(/client must enable AI features/)
+      ).not.toBeInTheDocument();
+    });
+  });
 });

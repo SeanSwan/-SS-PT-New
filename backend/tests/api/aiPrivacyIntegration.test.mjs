@@ -267,7 +267,7 @@ describe('Controller Integration — generateWorkoutPlan', () => {
 
     expect(res.statusCode).toBe(403);
     expect(res.body.message).toContain('not assigned');
-    expect(res.body.code).toBeUndefined();
+    expect(res.body.code).toBe('AI_ASSIGNMENT_DENIED');
   });
 
   it('should create audit log with pending status, then update to success', async () => {
