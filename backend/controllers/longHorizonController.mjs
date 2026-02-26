@@ -495,14 +495,14 @@ export const generateLongHorizonPlan = async (req, res) => {
       errorCode: err.code || 'UNHANDLED_ERROR',
     });
 
-    // Release concurrent slot on error
-    if (requesterId) {
-      releaseConcurrent(requesterId);
-    }
-
     return res.status(500).json({
       success: false,
       message: err.message || 'Internal server error during plan generation',
     });
+  } finally {
+    // Always release the concurrent rate-limit lock
+    if (requesterId) {
+      releaseConcurrent(requesterId);
+    }
   }
 };
