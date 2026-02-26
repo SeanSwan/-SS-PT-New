@@ -119,16 +119,19 @@ const geminiAdapter = {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+    // Use pre-built system message if provided (e.g. long-horizon), else workout default
+    const systemMessage = ctx.systemMessage || WORKOUT_SYSTEM_MESSAGE;
     const model = genAI.getGenerativeModel({
       model: modelName,
-      systemInstruction: WORKOUT_SYSTEM_MESSAGE,
+      systemInstruction: systemMessage,
       generationConfig: {
         maxOutputTokens: maxTokens,
         temperature: 0.7,
       },
     });
 
-    const prompt = buildWorkoutPrompt(ctx.deidentifiedPayload, ctx.serverConstraints);
+    // Use pre-built prompt if provided (e.g. long-horizon), else build workout prompt
+    const prompt = ctx.prompt || buildWorkoutPrompt(ctx.deidentifiedPayload, ctx.serverConstraints);
     const startMs = Date.now();
 
     try {
