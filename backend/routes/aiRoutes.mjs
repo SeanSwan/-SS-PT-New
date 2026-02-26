@@ -9,6 +9,7 @@ import {
   getAiConsentStatus,
 } from '../controllers/aiConsentController.mjs';
 import { listTemplates, getTemplate } from '../controllers/aiTemplateController.mjs';
+import { generateLongHorizonPlan } from '../controllers/longHorizonController.mjs';
 
 // --- Register provider adapters at import time (Phase 3A+3B) ---
 import { registerAdapter } from '../services/ai/providerRouter.mjs';
@@ -44,6 +45,16 @@ router.post('/consent/grant', protect, grantAiConsent);
 router.post('/consent/withdraw', protect, withdrawAiConsent);
 router.get('/consent/status', protect, getAiConsentStatus);
 router.get('/consent/status/:userId', protect, getAiConsentStatus);
+
+// POST /api/ai/long-horizon/generate (Phase 5C-C — long-horizon plan generation)
+// Middleware chain: auth → kill switch → rate limiter → controller (RBAC + consent inside controller)
+router.post(
+  '/long-horizon/generate',
+  protect,
+  aiKillSwitch,
+  aiRateLimiter,
+  generateLongHorizonPlan
+);
 
 // Template registry endpoints (Phase 4A)
 router.get('/templates', protect, listTemplates);

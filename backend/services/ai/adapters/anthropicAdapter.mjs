@@ -138,7 +138,9 @@ const anthropicAdapter = {
     }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const prompt = buildWorkoutPrompt(ctx.deidentifiedPayload, ctx.serverConstraints);
+    // Use pre-built prompt if provided (e.g. long-horizon), else build workout prompt
+    const prompt = ctx.prompt || buildWorkoutPrompt(ctx.deidentifiedPayload, ctx.serverConstraints);
+    const systemMessage = ctx.systemMessage || WORKOUT_SYSTEM_MESSAGE;
 
     const startMs = Date.now();
 
@@ -149,7 +151,7 @@ const anthropicAdapter = {
             {
               model,
               max_tokens: maxTokens,
-              system: WORKOUT_SYSTEM_MESSAGE,
+              system: systemMessage,
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.7,
             },
