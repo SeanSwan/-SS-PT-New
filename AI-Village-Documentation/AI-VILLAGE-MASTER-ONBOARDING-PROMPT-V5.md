@@ -1,4 +1,4 @@
-here is updated version this will be the main master prompt now : # 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v5.0
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v5.0
 ## UNIFIED: Swarm Protocols + 5-Brain Review + Cinematic Web Design System + Skills.sh Integration + Security-First + Mobile-First Execution
 
 **LATEST UPDATE:** 2026-02-21 — Cinematic Web Design System, 10-Skill Integration (skills.sh + Claude hosted), Enchanted Apex Preset, Universal Client Builder Mode
