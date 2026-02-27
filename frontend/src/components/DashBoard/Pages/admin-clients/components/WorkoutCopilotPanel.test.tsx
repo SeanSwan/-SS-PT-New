@@ -14,6 +14,9 @@ import type {
 const mockListTemplates = vi.fn();
 const mockGenerateDraft = vi.fn();
 const mockApproveDraft = vi.fn();
+const mockGenerateLongHorizonDraft = vi.fn();
+const mockApproveLongHorizonDraft = vi.fn();
+const mockGetClientDetails = vi.fn();
 
 vi.mock('../../../../../services/aiWorkoutService', async () => {
   const actual = await vi.importActual<typeof import('../../../../../services/aiWorkoutService')>(
@@ -25,14 +28,23 @@ vi.mock('../../../../../services/aiWorkoutService', async () => {
       listTemplates: mockListTemplates,
       generateDraft: mockGenerateDraft,
       approveDraft: mockApproveDraft,
+      generateLongHorizonDraft: mockGenerateLongHorizonDraft,
+      approveLongHorizonDraft: mockApproveLongHorizonDraft,
     }),
   };
 });
 
+vi.mock('../../../../../services/adminClientService', () => ({
+  __esModule: true,
+  default: {
+    getClientDetails: (...args: any[]) => mockGetClientDetails(...args),
+  },
+}));
+
 const mockToast = vi.fn();
 
 vi.mock('../../../../../context/AuthContext', () => ({
-  useAuth: () => ({ authAxios: {} }),
+  useAuth: () => ({ authAxios: {}, user: { role: 'admin' } }),
 }));
 
 vi.mock('../../../../../hooks/use-toast', () => ({
@@ -128,6 +140,56 @@ const APPROVE_RESPONSE: ApproveSuccessResponse = {
   validationWarnings: [],
 };
 
+const LONG_HORIZON_DRAFT = {
+  success: true as const,
+  draft: true as const,
+  horizonMonths: 6 as const,
+  warnings: ['Total block duration is short for a 6-month horizon'],
+  provider: 'openai',
+  auditLogId: 808,
+  plan: {
+    planName: '6-Month Strength Arc',
+    horizonMonths: 6 as const,
+    summary: 'Build strength then transition to power',
+    blocks: [
+      {
+        sequence: 1,
+        nasmFramework: 'OPT' as const,
+        optPhase: 2,
+        phaseName: 'Strength Endurance',
+        focus: 'Foundational volume',
+        durationWeeks: 6,
+        sessionsPerWeek: 3,
+        entryCriteria: 'Client cleared for moderate intensity',
+        exitCriteria: 'RPE trend stable under target',
+        notes: 'Watch shoulder loading',
+      },
+      {
+        sequence: 2,
+        nasmFramework: 'OPT' as const,
+        optPhase: 5,
+        phaseName: 'Power Integration',
+        focus: 'Power development',
+        durationWeeks: 4,
+        sessionsPerWeek: 3,
+        entryCriteria: 'Strength block completed',
+        exitCriteria: 'Power targets achieved',
+        notes: null,
+      },
+    ],
+  },
+};
+
+const LONG_HORIZON_APPROVE = {
+  success: true as const,
+  planId: 999,
+  sourceType: 'ai_assisted',
+  summary: 'Approved long horizon plan',
+  blockCount: 2,
+  validationWarnings: [],
+  eligibilityWarnings: [],
+};
+
 const defaultProps = {
   open: true,
   onClose: vi.fn(),
@@ -153,6 +215,23 @@ describe('WorkoutCopilotPanel', () => {
       count: 2,
       registryVersion: '1.0',
     });
+    mockGetClientDetails.mockResolvedValue({
+      success: true,
+      data: {
+        client: {
+          id: 56,
+          masterPromptJson: {
+            client: {
+              goals: {
+                primaryGoal: 'fat_loss',
+                secondaryGoals: ['mobility', 'strength'],
+                constraints: ['left shoulder discomfort'],
+              },
+            },
+          },
+        },
+      },
+    });
   });
 
   // ── 1. IDLE renders template catalog ──────────────────────────────────
@@ -160,6 +239,11 @@ describe('WorkoutCopilotPanel', () => {
   describe('IDLE state', () => {
     it('renders the title and generate button', async () => {
       renderPanel();
+
+      // Wait for async template loading to settle (avoids act() warning)
+      await waitFor(() => {
+        expect(screen.getByText('Available NASM Templates')).toBeInTheDocument();
+      });
 
       expect(screen.getByText(/AI Workout Copilot/)).toBeInTheDocument();
       expect(screen.getByText('Generate Draft')).toBeInTheDocument();
@@ -529,6 +613,208 @@ describe('WorkoutCopilotPanel', () => {
       expect(
         screen.queryByText(/client must enable AI features/)
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Long-Horizon tab', () => {
+    it('renders Single Workout and Long-Horizon tabs', async () => {
+      renderPanel();
+
+      // Wait for async template loading to settle (avoids act() warning)
+      await waitFor(() => {
+        expect(screen.getByText('Available NASM Templates')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: 'Single Workout' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Long-Horizon' })).toBeInTheDocument();
+    });
+
+    it('switches to long-horizon idle state', async () => {
+      renderPanel();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      expect(screen.getByText('Long-Horizon Planning')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Configure Plan' })).toBeInTheDocument();
+    });
+
+    it('loads real profile goals when entering configure state', async () => {
+      renderPanel();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+
+      await waitFor(() => {
+        expect(mockGetClientDetails).toHaveBeenCalledWith('56');
+      });
+
+      expect(screen.getByText('fat_loss')).toBeInTheDocument();
+      expect(screen.getByText('mobility, strength')).toBeInTheDocument();
+    });
+
+    it('shows goal fallback badge when profile goal fetch fails', async () => {
+      mockGetClientDetails.mockRejectedValueOnce(new Error('network'));
+      renderPanel();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Goal data unavailable')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: 'Generate Draft' })).toBeEnabled();
+    });
+
+    it('generates draft and renders plan review blocks', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue(LONG_HORIZON_DRAFT);
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('6-Month Strength Arc')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Block 1: Strength Endurance/)).toBeInTheDocument();
+      expect(screen.getByText(/Block 2: Power Integration/)).toBeInTheDocument();
+      expect(screen.getByText('Approve & Save')).toBeInTheDocument();
+    });
+
+    it('lh-approve-flow', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue(LONG_HORIZON_DRAFT);
+      mockApproveLongHorizonDraft.mockResolvedValue(LONG_HORIZON_APPROVE);
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Approve & Save')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Approve & Save'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Long-Horizon Plan Saved')).toBeInTheDocument();
+      });
+
+      expect(mockApproveLongHorizonDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 56,
+          auditLogId: 808,
+          horizonMonths: 6,
+        }),
+      );
+    });
+
+    it('disables approve when auditLogId is null and shows regenerate message', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue({
+        ...LONG_HORIZON_DRAFT,
+        auditLogId: null,
+      });
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Generation incomplete — regenerate/i)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Approve & Save')).toBeDisabled();
+    });
+
+    it('renders degraded response in long-horizon tab', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue(DEGRADED_RESPONSE);
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('AI Temporarily Unavailable')).toBeInTheDocument();
+      });
+    });
+
+    it('handles MISSING_OVERRIDE_REASON by returning to configure state', async () => {
+      mockGenerateLongHorizonDraft.mockRejectedValue({
+        response: {
+          data: {
+            success: false,
+            code: 'MISSING_OVERRIDE_REASON',
+            message: 'Admin override requires reason',
+          },
+        },
+      });
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Admin Override Reason/i)).toBeInTheDocument();
+      });
+    });
+
+    it('lh-override-reason-flow', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue(LONG_HORIZON_DRAFT);
+      mockApproveLongHorizonDraft.mockResolvedValue(LONG_HORIZON_APPROVE);
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.type(
+        screen.getByPlaceholderText(/Provide justification when consent override is required/i),
+        'Manual override for in-person session',
+      );
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Approve & Save')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('Approve & Save'));
+
+      expect(mockGenerateLongHorizonDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          overrideReason: 'Manual override for in-person session',
+        }),
+      );
+      expect(mockApproveLongHorizonDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          overrideReason: 'Manual override for in-person session',
+        }),
+      );
+    });
+
+    it('resets long-horizon state when switching tabs', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue(LONG_HORIZON_DRAFT);
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('6-Month Strength Arc')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Single Workout' }));
+      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+
+      expect(screen.getByText('Long-Horizon Planning')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Configure Plan' })).toBeInTheDocument();
     });
   });
 });

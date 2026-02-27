@@ -15,11 +15,11 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import {
   X, Sparkles, Save, AlertTriangle, ChevronDown, ChevronRight,
   Plus, Trash2, RotateCcw, Shield, Brain, Info, CheckCircle2,
-  Loader2, FileWarning, RefreshCw,
+  FileWarning, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
@@ -39,13 +39,46 @@ import {
   type TemplateSuggestion,
   type TemplateEntry,
 } from '../../../../../services/aiWorkoutService';
-
-// ── Theme Tokens ──────────────────────────────────────────────────────────
-
-const SWAN_CYAN = '#00FFFF';
-const GALAXY_CORE = '#0a0a1a';
-
-// ── State Machine ─────────────────────────────────────────────────────────
+import LongHorizonContent from './LongHorizonContent';
+import {
+  SWAN_CYAN,
+  ModalOverlay,
+  ModalPanel,
+  ModalHeader,
+  ModalTitle,
+  CloseButton,
+  ModalBody,
+  ModalFooter,
+  PrimaryButton,
+  SecondaryButton,
+  AddButton,
+  RemoveButton,
+  Input,
+  TextArea,
+  SmallInput,
+  FormGroup,
+  FormGrid,
+  Label,
+  InfoPanel,
+  InfoContent,
+  Badge,
+  BadgeRow,
+  Divider,
+  SectionTitle,
+  CenterContent,
+  Spinner,
+  DaySection,
+  DayHeader,
+  DayContent,
+  ExerciseCard,
+  ExerciseHeader,
+  TemplateList,
+  TemplateItem,
+  ExplainabilityGrid,
+  ExplainCard,
+  ExplainLabel,
+  ExplainValue,
+} from './copilot-shared-styles';
 
 type CopilotState =
   | 'idle'
@@ -57,399 +90,25 @@ type CopilotState =
   | 'saved'
   | 'approve_error';
 
-// ── Animations ────────────────────────────────────────────────────────────
-
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
-// ── Styled Components ─────────────────────────────────────────────────────
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 1300;
+const TabBar = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-`;
-
-const ModalPanel = styled.div`
-  background: rgba(29, 31, 43, 0.98);
-  border-radius: 12px;
-  max-width: 900px;
-  width: 95%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background: #252742;
-  border-radius: 12px 12px 0 0;
-  flex-shrink: 0;
-`;
-
-const ModalTitle = styled.h2`
-  color: ${SWAN_CYAN};
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-  display: flex;
-  align-items: center;
   gap: 8px;
+  padding: 10px 24px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 `;
 
-const CloseButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  background: transparent;
-  border: none;
-  color: #e2e8f0;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.2s;
-  &:hover { background: rgba(255, 255, 255, 0.08); }
-`;
-
-const ModalBody = styled.div`
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
-`;
-
-const PrimaryButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0.75rem 1.5rem;
-  min-height: 44px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border: none;
-  background: linear-gradient(135deg, ${SWAN_CYAN}, #00aadd);
-  color: ${GALAXY_CORE};
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 18px rgba(0, 255, 255, 0.35);
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(0, 255, 255, 0.5);
-  }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const SecondaryButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0.75rem 1.5rem;
-  min-height: 44px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover { background: rgba(255, 255, 255, 0.08); }
-`;
-
-const Spinner = styled(Loader2)`
-  animation: ${spin} 0.6s linear infinite;
-`;
-
-const Input = styled.input`
-  padding: 10px 14px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
-  &:focus {
-    outline: none;
-    border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
-  }
-  &::placeholder { color: rgba(255, 255, 255, 0.3); }
-`;
-
-const TextArea = styled.textarea`
-  padding: 10px 14px;
-  min-height: 80px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
-  font-size: 0.95rem;
-  resize: vertical;
-  font-family: inherit;
-  transition: border-color 0.2s;
-  &:focus {
-    outline: none;
-    border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
-  }
-  &::placeholder { color: rgba(255, 255, 255, 0.3); }
-`;
-
-const FormGroup = styled.div<{ $fullWidth?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  ${(props) => props.$fullWidth && 'grid-column: 1 / -1;'}
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  @media (max-width: 640px) { grid-template-columns: 1fr; }
-`;
-
-const Label = styled.label`
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #94a3b8;
-`;
-
-const Divider = styled.hr`
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin: 20px 0;
-`;
-
-const InfoPanel = styled.div<{ $variant?: 'info' | 'warning' | 'error' | 'success' }>`
-  padding: 14px 16px;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  animation: ${fadeIn} 0.3s ease;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case 'warning': return `background: rgba(255, 170, 0, 0.08); border: 1px solid rgba(255, 170, 0, 0.25); color: #ffaa00;`;
-      case 'error': return `background: rgba(255, 50, 50, 0.08); border: 1px solid rgba(255, 50, 50, 0.25); color: #ff6b6b;`;
-      case 'success': return `background: rgba(0, 255, 100, 0.08); border: 1px solid rgba(0, 255, 100, 0.25); color: #00ff64;`;
-      default: return `background: rgba(0, 255, 255, 0.06); border: 1px solid rgba(0, 255, 255, 0.2); color: #94a3b8;`;
-    }
-  }}
-`;
-
-const InfoContent = styled.div`
-  flex: 1;
-  font-size: 0.9rem;
-  line-height: 1.5;
-`;
-
-const BadgeRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-`;
-
-const Badge = styled.span<{ $color?: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  background: ${(p) => p.$color ? `${p.$color}15` : 'rgba(0, 255, 255, 0.1)'};
-  color: ${(p) => p.$color || SWAN_CYAN};
-  border: 1px solid ${(p) => p.$color ? `${p.$color}40` : 'rgba(0, 255, 255, 0.25)'};
-`;
-
-const ExerciseCard = styled.div`
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 12px;
-`;
-
-const ExerciseHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const DaySection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const DayHeader = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 16px;
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 255, 255, 0.15);
-  background: rgba(0, 255, 255, 0.04);
-  color: #e2e8f0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  &:hover { background: rgba(0, 255, 255, 0.08); }
-`;
-
-const DayContent = styled.div`
-  padding: 12px 0 0 16px;
-`;
-
-const SmallInput = styled(Input)`
+const TabButton = styled.button<{ $active?: boolean }>`
   min-height: 40px;
-  padding: 6px 10px;
-  font-size: 0.9rem;
-`;
-
-const AddButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  border: 1px solid ${({ $active }) => ($active ? SWAN_CYAN : 'rgba(255,255,255,0.15)')};
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
   padding: 8px 14px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 255, 255, 0.06);
-  color: ${SWAN_CYAN};
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover {
-    background: rgba(0, 255, 255, 0.12);
-    border-color: ${SWAN_CYAN};
-  }
-`;
-
-const RemoveButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(255, 50, 50, 0.08);
-  color: #ff6b6b;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover { background: rgba(255, 50, 50, 0.2); }
-`;
-
-const CenterContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
-  gap: 16px;
-`;
-
-const TemplateList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  max-width: 500px;
-`;
-
-const TemplateItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #e2e8f0;
-  font-size: 0.9rem;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 600;
-  color: #e2e8f0;
-  margin: 0 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ExplainabilityGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  @media (max-width: 640px) { grid-template-columns: 1fr; }
-`;
-
-const ExplainCard = styled.div`
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-const ExplainLabel = styled.div`
-  font-size: 0.75rem;
+  color: ${({ $active }) => ($active ? SWAN_CYAN : '#cbd5e1')};
+  background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.08)' : 'rgba(255,255,255,0.02)')};
   font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
 `;
-
-const ExplainValue = styled.div`
-  font-size: 0.88rem;
-  color: #cbd5e1;
-  line-height: 1.4;
-`;
-
-// ── Props ─────────────────────────────────────────────────────────────────
-
 interface WorkoutCopilotPanelProps {
   open: boolean;
   onClose: () => void;
@@ -507,6 +166,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Double-submit guard ─────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'single' | 'long-horizon'>('single');
+  const [lhFooterContent, setLhFooterContent] = useState<React.ReactNode | null>(null);
 
   // Reset on open
   useEffect(() => {
@@ -530,6 +191,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setApproveErrors([]);
       setExpandedDays(new Set());
       setIsSubmitting(false);
+      setActiveTab('single');
+      setLhFooterContent(null);
       setTemplates([]);
       setTemplatesLoading(true);
       service.listTemplates()
@@ -686,7 +349,29 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
           <CloseButton onClick={onClose}><X size={20} /></CloseButton>
         </ModalHeader>
 
+        <TabBar>
+          <TabButton
+            type="button"
+            $active={activeTab === 'single'}
+            onClick={() => {
+              setActiveTab('single');
+              setLhFooterContent(null);
+            }}
+          >
+            Single Workout
+          </TabButton>
+          <TabButton
+            type="button"
+            $active={activeTab === 'long-horizon'}
+            onClick={() => setActiveTab('long-horizon')}
+          >
+            Long-Horizon
+          </TabButton>
+        </TabBar>
+
         <ModalBody>
+          {activeTab === 'single' && (
+            <>
           {/* ── IDLE state ──────────────────────────────────── */}
           {state === 'idle' && (
             <CenterContent>
@@ -1151,10 +836,24 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
               <SecondaryButton onClick={onClose}>Close</SecondaryButton>
             </CenterContent>
           )}
+            </>
+          )}
+
+          {activeTab === 'long-horizon' && (
+            <LongHorizonContent
+              clientId={clientId}
+              clientName={clientName}
+              authAxios={authAxios}
+              toast={toast}
+              onSuccess={onSuccess}
+              onClose={onClose}
+              renderFooter={setLhFooterContent}
+            />
+          )}
         </ModalBody>
 
         {/* Footer: only show approve button during draft review */}
-        {(state === 'draft_review' || state === 'approving') && (
+        {activeTab === 'single' && (state === 'draft_review' || state === 'approving') && (
           <ModalFooter>
             <SecondaryButton onClick={() => { setState('idle'); setEditedPlan(null); }}>
               <RotateCcw size={16} />
@@ -1165,6 +864,10 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
               {state === 'approving' ? 'Saving...' : 'Approve & Save'}
             </PrimaryButton>
           </ModalFooter>
+        )}
+
+        {activeTab === 'long-horizon' && lhFooterContent && (
+          <ModalFooter>{lhFooterContent}</ModalFooter>
         )}
       </ModalPanel>
     </ModalOverlay>
