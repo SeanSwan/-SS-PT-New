@@ -244,11 +244,13 @@ ProgramMesocycleBlock
 
 Generate a draft long-horizon plan. **Handler order (CRITICAL):**
 ```
-auth → role (admin/trainer) → input validation → user existence →
-assignment check → AI eligibility check (consent source + role-aware override) → de-identification →
-long-horizon context build → AI provider call → output validation →
+auth → role (admin/trainer/client-self) → input validation → user existence →
+assignment check (trainer only) → AI eligibility check (consent source + role-aware override) →
+de-identification → long-horizon context build → AI provider call → output validation →
 response (draft, not persisted) → audit log
 ```
+
+> **Client access:** Clients can generate plans for themselves only (`targetUserId === requesterId`). Cross-user access is denied. 5C-E UI scope: admin/trainer surfaces only — client-facing UI deferred.
 
 **Request fields:** `userId` (required), `horizonMonths` (3|6|12, required), `overrideReason` (required only when admin override triggered).
 
