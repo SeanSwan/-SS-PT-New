@@ -89,7 +89,9 @@
     "mark-completed-migrations": "node scripts/mark-completed-migrations.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "migrate:test": "npx sequelize-cli db:migrate --config config/config.cjs --migrations-path migrations --models-path models --env test",
+    "test:integration:waiver": "vitest run --config vitest.integration.config.mjs"
   },
   "keywords": [],
   "author": "",

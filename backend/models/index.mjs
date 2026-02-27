@@ -165,6 +165,14 @@ export const getAiInteractionLog = () => getModel('AiInteractionLog');
 export const getLongTermProgramPlan = () => getModel('LongTermProgramPlan');
 export const getProgramMesocycleBlock = () => getModel('ProgramMesocycleBlock');
 
+// Waiver + Consent Models (Phase 5W-B)
+export const getWaiverVersion = () => getModel('WaiverVersion');
+export const getWaiverRecord = () => getModel('WaiverRecord');
+export const getWaiverRecordVersion = () => getModel('WaiverRecordVersion');
+export const getWaiverConsentFlags = () => getModel('WaiverConsentFlags');
+export const getPendingWaiverMatch = () => getModel('PendingWaiverMatch');
+export const getAiConsentLog = () => getModel('AiConsentLog');
+
 // Video Catalog Models
 export const getVideoCatalog = () => getModel('VideoCatalog');
 export const getVideoCollection = () => getModel('VideoCollection');
