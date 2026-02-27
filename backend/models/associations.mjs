@@ -108,6 +108,14 @@ const setupAssociations = async () => {
     const LongTermProgramPlanModule = await import('./LongTermProgramPlan.mjs');
     const ProgramMesocycleBlockModule = await import('./ProgramMesocycleBlock.mjs');
 
+    // Waiver + Consent Models (Phase 5W-B)
+    const WaiverVersionModule = await import('./WaiverVersion.mjs');
+    const WaiverRecordModule = await import('./WaiverRecord.mjs');
+    const WaiverRecordVersionModule = await import('./WaiverRecordVersion.mjs');
+    const WaiverConsentFlagsModule = await import('./WaiverConsentFlags.mjs');
+    const PendingWaiverMatchModule = await import('./PendingWaiverMatch.mjs');
+    const AiConsentLogModule = await import('./AiConsentLog.mjs');
+
     // Video Catalog Models (Sequelize)
     const VideoCatalogModule = await import('./VideoCatalog.mjs');
     const VideoCollectionModule = await import('./VideoCollection.mjs');
@@ -212,6 +220,14 @@ const setupAssociations = async () => {
     const LongTermProgramPlan = LongTermProgramPlanModule.default;
     const ProgramMesocycleBlock = ProgramMesocycleBlockModule.default;
 
+    // Waiver + Consent Models (Phase 5W-B)
+    const WaiverVersion = WaiverVersionModule.default;
+    const WaiverRecord = WaiverRecordModule.default;
+    const WaiverRecordVersion = WaiverRecordVersionModule.default;
+    const WaiverConsentFlags = WaiverConsentFlagsModule.default;
+    const PendingWaiverMatch = PendingWaiverMatchModule.default;
+    const AiConsentLog = AiConsentLogModule.default;
+
     // Video Catalog Models
     const VideoCatalog = VideoCatalogModule.default;
     const VideoCollection = VideoCollectionModule.default;
@@ -282,6 +298,11 @@ const setupAssociations = async () => {
         AutomationSequence, AutomationLog,
         // AI Privacy Models
         AiPrivacyProfile, AiInteractionLog,
+        // Long-Horizon Planning Models (Phase 5C)
+        LongTermProgramPlan, ProgramMesocycleBlock,
+        // Waiver + Consent Models (Phase 5W-B)
+        WaiverVersion, WaiverRecord, WaiverRecordVersion,
+        WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog
@@ -745,6 +766,31 @@ const setupAssociations = async () => {
     LongTermProgramPlan.hasMany(ProgramMesocycleBlock, { foreignKey: 'planId', as: 'mesocycleBlocks' });
     ProgramMesocycleBlock.belongsTo(LongTermProgramPlan, { foreignKey: 'planId', as: 'programPlan' });
 
+    // Waiver + Consent Associations (Phase 5W-B)
+    User.hasMany(WaiverRecord, { foreignKey: 'userId', as: 'waiverRecords' });
+    WaiverRecord.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+    User.hasMany(WaiverVersion, { foreignKey: 'createdByUserId', as: 'createdWaiverVersions' });
+    WaiverVersion.belongsTo(User, { foreignKey: 'createdByUserId', as: 'creator' });
+
+    WaiverRecord.hasMany(WaiverRecordVersion, { foreignKey: 'waiverRecordId', as: 'versionLinks' });
+    WaiverRecordVersion.belongsTo(WaiverRecord, { foreignKey: 'waiverRecordId', as: 'waiverRecord' });
+    WaiverVersion.hasMany(WaiverRecordVersion, { foreignKey: 'waiverVersionId', as: 'recordLinks' });
+    WaiverRecordVersion.belongsTo(WaiverVersion, { foreignKey: 'waiverVersionId', as: 'waiverVersion' });
+
+    WaiverRecord.hasOne(WaiverConsentFlags, { foreignKey: 'waiverRecordId', as: 'consentFlags' });
+    WaiverConsentFlags.belongsTo(WaiverRecord, { foreignKey: 'waiverRecordId', as: 'waiverRecord' });
+
+    WaiverRecord.hasMany(PendingWaiverMatch, { foreignKey: 'waiverRecordId', as: 'pendingMatches' });
+    PendingWaiverMatch.belongsTo(WaiverRecord, { foreignKey: 'waiverRecordId', as: 'waiverRecord' });
+    PendingWaiverMatch.belongsTo(User, { foreignKey: 'candidateUserId', as: 'candidateUser' });
+    PendingWaiverMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
+
+    User.hasMany(AiConsentLog, { foreignKey: 'userId', as: 'aiConsentLogs' });
+    AiConsentLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(AiConsentLog, { foreignKey: 'actorUserId', as: 'aiConsentActions' });
+    AiConsentLog.belongsTo(User, { foreignKey: 'actorUserId', as: 'actor' });
+
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');
     console.log('✅ NASM Workout Tracking models integrated');
@@ -752,6 +798,7 @@ const setupAssociations = async () => {
     console.log('✅ Video Catalog models integrated');
     console.log('✅ AI Privacy models integrated');
     console.log('✅ Long-Horizon Planning models integrated');
+    console.log('✅ Waiver + Consent models integrated');
     
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -859,6 +906,14 @@ const setupAssociations = async () => {
       // Long-Horizon Planning Models (Phase 5C)
       LongTermProgramPlan,
       ProgramMesocycleBlock,
+
+      // Waiver + Consent Models (Phase 5W-B)
+      WaiverVersion,
+      WaiverRecord,
+      WaiverRecordVersion,
+      WaiverConsentFlags,
+      PendingWaiverMatch,
+      AiConsentLog,
 
       // Video Catalog Models
       VideoCatalog,
