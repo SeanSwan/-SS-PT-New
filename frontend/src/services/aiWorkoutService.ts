@@ -36,6 +36,27 @@ export interface WorkoutPlan {
   days: WorkoutDay[];
 }
 
+export interface MesocycleBlock {
+  sequence: number;
+  nasmFramework: 'OPT' | 'CES' | 'GENERAL';
+  optPhase: number | null;
+  phaseName: string;
+  focus: string | null;
+  durationWeeks: number;
+  sessionsPerWeek: number | null;
+  entryCriteria: string | null;
+  exitCriteria: string | null;
+  notes: string | null;
+  rationale?: string | null;
+}
+
+export interface LongHorizonPlan {
+  planName: string;
+  horizonMonths: 3 | 6 | 12;
+  summary?: string;
+  blocks: MesocycleBlock[];
+}
+
 export interface LoadRecommendation {
   minLoad: number;
   maxLoad: number;
@@ -119,6 +140,26 @@ export interface DegradedResponse {
   failoverTrace: string[];
 }
 
+export interface LongHorizonDraftResponse {
+  success: true;
+  draft: true;
+  plan: LongHorizonPlan;
+  horizonMonths: 3 | 6 | 12;
+  warnings: string[];
+  provider: string;
+  auditLogId: number | null;
+}
+
+export interface LongHorizonApproveResponse {
+  success: true;
+  planId: number;
+  sourceType: string;
+  summary: string;
+  blockCount: number;
+  validationWarnings: string[];
+  eligibilityWarnings: string[];
+}
+
 export interface ApproveSuccessResponse {
   success: true;
   planId: number;
@@ -137,13 +178,21 @@ export interface ApiErrorResponse {
 }
 
 export type GenerateResponse = DraftSuccessResponse | DegradedResponse;
+export type LongHorizonGenerateResponse = LongHorizonDraftResponse | DegradedResponse;
+export type AnyGenerateResponse = GenerateResponse | LongHorizonGenerateResponse;
 
-export function isDegraded(resp: GenerateResponse): resp is DegradedResponse {
+export function isDegraded(resp: AnyGenerateResponse): resp is DegradedResponse {
   return 'degraded' in resp && (resp as DegradedResponse).degraded === true;
 }
 
 export function isDraftSuccess(resp: GenerateResponse): resp is DraftSuccessResponse {
   return 'draft' in resp && (resp as DraftSuccessResponse).draft === true;
+}
+
+export function isLongHorizonDraft(
+  resp: LongHorizonGenerateResponse,
+): resp is LongHorizonDraftResponse {
+  return 'draft' in resp && (resp as LongHorizonDraftResponse).draft === true;
 }
 
 // ── Service factory ───────────────────────────────────────────────────────
@@ -190,6 +239,40 @@ export function createAiWorkoutService(authAxios: any) {
           trainerNotes: params.trainerNotes || undefined,
         },
       );
+      return data;
+    },
+
+    /** Generate a long-horizon draft plan (3/6/12 month periodization) */
+    async generateLongHorizonDraft(params: {
+      userId: number;
+      horizonMonths: 3 | 6 | 12;
+      overrideReason?: string;
+    }): Promise<LongHorizonGenerateResponse> {
+      const { data } = await authAxios.post(`${BASE}/long-horizon/generate`, {
+        userId: params.userId,
+        horizonMonths: params.horizonMonths,
+        overrideReason: params.overrideReason?.trim() || undefined,
+      });
+      return data;
+    },
+
+    /** Approve and persist a long-horizon draft plan */
+    async approveLongHorizonDraft(params: {
+      userId: number;
+      plan: LongHorizonPlan;
+      horizonMonths: 3 | 6 | 12;
+      auditLogId: number;
+      overrideReason?: string;
+      trainerNotes?: string;
+    }): Promise<LongHorizonApproveResponse> {
+      const { data } = await authAxios.post(`${BASE}/long-horizon/approve`, {
+        userId: params.userId,
+        plan: params.plan,
+        horizonMonths: params.horizonMonths,
+        auditLogId: params.auditLogId,
+        overrideReason: params.overrideReason?.trim() || undefined,
+        trainerNotes: params.trainerNotes?.trim() || undefined,
+      });
       return data;
     },
   };
