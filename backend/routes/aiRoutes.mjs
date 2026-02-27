@@ -9,7 +9,7 @@ import {
   getAiConsentStatus,
 } from '../controllers/aiConsentController.mjs';
 import { listTemplates, getTemplate } from '../controllers/aiTemplateController.mjs';
-import { generateLongHorizonPlan } from '../controllers/longHorizonController.mjs';
+import { generateLongHorizonPlan, approveLongHorizonPlan } from '../controllers/longHorizonController.mjs';
 
 // --- Register provider adapters at import time (Phase 3A+3B) ---
 import { registerAdapter } from '../services/ai/providerRouter.mjs';
@@ -54,6 +54,15 @@ router.post(
   aiKillSwitch,
   aiRateLimiter,
   generateLongHorizonPlan
+);
+
+// POST /api/ai/long-horizon/approve (Phase 5C-D — coach approval + persistence)
+// No aiRateLimiter — approval is a coach action, not an AI provider call
+router.post(
+  '/long-horizon/approve',
+  protect,
+  aiKillSwitch,
+  approveLongHorizonPlan
 );
 
 // Template registry endpoints (Phase 4A)

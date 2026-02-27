@@ -40,10 +40,12 @@ AI must not replace: NASM framework logic, coach judgment, medical clearance req
 ### 2.2 Consent and De-Identification Are Separate Controls
 - **Consent** = permission control (whether client-specific AI generation is allowed)
 - **De-identification** = data minimization (what data may leave the app boundary)
-- **Rule:** Client-specific AI usage requires both valid consent AND de-identification pipeline.
+- **Rule:** Client-specific AI usage always requires de-identification. Consent is enforced through a role-aware AI eligibility layer:
+- `trainer` / `client` require a valid consent source
+- `admin` may use an audited override path (no silent bypass)
 
 ### 2.3 Client-Specific vs Coach-Sandbox AI
-- **Client-specific AI (current):** Uses real client data. Consent + de-identification required.
+- **Client-specific AI (current/planned):** Uses real client data. De-identification required; consent enforced through role-aware AI eligibility (trainer/client hard gate, admin audited override).
 - **Coach sandbox AI (future optional):** Generic/manual constraints without client record. No client consent required, still sanitized.
 
 ---
@@ -99,10 +101,14 @@ NASM does not define: consent enforcement, de-identification, provider router/fa
 Phase 0, Phase 1/2, Phase 3A/3B, Phase 4A, Phase 5A, Phase 5B, Phase 5B.1
 
 ### 5.2 Active / Next
-- **Phase 5C — Long-Horizon Planning Engine (NASM Protocol-First)** — Next major build phase
+- **Phase 5C — Long-Horizon Planning Engine (NASM Protocol-First)** — Active build phase (5C-A/B/C implemented; 5C-D next)
   - Contract: `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT.md`
   - Scope: 3/6/12 month NASM-aligned plans, block/mesocycle structure, goal-specific progression, assessment-aware modifications, coach review + approve, revision workflow
   - Sub-phases: 5C-A (models), 5C-B (context builder), 5C-C (generation), 5C-D (approval), 5C-E (UI)
+- **Phase 5W — Public QR Waivers + AI Eligibility (Admin Override)** — New parallel track
+  - Contract: `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`
+  - Scope: Public no-login waiver capture, multi-activity addenda (home gym/park/swim), AI notice + consent, ghost-record matching, admin waivers dashboard, role-aware AI eligibility service
+  - Sub-phases: 5W-A (policy contract), 5W-B (schema), 5W-C (public QR flow), 5W-D (admin dashboard), 5W-E (AI eligibility integration), 5W-F (re-consent/versioning)
 - **Phase 5D — Voice Dictation + Manual Entry Workflow** — Can begin after 5C contracts stabilize
 - **Phase 5E — Provider Expansion + Venice Option** — After 5C/5D contracts defined
 
@@ -138,7 +144,7 @@ Training methodology (OPT/CES), assessment frameworks, progression principles, c
 Backend tests (full suite), frontend unit tests, frontend build, production smoke tests, degraded-mode verification when provider keys absent.
 
 ### 7.2 Phase 5C/5D/5E verification requirements
-- **Backend:** long-horizon context builder tests, planning generation/approval tests, Venice adapter tests, privacy regression tests, RBAC/consent ordering tests
+- **Backend:** long-horizon context builder tests, planning generation/approval tests, Venice adapter tests, privacy regression tests, RBAC/AI eligibility ordering tests
 - **Frontend:** long-horizon workflow tests, dictation/manual entry UX tests, trainer/admin reuse tests, build verification
 - **Production smoke:** read-only endpoint checks first, controlled test accounts, degraded path testable without keys, draft/approve when keys configured
 
@@ -154,6 +160,7 @@ Backend tests (full suite), frontend unit tests, frontend build, production smok
 - **This file** (core plan)
 - **Appendix:** `AI-Village-Documentation/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN-APPENDIX.md`
 - `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT.md` (created)
+- `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md` (created)
 - Future: `PHASE-5D-VOICE-DICTATION-CONTRACT.md`, `PHASE-5E-VENICE-PROVIDER-ADAPTER-PLAN.md`
 
 ---
@@ -162,14 +169,18 @@ Backend tests (full suite), frontend unit tests, frontend build, production smok
 
 1. Keep `CURRENT-TASK.md` as source of truth for shipped status
 2. Use this V5 plan as the planning source for next phase design
-3. Phase 5C (long-horizon planning engine) is the recommended next implementation
+3. Execute 5C-D (long-horizon approval endpoint) with role-aware AI eligibility re-check
+4. Freeze 5W-A/5W-B waiver schema + ghost-record matching contract before QR flow implementation
 
 **Recommended order:** 5C (long-horizon backend contracts) → 5D (dictation/manual entry UX) → 5E (Venice provider adapter). This protects correctness first.
+**Updated order:** 5C-D (long-horizon approval) + 5W-A/B (waiver/eligibility contracts) → 5W-C/D/E (QR waivers + admin dashboard + AI eligibility integration) → 5C-E (frontend long-horizon UI) → 5D → 5E.
 
 ---
 
 ## 10. Open Decisions (Resolve Before Next Phase)
 - Coach sandbox mode: include in near-term roadmap or defer
+- Waiver legal rollout sequence: core+AI notice first vs full multi-activity launch together
+- Ghost-record auto-link threshold: strict exact match only vs confidence scoring + admin review
 - Venice priority: add before long-horizon phase completion or after
 - Long-horizon persistence depth: minimal plan/block models now vs full review/forecast models in first pass
 - STT provider policy: browser-first only for MVP vs server STT support in same phase

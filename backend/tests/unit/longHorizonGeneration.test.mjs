@@ -650,7 +650,7 @@ describe('Security: controller structure', () => {
     // Use unique strings from the controller body (not imports) to check ordering
     const authIdx = content.indexOf("'Not authenticated'");
     const rbacTrainerIdx = content.indexOf("'AI_ASSIGNMENT_DENIED'");
-    const consentIdx = content.indexOf("'AI_CONSENT_MISSING'");
+    const consentIdx = content.indexOf('checkAiEligibility(');
     const deidentIdx = content.indexOf("'DEIDENTIFICATION_FAILED'");
     const contextIdx = content.indexOf('buildLongHorizonContext(');  // call site, not import
     const auditIdx = content.indexOf("requestType: 'long_horizon_generation'");
