@@ -40,6 +40,7 @@ import PricingSheetViewer from '../Admin/PricingSheetViewer';
 import SalesScriptViewer from '../Admin/SalesScriptViewer';
 import LaunchChecklist from '../Admin/LaunchChecklist';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
+import AdminWaiversManager from './Pages/admin-waivers/AdminWaiversManager';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 import VideoStudioManager from './Pages/admin-video-studio/VideoStudioManager';
@@ -183,6 +184,7 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="progress" element={<AdminClientProgressView />} />
       <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
       <Route path="social" element={<AdminSocialManagementView />} />
+      <Route path="waivers" element={<AdminWaiversManager />} />
     </Route>
 
     <Route path="/scheduling" element={<SchedulingWorkspace />}>
