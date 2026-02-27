@@ -1,11 +1,82 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-25
+**Last Updated:** 2026-02-26
 **Updated By:** Claude Code (Opus 4.6)
 
 ---
 
-## ACTIVE: Smart Workout Logger — Phase 5B Admin Surface Complete (2026-02-25)
+## ACTIVE: Smart Workout Logger - Phase 5C-D Complete + 5C-E Next (2026-02-26)
+
+**Status:** Phase 5C-A through 5C-D implemented and QA-reviewed. `5C-E` (UI integration) is next. Parallel planning track for Public QR Waivers + Role-Aware AI Eligibility (admin override).
+
+### Phase 5C Current Progress (Backend)
+
+| Sub-phase | Status | Notes |
+|---|---|---|
+| **5C-A** Models + Migration | Done | Long-horizon plan + mesocycle models, migration, tests |
+| **5C-B** Context Builder | Done | Long-horizon context builder + QA fixes |
+| **5C-C** Generation Endpoint | Done | Prompt override wiring fixed, real-shape prompt builder fixes, 67 tests |
+| **5C-D** Approval Endpoint | Done | Role-aware AI eligibility, transactional persistence, 43 behavioral tests |
+| **5C-E** UI Integration | Next | Reuse existing copilot panel/tab pattern |
+
+**Backend test evidence (latest):** `1030/1030` passing (42 test files)
+
+### Phase 5C-D Deliverables
+
+**New files (4):**
+- `backend/services/ai/aiEligibilityHelper.mjs` — Role-aware AI eligibility check (admin override, trainer/client consent-gated), designed for 5W-E swap
+- `backend/services/ai/longHorizonApprovalValidator.mjs` — 6-stage approval validation (shape → horizon mismatch → pre-trim → Zod → rules → normalize)
+- `backend/services/ai/stableStringify.mjs` — Recursive key-sort JSON canonicalization for deterministic sourceType hashing
+- `backend/tests/unit/longHorizonApproval.test.mjs` — 43 behavioral tests (eligibility, validator, auth/RBAC, persistence, generation lock release)
+
+**Modified files (3):**
+- `backend/controllers/longHorizonController.mjs` — Added `approveLongHorizonPlan` export, refactored generation to use eligibility helper, added `validatedPlanHash` audit field
+- `backend/routes/aiRoutes.mjs` — Added `POST /api/ai/long-horizon/approve` route
+- `backend/tests/unit/longHorizonGeneration.test.mjs` — Updated source-inspection test for eligibility refactor
+
+**Key security features:**
+- Server-derived `sourceType` via `validatedPlanHash` comparison (never client-supplied)
+- Server-derived `goalProfile` from `masterPromptJson` (never from request body)
+- `auditLogId` ownership validation (4-check chain: exists → userId → requestType → status)
+- Symmetric `overrideReason` enforcement on both generate and approve paths
+- Single-transaction persistence (plan + blocks) with rollback on failure
+
+**QA review (3 rounds, 7 findings all resolved):**
+| Round | Findings | Key items |
+|---|---|---|
+| R1 | 4 (1 HIGH, 2 MEDIUM, 1 LOW) | Override audit on all paths, whitespace pre-trim, goalProfile normalization |
+| R2 | 3 (1 MEDIUM, 2 LOW) | tokenUsage merge (not clobber), array element filtering, test count |
+| R3 | 0 | All verified fixed |
+
+### New Product Decision (Approved Direction)
+
+Replace the binary AI consent blocker with a **Role-Aware AI Eligibility** model:
+
+- `admin` may proceed with **audited override** (no hard blocker)
+- `trainer` and `client` remain hard-blocked without valid AI consent source
+- **de-identification remains mandatory** before all AI provider calls (including admin override)
+
+### New Parallel Track (Waiver + AI Consent QR Flow)
+
+**Purpose:** Capture waiver signatures + AI consent via public QR/no-login flow, support home gym + park + swimming lessons, and provide a new valid AI consent source for trainer/client gating.
+
+**New blueprint (drafted):**
+- `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`
+
+### Immediate Next Steps
+
+1. **Phase 5C-E:** UI integration — reuse existing copilot panel/tab pattern for long-horizon plan generation + approval
+2. **5W-A / 5W-B planning:** Freeze waiver schema + matching rules + admin override audit fields before coding
+3. **Patch existing AI endpoints later (Phase 5A/5B paths):** Replace binary consent gate with shared AI eligibility service when waiver track reaches `5W-E`
+
+### Docs Updated (2026-02-26)
+
+- `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT.md` (AI eligibility wording + 5W dependency)
+- `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md` (new)
+
+---
+
+## PREVIOUS: Smart Workout Logger — Phase 5B Admin Surface Complete (2026-02-25)
 
 **Status:** Phase 5B Admin Surface DEPLOYED + VERIFIED. Tests 100/100 frontend, all production smoke passing.
 

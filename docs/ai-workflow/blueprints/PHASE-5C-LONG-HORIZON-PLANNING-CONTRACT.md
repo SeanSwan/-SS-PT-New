@@ -10,9 +10,9 @@
 | Field | Value |
 |-------|-------|
 | Review Quorum Status | Pending (0/5) |
-| Contract Freeze Status | Not started |
-| Active Subphase | 5C-A (not started) |
-| Last Updated | 2026-02-25 |
+| Contract Freeze Status | In progress |
+| Active Subphase | 5C-D (next) + 5W-A planning dependency |
+| Last Updated | 2026-02-26 |
 | Updated By | Claude Code (Architect) |
 
 ---
@@ -51,8 +51,8 @@ FRONTEND (5C-E):         frontend-design → web-design-guidelines → test-driv
 |-----------|-------------------|--------------|
 | Models / migrations (5C-A) | ALL 5 (4 AI + human) | Schema changes are hard to reverse |
 | Context builder / de-identification (5C-B) | ALL 5 | Privacy/PII boundary |
-| Generation endpoint RBAC/consent (5C-C) | ALL 5 | Auth + consent ordering |
-| Approval endpoint RBAC/consent (5C-D) | ALL 5 | Auth + consent + persistence |
+| Generation endpoint RBAC/AI eligibility (5C-C) | ALL 5 | Auth + AI eligibility ordering |
+| Approval endpoint RBAC/AI eligibility (5C-D) | ALL 5 | Auth + AI eligibility + persistence |
 | UI components (5C-E) | 3+ (standard) | Standard frontend code |
 
 ### 0.3A Execution Topology (4 AI Agents + Human = 5-Brain Protocol in Practice)
@@ -84,11 +84,11 @@ For **standard code** (non-critical UI, local refactors, presentation-only chang
 |----------|--------------------|---------------|--------------------|--------------------|-------|
 | **5C-A Models** | Contract + schema design | Implement models/migration | Security/review + tests | Optional | Final critical approval |
 | **5C-B Context Builder** | Context contract design | Implement builders | Privacy/de-id review + tests | Optional | Final critical approval |
-| **5C-C Generate Endpoint** | API contract + sequencing | Implement endpoint | RBAC/consent/order review + tests | Optional | Final critical approval |
+| **5C-C Generate Endpoint** | API contract + sequencing | Implement endpoint | RBAC/AI eligibility/order review + tests | Optional | Final critical approval |
 | **5C-D Approve Endpoint** | Approval contract + persistence rules | Implement endpoint | Security/review + tests | Optional | Final critical approval |
 | **5C-E UI Integration** | Integration contract | Implement UI wiring | QA + state/error tests | UX/design review | Final approval |
 
-**Rule:** If a subphase touches consent ordering, RBAC, de-identification, audit logging, or migrations, it is **critical** regardless of whether it is labeled backend or frontend.
+**Rule:** If a subphase touches AI eligibility/consent ordering, RBAC, de-identification, audit logging, or migrations, it is **critical** regardless of whether it is labeled backend or frontend.
 
 ### 0.3C Parallel Work Protocol
 
@@ -96,7 +96,7 @@ Parallelization is allowed when contracts are frozen.
 
 **Allowed:** Roo scaffolds models from approved 5C-A schema while Claude finalizes 5C-C. ChatGPT/Codex drafts tests from approved contract while Roo builds. Gemini reviews UI flow after backend response shapes are frozen.
 
-**Not allowed:** Multiple agents changing same contract without designated owner. Backend implementation before auth/RBAC/consent ordering is agreed. Frontend coding against unapproved API examples.
+**Not allowed:** Multiple agents changing same contract without designated owner. Backend implementation before auth/RBAC/AI eligibility ordering is agreed. Frontend coding against unapproved API examples.
 
 **Contract freeze rule:** Before parallel work on a subphase, Architect must publish: endpoint contract, security ordering, data model shape (if applicable), test acceptance criteria.
 
@@ -126,18 +126,20 @@ No subphase completion claim is valid without:
 - [ ] Applicable build/test gates pass (backend for backend subphases, all for frontend/cross-phase)
 - [ ] Required review quorum met (5 for critical, 3 for standard)
 - [ ] No hallucinated claims (evidence attached)
-- [ ] Consent ordering preserved: auth → role → input → user → assignment → consent → de-id → AI → validate → persist → audit
+- [ ] AI eligibility ordering preserved: auth → role → input → user → assignment → AI eligibility → de-id → AI → validate → persist → audit
 - [ ] RBAC enforcement: admin/trainer only, assignment check present
 - [ ] Parameterized DB access only (no raw SQL interpolation)
 - [ ] No `dangerouslySetInnerHTML` on AI output
-- [ ] RBAC + consent + de-id ordering verified by tests
+- [ ] RBAC + AI eligibility + de-id ordering verified by tests
 - [ ] Dependency audit clean (if dependencies added)
 
 ### 0.5 Security-First Constraints (Absolute Rules)
 
 These 10 rules apply to every sub-phase. No bypass allowed:
 
-1. **Consent before AI generation.** Order: auth → role → input → user existence → assignment → consent → de-id → AI call → validation → persist → audit.
+1. **AI eligibility before AI generation.** Order: auth → role → input → user existence → assignment → AI eligibility → de-id → AI call → validation → persist → audit.
+   - Admin may proceed with audited override if no consent source exists.
+   - Trainer/client remain blocked until a valid AI consent source exists.
 2. **De-identification before external calls.** No raw PII crosses provider boundary.
 3. **Audit logging on every AI interaction.** `AiInteractionLog` entry with provenance.
 4. **RBAC on every endpoint.** Admin/trainer only. Trainer assignment enforcement.
@@ -152,7 +154,7 @@ These 10 rules apply to every sub-phase. No bypass allowed:
 
 ## 1. Objective
 
-Enable admin/trainers to create and manage **3/6/12 month NASM-aligned training programs** using client history, goals, injuries, trends, assessments, and adherence patterns.
+Enable admin/trainers to create and manage **3/6/12 month NASM-aligned training programs** using client history, goals, injuries, trends, assessments, and adherence patterns, with role-aware AI eligibility (admin override allowed, trainer/client consent-gated).
 
 **NASM Protocol-First:** AI assists with drafting, adapting, sequencing, and summarizing. AI does NOT replace NASM framework logic, coach judgment, medical clearance, or scope-of-practice boundaries.
 
@@ -167,6 +169,14 @@ Enable admin/trainers to create and manage **3/6/12 month NASM-aligned training 
 | **5C-C** | AI Long-Horizon Draft Generation | New endpoint: macro/mesocycle plan drafts | 5C-A, 5C-B |
 | **5C-D** | Long-Horizon Approval + Persistence | Coach-approved plan persistence with provenance | 5C-A, 5C-C |
 | **5C-E** | Minimal UI Integration | Admin copilot extended, trainer reuse | 5C-C, 5C-D |
+
+### 2.1 Parallel Dependency Track (5W - Waiver + AI Consent QR Flow)
+
+If SwanStudios replaces the current in-app AI consent blocker, Phase 5C endpoints must integrate with the waiver-based AI consent source defined in:
+
+- `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`
+
+**Rule:** 5C may continue using current consent sources during development, but production "blocker removal" requires 5W-E (AI eligibility service + admin override audit path).
 
 ---
 
@@ -235,14 +245,19 @@ ProgramMesocycleBlock
 Generate a draft long-horizon plan. **Handler order (CRITICAL):**
 ```
 auth → role (admin/trainer) → input validation → user existence →
-assignment check → consent check → de-identification →
+assignment check → AI eligibility check (consent source + role-aware override) → de-identification →
 long-horizon context build → AI provider call → output validation →
 response (draft, not persisted) → audit log
 ```
 
 **Fields:** `userId` (required), `horizonMonths` (3|6|12, required), `goalProfile` (required, must have `primaryGoal`), `preferences` (optional).
 
-**Responses:** Draft success (200), Degraded mode (200, same as Phase 5B), Error codes (same taxonomy as Phase 5B + `INVALID_HORIZON`, `MISSING_GOAL_PROFILE`).
+**Responses:** Draft success (200), Degraded mode (200, same as Phase 5B), Error codes (same taxonomy as Phase 5B + `INVALID_HORIZON`, `MISSING_GOAL_PROFILE`, and AI eligibility/waiver codes in §10).
+
+**Eligibility note (role-aware):**
+- `admin`: may proceed with audited override if no consent source exists (warning path)
+- `trainer` / `client`: blocked until a valid AI consent source exists
+- de-identification remains mandatory in all cases
 
 Full request/response JSON examples: see appendix.
 
@@ -251,7 +266,7 @@ Full request/response JSON examples: see appendix.
 Coach approves (optionally edits) a plan draft, persisting to database. **Handler order:**
 ```
 auth → role (admin/trainer) → input validation → user existence →
-assignment check → consent re-check → plan validation (Zod) →
+assignment check → AI eligibility re-check (consent source + role-aware override) → plan validation (Zod) →
 persist LongTermProgramPlan + ProgramMesocycleBlocks → audit log → response
 ```
 
@@ -279,7 +294,7 @@ Extends existing `contextBuilder.mjs` + `progressContextBuilder.mjs` pattern. Bu
 | Goal progression indicators | **NEW** | |
 | Body composition / ROM/flexibility trends | **NEW** | Null-safe |
 
-**Security rules:** De-id pipeline applies, no raw chart/UI objects, no PII in summaries, consent checked by handler before builder is called, null-safe for missing data.
+**Security rules:** De-id pipeline applies, no raw chart/UI objects, no PII in summaries, AI eligibility checked by handler before builder is called, null-safe for missing data.
 
 Full TypeScript interface: see appendix.
 
@@ -320,9 +335,9 @@ Detailed form fields and UI state tables: see appendix.
 | 2 | 5C-A | Model unit tests | Backend test gate |
 | 3 | 5C-B | Context builder | ALL 5 (de-id) |
 | 4 | 5C-B | Context builder tests (incl. PII assertion) | Backend test gate |
-| 5 | 5C-C | Generation endpoint + handler | ALL 5 (auth/consent) |
+| 5 | 5C-C | Generation endpoint + handler | ALL 5 (auth/AI eligibility) |
 | 6 | 5C-C | Generation tests | Backend test gate |
-| 7 | 5C-D | Approval endpoint + handler | ALL 5 (auth/consent) |
+| 7 | 5C-D | Approval endpoint + handler | ALL 5 (auth/AI eligibility) |
 | 8 | 5C-D | Approval tests | Backend test gate |
 | 9 | 5C-E | Frontend: configure form + plan review | 3+ (standard UI) |
 | 10 | 5C-E | Frontend: service wiring + state machine | Frontend test + build |
@@ -349,9 +364,12 @@ Detailed form fields and UI state tables: see appendix.
 | `INVALID_HORIZON` | 400 | horizonMonths not 3/6/12 | No |
 | `MISSING_GOAL_PROFILE` | 400 | No goalProfile or missing primaryGoal | No |
 | `INVALID_BLOCK_SEQUENCE` | 422 | Block sequence gaps/duplicates on approve | No |
+| `AI_WAIVER_MISSING` | 403 | No valid waiver-based AI consent source (trainer/client path) | No |
+| `AI_WAIVER_VERSION_OUTDATED` | 403 | Waiver/AI consent exists but version requires re-consent | No |
 | `DURATION_MISMATCH` | — | Sum of block weeks doesn't match horizon | Warning only |
+| `AI_CONSENT_OVERRIDE_USED` | 200 | Admin override proceeded without consent source (warning metadata) | N/A |
 
-All Phase 5B error codes apply unchanged.
+All Phase 5B error codes apply unchanged. Waiver/AI eligibility integration details live in `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`.
 
 ---
 
@@ -363,7 +381,7 @@ Implements `verification-before-completion` from master onboarding prompt.
 - [ ] **Frontend tests:** `cd frontend && npx vitest run` — ALL pass
 - [ ] **Frontend build:** `cd frontend && npm run build` — clean
 - [ ] **Security audit:**
-  - [ ] Consent ordering verified by tests
+  - [ ] AI eligibility ordering verified by tests (including admin override vs trainer/client deny paths)
   - [ ] De-identification applied to long-horizon context (test assertion)
   - [ ] RBAC enforced on all new endpoints (test assertion)
   - [ ] No raw PII in AI payloads (test assertion)

@@ -1,31 +1,17 @@
 /**
- * Long-Horizon Plan Generation Controller — Phase 5C-C
- * =====================================================
- * Generates 3/6/12 month NASM-aligned periodization plans via AI.
+ * Long-Horizon Plan Controller — Phase 5C-C / 5C-D
+ * ==================================================
+ * Generation (5C-C) + Approval/Persistence (5C-D) for
+ * 3/6/12 month NASM-aligned periodization plans via AI.
  *
- * Security ordering (exact sequence — mirrors aiWorkoutController):
- *   1. Auth (middleware: protect)
- *   2. Kill switch (middleware: aiKillSwitch)
- *   3. Rate limiter (middleware: aiRateLimiter)
- *   4. Auth validation (check req.user)
- *   5. Target user resolution
- *   6. Client role isolation
- *   7. Trainer assignment check
- *   8. Role validation
- *   9. AI consent check (AiPrivacyProfile)
- *  10. User lookup + masterPromptJson resolution
- *  11. De-identification (fail-closed)
- *  12. NASM constraints (server-derived)
- *  13. Long-horizon context (5C-B)
- *  14. Audit log creation (pending)
- *  15. Provider routing (failover chain)
- *  16. Degraded mode handling
- *  17. Output validation (PII → Zod → Rules)
- *  18. Draft response (5C-C is draft-only; persist deferred to 5C-D)
+ * Exports:
+ *   generateLongHorizonPlan  — POST /api/ai/long-horizon/generate
+ *   approveLongHorizonPlan   — POST /api/ai/long-horizon/approve
  *
  * Phase 5C — Long-Horizon Planning Engine
  */
 import { getAllModels } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { deIdentify, hashPayload } from '../services/deIdentificationService.mjs';
 import { routeAiGeneration } from '../services/ai/providerRouter.mjs';
@@ -37,6 +23,9 @@ import { buildTemplateContext } from '../services/ai/templateContextBuilder.mjs'
 import { buildLongHorizonContext } from '../services/ai/longHorizonContextBuilder.mjs';
 import { buildLongHorizonPrompt, LONG_HORIZON_SYSTEM_MESSAGE } from '../services/ai/longHorizonPromptBuilder.mjs';
 import { updateMetrics } from '../routes/aiMonitoringRoutes.mjs';
+import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
+import { validateLongHorizonApproval } from '../services/ai/longHorizonApprovalValidator.mjs';
+import { stableStringify } from '../services/ai/stableStringify.mjs';
 
 // ── Allowed horizons ────────────────────────────────────────────────
 const VALID_HORIZONS = new Set([3, 6, 12]);
@@ -137,6 +126,7 @@ export const generateLongHorizonPlan = async (req, res) => {
   const startTime = Date.now();
   const requesterId = req.user?.id;
   let auditLog = null;
+  let eligibilityOverride = null;
 
   try {
     const { userId: rawUserId, horizonMonths: rawHorizon } = req.body || {};
@@ -212,36 +202,39 @@ export const generateLongHorizonPlan = async (req, res) => {
       });
     }
 
-    // ── Step 9: AI consent check ────────────────────────────────
-    const { AiPrivacyProfile } = models;
-    if (AiPrivacyProfile) {
-      const consentProfile = await AiPrivacyProfile.findOne({
-        where: { userId: targetUserId },
+    // ── Step 9: AI eligibility check ────────────────────────────
+    const eligibility = await checkAiEligibility({
+      targetUserId,
+      actorUserId: requesterId,
+      actorRole: requesterRole,
+      models,
+    });
+
+    if (eligibility.decision === 'deny') {
+      return res.status(403).json({
+        success: false,
+        code: eligibility.reasonCode,
+        message: 'AI consent check failed. Please ensure AI consent is granted for this user.',
       });
+    }
 
-      if (!consentProfile) {
-        return res.status(403).json({
+    // Admin override requires overrideReason (symmetric with approval)
+    if (eligibility.decision === 'allow_with_override_warning') {
+      const { overrideReason } = req.body || {};
+      if (!overrideReason || typeof overrideReason !== 'string' || !overrideReason.trim()) {
+        return res.status(400).json({
           success: false,
-          code: 'AI_CONSENT_MISSING',
-          message: 'AI consent has not been granted. Please complete the AI consent flow before using AI-powered features.',
+          code: 'MISSING_OVERRIDE_REASON',
+          message: 'Admin override requires an overrideReason when AI consent is not present.',
         });
       }
-
-      if (!consentProfile.aiEnabled) {
-        return res.status(403).json({
-          success: false,
-          code: 'AI_CONSENT_DISABLED',
-          message: 'AI features are currently disabled for this account.',
-        });
-      }
-
-      if (consentProfile.withdrawnAt) {
-        return res.status(403).json({
-          success: false,
-          code: 'AI_CONSENT_WITHDRAWN',
-          message: 'AI consent has been withdrawn. Please re-consent to use AI-powered features.',
-        });
-      }
+      eligibilityOverride = {
+        actorUserId: requesterId,
+        overrideAt: new Date().toISOString(),
+        overrideReason: overrideReason.trim(),
+        warning: 'AI_CONSENT_OVERRIDE_USED',
+      };
+      logger.info('[LH-Generate] Admin override used', { requesterId, targetUserId });
     }
 
     // ── Step 10: User lookup + masterPromptJson ─────────────────
@@ -387,6 +380,9 @@ export const generateLongHorizonPlan = async (req, res) => {
         status: 'degraded',
         errorCode: routerOutcome.errors[0]?.code || 'UNKNOWN_PROVIDER_ERROR',
         durationMs: routerDurationMs,
+        ...(eligibilityOverride ? {
+          tokenUsage: { ...(auditLog?.tokenUsage || {}), eligibilityOverride },
+        } : {}),
       });
 
       const responseTime = Date.now() - startTime;
@@ -439,7 +435,10 @@ export const generateLongHorizonPlan = async (req, res) => {
         status: validation.failStage,
         errorCode: validation.failStage,
         durationMs: routerDurationMs,
-        tokenUsage: providerResult.tokenUsage || {},
+        tokenUsage: {
+          ...(providerResult.tokenUsage || {}),
+          ...(eligibilityOverride ? { eligibilityOverride } : {}),
+        },
       });
 
       const responseTime = Date.now() - startTime;
@@ -464,13 +463,19 @@ export const generateLongHorizonPlan = async (req, res) => {
     const aiPlan = validation.data;
 
     // ── Step 18: Draft response ─────────────────────────────────
+    // Persist validatedPlanHash for 5C-D sourceType comparison
+    const validatedPlanHash = hashPayload(stableStringify(aiPlan));
     await updateAuditLog(auditLog, {
       provider: providerResult.provider,
       model: providerResult.model,
       status: 'draft',
       outputHash: hashPayload(providerResult.rawText),
       durationMs: routerDurationMs,
-      tokenUsage: providerResult.tokenUsage || {},
+      tokenUsage: {
+        ...(providerResult.tokenUsage || {}),
+        validatedPlanHash,
+        ...(eligibilityOverride ? { eligibilityOverride } : {}),
+      },
       promptVersion: PROMPT_VERSION,
     });
 
@@ -493,6 +498,9 @@ export const generateLongHorizonPlan = async (req, res) => {
     await updateAuditLog(auditLog, {
       status: 'error',
       errorCode: err.code || 'UNHANDLED_ERROR',
+      ...(eligibilityOverride ? {
+        tokenUsage: { ...(auditLog?.tokenUsage || {}), eligibilityOverride },
+      } : {}),
     });
 
     return res.status(500).json({
@@ -504,5 +512,359 @@ export const generateLongHorizonPlan = async (req, res) => {
     if (requesterId) {
       releaseConcurrent(requesterId);
     }
+  }
+};
+
+// ── Approval endpoint (5C-D) ───────────────────────────────────────
+
+/**
+ * POST /api/ai/long-horizon/approve
+ *
+ * Request body:
+ *   { userId, plan, horizonMonths, auditLogId, overrideReason?, trainerNotes? }
+ *
+ * Validates edited/unedited AI draft and persists LongTermProgramPlan
+ * + ProgramMesocycleBlock rows in a single transaction.
+ *
+ * Security ordering:
+ *   auth → role(admin/trainer) → input validation → target user exists →
+ *   assignment RBAC → AI eligibility re-check → plan validation →
+ *   transaction persist → audit log update → response
+ */
+export const approveLongHorizonPlan = async (req, res) => {
+  const requesterId = req.user?.id;
+  const requesterRole = req.user?.role;
+
+  try {
+    // ── Step 1: Auth ──────────────────────────────────────────────
+    if (!requesterId || !requesterRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+      });
+    }
+
+    // ── Step 2: Role gate (admin/trainer only) ────────────────────
+    if (requesterRole !== 'admin' && requesterRole !== 'trainer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only trainers and admins can approve plans',
+      });
+    }
+
+    // ── Step 3: Input validation ──────────────────────────────────
+    const {
+      userId: rawUserId,
+      plan,
+      horizonMonths: rawHorizon,
+      auditLogId: rawAuditLogId,
+      overrideReason,
+      trainerNotes,
+    } = req.body || {};
+
+    const targetUserId = Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : null;
+    if (!targetUserId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing or invalid userId',
+      });
+    }
+
+    if (!plan || typeof plan !== 'object' || Array.isArray(plan)) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_DRAFT_PAYLOAD',
+        message: 'Missing or invalid plan object',
+      });
+    }
+
+    const horizonMonths = Number(rawHorizon);
+    if (!VALID_HORIZONS.has(horizonMonths)) {
+      return res.status(400).json({
+        success: false,
+        message: 'horizonMonths must be 3, 6, or 12',
+      });
+    }
+
+    // horizonMonths mismatch check
+    if (plan.horizonMonths !== undefined && plan.horizonMonths !== horizonMonths) {
+      return res.status(400).json({
+        success: false,
+        code: 'HORIZON_MISMATCH',
+        message: 'Request horizonMonths does not match plan.horizonMonths',
+      });
+    }
+
+    const auditLogId = Number.isFinite(Number(rawAuditLogId)) ? Number(rawAuditLogId) : null;
+    if (!auditLogId) {
+      return res.status(400).json({
+        success: false,
+        code: 'MISSING_AUDIT_LOG_ID',
+        message: 'auditLogId is required for AI plan approval',
+      });
+    }
+
+    // ── Step 4: Target user exists ────────────────────────────────
+    const models = getAllModels();
+    const {
+      User,
+      ClientTrainerAssignment,
+      LongTermProgramPlan,
+      ProgramMesocycleBlock,
+      AiInteractionLog,
+    } = models;
+
+    const targetUser = await User.findByPk(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // ── Step 5: Trainer assignment RBAC ───────────────────────────
+    if (requesterRole === 'trainer') {
+      const assignment = await ClientTrainerAssignment.findOne({
+        where: {
+          clientId: targetUserId,
+          trainerId: requesterId,
+          status: 'active',
+        },
+      });
+      if (!assignment) {
+        return res.status(403).json({
+          success: false,
+          code: 'AI_ASSIGNMENT_DENIED',
+          message: 'Access denied: Trainer is not assigned to this client',
+        });
+      }
+    }
+
+    // ── Step 6: AI eligibility re-check ───────────────────────────
+    const eligibility = await checkAiEligibility({
+      targetUserId,
+      actorUserId: requesterId,
+      actorRole: requesterRole,
+      models,
+    });
+
+    if (eligibility.decision === 'deny') {
+      return res.status(403).json({
+        success: false,
+        code: eligibility.reasonCode,
+        message: 'AI consent check failed. Please ensure AI consent is granted for this user.',
+      });
+    }
+
+    let eligibilityOverride = null;
+    if (eligibility.decision === 'allow_with_override_warning') {
+      if (!overrideReason || typeof overrideReason !== 'string' || !overrideReason.trim()) {
+        return res.status(400).json({
+          success: false,
+          code: 'MISSING_OVERRIDE_REASON',
+          message: 'Admin override requires an overrideReason when AI consent is not present.',
+        });
+      }
+      eligibilityOverride = {
+        actorUserId: requesterId,
+        overrideAt: new Date().toISOString(),
+        overrideReason: overrideReason.trim(),
+        warning: 'AI_CONSENT_OVERRIDE_USED',
+      };
+      logger.info('[LH-Approve] Admin override used', { requesterId, targetUserId });
+    }
+
+    // ── Step 7: Plan validation ───────────────────────────────────
+    const approvalValidation = validateLongHorizonApproval({
+      plan,
+      requestedHorizon: horizonMonths,
+    });
+
+    if (!approvalValidation.valid) {
+      return res.status(422).json({
+        success: false,
+        code: 'APPROVED_DRAFT_INVALID',
+        message: 'Approved draft validation failed',
+        errors: approvalValidation.errors,
+        warnings: approvalValidation.warnings,
+      });
+    }
+
+    const normalizedPlan = approvalValidation.normalizedPlan;
+
+    // ── Step 7b: Server-derived goalProfile ───────────────────────
+    let resolvedMasterPrompt = targetUser.masterPromptJson;
+    if (typeof resolvedMasterPrompt === 'string') {
+      try {
+        resolvedMasterPrompt = JSON.parse(resolvedMasterPrompt);
+      } catch {
+        resolvedMasterPrompt = null;
+      }
+    }
+
+    const clientGoals = resolvedMasterPrompt?.client?.goals || resolvedMasterPrompt?.goals;
+    const rawSecondary = clientGoals?.secondary || clientGoals?.secondaryGoals;
+    const rawConstraints = clientGoals?.constraints;
+    const goalProfile = clientGoals
+      ? {
+          primaryGoal: String(clientGoals.primary || clientGoals.primaryGoal || 'general_fitness'),
+          secondaryGoals: Array.isArray(rawSecondary) ? rawSecondary.filter(g => typeof g === 'string') : [],
+          constraints: Array.isArray(rawConstraints) ? rawConstraints.filter(c => typeof c === 'string') : [],
+        }
+      : { primaryGoal: 'general_fitness' };
+
+    // ── Step 7c: Server-derived sourceType ────────────────────────
+    let sourceType = 'ai_assisted_edited'; // Safe default
+    let validatedAuditLog = null;
+
+    if (AiInteractionLog) {
+      try {
+        const auditLogRecord = await AiInteractionLog.findByPk(auditLogId);
+
+        // Check 1: Log exists
+        if (!auditLogRecord) {
+          logger.info('[LH-Approve] auditLogId not found, skipping linkage', { auditLogId });
+        }
+        // Check 2: Correct userId
+        else if (auditLogRecord.userId !== targetUserId) {
+          logger.warn('[LH-Approve] auditLogId userId mismatch, skipping linkage', {
+            auditLogId,
+            expected: targetUserId,
+            actual: auditLogRecord.userId,
+          });
+        }
+        // Check 3: Correct requestType
+        else if (auditLogRecord.requestType !== 'long_horizon_generation') {
+          logger.warn('[LH-Approve] auditLogId requestType mismatch, skipping linkage', {
+            auditLogId,
+            expected: 'long_horizon_generation',
+            actual: auditLogRecord.requestType,
+          });
+        }
+        // Check 4: Allowed status
+        else if (!['draft', 'success'].includes(auditLogRecord.status)) {
+          logger.warn('[LH-Approve] auditLogId status invalid for approval, skipping linkage', {
+            auditLogId,
+            status: auditLogRecord.status,
+          });
+        }
+        // All checks passed
+        else {
+          validatedAuditLog = auditLogRecord;
+
+          // Compare validatedPlanHash for sourceType derivation
+          const storedHash = auditLogRecord.tokenUsage?.validatedPlanHash;
+          if (storedHash) {
+            const approvalHash = hashPayload(stableStringify(normalizedPlan));
+            sourceType = (approvalHash === storedHash) ? 'ai_assisted' : 'ai_assisted_edited';
+          }
+          // No stored hash → default ai_assisted_edited (already set)
+        }
+      } catch (lookupErr) {
+        logger.warn('[LH-Approve] Failed to lookup audit log, skipping linkage', {
+          auditLogId,
+          error: lookupErr.message,
+        });
+      }
+    }
+
+    // ── Step 8: Transactional persistence ─────────────────────────
+    const transaction = await sequelize.transaction();
+    let createdPlan;
+
+    try {
+      createdPlan = await LongTermProgramPlan.create(
+        {
+          userId: targetUserId,
+          horizonMonths,
+          status: 'approved',
+          planName: normalizedPlan.planName,
+          summary: normalizedPlan.summary || null,
+          goalProfile,
+          sourceType,
+          aiGenerationRequestId: validatedAuditLog ? auditLogId : null,
+          createdByUserId: requesterId,
+          approvedByUserId: requesterId,
+          approvedAt: new Date(),
+          metadata: {
+            warnings: approvalValidation.warnings,
+            promptVersion: PROMPT_VERSION,
+            ...(eligibilityOverride ? { eligibilityOverride } : {}),
+          },
+        },
+        { transaction },
+      );
+
+      const blocks = normalizedPlan.blocks || [];
+      for (const block of blocks) {
+        await ProgramMesocycleBlock.create(
+          {
+            planId: createdPlan.id,
+            sequence: block.sequence,
+            nasmFramework: block.nasmFramework,
+            optPhase: block.optPhase ?? null,
+            phaseName: block.phaseName,
+            focus: block.focus || null,
+            durationWeeks: block.durationWeeks,
+            sessionsPerWeek: block.sessionsPerWeek ?? null,
+            entryCriteria: block.entryCriteria || null,
+            exitCriteria: block.exitCriteria || null,
+            constraintsSnapshot: null,
+            notes: block.notes || null,
+          },
+          { transaction },
+        );
+      }
+
+      await transaction.commit();
+    } catch (persistErr) {
+      await transaction.rollback();
+      logger.error('[LH-Approve] Transaction failed, rolled back:', persistErr);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to persist approved plan',
+      });
+    }
+
+    // ── Step 9: Audit log update (non-blocking) ───────────────────
+    if (validatedAuditLog) {
+      try {
+        const approvalMeta = {
+          approvedAt: new Date().toISOString(),
+          approvedByUserId: requesterId,
+          sourceType,
+          trainerNotes: trainerNotes || null,
+          validationPassed: true,
+          warningsCount: approvalValidation.warnings.length,
+          ...(eligibilityOverride ? { eligibilityOverride } : {}),
+        };
+        await validatedAuditLog.update({
+          status: 'approved',
+          tokenUsage: {
+            ...(validatedAuditLog.tokenUsage || {}),
+            approval: approvalMeta,
+          },
+        });
+      } catch (auditErr) {
+        logger.warn('[LH-Approve] Failed to update audit log (non-blocking):', auditErr.message);
+      }
+    }
+
+    // ── Step 10: Response ─────────────────────────────────────────
+    return res.status(200).json({
+      success: true,
+      planId: createdPlan.id,
+      sourceType,
+      summary: normalizedPlan.summary || normalizedPlan.planName,
+      blockCount: (normalizedPlan.blocks || []).length,
+      validationWarnings: approvalValidation.warnings,
+      eligibilityWarnings: eligibility.warnings,
+    });
+  } catch (err) {
+    logger.error('[LH-Approve] Unhandled error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Internal server error during plan approval',
+    });
   }
 };
