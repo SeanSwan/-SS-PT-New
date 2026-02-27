@@ -6,26 +6,27 @@
 
 ## B1. Endpoint JSON Examples
 
-### B1.1 POST /api/ai/long-horizon-plan/generate — Request
+### B1.1 POST /api/ai/long-horizon/generate — Request
 
 ```json
 {
   "userId": 56,
-  "horizonMonths": 6,
-  "goalProfile": {
-    "primaryGoal": "hypertrophy",
-    "secondaryGoals": ["strength"],
-    "constraints": ["No overhead pressing with left shoulder"]
-  },
-  "preferences": {
-    "sessionsPerWeek": 4,
-    "sessionDurationMinutes": 60,
-    "preferredSplit": "upper_lower"
-  }
+  "horizonMonths": 6
 }
 ```
 
-### B1.2 POST /api/ai/long-horizon-plan/generate — Draft Success (200)
+**Admin override variant** (when AI consent not present):
+```json
+{
+  "userId": 56,
+  "horizonMonths": 6,
+  "overrideReason": "Client verbally consented, waiver pending"
+}
+```
+
+> **Note:** `goalProfile` and `preferences` are NOT sent by the client. GoalProfile is server-derived from `masterPromptJson` at approval time. Preferences (sessions/week, duration) are embedded in the AI prompt via server-side context builders.
+
+### B1.2 POST /api/ai/long-horizon/generate — Draft Success (200)
 
 ```json
 {
@@ -35,11 +36,6 @@
     "planName": "6-Month Hypertrophy Progression Program",
     "horizonMonths": 6,
     "summary": "Progressive overload program spanning 6 months...",
-    "goalProfile": {
-      "primaryGoal": "hypertrophy",
-      "secondaryGoals": ["strength"],
-      "constraints": ["No overhead pressing with left shoulder"]
-    },
     "blocks": [
       {
         "sequence": 1,
@@ -67,44 +63,25 @@
       }
     ]
   },
-  "generationMode": "progress_aware",
-  "explainability": {
-    "dataSources": ["client_profile", "nasm_baseline", "workout_history", "progression_trends"],
-    "phaseRationale": "Starting at OPT Phase 1 based on recent assessment...",
-    "progressFlags": ["Bench press volume trend: increasing (+12% over 8 weeks)"],
-    "safetyFlags": ["Left shoulder restriction: no overhead pressing"],
-    "dataQuality": "Full data available from all sources.",
-    "trendInfluences": [
-      "Adherence rate 85% — supports 4x/week programming",
-      "Load progression trends support hypertrophy phase readiness"
-    ]
-  },
-  "safetyConstraints": {
-    "medicalClearanceRequired": false,
-    "maxIntensityPct": 85,
-    "movementRestrictions": ["No overhead pressing with left shoulder"]
-  },
+  "horizonMonths": 6,
   "warnings": [],
-  "missingInputs": [],
   "provider": "openai",
   "auditLogId": 200
 }
 ```
 
-### B1.3 POST /api/ai/long-horizon-plan/approve — Request
+> **Note:** The `plan` object does NOT include `goalProfile` — it is server-derived from `masterPromptJson` at approval time (5C-D). The response does NOT include `generationMode`, `explainability`, `safetyConstraints`, or `missingInputs` — those are internal to the AI pipeline.
+
+### B1.3 POST /api/ai/long-horizon/approve — Request
 
 ```json
 {
   "userId": 56,
+  "horizonMonths": 6,
   "plan": {
     "planName": "6-Month Hypertrophy Progression Program",
     "horizonMonths": 6,
     "summary": "Progressive overload program spanning 6 months...",
-    "goalProfile": {
-      "primaryGoal": "hypertrophy",
-      "secondaryGoals": ["strength"],
-      "constraints": ["No overhead pressing with left shoulder"]
-    },
     "blocks": [
       {
         "sequence": 1,
@@ -125,6 +102,8 @@
 }
 ```
 
+> **Note:** `goalProfile` is NOT in the plan object — it is server-derived from `masterPromptJson`. `horizonMonths` appears both at top level (required) and inside `plan` (must match, else 400 `HORIZON_MISMATCH`). `overrideReason` is required only when admin override is triggered.
+
 ### B1.4 Approve Success (200)
 
 ```json
@@ -132,11 +111,14 @@
   "success": true,
   "planId": 15,
   "sourceType": "ai_assisted_edited",
-  "summary": "Long-horizon plan approved and saved",
+  "summary": "Progressive overload program spanning 6 months...",
   "blockCount": 6,
-  "warnings": []
+  "validationWarnings": [],
+  "eligibilityWarnings": []
 }
 ```
+
+> **Note:** `sourceType` is server-derived via `validatedPlanHash` comparison (never client-supplied). `ai_assisted` = plan unchanged from AI draft; `ai_assisted_edited` = plan was edited or hash comparison failed.
 
 ### B1.5 GET /api/program-plans/:clientId — Response (200)
 
@@ -249,7 +231,7 @@ interface LongHorizonContext {
 - Consent not granted → 403 `AI_CONSENT_MISSING`
 - Trainer not assigned → 403 `AI_ASSIGNMENT_DENIED`
 - Invalid horizon → 400 `INVALID_HORIZON`
-- Missing goal profile → 400 `MISSING_GOAL_PROFILE`
+- Admin override without reason → 400 `MISSING_OVERRIDE_REASON`
 - AI degraded → 200 with `degraded: true`
 - Rate limited → 429 `AI_RATE_LIMITED`
 - PII leak detected in output → 422 `AI_PII_LEAK`
@@ -288,14 +270,16 @@ interface LongHorizonContext {
 
 ### CONFIGURE_PLAN State — Form Fields
 
-| Field | Control | Validation |
-|-------|---------|------------|
-| Horizon | Radio: 3 / 6 / 12 months | Required |
-| Primary Goal | Dropdown: strength, hypertrophy, weight_loss, endurance, flexibility | Required |
-| Secondary Goals | Multi-select checkboxes | Optional |
-| Sessions/Week | Number input (1-7) | Optional, default from client profile |
-| Session Duration | Number input (15-180 min) | Optional |
-| Additional Constraints | Text area | Optional |
+| Field | Control | Source | Editable? |
+|-------|---------|--------|-----------|
+| Horizon | Radio: 3 / 6 / 12 months | User selection | Yes (required) |
+| Primary Goal | Read-only text | Server: `masterPromptJson.client.goals.primary` | No — display with "From profile" badge |
+| Secondary Goals | Read-only tags | Server: `masterPromptJson.client.goals.secondary` | No — display with "From profile" badge |
+| Constraints | Read-only text | Server: `masterPromptJson.client.goals.constraints` | No — display with "From profile" badge |
+| Sessions/Week | Read-only text | Server: from client profile context | No — informational |
+| Additional Notes | Text area | Coach input | Yes (optional, maps to `trainerNotes` at approval) |
+
+> **Server-authoritative design:** GoalProfile is derived from `masterPromptJson` at approval time (5C-D). The UI shows goal data as informational read-only fields with explicit "From profile" messaging. To change goals, the coach must update the client's profile first. This prevents integrity drift between the plan's goalProfile and the client's actual profile.
 
 ### Plan Review Additions
 - Block timeline visualization (sequence of blocks with duration bars)
@@ -311,22 +295,29 @@ Same pattern as Phase 5B.1:
 
 ---
 
-## B5. Files Touched (Estimated)
+## B5. Files Touched (Actual through 5C-D, estimated for 5C-E)
 
-### New Files
-- `backend/models/LongTermProgramPlan.mjs`
-- `backend/models/ProgramMesocycleBlock.mjs`
-- `backend/migrations/YYYYMMDDHHMMSS-create-long-term-program-tables.cjs`
-- `backend/services/ai/longHorizonContextBuilder.mjs`
-- `backend/tests/unit/longHorizonContextBuilder.test.mjs`
-- `backend/tests/unit/longHorizonGeneration.test.mjs`
-- `backend/tests/unit/longHorizonApproval.test.mjs`
+### New Files (5C-A through 5C-D — actual)
+- `backend/models/LongTermProgramPlan.mjs` (5C-A)
+- `backend/models/ProgramMesocycleBlock.mjs` (5C-A)
+- `backend/migrations/20260226000002-create-long-term-program-tables.cjs` (5C-A)
+- `backend/services/ai/longHorizonContextBuilder.mjs` (5C-B)
+- `backend/services/ai/longHorizonOutputValidator.mjs` (5C-C)
+- `backend/services/ai/longHorizonPromptBuilder.mjs` (5C-C)
+- `backend/services/ai/aiEligibilityHelper.mjs` (5C-D)
+- `backend/services/ai/longHorizonApprovalValidator.mjs` (5C-D)
+- `backend/services/ai/stableStringify.mjs` (5C-D)
+- `backend/tests/unit/longHorizonContextBuilder.test.mjs` (5C-B)
+- `backend/tests/unit/longHorizonGeneration.test.mjs` (5C-C)
+- `backend/tests/unit/longHorizonApproval.test.mjs` (5C-D)
 
-### Modified Files
-- `backend/controllers/aiWorkoutController.mjs` — new handlers
+### Modified Files (5C-A through 5C-D — actual)
+- `backend/controllers/longHorizonController.mjs` — generation + approval handlers (NOT aiWorkoutController)
 - `backend/routes/aiRoutes.mjs` — new route registrations
 - `backend/models/index.mjs` — register new models + associations
-- `frontend/src/services/aiWorkoutService.ts` — new types + service methods
+
+### Estimated Files (5C-E — frontend)
+- `frontend/src/services/aiWorkoutService.ts` — new types + service methods for long-horizon
 - `frontend/src/components/.../WorkoutCopilotPanel.tsx` — long-horizon tab/mode
 - `frontend/src/components/.../WorkoutCopilotPanel.test.tsx` — new tests
 - `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` — status update

@@ -10,10 +10,10 @@
 | Field | Value |
 |-------|-------|
 | Review Quorum Status | Pending (0/5) |
-| Contract Freeze Status | In progress |
-| Active Subphase | 5C-D (next) + 5W-A planning dependency |
+| Contract Freeze Status | 5C-A/B/C/D frozen; 5C-E contract synced with live |
+| Active Subphase | 5C-E (next) + 5W-A planning dependency |
 | Last Updated | 2026-02-26 |
-| Updated By | Claude Code (Architect) |
+| Updated By | Claude Code (Opus 4.6) |
 
 ---
 
@@ -147,7 +147,7 @@ These 10 rules apply to every sub-phase. No bypass allowed:
 6. **No raw chart/UI payloads to providers.** Server-side normalized summaries only.
 7. **Parameterized DB queries only.** No raw SQL interpolation.
 8. **Safe rendering.** No `dangerouslySetInnerHTML` on AI output.
-9. **Rate limiting.** Existing rate limiter covers new endpoints.
+9. **Rate limiting.** Rate limiter covers AI generation endpoints. Approval endpoints (coach actions, no AI provider call) are intentionally excluded.
 10. **Kill switch.** Return 503 if kill switch active.
 
 ---
@@ -229,18 +229,18 @@ ProgramMesocycleBlock
 | Field | Rule | Error Code |
 |-------|------|------------|
 | `horizonMonths` | 3, 6, or 12 | `INVALID_HORIZON` |
-| `planName` | Required, 1-200 chars | `MISSING_PLAN_NAME` |
-| `goalProfile` | Required, must have `primaryGoal` | `MISSING_GOAL_PROFILE` |
-| `blocks[].sequence` | Unique per plan, sequential from 1 | `INVALID_BLOCK_SEQUENCE` |
-| `blocks[].durationWeeks` | 1-16 | `INVALID_BLOCK_DURATION` |
-| `blocks[].nasmFramework` | OPT, CES, or GENERAL | `INVALID_FRAMEWORK` |
+| `planName` | Required, 1-200 chars, whitespace-only rejected | `AI_VALIDATION_ERROR` (Zod) |
+| `goalProfile` | **Server-derived** from `masterPromptJson` — never client-supplied | N/A |
+| `blocks[].sequence` | Unique per plan, contiguous from 1 | `INVALID_BLOCK_SEQUENCE` |
+| `blocks[].durationWeeks` | 1-16 | `AI_VALIDATION_ERROR` (Zod) |
+| `blocks[].nasmFramework` | OPT, CES, or GENERAL | `AI_VALIDATION_ERROR` (Zod) |
 | Sum of block weeks | ~= horizonMonths * 4.3 (±2 wk tolerance) | `DURATION_MISMATCH` (warning) |
 
 ---
 
 ## 4. Endpoints (5C-C + 5C-D)
 
-### 4.1 POST /api/ai/long-horizon-plan/generate
+### 4.1 POST /api/ai/long-horizon/generate
 
 Generate a draft long-horizon plan. **Handler order (CRITICAL):**
 ```
@@ -250,9 +250,11 @@ long-horizon context build → AI provider call → output validation →
 response (draft, not persisted) → audit log
 ```
 
-**Fields:** `userId` (required), `horizonMonths` (3|6|12, required), `goalProfile` (required, must have `primaryGoal`), `preferences` (optional).
+**Request fields:** `userId` (required), `horizonMonths` (3|6|12, required), `overrideReason` (required only when admin override triggered).
 
-**Responses:** Draft success (200), Degraded mode (200, same as Phase 5B), Error codes (same taxonomy as Phase 5B + `INVALID_HORIZON`, `MISSING_GOAL_PROFILE`, and AI eligibility/waiver codes in §10).
+**Response (200 draft success):** `{ success, draft: true, plan, horizonMonths, warnings, provider, auditLogId }`. No `goalProfile`, `explainability`, `safetyConstraints`, or `missingInputs` — goalProfile is server-derived at approval time; explainability/safety data are internal to the AI pipeline.
+
+**Other responses:** Degraded mode (200, same as Phase 5B), Error codes (see §10).
 
 **Eligibility note (role-aware):**
 - `admin`: may proceed with audited override if no consent source exists (warning path)
@@ -261,7 +263,7 @@ response (draft, not persisted) → audit log
 
 Full request/response JSON examples: see appendix.
 
-### 4.2 POST /api/ai/long-horizon-plan/approve
+### 4.2 POST /api/ai/long-horizon/approve
 
 Coach approves (optionally edits) a plan draft, persisting to database. **Handler order:**
 ```
@@ -362,14 +364,37 @@ Detailed form fields and UI state tables: see appendix.
 | Error Code | HTTP | Trigger | Retryable? |
 |------------|------|---------|------------|
 | `INVALID_HORIZON` | 400 | horizonMonths not 3/6/12 | No |
-| `MISSING_GOAL_PROFILE` | 400 | No goalProfile or missing primaryGoal | No |
-| `INVALID_BLOCK_SEQUENCE` | 422 | Block sequence gaps/duplicates on approve | No |
-| `AI_WAIVER_MISSING` | 403 | No valid waiver-based AI consent source (trainer/client path) | No |
-| `AI_WAIVER_VERSION_OUTDATED` | 403 | Waiver/AI consent exists but version requires re-consent | No |
+| `HORIZON_MISMATCH` | 400 | body.horizonMonths ≠ plan.horizonMonths | No |
+| `MISSING_AUDIT_LOG_ID` | 400 | auditLogId not provided (required for AI approval) | No |
+| `MISSING_OVERRIDE_REASON` | 400 | Admin override triggered but no overrideReason (both generate + approve) | No |
+| `INVALID_DRAFT_PAYLOAD` | 400 | Plan is not a non-null object | No |
+| `APPROVED_DRAFT_INVALID` | 422 | Plan fails validation (wrapper code with granular `errors[]` array) | No |
+| `INVALID_BLOCK_SEQUENCE` | 422 | Block sequence gaps/duplicates on approve (inside `errors[]`) | No |
+| `AI_CONSENT_MISSING` | 403 | No AI consent for trainer/client path | No |
+| `AI_CONSENT_DISABLED` | 403 | AI consent exists but aiEnabled=false | No |
+| `AI_CONSENT_WITHDRAWN` | 403 | AI consent was withdrawn | No |
+| `AI_ASSIGNMENT_DENIED` | 403 | Trainer not assigned to client | No |
+| `AI_WAIVER_MISSING` | 403 | No valid waiver-based AI consent source (future: 5W-E) | No |
+| `AI_WAIVER_VERSION_OUTDATED` | 403 | Waiver/AI consent exists but version requires re-consent (future: 5W-E) | No |
 | `DURATION_MISMATCH` | — | Sum of block weeks doesn't match horizon | Warning only |
-| `AI_CONSENT_OVERRIDE_USED` | 200 | Admin override proceeded without consent source (warning metadata) | N/A |
+| `AI_CONSENT_OVERRIDE_USED` | — | Admin override proceeded without consent source (warning in metadata) | N/A |
+
+> **Removed:** `MISSING_GOAL_PROFILE` — goalProfile is server-derived from `masterPromptJson`, never client-supplied.
 
 All Phase 5B error codes apply unchanged. Waiver/AI eligibility integration details live in `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`.
+
+### 10.1 Validation Error Response Format (frozen for 5C-E)
+
+All approval validation failures return HTTP 422 with `code: 'APPROVED_DRAFT_INVALID'` as the top-level code. Granular error codes appear in the `errors[]` array:
+```json
+{
+  "success": false,
+  "code": "APPROVED_DRAFT_INVALID",
+  "message": "Approved draft validation failed",
+  "errors": [{ "code": "INVALID_BLOCK_SEQUENCE", "message": "..." }],
+  "warnings": ["Duration is shorter than expected for 6-month plan"]
+}
+```
 
 ---
 
@@ -388,7 +413,7 @@ Implements `verification-before-completion` from master onboarding prompt.
   - [ ] Parameterized queries only (code review)
   - [ ] No `dangerouslySetInnerHTML` on AI output (code review)
   - [ ] Kill switch honored (test assertion)
-  - [ ] Rate limiter covers new endpoints
+  - [ ] Rate limiter covers generation endpoint (approval endpoint intentionally excluded — coach action, not AI provider call)
   - [ ] Audit logging on generation + approval (test assertion)
 - [ ] **NASM compliance:** OPT phase ordering validated
 - [ ] **Review quorum:** All critical subphases 5/5, UI 3+/5
