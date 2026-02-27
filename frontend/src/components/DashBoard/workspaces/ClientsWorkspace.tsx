@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Users, UserCheck, UserPlus, Mail, MessageSquare,
   FileText, UtensilsCrossed, Dumbbell, Camera,
-  ClipboardCheck, BarChart3, Shield, Link, Globe,
+  ClipboardCheck, BarChart3, Shield, Link, Globe, FileSignature,
 } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 
@@ -22,6 +22,7 @@ const tabs: WorkspaceTab[] = [
   { id: 'permissions', label: 'Permissions', icon: <Shield size={18} />, path: '/dashboard/people/trainers/permissions' },
   { id: 'assignments', label: 'Assignments', icon: <Link size={18} />, path: '/dashboard/people/assignments' },
   { id: 'social', label: 'Social', icon: <Globe size={18} />, path: '/dashboard/people/social' },
+  { id: 'waivers', label: 'Waivers', icon: <FileSignature size={18} />, path: '/dashboard/people/waivers' },
 ];
 
 const ClientsWorkspace: React.FC = () => (
