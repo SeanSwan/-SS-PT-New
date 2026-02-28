@@ -18,10 +18,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // ── Mock Setup (hoisted before any imports) ──────────────────────────────────
 
-const { mockRouteAiGeneration, mockTransaction } = vi.hoisted(() => {
+const { mockRouteAiGeneration, mockTransaction, mockEvaluateWaiverVersionEligibility } = vi.hoisted(() => {
   return {
     mockRouteAiGeneration: vi.fn(),
     mockTransaction: { commit: vi.fn(), rollback: vi.fn() },
+    mockEvaluateWaiverVersionEligibility: vi.fn(),
   };
 });
 
@@ -33,6 +34,10 @@ vi.mock('../../services/ai/providerRouter.mjs', () => ({
 
 vi.mock('../../services/ai/rateLimiter.mjs', () => ({
   releaseConcurrent: vi.fn(),
+}));
+
+vi.mock('../../services/waivers/waiverVersionEligibilityService.mjs', () => ({
+  evaluateWaiverVersionEligibility: (...args) => mockEvaluateWaiverVersionEligibility(...args),
 }));
 
 vi.mock('../../database.mjs', () => ({
@@ -174,6 +179,13 @@ describe('Controller Integration — generateWorkoutPlan', () => {
       };
     });
 
+    // Default waiver eligibility — no waiver consent (5W-F)
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false,
+      reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none',
+      details: { requiredVersionIds: [], acceptedVersionIds: [], missingRequiredVersionIds: [], reconsentRequiredVersionIds: [] },
+    });
+
     mockModels.AiPrivacyProfile.findOne.mockResolvedValue({ aiEnabled: true, withdrawnAt: null });
     mockModels.AiInteractionLog.create.mockResolvedValue({ update: mockAuditUpdate });
     mockModels.User.findByPk.mockResolvedValue({
@@ -234,7 +246,8 @@ describe('Controller Integration — generateWorkoutPlan', () => {
     await generateWorkoutPlan(req, res);
 
     expect(res.statusCode).toBe(403);
-    expect(res.body.code).toBe('AI_CONSENT_MISSING');
+    // 5W-F: When both AiPrivacyProfile and waiver are absent, waiver-specific code takes precedence
+    expect(res.body.code).toBe('AI_WAIVER_MISSING');
     expect(mockRouteAiGeneration).not.toHaveBeenCalled();
   });
 
@@ -500,6 +513,22 @@ describe('AI Consent Controller', () => {
   });
 
   describe('getAiConsentStatus', () => {
+    beforeEach(() => {
+      // Default: waiver check returns AI_WAIVER_MISSING
+      mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+        hasWaiverConsent: false,
+        isCurrent: false,
+        reasonCode: 'AI_WAIVER_MISSING',
+        consentSource: 'none',
+        details: {
+          requiredVersionIds: [],
+          acceptedVersionIds: [],
+          missingRequiredVersionIds: [],
+          reconsentRequiredVersionIds: [],
+        },
+      });
+    });
+
     it('should return consentGranted=false when no profile exists', async () => {
       mockModels.AiPrivacyProfile.findOne.mockResolvedValue(null);
 
@@ -570,6 +599,111 @@ describe('AI Consent Controller', () => {
       await getAiConsentStatus(req, res);
 
       expect(res.statusCode).toBe(400);
+    });
+
+    // ── 5W-F: waiverEligibility field in status response ──────
+    it('should include waiverEligibility in status response when profile exists', async () => {
+      mockModels.AiPrivacyProfile.findOne.mockResolvedValue({
+        userId: 3, aiEnabled: true, consentVersion: '1.0',
+        consentedAt: new Date(), withdrawnAt: null,
+      });
+      mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+        hasWaiverConsent: true,
+        isCurrent: true,
+        reasonCode: null,
+        consentSource: 'waiver_signature',
+        details: {
+          requiredVersionIds: [1, 2],
+          acceptedVersionIds: [1, 2],
+          missingRequiredVersionIds: [],
+          reconsentRequiredVersionIds: [],
+        },
+      });
+
+      const req = createReq({ user: { id: 3, role: 'client' }, params: {}, query: {} });
+      const res = createRes();
+
+      await getAiConsentStatus(req, res);
+
+      expect(res.body.waiverEligibility).toEqual({
+        isCurrent: true,
+        reasonCode: null,
+        requiresReconsent: false,
+      });
+    });
+
+    it('should include waiverEligibility in status response when no profile exists', async () => {
+      mockModels.AiPrivacyProfile.findOne.mockResolvedValue(null);
+      mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+        hasWaiverConsent: false,
+        isCurrent: false,
+        reasonCode: 'AI_WAIVER_MISSING',
+        consentSource: 'none',
+        details: {
+          requiredVersionIds: [1, 2],
+          acceptedVersionIds: [],
+          missingRequiredVersionIds: [1, 2],
+          reconsentRequiredVersionIds: [],
+        },
+      });
+
+      const req = createReq({ user: { id: 3, role: 'client' }, params: {}, query: {} });
+      const res = createRes();
+
+      await getAiConsentStatus(req, res);
+
+      expect(res.body.waiverEligibility).toEqual({
+        isCurrent: false,
+        reasonCode: 'AI_WAIVER_MISSING',
+        requiresReconsent: false,
+      });
+    });
+
+    it('should show requiresReconsent=true when waiver versions need re-consent', async () => {
+      mockModels.AiPrivacyProfile.findOne.mockResolvedValue({
+        userId: 3, aiEnabled: true, consentVersion: '1.0',
+        consentedAt: new Date(), withdrawnAt: null,
+      });
+      mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+        hasWaiverConsent: true,
+        isCurrent: false,
+        reasonCode: 'AI_WAIVER_VERSION_OUTDATED',
+        consentSource: 'waiver_signature',
+        details: {
+          requiredVersionIds: [1, 2],
+          acceptedVersionIds: [1, 2],
+          missingRequiredVersionIds: [],
+          reconsentRequiredVersionIds: [1],
+        },
+      });
+
+      const req = createReq({ user: { id: 3, role: 'client' }, params: {}, query: {} });
+      const res = createRes();
+
+      await getAiConsentStatus(req, res);
+
+      expect(res.body.waiverEligibility).toEqual({
+        isCurrent: false,
+        reasonCode: 'AI_WAIVER_VERSION_OUTDATED',
+        requiresReconsent: true,
+      });
+    });
+
+    it('should return waiverEligibility=null when waiver service throws', async () => {
+      mockModels.AiPrivacyProfile.findOne.mockResolvedValue({
+        userId: 3, aiEnabled: true, consentVersion: '1.0',
+        consentedAt: new Date(), withdrawnAt: null,
+      });
+      mockEvaluateWaiverVersionEligibility.mockRejectedValue(new Error('DB connection lost'));
+
+      const req = createReq({ user: { id: 3, role: 'client' }, params: {}, query: {} });
+      const res = createRes();
+
+      await getAiConsentStatus(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.waiverEligibility).toBeNull();
+      expect(res.body.consentGranted).toBe(true);
     });
   });
 });

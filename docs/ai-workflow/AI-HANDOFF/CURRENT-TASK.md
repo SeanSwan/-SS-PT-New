@@ -1,78 +1,151 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-02-28
 **Updated By:** Claude Code (Opus 4.6)
 
 ---
 
-## ACTIVE: Smart Workout Logger - Phase 5C-D Complete + 5C-E Next (2026-02-26)
+## ACTIVE: Phase 7 — Provider A/B & Cost Tracker COMPLETE (2026-02-28)
 
-**Status:** Phase 5C-A through 5C-D implemented and QA-reviewed. `5C-E` (UI integration) is next. Parallel planning track for Public QR Waivers + Role-Aware AI Eligibility (admin override).
+**Status:** Phase 7 COMPLETE. Provider benchmarking with mock adapters, cost tracking, latency percentiles, 46 new tests, all passing.
 
-### Phase 5C Current Progress (Backend)
+### What Phase 7 Does
 
-| Sub-phase | Status | Notes |
-|---|---|---|
-| **5C-A** Models + Migration | Done | Long-horizon plan + mesocycle models, migration, tests |
-| **5C-B** Context Builder | Done | Long-horizon context builder + QA fixes |
-| **5C-C** Generation Endpoint | Done | Prompt override wiring fixed, real-shape prompt builder fixes, 67 tests |
-| **5C-D** Approval Endpoint | Done | Role-aware AI eligibility, transactional persistence, 43 behavioral tests |
-| **5C-E** UI Integration | Next | Reuse existing copilot panel/tab pattern |
+Deterministic side-by-side provider benchmarking (OpenAI, Anthropic, Gemini, Venice) with per-attempt metrics, per-provider aggregation, latency percentiles (p50/p95/p99), cost estimation, and provider ranking. Default mode uses mock adapters — no network calls. `--live` mode is opt-in.
 
-**Backend test evidence (latest):** `1030/1030` passing (42 test files)
+- **No network calls** — mock adapter factory creates deterministic adapter-shaped objects
+- **Pure-math cost tracker** — `normalizeAttemptMetrics`, `computePercentile`, `aggregateProviderMetrics`, `rankProviders`
+- **Ranking algorithm:** successRate desc → p95LatencyMs asc → avgCostUsd asc → provider name asc
+- **Live-mode contract:** unconfigured providers get deterministic PROVIDER_AUTH failures (never skip, never hard-fail)
+- **JSON serialization safe:** all metrics are `null` (not `Infinity`) when data is unavailable
 
-### Phase 5C-D Deliverables
+### Phase 7 Verification Evidence
 
-**New files (4):**
-- `backend/services/ai/aiEligibilityHelper.mjs` — Role-aware AI eligibility check (admin override, trainer/client consent-gated), designed for 5W-E swap
-- `backend/services/ai/longHorizonApprovalValidator.mjs` — 6-stage approval validation (shape → horizon mismatch → pre-trim → Zod → rules → normalize)
-- `backend/services/ai/stableStringify.mjs` — Recursive key-sort JSON canonicalization for deterministic sourceType hashing
-- `backend/tests/unit/longHorizonApproval.test.mjs` — 43 behavioral tests (eligibility, validator, auth/RBAC, persistence, generation lock release)
+| Gate | Result |
+|------|--------|
+| `cd backend && npm test` | 1275/1275 tests, 51 files (46 new Phase 7 tests) |
+| `cd backend && npm run eval` | Exit code 0 (Phase 6 non-regression) |
+| `cd backend && npm run provider:ab` | Exit code 0, valid JSON to stdout |
+| `cd backend && npm run provider:ab:report` | Exit code 0, JSON + markdown written |
+| Report: providers ranked | 4 (anthropic, venice, gemini, openai) |
+| Report: scenarios | 8 |
+| Report: attempts | 32 (8 scenarios × 4 providers) |
+| Report: cheapest | gemini |
+| Report: fastest | gemini |
+| Report: most reliable | anthropic |
+| `cd frontend && npm run build` | Clean build (no frontend changes) |
 
-**Modified files (3):**
-- `backend/controllers/longHorizonController.mjs` — Added `approveLongHorizonPlan` export, refactored generation to use eligibility helper, added `validatedPlanHash` audit field
-- `backend/routes/aiRoutes.mjs` — Added `POST /api/ai/long-horizon/approve` route
-- `backend/tests/unit/longHorizonGeneration.test.mjs` — Updated source-inspection test for eligibility refactor
+### Phase 7 New Files (7)
 
-**Key security features:**
-- Server-derived `sourceType` via `validatedPlanHash` comparison (never client-supplied)
-- Server-derived `goalProfile` from `masterPromptJson` (never from request body)
-- `auditLogId` ownership validation (4-check chain: exists → userId → requestType → status)
-- Symmetric `overrideReason` enforcement on both generate and approve paths
-- Single-transaction persistence (plan + blocks) with rollback on failure
+| File | Description |
+|------|-------------|
+| `backend/services/ai/providerCostTracker.mjs` | Pure-math: normalize, aggregate, percentile, rank |
+| `backend/eval/ab/mockAdapterFactory.mjs` | Mock adapter factory for deterministic testing |
+| `backend/eval/ab/abDataset.mjs` | 8 synthetic prompt scenarios with mock configs |
+| `backend/eval/ab/abRunner.mjs` | A/B suite runner + `computeAbExitCode()` |
+| `backend/eval/ab/abReport.mjs` | JSON + Markdown report formatters |
+| `backend/eval/ab/runAb.mjs` | CLI entry point (`--providers`, `--iterations`, `--write-md`, `--live`) |
+| `docs/qa/PROVIDER-AB-RESULTS.md` | Generated markdown report |
 
-**QA review (3 rounds, 7 findings all resolved):**
-| Round | Findings | Key items |
-|---|---|---|
-| R1 | 4 (1 HIGH, 2 MEDIUM, 1 LOW) | Override audit on all paths, whitespace pre-trim, goalProfile normalization |
-| R2 | 3 (1 MEDIUM, 2 LOW) | tokenUsage merge (not clobber), array element filtering, test count |
-| R3 | 0 | All verified fixed |
+### Phase 7 Modified Files (2)
 
-### New Product Decision (Approved Direction)
+| File | Change |
+|------|--------|
+| `backend/services/ai/costConfig.mjs` | Added Venice `llama-3.3-70b` pricing |
+| `backend/package.json` | Added `"provider:ab"` and `"provider:ab:report"` scripts |
 
-Replace the binary AI consent blocker with a **Role-Aware AI Eligibility** model:
+### Phase 7 Test Files (2)
 
-- `admin` may proceed with **audited override** (no hard blocker)
-- `trainer` and `client` remain hard-blocked without valid AI consent source
-- **de-identification remains mandatory** before all AI provider calls (including admin override)
+| File | Tests |
+|------|-------|
+| `backend/tests/unit/providerCostTracker.test.mjs` | 19 tests: normalizeAttemptMetrics (6), computePercentile (7), aggregateProviderMetrics (4), rankProviders (2) |
+| `backend/tests/unit/providerAb.test.mjs` | 27 tests: Mock Adapter Factory (4), A/B Dataset (4), A/B Runner (8), computeAbExitCode (3), Live-mode unconfigured (3), Live-mode resolver (3), A/B Report (2) |
 
-### New Parallel Track (Waiver + AI Consent QR Flow)
+---
 
-**Purpose:** Capture waiver signatures + AI consent via public QR/no-login flow, support home gym + park + swimming lessons, and provide a new valid AI consent source for trainer/client gating.
+## PREVIOUS: Phase 6 — Evaluation Harness & Golden Dataset COMPLETE (2026-02-28)
 
-**New blueprint (drafted):**
-- `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`
+**Status:** Phase 6 COMPLETE. 27 golden scenarios, eval harness with two-gate CI design, 29 unit tests, all passing.
 
-### Immediate Next Steps
+### What Phase 6 Does
 
-1. **Phase 5C-E:** UI integration — reuse existing copilot panel/tab pattern for long-horizon plan generation + approval
-2. **5W-A / 5W-B planning:** Freeze waiver schema + matching rules + admin override audit fields before coding
-3. **Patch existing AI endpoints later (Phase 5A/5B paths):** Replace binary consent gate with shared AI eligibility service when waiver track reaches `5W-E`
+Deterministic, no-network eval harness that tests the AI validation pipeline (`runValidationPipeline`, `runLongHorizonValidationPipeline`, `detectPii`) against 27 synthetic scenarios. Produces JSON + Markdown reports suitable for CI gating.
 
-### Docs Updated (2026-02-26)
+- **No external API calls** — tests validators directly, not providers
+- **Two-gate CI design:** Gate 1 (correctness) = any scenario mismatch is hard exit(1); Gate 2 (thresholds) = per-category pass rates
+- **Known-gap handling:** 2 adversarial scenarios document validator limitations, excluded from threshold gating but correctness-checked
+- **Runtime dataset guards:** Category validation, knownGap rationale validation, threshold coverage — all before any scenario runs
 
-- `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT.md` (AI eligibility wording + 5W dependency)
-- `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md` (new)
+### Verification Evidence
+
+| Gate | Result |
+|------|--------|
+| `cd backend && npm test` | 1227/1227 tests, 49 files (27 new eval harness tests) |
+| `cd backend && npm run eval` | Exit code 0 |
+| `cd backend && npm run eval:report` | Exit code 0, JSON + markdown generated |
+| Report: total | 27 |
+| Report: gated | 25 |
+| Report: passed | 25 |
+| Report: failed | 0 |
+| Report: correctnessFailures | 0 |
+| Report: knownGaps | 2 (adversarial_01, adversarial_03) |
+| All category pass rates | 100% |
+| Provenance | evalVersion=1.0.0, datasetVersion=1.1.0, promptVersion=1.0.0, ruleEngineVersion=1.0.0 |
+
+### Phase 6 New Files (5)
+
+| File | Description |
+|------|-------------|
+| `backend/eval/goldenDataset.mjs` | 27 synthetic scenarios across 7 categories |
+| `backend/eval/evalRunner.mjs` | Core harness: `runEvalSuite()`, `computeExitCode()`, runtime validation guards |
+| `backend/eval/evalThresholds.mjs` | 7 category thresholds + `checkThresholds()` with zero-gated warnings |
+| `backend/eval/evalReport.mjs` | JSON + Markdown report formatters with provenance |
+| `backend/eval/runEval.mjs` | CLI entry point (`--write-md` flag for dev mode) |
+
+### Phase 6 Modified Files (1)
+
+| File | Change |
+|------|--------|
+| `backend/package.json` | Added `"eval"` and `"eval:report"` scripts |
+
+### Phase 6 Test File (1)
+
+| File | Tests |
+|------|-------|
+| `backend/tests/unit/evalHarness.test.mjs` | 27 tests: dataset integrity (4), runner correctness (4), thresholds (2), reports (2), warnings (1), long-horizon (2), adversarial/knownGap (4), runtime guards (4), computeExitCode (2), warning propagation (2) |
+
+### Phase 6 Scenario Categories
+
+| Category | Scenarios | Gated | Purpose |
+|----------|-----------|-------|---------|
+| schema_valid | 4 | 4 | Valid plans that must pass all 3 stages |
+| pii_detection | 5 | 5 | Must be rejected at PII stage |
+| schema_invalid | 4 | 4 | Must fail at schema/parse stage |
+| contraindication | 5 | 5 | Rule engine catches safety violations |
+| scope_of_practice | 2 | 2 | Framework/phase rule violations |
+| adversarial | 3 | 1 | PII evasion + malicious payloads (2 knownGap) |
+| warnings | 4 | 4 | Valid plans that should produce warnings |
+
+### Generated Report
+
+- `docs/qa/AI-PLANNING-VALIDATION-RESULTS.md` — Full eval results with per-category breakdown, known gaps, and scenario-level results
+
+---
+
+## Phase 7-10 Execution Plan
+
+| Phase | Name | Scope |
+|-------|------|-------|
+| 7 | Provider A/B & Cost Tracker | Side-by-side provider comparison, token cost logging, latency percentiles |
+| 8 | CI Gate Integration | GitHub Actions workflow: `npm run eval` on PR, block merge on threshold failure |
+| 9 | Expanded Dataset & Drift Detection | Grow to 50+ scenarios, add temporal drift checks, model version tracking |
+| 10 | Production Monitoring Dashboard | Real-time eval metrics, alerting on regression, Grafana/Render integration |
+
+---
+
+## PREVIOUS: Smart Workout Logger - Phase 5C-D / 5C-E / 5W Complete (2026-02-26)
+
+**Status:** Phases 5C-A through 5C-E + 5W-A through 5W-G implemented. All backend + frontend tests passing.
 
 ---
 

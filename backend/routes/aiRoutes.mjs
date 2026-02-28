@@ -16,9 +16,11 @@ import { registerAdapter } from '../services/ai/providerRouter.mjs';
 import openaiAdapter from '../services/ai/adapters/openaiAdapter.mjs';
 import anthropicAdapter from '../services/ai/adapters/anthropicAdapter.mjs';
 import geminiAdapter from '../services/ai/adapters/geminiAdapter.mjs';
+import veniceAdapter from '../services/ai/adapters/veniceAdapter.mjs';
 registerAdapter(openaiAdapter);
 registerAdapter(anthropicAdapter);
 registerAdapter(geminiAdapter);
+registerAdapter(veniceAdapter);
 
 const router = express.Router();
 

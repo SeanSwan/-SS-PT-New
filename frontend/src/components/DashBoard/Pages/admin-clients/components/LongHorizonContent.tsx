@@ -446,7 +446,8 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     setEditedPlan({ ...editedPlan, blocks });
   };
 
-  const isConsentError = errorCode?.startsWith('AI_CONSENT');
+  const isConsentError = errorCode?.startsWith('AI_CONSENT') || errorCode?.startsWith('AI_WAIVER');
+  const isWaiverError = errorCode?.startsWith('AI_WAIVER');
   const isAssignmentError = errorCode === 'AI_ASSIGNMENT_DENIED';
   const isOverrideReasonError = errorCode === 'MISSING_OVERRIDE_REASON';
   const isRetryable = ['AI_RATE_LIMITED', 'AI_PII_LEAK', 'AI_PARSE_ERROR', 'AI_VALIDATION_ERROR'].includes(errorCode);
@@ -678,8 +679,9 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           <InfoPanel $variant="warning">
             <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
             <InfoContent>
-              AI consent is not available for this client. Admin override reason is required if
-              you choose to proceed without consent.
+              {isWaiverError
+                ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver, or an admin override reason is required to proceed.'
+                : 'AI consent is not available for this client. Admin override reason is required if you choose to proceed without consent.'}
             </InfoContent>
           </InfoPanel>
         )}

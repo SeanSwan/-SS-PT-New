@@ -52,9 +52,9 @@ function computeBadges(record) {
     badges.push(BADGE_LABELS.GUARDIAN_REQUIRED);
   }
 
-  // Version Outdated: any accepted version link whose waiverVersion has retiredAt set
+  // Version Outdated: accepted version link whose waiverVersion is retired OR requires re-consent
   const hasOutdated = record.versionLinks?.some(
-    (vl) => vl.accepted && vl.waiverVersion?.retiredAt
+    (vl) => vl.accepted && (vl.waiverVersion?.retiredAt || vl.waiverVersion?.requiresReconsent)
   );
   if (hasOutdated) {
     badges.push(BADGE_LABELS.VERSION_OUTDATED);
@@ -97,7 +97,7 @@ const detailIncludes = () => [
     include: [
       {
         association: 'waiverVersion',
-        attributes: ['id', 'waiverType', 'activityType', 'version', 'title', 'effectiveAt', 'retiredAt'],
+        attributes: ['id', 'waiverType', 'activityType', 'version', 'title', 'effectiveAt', 'retiredAt', 'requiresReconsent'],
       },
     ],
   },
@@ -396,6 +396,67 @@ export const revokeWaiver = async (req, res) => {
     await transaction.rollback();
     logger.error('[AdminWaiverController] revokeWaiver error:', error);
     return res.status(500).json({ success: false, error: 'Failed to revoke waiver' });
+  }
+};
+
+// ─── §7 5W-F: Mark Waiver Version as Requiring Re-Consent ─────
+/**
+ * POST /api/admin/waivers/versions/:versionId/mark-reconsent-required
+ * Body: { reason?: string }
+ * Sets requiresReconsent=true on a waiver version. Idempotent.
+ * Audit: creates AiConsentLog entry for traceability.
+ */
+export const markReconsentRequired = async (req, res) => {
+  try {
+    const WaiverVersion = getModel('WaiverVersion');
+    const AiConsentLog = getModel('AiConsentLog');
+    const WaiverRecordVersion = getModel('WaiverRecordVersion');
+
+    const versionId = Number(req.params.versionId);
+    if (!Number.isFinite(versionId) || !Number.isInteger(versionId)) {
+      return res.status(400).json({ success: false, error: 'Invalid versionId' });
+    }
+
+    const version = await WaiverVersion.findByPk(versionId);
+    if (!version) {
+      return res.status(404).json({ success: false, error: 'Waiver version not found' });
+    }
+
+    const alreadyRequired = version.requiresReconsent === true;
+
+    if (!alreadyRequired) {
+      await version.update({ requiresReconsent: true });
+    }
+
+    // Count impacted linked users (read-only count of accepted links for this version)
+    const impactedCount = await WaiverRecordVersion.count({
+      where: { waiverVersionId: versionId, accepted: true },
+    });
+
+    // Audit trail
+    const reason = req.body?.reason || 'Admin marked version as requiring re-consent';
+    await AiConsentLog.create({
+      userId: null,
+      action: 'override_used',
+      sourceType: 'waiver_record',
+      sourceId: versionId,
+      actorUserId: req.user.id,
+      reason,
+      metadata: { endpoint: 'mark_reconsent_required', versionId, alreadyRequired },
+    });
+
+    logger.info(`[AdminWaiverController] Version ${versionId} marked requiresReconsent by admin ${req.user.id}`);
+    return res.json({
+      success: true,
+      message: alreadyRequired
+        ? 'Version already requires re-consent (no change)'
+        : 'Version marked as requiring re-consent',
+      alreadyRequired,
+      impactedUserCount: impactedCount,
+    });
+  } catch (error) {
+    logger.error('[AdminWaiverController] markReconsentRequired error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to mark version as requiring re-consent' });
   }
 };
 

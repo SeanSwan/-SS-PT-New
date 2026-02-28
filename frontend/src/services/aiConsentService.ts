@@ -19,10 +19,17 @@ export interface ConsentProfile {
   withdrawnAt: string | null;
 }
 
+export interface WaiverEligibility {
+  isCurrent: boolean;
+  reasonCode: string | null;
+  requiresReconsent: boolean;
+}
+
 export interface ConsentStatusResponse {
   success: boolean;
   consentGranted: boolean;
   profile: ConsentProfile | null;
+  waiverEligibility: WaiverEligibility | null;
 }
 
 export interface ConsentActionResponse {

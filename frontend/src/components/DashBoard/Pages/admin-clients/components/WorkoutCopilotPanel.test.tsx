@@ -17,6 +17,7 @@ const mockApproveDraft = vi.fn();
 const mockGenerateLongHorizonDraft = vi.fn();
 const mockApproveLongHorizonDraft = vi.fn();
 const mockGetClientDetails = vi.fn();
+let mockRole: 'admin' | 'trainer' | 'client' = 'admin';
 
 vi.mock('../../../../../services/aiWorkoutService', async () => {
   const actual = await vi.importActual<typeof import('../../../../../services/aiWorkoutService')>(
@@ -44,7 +45,7 @@ vi.mock('../../../../../services/adminClientService', () => ({
 const mockToast = vi.fn();
 
 vi.mock('../../../../../context/AuthContext', () => ({
-  useAuth: () => ({ authAxios: {}, user: { role: 'admin' } }),
+  useAuth: () => ({ authAxios: {}, user: { role: mockRole } }),
 }));
 
 vi.mock('../../../../../hooks/use-toast', () => ({
@@ -209,6 +210,7 @@ function renderPanel(props = {}) {
 describe('WorkoutCopilotPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRole = 'admin';
     mockListTemplates.mockResolvedValue({
       success: true,
       templates: TEMPLATES,
@@ -378,6 +380,66 @@ describe('WorkoutCopilotPanel', () => {
 
       // No retry button for consent errors (not in the retryable set)
       expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+    });
+  });
+
+  // ── 4b. Waiver error codes classified as consent errors (5W-F) ────────
+
+  describe('Generate → waiver error (5W-F)', () => {
+    it('renders waiver-specific error message for AI_WAIVER_MISSING', async () => {
+      mockGenerateDraft.mockRejectedValue({
+        response: {
+          data: {
+            success: false,
+            message: 'AI consent check failed',
+            code: 'AI_WAIVER_MISSING',
+          },
+        },
+      });
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Generate Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Generation Failed')).toBeInTheDocument();
+      });
+
+      // Waiver-specific wording
+      expect(
+        screen.getByText(/waiver consent is missing or outdated/)
+      ).toBeInTheDocument();
+
+      // No retry button (not retryable)
+      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+    });
+
+    it('renders waiver-specific error message for AI_WAIVER_VERSION_OUTDATED', async () => {
+      mockGenerateDraft.mockRejectedValue({
+        response: {
+          data: {
+            success: false,
+            message: 'AI consent check failed',
+            code: 'AI_WAIVER_VERSION_OUTDATED',
+          },
+        },
+      });
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Generate Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Generation Failed')).toBeInTheDocument();
+      });
+
+      // Waiver-specific wording (not the generic consent message)
+      expect(
+        screen.getByText(/waiver consent is missing or outdated/)
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/client must enable AI features/)
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -616,6 +678,98 @@ describe('WorkoutCopilotPanel', () => {
     });
   });
 
+  describe('Single workout override flow', () => {
+    it('admin sees override reason input in idle state', async () => {
+      renderPanel();
+      await waitFor(() => {
+        expect(screen.getByText('Available NASM Templates')).toBeInTheDocument();
+      });
+      expect(screen.getByText(/Admin Override Reason \(optional\)/i)).toBeInTheDocument();
+    });
+
+    it('non-admin does not see override reason input in idle state', async () => {
+      mockRole = 'trainer';
+      renderPanel();
+      await waitFor(() => {
+        expect(screen.getByText('Available NASM Templates')).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/Admin Override Reason/i)).not.toBeInTheDocument();
+    });
+
+    it('MISSING_OVERRIDE_REASON returns to idle and marks override as required', async () => {
+      mockGenerateDraft.mockRejectedValue({
+        response: { data: { code: 'MISSING_OVERRIDE_REASON', message: 'Override reason required' } },
+      });
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Generate Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Admin Override Reason \(required\)/i)).toBeInTheDocument();
+      });
+      expect(screen.getByText('Generate Draft')).toBeInTheDocument();
+    });
+
+    it('passes override reason to generateDraft', async () => {
+      mockGenerateDraft.mockResolvedValue(DRAFT_RESPONSE);
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.type(
+        screen.getByPlaceholderText(/Provide justification when consent override is required/i),
+        '  Override reason for session  ',
+      );
+      await user.click(screen.getByText('Generate Draft'));
+
+      await waitFor(() => {
+        expect(mockGenerateDraft).toHaveBeenCalledWith(56, 'Override reason for session');
+      });
+    });
+
+    it('passes override reason to approveDraft', async () => {
+      mockGenerateDraft.mockResolvedValue(DRAFT_RESPONSE);
+      mockApproveDraft.mockResolvedValue(APPROVE_RESPONSE);
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.type(
+        screen.getByPlaceholderText(/Provide justification when consent override is required/i),
+        'Supervisor override',
+      );
+      await user.click(screen.getByText('Generate Draft'));
+      await waitFor(() => {
+        expect(screen.getByText('Approve & Save')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Approve & Save'));
+
+      await waitFor(() => {
+        expect(mockApproveDraft).toHaveBeenCalledWith(expect.objectContaining({
+          overrideReason: 'Supervisor override',
+        }));
+      });
+    });
+
+    it('shows Provide Override Reason button when override error is surfaced', async () => {
+      mockGenerateDraft.mockRejectedValue({
+        response: { data: { code: 'MISSING_OVERRIDE_REASON', message: 'Override reason required' } },
+      });
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Generate Draft'));
+      await waitFor(() => {
+        expect(screen.getByText(/Admin Override Reason \(required\)/i)).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Generate Draft'));
+      await waitFor(() => {
+        expect(screen.getByText('Provide Override Reason')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Long-Horizon tab', () => {
     it('renders Single Workout and Long-Horizon tabs', async () => {
       renderPanel();
@@ -818,3 +972,4 @@ describe('WorkoutCopilotPanel', () => {
     });
   });
 });
+

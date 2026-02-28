@@ -399,13 +399,14 @@ describe('approveDraftPlan — consent re-check', () => {
 
     const req = {
       body: { userId: 1, plan: makeValidDraft() },
-      user: { id: 10, role: 'admin' },
+      user: { id: 10, role: 'trainer' },
     };
     const res = mockRes();
     await approveDraftPlan(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
+    // 5W-F: When both AiPrivacyProfile and waiver are absent, waiver-specific code takes precedence
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'AI_CONSENT_MISSING',
+      code: 'AI_WAIVER_MISSING',
     }));
   });
 
@@ -418,7 +419,7 @@ describe('approveDraftPlan — consent re-check', () => {
 
     const req = {
       body: { userId: 1, plan: makeValidDraft() },
-      user: { id: 10, role: 'admin' },
+      user: { id: 10, role: 'trainer' },
     };
     const res = mockRes();
     await approveDraftPlan(req, res);
@@ -437,7 +438,7 @@ describe('approveDraftPlan — consent re-check', () => {
 
     const req = {
       body: { userId: 1, plan: makeValidDraft() },
-      user: { id: 10, role: 'admin' },
+      user: { id: 10, role: 'trainer' },
     };
     const res = mockRes();
     await approveDraftPlan(req, res);
@@ -465,7 +466,7 @@ describe('approveDraftPlan — draft validation (after authz)', () => {
 
     const req = {
       body: { userId: 1, plan: invalidPlan },
-      user: { id: 10, role: 'admin' },
+      user: { id: 10, role: 'trainer' },
     };
     const res = mockRes();
     await approveDraftPlan(req, res);
@@ -535,7 +536,7 @@ describe('approveDraftPlan — check ordering verification', () => {
 
     const req = {
       body: { userId: 1, plan: invalidPlan },
-      user: { id: 10, role: 'admin' },
+      user: { id: 10, role: 'trainer' },
     };
     const res = mockRes();
     await approveDraftPlan(req, res);

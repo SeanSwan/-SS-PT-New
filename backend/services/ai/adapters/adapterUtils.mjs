@@ -1,7 +1,7 @@
 /**
  * Shared Adapter Utilities
  * ========================
- * Normalization helpers used by all provider adapters (OpenAI, Anthropic, Gemini)
+ * Normalization helpers used by all provider adapters (OpenAI, Anthropic, Gemini, Venice)
  * to prevent drift in error handling, finish reasons, token usage, and timeouts.
  *
  * Design principle: keep provider-specific SDK class checks INSIDE each adapter.
@@ -16,7 +16,7 @@ import { estimateCost } from '../costConfig.mjs';
 /**
  * Create a normalized AiProviderError.
  *
- * @param {'openai'|'anthropic'|'gemini'} provider
+ * @param {'openai'|'anthropic'|'gemini'|'venice'} provider
  * @param {import('../types.mjs').AiProviderErrorCode} code
  * @param {string} message - Sanitized message (no raw SDK dumps)
  * @param {{
@@ -83,7 +83,7 @@ export function safeString(value) {
  *
  * Canonical values: 'stop' | 'length' | 'content_filter' | 'unknown'
  *
- * @param {'openai'|'anthropic'|'gemini'} provider
+ * @param {'openai'|'anthropic'|'gemini'|'venice'} provider
  * @param {string | null | undefined} rawReason
  * @returns {'stop'|'length'|'content_filter'|'unknown'}
  */
@@ -110,6 +110,13 @@ export function normalizeFinishReason(provider, rawReason) {
     if (u === 'STOP') return 'stop';
     if (u === 'MAX_TOKENS') return 'length';
     if (u === 'SAFETY' || u === 'RECITATION') return 'content_filter';
+    return 'unknown';
+  }
+
+  if (provider === 'venice') {
+    if (r === 'stop') return 'stop';
+    if (r === 'length') return 'length';
+    if (r === 'content_filter') return 'content_filter';
     return 'unknown';
   }
 
@@ -154,7 +161,7 @@ export function normalizeTokenUsage(model, { inputTokens = null, outputTokens = 
  * Validate that provider output text is a non-empty string.
  * Throws PROVIDER_INVALID_RESPONSE if empty or not a string.
  *
- * @param {'openai'|'anthropic'|'gemini'} provider
+ * @param {'openai'|'anthropic'|'gemini'|'venice'} provider
  * @param {unknown} rawText
  * @returns {string} Trimmed text
  * @throws {import('../types.mjs').AiProviderError}
@@ -186,7 +193,7 @@ export function requireNonEmptyText(provider, rawText) {
  * @param {number} timeoutMs
  * @param {{
  *   parentSignal?: AbortSignal,
- *   provider?: 'openai'|'anthropic'|'gemini',
+ *   provider?: 'openai'|'anthropic'|'gemini'|'venice',
  * }} [opts]
  * @returns {Promise<T>}
  * @throws {import('../types.mjs').AiProviderError}

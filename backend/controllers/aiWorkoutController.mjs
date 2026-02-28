@@ -54,6 +54,7 @@ import { PROMPT_VERSION } from '../services/ai/types.mjs';
 import { buildTemplateContext } from '../services/ai/templateContextBuilder.mjs';
 import { buildProgressContext } from '../services/ai/progressContextBuilder.mjs';
 import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
+import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
 
 const ALLOWED_DAY_TYPES = new Set([
   'training',
@@ -230,6 +231,7 @@ export const generateWorkoutPlan = async (req, res) => {
   const startTime = Date.now();
   const requesterId = req.user?.id;
   let auditLog = null;
+  let eligibilityOverride = null;
 
   try {
     const { userId: rawUserId, masterPromptJson, mode } = req.body || {};
@@ -275,6 +277,7 @@ export const generateWorkoutPlan = async (req, res) => {
       WorkoutPlanDayExercise,
       ClientTrainerAssignment,
       ClientBaselineMeasurements,
+      AiConsentLog,
     } = models;
 
     if (requesterRole === 'trainer') {
@@ -300,36 +303,38 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     }
 
-    // --- Phase 1: Per-user AI consent check (AFTER RBAC) ---
-    const { AiPrivacyProfile } = models;
-    if (AiPrivacyProfile) {
-      const consentProfile = await AiPrivacyProfile.findOne({
-        where: { userId: targetUserId },
+    const eligibility = await checkAiEligibility({
+      targetUserId,
+      actorUserId: requesterId,
+      actorRole: requesterRole,
+      models,
+      featureType: 'workout_generation',
+    });
+
+    if (eligibility.decision === 'deny') {
+      return res.status(403).json({
+        success: false,
+        code: eligibility.reasonCode,
+        message: 'AI consent check failed. Please ensure AI consent is granted for this user.',
       });
+    }
 
-      if (!consentProfile) {
-        return res.status(403).json({
+    if (eligibility.decision === 'allow_with_override_warning') {
+      const { overrideReason } = req.body || {};
+      if (!overrideReason || typeof overrideReason !== 'string' || !overrideReason.trim()) {
+        return res.status(400).json({
           success: false,
-          message: 'AI consent has not been granted. Please complete the AI consent flow before using AI-powered features.',
-          code: 'AI_CONSENT_MISSING',
+          code: 'MISSING_OVERRIDE_REASON',
+          message: 'Admin override requires an overrideReason when AI consent is not present.',
         });
       }
 
-      if (!consentProfile.aiEnabled) {
-        return res.status(403).json({
-          success: false,
-          message: 'AI features are currently disabled for this account.',
-          code: 'AI_CONSENT_DISABLED',
-        });
-      }
-
-      if (consentProfile.withdrawnAt) {
-        return res.status(403).json({
-          success: false,
-          message: 'AI consent has been withdrawn. Please re-consent to use AI-powered features.',
-          code: 'AI_CONSENT_WITHDRAWN',
-        });
-      }
+      eligibilityOverride = {
+        actorUserId: requesterId,
+        overrideAt: new Date().toISOString(),
+        overrideReason: overrideReason.trim(),
+        warning: 'AI_CONSENT_OVERRIDE_USED',
+      };
     }
 
     const targetUser = await User.findByPk(targetUserId);
@@ -337,6 +342,17 @@ export const generateWorkoutPlan = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'User not found',
+      });
+    }
+
+    if (eligibilityOverride && AiConsentLog) {
+      await AiConsentLog.create({
+        userId: targetUserId,
+        action: 'override_used',
+        sourceType: 'admin_override',
+        actorUserId: requesterId,
+        reason: eligibilityOverride.overrideReason,
+        metadata: { endpoint: 'workout_generation' },
       });
     }
 
@@ -502,6 +518,9 @@ export const generateWorkoutPlan = async (req, res) => {
         status: 'degraded',
         errorCode: routerOutcome.errors[0]?.code || 'UNKNOWN_PROVIDER_ERROR',
         durationMs: routerDurationMs,
+        ...(eligibilityOverride ? {
+          tokenUsage: { ...(auditLog?.tokenUsage || {}), eligibilityOverride },
+        } : {}),
       });
 
       const responseTime = Date.now() - startTime;
@@ -556,6 +575,7 @@ export const generateWorkoutPlan = async (req, res) => {
         durationMs: routerDurationMs,
         tokenUsage: {
           ...(providerResult.tokenUsage || {}),
+          ...(eligibilityOverride ? { eligibilityOverride } : {}),
           ...(templateContext ? {
             templateRefs: templateContext.templateRefs,
             primaryTemplateId: templateContext.primaryTemplateId,
@@ -593,7 +613,10 @@ export const generateWorkoutPlan = async (req, res) => {
         status: 'draft',
         outputHash: hashPayload(providerResult.rawText),
         durationMs: routerDurationMs,
-        tokenUsage: providerResult.tokenUsage || {},
+        tokenUsage: {
+          ...(providerResult.tokenUsage || {}),
+          ...(eligibilityOverride ? { eligibilityOverride } : {}),
+        },
         promptVersion: PROMPT_VERSION,
       });
 
@@ -721,6 +744,7 @@ export const generateWorkoutPlan = async (req, res) => {
         durationMs: routerDurationMs,
         tokenUsage: {
           ...(providerResult.tokenUsage || {}),
+          ...(eligibilityOverride ? { eligibilityOverride } : {}),
           ...(templateContext ? {
             templateRefs: templateContext.templateRefs,
             primaryTemplateId: templateContext.primaryTemplateId,
@@ -832,7 +856,15 @@ export const approveDraftPlan = async (req, res) => {
     }
 
     const models = getAllModels();
-    const { User, Exercise, WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, ClientTrainerAssignment } = models;
+    const {
+      User,
+      Exercise,
+      WorkoutPlan,
+      WorkoutPlanDay,
+      WorkoutPlanDayExercise,
+      ClientTrainerAssignment,
+      AiConsentLog,
+    } = models;
 
     // --- 4. Target user existence check ---
     const targetUser = await User.findByPk(parsedUserId);
@@ -862,36 +894,50 @@ export const approveDraftPlan = async (req, res) => {
       }
     }
 
-    // --- 6. Re-check AI consent at approval time (BEFORE validation) ---
-    const { AiPrivacyProfile } = models;
-    if (AiPrivacyProfile) {
-      const consentProfile = await AiPrivacyProfile.findOne({
-        where: { userId: parsedUserId },
+    const eligibility = await checkAiEligibility({
+      targetUserId: parsedUserId,
+      actorUserId: requesterId,
+      actorRole: requesterRole,
+      models,
+      featureType: 'workout_generation',
+    });
+
+    if (eligibility.decision === 'deny') {
+      return res.status(403).json({
+        success: false,
+        code: eligibility.reasonCode,
+        message: 'AI consent check failed. Please ensure AI consent is granted for this user.',
       });
+    }
 
-      if (!consentProfile) {
-        return res.status(403).json({
+    let eligibilityOverride = null;
+    if (eligibility.decision === 'allow_with_override_warning') {
+      const { overrideReason } = req.body || {};
+      if (!overrideReason || typeof overrideReason !== 'string' || !overrideReason.trim()) {
+        return res.status(400).json({
           success: false,
-          message: 'AI consent has not been granted. Please complete the AI consent flow before using AI-powered features.',
-          code: 'AI_CONSENT_MISSING',
+          code: 'MISSING_OVERRIDE_REASON',
+          message: 'Admin override requires an overrideReason when AI consent is not present.',
         });
       }
 
-      if (!consentProfile.aiEnabled) {
-        return res.status(403).json({
-          success: false,
-          message: 'AI features are currently disabled for this account.',
-          code: 'AI_CONSENT_DISABLED',
-        });
-      }
+      eligibilityOverride = {
+        actorUserId: requesterId,
+        overrideAt: new Date().toISOString(),
+        overrideReason: overrideReason.trim(),
+        warning: 'AI_CONSENT_OVERRIDE_USED',
+      };
+    }
 
-      if (consentProfile.withdrawnAt) {
-        return res.status(403).json({
-          success: false,
-          message: 'AI consent has been withdrawn. Please re-consent to use AI-powered features.',
-          code: 'AI_CONSENT_WITHDRAWN',
-        });
-      }
+    if (eligibilityOverride && AiConsentLog) {
+      await AiConsentLog.create({
+        userId: parsedUserId,
+        action: 'override_used',
+        sourceType: 'admin_override',
+        actorUserId: requesterId,
+        reason: eligibilityOverride.overrideReason,
+        metadata: { endpoint: 'workout_generation' },
+      });
     }
 
     // --- 7. Validate edited draft (AFTER authz + consent) ---
@@ -1018,6 +1064,7 @@ export const approveDraftPlan = async (req, res) => {
                     trainerNotes: trainerNotes || null,
                     validationPassed: true,
                     warningsCount: draftValidation.warnings.length,
+                    ...(eligibilityOverride ? { eligibilityOverride } : {}),
                   },
                 },
               });

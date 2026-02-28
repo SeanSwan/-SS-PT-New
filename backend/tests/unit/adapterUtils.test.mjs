@@ -178,6 +178,21 @@ describe('normalizeFinishReason', () => {
     });
   });
 
+  describe('venice', () => {
+    it('should map stop → stop', () => {
+      expect(normalizeFinishReason('venice', 'stop')).toBe('stop');
+    });
+    it('should map length → length', () => {
+      expect(normalizeFinishReason('venice', 'length')).toBe('length');
+    });
+    it('should map content_filter → content_filter', () => {
+      expect(normalizeFinishReason('venice', 'content_filter')).toBe('content_filter');
+    });
+    it('should map unknown values → unknown', () => {
+      expect(normalizeFinishReason('venice', 'other')).toBe('unknown');
+    });
+  });
+
   it('should return unknown for null/undefined', () => {
     expect(normalizeFinishReason('openai', null)).toBe('unknown');
     expect(normalizeFinishReason('anthropic', undefined)).toBe('unknown');
