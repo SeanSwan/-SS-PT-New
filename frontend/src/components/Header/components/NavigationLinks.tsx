@@ -258,6 +258,14 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
         </StyledNavLink>
 
         <StyledNavLink
+          to="/waiver"
+          $isActive={isActive('/waiver')}
+          variants={itemVariants}
+        >
+          Waiver
+        </StyledNavLink>
+
+        <StyledNavLink
           to="/contact"
           $isActive={isActive('/contact')}
           variants={itemVariants}

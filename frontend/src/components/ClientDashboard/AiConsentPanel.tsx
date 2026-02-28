@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -249,11 +250,26 @@ const SuccessToast = styled(motion.div)`
   margin-bottom: 0.75rem;
 `;
 
+const ReconsentBanner = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+`;
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 type ConsentState = 'granted' | 'withdrawn' | 'none';
 
 const AiConsentPanel: React.FC = () => {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<ConsentStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -381,6 +397,23 @@ const AiConsentPanel: React.FC = () => {
               {consentState === 'none' && <><Shield size={12} /> Not Set</>}
             </StatusBadge>
           </StatusRow>
+
+          {/* 5W-F: Re-consent prompt when waiver is outdated */}
+          {status?.waiverEligibility?.requiresReconsent && (
+            <ReconsentBanner>
+              <AlertTriangle size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong style={{ color: '#f59e0b' }}>Waiver update required</strong> — The terms of your
+                AI consent waiver have been updated. Please sign the updated waiver to continue
+                using AI-powered features without interruption.
+                <ButtonRow style={{ marginTop: '0.75rem' }}>
+                  <ActionButton $variant="grant" onClick={() => navigate('/waiver')}>
+                    Sign Updated Waiver
+                  </ActionButton>
+                </ButtonRow>
+              </div>
+            </ReconsentBanner>
+          )}
 
           {/* Meta info */}
           {status?.profile && (
