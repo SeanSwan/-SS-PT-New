@@ -160,6 +160,12 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 
+// Public Waiver (Phase 5W-G)
+const PublicWaiverPage = lazyLoadWithErrorHandling(
+  () => import('../pages/PublicWaiverPage'),
+  'Public Waiver Page'
+);
+
 // Video Library (public)
 const VideoLibrary = lazyLoadWithErrorHandling(
   () => import('../pages/VideoLibrary'),
@@ -366,6 +372,16 @@ const MainRoutes: RouteObject = {
       )
     },
     
+    // Public Waiver (Phase 5W-G)
+    {
+      path: 'waiver',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <PublicWaiverPage />
+        </Suspense>
+      )
+    },
+
     // Video Library (public)
     {
       path: 'video-library',

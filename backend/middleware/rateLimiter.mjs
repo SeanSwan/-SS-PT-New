@@ -78,9 +78,23 @@ export const uploadLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Public waiver submission rate limiter (10 req / 15 min per IP)
+export const waiverLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    success: false,
+    error: 'Too many waiver submissions, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   apiLimiter,
   authLimiter,
   adminLimiter,
-  uploadLimiter
+  uploadLimiter,
+  waiverLimiter,
 };
