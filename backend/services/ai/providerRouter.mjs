@@ -54,7 +54,7 @@ function getProviderOrder() {
   if (envOrder) {
     return envOrder.split(',').map(s => s.trim()).filter(Boolean);
   }
-  return ['openai', 'anthropic', 'gemini'];
+  return ['openai', 'anthropic', 'gemini', 'venice'];
 }
 
 // ── Router Core ──────────────────────────────────────────────────────────────

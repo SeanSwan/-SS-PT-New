@@ -395,4 +395,19 @@ describe('providerRouter', () => {
 
     delete process.env.AI_PROVIDER_ORDER;
   });
+
+  it('30 — default provider order includes venice fallback', async () => {
+    delete process.env.AI_PROVIDER_ORDER;
+    router.resetAdapters();
+    router.registerAdapter(mockSuccessAdapter('venice'));
+
+    const result = await router.routeAiGeneration(makeCtx());
+
+    expect(result.ok).toBe(true);
+    expect(result.result.provider).toBe('venice');
+    expect(result.failoverTrace).toContain('openai:not_registered');
+    expect(result.failoverTrace).toContain('anthropic:not_registered');
+    expect(result.failoverTrace).toContain('gemini:not_registered');
+    expect(result.failoverTrace).toContain('venice:success');
+  });
 });

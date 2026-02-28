@@ -34,7 +34,7 @@
 // ── Provider Result ──────────────────────────────────────────────────────────
 
 /**
- * @typedef {'openai' | 'anthropic' | 'gemini'} AiProviderName
+ * @typedef {'openai' | 'anthropic' | 'gemini' | 'venice'} AiProviderName
  */
 
 /**

@@ -215,10 +215,11 @@ export function createAiWorkoutService(authAxios: any) {
     },
 
     /** Generate a draft workout plan for coach review */
-    async generateDraft(userId: number): Promise<GenerateResponse> {
+    async generateDraft(userId: number, overrideReason?: string): Promise<GenerateResponse> {
       const { data } = await authAxios.post(`${BASE}/workout-generation`, {
         userId,
         mode: 'draft',
+        overrideReason: overrideReason?.trim() || undefined,
       });
       return data;
     },
@@ -228,6 +229,7 @@ export function createAiWorkoutService(authAxios: any) {
       userId: number;
       plan: WorkoutPlan;
       auditLogId?: number | null;
+      overrideReason?: string;
       trainerNotes?: string;
     }): Promise<ApproveSuccessResponse> {
       const { data } = await authAxios.post(
@@ -236,6 +238,7 @@ export function createAiWorkoutService(authAxios: any) {
           userId: params.userId,
           plan: params.plan,
           auditLogId: params.auditLogId ?? undefined,
+          overrideReason: params.overrideReason?.trim() || undefined,
           trainerNotes: params.trainerNotes || undefined,
         },
       );

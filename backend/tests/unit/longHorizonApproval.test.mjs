@@ -1,8 +1,8 @@
 /**
  * Long-Horizon Approval Tests — Phase 5C-D
  * ==========================================
- * 43 behavioral tests across 5 sections:
- *   A: AI Eligibility Helper (6)
+ * 55 behavioral tests across 5 sections:
+ *   A: AI Eligibility Helper (18)
  *   B: Approval Validator (7)
  *   C: Approval Controller — Auth/RBAC/Eligibility (11)
  *   D: Approval Controller — Validation + Persistence (10)
@@ -71,6 +71,12 @@ vi.mock('../../routes/aiMonitoringRoutes.mjs', () => ({
 
 vi.mock('../../services/ai/types.mjs', () => ({
   PROMPT_VERSION: '5C-test',
+}));
+
+// 5W-F: Mock the waiver version eligibility service used by checkAiEligibility
+const mockEvaluateWaiverVersionEligibility = vi.fn();
+vi.mock('../../services/waivers/waiverVersionEligibilityService.mjs', () => ({
+  evaluateWaiverVersionEligibility: (...args) => mockEvaluateWaiverVersionEligibility(...args),
 }));
 
 // ─── Named imports (mocked) for assertions ───────────────────
@@ -144,10 +150,18 @@ const setupTransaction = () => {
 };
 
 // ═════════════════════════════════════════════════════════════
-// Section A: AI Eligibility Helper (6 tests)
+// Section A: AI Eligibility Helper (14 tests)
 // ═════════════════════════════════════════════════════════════
 
 describe('Section A: checkAiEligibility', () => {
+  beforeEach(() => {
+    mockEvaluateWaiverVersionEligibility.mockReset();
+    // Default: no waiver consent (tests that need waiver override this)
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false, reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none', details: {},
+    });
+  });
+
   it('1 — returns allow for admin with consent', async () => {
     const models = {
       AiPrivacyProfile: {
@@ -188,7 +202,7 @@ describe('Section A: checkAiEligibility', () => {
     expect(result.requiresAuditOverride).toBe(false);
   });
 
-  it('4 — returns deny for trainer without consent (AI_CONSENT_MISSING)', async () => {
+  it('4 — returns deny for trainer without consent (AI_WAIVER_MISSING)', async () => {
     const models = {
       AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) },
     };
@@ -196,7 +210,7 @@ describe('Section A: checkAiEligibility', () => {
       targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
     });
     expect(result.decision).toBe('deny');
-    expect(result.reasonCode).toBe('AI_CONSENT_MISSING');
+    expect(result.reasonCode).toBe('AI_WAIVER_MISSING');
   });
 
   it('5 — returns deny for trainer with disabled consent (AI_CONSENT_DISABLED)', async () => {
@@ -223,6 +237,168 @@ describe('Section A: checkAiEligibility', () => {
     });
     expect(result.decision).toBe('deny');
     expect(result.reasonCode).toBe('AI_CONSENT_WITHDRAWN');
+  });
+
+  // ── 5W-E/F Waiver integration tests (via mocked evaluateWaiverVersionEligibility) ──
+
+  it('A.7 — allows via current waiver when AiPrivacyProfile is missing', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: true, reasonCode: null, consentSource: 'waiver_signature', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('allow');
+    expect(result.consentSource).toBe('waiver_signature');
+  });
+
+  it('A.8 — allows via current waiver when AiPrivacyProfile is disabled', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: true, reasonCode: null, consentSource: 'waiver_signature', details: {},
+    });
+    const models = {
+      AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue({ aiEnabled: false, withdrawnAt: null }) },
+    };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('allow');
+    expect(result.consentSource).toBe('waiver_signature');
+  });
+
+  it('A.9 — allows via current waiver when AiPrivacyProfile is withdrawn', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: true, reasonCode: null, consentSource: 'waiver_signature', details: {},
+    });
+    const models = {
+      AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue({ aiEnabled: true, withdrawnAt: new Date() }) },
+    };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('allow');
+    expect(result.consentSource).toBe('waiver_signature');
+  });
+
+  it('A.10 — denies trainer when neither consent source exists', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false, reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('deny');
+    expect(result.reasonCode).toBe('AI_WAIVER_MISSING');
+  });
+
+  it('A.11 — returns allow_with_override_warning for admin when neither source exists', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false, reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'admin', models,
+    });
+    expect(result.decision).toBe('allow_with_override_warning');
+    expect(result.requiresAuditOverride).toBe(true);
+    expect(result.warnings).toContain('AI_CONSENT_OVERRIDE_USED');
+  });
+
+  it('A.12 — AiPrivacyProfile takes precedence when both sources exist', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: true, reasonCode: null, consentSource: 'waiver_signature', details: {},
+    });
+    const models = {
+      AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue({ aiEnabled: true, withdrawnAt: null }) },
+    };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('allow');
+    expect(result.consentSource).toBe('ai_privacy_profile');
+    // Should NOT have called waiver service because AiPrivacyProfile short-circuited
+    // (but it will be called since it's after the AiPrivacyProfile block — the fast path returns early)
+  });
+
+  it('A.13 — denies when waiver version service returns AI_WAIVER_MISSING', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false, reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('deny');
+    expect(result.reasonCode).toBe('AI_WAIVER_MISSING');
+  });
+
+  it('A.14 — missing WaiverRecord model falls back to role-based decision', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false, reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const adminResult = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'admin', models,
+    });
+    const trainerResult = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(adminResult.decision).toBe('allow_with_override_warning');
+    expect(trainerResult.decision).toBe('deny');
+  });
+
+  // ── 5W-F: Version-aware waiver tests ──
+
+  it('A.15 — denies trainer with AI_WAIVER_VERSION_OUTDATED when waiver exists but version is stale', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: false, reasonCode: 'AI_WAIVER_VERSION_OUTDATED', consentSource: 'waiver_signature', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('deny');
+    expect(result.reasonCode).toBe('AI_WAIVER_VERSION_OUTDATED');
+  });
+
+  it('A.16 — admin gets override warning with AI_WAIVER_VERSION_OUTDATED', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: false, reasonCode: 'AI_WAIVER_VERSION_OUTDATED', consentSource: 'waiver_signature', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'admin', models,
+    });
+    expect(result.decision).toBe('allow_with_override_warning');
+    expect(result.requiresAuditOverride).toBe(true);
+  });
+
+  it('A.17 — uses AI_CONSENT_DISABLED reason when AiPrivacyProfile disabled and no waiver', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false, reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none', details: {},
+    });
+    const models = {
+      AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue({ aiEnabled: false, withdrawnAt: null }) },
+    };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'trainer', models,
+    });
+    expect(result.decision).toBe('deny');
+    expect(result.reasonCode).toBe('AI_CONSENT_DISABLED');
+  });
+
+  it('A.18 — client denied with AI_WAIVER_VERSION_OUTDATED same as trainer', async () => {
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: true, isCurrent: false, reasonCode: 'AI_WAIVER_VERSION_OUTDATED', consentSource: 'waiver_signature', details: {},
+    });
+    const models = { AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) } };
+    const result = await checkAiEligibility({
+      targetUserId: 1, actorUserId: 10, actorRole: 'client', models,
+    });
+    expect(result.decision).toBe('deny');
+    expect(result.reasonCode).toBe('AI_WAIVER_VERSION_OUTDATED');
   });
 });
 
@@ -332,6 +508,12 @@ describe('Section C: approveLongHorizonPlan — auth/RBAC/eligibility', () => {
     getAllModels.mockReturnValue(makeMockModels());
     setupTransaction();
     hashPayload.mockReturnValue('stored-hash');
+    // Reset waiver version eligibility mock (5W-F)
+    mockEvaluateWaiverVersionEligibility.mockResolvedValue({
+      hasWaiverConsent: false, isCurrent: false,
+      reasonCode: 'AI_WAIVER_MISSING', consentSource: 'none',
+      details: { requiredVersionIds: [], acceptedVersionIds: [], missingRequiredVersionIds: [], reconsentRequiredVersionIds: [] },
+    });
     const mod = await import('../../controllers/longHorizonController.mjs');
     approveLongHorizonPlan = mod.approveLongHorizonPlan;
   });
@@ -434,7 +616,7 @@ describe('Section C: approveLongHorizonPlan — auth/RBAC/eligibility', () => {
     }));
   });
 
-  it('22 — 403 + AI_CONSENT_MISSING for trainer without consent', async () => {
+  it('22 — 403 + AI_WAIVER_MISSING for trainer without consent', async () => {
     getAllModels.mockReturnValue(makeMockModels({
       AiPrivacyProfile: { findOne: vi.fn().mockResolvedValue(null) },
     }));
@@ -446,7 +628,7 @@ describe('Section C: approveLongHorizonPlan — auth/RBAC/eligibility', () => {
     await approveLongHorizonPlan(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'AI_CONSENT_MISSING',
+      code: 'AI_WAIVER_MISSING',
     }));
   });
 

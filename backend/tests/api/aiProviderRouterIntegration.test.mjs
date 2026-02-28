@@ -414,6 +414,52 @@ describe('Multi-provider failover (Phase 3B)', () => {
     expect(outcome.result.provider).toBe('anthropic');
     expect(outcome.failoverTrace).toContain('openai:circuit_open');
   });
+
+  it('F7 — openai + anthropic + gemini fail → venice succeeds', async () => {
+    process.env.AI_PROVIDER_ORDER = 'openai,anthropic,gemini,venice';
+
+    router.registerAdapter({
+      name: 'openai',
+      isConfigured: () => true,
+      generateWorkoutDraft: vi.fn().mockRejectedValue({
+        provider: 'openai', code: 'PROVIDER_TIMEOUT', message: 'timeout', retryable: true, statusCode: null,
+      }),
+    });
+    router.registerAdapter({
+      name: 'anthropic',
+      isConfigured: () => true,
+      generateWorkoutDraft: vi.fn().mockRejectedValue({
+        provider: 'anthropic', code: 'PROVIDER_UNAVAILABLE', message: 'down', retryable: true, statusCode: 503,
+      }),
+    });
+    router.registerAdapter({
+      name: 'gemini',
+      isConfigured: () => true,
+      generateWorkoutDraft: vi.fn().mockRejectedValue({
+        provider: 'gemini', code: 'PROVIDER_RATE_LIMIT', message: 'rate limited', retryable: true, statusCode: 429,
+      }),
+    });
+    router.registerAdapter({
+      name: 'venice',
+      isConfigured: () => true,
+      generateWorkoutDraft: vi.fn().mockResolvedValue({
+        provider: 'venice',
+        model: 'llama-3.3-70b',
+        rawText: validAiOutput,
+        latencyMs: 220,
+        finishReason: 'stop',
+        tokenUsage: { inputTokens: 90, outputTokens: 180, totalTokens: 270, estimatedCostUsd: null },
+      }),
+    });
+
+    const outcome = await router.routeAiGeneration(makeCtx());
+    expect(outcome.ok).toBe(true);
+    expect(outcome.result.provider).toBe('venice');
+    expect(outcome.failoverTrace).toContain('openai:PROVIDER_TIMEOUT');
+    expect(outcome.failoverTrace).toContain('anthropic:PROVIDER_UNAVAILABLE');
+    expect(outcome.failoverTrace).toContain('gemini:PROVIDER_RATE_LIMIT');
+    expect(outcome.failoverTrace).toContain('venice:success');
+  });
 });
 
 // ── Privacy Regression Tests ─────────────────────────────────────────────────

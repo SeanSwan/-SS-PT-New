@@ -1,7 +1,7 @@
 /**
- * Admin Waiver Controller Tests — Phase 5W-D
- * ============================================
- * Tests all 6 controller endpoints + computeBadges helper.
+ * Admin Waiver Controller Tests — Phase 5W-D + 5W-F
+ * ===================================================
+ * Tests all 7 controller endpoints + computeBadges helper.
  * Uses direct function invocation with mocked models/DB.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -14,6 +14,7 @@ const {
   mockModelUpdate,
   mockCreate,
   mockInstanceUpdate,
+  mockCount,
   mockTransaction,
   mockCommit,
   mockRollback,
@@ -27,6 +28,7 @@ const {
     mockModelUpdate: vi.fn(),
     mockCreate: vi.fn(),
     mockInstanceUpdate: vi.fn(),
+    mockCount: vi.fn(),
     mockTransaction: { commit: mockCommit, rollback: mockRollback },
     mockCommit,
     mockRollback,
@@ -42,6 +44,7 @@ vi.mock('../../models/index.mjs', () => ({
       findByPk: mockFindByPk,
       update: mockModelUpdate,
       create: mockCreate,
+      count: mockCount,
     };
     return base;
   }),
@@ -64,6 +67,7 @@ const {
   rejectMatch,
   attachUser,
   revokeWaiver,
+  markReconsentRequired,
   computeBadges,
 } = await import('../../controllers/adminWaiverController.mjs');
 
@@ -123,6 +127,7 @@ beforeEach(() => {
   mockInstanceUpdate.mockResolvedValue(undefined);
   mockModelUpdate.mockResolvedValue([1]);
   mockCreate.mockResolvedValue({ id: 99 });
+  mockCount.mockResolvedValue(0);
   mockCommit.mockResolvedValue(undefined);
   mockRollback.mockResolvedValue(undefined);
 });
@@ -172,6 +177,14 @@ describe('computeBadges', () => {
     const record = makeRecord({ status: 'linked' });
     const badges = computeBadges(record);
     expect(badges).not.toContain('Pending Match');
+  });
+
+  it('A8 — returns Version Outdated when accepted version has requiresReconsent=true (5W-F)', () => {
+    const record = makeRecord({
+      versionLinks: [{ accepted: true, waiverVersion: { retiredAt: null, requiresReconsent: true } }],
+    });
+    const badges = computeBadges(record);
+    expect(badges).toContain('Version Outdated');
   });
 });
 
@@ -594,5 +607,115 @@ describe('revokeWaiver', () => {
         where: expect.objectContaining({ waiverRecordId: 10, status: 'pending_review' }),
       }),
     );
+  });
+});
+
+// ═════════════════════════════════════════════════════════════
+// Section H: markReconsentRequired (Phase 5W-F)
+// ═════════════════════════════════════════════════════════════
+describe('markReconsentRequired', () => {
+  function makeVersion(overrides = {}) {
+    return {
+      id: 1,
+      waiverType: 'core',
+      requiresReconsent: false,
+      update: mockInstanceUpdate,
+      ...overrides,
+    };
+  }
+
+  it('H1 — marks version as requiring re-consent and returns impacted count', async () => {
+    mockFindByPk.mockResolvedValue(makeVersion());
+    mockCount.mockResolvedValue(15);
+
+    const req = makeReq({ params: { versionId: '1' } });
+    const res = makeRes();
+    await markReconsentRequired(req, res);
+
+    expect(mockInstanceUpdate).toHaveBeenCalledWith({ requiresReconsent: true });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        alreadyRequired: false,
+        impactedUserCount: 15,
+      }),
+    );
+  });
+
+  it('H2 — idempotent: returns success when already marked', async () => {
+    mockFindByPk.mockResolvedValue(makeVersion({ requiresReconsent: true }));
+    mockCount.mockResolvedValue(10);
+
+    const req = makeReq({ params: { versionId: '1' } });
+    const res = makeRes();
+    await markReconsentRequired(req, res);
+
+    // Should NOT call instance update (already true)
+    expect(mockInstanceUpdate).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        alreadyRequired: true,
+        impactedUserCount: 10,
+      }),
+    );
+  });
+
+  it('H3 — returns 404 when version not found', async () => {
+    mockFindByPk.mockResolvedValue(null);
+
+    const req = makeReq({ params: { versionId: '999' } });
+    const res = makeRes();
+    await markReconsentRequired(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Waiver version not found' }),
+    );
+  });
+
+  it('H4 — creates audit log entry with actor and reason', async () => {
+    mockFindByPk.mockResolvedValue(makeVersion());
+    mockCount.mockResolvedValue(5);
+
+    const req = makeReq({
+      params: { versionId: '1' },
+      body: { reason: 'Terms updated for 2026 Q2' },
+    });
+    const res = makeRes();
+    await markReconsentRequired(req, res);
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'override_used',
+        actorUserId: 1,
+        reason: 'Terms updated for 2026 Q2',
+        metadata: expect.objectContaining({
+          endpoint: 'mark_reconsent_required',
+          versionId: 1,
+        }),
+      }),
+    );
+  });
+
+  it('H5 — returns 400 for invalid versionId', async () => {
+    const req = makeReq({ params: { versionId: 'abc' } });
+    const res = makeRes();
+    await markReconsentRequired(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Invalid versionId' }),
+    );
+  });
+
+  it('H6 — returns 500 on unexpected error', async () => {
+    mockFindByPk.mockRejectedValue(new Error('DB exploded'));
+
+    const req = makeReq({ params: { versionId: '1' } });
+    const res = makeRes();
+    await markReconsentRequired(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 });

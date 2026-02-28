@@ -12,6 +12,7 @@
  */
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { evaluateWaiverVersionEligibility } from '../services/waivers/waiverVersionEligibilityService.mjs';
 
 const CURRENT_CONSENT_VERSION = '1.0';
 const VALID_CONSENT_VERSIONS = ['1.0'];
@@ -231,11 +232,25 @@ export const getAiConsentStatus = async (req, res) => {
 
     const profile = await AiPrivacyProfile.findOne({ where: { userId: targetUserId } });
 
+    // 5W-F: Evaluate waiver version eligibility for the target user
+    let waiverEligibility = null;
+    try {
+      const waiverResult = await evaluateWaiverVersionEligibility({ targetUserId, models });
+      waiverEligibility = {
+        isCurrent: waiverResult.isCurrent,
+        reasonCode: waiverResult.reasonCode,
+        requiresReconsent: waiverResult.details.reconsentRequiredVersionIds.length > 0,
+      };
+    } catch (waiverErr) {
+      logger.warn('[AI Consent] Waiver eligibility check failed (non-blocking):', waiverErr.message);
+    }
+
     if (!profile) {
       return res.status(200).json({
         success: true,
         consentGranted: false,
         profile: null,
+        waiverEligibility,
       });
     }
 
@@ -249,6 +264,7 @@ export const getAiConsentStatus = async (req, res) => {
         consentedAt: profile.consentedAt,
         withdrawnAt: profile.withdrawnAt,
       },
+      waiverEligibility,
     });
   } catch (error) {
     logger.error('[AI Consent] Error reading consent status:', error);

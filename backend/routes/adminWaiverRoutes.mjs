@@ -13,6 +13,7 @@ import {
   rejectMatch,
   attachUser,
   revokeWaiver,
+  markReconsentRequired,
 } from '../controllers/adminWaiverController.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 
@@ -24,5 +25,6 @@ router.post('/matches/:matchId/approve', protect, adminOnly, approveMatch);
 router.post('/matches/:matchId/reject', protect, adminOnly, rejectMatch);
 router.post('/:id/attach-user', protect, adminOnly, attachUser);
 router.post('/:id/revoke', protect, adminOnly, revokeWaiver);
+router.post('/versions/:versionId/mark-reconsent-required', protect, adminOnly, markReconsentRequired);
 
 export default router;

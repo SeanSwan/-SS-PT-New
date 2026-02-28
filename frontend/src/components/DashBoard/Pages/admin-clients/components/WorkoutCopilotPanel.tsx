@@ -109,6 +109,19 @@ const TabButton = styled.button<{ $active?: boolean }>`
   letter-spacing: 0.02em;
   cursor: pointer;
 `;
+
+const OverrideSection = styled.div`
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(120, 53, 15, 0.18);
+`;
+
+const OverrideTextArea = styled(TextArea)<{ $required?: boolean }>`
+  border-color: ${({ $required }) => ($required ? 'rgba(251, 191, 36, 0.7)' : 'rgba(255,255,255,0.15)')};
+  box-shadow: ${({ $required }) => ($required ? '0 0 0 2px rgba(251,191,36,0.22)' : 'none')};
+`;
+
 interface WorkoutCopilotPanelProps {
   open: boolean;
   onClose: () => void;
@@ -126,7 +139,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   clientName,
   onSuccess,
 }) => {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const { toast } = useToast();
   const service = createAiWorkoutService(authAxios);
 
@@ -143,6 +157,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const [generationMode, setGenerationMode] = useState<string>('');
   const [auditLogId, setAuditLogId] = useState<number | null>(null);
   const [trainerNotes, setTrainerNotes] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideReasonRequired, setOverrideReasonRequired] = useState(false);
 
   // ── Degraded data ───────────────────────────────────────────
   const [degradedData, setDegradedData] = useState<DegradedResponse | null>(null);
@@ -182,6 +198,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setGenerationMode('');
       setAuditLogId(null);
       setTrainerNotes('');
+      setOverrideReason('');
+      setOverrideReasonRequired(false);
       setDegradedData(null);
       setSavedPlanId(null);
       setUnmatchedExercises([]);
@@ -212,7 +230,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setErrorCode('');
 
     try {
-      const resp = await service.generateDraft(clientId);
+      const resp = await service.generateDraft(clientId, overrideReason.trim() || undefined);
 
       if (isDegraded(resp)) {
         setDegradedData(resp);
@@ -234,13 +252,24 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       }
     } catch (err: any) {
       const data = err?.response?.data;
+      if (data?.code === 'MISSING_OVERRIDE_REASON') {
+        if (overrideReasonRequired) {
+          setErrorMessage(data?.message || 'Admin override requires a reason');
+          setErrorCode(data?.code || '');
+          setState('error');
+          return;
+        }
+        setOverrideReasonRequired(true);
+        setState('idle');
+        return;
+      }
       setErrorMessage(data?.message || err.message || 'Failed to generate workout plan');
       setErrorCode(data?.code || '');
       setState('error');
     } finally {
       setIsSubmitting(false);
     }
-  }, [clientId, isSubmitting, service]);
+  }, [clientId, isSubmitting, overrideReason, overrideReasonRequired, service]);
 
   // ── Approve draft ───────────────────────────────────────────
 
@@ -255,6 +284,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         userId: clientId,
         plan: editedPlan,
         auditLogId,
+        overrideReason: overrideReason.trim() || undefined,
         trainerNotes: trainerNotes.trim() || undefined,
       });
 
@@ -272,6 +302,17 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       onSuccess?.();
     } catch (err: any) {
       const data = err?.response?.data;
+      if (data?.code === 'MISSING_OVERRIDE_REASON') {
+        if (overrideReasonRequired) {
+          setErrorMessage(data?.message || 'Admin override requires a reason');
+          setErrorCode(data?.code || '');
+          setState('approve_error');
+          return;
+        }
+        setOverrideReasonRequired(true);
+        setState('idle');
+        return;
+      }
       setErrorMessage(data?.message || 'Failed to approve plan');
       setErrorCode(data?.code || '');
       setApproveErrors(data?.errors || []);
@@ -279,7 +320,19 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [clientId, editedPlan, auditLogId, trainerNotes, isSubmitting, clientName, service, toast, onSuccess]);
+  }, [
+    clientId,
+    editedPlan,
+    auditLogId,
+    overrideReason,
+    overrideReasonRequired,
+    trainerNotes,
+    isSubmitting,
+    clientName,
+    service,
+    toast,
+    onSuccess,
+  ]);
 
   // ── Plan editing helpers ────────────────────────────────────
 
@@ -330,8 +383,10 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Error classification ────────────────────────────────────
 
-  const isConsentError = errorCode?.startsWith('AI_CONSENT');
+  const isConsentError = errorCode?.startsWith('AI_CONSENT') || errorCode?.startsWith('AI_WAIVER');
+  const isWaiverError = errorCode?.startsWith('AI_WAIVER');
   const isAssignmentError = errorCode === 'AI_ASSIGNMENT_DENIED';
+  const isOverrideError = errorCode === 'MISSING_OVERRIDE_REASON';
   const isRetryable = ['AI_RATE_LIMITED', 'AI_PII_LEAK', 'AI_PARSE_ERROR', 'AI_VALIDATION_ERROR'].includes(errorCode);
 
   // ── Render ──────────────────────────────────────────────────
@@ -381,6 +436,20 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                 The AI will analyze {clientName}'s profile, training history, and NASM assessment
                 to generate a personalized workout plan for your review.
               </p>
+
+              {(isAdmin || overrideReasonRequired) && (
+                <OverrideSection style={{ width: '100%', maxWidth: 500 }}>
+                  <Label>Admin Override Reason {overrideReasonRequired ? '(required)' : '(optional)'}</Label>
+                  <OverrideTextArea
+                    $required={overrideReasonRequired}
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Provide justification when consent override is required"
+                    rows={3}
+                  />
+                </OverrideSection>
+              )}
+
               <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
                 <Sparkles size={16} />
                 Generate Draft
@@ -456,9 +525,9 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                 <InfoPanel $variant="warning">
                   <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
                   <InfoContent>
-                    This client has not granted AI consent. The client must enable
-                    AI features from their own account settings before AI workout
-                    generation can be used.
+                    {isWaiverError
+                      ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver before AI features can be used.'
+                      : 'This client has not granted AI consent. The client must enable AI features from their own account settings before AI workout generation can be used.'}
                   </InfoContent>
                 </InfoPanel>
               )}
@@ -478,6 +547,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                   <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
                     <RefreshCw size={16} />
                     Retry
+                  </PrimaryButton>
+                )}
+                {isOverrideError && (
+                  <PrimaryButton onClick={() => { setOverrideReasonRequired(true); setState('idle'); }}>
+                    Provide Override Reason
                   </PrimaryButton>
                 )}
                 {state === 'approve_error' && editedPlan && (

@@ -1,7 +1,7 @@
 /**
  * AI Provider Adapters — Unit Tests
  * ==================================
- * Tests for all three provider adapters: OpenAI, Anthropic, Gemini.
+ * Tests for all provider adapters: OpenAI, Anthropic, Gemini, Venice.
  * SDK calls are mocked at module level. No real API calls.
  *
  * Phase 3B — Provider Router Completion
@@ -682,6 +682,67 @@ describe('geminiAdapter', () => {
       } catch (err) {
         expect(err.code).toBe('UNKNOWN_PROVIDER_ERROR');
         expect(err.provider).toBe('gemini');
+      }
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Venice Adapter
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('veniceAdapter', () => {
+  let veniceAdapter;
+
+  beforeEach(async () => {
+    vi.stubEnv('VENICE_API_KEY', 'test-key');
+    mockOpenAICreate.mockReset();
+    const mod = await import('../../services/ai/adapters/veniceAdapter.mjs');
+    veniceAdapter = mod.default;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  describe('isConfigured', () => {
+    it('should return true when VENICE_API_KEY is set', () => {
+      expect(veniceAdapter.isConfigured()).toBe(true);
+    });
+
+    it('should return false when VENICE_API_KEY is missing', () => {
+      vi.stubEnv('VENICE_API_KEY', '');
+      expect(veniceAdapter.isConfigured()).toBe(false);
+    });
+  });
+
+  describe('generateWorkoutDraft — success', () => {
+    it('should return normalized result on success', async () => {
+      mockOpenAICreate.mockResolvedValue({
+        choices: [{ message: { content: '{"planName":"Venice Plan"}' }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 70, completion_tokens: 140, total_tokens: 210 },
+      });
+
+      const result = await veniceAdapter.generateWorkoutDraft(makeCtx());
+
+      expect(result.provider).toBe('venice');
+      expect(result.rawText).toBe('{"planName":"Venice Plan"}');
+      expect(result.finishReason).toBe('stop');
+      expect(result.tokenUsage.inputTokens).toBe(70);
+      expect(result.tokenUsage.outputTokens).toBe(140);
+      expect(result.tokenUsage.totalTokens).toBe(210);
+    });
+  });
+
+  describe('generateWorkoutDraft — errors', () => {
+    it('should normalize 429 → PROVIDER_RATE_LIMIT', async () => {
+      mockOpenAICreate.mockRejectedValue(Object.assign(new Error('rate limit'), { status: 429 }));
+      try {
+        await veniceAdapter.generateWorkoutDraft(makeCtx());
+        expect.unreachable('Should have thrown');
+      } catch (err) {
+        expect(err.code).toBe('PROVIDER_RATE_LIMIT');
+        expect(err.provider).toBe('venice');
       }
     });
   });

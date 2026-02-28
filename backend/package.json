@@ -91,7 +91,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "migrate:test": "npx sequelize-cli db:migrate --config config/config.cjs --migrations-path migrations --models-path models --env test",
-    "test:integration:waiver": "vitest run --config vitest.integration.config.mjs"
+    "test:integration:waiver": "vitest run --config vitest.integration.config.mjs",
+    "eval": "node eval/runEval.mjs",
+    "eval:report": "node eval/runEval.mjs --write-md",
+    "provider:ab": "node eval/ab/runAb.mjs",
+    "provider:ab:report": "node eval/ab/runAb.mjs --write-md"
   },
   "keywords": [],
   "author": "",
