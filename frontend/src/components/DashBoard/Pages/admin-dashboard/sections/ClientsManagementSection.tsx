@@ -42,6 +42,7 @@ import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModa
 import WorkoutCopilotPanel from '../../admin-clients/components/WorkoutCopilotPanel';
 import ClientMeasurementPanel from '../../admin-clients/components/ClientMeasurementPanel';
 import ClientWeighInPanel from '../../admin-clients/components/ClientWeighInPanel';
+import GlowButton from '../../../../ui/buttons/GlowButton';
 
 // === STYLED COMPONENTS ===
 
@@ -200,39 +201,6 @@ const FilterSelect = styled.select`
   option {
     background: #1e3a8a;
     color: #ffffff;
-  }
-`;
-
-const CommandButton = styled(motion.button)`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: linear-gradient(45deg, #2563eb 0%, #00e6ff 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  }
-
-  &:focus {
-    outline: 2px solid #00ffff;
-    outline-offset: 2px;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
   }
 `;
 
@@ -1064,31 +1032,31 @@ const ClientsManagementSection: React.FC = () => {
         </SearchContainer>
         
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <CommandButton
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <GlowButton
+            variant="cosmic"
+            size="medium"
+            leftIcon={<RefreshCw size={16} />}
             onClick={refreshAllData}
             disabled={isLoadingData('clients')}
           >
-            <RefreshCw size={16} />
             {isLoadingData('clients') ? 'Loading...' : 'Refresh'}
-          </CommandButton>
-          
-          <CommandButton
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          </GlowButton>
+
+          <GlowButton
+            variant="cosmic"
+            size="medium"
+            leftIcon={<Download size={16} />}
           >
-            <Download size={16} />
             Export
-          </CommandButton>
-          
-          <CommandButton
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          </GlowButton>
+
+          <GlowButton
+            variant="cosmic"
+            size="medium"
+            leftIcon={<UserPlus size={16} />}
           >
-            <UserPlus size={16} />
             Add Client
-          </CommandButton>
+          </GlowButton>
         </div>
       </ActionBar>
 

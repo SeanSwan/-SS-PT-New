@@ -91,12 +91,12 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/default" element={<Navigate to="/dashboard/home" replace />} />
 
     {/* People workspace redirects */}
-    <Route path="/user-management" element={<Navigate to="/dashboard/people" replace />} />
+    <Route path="/user-management" element={<Navigate to="/dashboard/people/users" replace />} />
     <Route path="/trainers" element={<Navigate to="/dashboard/people/trainers" replace />} />
     <Route path="/trainers/permissions" element={<Navigate to="/dashboard/people/trainers/permissions" replace />} />
     <Route path="/client-trainer-assignments" element={<Navigate to="/dashboard/people/assignments" replace />} />
     <Route path="/client-management" element={<Navigate to="/dashboard/people/progress" replace />} />
-    <Route path="/clients" element={<Navigate to="/dashboard/people/clients" replace />} />
+    <Route path="/clients" element={<Navigate to="/dashboard/people" replace />} />
     <Route path="/client-onboarding" element={<Navigate to="/dashboard/people/onboarding" replace />} />
     <Route path="/admin/nutrition/:clientId?" element={<ParamRedirect base="/dashboard/people/nutrition" />} />
     <Route path="/admin/workouts/:clientId?" element={<ParamRedirect base="/dashboard/people/workouts" />} />
@@ -167,8 +167,8 @@ const UnifiedAdminRoutes: React.FC = () => (
     </Route>
 
     <Route path="/people" element={<ClientsWorkspace />}>
-      <Route index element={<ModernUserManagementSystem />} />
-      <Route path="clients" element={<ClientsManagementSection />} />
+      <Route index element={<ClientsManagementSection />} />
+      <Route path="users" element={<ModernUserManagementSystem />} />
       <Route path="trainers" element={<TrainersManagementSection />} />
       <Route path="trainers/permissions" element={<TrainerPermissionsManager onPermissionChange={() => {}} />} />
       <Route path="onboarding" element={

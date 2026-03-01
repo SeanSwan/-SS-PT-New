@@ -7,8 +7,8 @@ import {
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 
 const tabs: WorkspaceTab[] = [
-  { id: 'users', label: 'Users', icon: <Users size={18} />, path: '/dashboard/people' },
-  { id: 'clients', label: 'Clients', icon: <Users size={18} />, path: '/dashboard/people/clients' },
+  { id: 'clients', label: 'Clients', icon: <Users size={18} />, path: '/dashboard/people' },
+  { id: 'users', label: 'Users', icon: <Users size={18} />, path: '/dashboard/people/users' },
   { id: 'trainers', label: 'Trainers', icon: <UserCheck size={18} />, path: '/dashboard/people/trainers' },
   { id: 'onboarding', label: 'Onboarding', icon: <UserPlus size={18} />, path: '/dashboard/people/onboarding' },
   { id: 'messages', label: 'Messages', icon: <Mail size={18} />, path: '/dashboard/people/messages' },

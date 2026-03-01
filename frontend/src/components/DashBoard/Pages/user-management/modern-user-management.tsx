@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
+import GlowButton from '../../../ui/buttons/GlowButton';
 
 // Icons (lucide-react)
 import {
@@ -390,13 +391,14 @@ const ModernUserManagementSystem: React.FC = () => {
                       <EmptyStateContainer>
                         <EmptyStateIcon>&#9888;&#65039;</EmptyStateIcon>
                         <EmptyStateText>{error}</EmptyStateText>
-                        <StyledButton
-                          $variant="contained"
+                        <GlowButton
+                          variant="cosmic"
+                          size="small"
                           onClick={fetchUsers}
                           style={{ marginTop: '1rem' }}
                         >
                           Retry
-                        </StyledButton>
+                        </GlowButton>
                       </EmptyStateContainer>
                     ) : (
                       <div>
@@ -419,14 +421,13 @@ const ModernUserManagementSystem: React.FC = () => {
                                     </FlexRow>
                                   </StyledTableCell>
                                   <StyledTableCell $align="right">
-                                    <StyledButton
-                                      $variant="contained"
-                                      $color="primary"
-                                      $size="small"
+                                    <GlowButton
+                                      variant="cosmic"
+                                      size="small"
                                       onClick={() => handleEditUser(user)}
                                     >
                                       Edit
-                                    </StyledButton>
+                                    </GlowButton>
                                   </StyledTableCell>
                                 </StyledTableRow>
                               ))
@@ -447,14 +448,13 @@ const ModernUserManagementSystem: React.FC = () => {
                                     </FlexRow>
                                   </StyledTableCell>
                                   <StyledTableCell $align="right">
-                                    <StyledButton
-                                      $variant="contained"
-                                      $color="primary"
-                                      $size="small"
+                                    <GlowButton
+                                      variant="cosmic"
+                                      size="small"
                                       onClick={() => {}}
                                     >
                                       Edit
-                                    </StyledButton>
+                                    </GlowButton>
                                   </StyledTableCell>
                                 </StyledTableRow>
                                 <StyledTableRow>
@@ -471,14 +471,13 @@ const ModernUserManagementSystem: React.FC = () => {
                                     </FlexRow>
                                   </StyledTableCell>
                                   <StyledTableCell $align="right">
-                                    <StyledButton
-                                      $variant="contained"
-                                      $color="primary"
-                                      $size="small"
+                                    <GlowButton
+                                      variant="cosmic"
+                                      size="small"
                                       onClick={() => {}}
                                     >
                                       Edit
-                                    </StyledButton>
+                                    </GlowButton>
                                   </StyledTableCell>
                                 </StyledTableRow>
                               </>
@@ -527,34 +526,35 @@ const ModernUserManagementSystem: React.FC = () => {
                       <SectionTitle>Admin Tools</SectionTitle>
 
                       <FlexCol $gap="0.75rem">
-                        <StyledButton
-                          $fullWidth
-                          $variant="contained"
-                          $color="primary"
+                        <GlowButton
+                          fullWidth
+                          variant="cosmic"
+                          size="medium"
+                          leftIcon={<UserPlus size={18} />}
                           onClick={handleAddUser}
                         >
-                          <UserPlus size={18} />
                           Add New User
-                        </StyledButton>
+                        </GlowButton>
 
-                        <StyledButton
-                          $fullWidth
-                          $variant="outlined"
+                        <GlowButton
+                          fullWidth
+                          variant="cosmic"
+                          size="medium"
+                          leftIcon={<Shield size={18} />}
                           onClick={handleShowPermissions}
                         >
-                          <Shield size={18} />
                           User Permissions
-                        </StyledButton>
+                        </GlowButton>
 
-                        <StyledButton
-                          $fullWidth
-                          $variant="outlined"
-                          $color="error"
+                        <GlowButton
+                          fullWidth
+                          variant="ruby"
+                          size="medium"
+                          leftIcon={<Lock size={18} />}
                           onClick={handleShowSecuritySettings}
                         >
-                          <Lock size={18} />
                           Security Settings
-                        </StyledButton>
+                        </GlowButton>
                       </FlexCol>
                     </GlassPanel>
                   </motion.div>
