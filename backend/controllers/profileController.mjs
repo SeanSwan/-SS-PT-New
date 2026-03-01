@@ -11,6 +11,7 @@ import { SocialPost, Friendship } from '../models/social/index.mjs';
 import UserAchievement from '../models/UserAchievement.mjs';
 import Achievement from '../models/Achievement.mjs';
 import logger from '../utils/logger.mjs';
+import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
 
 // Get directory name in ES modules context
 const __filename = fileURLToPath(import.meta.url);
@@ -36,50 +37,28 @@ export const uploadProfilePhoto = async (req, res) => {
     
     // Get the file extension
     const fileExt = path.extname(req.file.originalname).toLowerCase();
-    
+
     // Only allow certain file extensions
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
     if (!allowedExtensions.includes(fileExt)) {
-      logger.warn('Profile photo upload failed: Invalid file type', { 
-        userId: req.user.id, 
-        fileType: fileExt 
+      logger.warn('Profile photo upload failed: Invalid file type', {
+        userId: req.user.id,
+        fileType: fileExt
       });
       return res.status(400).json({
         success: false,
         message: 'Invalid file type. Only JPG, JPEG, PNG, GIF, and WEBP files are allowed.'
       });
     }
-    
-    // Create upload directory if it doesn't exist
-    const uploadDir = path.join(__dirname, '../uploads/profiles');
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-    } catch (err) {
-      logger.error('Error creating upload directory', { error: err.message });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create upload directory'
-      });
-    }
-    
-    // Create a unique filename
-    const filename = `user-${req.user.id}-${Date.now()}${fileExt}`;
-    const filePath = path.join(uploadDir, filename);
-    
-    // Move the file from temp to uploads folder
-    try {
-      await fs.writeFile(filePath, req.file.buffer);
-    } catch (err) {
-      logger.error('Error saving profile photo', { error: err.message, userId: req.user.id });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to save file'
-      });
-    }
-    
-    // Update user's photo URL in database
-    const photoUrl = `/uploads/profiles/${filename}`;
-    
+
+    // Upload via photoStorageService (R2 or local fallback)
+    const { url: photoUrl, storageKey } = await uploadPhoto(req.file.buffer, {
+      userId: req.user.id,
+      category: 'profiles',
+      originalFilename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
     const user = await User.findByPk(req.user.id);
     if (!user) {
       logger.error('User not found during profile photo upload', { userId: req.user.id });
@@ -88,26 +67,15 @@ export const uploadProfilePhoto = async (req, res) => {
         message: 'User not found'
       });
     }
-    
-    // If user already has a photo, delete the old one
-    if (user.photo && !user.photo.startsWith('http')) {
-      try {
-        const oldPhotoPath = path.join(__dirname, '..', user.photo);
-        await fs.access(oldPhotoPath);
-        await fs.unlink(oldPhotoPath);
-        logger.info('Deleted old profile photo', { userId: req.user.id, path: oldPhotoPath });
-      } catch (err) {
-        // It's okay if the file doesn't exist or can't be deleted
-        logger.warn('Could not delete old profile photo', { 
-          error: err.message, 
-          userId: req.user.id
-        });
-      }
+
+    // Delete old photo if exists (best-effort)
+    if (user.photo) {
+      await deletePhoto(user.photo);
     }
-    
+
     // Update user profile with new photo URL
     await user.update({ photo: photoUrl });
-    logger.info('Profile photo updated successfully', { userId: req.user.id, photoUrl });
+    logger.info('Profile photo updated successfully', { userId: req.user.id, photoUrl, storageKey });
     
     // Get updated user data without sensitive fields
     const updatedUser = await User.findByPk(req.user.id, {

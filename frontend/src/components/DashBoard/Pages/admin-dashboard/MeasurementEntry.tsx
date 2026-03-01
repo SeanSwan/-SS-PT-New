@@ -480,6 +480,7 @@ const MeasurementEntry: React.FC = () => {
   const [loadingRecent, setLoadingRecent] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [savedPhotoUrls, setSavedPhotoUrls] = useState<string[]>([]);
 
   // Autocomplete state
   const [clientSearch, setClientSearch] = useState('');
@@ -576,6 +577,7 @@ const MeasurementEntry: React.FC = () => {
       setRecentMeasurements([]);
       setPhotoFiles([]);
       setPhotoPreviews([]);
+      setSavedPhotoUrls([]);
     }
   }, [selectedClient, toast]);
 
@@ -586,8 +588,12 @@ const MeasurementEntry: React.FC = () => {
       id: undefined,
       measurementDate: new Date().toISOString().split('T')[0],
       notes: '',
-      photoUrls: latestMeasurement.photoUrls || [],
+      photoUrls: [],
     });
+    // Show saved photos from previous measurement
+    if (latestMeasurement.photoUrls && latestMeasurement.photoUrls.length > 0) {
+      setSavedPhotoUrls(latestMeasurement.photoUrls);
+    }
     toast({ title: 'Copied', description: 'Previous measurements copied. Update any changes.' });
   };
 
@@ -617,6 +623,10 @@ const MeasurementEntry: React.FC = () => {
     });
   };
 
+  const removeSavedPhoto = (index: number) => {
+    setSavedPhotoUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSave = async () => {
     if (!selectedClient) {
       toast({ title: 'Error', description: 'Please select a client.', variant: 'destructive' });
@@ -625,7 +635,8 @@ const MeasurementEntry: React.FC = () => {
     setIsSaving(true);
 
     try {
-      let uploadedPhotoUrls: string[] = newMeasurement.photoUrls || [];
+      // Start with any saved photos the user kept from previous measurement
+      let uploadedPhotoUrls: string[] = [...savedPhotoUrls];
 
       if (photoFiles.length > 0) {
         const formData = new FormData();
@@ -653,6 +664,7 @@ const MeasurementEntry: React.FC = () => {
       setClientSearch('');
       setPhotoFiles([]);
       setPhotoPreviews([]);
+      setSavedPhotoUrls([]);
     } catch (error) {
       toast({ title: 'Save Error', description: 'Failed to save measurements.', variant: 'destructive' });
     } finally {
@@ -869,8 +881,18 @@ const MeasurementEntry: React.FC = () => {
             <GlassPanel>
               <SubsectionTitle>Progress Photos</SubsectionTitle>
               <PhotoGrid>
+                {/* Saved photos from previous measurement (via Copy from Last) */}
+                {savedPhotoUrls.map((url, index) => (
+                  <PhotoPreviewWrapper key={`saved-${index}`}>
+                    <img src={url} alt={`Saved ${index + 1}`} />
+                    <RemovePhotoButton onClick={() => removeSavedPhoto(index)}>
+                      <X size={16} color="white" />
+                    </RemovePhotoButton>
+                  </PhotoPreviewWrapper>
+                ))}
+                {/* Newly selected photos (local blob previews) */}
                 {photoPreviews.map((previewUrl, index) => (
-                  <PhotoPreviewWrapper key={index}>
+                  <PhotoPreviewWrapper key={`new-${index}`}>
                     <img src={previewUrl} alt={`Preview ${index + 1}`} />
                     <RemovePhotoButton onClick={() => removePhoto(index)}>
                       <X size={16} color="white" />
@@ -879,12 +901,12 @@ const MeasurementEntry: React.FC = () => {
                 ))}
                 <UploadZone>
                   <UploadCloud size={24} />
-                  Upload
+                  Upload JPEG
                   <input
                     type="file"
                     hidden
                     multiple
-                    accept="image/*"
+                    accept="image/jpeg,.jpg,.jpeg"
                     onChange={handlePhotoChange}
                   />
                 </UploadZone>
