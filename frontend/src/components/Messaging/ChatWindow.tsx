@@ -189,7 +189,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
         {data?.pages.map((page, i) => (
           <React.Fragment key={i}>
             {page.messages.map((message: any) => (
-              <Message key={message.id} message={message} />
+              <Message key={message.id} message={message} isOwnMessage={(message.sender_id || message.sender?.id) === user?.id} />
             ))}
           </React.Fragment>
         ))}
