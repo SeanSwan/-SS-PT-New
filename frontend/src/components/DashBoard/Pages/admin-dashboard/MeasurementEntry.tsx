@@ -24,6 +24,8 @@ interface BodyMeasurement {
   chest?: number;
   rightBicep?: number;
   leftBicep?: number;
+  rightForearm?: number;
+  leftForearm?: number;
   naturalWaist?: number;
   hips?: number;
   rightThigh?: number;
@@ -58,13 +60,18 @@ const measurementFields: { key: keyof BodyMeasurement; label: string }[] = [
   { key: 'bodyFatPercentage', label: 'Body Fat %' },
   { key: 'muscleMassPercentage', label: 'Muscle Mass %' },
   { key: 'neck', label: 'Neck' },
+  { key: 'shoulders', label: 'Shoulders' },
   { key: 'chest', label: 'Chest' },
-  { key: 'naturalWaist', label: 'Natural Waist' },
-  { key: 'hips', label: 'Hips' },
   { key: 'rightBicep', label: 'Right Bicep' },
   { key: 'leftBicep', label: 'Left Bicep' },
+  { key: 'rightForearm', label: 'Right Forearm' },
+  { key: 'leftForearm', label: 'Left Forearm' },
+  { key: 'naturalWaist', label: 'Natural Waist' },
+  { key: 'hips', label: 'Hips' },
   { key: 'rightThigh', label: 'Right Thigh' },
   { key: 'leftThigh', label: 'Left Thigh' },
+  { key: 'rightCalf', label: 'Right Calf' },
+  { key: 'leftCalf', label: 'Left Calf' },
 ];
 
 const negativeIsBetter = ['weight', 'bodyFatPercentage', 'naturalWaist', 'hips', 'neck'];
