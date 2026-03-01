@@ -187,7 +187,7 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
       <Route path="social" element={<AdminSocialManagementView />} />
       <Route path="waivers" element={<AdminWaiversManager />} />
-      <Route path="measurements" element={
+      <Route path="measurements/:clientId?" element={
         <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
           <MeasurementEntry />
         </React.Suspense>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, Copy, TrendingUp, TrendingDown, UploadCloud, X } from 'lucide-react';
@@ -460,6 +461,7 @@ const ChangeCenter = styled.div`
 // ═════════════════════════════════════════════════════════════════════════════════
 
 const MeasurementEntry: React.FC = () => {
+  const { clientId: routeClientId } = useParams<{ clientId?: string }>();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -505,12 +507,20 @@ const MeasurementEntry: React.FC = () => {
           name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || `Client ${c.id}`,
         }));
         setClients(mapped);
+        // Auto-select client from route param
+        if (routeClientId) {
+          const match = mapped.find((c: Client) => c.id === routeClientId);
+          if (match) {
+            setSelectedClient(match);
+            setClientSearch(match.name);
+          }
+        }
       } catch (error) {
         toast({ title: 'Error', description: 'Failed to load clients.', variant: 'destructive' });
       }
     };
     fetchClients();
-  }, [toast]);
+  }, [toast, routeClientId]);
 
   useEffect(() => {
     if (selectedClient) {
