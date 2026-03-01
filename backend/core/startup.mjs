@@ -34,6 +34,7 @@ const createRequiredDirectories = async () => {
     path.join(__dirname, '../uploads'),
     path.join(__dirname, '../uploads/profiles'),
     path.join(__dirname, '../uploads/products'),
+    path.join(__dirname, '../uploads/measurements'),
     path.join(__dirname, '../uploads/temp'),
     path.join(__dirname, '../data')
   ];
