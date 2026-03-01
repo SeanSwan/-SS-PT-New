@@ -96,6 +96,38 @@ export const createConversation = async (req, res) => {
 
   const allParticipantIds = [...new Set([creatorId, ...participantIds])];
 
+  // For direct conversations, check if one already exists between these two users
+  if (type === 'direct' && participantIds.length === 1) {
+    try {
+      const [existing] = await sequelize.query(
+        `SELECT c.id FROM conversations c
+         JOIN conversation_participants cp1 ON c.id = cp1.conversation_id AND cp1.user_id = :creatorId
+         JOIN conversation_participants cp2 ON c.id = cp2.conversation_id AND cp2.user_id = :participantId
+         WHERE c.type = 'direct'
+         LIMIT 1`,
+        {
+          replacements: { creatorId, participantId: participantIds[0] },
+          type: QueryTypes.SELECT,
+        }
+      );
+      if (existing) {
+        // Return existing conversation instead of creating duplicate
+        const [existingConversation] = await sequelize.query(
+          `SELECT c.id, c.type, c.name,
+            (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
+             FROM conversation_participants cp_inner JOIN users u ON u.id = cp_inner.user_id
+             WHERE cp_inner.conversation_id = c.id) as participants
+           FROM conversations c WHERE c.id = :conversationId`,
+          { replacements: { conversationId: existing.id }, type: QueryTypes.SELECT }
+        );
+        return res.status(200).json(existingConversation);
+      }
+    } catch (checkError) {
+      console.error('Error checking existing conversation:', checkError);
+      // Continue to create new conversation if check fails
+    }
+  }
+
   const trx = await sequelize.transaction();
   try {
     // Create conversation
@@ -232,10 +264,11 @@ export const searchUsers = async (req, res) => {
 
   try {
     const users = await sequelize.query(
-      `SELECT id, "firstName", "lastName", username, photo
+      `SELECT id, "firstName", "lastName", username, photo, role
        FROM users
        WHERE ( "firstName" ILIKE :query OR "lastName" ILIKE :query OR username ILIKE :query OR email ILIKE :query )
          AND id != :currentUserId
+         AND "deletedAt" IS NULL
        LIMIT 10`,
       {
         replacements: { query: `%${q}%`, currentUserId },
