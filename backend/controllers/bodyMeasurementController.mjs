@@ -1,6 +1,8 @@
 import { BodyMeasurement, MeasurementMilestone, User, sequelize } from '../models/index.mjs';
+import { getNotification } from '../models/index.mjs';
 import { calculateComparisons } from '../services/measurementComparisonService.mjs';
 import { detectMilestones } from '../services/measurementMilestoneService.mjs';
+import { syncMeasurementDates } from '../services/measurementScheduleService.mjs';
 import { Op } from 'sequelize';
 
 /**
@@ -99,6 +101,26 @@ export async function createMeasurement(req, res) {
     const milestones = await detectMilestones(targetUserId, measurement);
 
     await transaction.commit();
+
+    // Post-commit: sync measurement schedule dates on User (non-blocking)
+    syncMeasurementDates(User, targetUserId, measurement).catch(err =>
+      console.warn('Failed to sync measurement dates:', err.message)
+    );
+
+    // Post-commit: clear persistent overdue measurement notifications (non-blocking)
+    try {
+      const NotificationModel = getNotification();
+      if (NotificationModel) {
+        NotificationModel.update(
+          { read: true },
+          { where: { type: 'measurement', relatedEntityId: targetUserId, persistent: true, read: false } }
+        ).catch(err =>
+          console.warn('Failed to clear measurement notifications:', err.message)
+        );
+      }
+    } catch {
+      // Notification model not initialized yet — skip
+    }
 
     res.status(201).json({
       success: true,
@@ -479,5 +501,53 @@ export async function getMeasurementStats(req, res) {
       message: 'Failed to get measurement stats',
       error: error.message
     });
+  }
+}
+
+/**
+ * Get measurement schedule status for a specific user
+ * GET /api/measurements/schedule/status/:userId
+ */
+export async function getScheduleStatus(req, res) {
+  try {
+    const { userId } = req.params;
+    const { getMeasurementStatus } = await import('../services/measurementScheduleService.mjs');
+
+    const user = await User.findByPk(userId, {
+      attributes: [
+        'id', 'firstName', 'lastName',
+        'lastFullMeasurementDate', 'lastWeighInDate',
+        'measurementIntervalDays', 'weighInIntervalDays',
+      ],
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const status = getMeasurementStatus(user);
+
+    res.json({ success: true, data: { userId: user.id, ...status } });
+  } catch (error) {
+    console.error('Error getting schedule status:', error);
+    res.status(500).json({ success: false, message: 'Failed to get schedule status', error: error.message });
+  }
+}
+
+/**
+ * Get clients with upcoming or overdue measurement checks
+ * GET /api/measurements/schedule/upcoming
+ */
+export async function getUpcomingChecks(req, res) {
+  try {
+    const { limit = 20 } = req.query;
+    const { getClientsWithUpcomingChecks } = await import('../services/measurementScheduleService.mjs');
+
+    const clients = await getClientsWithUpcomingChecks(User, parseInt(limit));
+
+    res.json({ success: true, data: { clients } });
+  } catch (error) {
+    console.error('Error getting upcoming checks:', error);
+    res.status(500).json({ success: false, message: 'Failed to get upcoming checks', error: error.message });
   }
 }

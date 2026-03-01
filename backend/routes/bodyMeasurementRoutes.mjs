@@ -7,7 +7,9 @@ import {
   deleteMeasurement,
   getLatestMeasurement,
   uploadProgressPhotos,
-  getMeasurementStats
+  getMeasurementStats,
+  getScheduleStatus,
+  getUpcomingChecks
 } from '../controllers/bodyMeasurementController.mjs';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.mjs';
 
@@ -15,6 +17,20 @@ const router = express.Router();
 
 // All routes require authentication
 router.use(authenticateToken);
+
+/**
+ * @route   GET /api/measurements/schedule/status/:userId
+ * @desc    Get measurement schedule status for a user
+ * @access  Admin, Trainer
+ */
+router.get('/schedule/status/:userId', authorizeRoles('admin', 'trainer'), getScheduleStatus);
+
+/**
+ * @route   GET /api/measurements/schedule/upcoming
+ * @desc    Get clients with upcoming or overdue measurement checks
+ * @access  Admin only
+ */
+router.get('/schedule/upcoming', authorizeRoles('admin'), getUpcomingChecks);
 
 /**
  * @route   POST /api/measurements

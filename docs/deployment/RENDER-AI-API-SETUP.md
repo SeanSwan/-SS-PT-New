@@ -2,22 +2,62 @@
 
 Guide for configuring AI provider environment variables in the Render deployment.
 
-## Provider API Keys (Required — at least one)
+## Quick Start (OpenRouter — Recommended)
+
+OpenRouter gives you access to all major AI models through a single API key. Set these 3 env vars on Render:
+
+| Env Var | Value | Purpose |
+|---------|-------|---------|
+| `AI_API_KEY` | `sk-or-v1-...` (your OpenRouter key) | API authentication |
+| `AI_BASE_URL` | `https://openrouter.ai/api/v1` | Routes to OpenRouter |
+| `AI_MODEL` | `anthropic/claude-sonnet-4-6` | Model to use for workouts |
+
+That's it. Save and Render redeploys automatically.
+
+### Cheaper model alternatives (via OpenRouter)
+
+| Model ID | ~Cost per workout | Quality |
+|----------|-------------------|---------|
+| `anthropic/claude-sonnet-4-6` | ~$0.025 | Excellent |
+| `anthropic/claude-haiku-4-5` | ~$0.007 | Very good (best value) |
+| `deepseek/deepseek-chat-v3-0324` | ~$0.0005 | Good |
+| `google/gemini-2.5-flash` | ~$0.001 | Good |
+
+To switch models, just change `AI_MODEL` on Render — no code changes needed.
+
+---
+
+## Provider API Keys
 
 The provider router tries each configured provider in order. At least one key must be set for AI workout generation to function. Without any keys, the system returns a degraded-mode response with fallback suggestions.
 
+### Primary (provider-agnostic) env vars
+
+These are checked first by the OpenAI-compatible adapter and work with OpenRouter or any OpenAI-compatible API:
+
+| Env Var | Default | Purpose |
+|---------|---------|---------|
+| `AI_API_KEY` | — | Primary API key (OpenRouter, OpenAI, etc.) |
+| `AI_BASE_URL` | — | Custom API endpoint (e.g. `https://openrouter.ai/api/v1`) |
+| `AI_MODEL` | `gpt-4` | Model ID (e.g. `anthropic/claude-sonnet-4-6`) |
+
+### Legacy / direct provider env vars
+
+These still work as fallbacks if the primary vars are not set:
+
 | Provider | Env Var | Default Model | Consumed In |
 |----------|---------|---------------|-------------|
-| OpenAI | `OPENAI_API_KEY` | `gpt-4` | `backend/services/ai/adapters/openaiAdapter.mjs` |
-| Anthropic | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | `backend/services/ai/adapters/anthropicAdapter.mjs` |
+| OpenAI / OpenRouter | `OPENAI_API_KEY` | `gpt-4` | `backend/services/ai/adapters/openaiAdapter.mjs` |
+| Anthropic (direct) | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | `backend/services/ai/adapters/anthropicAdapter.mjs` |
 | Google Gemini | `GOOGLE_API_KEY` | `gemini-2.0-flash` | `backend/services/ai/adapters/geminiAdapter.mjs` |
 | Venice | `VENICE_API_KEY` | `llama-3.3-70b` | `backend/services/ai/adapters/veniceAdapter.mjs` |
+
+**Priority order:** `AI_API_KEY` > `OPENAI_API_KEY`, `AI_BASE_URL` > `OPENAI_BASE_URL`, `AI_MODEL` > `AI_OPENAI_MODEL`
 
 ## Optional Configuration
 
 | Env Var | Default | Purpose | Consumed In |
 |---------|---------|---------|-------------|
-| `AI_OPENAI_MODEL` | `gpt-4` | Override OpenAI model | `openaiAdapter.mjs:23` |
 | `AI_ANTHROPIC_MODEL` | `claude-sonnet-4-6` | Override Anthropic model | `anthropicAdapter.mjs:21` |
 | `AI_GEMINI_MODEL` | `gemini-2.0-flash` | Override Gemini model | `geminiAdapter.mjs:24` |
 | `AI_VENICE_MODEL` | `llama-3.3-70b` | Override Venice model | `veniceAdapter.mjs:20` |
@@ -29,19 +69,12 @@ The provider router tries each configured provider in order. At least one key mu
 
 All files referenced above are relative to `backend/services/ai/` unless a longer path is shown.
 
-## Minimal Render Setup Steps
-
-1. Go to the Render dashboard -> your backend service -> **Environment**
-2. Add at least one provider API key (e.g., `OPENAI_API_KEY`)
-3. Save — Render will redeploy automatically (2-5 minutes)
-4. Verify with post-deploy commands below
-
 ## Provider Router Failover Chain
 
 The router tries providers in the order defined by `AI_PROVIDER_ORDER`:
 
 ```
-OpenAI -> Anthropic -> Gemini -> Venice -> Degraded Mode
+OpenAI/OpenRouter -> Anthropic -> Gemini -> Venice -> Degraded Mode
 ```
 
 If a provider's key is not set, it is skipped. If a provider times out or errors, the router fails over to the next. If all providers fail, a degraded-mode response is returned with fallback suggestions (no crash).

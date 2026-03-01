@@ -22,7 +22,10 @@ import {
 import CreateClientModal from './CreateClientModal';
 import AdminOnboardingPanel from './components/AdminOnboardingPanel';
 import WorkoutLoggerModal from './components/WorkoutLoggerModal';
+import ClientMeasurementPanel from './components/ClientMeasurementPanel';
+import ClientWeighInPanel from './components/ClientWeighInPanel';
 import { useClientActions } from './hooks/useClientActions';
+import { getMeasurementColor } from '../../../../utils/measurementStatus';
 
 // Import icons from lucide-react
 import {
@@ -52,7 +55,9 @@ import {
   X,
   Save,
   ClipboardList,
-  Dumbbell
+  Dumbbell,
+  Scale,
+  Ruler
 } from 'lucide-react';
 
 // ─── Keyframes ───────────────────────────────────────────────
@@ -406,6 +411,17 @@ const StatusBadge = styled.span<{ $status: string }>`
   `}
 `;
 
+// ─── Check-in Status Dot ────────────────────────────────────
+const StatusDot = styled.span<{ $color: string }>`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  box-shadow: 0 0 6px ${({ $color }) => $color}80;
+  flex-shrink: 0;
+`;
+
 // ─── Server Status Chip ─────────────────────────────────────
 const ServerChip = styled.span<{ $status: string }>`
   display: inline-flex;
@@ -641,6 +657,8 @@ const AdminClientManagementView: React.FC = () => {
   const [mcpStatus, setMcpStatus] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [showWeighIn, setShowWeighIn] = useState(false);
   const [actionClient, setActionClient] = useState<AdminClient | null>(null);
 
   // Add socket connection for real-time updates
@@ -881,6 +899,18 @@ const AdminClientManagementView: React.FC = () => {
     handleMenuClose();
   };
 
+  const openMeasurements = (client: AdminClient) => {
+    setActionClient(client);
+    setShowMeasurements(true);
+    handleMenuClose();
+  };
+
+  const openWeighIn = (client: AdminClient) => {
+    setActionClient(client);
+    setShowWeighIn(true);
+    handleMenuClose();
+  };
+
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
   };
@@ -909,6 +939,7 @@ const AdminClientManagementView: React.FC = () => {
               <Th>Client</Th>
               <Th>Contact</Th>
               <Th>Status</Th>
+              <Th>Check-ins</Th>
               <Th>Sessions</Th>
               <Th>Last Activity</Th>
               <Th>Actions</Th>
@@ -936,6 +967,12 @@ const AdminClientManagementView: React.FC = () => {
                     <SkeletonBox $width="70px" $height="26px" />
                   </Td>
                   <Td>
+                    <FlexRow $gap="6px">
+                      <SkeletonBox $width="12px" $height="12px" $circle />
+                      <SkeletonBox $width="12px" $height="12px" $circle />
+                    </FlexRow>
+                  </Td>
+                  <Td>
                     <SkeletonBox $width="60px" $height="16px" />
                   </Td>
                   <Td>
@@ -948,7 +985,7 @@ const AdminClientManagementView: React.FC = () => {
               ))
             ) : clients.length === 0 ? (
               <TRow>
-                <Td colSpan={6} $align="center">
+                <Td colSpan={7} $align="center">
                   <EmptyState>
                     <UserPlus size={64} color="#666" style={{ marginBottom: 16 }} />
                     <h3 style={{ color: '#94a3b8', margin: '0 0 8px 0', fontWeight: 600 }}>
@@ -992,6 +1029,18 @@ const AdminClientManagementView: React.FC = () => {
                     <StatusBadge $status={client.isActive ? 'active' : 'inactive'}>
                       {client.isActive ? 'Active' : 'Inactive'}
                     </StatusBadge>
+                  </Td>
+                  <Td>
+                    <FlexRow $gap="8px" title="Measurement | Weigh-In">
+                      <StatusDot
+                        $color={getMeasurementColor((client as any).measurementSchedule?.measurementStatus)}
+                        title={`Measurement: ${(client as any).measurementSchedule?.measurementDaysRemaining ?? '?'} days`}
+                      />
+                      <StatusDot
+                        $color={getMeasurementColor((client as any).measurementSchedule?.weighInStatus)}
+                        title={`Weigh-In: ${(client as any).measurementSchedule?.weighInDaysRemaining ?? '?'} days`}
+                      />
+                    </FlexRow>
                   </Td>
                   <Td>
                     <FlexRow $gap="6px">
@@ -1226,6 +1275,20 @@ const AdminClientManagementView: React.FC = () => {
               <Dumbbell size={18} />
               Log Workout
             </ContextMenuItem>
+            <ContextMenuItem
+              data-testid="menu-measurements"
+              onClick={() => menuClient && openMeasurements(menuClient)}
+            >
+              <Ruler size={18} />
+              Measurements
+            </ContextMenuItem>
+            <ContextMenuItem
+              data-testid="menu-weigh-in"
+              onClick={() => menuClient && openWeighIn(menuClient)}
+            >
+              <Scale size={18} />
+              Weigh-In
+            </ContextMenuItem>
             <MenuDivider />
             <ContextMenuItem
               $danger
@@ -1262,6 +1325,24 @@ const AdminClientManagementView: React.FC = () => {
         clientName={actionClient ? `${actionClient.firstName} ${actionClient.lastName}` : ''}
         onSuccess={fetchClients}
       />
+
+      {showMeasurements && actionClient && (
+        <ClientMeasurementPanel
+          clientId={Number(actionClient.id)}
+          clientName={`${actionClient.firstName} ${actionClient.lastName}`}
+          onClose={() => { setShowMeasurements(false); setActionClient(null); }}
+          onUpdate={fetchClients}
+        />
+      )}
+
+      {showWeighIn && actionClient && (
+        <ClientWeighInPanel
+          clientId={Number(actionClient.id)}
+          clientName={`${actionClient.firstName} ${actionClient.lastName}`}
+          onClose={() => { setShowWeighIn(false); setActionClient(null); }}
+          onUpdate={fetchClients}
+        />
+      )}
     </PageWrapper>
   );
 };

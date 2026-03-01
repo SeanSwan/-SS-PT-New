@@ -130,7 +130,30 @@ User.init(
       defaultValue: 0,
       comment: 'Number of pre-purchased sessions available'
     },
-    
+    // Measurement schedule tracking
+    lastFullMeasurementDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Date of last full body measurement'
+    },
+    lastWeighInDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Date of last weight-only check'
+    },
+    measurementIntervalDays: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 30,
+      comment: 'Monthly cadence for full body measurements'
+    },
+    weighInIntervalDays: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 7,
+      comment: 'Weekly cadence for weight-only checks'
+    },
+
     // ========== TRAINER-SPECIFIC FIELDS ==========
     // Professional information
     specialties: {

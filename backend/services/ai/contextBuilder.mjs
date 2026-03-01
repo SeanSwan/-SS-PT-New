@@ -46,6 +46,7 @@ export function buildUnifiedContext(inputs = {}) {
     nasmConstraints,
     templateContext,
     progressContext,
+    measurementContext,
   } = inputs;
 
   const missingInputs = [];
@@ -101,6 +102,13 @@ export function buildUnifiedContext(inputs = {}) {
     missingInputs.push('workout_history');
   }
 
+  // ── Measurement Trends ────────────────────────────────────────
+  let measurementTrends = null;
+  if (measurementContext && typeof measurementContext === 'object') {
+    measurementTrends = measurementContext;
+    dataSources.push('body_measurements');
+  }
+
   // ── Exercise Recommendations (1RM + load) ───────────────────
   const exerciseRecommendations = buildExerciseRecommendations(
     progressContext,
@@ -138,6 +146,7 @@ export function buildUnifiedContext(inputs = {}) {
     nasmGuidance,
     templateGuidance,
     progressSummary,
+    measurementTrends,
     exerciseRecommendations,
     safetyConstraints,
     explainability,

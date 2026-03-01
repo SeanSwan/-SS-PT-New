@@ -29,7 +29,7 @@ Notification.init(
       defaultValue: 'system',
       validate: {
         isIn: {
-          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward']],
+          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward', 'measurement']],
           msg: 'Invalid notification type'
         }
       }
@@ -38,6 +38,22 @@ Notification.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    persistent: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      comment: 'Persistent notifications survive "mark all read"'
+    },
+    relatedEntityType: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: 'Entity type for related entity (e.g., measurement, weighin)'
+    },
+    relatedEntityId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Entity ID for related entity (e.g., client userId for overdue item)'
     },
     link: {
       type: DataTypes.STRING,

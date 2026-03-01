@@ -271,6 +271,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import bcrypt from 'bcryptjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
+import { getMeasurementStatus } from '../services/measurementScheduleService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -429,13 +430,17 @@ class AdminClientController {
         // Strip masterPromptJson from list response (large blob, fetch on detail view only)
         const { masterPromptJson, ...clientData } = client.toJSON();
 
+        // Measurement schedule status (green/yellow/red)
+        const scheduleStatus = getMeasurementStatus(clientData);
+
         return {
           ...clientData,
           onboardingComplete: masterPromptJson != null,
           totalWorkouts: workoutCountMap[client.id] || 0,
           totalOrders: orderCountMap[client.id] || 0,
           lastWorkout: clientData.workoutSessions?.[0] || null,
-          nextSession: clientData.clientSessions?.[0] || null
+          nextSession: clientData.clientSessions?.[0] || null,
+          measurementSchedule: scheduleStatus,
         };
       });
 
