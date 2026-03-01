@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../ui/buttons/GlowButton';
@@ -37,8 +36,6 @@ import {
   EmptyStateContainer,
   EmptyStateIcon,
   EmptyStateText,
-  containerVariants,
-  itemVariants,
   // New styled components replacing MUI
   ModalOverlay,
   ModalPanel,
@@ -349,13 +346,9 @@ const ModernUserManagementSystem: React.FC = () => {
   return (
     <PageContainer>
       <ContentContainer>
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-        >
+        <div>
           {/* Main User Management Card */}
-          <StyledCard as={motion.div} {...itemVariants}>
+          <StyledCard>
             <CardHeader>
               <CardTitle>
                 <ShieldCheck size={28} />
@@ -375,7 +368,7 @@ const ModernUserManagementSystem: React.FC = () => {
               {/* Main Content Grid */}
               <ContentGrid>
                 {/* Left Column: User List */}
-                <motion.div variants={itemVariants}>
+                <div>
                   <GlassPanel>
                     <SectionTitle>Sample User List</SectionTitle>
 
@@ -487,12 +480,12 @@ const ModernUserManagementSystem: React.FC = () => {
                       </div>
                     )}
                   </GlassPanel>
-                </motion.div>
+                </div>
 
                 {/* Right Column: Features & Admin Tools */}
                 <div>
                   {/* User Management Features */}
-                  <motion.div variants={itemVariants}>
+                  <div>
                     <GlassPanel $mb="1.5rem">
                       <SectionTitle>User Management Features</SectionTitle>
 
@@ -518,10 +511,10 @@ const ModernUserManagementSystem: React.FC = () => {
                         </FeatureItem>
                       </FlexCol>
                     </GlassPanel>
-                  </motion.div>
+                  </div>
 
                   {/* Admin Tools */}
-                  <motion.div variants={itemVariants}>
+                  <div>
                     <GlassPanel>
                       <SectionTitle>Admin Tools</SectionTitle>
 
@@ -557,12 +550,12 @@ const ModernUserManagementSystem: React.FC = () => {
                         </GlowButton>
                       </FlexCol>
                     </GlassPanel>
-                  </motion.div>
+                  </div>
                 </div>
               </ContentGrid>
             </CardContent>
           </StyledCard>
-        </motion.div>
+        </div>
       </ContentContainer>
 
       {/* Add User Dialog */}
