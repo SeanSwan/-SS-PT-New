@@ -44,9 +44,8 @@ const spin = keyframes`
 export const PageContainer = styled.div`
   position: relative;
   overflow-x: hidden;
-  background: linear-gradient(135deg, ${theme.galaxyCore}, #1e1e3f);
   color: ${theme.text};
-  min-height: 100vh;
+  min-height: 400px;
 `;
 
 export const ContentContainer = styled.div`
