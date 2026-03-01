@@ -70,17 +70,28 @@ router.get('/schedule/upcoming', authorize(['admin']), getUpcomingChecks);
  * @desc    Upload progress photos (returns URLs to include in measurement)
  * @access  Trainer, Admin
  */
-router.post('/upload-photos', authorize(['admin', 'trainer']), upload.array('photos', 10), (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No files uploaded' });
+router.post('/upload-photos', authorize(['admin', 'trainer']), (req, res, next) => {
+  upload.array('photos', 10)(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ success: false, message: 'File too large. Maximum 10MB per photo.' });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ success: false, message: 'Too many files. Maximum 10 photos per upload.' });
+      }
+      if (err.message?.includes('Only image files')) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      return res.status(500).json({ success: false, message: 'Upload failed' });
     }
-    const photoUrls = req.files.map(file => `/uploads/measurements/${file.filename}`);
-    res.json({ success: true, photoUrls });
-  } catch (error) {
-    console.error('Error uploading measurement photos:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload photos', error: error.message });
+    next();
+  });
+}, (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, message: 'No files uploaded' });
   }
+  const photoUrls = req.files.map(file => `/uploads/measurements/${file.filename}`);
+  res.json({ success: true, photoUrls });
 });
 
 /**

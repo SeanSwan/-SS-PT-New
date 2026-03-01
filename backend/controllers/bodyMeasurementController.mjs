@@ -5,6 +5,9 @@ import { detectMilestones } from '../services/measurementMilestoneService.mjs';
 import { syncMeasurementDates } from '../services/measurementScheduleService.mjs';
 import { Op } from 'sequelize';
 
+const isProduction = process.env.NODE_ENV === 'production';
+const safeError = (error) => isProduction ? undefined : error.message;
+
 /**
  * Body Measurement Controller
  * Handles CRUD operations for body measurements
@@ -50,8 +53,9 @@ export async function createMeasurement(req, res) {
       photoUrls
     } = req.body;
 
-    // Use provided userId or current user's ID (for client self-entry)
-    const targetUserId = userId || req.user.id;
+    // RBAC: clients can only create measurements for themselves
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
+    const targetUserId = (userId && isPrivileged) ? userId : req.user.id;
 
     // Create measurement
     const BodyMeasurement = getBodyMeasurement();
@@ -152,7 +156,7 @@ export async function createMeasurement(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to create measurement',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -164,6 +168,13 @@ export async function createMeasurement(req, res) {
 export async function getUserMeasurements(req, res) {
   try {
     const { userId } = req.params;
+
+    // RBAC: clients can only view their own measurements
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
+    if (!isPrivileged && String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
     const { limit = 20, offset = 0, startDate, endDate } = req.query;
 
     const whereClause = { userId };
@@ -209,7 +220,7 @@ export async function getUserMeasurements(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to get measurements',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -248,6 +259,12 @@ export async function getMeasurementById(req, res) {
       });
     }
 
+    // RBAC: clients can only view their own measurements
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
+    if (!isPrivileged && String(req.user.id) !== String(measurement.userId)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
     res.json({
       success: true,
       data: measurement
@@ -258,7 +275,7 @@ export async function getMeasurementById(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to get measurement',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -283,8 +300,22 @@ export async function updateMeasurement(req, res) {
       });
     }
 
-    // Update measurement
-    await measurement.update(req.body, { transaction });
+    // Whitelist allowed fields to prevent mass assignment
+    const allowedFields = [
+      'measurementDate', 'weight', 'weightUnit', 'bodyFatPercentage',
+      'muscleMassPercentage', 'bmi', 'circumferenceUnit',
+      'neck', 'shoulders', 'chest', 'upperChest', 'underChest',
+      'rightBicep', 'leftBicep', 'rightForearm', 'leftForearm',
+      'naturalWaist', 'umbilicus', 'lowerWaist', 'hips',
+      'rightThigh', 'leftThigh', 'rightCalf', 'leftCalf',
+      'visceralFatLevel', 'metabolicAge', 'boneMass', 'waterPercentage',
+      'notes', 'clientNotes', 'measurementMethod', 'photoUrls'
+    ];
+    const sanitizedUpdate = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) sanitizedUpdate[key] = req.body[key];
+    }
+    await measurement.update(sanitizedUpdate, { transaction });
 
     // Recalculate comparisons if measurement data changed
     const comparisonResult = await calculateComparisons(measurement.userId, measurement.id);
@@ -314,7 +345,7 @@ export async function updateMeasurement(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to update measurement',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -348,7 +379,7 @@ export async function deleteMeasurement(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to delete measurement',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -360,6 +391,12 @@ export async function deleteMeasurement(req, res) {
 export async function getLatestMeasurement(req, res) {
   try {
     const { userId } = req.params;
+
+    // RBAC: clients can only view their own measurements
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
+    if (!isPrivileged && String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
 
     const BodyMeasurement = getBodyMeasurement();
     const User = getUser();
@@ -400,7 +437,7 @@ export async function getLatestMeasurement(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to get latest measurement',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -442,7 +479,7 @@ export async function uploadProgressPhotos(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to upload photos',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
@@ -453,6 +490,11 @@ export async function uploadProgressPhotos(req, res) {
  */
 export async function getMeasurementStats(req, res) {
   try {
+    // RBAC: clients can only view their own stats
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
+    if (!isPrivileged && String(req.user.id) !== String(req.params.userId)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
     const { userId } = req.params;
     const BodyMeasurement = getBodyMeasurement();
 
@@ -524,7 +566,7 @@ export async function getMeasurementStats(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to get measurement stats',
-      error: error.message
+      error: safeError(error)
     });
   }
 }
