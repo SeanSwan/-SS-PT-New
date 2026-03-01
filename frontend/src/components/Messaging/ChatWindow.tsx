@@ -44,9 +44,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     if (socket && isConnected) {
       socket.emit('send_message', { conversationId, content });
+    } else {
+      // REST fallback when Socket.IO is unavailable
+      try {
+        const res = await api.post(`/api/messaging/conversations/${conversationId}/messages`, { content });
+        // Manually add the message to the query cache
+        queryClient.setQueryData(['messages', { conversationId }], (oldData: any) => {
+          if (!oldData) return oldData;
+          const newPages = [...oldData.pages];
+          newPages[newPages.length - 1] = {
+            ...newPages[newPages.length - 1],
+            messages: [...newPages[newPages.length - 1].messages, res.data],
+          };
+          return { ...oldData, pages: newPages };
+        });
+      } catch (err) {
+        console.error('Failed to send message via REST:', err);
+      }
     }
   };
 
@@ -182,7 +199,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
           `${typingUsers.join(', ')} ${typingUsers.length > 1 ? 'are' : 'is'} typing...`
         }
       </TypingIndicator>
-      <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} disabled={!isConnected} />
+      <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} disabled={false} />
     </Container>
   );
 };

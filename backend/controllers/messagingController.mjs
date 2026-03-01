@@ -305,3 +305,48 @@ export const searchUsers = async (req, res) => {
     res.status(500).json({ error: 'Failed to search for users.' });
   }
 };
+
+/**
+ * Send a message to a conversation (REST fallback when Socket.IO is unavailable).
+ * POST /api/messaging/conversations/:id/messages
+ */
+export const sendMessage = async (req, res) => {
+  const { id: conversationId } = req.params;
+  const senderId = req.user.id;
+  const { content } = req.body;
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Message content is required.' });
+  }
+
+  try {
+    // Verify user is a participant
+    const [participant] = await sequelize.query(
+      `SELECT 1 FROM conversation_participants WHERE conversation_id = :conversationId AND user_id = :senderId`,
+      { replacements: { conversationId, senderId }, type: QueryTypes.SELECT }
+    );
+    if (!participant) {
+      return res.status(403).json({ error: 'You are not a member of this conversation.' });
+    }
+
+    // Insert the message
+    const [rows] = await sequelize.query(
+      `INSERT INTO messages (conversation_id, sender_id, content, created_at, updated_at)
+       VALUES (:conversationId, :senderId, :content, NOW(), NOW()) RETURNING *`,
+      { replacements: { conversationId, senderId, content: content.trim() } }
+    );
+    const message = rows[0] || rows;
+
+    // Fetch sender info
+    const [sender] = await sequelize.query(
+      `SELECT id, "firstName" || ' ' || "lastName" as name, photo FROM users WHERE id = :senderId`,
+      { replacements: { senderId }, type: QueryTypes.SELECT }
+    );
+
+    const fullMessage = { ...message, sender, conversation_id: conversationId };
+    res.status(201).json(fullMessage);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: `Failed to send message: ${error.message}` });
+  }
+};

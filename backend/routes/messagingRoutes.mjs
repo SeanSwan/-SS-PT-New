@@ -13,6 +13,7 @@ import {
   getConversations,
   createConversation,
   getMessagesForConversation,
+  sendMessage,
   searchUsers,
 } from '../controllers/messagingController.mjs';
 import { protect } from '../middleware/auth.mjs';
@@ -29,6 +30,9 @@ router.post('/conversations', protect, [
 
 // Get messages for a specific conversation
 router.get('/conversations/:id/messages', protect, getMessagesForConversation);
+
+// Send a message to a conversation (REST fallback)
+router.post('/conversations/:id/messages', protect, sendMessage);
 
 // Search for users
 router.get('/users/search', protect, searchUsers);
