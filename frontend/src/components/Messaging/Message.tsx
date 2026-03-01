@@ -55,17 +55,23 @@ const MessageContainer = styled.div<{ $isOwn: boolean }>`
 const MessageBubble = styled.div<{ $isOwn: boolean }>`
   max-width: 70%;
   background: ${props => props.$isOwn
-    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-    : 'rgba(255, 255, 255, 0.1)'};
+    ? 'linear-gradient(135deg, #7851A9 0%, #5D3FD3 100%)'
+    : 'rgba(255, 255, 255, 0.08)'};
+  border: 1px solid ${props => props.$isOwn
+    ? 'rgba(120, 81, 169, 0.4)'
+    : 'rgba(255, 255, 255, 0.06)'};
   border-radius: 16px;
   padding: 12px 16px;
   ${props => props.$isOwn
     ? 'border-bottom-right-radius: 4px;'
     : 'border-bottom-left-radius: 4px;'}
+  box-shadow: ${props => props.$isOwn
+    ? '0 4px 12px rgba(120, 81, 169, 0.2)'
+    : '0 2px 8px rgba(0, 0, 0, 0.15)'};
 `;
 
 const SenderName = styled.div`
-  color: rgba(255, 255, 255, 0.7);
+  color: #00CED1;
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
@@ -88,12 +94,12 @@ const MessageFooter = styled.div`
 `;
 
 const Timestamp = styled.span`
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 11px;
 `;
 
 const ReadIndicator = styled.span`
-  color: rgba(255, 255, 255, 0.8);
+  color: #00CED1;
   font-size: 12px;
   font-weight: 600;
 `;

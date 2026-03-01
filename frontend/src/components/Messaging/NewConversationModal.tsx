@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import styled from 'styled-components';
-import { X, Search, User, Users, Shield, Dumbbell } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { X, Search, User, Users, Shield, Dumbbell, MessageCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 
@@ -26,14 +26,32 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<SearchUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+
+  // Load suggested users on mount (no typing required)
+  useEffect(() => {
+    const loadSuggested = async () => {
+      try {
+        setLoadingSuggestions(true);
+        const response = await api.get('/api/messaging/users/search');
+        setSuggestedUsers(response.data || []);
+      } catch (err) {
+        console.error('Failed to load suggested users:', err);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+    loadSuggested();
+  }, []);
 
   // Focus search input on mount
   useEffect(() => {
@@ -79,10 +97,24 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
     };
   }, [searchQuery, searchUsers]);
 
+  // Determine which users to display (search results or suggestions)
+  const displayUsers = searchQuery.length >= 2 ? searchResults : suggestedUsers;
+
   // Filter results by role
   const filteredResults = roleFilter === 'all'
-    ? searchResults
-    : searchResults.filter((u) => u.role === roleFilter);
+    ? displayUsers
+    : displayUsers.filter((u) => {
+        const normalizedRole = u.role === 'user' ? 'client' : u.role;
+        return normalizedRole === roleFilter;
+      });
+
+  // Count users by role for filter badges
+  const roleCounts = {
+    all: displayUsers.length,
+    client: displayUsers.filter(u => (u.role === 'user' || u.role === 'client')).length,
+    trainer: displayUsers.filter(u => u.role === 'trainer').length,
+    admin: displayUsers.filter(u => u.role === 'admin').length,
+  };
 
   const handleSelectUser = (user: SearchUser) => {
     setSelectedUser(user);
@@ -131,7 +163,8 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
   };
 
   const getRoleIcon = (role?: string) => {
-    switch (role) {
+    const normalized = role === 'user' ? 'client' : role;
+    switch (normalized) {
       case 'admin': return <Shield size={12} />;
       case 'trainer': return <Dumbbell size={12} />;
       case 'client': return <User size={12} />;
@@ -140,15 +173,25 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
   };
 
   const getRoleLabel = (role?: string) => {
-    if (!role) return 'User';
+    if (!role || role === 'user') return 'Client';
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
+
+  const getNormalizedRole = (role?: string) => {
+    if (!role || role === 'user') return 'client';
+    return role;
+  };
+
+  const isShowingSuggestions = searchQuery.length < 2;
 
   return (
     <Overlay onClick={onClose}>
       <ModalContainer onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>New Conversation</ModalTitle>
+          <HeaderLeft>
+            <MessageCircle size={20} color="#00CED1" />
+            <ModalTitle>New Conversation</ModalTitle>
+          </HeaderLeft>
           <CloseButton onClick={onClose} aria-label="Close">
             <X size={20} />
           </CloseButton>
@@ -169,7 +212,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 <ChipName>
                   {selectedUser.firstName} {selectedUser.lastName}
                 </ChipName>
-                <RoleBadge $role={selectedUser.role}>
+                <RoleBadge $role={getNormalizedRole(selectedUser.role)}>
                   {getRoleIcon(selectedUser.role)}
                   {getRoleLabel(selectedUser.role)}
                 </RoleBadge>
@@ -205,49 +248,72 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                     onClick={() => setRoleFilter(role)}
                   >
                     {role === 'all' ? 'All' : getRoleLabel(role)}
+                    <RoleCount $active={roleFilter === role}>
+                      {roleCounts[role]}
+                    </RoleCount>
                   </RoleFilterTab>
                 ))}
               </RoleFilterBar>
 
-              {/* Search results dropdown */}
-              {searchQuery.length >= 2 && (
-                <ResultsList>
-                  {searching ? (
-                    <ResultsMessage>Searching...</ResultsMessage>
-                  ) : filteredResults.length === 0 ? (
-                    <ResultsMessage>
-                      {searchResults.length === 0
-                        ? 'No users found'
-                        : `No ${roleFilter}s found`}
-                    </ResultsMessage>
-                  ) : (
-                    filteredResults.map((user) => (
-                      <ResultItem
-                        key={user.id}
-                        onClick={() => handleSelectUser(user)}
-                      >
-                        <ResultAvatar>
-                          {user.photo ? (
-                            <img src={user.photo} alt="" />
-                          ) : (
-                            <User size={18} />
-                          )}
-                        </ResultAvatar>
-                        <ResultInfo>
-                          <ResultName>
-                            {user.firstName} {user.lastName}
-                          </ResultName>
-                          <ResultUsername>@{user.username}</ResultUsername>
-                        </ResultInfo>
-                        <RoleBadge $role={user.role}>
-                          {getRoleIcon(user.role)}
-                          {getRoleLabel(user.role)}
-                        </RoleBadge>
-                      </ResultItem>
-                    ))
-                  )}
-                </ResultsList>
-              )}
+              {/* Section label */}
+              <SectionLabel>
+                {isShowingSuggestions ? 'Available Contacts' : 'Search Results'}
+              </SectionLabel>
+
+              {/* Users list (suggested or search results) */}
+              <ResultsList>
+                {(searching || loadingSuggestions) ? (
+                  <ResultsMessage>
+                    <SearchSpinnerInline />
+                    {isShowingSuggestions ? 'Loading contacts...' : 'Searching...'}
+                  </ResultsMessage>
+                ) : filteredResults.length === 0 ? (
+                  <EmptyState>
+                    <EmptyIcon>
+                      <Users size={32} />
+                    </EmptyIcon>
+                    <EmptyTitle>
+                      {searchQuery.length >= 2
+                        ? `No ${roleFilter === 'all' ? 'users' : roleFilter + 's'} found for "${searchQuery}"`
+                        : roleFilter !== 'all'
+                          ? `No ${roleFilter}s available`
+                          : 'No users available'
+                      }
+                    </EmptyTitle>
+                    <EmptyHint>
+                      {searchQuery.length >= 2
+                        ? 'Try a different name, username, or email'
+                        : 'Check back later or contact support'
+                      }
+                    </EmptyHint>
+                  </EmptyState>
+                ) : (
+                  filteredResults.map((user) => (
+                    <ResultItem
+                      key={user.id}
+                      onClick={() => handleSelectUser(user)}
+                    >
+                      <ResultAvatar>
+                        {user.photo ? (
+                          <img src={user.photo} alt="" />
+                        ) : (
+                          <User size={18} />
+                        )}
+                      </ResultAvatar>
+                      <ResultInfo>
+                        <ResultName>
+                          {user.firstName} {user.lastName}
+                        </ResultName>
+                        <ResultUsername>@{user.username}</ResultUsername>
+                      </ResultInfo>
+                      <RoleBadge $role={getNormalizedRole(user.role)}>
+                        {getRoleIcon(user.role)}
+                        {getRoleLabel(user.role)}
+                      </RoleBadge>
+                    </ResultItem>
+                  ))
+                )}
+              </ResultsList>
             </>
           )}
 
@@ -274,6 +340,11 @@ export default NewConversationModal;
 
 // ── Styled Components ──────────────────────────────────────────
 
+const fadeIn = keyframes`
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+`;
+
 const Overlay = styled.div`
   position: fixed;
   top: 0;
@@ -295,7 +366,11 @@ const ModalContainer = styled.div`
   border-radius: 16px;
   width: 90%;
   max-width: 520px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(120, 81, 169, 0.1);
+  animation: ${fadeIn} 0.2s ease-out;
 `;
 
 const ModalHeader = styled.div`
@@ -304,6 +379,12 @@ const ModalHeader = styled.div`
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
 `;
 
 const ModalTitle = styled.h2`
@@ -338,6 +419,8 @@ const ModalBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  flex: 1;
 `;
 
 // ── Search ──
@@ -384,6 +467,10 @@ const SearchInput = styled.input`
   }
 `;
 
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
 const SearchSpinner = styled.div`
   position: absolute;
   right: 14px;
@@ -392,11 +479,19 @@ const SearchSpinner = styled.div`
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-top-color: #00CED1;
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  animation: ${spin} 0.6s linear infinite;
+`;
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+const SearchSpinnerInline = styled.div`
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #00CED1;
+  border-radius: 50%;
+  animation: ${spin} 0.6s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
 `;
 
 // ── Role Filter ──
@@ -411,7 +506,7 @@ const RoleFilterBar = styled.div`
 
 const RoleFilterTab = styled.button<{ $active: boolean }>`
   flex: 1;
-  padding: 8px 12px;
+  padding: 8px 8px;
   border: none;
   border-radius: 6px;
   font-size: 12px;
@@ -419,6 +514,10 @@ const RoleFilterTab = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: all 0.2s;
   min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 
   ${({ $active }) =>
     $active
@@ -436,10 +535,31 @@ const RoleFilterTab = styled.button<{ $active: boolean }>`
       `}
 `;
 
+const RoleCount = styled.span<{ $active: boolean }>`
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: 700;
+  ${({ $active }) =>
+    $active
+      ? `background: rgba(196, 160, 255, 0.2); color: #c4a0ff;`
+      : `background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.4);`}
+`;
+
+// ── Section Label ──
+
+const SectionLabel = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.35);
+`;
+
 // ── Search Results ──
 
 const ResultsList = styled.div`
-  max-height: 260px;
+  max-height: 320px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
@@ -512,11 +632,41 @@ const ResultUsername = styled.div`
   text-overflow: ellipsis;
 `;
 
+// ── Empty State ──
+
+const EmptyState = styled.div`
+  padding: 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+`;
+
+const EmptyIcon = styled.div`
+  color: rgba(255, 255, 255, 0.15);
+  margin-bottom: 4px;
+`;
+
+const EmptyTitle = styled.div`
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const EmptyHint = styled.div`
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+`;
+
 const ResultsMessage = styled.div`
   padding: 20px;
   text-align: center;
   color: rgba(255, 255, 255, 0.4);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 // ── Role Badge ──
@@ -534,13 +684,13 @@ const RoleBadge = styled.span<{ $role?: string }>`
   ${({ $role }) => {
     switch ($role) {
       case 'admin':
-        return `background: rgba(120, 81, 169, 0.2); color: #c4a0ff;`;
+        return `background: linear-gradient(135deg, rgba(120, 81, 169, 0.25), rgba(93, 63, 211, 0.25)); color: #c4a0ff; border: 1px solid rgba(120, 81, 169, 0.3);`;
       case 'trainer':
-        return `background: rgba(0, 206, 209, 0.15); color: #00CED1;`;
+        return `background: rgba(0, 206, 209, 0.15); color: #00CED1; border: 1px solid rgba(0, 206, 209, 0.25);`;
       case 'client':
-        return `background: rgba(59, 130, 246, 0.15); color: #60a5fa;`;
+        return `background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);`;
       default:
-        return `background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.6);`;
+        return `background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.1);`;
     }
   }}
 `;
