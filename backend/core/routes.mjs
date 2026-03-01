@@ -3,6 +3,7 @@
  * ===========================
  * Organized route setup for SwanStudios platform
  * Master Prompt v28 aligned - Clean architecture
+ * Phase 11: Body measurement routes added
  *
  * Phase 8 Reference:
  * - docs/ai-workflow/PHASE-8-DASHBOARD-API-GAPS-BLUEPRINT.md
