@@ -71,7 +71,7 @@ async function ensureAdminConversation(userId) {
         replacements: {
           convId,
           adminId,
-          content: 'Welcome to SwanStudios! 🦢 I''m Sean, your coach. Feel free to message me anytime — whether it''s about training, scheduling, or anything else. I''m here to help!',
+          content: `Welcome to SwanStudios! 🦢 I'm Sean, your coach. Feel free to message me anytime — whether it's about training, scheduling, or anything else. I'm here to help!`,
         },
         transaction: trx,
       }
