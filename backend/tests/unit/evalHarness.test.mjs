@@ -1,21 +1,26 @@
 /**
- * Eval Harness Tests — Phase 6
- * ==============================
- * 29 tests covering dataset integrity, runner correctness,
- * threshold checking, report formatting, and guard behavior.
+ * Eval Harness Tests — Phase 6 + Phase 9
+ * ========================================
+ * 51 tests covering dataset integrity, runner correctness,
+ * threshold checking, report formatting, guard behavior,
+ * new scenario spot-checks, and drift detection.
  */
 import { describe, it, expect } from 'vitest';
 import { GOLDEN_SCENARIOS, DATASET_VERSION } from '../../eval/goldenDataset.mjs';
 import { runEvalSuite, computeExitCode } from '../../eval/evalRunner.mjs';
 import { EVAL_THRESHOLDS, checkThresholds } from '../../eval/evalThresholds.mjs';
 import { formatJsonReport, formatMarkdownReport } from '../../eval/evalReport.mjs';
+import { loadBaseline, compareDrift } from '../../eval/driftDetector.mjs';
+import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 // ── Dataset Integrity (1-4) ──────────────────────────────────────────────────
 
 describe('Golden Dataset Integrity', () => {
-  it('1 — has ≥20 scenarios', () => {
-    expect(GOLDEN_SCENARIOS.length).toBeGreaterThanOrEqual(20);
-    expect(GOLDEN_SCENARIOS.length).toBe(27);
+  it('1 — has ≥50 scenarios', () => {
+    expect(GOLDEN_SCENARIOS.length).toBeGreaterThanOrEqual(50);
+    expect(GOLDEN_SCENARIOS.length).toBe(53);
   });
 
   it('2 — all scenarios have required fields', () => {
@@ -189,11 +194,11 @@ describe('Adversarial & KnownGap', () => {
   it('19 — knownGap scenarios excluded from category pass rate', () => {
     const { summary } = runEvalSuite(GOLDEN_SCENARIOS);
     const adversarial = summary.categories.adversarial;
-    // 3 total, 2 knownGap, 1 gated
-    expect(adversarial.total).toBe(3);
-    expect(adversarial.knownGaps).toBe(2);
-    expect(adversarial.gated).toBe(1);
-    expect(adversarial.passRate).toBe(1.0); // 1/1, not 1/3
+    // 6 total, 4 knownGap, 2 gated
+    expect(adversarial.total).toBe(6);
+    expect(adversarial.knownGaps).toBe(4);
+    expect(adversarial.gated).toBe(2);
+    expect(adversarial.passRate).toBe(1.0); // 2/2, not 2/6
   });
 
   it('20 — knownGap scenarios require non-empty rationale', () => {
@@ -342,6 +347,279 @@ describe('Threshold Warning Propagation', () => {
     const md = formatMarkdownReport(report);
     expect(md).toContain('## Threshold Warnings');
     expect(md).toContain('no gated scenarios');
+  });
+});
+
+// ── Phase 9: New Scenario Spot-Checks (29-38) ──────────────────────────────
+
+describe('Phase 9 Scenario Spot-Checks', () => {
+  // Run full suite once for spot-check tests
+  const fullResults = runEvalSuite(GOLDEN_SCENARIOS);
+
+  it('29 — schema_valid_06 maximal valid passes', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'schema_valid_06');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(true);
+  });
+
+  it('30 — pii_detect_06 phone with dots caught', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'pii_detect_06');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(false);
+    expect(r.actual.failStage).toBe('pii_leak');
+  });
+
+  it('31 — schema_invalid_05 durationWeeks=0 rejected', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'schema_invalid_05');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(false);
+    expect(r.actual.failStage).toBe('validation_error');
+  });
+
+  it('32 — schema_invalid_09 HTML string rejected', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'schema_invalid_09');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(false);
+    expect(r.actual.failStage).toBe('parse_error');
+  });
+
+  it('33 — contra_06 long-horizon boundary overflow', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'contra_06');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(false);
+    expect(r.actual.failStage).toBe('validation_error');
+  });
+
+  it('34 — scope_03 GENERAL+optPhase rejected', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'scope_03');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(false);
+    expect(r.actual.failStage).toBe('validation_error');
+  });
+
+  it('35 — adversarial_04 parenthesized phone is knownGap', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'adversarial_04');
+    expect(r.pass).toBe(true);
+    expect(r.actual.ok).toBe(true);
+    expect(fullResults.knownGaps.some(g => g.id === 'adversarial_04')).toBe(true);
+  });
+
+  it('36 — warnings_05 exactly 20 exercises → no warning', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'warnings_05');
+    expect(r.pass).toBe(true);
+    expect(r.actual.warnings).toBe(0);
+  });
+
+  it('37 — warnings_06 21 exercises → triggers warning', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'warnings_06');
+    expect(r.pass).toBe(true);
+    expect(r.actual.warnings).toBeGreaterThanOrEqual(1);
+  });
+
+  it('38 — warnings_07 block exactly 8w → no warning', () => {
+    const r = fullResults.results.find(r => r.scenarioId === 'warnings_07');
+    expect(r.pass).toBe(true);
+    expect(r.actual.warnings).toBe(0);
+  });
+});
+
+// ── Phase 9: Drift Detector Unit Tests (39-47) ─────────────────────────────
+
+describe('Drift Detector', () => {
+  const tmpDir = join(tmpdir(), 'eval-drift-tests-' + Date.now());
+
+  it('39 — loadBaseline: valid JSON file → parsed object', () => {
+    mkdirSync(tmpDir, { recursive: true });
+    const filePath = join(tmpDir, 'valid.json');
+    writeFileSync(filePath, JSON.stringify({ summary: { total: 27 } }));
+    const result = loadBaseline(filePath);
+    expect(result).toEqual({ summary: { total: 27 } });
+    unlinkSync(filePath);
+  });
+
+  it('40 — loadBaseline: missing file → null', () => {
+    const result = loadBaseline(join(tmpDir, 'does-not-exist.json'));
+    expect(result).toBeNull();
+  });
+
+  it('41 — loadBaseline: invalid JSON → null', () => {
+    const filePath = join(tmpDir, 'invalid.json');
+    writeFileSync(filePath, 'not valid json {{{');
+    const result = loadBaseline(filePath);
+    expect(result).toBeNull();
+    unlinkSync(filePath);
+  });
+
+  it('42 — compareDrift: identical reports → drifted=false', () => {
+    const report = {
+      datasetVersion: '2.0.0',
+      promptVersion: '1.0.0',
+      ruleEngineVersion: '1.0.0',
+      summary: { total: 53, gated: 49, passed: 49, failed: 0, correctnessFailures: 0, knownGaps: 4 },
+      categories: { schema_valid: { passRate: 1.0 }, pii_detection: { passRate: 1.0 } },
+    };
+    const result = compareDrift(report, { ...report });
+    expect(result.drifted).toBe(false);
+    expect(result.changes).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('43 — compareDrift: summary.failed increase → REGRESSION', () => {
+    const baseline = {
+      datasetVersion: '2.0.0', promptVersion: '1.0.0', ruleEngineVersion: '1.0.0',
+      summary: { total: 53, gated: 49, passed: 49, failed: 0, correctnessFailures: 0, knownGaps: 4 },
+      categories: {},
+    };
+    const current = {
+      ...baseline,
+      summary: { ...baseline.summary, passed: 48, failed: 1 },
+    };
+    const result = compareDrift(current, baseline);
+    expect(result.drifted).toBe(true);
+    const failedChange = result.changes.find(c => c.field === 'summary.failed');
+    expect(failedChange.severity).toBe('REGRESSION');
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('44 — compareDrift: summary.passed increase → IMPROVEMENT', () => {
+    const baseline = {
+      datasetVersion: '2.0.0', promptVersion: '1.0.0', ruleEngineVersion: '1.0.0',
+      summary: { total: 53, gated: 49, passed: 48, failed: 1, correctnessFailures: 0, knownGaps: 4 },
+      categories: {},
+    };
+    const current = {
+      ...baseline,
+      summary: { ...baseline.summary, passed: 49, failed: 0 },
+    };
+    const result = compareDrift(current, baseline);
+    const passedChange = result.changes.find(c => c.field === 'summary.passed');
+    expect(passedChange.severity).toBe('IMPROVEMENT');
+  });
+
+  it('45 — compareDrift: summary.total change → CHANGE', () => {
+    const baseline = {
+      datasetVersion: '2.0.0', promptVersion: '1.0.0', ruleEngineVersion: '1.0.0',
+      summary: { total: 27, gated: 25, passed: 25, failed: 0, correctnessFailures: 0, knownGaps: 2 },
+      categories: {},
+    };
+    const current = {
+      ...baseline,
+      summary: { ...baseline.summary, total: 53 },
+    };
+    const result = compareDrift(current, baseline);
+    const totalChange = result.changes.find(c => c.field === 'summary.total');
+    expect(totalChange.severity).toBe('CHANGE');
+  });
+
+  it('46 — compareDrift: per-category passRate decrease → REGRESSION', () => {
+    const baseline = {
+      datasetVersion: '2.0.0', promptVersion: '1.0.0', ruleEngineVersion: '1.0.0',
+      summary: { total: 53, gated: 49, passed: 49, failed: 0, correctnessFailures: 0, knownGaps: 4 },
+      categories: { schema_valid: { passRate: 1.0 } },
+    };
+    const current = {
+      ...baseline,
+      categories: { schema_valid: { passRate: 0.75 } },
+    };
+    const result = compareDrift(current, baseline);
+    const catChange = result.changes.find(c => c.field === 'categories.schema_valid.passRate');
+    expect(catChange.severity).toBe('REGRESSION');
+    expect(result.warnings.some(w => w.includes('REGRESSION'))).toBe(true);
+  });
+
+  it('47 — compareDrift: provenance version change → CHANGE', () => {
+    const baseline = {
+      datasetVersion: '1.1.0', promptVersion: '1.0.0', ruleEngineVersion: '1.0.0',
+      summary: { total: 27, gated: 25, passed: 25, failed: 0, correctnessFailures: 0, knownGaps: 2 },
+      categories: {},
+    };
+    const current = {
+      ...baseline,
+      datasetVersion: '2.0.0',
+    };
+    const result = compareDrift(current, baseline);
+    const versionChange = result.changes.find(c => c.field === 'datasetVersion');
+    expect(versionChange.severity).toBe('CHANGE');
+    expect(versionChange.baseline).toBe('1.1.0');
+    expect(versionChange.current).toBe('2.0.0');
+  });
+});
+
+// ── Phase 9: Drift Integration Tests (48-50) ───────────────────────────────
+
+describe('Drift Integration', () => {
+  it('48 — loadBaseline returns null for missing file → no crash', () => {
+    const baseline = loadBaseline('/nonexistent/path/baseline.json');
+    expect(baseline).toBeNull();
+    // Drift should be skippable when baseline is null (no crash)
+  });
+
+  it('49 — drift with matching baseline → drifted=false', () => {
+    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const thresholdCheck = checkThresholds(evalResults.summary);
+    const report = formatJsonReport(evalResults, thresholdCheck);
+    // Compare report against itself (simulates matching baseline)
+    const drift = compareDrift(report, report);
+    expect(drift.drifted).toBe(false);
+    expect(drift.changes).toHaveLength(0);
+  });
+
+  it('50 — fail-on-drift with REGRESSION triggers warning list', () => {
+    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const thresholdCheck = checkThresholds(evalResults.summary);
+    const currentReport = formatJsonReport(evalResults, thresholdCheck);
+
+    // Create a synthetic baseline with better numbers to force regression
+    const fakeBaseline = {
+      ...currentReport,
+      summary: {
+        ...currentReport.summary,
+        passed: currentReport.summary.passed + 5,
+        failed: 0,
+      },
+      categories: { ...currentReport.categories },
+    };
+
+    const drift = compareDrift(currentReport, fakeBaseline);
+    expect(drift.drifted).toBe(true);
+    expect(drift.warnings.length).toBeGreaterThan(0);
+    expect(drift.warnings.some(w => w.includes('REGRESSION'))).toBe(true);
+    // In real CLI, this would trigger process.exit(1) with --fail-on-drift
+  });
+});
+
+// ── Phase 9: Report Drift Support (51) ──────────────────────────────────────
+
+describe('Report Drift Support', () => {
+  it('51 — formatJsonReport includes drift field when provided', () => {
+    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const thresholdCheck = checkThresholds(evalResults.summary);
+    const drift = { drifted: false, changes: [], warnings: [] };
+    const report = formatJsonReport(evalResults, thresholdCheck, drift);
+    expect(report).toHaveProperty('drift');
+    expect(report.drift.drifted).toBe(false);
+  });
+
+  it('51b — formatJsonReport omits drift field when null', () => {
+    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const thresholdCheck = checkThresholds(evalResults.summary);
+    const report = formatJsonReport(evalResults, thresholdCheck);
+    expect(report).not.toHaveProperty('drift');
+  });
+
+  it('51c — formatMarkdownReport includes drift section when present', () => {
+    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const thresholdCheck = checkThresholds(evalResults.summary);
+    const drift = {
+      drifted: true,
+      changes: [{ field: 'summary.total', baseline: 27, current: 53, severity: 'CHANGE' }],
+      warnings: [],
+    };
+    const report = formatJsonReport(evalResults, thresholdCheck, drift);
+    const md = formatMarkdownReport(report);
+    expect(md).toContain('## Drift Detection');
+    expect(md).toContain('summary.total');
+    expect(md).toContain('CHANGE');
   });
 });
 

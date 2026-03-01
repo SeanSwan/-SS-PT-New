@@ -14,10 +14,11 @@ const EVAL_VERSION = '1.0.0';
  *
  * @param {{ results: Array, summary: Object, knownGaps: Array }} evalResults
  * @param {{ passed: boolean, failures: string[], warnings: string[] }} thresholdCheck
+ * @param {{ drifted: boolean, changes: Array, warnings: string[] }|null} [drift=null] - Drift comparison results
  * @returns {Object} JSON report
  */
-export function formatJsonReport(evalResults, thresholdCheck) {
-  return {
+export function formatJsonReport(evalResults, thresholdCheck, drift = null) {
+  const report = {
     evalVersion: EVAL_VERSION,
     datasetVersion: DATASET_VERSION,
     promptVersion: PROMPT_VERSION,
@@ -32,6 +33,10 @@ export function formatJsonReport(evalResults, thresholdCheck) {
     thresholdCheck,
     results: evalResults.results,
   };
+  if (drift !== null) {
+    report.drift = drift;
+  }
+  return report;
 }
 
 /**
@@ -115,6 +120,32 @@ export function formatMarkdownReport(jsonReport) {
     lines.push('');
     for (const w of tc.warnings) {
       lines.push(`- ${w}`);
+    }
+    lines.push('');
+  }
+
+  // Drift Detection
+  if (jsonReport.drift) {
+    lines.push('## Drift Detection');
+    lines.push('');
+    if (!jsonReport.drift.drifted) {
+      lines.push('No drift detected from baseline.');
+    } else {
+      lines.push(`${jsonReport.drift.changes.length} change(s) detected from baseline.`);
+      lines.push('');
+      lines.push('| Field | Baseline | Current | Severity |');
+      lines.push('|-------|----------|---------|----------|');
+      for (const c of jsonReport.drift.changes) {
+        lines.push(`| ${c.field} | ${c.baseline} | ${c.current} | ${c.severity} |`);
+      }
+      if (jsonReport.drift.warnings.length > 0) {
+        lines.push('');
+        lines.push('**Drift Warnings:**');
+        lines.push('');
+        for (const w of jsonReport.drift.warnings) {
+          lines.push(`- ${w}`);
+        }
+      }
     }
     lines.push('');
   }

@@ -1,364 +1,187 @@
 /**
- * AI Monitoring Routes
- * API endpoints for monitoring AI feature usage and performance
+ * AI Monitoring Routes — Phase 10
+ * =================================
+ * Thin wrapper delegating to monitoringService + alertEngine.
+ * Re-exports updateMetrics for backward compatibility with existing callers.
+ *
+ * Existing endpoints preserved:
+ *   GET  /metrics         — Overview + per-feature metrics
+ *   GET  /trends/:feature — Historical trends from DB
+ *   GET  /health          — System health status
+ *   POST /reset           — Reset in-memory metrics (admin only)
+ *
+ * New admin endpoints (Phase 10):
+ *   GET  /alerts                  — Active alerts list
+ *   POST /alerts/:id/acknowledge  — Acknowledge an alert
+ *   POST /alerts/:id/resolve      — Resolve an alert
+ *   GET  /eval-status             — Latest eval results
+ *   GET  /drift-status            — Drift comparison
+ *   GET  /ab-status               — Latest A/B report
+ *   GET  /providers               — Provider breakdown
+ *   GET  /digest                  — 24h summary
  */
-
 import express from 'express';
-import { protect as authMiddleware } from '../middleware/authMiddleware.mjs';
+import { protect as authMiddleware, adminOnly } from '../middleware/authMiddleware.mjs';
+import {
+  getMetricsSnapshot,
+  getFeatureTrends,
+  getSystemHealth,
+  resetMetrics,
+  getEvalStatus,
+  getDriftStatus,
+  getAbStatus,
+  getProviderMetrics,
+  getDailyDigest,
+  isValidFeatureName,
+} from '../services/monitoring/monitoringService.mjs';
+import {
+  evaluateThresholds,
+  persistAlerts,
+  getActiveAlerts,
+  acknowledgeAlert,
+  resolveAlert,
+} from '../services/monitoring/alertEngine.mjs';
 import logger from '../utils/logger.mjs';
+
+// Re-export updateMetrics for backward compatibility
+// Callers: aiWorkoutController.mjs, longHorizonController.mjs, mcpRoutes.mjs
+export { updateMetrics } from '../services/monitoring/monitoringService.mjs';
 
 const router = express.Router();
 
-// In-memory storage for metrics (in production, use Redis or database)
-let metrics = {
-  workoutGeneration: {
-    totalRequests: 0,
-    successfulRequests: 0,
-    failedRequests: 0,
-    averageResponseTime: 0,
-    lastRequestTime: null,
-    totalTokensUsed: 0
-  },
-  progressAnalysis: {
-    totalRequests: 0,
-    successfulRequests: 0,
-    failedRequests: 0,
-    averageResponseTime: 0,
-    lastRequestTime: null,
-    totalTokensUsed: 0
-  },
-  nutritionPlanning: {
-    totalRequests: 0,
-    successfulRequests: 0,
-    failedRequests: 0,
-    averageResponseTime: 0,
-    lastRequestTime: null,
-    totalTokensUsed: 0
-  },
-  exerciseAlternatives: {
-    totalRequests: 0,
-    successfulRequests: 0,
-    failedRequests: 0,
-    averageResponseTime: 0,
-    lastRequestTime: null,
-    totalTokensUsed: 0
-  },
-  gamification: {
-    totalRequests: 0,
-    successfulRequests: 0,
-    failedRequests: 0,
-    averageResponseTime: 0,
-    lastRequestTime: null
-  }
-};
+// ── Existing endpoints (backward-compatible) ────────────────────────────────
 
-// Active users tracking
-let activeUsers = new Set();
-let dailyActiveUsers = new Set();
-
-/**
- * Update feature metrics
- */
-export const updateMetrics = (feature, success, responseTime, tokensUsed = 0, userId = null) => {
-  if (!metrics[feature]) return;
-  
-  const featureMetrics = metrics[feature];
-  
-  // Update request counts
-  featureMetrics.totalRequests++;
-  if (success) {
-    featureMetrics.successfulRequests++;
-  } else {
-    featureMetrics.failedRequests++;
-  }
-  
-  // Update response time (running average)
-  featureMetrics.averageResponseTime = (
-    (featureMetrics.averageResponseTime * (featureMetrics.totalRequests - 1) + responseTime) / 
-    featureMetrics.totalRequests
-  );
-  
-  // Update other metrics
-  featureMetrics.lastRequestTime = new Date().toISOString();
-  if (tokensUsed) {
-    featureMetrics.totalTokensUsed += tokensUsed;
-  }
-  
-  // Track active users
-  if (userId) {
-    activeUsers.add(userId);
-    dailyActiveUsers.add(userId);
-  }
-  
-  logger.info(`Updated metrics for ${feature}`, {
-    success,
-    responseTime,
-    tokensUsed,
-    totalRequests: featureMetrics.totalRequests
-  });
-};
-
-/**
- * Get comprehensive AI metrics
- * GET /api/ai-monitoring/metrics
- */
 router.get('/metrics', authMiddleware, (req, res) => {
   try {
-    // Calculate overall statistics
-    const totalRequests = Object.values(metrics).reduce((sum, metric) => sum + metric.totalRequests, 0);
-    const totalSuccessful = Object.values(metrics).reduce((sum, metric) => sum + metric.successfulRequests, 0);
-    const totalFailed = Object.values(metrics).reduce((sum, metric) => sum + metric.failedRequests, 0);
-    const overallSuccessRate = totalRequests > 0 ? ((totalSuccessful / totalRequests) * 100).toFixed(1) : 0;
-    
-    // Calculate average response time across all features
-    const responseTimeSum = Object.values(metrics).reduce((sum, metric) => {
-      return sum + (metric.averageResponseTime * metric.totalRequests);
-    }, 0);
-    const overallAverageResponseTime = totalRequests > 0 ? (responseTimeSum / totalRequests).toFixed(2) : 0;
-    
-    // Calculate total tokens used
-    const totalTokens = Object.values(metrics).reduce((sum, metric) => sum + (metric.totalTokensUsed || 0), 0);
-    
-    const response = {
-      timestamp: new Date().toISOString(),
-      overview: {
-        totalRequests,
-        successfulRequests: totalSuccessful,
-        failedRequests: totalFailed,
-        successRate: `${overallSuccessRate}%`,
-        averageResponseTime: `${overallAverageResponseTime}ms`,
-        totalTokensUsed: totalTokens,
-        activeUsers: activeUsers.size,
-        dailyActiveUsers: dailyActiveUsers.size
-      },
-      features: metrics,
-      systemHealth: {
-        status: overallSuccessRate >= 95 ? 'excellent' : 
-                overallSuccessRate >= 85 ? 'good' : 
-                overallSuccessRate >= 70 ? 'fair' : 'poor',
-        uptime: '99.9%', // This would be calculated based on actual uptime tracking
-        lastIncident: null // This would come from incident tracking
-      }
-    };
-    
-    res.json(response);
+    res.json(getMetricsSnapshot());
   } catch (error) {
     logger.error('Error getting AI metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve AI metrics',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to retrieve AI metrics', error: error.message });
   }
 });
 
-/**
- * Get feature usage trends
- * GET /api/ai-monitoring/trends/:feature
- */
-router.get('/trends/:feature', authMiddleware, (req, res) => {
+router.get('/trends/:feature', authMiddleware, async (req, res) => {
   try {
     const { feature } = req.params;
     const { timeRange = '24h' } = req.query;
-    
-    if (!metrics[feature]) {
-      return res.status(404).json({
-        success: false,
-        message: `Feature '${feature}' not found`
-      });
+
+    if (!isValidFeatureName(feature)) {
+      return res.status(400).json({ success: false, message: 'Invalid feature name' });
     }
-    
-    // In a real implementation, this would query historical data
-    // For now, we'll return mock trend data
-    const mockTrends = generateMockTrends(feature, timeRange);
-    
-    res.json({
-      feature,
-      timeRange,
-      trends: mockTrends,
-      current: metrics[feature]
-    });
+
+    const trends = await getFeatureTrends(feature, timeRange);
+    res.json(trends);
   } catch (error) {
     logger.error('Error getting feature trends:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve feature trends',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to retrieve feature trends', error: error.message });
   }
 });
 
-/**
- * Get AI system health status
- * GET /api/ai-monitoring/health
- */
-router.get('/health', authMiddleware, async (req, res) => {
+router.get('/health', authMiddleware, (req, res) => {
   try {
-    // Check MCP server health
-    const mcpHealth = await checkMCPHealth();
-    
-    // Calculate system metrics
-    const totalRequests = Object.values(metrics).reduce((sum, metric) => sum + metric.totalRequests, 0);
-    const totalSuccessful = Object.values(metrics).reduce((sum, metric) => sum + metric.successfulRequests, 0);
-    const successRate = totalRequests > 0 ? ((totalSuccessful / totalRequests) * 100) : 100;
-    
-    const healthStatus = {
-      timestamp: new Date().toISOString(),
-      overall: {
-        status: successRate >= 95 && mcpHealth.allOnline ? 'healthy' : 
-                successRate >= 85 && mcpHealth.someOnline ? 'degraded' : 'unhealthy',
-        successRate: `${successRate.toFixed(1)}%`,
-        mcpServers: mcpHealth,
-        activeFeatures: Object.keys(metrics).filter(feature => metrics[feature].totalRequests > 0)
-      },
-      features: Object.entries(metrics).map(([name, metric]) => ({
-        name,
-        status: metric.totalRequests === 0 ? 'unused' :
-                metric.failedRequests / metric.totalRequests < 0.1 ? 'healthy' :
-                metric.failedRequests / metric.totalRequests < 0.25 ? 'degraded' : 'unhealthy',
-        requests: metric.totalRequests,
-        successRate: metric.totalRequests > 0 ? 
-          `${((metric.successfulRequests / metric.totalRequests) * 100).toFixed(1)}%` : 'N/A',
-        lastUsed: metric.lastRequestTime || 'Never'
-      })),
-      recommendations: generateHealthRecommendations(successRate, mcpHealth)
-    };
-    
-    const statusCode = healthStatus.overall.status === 'healthy' ? 200 : 
-                       healthStatus.overall.status === 'degraded' ? 206 : 503;
-    
-    res.status(statusCode).json(healthStatus);
+    const health = getSystemHealth();
+    const statusCode = health.overall.status === 'healthy' ? 200
+      : health.overall.status === 'degraded' ? 206 : 503;
+    res.status(statusCode).json(health);
   } catch (error) {
     logger.error('Error checking AI health:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check AI system health',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to check AI system health', error: error.message });
   }
 });
 
-/**
- * Reset metrics (admin only)
- * POST /api/ai-monitoring/reset
- */
-router.post('/reset', authMiddleware, (req, res) => {
+router.post('/reset', authMiddleware, adminOnly, (req, res) => {
   try {
-    // Check if user has admin privileges
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required'
-      });
-    }
-    
-    // Reset all metrics
-    Object.keys(metrics).forEach(feature => {
-      metrics[feature] = {
-        totalRequests: 0,
-        successfulRequests: 0,
-        failedRequests: 0,
-        averageResponseTime: 0,
-        lastRequestTime: null,
-        totalTokensUsed: 0
-      };
-    });
-    
-    // Reset user tracking
-    activeUsers.clear();
-    dailyActiveUsers.clear();
-    
+    resetMetrics();
     logger.info('AI metrics reset by admin', { userId: req.user.id });
-    
-    res.json({
-      success: true,
-      message: 'AI metrics reset successfully',
-      timestamp: new Date().toISOString()
-    });
+    res.json({ success: true, message: 'AI metrics reset successfully', timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Error resetting AI metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to reset AI metrics',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to reset AI metrics', error: error.message });
   }
 });
 
-/**
- * Generate mock trend data
- */
-function generateMockTrends(feature, timeRange) {
-  const intervals = timeRange === '24h' ? 24 : timeRange === '7d' ? 7 : 30;
-  const trends = [];
-  
-  for (let i = 0; i < intervals; i++) {
-    trends.push({
-      time: new Date(Date.now() - (intervals - i) * (timeRange === '24h' ? 3600000 : 86400000)).toISOString(),
-      requests: Math.floor(Math.random() * 50) + 10,
-      successRate: 85 + Math.random() * 15,
-      responseTime: 1000 + Math.random() * 2000
-    });
-  }
-  
-  return trends;
-}
+// ── New admin endpoints (Phase 10) ──────────────────────────────────────────
 
-/**
- * Check MCP server health
- */
-async function checkMCPHealth() {
+router.get('/alerts', authMiddleware, adminOnly, async (req, res) => {
   try {
-    // This would typically check the actual MCP servers
-    // For now, return a mock health status
-    return {
-      workout: { status: 'online', latency: '150ms' },
-      gamification: { status: 'online', latency: '120ms' },
-      allOnline: true,
-      someOnline: true
-    };
+    const alerts = await getActiveAlerts();
+    res.json({ alerts, timestamp: new Date().toISOString() });
   } catch (error) {
-    return {
-      workout: { status: 'offline', error: error.message },
-      gamification: { status: 'offline', error: error.message },
-      allOnline: false,
-      someOnline: false
-    };
+    logger.error('Error getting alerts:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve alerts', error: error.message });
   }
-}
+});
 
-/**
- * Generate health recommendations
- */
-function generateHealthRecommendations(successRate, mcpHealth) {
-  const recommendations = [];
-  
-  if (successRate < 95) {
-    recommendations.push('Monitor error rates and investigate failed requests');
+router.post('/alerts/:id/acknowledge', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await acknowledgeAlert(parseInt(req.params.id, 10));
+    res.json({ success: true, message: 'Alert acknowledged' });
+  } catch (error) {
+    logger.error('Error acknowledging alert:', error);
+    const status = error.message.includes('not found') ? 404 : 500;
+    res.status(status).json({ success: false, message: error.message });
   }
-  
-  if (!mcpHealth.allOnline) {
-    recommendations.push('Check MCP server connectivity and restart if necessary');
-  }
-  
-  if (successRate < 85) {
-    recommendations.push('Consider implementing fallback mechanisms for AI features');
-  }
-  
-  if (recommendations.length === 0) {
-    recommendations.push('All systems operating normally - continue monitoring');
-  }
-  
-  return recommendations;
-}
+});
 
-// Reset daily active users at midnight
-setInterval(() => {
-  const now = new Date();
-  if (now.getHours() === 0 && now.getMinutes() === 0) {
-    dailyActiveUsers.clear();
-    logger.info('Daily active users counter reset');
+router.post('/alerts/:id/resolve', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await resolveAlert(parseInt(req.params.id, 10));
+    res.json({ success: true, message: 'Alert resolved' });
+  } catch (error) {
+    logger.error('Error resolving alert:', error);
+    const status = error.message.includes('not found') ? 404 : 500;
+    res.status(status).json({ success: false, message: error.message });
   }
-}, 60000); // Check every minute
+});
+
+router.get('/eval-status', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const evalData = getEvalStatus();
+    res.json({ evalStatus: evalData, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Error getting eval status:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve eval status', error: error.message });
+  }
+});
+
+router.get('/drift-status', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const driftData = getDriftStatus();
+    res.json({ driftStatus: driftData, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Error getting drift status:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve drift status', error: error.message });
+  }
+});
+
+router.get('/ab-status', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const abData = getAbStatus();
+    res.json({ abStatus: abData, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Error getting A/B status:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve A/B status', error: error.message });
+  }
+});
+
+router.get('/providers', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const providerData = await getProviderMetrics();
+    res.json(providerData);
+  } catch (error) {
+    logger.error('Error getting provider metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve provider metrics', error: error.message });
+  }
+});
+
+router.get('/digest', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const digest = await getDailyDigest();
+    res.json(digest);
+  } catch (error) {
+    logger.error('Error getting daily digest:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve daily digest', error: error.message });
+  }
+});
 
 export default router;

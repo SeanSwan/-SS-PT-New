@@ -5,7 +5,193 @@
 
 ---
 
-## ACTIVE: Phase 7 — Provider A/B & Cost Tracker COMPLETE (2026-02-28)
+## ACTIVE: Phase 10 — Production Monitoring Dashboard COMPLETE (2026-02-28)
+
+**Status:** Phase 10 COMPLETE. Persistent DB-backed monitoring, service extraction, threshold-based alerting, eval/drift/AB integration, 12 API endpoints, ~63 new tests, all passing.
+
+### What Phase 10 Does
+
+Replaces volatile in-memory AI monitoring with persistent DB-backed metrics, a service extraction layer, and a threshold-based alerting engine:
+
+- **Persistent metrics:** Pre-aggregated hourly/daily buckets via raw SQL UPSERT (atomic, concurrency-safe)
+- **Separate user tracking:** `ai_metrics_bucket_users` table with UNIQUE constraint (no JSONB bloat)
+- **Dynamic feature registry:** `updateMetrics` auto-creates feature entries on first call (fixes `longHorizonGeneration` gap)
+- **Feature name guard:** Validates `^[a-zA-Z][a-zA-Z0-9_]*$`, max 50 chars (prevents unbounded cardinality)
+- **Alert engine:** 5 configurable thresholds with auto-resolution (high/elevated error rate, high/critical latency, token budget)
+- **Eval/drift/AB integration:** Read-only from disk files (no subprocess execution)
+- **getDriftStatus 60s cache:** TTL-based in-memory cache for dashboard polling
+- **adminOnly middleware:** Standard RBAC pattern replaces inline role check
+- **Backward compatible:** `updateMetrics` re-exported from routes file, all 3 callers + 3 test mocks unchanged
+
+### Phase 10 Verification Evidence
+
+| Gate | Result |
+|------|--------|
+| `cd backend && npm test` | 1374/1374 tests, 54 files (~63 new Phase 10 tests) |
+| `cd backend && npm run eval` | Exit code 0 — 53 total, 49/49 gated passed, 4 known gaps, 0 correctness failures |
+| `cd backend && npm run eval:drift` | Exit code 0 — `drifted: false`, 0 changes |
+| Backward compat | 3 callers still import `updateMetrics` from `aiMonitoringRoutes.mjs` |
+| Test mock compat | workoutControllerEligibility, longHorizonApproval, aiPrivacyIntegration tests pass |
+| Feature name guard | Rejects empty, >50 chars, special chars (unit tested) |
+| getDriftStatus cache | Returns same result within 60s window (unit tested) |
+
+### Phase 10 New Files (8)
+
+| File | Description |
+|------|-------------|
+| `backend/models/AiMetricsBucket.mjs` | Pre-aggregated hourly/daily metrics model |
+| `backend/models/AiMonitoringAlert.mjs` | Alert model with active/resolved/acknowledged lifecycle |
+| `backend/migrations/20260228000001-create-ai-metrics-buckets.cjs` | Migration: ai_metrics_buckets + ai_metrics_bucket_users tables |
+| `backend/migrations/20260228000002-create-ai-monitoring-alerts.cjs` | Migration: ai_monitoring_alerts table |
+| `backend/services/monitoring/monitoringService.mjs` | Core service: updateMetrics, bucket persistence, trends, eval/drift/AB integration (~300 lines) |
+| `backend/services/monitoring/alertEngine.mjs` | Threshold evaluation, alert CRUD, auto-resolution (~180 lines) |
+| `backend/tests/unit/monitoringService.test.mjs` | 25 unit tests |
+| `backend/tests/unit/alertEngine.test.mjs` | 23 unit tests |
+
+### Phase 10 Modified Files (6)
+
+| File | Change |
+|------|--------|
+| `backend/routes/aiMonitoringRoutes.mjs` | Rewritten: 364→~150 lines, thin wrapper delegating to service, re-exports updateMetrics |
+| `backend/models/associations.mjs` | Import + register AiMetricsBucket, AiMonitoringAlert |
+| `backend/models/index.mjs` | Add getter exports: getAiMetricsBucket, getAiMonitoringAlert |
+| `backend/eval/ab/runAb.mjs` | Added `--write-json` flag for `docs/qa/PROVIDER-AB-RESULTS.json` |
+| `backend/package.json` | Added `provider:ab:json`, `migrate:status:dev` scripts |
+| `docs/monitoring/RENDER-MONITORING-SETUP.md` | Grafana/Render integration guide |
+
+### Phase 10 Test Files (3)
+
+| File | Tests |
+|------|-------|
+| `backend/tests/unit/monitoringService.test.mjs` | 25: feature validation (5), updateMetrics (8), getMetricsSnapshot (5), getSystemHealth (5), resetMetrics (2), truncation (2), eval/drift/AB (3) |
+| `backend/tests/unit/alertEngine.test.mjs` | 23: evaluateThresholds (13), persistAlerts (3), getActiveAlerts (2), acknowledgeAlert (2), resolveAlert (2), thresholds (1) |
+| `backend/tests/api/aiMonitoringApi.test.mjs` | 20: GET metrics (3), GET trends (3), GET health (1), POST reset (3), GET alerts (2), POST acknowledge/resolve (2), GET eval/drift/ab (3), GET providers/digest (2), re-export (1) |
+
+### Phase 10 API Endpoints (12 total, 8 new)
+
+| Method | Path | Auth | Status |
+|--------|------|------|--------|
+| GET | `/api/ai-monitoring/metrics` | authMiddleware | Existing |
+| GET | `/api/ai-monitoring/trends/:feature` | authMiddleware | Existing |
+| GET | `/api/ai-monitoring/health` | authMiddleware | Existing |
+| POST | `/api/ai-monitoring/reset` | adminOnly | Existing (now uses RBAC middleware) |
+| GET | `/api/ai-monitoring/alerts` | adminOnly | **NEW** |
+| POST | `/api/ai-monitoring/alerts/:id/acknowledge` | adminOnly | **NEW** |
+| POST | `/api/ai-monitoring/alerts/:id/resolve` | adminOnly | **NEW** |
+| GET | `/api/ai-monitoring/eval-status` | adminOnly | **NEW** |
+| GET | `/api/ai-monitoring/drift-status` | adminOnly | **NEW** |
+| GET | `/api/ai-monitoring/ab-status` | adminOnly | **NEW** |
+| GET | `/api/ai-monitoring/providers` | adminOnly | **NEW** |
+| GET | `/api/ai-monitoring/digest` | adminOnly | **NEW** |
+
+---
+
+## PREVIOUS: Phase 9 — Expanded Dataset & Drift Detection COMPLETE (2026-02-28)
+
+**Status:** Phase 9 COMPLETE. Golden dataset expanded 27→53 scenarios, drift detection module with baseline snapshots, 3 new CLI flags, 25 new tests, all passing.
+
+### What Phase 9 Does
+
+Strengthens regression sensitivity with nearly double the golden scenarios and adds drift detection to surface changes against a saved baseline:
+
+- **Dataset expansion:** 27→53 golden scenarios across all 7 categories (DATASET_VERSION 2.0.0)
+- **Drift detection:** `compareDrift(current, baseline)` compares eval results against saved baseline, classifying changes as REGRESSION/IMPROVEMENT/CHANGE
+- **Volatile field exclusion:** `timestamp` and `durationMs` excluded from comparison (vary per run)
+- **CLI flags:** `--write-baseline`, `--drift`, `--fail-on-drift` (all backward-compatible)
+- **npm scripts:** `eval:baseline`, `eval:drift`, `eval:drift:strict`
+- **`npm run eval` unchanged** — CI gate works exactly as before
+
+### Phase 9 Verification Evidence
+
+| Gate | Result |
+|------|--------|
+| `cd backend && npm run eval` | Exit code 0 — 53 total, 49/49 gated passed, 4 known gaps, 0 correctness failures |
+| `cd backend && npm run eval:baseline` | Baseline written to `docs/qa/AI-PLANNING-VALIDATION-BASELINE.json` |
+| `cd backend && npm run eval:drift` | Exit code 0 — `drifted: false`, 0 changes, 0 warnings |
+| `cd backend && npm run eval:drift:strict` | Exit code 0 — no regressions detected |
+| `cd backend && npm test` | 1301/1301 tests, 51 files (25 new Phase 9 tests) |
+| `cd frontend && npm run build` | Clean build (no frontend changes) |
+| Dataset count | 53 scenarios, 4 knownGaps (up from 2) |
+| DATASET_VERSION | 2.0.0 |
+
+### Phase 9 New Scenarios (26 added)
+
+| Category | Before | After | New IDs |
+|----------|--------|-------|---------|
+| schema_valid | 4 | 8 | 05-08 (6-month CES+OPT, maximal, minimal, GENERAL) |
+| pii_detection | 5 | 9 | 06-09 (phone dots, name in summary, multi-PII, subaddressing) |
+| schema_invalid | 4 | 10 | 05-10 (boundary limits, long name, restPeriod, HTML, LH block) |
+| contraindication | 5 | 8 | 06-08 (LH overflow, day overflow, block sequence) |
+| scope_of_practice | 2 | 5 | 03-05 (GENERAL+optPhase, OPT+optPhase=0, invalid framework) |
+| adversarial | 3 | 6 | 04-06 (parenthesized phone, SSN pattern, subdomain email) |
+| warnings | 4 | 7 | 05-07 (20 exercises, 21 exercises, 8w block) |
+
+### Phase 9 New Files (2)
+
+| File | Description |
+|------|-------------|
+| `backend/eval/driftDetector.mjs` | `loadBaseline()` + `compareDrift()` — pure functions, ~110 lines |
+| `docs/qa/AI-PLANNING-VALIDATION-BASELINE.json` | Baseline snapshot for drift detection |
+
+### Phase 9 Modified Files (4)
+
+| File | Change |
+|------|--------|
+| `backend/eval/goldenDataset.mjs` | 27→53 scenarios, DATASET_VERSION 1.1.0→2.0.0 |
+| `backend/eval/evalReport.mjs` | Optional `drift` param in formatJsonReport, drift section in markdown |
+| `backend/eval/runEval.mjs` | `--write-baseline`, `--drift`, `--fail-on-drift` CLI flags |
+| `backend/package.json` | Added `eval:baseline`, `eval:drift`, `eval:drift:strict` scripts |
+
+### Phase 9 Test Changes
+
+| File | Change |
+|------|--------|
+| `backend/tests/unit/evalHarness.test.mjs` | 29→54 tests: scenario count updated, 10 spot-checks, 9 drift unit, 3 drift integration, 3 report drift support |
+
+---
+
+## PREVIOUS: Phase 8 — CI Gate Integration COMPLETE (2026-02-28)
+
+**Status:** Phase 8 COMPLETE. GitHub Actions workflow gates PRs on `npm run eval`. Deterministic, no-network, no API keys needed.
+
+### What Phase 8 Does
+
+Blocks merges when AI validation regresses. The `ai-eval-gate.yml` workflow runs on every PR to `main` and every push to `main`:
+
+- **Eval Harness (Phase 6):** `npm run eval` — 53 golden scenarios, two-gate design (correctness + thresholds)
+- Deterministic and offline — no live API keys required
+- Artifact `ai-eval-report.json` uploaded on every run (pass or fail, 30-day retention)
+- Job fails if eval exits non-zero, blocking merge
+
+### Phase 8 Verification Evidence
+
+| Gate | Result |
+|------|--------|
+| `cd backend && npm run eval` | Exit code 0 — 53 total, 49/49 gated passed, 4 known gaps, 0 correctness failures |
+| `cd backend && npm run provider:ab` | Exit code 0 — 32 attempts, 4 providers, 8 scenarios (non-gating sanity check) |
+| `cd backend && npm test` | 1301/1301 tests, 51 files (no regressions) |
+| YAML structure | `ai-eval-gate.yml` — 42 lines, triggers on push+PR to main |
+| Artifact path | `ai-eval-report.json` at repo root, 30-day retention |
+| No API keys needed | Workflow uses `npm ci` + `npm run eval` only |
+| Doc paths exist | `docs/qa/CI-EVAL-GATE.md`, `docs/deployment/RENDER-AI-API-SETUP.md` |
+
+### Phase 8 New Files (3)
+
+| File | Description |
+|------|-------------|
+| `.github/workflows/ai-eval-gate.yml` | GitHub Actions workflow — eval gate on PR/push to main |
+| `docs/qa/CI-EVAL-GATE.md` | Gate documentation: triggers, failure modes, local verification |
+| `docs/deployment/RENDER-AI-API-SETUP.md` | Provider API key setup guide for Render |
+
+### Phase 8 Modified Files (1)
+
+| File | Change |
+|------|--------|
+| `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` | Phase 8 status |
+
+---
+
+## PREVIOUS: Phase 7 — Provider A/B & Cost Tracker COMPLETE (2026-02-28)
 
 **Status:** Phase 7 COMPLETE. Provider benchmarking with mock adapters, cost tracking, latency percentiles, 46 new tests, all passing.
 
@@ -134,12 +320,13 @@ Deterministic, no-network eval harness that tests the AI validation pipeline (`r
 
 ## Phase 7-10 Execution Plan
 
-| Phase | Name | Scope |
-|-------|------|-------|
-| 7 | Provider A/B & Cost Tracker | Side-by-side provider comparison, token cost logging, latency percentiles |
-| 8 | CI Gate Integration | GitHub Actions workflow: `npm run eval` on PR, block merge on threshold failure |
-| 9 | Expanded Dataset & Drift Detection | Grow to 50+ scenarios, add temporal drift checks, model version tracking |
-| 10 | Production Monitoring Dashboard | Real-time eval metrics, alerting on regression, Grafana/Render integration |
+| Phase | Name | Status |
+|-------|------|--------|
+| 7 | Provider A/B & Cost Tracker | COMPLETE |
+| 8 | CI Gate Integration | COMPLETE |
+| 9 | Expanded Dataset & Drift Detection | COMPLETE — 53 scenarios, drift detector, baseline snapshots |
+| 10 | Production Monitoring Dashboard | COMPLETE — persistent DB metrics, alerting engine, 12 API endpoints, 63 new tests |
+| 11 | TBD | Next |
 
 ---
 

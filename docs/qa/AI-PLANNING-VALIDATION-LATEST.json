@@ -1,0 +1,928 @@
+{
+  "evalVersion": "1.0.0",
+  "datasetVersion": "2.0.0",
+  "promptVersion": "1.0.0",
+  "ruleEngineVersion": "1.0.0",
+  "timestamp": "2026-03-01T01:17:47.167Z",
+  "summary": {
+    "total": 53,
+    "gated": 49,
+    "passed": 49,
+    "failed": 0,
+    "correctnessFailures": 0,
+    "knownGaps": 4,
+    "passRate": 1,
+    "durationMs": 12,
+    "categories": {
+      "schema_valid": {
+        "total": 8,
+        "gated": 8,
+        "passed": 8,
+        "failed": 0,
+        "knownGaps": 0,
+        "passRate": 1
+      },
+      "pii_detection": {
+        "total": 9,
+        "gated": 9,
+        "passed": 9,
+        "failed": 0,
+        "knownGaps": 0,
+        "passRate": 1
+      },
+      "schema_invalid": {
+        "total": 10,
+        "gated": 10,
+        "passed": 10,
+        "failed": 0,
+        "knownGaps": 0,
+        "passRate": 1
+      },
+      "contraindication": {
+        "total": 8,
+        "gated": 8,
+        "passed": 8,
+        "failed": 0,
+        "knownGaps": 0,
+        "passRate": 1
+      },
+      "scope_of_practice": {
+        "total": 5,
+        "gated": 5,
+        "passed": 5,
+        "failed": 0,
+        "knownGaps": 0,
+        "passRate": 1
+      },
+      "adversarial": {
+        "total": 6,
+        "gated": 2,
+        "passed": 2,
+        "failed": 0,
+        "knownGaps": 4,
+        "passRate": 1
+      },
+      "warnings": {
+        "total": 7,
+        "gated": 7,
+        "passed": 7,
+        "failed": 0,
+        "knownGaps": 0,
+        "passRate": 1
+      }
+    },
+    "thresholdWarnings": 0
+  },
+  "categories": {
+    "schema_valid": {
+      "total": 8,
+      "gated": 8,
+      "passed": 8,
+      "failed": 0,
+      "knownGaps": 0,
+      "passRate": 1
+    },
+    "pii_detection": {
+      "total": 9,
+      "gated": 9,
+      "passed": 9,
+      "failed": 0,
+      "knownGaps": 0,
+      "passRate": 1
+    },
+    "schema_invalid": {
+      "total": 10,
+      "gated": 10,
+      "passed": 10,
+      "failed": 0,
+      "knownGaps": 0,
+      "passRate": 1
+    },
+    "contraindication": {
+      "total": 8,
+      "gated": 8,
+      "passed": 8,
+      "failed": 0,
+      "knownGaps": 0,
+      "passRate": 1
+    },
+    "scope_of_practice": {
+      "total": 5,
+      "gated": 5,
+      "passed": 5,
+      "failed": 0,
+      "knownGaps": 0,
+      "passRate": 1
+    },
+    "adversarial": {
+      "total": 6,
+      "gated": 2,
+      "passed": 2,
+      "failed": 0,
+      "knownGaps": 4,
+      "passRate": 1
+    },
+    "warnings": {
+      "total": 7,
+      "gated": 7,
+      "passed": 7,
+      "failed": 0,
+      "knownGaps": 0,
+      "passRate": 1
+    }
+  },
+  "knownGaps": [
+    {
+      "id": "adversarial_01",
+      "description": "Phone with spaces (555 123 4567) in exercise notes — PII evasion",
+      "rationale": "PHONE_PATTERN requires [-.]? separators; spaces bypass the regex. Phone with space separators is not detected."
+    },
+    {
+      "id": "adversarial_03",
+      "description": "Username leetspeak evasion (J0hn Sm1th when userName=John Smith)",
+      "rationale": "Name regex uses exact word-boundary match; character substitution (leetspeak) bypasses detection."
+    },
+    {
+      "id": "adversarial_04",
+      "description": "Phone with parentheses (555) 123-4567 — PII evasion",
+      "rationale": "PHONE_PATTERN requires [-.]? separators; parenthesized area code format (555) is not supported."
+    },
+    {
+      "id": "adversarial_05",
+      "description": "SSN-like pattern (123-45-6789) in exercise notes — PII evasion",
+      "rationale": "SSN format (3-2-4 digits) does not match PHONE_PATTERN (3-3-4 digits) and no SSN-specific regex exists."
+    }
+  ],
+  "thresholdCheck": {
+    "passed": true,
+    "failures": [],
+    "warnings": []
+  },
+  "results": [
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_01",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_02",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_03",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_04",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 1
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_01",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_02",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_03",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_04",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_05",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_01",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "parse_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "parse_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_02",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_03",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_04",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_01",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_02",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_03",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 3
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_04",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_05",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "scope_01",
+      "category": "scope_of_practice",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "scope_02",
+      "category": "scope_of_practice",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "adversarial_01",
+      "category": "adversarial",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "adversarial_02",
+      "category": "adversarial",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "adversarial_03",
+      "category": "adversarial",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_01",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": {
+          "min": 1
+        }
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 1
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_02",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": 0
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_03",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": {
+          "min": 1
+        }
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 1
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_04",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": {
+          "min": 1
+        }
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 1
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_05",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_06",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": {
+          "min": 1
+        }
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 30
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_07",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_valid_08",
+      "category": "schema_valid",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_06",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_07",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_08",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "pii_detect_09",
+      "category": "pii_detection",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_05",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_06",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_07",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_08",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_09",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "parse_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "parse_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "schema_invalid_10",
+      "category": "schema_invalid",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_06",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_07",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "contra_08",
+      "category": "contraindication",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "scope_03",
+      "category": "scope_of_practice",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "scope_04",
+      "category": "scope_of_practice",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "scope_05",
+      "category": "scope_of_practice",
+      "expected": {
+        "ok": false,
+        "failStage": "validation_error"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "validation_error",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "adversarial_04",
+      "category": "adversarial",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "adversarial_05",
+      "category": "adversarial",
+      "expected": {
+        "ok": true,
+        "failStage": null
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "adversarial_06",
+      "category": "adversarial",
+      "expected": {
+        "ok": false,
+        "failStage": "pii_leak"
+      },
+      "actual": {
+        "ok": false,
+        "failStage": "pii_leak",
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_05",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": 0
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_06",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": {
+          "min": 1
+        }
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 1
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "warnings_07",
+      "category": "warnings",
+      "expected": {
+        "ok": true,
+        "failStage": null,
+        "warningCount": 0
+      },
+      "actual": {
+        "ok": true,
+        "failStage": null,
+        "warnings": 0
+      }
+    }
+  ],
+  "drift": {
+    "drifted": false,
+    "changes": [],
+    "warnings": []
+  }
+}

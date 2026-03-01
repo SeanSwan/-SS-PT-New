@@ -161,6 +161,10 @@ export const getAutomationLog = () => getModel('AutomationLog');
 export const getAiPrivacyProfile = () => getModel('AiPrivacyProfile');
 export const getAiInteractionLog = () => getModel('AiInteractionLog');
 
+// AI Monitoring Models (Phase 10)
+export const getAiMetricsBucket = () => getModel('AiMetricsBucket');
+export const getAiMonitoringAlert = () => getModel('AiMonitoringAlert');
+
 // Long-Horizon Planning Models (Phase 5C)
 export const getLongTermProgramPlan = () => getModel('LongTermProgramPlan');
 export const getProgramMesocycleBlock = () => getModel('ProgramMesocycleBlock');

@@ -104,6 +104,10 @@ const setupAssociations = async () => {
     const AiPrivacyProfileModule = await import('./AiPrivacyProfile.mjs');
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
 
+    // AI Monitoring Models (Phase 10)
+    const AiMetricsBucketModule = await import('./AiMetricsBucket.mjs');
+    const AiMonitoringAlertModule = await import('./AiMonitoringAlert.mjs');
+
     // Long-Horizon Planning Models (Phase 5C)
     const LongTermProgramPlanModule = await import('./LongTermProgramPlan.mjs');
     const ProgramMesocycleBlockModule = await import('./ProgramMesocycleBlock.mjs');
@@ -216,6 +220,10 @@ const setupAssociations = async () => {
     const AiPrivacyProfile = AiPrivacyProfileModule.default;
     const AiInteractionLog = AiInteractionLogModule.default;
 
+    // AI Monitoring Models (Phase 10)
+    const AiMetricsBucket = AiMetricsBucketModule.default;
+    const AiMonitoringAlert = AiMonitoringAlertModule.default;
+
     // Long-Horizon Planning Models (Phase 5C)
     const LongTermProgramPlan = LongTermProgramPlanModule.default;
     const ProgramMesocycleBlock = ProgramMesocycleBlockModule.default;
@@ -298,6 +306,8 @@ const setupAssociations = async () => {
         AutomationSequence, AutomationLog,
         // AI Privacy Models
         AiPrivacyProfile, AiInteractionLog,
+        // AI Monitoring Models (Phase 10)
+        AiMetricsBucket, AiMonitoringAlert,
         // Long-Horizon Planning Models (Phase 5C)
         LongTermProgramPlan, ProgramMesocycleBlock,
         // Waiver + Consent Models (Phase 5W-B)
@@ -902,6 +912,10 @@ const setupAssociations = async () => {
       // AI Privacy Models
       AiPrivacyProfile,
       AiInteractionLog,
+
+      // AI Monitoring Models (Phase 10)
+      AiMetricsBucket,
+      AiMonitoringAlert,
 
       // Long-Horizon Planning Models (Phase 5C)
       LongTermProgramPlan,

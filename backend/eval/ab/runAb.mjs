@@ -7,6 +7,7 @@
  *   --providers openai,anthropic   Filter providers (comma-separated)
  *   --iterations 5                 Runs per scenario per provider (default: 1)
  *   --write-md                     Write markdown to docs/qa/
+ *   --write-json                   Write JSON report to docs/qa/
  *   --live                         Use real adapters (requires API keys)
  *
  * Exit codes:
@@ -25,6 +26,7 @@ import { fileURLToPath } from 'url';
 function parseArgs(argv) {
   const config = {};
   const writeMd = argv.includes('--write-md');
+  const writeJson = argv.includes('--write-json');
   const live = argv.includes('--live');
 
   const providersIdx = argv.indexOf('--providers');
@@ -46,12 +48,12 @@ function parseArgs(argv) {
     config.live = true;
   }
 
-  return { config, writeMd };
+  return { config, writeMd, writeJson };
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
-const { config, writeMd } = parseArgs(process.argv);
+const { config, writeMd, writeJson } = parseArgs(process.argv);
 
 try {
   const suiteResult = await runAbSuite(AB_SCENARIOS, config);
@@ -67,6 +69,16 @@ try {
 
   // Always write JSON to stdout
   console.log(JSON.stringify(jsonReport, null, 2));
+
+  // Conditionally write JSON report
+  if (writeJson) {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const jsonDir = resolve(__dirname, '../../../docs/qa');
+    mkdirSync(jsonDir, { recursive: true });
+    const jsonPath = resolve(jsonDir, 'PROVIDER-AB-RESULTS.json');
+    writeFileSync(jsonPath, JSON.stringify(jsonReport, null, 2));
+    console.error(`JSON report written to ${jsonPath}`);
+  }
 
   // Conditionally write markdown report
   if (writeMd) {
