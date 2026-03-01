@@ -527,7 +527,7 @@ const MeasurementEntry: React.FC = () => {
       const fetchLatest = async () => {
         setIsLoading(true);
         try {
-          const response = await apiService.get(`/api/measurements/${selectedClient.id}/latest`);
+          const response = await apiService.get(`/api/measurements/user/${selectedClient.id}/latest`);
           setLatestMeasurement(response.data);
           setNewMeasurement({
             userId: selectedClient.id,
@@ -551,7 +551,7 @@ const MeasurementEntry: React.FC = () => {
       const fetchRecent = async () => {
         setLoadingRecent(true);
         try {
-          const response = await apiService.get(`/api/measurements/${selectedClient.id}?limit=3`);
+          const response = await apiService.get(`/api/measurements/user/${selectedClient.id}?limit=3`);
           setRecentMeasurements(response.data?.measurements || []);
         } catch (error) {
           console.error('Failed to load recent measurements', error);
