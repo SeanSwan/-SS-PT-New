@@ -77,7 +77,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Content>
       </ContentWrapper>
       
-      <Footer />
+      {!isDashboardRoute && <Footer />}
     </MainContainer>
   );
 };

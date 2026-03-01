@@ -269,14 +269,15 @@ const CalendarContainer = styled.div`
 
   /* Large-screen scaling */
   @media (min-width: 2560px) {
-    margin: 0 2.5rem 2.5rem;
+    margin: 0 2rem 2rem;
     padding: 2rem;
     border-radius: 16px;
   }
 
   @media (min-width: 3840px) {
-    margin: 0 3rem 3rem;
+    margin: 0 2.5rem 2.5rem;
     padding: 2.5rem;
+    border-radius: 20px;
   }
 `;
 

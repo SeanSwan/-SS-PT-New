@@ -436,6 +436,14 @@ const HeaderRow = styled.div<{ $columns: number }>`
     grid-template-columns: 70px repeat(${({ $columns }) => $columns}, 1fr);
   }
 
+  @media (min-width: 2560px) {
+    grid-template-columns: 90px repeat(${({ $columns }) => $columns}, 1fr);
+  }
+
+  @media (min-width: 3840px) {
+    grid-template-columns: 110px repeat(${({ $columns }) => $columns}, 1fr);
+  }
+
   @media (max-width: 430px) {
     grid-template-columns: 48px repeat(${({ $columns }) => $columns}, 1fr);
   }
@@ -485,6 +493,14 @@ const DayName = styled.span`
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.8);
 
+  @media (min-width: 2560px) {
+    font-size: 0.9rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.05rem;
+  }
+
   @media (max-width: 430px) {
     font-size: 0.7rem;
   }
@@ -516,6 +532,14 @@ const TimeColumn = styled.div`
     width: 70px;
   }
 
+  @media (min-width: 2560px) {
+    width: 90px;
+  }
+
+  @media (min-width: 3840px) {
+    width: 110px;
+  }
+
   @media (max-width: 430px) {
     width: 48px;
   }
@@ -530,6 +554,14 @@ const TimeLabel = styled.div`
   color: rgba(255, 255, 255, 0.4);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
+
+  @media (min-width: 2560px) {
+    font-size: 0.85rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1rem;
+  }
 
   @media (max-width: 430px) {
     font-size: 0.6rem;

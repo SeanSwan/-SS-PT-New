@@ -329,11 +329,13 @@ const HeaderContainer = styled.div`
   @media (min-width: 2560px) {
     padding: 2rem 2.5rem;
     gap: 1.5rem;
+    font-size: 1.1rem;
   }
 
   @media (min-width: 3840px) {
     padding: 2.5rem 3rem;
     gap: 2rem;
+    font-size: 1.25rem;
   }
 `;
 

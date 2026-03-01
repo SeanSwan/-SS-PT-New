@@ -935,14 +935,13 @@ const ScheduleContainer = styled.div`
     --shell-chrome: 56px;
   }
 
-  /* Large-screen scaling: constrain content width + increase breathing room */
+  /* Large-screen scaling: use max-width to center content rather than
+     excessive percentage padding which wastes space on ultrawide displays */
   @media (min-width: ${BREAKPOINTS.QHD}) {
-    padding-left: 5%;
-    padding-right: 5%;
+    font-size: 1.1rem;
   }
 
   @media (min-width: ${BREAKPOINTS.UHD}) {
-    padding-left: 12%;
-    padding-right: 12%;
+    font-size: 1.25rem;
   }
 `;
