@@ -499,7 +499,12 @@ const MeasurementEntry: React.FC = () => {
     const fetchClients = async () => {
       try {
         const clientsRes = await apiService.get('/api/admin/clients');
-        setClients(clientsRes.data);
+        const rawClients = clientsRes.data?.data?.clients || clientsRes.data?.clients || clientsRes.data || [];
+        const mapped = (Array.isArray(rawClients) ? rawClients : []).map((c: any) => ({
+          id: String(c.id),
+          name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || `Client ${c.id}`,
+        }));
+        setClients(mapped);
       } catch (error) {
         toast({ title: 'Error', description: 'Failed to load clients.', variant: 'destructive' });
       }
