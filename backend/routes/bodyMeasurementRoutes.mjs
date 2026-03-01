@@ -1,4 +1,8 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 import {
   createMeasurement,
   getUserMeasurements,
@@ -14,6 +18,35 @@ import {
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
+
+// Configure multer for measurement photo uploads
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    const dir = path.join(process.cwd(), 'uploads', 'measurements');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + uuidv4();
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per photo
+  fileFilter: function(req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif|webp/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files (JPEG, PNG, GIF, WEBP) are allowed'));
+  }
+});
 
 // All routes require authentication
 router.use(protect);
@@ -31,6 +64,24 @@ router.get('/schedule/status/:userId', authorize(['admin', 'trainer']), getSched
  * @access  Admin only
  */
 router.get('/schedule/upcoming', authorize(['admin']), getUpcomingChecks);
+
+/**
+ * @route   POST /api/measurements/upload-photos
+ * @desc    Upload progress photos (returns URLs to include in measurement)
+ * @access  Trainer, Admin
+ */
+router.post('/upload-photos', authorize(['admin', 'trainer']), upload.array('photos', 10), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
+    const photoUrls = req.files.map(file => `/uploads/measurements/${file.filename}`);
+    res.json({ success: true, photoUrls });
+  } catch (error) {
+    console.error('Error uploading measurement photos:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload photos', error: error.message });
+  }
+});
 
 /**
  * @route   POST /api/measurements
