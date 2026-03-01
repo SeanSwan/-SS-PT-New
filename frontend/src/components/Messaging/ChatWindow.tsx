@@ -208,6 +208,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0; /* Prevent flex/grid blowout */
 `;
 
 const MessageList = styled.div`
