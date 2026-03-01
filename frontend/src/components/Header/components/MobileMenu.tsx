@@ -3,6 +3,7 @@
  * Galaxy-themed mobile slide-out navigation menu
  */
 import React from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -331,16 +332,19 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </MobileMenuButton>
 
-      <AnimatePresence>
-        {isOpen && (
-          <MobileMenuOverlay initial="closed" animate="open" exit="closed" variants={mobileMenuVariants} role="navigation" aria-label="Mobile navigation menu">
-            <motion.div variants={itemVariants}>
-              <MobileNavLink to="/" onClick={closeMobileMenu} $isActive={isActive('/')}>Home</MobileNavLink>
-            </motion.div>
-            {renderMobileLinks()}
-          </MobileMenuOverlay>
-        )}
-      </AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <MobileMenuOverlay initial="closed" animate="open" exit="closed" variants={mobileMenuVariants} role="navigation" aria-label="Mobile navigation menu">
+              <motion.div variants={itemVariants}>
+                <MobileNavLink to="/" onClick={closeMobileMenu} $isActive={isActive('/')}>Home</MobileNavLink>
+              </motion.div>
+              {renderMobileLinks()}
+            </MobileMenuOverlay>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };
