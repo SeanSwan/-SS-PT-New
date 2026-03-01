@@ -34,12 +34,14 @@ import {
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star, DollarSign,
   TrendingUp, Target, Award, CreditCard, MessageSquare,
-  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles
+  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles, Ruler, Scale
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
 import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModal';
 import WorkoutCopilotPanel from '../../admin-clients/components/WorkoutCopilotPanel';
+import ClientMeasurementPanel from '../../admin-clients/components/ClientMeasurementPanel';
+import ClientWeighInPanel from '../../admin-clients/components/ClientWeighInPanel';
 
 // === STYLED COMPONENTS ===
 
@@ -594,6 +596,8 @@ const ClientsManagementSection: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWorkoutLogger, setShowWorkoutLogger] = useState(false);
   const [showCopilot, setShowCopilot] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [showWeighIn, setShowWeighIn] = useState(false);
   const [actionClient, setActionClient] = useState<{ id: number; name: string } | null>(null);
 
   // Helper function to check if data is loading
@@ -920,6 +924,20 @@ const ClientsManagementSection: React.FC = () => {
     setActiveActionMenu(null);
   };
 
+  // Phase 11C: Open measurement panel for a client
+  const openMeasurements = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowMeasurements(true);
+    setActiveActionMenu(null);
+  };
+
+  // Phase 11C: Open weigh-in panel for a client
+  const openWeighIn = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowWeighIn(true);
+    setActiveActionMenu(null);
+  };
+
   const getUserInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -1193,6 +1211,20 @@ const ClientsManagementSection: React.FC = () => {
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
+                      onClick={() => openMeasurements(client)}
+                    >
+                      <Ruler size={16} />
+                      Measurements
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => openWeighIn(client)}
+                    >
+                      <Scale size={16} />
+                      Weigh-In
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
                       onClick={() => openCopilot(client)}
                     >
                       <Sparkles size={16} />
@@ -1383,6 +1415,32 @@ const ClientsManagementSection: React.FC = () => {
           clientId={actionClient.id}
           clientName={actionClient.name}
           onSuccess={() => fetchClients()}
+        />
+      )}
+
+      {/* Phase 11C: Client Measurement Panel */}
+      {showMeasurements && actionClient && (
+        <ClientMeasurementPanel
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowMeasurements(false);
+            setActionClient(null);
+          }}
+          onUpdate={() => fetchClients()}
+        />
+      )}
+
+      {/* Phase 11C: Client Weigh-In Panel */}
+      {showWeighIn && actionClient && (
+        <ClientWeighInPanel
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowWeighIn(false);
+            setActionClient(null);
+          }}
+          onUpdate={() => fetchClients()}
         />
       )}
     </ManagementContainer>
