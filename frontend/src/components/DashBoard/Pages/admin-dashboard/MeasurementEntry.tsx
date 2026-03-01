@@ -35,12 +35,9 @@ interface BodyMeasurement {
   notes?: string;
   photoUrls?: string[];
 }
-interface RecentMeasurement {
+interface RecentMeasurement extends BodyMeasurement {
   id: string;
-  measurementDate: string;
-  weight?: number;
-  bodyFatPercentage?: number;
-  naturalWaist?: number;
+  recorder?: { firstName?: string; lastName?: string; username?: string };
 }
 
 // ─── Framer Motion Variants ─────────────────────────────────────────────────────
@@ -404,8 +401,15 @@ const MeasurementList = styled.ul`
 `;
 
 const MeasurementListItem = styled.li`
-  padding: 10px 0;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.06);
+  }
 
   &:last-child {
     border-bottom: none;
@@ -463,6 +467,108 @@ const ChangeCenter = styled.div`
   padding-top: 8px;
 `;
 
+// ─── Detail Modal Components ─────────────────────────────────────────────────────
+
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+`;
+
+const ModalContent = styled(motion.div)`
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 255, 0.05);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const ModalCloseButton = styled.button`
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+`;
+
+const DetailGrid = styled.div`
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+`;
+
+const DetailCell = styled.div`
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const DetailLabel = styled.div`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+`;
+
+const DetailValue = styled.div`
+  font-size: 1.15rem;
+  color: #fff;
+  font-weight: 600;
+`;
+
+const DetailUnit = styled.span`
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+  margin-left: 4px;
+`;
+
+const DetailPhotoGrid = styled.div`
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 16px;
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+`;
+
 // ═════════════════════════════════════════════════════════════════════════════════
 // Component
 // ═════════════════════════════════════════════════════════════════════════════════
@@ -481,6 +587,7 @@ const MeasurementEntry: React.FC = () => {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [savedPhotoUrls, setSavedPhotoUrls] = useState<string[]>([]);
+  const [detailMeasurement, setDetailMeasurement] = useState<RecentMeasurement | null>(null);
 
   // Autocomplete state
   const [clientSearch, setClientSearch] = useState('');
@@ -560,7 +667,7 @@ const MeasurementEntry: React.FC = () => {
       const fetchRecent = async () => {
         setLoadingRecent(true);
         try {
-          const response = await apiService.get(`/api/measurements/user/${selectedClient.id}?limit=3`);
+          const response = await apiService.get(`/api/measurements/user/${selectedClient.id}?limit=10`);
           const recentData = response.data?.data?.measurements || response.data?.measurements || [];
           setRecentMeasurements(recentData);
         } catch (error) {
@@ -800,14 +907,22 @@ const MeasurementEntry: React.FC = () => {
             ) : recentMeasurements.length > 0 ? (
               <MeasurementList>
                 {recentMeasurements.map((measurement) => (
-                  <MeasurementListItem key={measurement.id}>
+                  <MeasurementListItem
+                    key={measurement.id}
+                    onClick={() => setDetailMeasurement(measurement)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <ListPrimary>
-                      Date: {new Date(measurement.measurementDate).toLocaleDateString()}
+                      {new Date(measurement.measurementDate).toLocaleDateString()}
+                      {measurement.weight ? ` — ${measurement.weight} lbs` : ''}
                     </ListPrimary>
                     <ListSecondary>
-                      Weight: {measurement.weight || 'N/A'} lbs, Waist:{' '}
-                      {measurement.naturalWaist || 'N/A'}&quot;, Body Fat:{' '}
-                      {measurement.bodyFatPercentage || 'N/A'}%
+                      {[
+                        measurement.bodyFatPercentage && `Body Fat: ${measurement.bodyFatPercentage}%`,
+                        measurement.chest && `Chest: ${measurement.chest}"`,
+                        measurement.naturalWaist && `Waist: ${measurement.naturalWaist}"`,
+                        measurement.hips && `Hips: ${measurement.hips}"`,
+                      ].filter(Boolean).join(' · ') || 'Click to view details'}
                     </ListSecondary>
                   </MeasurementListItem>
                 ))}
@@ -929,6 +1044,83 @@ const MeasurementEntry: React.FC = () => {
             </SaveWrapper>
           </motion.div>
         ))}
+      {/* ── Measurement Detail Modal ── */}
+      <AnimatePresence>
+        {detailMeasurement && (
+          <ModalOverlay
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setDetailMeasurement(null)}
+          >
+            <ModalContent
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ModalHeader>
+                <div>
+                  <SectionTitle style={{ marginBottom: 4 }}>
+                    {new Date(detailMeasurement.measurementDate).toLocaleDateString('en-US', {
+                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                    })}
+                  </SectionTitle>
+                  {detailMeasurement.recorder && (
+                    <BodyText>
+                      Recorded by {detailMeasurement.recorder.firstName || detailMeasurement.recorder.username || 'Trainer'}
+                    </BodyText>
+                  )}
+                </div>
+                <ModalCloseButton onClick={() => setDetailMeasurement(null)}>
+                  <X size={18} />
+                </ModalCloseButton>
+              </ModalHeader>
+
+              <DetailGrid>
+                {measurementFields.map(({ key, label }) => {
+                  const value = detailMeasurement[key];
+                  if (value === undefined || value === null) return null;
+                  const unit = key === 'weight'
+                    ? detailMeasurement.weightUnit || 'lbs'
+                    : key === 'bodyFatPercentage' || key === 'muscleMassPercentage'
+                      ? '%'
+                      : detailMeasurement.circumferenceUnit || 'in';
+                  return (
+                    <DetailCell key={key}>
+                      <DetailLabel>{label}</DetailLabel>
+                      <DetailValue>
+                        {typeof value === 'number' ? value.toFixed(1) : value}
+                        <DetailUnit>{unit}</DetailUnit>
+                      </DetailValue>
+                    </DetailCell>
+                  );
+                })}
+              </DetailGrid>
+
+              {detailMeasurement.notes && (
+                <div style={{ marginTop: 16 }}>
+                  <SubsectionTitle>Notes</SubsectionTitle>
+                  <BodyText>{detailMeasurement.notes}</BodyText>
+                </div>
+              )}
+
+              {detailMeasurement.photoUrls && detailMeasurement.photoUrls.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <SubsectionTitle>Progress Photos</SubsectionTitle>
+                  <DetailPhotoGrid>
+                    {detailMeasurement.photoUrls.map((url, i) => (
+                      <PhotoPreviewWrapper key={i}>
+                        <img src={url} alt={`Progress ${i + 1}`} />
+                      </PhotoPreviewWrapper>
+                    ))}
+                  </DetailPhotoGrid>
+                </div>
+              )}
+            </ModalContent>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
     </PageWrapper>
   );
 };
