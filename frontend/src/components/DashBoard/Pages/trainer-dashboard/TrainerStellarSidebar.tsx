@@ -317,7 +317,7 @@ const trainerNavigationConfig = [
     items: [
       { 
         label: 'Training Overview', 
-        path: '/trainer/overview', 
+        path: '/dashboard/trainer/overview', 
         icon: Activity,
         description: 'Dashboard showing upcoming sessions and client achievements'
       }
@@ -328,7 +328,7 @@ const trainerNavigationConfig = [
     items: [
       { 
         label: 'My Clients', 
-        path: '/trainer/clients', 
+        path: '/dashboard/trainer/clients', 
         icon: Users,
         description: 'List of assigned clients with progress tracking'
       },
@@ -340,13 +340,13 @@ const trainerNavigationConfig = [
       },
       { 
         label: 'Client Progress', 
-        path: '/trainer/client-progress', 
+        path: '/dashboard/trainer/client-progress', 
         icon: BarChart3,
         description: 'Detailed analytics and charts for client development'
       },
       { 
         label: 'Form Assessments', 
-        path: '/trainer/assessments', 
+        path: '/dashboard/trainer/assessments', 
         icon: Target,
         description: 'YOLO AI form check interface and corrections'
       }
@@ -357,13 +357,13 @@ const trainerNavigationConfig = [
     items: [
       { 
         label: 'Training Videos', 
-        path: '/trainer/videos', 
+        path: '/dashboard/trainer/videos', 
         icon: Video,
         description: 'Library of reusable training video content'
       },
       { 
         label: 'AI Workout Forge', 
-        path: '/trainer/workout-forge', 
+        path: '/dashboard/trainer/workout-forge', 
         icon: Brain,
         description: 'Generate AI-powered workout plans using Olympian\'s Forge'
       }
@@ -374,13 +374,13 @@ const trainerNavigationConfig = [
     items: [
       { 
         label: 'My Schedule', 
-        path: '/trainer/schedule', 
+        path: '/dashboard/trainer/schedule', 
         icon: Calendar,
         description: 'Personal view of appointments and availability'
       },
       { 
         label: 'Client Messages', 
-        path: '/trainer/messages', 
+        path: '/dashboard/trainer/messages', 
         icon: MessageSquare,
         description: 'Direct messaging hub with clients'
       }
@@ -466,7 +466,7 @@ const TrainerStellarSidebar: React.FC<TrainerStellarSidebarProps> = ({
         <TrainerSidebarHeader isCollapsed={isMobile ? false : isCollapsed}>
           <motion.div 
             className="trainer-logo"
-            onClick={() => navigate('/trainer/overview')}
+            onClick={() => navigate('/dashboard/trainer/overview')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
