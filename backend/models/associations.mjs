@@ -129,6 +129,10 @@ const setupAssociations = async () => {
     const VideoOutboundClickModule = await import('./VideoOutboundClick.mjs');
     const VideoJobLogModule = await import('./VideoJobLog.mjs');
 
+    // Body Measurement & Milestone Models (Phase 11)
+    const BodyMeasurementModule = await import('./BodyMeasurement.mjs');
+    const MeasurementMilestoneModule = await import('./MeasurementMilestone.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -245,6 +249,10 @@ const setupAssociations = async () => {
     const VideoOutboundClick = VideoOutboundClickModule.default;
     const VideoJobLog = VideoJobLogModule.default;
 
+    // Body Measurement & Milestone Models (Phase 11)
+    const BodyMeasurement = BodyMeasurementModule.default;
+    const MeasurementMilestone = MeasurementMilestoneModule.default;
+
     console.log('Setting up Sequelize associations only...');
     
     // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
@@ -315,7 +323,9 @@ const setupAssociations = async () => {
         WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
-        UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog
+        UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
+        // Body Measurement & Milestone Models (Phase 11)
+        BodyMeasurement, MeasurementMilestone
       };
     }
 
@@ -809,7 +819,17 @@ const setupAssociations = async () => {
     console.log('✅ AI Privacy models integrated');
     console.log('✅ Long-Horizon Planning models integrated');
     console.log('✅ Waiver + Consent models integrated');
-    
+
+    // Body Measurement & Milestone Associations (Phase 11)
+    User.hasMany(BodyMeasurement, { foreignKey: 'userId', as: 'bodyMeasurements' });
+    BodyMeasurement.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    BodyMeasurement.belongsTo(User, { foreignKey: 'recordedBy', as: 'recorder' });
+    BodyMeasurement.hasMany(MeasurementMilestone, { foreignKey: 'measurementId', as: 'milestones' });
+    MeasurementMilestone.belongsTo(BodyMeasurement, { foreignKey: 'measurementId', as: 'measurement' });
+    User.hasMany(MeasurementMilestone, { foreignKey: 'userId', as: 'measurementMilestones' });
+    MeasurementMilestone.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    console.log('✅ Body Measurement & Milestone models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -936,7 +956,11 @@ const setupAssociations = async () => {
       UserWatchHistory,
       VideoAccessGrant,
       VideoOutboundClick,
-      VideoJobLog
+      VideoJobLog,
+
+      // Body Measurement & Milestone Models (Phase 11)
+      BodyMeasurement,
+      MeasurementMilestone
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
