@@ -91,6 +91,7 @@ import { EnhancedClientProgressView } from '../TrainerDashboard/ClientProgress';
 // Lazy load components
 const UniversalScheduleLazy = React.lazy(() => import('../Schedule/UniversalSchedule'));
 const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard/AiConsentScreen'));
+const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
 
 // === UNIVERSAL THEME SYSTEM ===
 const universalTheme = {
@@ -442,7 +443,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/videos', component: () => <div>Training Videos (Coming Soon)</div>, title: 'Training Videos', description: 'Video content library' },
       { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Olympian\'s Forge interface' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
-      { path: '/messages', component: () => <div>Client Messages (Coming Soon)</div>, title: 'Client Messages', description: 'Communication hub' }
+      { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' }
     ],
     defaultPath: '/overview'
   },
@@ -456,7 +457,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/meal-planner', component: () => <div>AI Meal Planner (Coming Soon)</div>, title: 'AI Meal Planner', description: 'Culinary Codex interface' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: () => <div>Community & Challenges (Coming Soon)</div>, title: 'Community', description: 'Social feed and challenges' },
-      { path: '/messages', component: () => <div>Messages (Coming Soon)</div>, title: 'Messages', description: 'Trainer communications' },
+      { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },
       { path: '/profile', component: () => <div>Profile & Settings (Coming Soon)</div>, title: 'Profile', description: 'Personal settings' },
       { path: '/rewards', component: () => <div>My Rewards (Coming Soon)</div>, title: 'Rewards', description: 'Points and achievements' }
     ],

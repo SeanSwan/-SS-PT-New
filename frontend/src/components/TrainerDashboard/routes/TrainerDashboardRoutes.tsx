@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { CircularProgress } from '../../ui/primitives/components';
@@ -9,6 +9,8 @@ import TrainerDashboard from '../TrainerDashboard';
 import TrainerWorkoutManagement from '../WorkoutManagement/TrainerWorkoutManagement';
 import ContentFormCheck from '../ContentFormCheck';
 import TrainerScheduleTab from '../../DashBoard/Pages/trainer-dashboard/schedule';
+
+const MessagingPage = lazy(() => import('../../../pages/MessagingPage'));
 
 const PageContainer = styled.div`
   padding: 24px;
@@ -109,23 +111,7 @@ const TrainingSessionsView = () => (
   </PageContainer>
 );
 
-const MessagesView = () => (
-  <PageContainer>
-    <PageTitle>Messages</PageTitle>
-    <PageDescription>
-      Communicate with your clients and manage conversations.
-    </PageDescription>
-
-    <SectionCard>
-      <SectionTitle>Client Communications</SectionTitle>
-      <SectionText>
-        Send messages to your clients, share workout feedback, provide motivation,
-        and answer questions. All messages are stored securely and synchronized
-        across the platform for seamless communication.
-      </SectionText>
-    </SectionCard>
-  </PageContainer>
-);
+const MessagesView = () => <MessagingPage />;
 
 const ContentFormChecksView = () => <ContentFormCheck />;
 
