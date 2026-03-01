@@ -96,9 +96,41 @@ export const createConversation = async (req, res) => {
 
   const allParticipantIds = [...new Set([creatorId, ...participantIds])];
 
-  // For direct conversations, check if one already exists between these two users
-  if (type === 'direct' && participantIds.length === 1) {
-    try {
+  try {
+    // Ensure messaging tables exist (auto-create if missing)
+    const [tableCheck] = await sequelize.query(
+      `SELECT COUNT(*) as cnt FROM pg_tables WHERE schemaname='public' AND tablename IN ('conversations','conversation_participants','messages','message_receipts')`,
+      { type: QueryTypes.SELECT }
+    );
+    if (!tableCheck || parseInt(tableCheck.cnt) < 4) {
+      console.log('Messaging tables missing — auto-creating...');
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS conversations (
+          id SERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL DEFAULT 'direct',
+          name VARCHAR(255), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS conversation_participants (
+          id SERIAL PRIMARY KEY, conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          role VARCHAR(20) NOT NULL DEFAULT 'member', joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(conversation_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS messages (
+          id SERIAL PRIMARY KEY, conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          content TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS message_receipts (
+          id SERIAL PRIMARY KEY, message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(message_id, user_id)
+        );
+      `);
+      console.log('Messaging tables created successfully');
+    }
+
+    // For direct conversations, check if one already exists between these two users
+    if (type === 'direct' && participantIds.length === 1) {
       const [existing] = await sequelize.query(
         `SELECT c.id FROM conversations c
          JOIN conversation_participants cp1 ON c.id = cp1.conversation_id AND cp1.user_id = :creatorId
@@ -111,7 +143,6 @@ export const createConversation = async (req, res) => {
         }
       );
       if (existing) {
-        // Return existing conversation instead of creating duplicate
         const [existingConversation] = await sequelize.query(
           `SELECT c.id, c.type, c.name,
             (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
@@ -122,59 +153,51 @@ export const createConversation = async (req, res) => {
         );
         return res.status(200).json(existingConversation);
       }
-    } catch (checkError) {
-      console.error('Error checking existing conversation:', checkError);
-      // Continue to create new conversation if check fails
     }
-  }
 
-  const trx = await sequelize.transaction();
-  try {
-    // Create conversation
-    const [convRows] = await sequelize.query(
-      `INSERT INTO conversations (type, name, created_at, updated_at) VALUES (:type, :name, NOW(), NOW()) RETURNING *`,
-      {
-        replacements: { type, name: type === 'group' ? name : null },
-        transaction: trx,
-      }
-    );
-    const conversation = convRows[0];
-
-    // Add participants
-    for (const uid of allParticipantIds) {
-      await sequelize.query(
-        `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at) VALUES (:convId, :uid, 'member', NOW())`,
-        { replacements: { convId: conversation.id, uid }, transaction: trx }
+    // Create conversation inside a transaction
+    const trx = await sequelize.transaction();
+    try {
+      const [convRows] = await sequelize.query(
+        `INSERT INTO conversations (type, name, created_at, updated_at) VALUES (:type, :name, NOW(), NOW()) RETURNING *`,
+        {
+          replacements: { type, name: type === 'group' ? name : null },
+          transaction: trx,
+        }
       );
-    }
+      const conversation = convRows[0] || convRows;
 
-    await trx.commit();
-
-    // Fetch the full conversation object to return
-    const [newConversation] = await sequelize.query(
-      `
-      SELECT
-        c.id, c.type, c.name,
-        (
-          SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
-          FROM conversation_participants cp_inner
-          JOIN users u ON u.id = cp_inner.user_id
-          WHERE cp_inner.conversation_id = c.id
-        ) as participants
-      FROM conversations c
-      WHERE c.id = :conversationId
-      `,
-      {
-        replacements: { conversationId: conversation.id },
-        type: QueryTypes.SELECT,
+      // Add participants
+      for (const uid of allParticipantIds) {
+        await sequelize.query(
+          `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at) VALUES (:convId, :uid, 'member', NOW())`,
+          { replacements: { convId: conversation.id, uid }, transaction: trx }
+        );
       }
-    );
 
-    res.status(201).json(newConversation);
+      await trx.commit();
+
+      // Fetch the full conversation object to return
+      const [newConversation] = await sequelize.query(
+        `SELECT c.id, c.type, c.name,
+          (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
+           FROM conversation_participants cp_inner JOIN users u ON u.id = cp_inner.user_id
+           WHERE cp_inner.conversation_id = c.id) as participants
+         FROM conversations c WHERE c.id = :conversationId`,
+        {
+          replacements: { conversationId: conversation.id },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      res.status(201).json(newConversation);
+    } catch (insertError) {
+      await trx.rollback();
+      throw insertError;
+    }
   } catch (error) {
-    await trx.rollback();
     console.error('Error creating conversation:', error);
-    res.status(500).json({ error: 'Failed to create conversation.' });
+    res.status(500).json({ error: `Failed to create conversation: ${error.message}` });
   }
 };
 
