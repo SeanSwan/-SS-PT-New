@@ -83,7 +83,7 @@ export async function createMeasurement(req, res) {
       rightCalf,
       leftCalf,
       notes,
-      measurementMethod: measurementMethod || 'manual',
+      measurementMethod: measurementMethod || 'manual_tape',
       photoUrls: photoUrls || [],
       isVerified: req.user.role === 'admin' || req.user.role === 'trainer'
     }, { transaction });
