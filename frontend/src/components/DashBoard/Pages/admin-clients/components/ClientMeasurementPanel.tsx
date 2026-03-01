@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { X, Ruler, TrendingDown, TrendingUp, Minus, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -236,6 +237,7 @@ interface Props {
 /* ─── Component ──────────────────────────────────────────── */
 
 const ClientMeasurementPanel: React.FC<Props> = ({ clientId, clientName, onClose, onUpdate }) => {
+  const navigate = useNavigate();
   const { authAxios } = useAuth();
   const { toast } = useToast();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -359,8 +361,8 @@ const ClientMeasurementPanel: React.FC<Props> = ({ clientId, clientName, onClose
 
         <ActionBar>
           <PrimaryButton onClick={() => {
-            window.location.hash = '#/admin-dashboard/MeasurementEntry';
             onClose();
+            navigate('/dashboard/people/measurements');
           }}>
             <ExternalLink size={16} />
             New Full Measurement

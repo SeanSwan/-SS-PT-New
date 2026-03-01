@@ -41,6 +41,8 @@ import SalesScriptViewer from '../Admin/SalesScriptViewer';
 import LaunchChecklist from '../Admin/LaunchChecklist';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import AdminWaiversManager from './Pages/admin-waivers/AdminWaiversManager';
+
+const MeasurementEntry = React.lazy(() => import('./Pages/admin-dashboard/MeasurementEntry'));
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 import VideoStudioManager from './Pages/admin-video-studio/VideoStudioManager';
@@ -185,6 +187,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
       <Route path="social" element={<AdminSocialManagementView />} />
       <Route path="waivers" element={<AdminWaiversManager />} />
+      <Route path="measurements" element={
+        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+          <MeasurementEntry />
+        </React.Suspense>
+      } />
     </Route>
 
     <Route path="/scheduling" element={<SchedulingWorkspace />}>
