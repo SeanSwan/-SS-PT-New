@@ -1,5 +1,5 @@
-import { BodyMeasurement, MeasurementMilestone, User, sequelize } from '../models/index.mjs';
-import { getNotification } from '../models/index.mjs';
+import { getBodyMeasurement, getMeasurementMilestone, getUser, getNotification } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 import { calculateComparisons } from '../services/measurementComparisonService.mjs';
 import { detectMilestones } from '../services/measurementMilestoneService.mjs';
 import { syncMeasurementDates } from '../services/measurementScheduleService.mjs';
@@ -54,6 +54,7 @@ export async function createMeasurement(req, res) {
     const targetUserId = userId || req.user.id;
 
     // Create measurement
+    const BodyMeasurement = getBodyMeasurement();
     const measurement = await BodyMeasurement.create({
       userId: targetUserId,
       recordedBy: req.user.id,
@@ -103,7 +104,7 @@ export async function createMeasurement(req, res) {
     await transaction.commit();
 
     // Post-commit: sync measurement schedule dates on User (non-blocking)
-    syncMeasurementDates(User, targetUserId, measurement).catch(err =>
+    syncMeasurementDates(getUser(), targetUserId, measurement).catch(err =>
       console.warn('Failed to sync measurement dates:', err.message)
     );
 
@@ -164,6 +165,9 @@ export async function getUserMeasurements(req, res) {
       if (endDate) whereClause.measurementDate[Op.lte] = new Date(endDate);
     }
 
+    const BodyMeasurement = getBodyMeasurement();
+    const User = getUser();
+
     const measurements = await BodyMeasurement.findAll({
       where: whereClause,
       order: [['measurementDate', 'DESC']],
@@ -208,6 +212,10 @@ export async function getUserMeasurements(req, res) {
 export async function getMeasurementById(req, res) {
   try {
     const { id } = req.params;
+
+    const BodyMeasurement = getBodyMeasurement();
+    const User = getUser();
+    const MeasurementMilestone = getMeasurementMilestone();
 
     const measurement = await BodyMeasurement.findByPk(id, {
       include: [
@@ -255,6 +263,7 @@ export async function updateMeasurement(req, res) {
 
   try {
     const { id } = req.params;
+    const BodyMeasurement = getBodyMeasurement();
     const measurement = await BodyMeasurement.findByPk(id);
 
     if (!measurement) {
@@ -308,6 +317,7 @@ export async function updateMeasurement(req, res) {
 export async function deleteMeasurement(req, res) {
   try {
     const { id } = req.params;
+    const BodyMeasurement = getBodyMeasurement();
     const measurement = await BodyMeasurement.findByPk(id);
 
     if (!measurement) {
@@ -341,6 +351,10 @@ export async function deleteMeasurement(req, res) {
 export async function getLatestMeasurement(req, res) {
   try {
     const { userId } = req.params;
+
+    const BodyMeasurement = getBodyMeasurement();
+    const User = getUser();
+    const MeasurementMilestone = getMeasurementMilestone();
 
     const measurement = await BodyMeasurement.findOne({
       where: { userId },
@@ -391,6 +405,7 @@ export async function uploadProgressPhotos(req, res) {
     const { id } = req.params;
     const { photoUrls } = req.body;
 
+    const BodyMeasurement = getBodyMeasurement();
     const measurement = await BodyMeasurement.findByPk(id);
 
     if (!measurement) {
@@ -430,6 +445,7 @@ export async function uploadProgressPhotos(req, res) {
 export async function getMeasurementStats(req, res) {
   try {
     const { userId } = req.params;
+    const BodyMeasurement = getBodyMeasurement();
 
     const [firstMeasurement, latestMeasurement, totalMeasurements, measurementsWithProgress] = await Promise.all([
       BodyMeasurement.findOne({
@@ -513,6 +529,7 @@ export async function getScheduleStatus(req, res) {
     const { userId } = req.params;
     const { getMeasurementStatus } = await import('../services/measurementScheduleService.mjs');
 
+    const User = getUser();
     const user = await User.findByPk(userId, {
       attributes: [
         'id', 'firstName', 'lastName',
@@ -543,7 +560,7 @@ export async function getUpcomingChecks(req, res) {
     const { limit = 20 } = req.query;
     const { getClientsWithUpcomingChecks } = await import('../services/measurementScheduleService.mjs');
 
-    const clients = await getClientsWithUpcomingChecks(User, parseInt(limit));
+    const clients = await getClientsWithUpcomingChecks(getUser(), parseInt(limit));
 
     res.json({ success: true, data: { clients } });
   } catch (error) {
