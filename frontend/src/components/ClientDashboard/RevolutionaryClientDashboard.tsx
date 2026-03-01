@@ -35,11 +35,9 @@ import { useNavigate } from 'react-router-dom';
 const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
 
 const MessagesGalaxy: React.FC = () => (
-  <div style={{ margin: '-2rem', height: 'calc(100% + 4rem)' }}>
-    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
-      <MessagingPage />
-    </Suspense>
-  </div>
+  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
+    <MessagingPage />
+  </Suspense>
 );
 
 // === THEME DEFINITION ===
@@ -405,36 +403,54 @@ const RevolutionaryClientDashboard: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          {/* Content Header */}
-          <ContentHeader
-            key={activeSection}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <h1>{currentTitle}</h1>
-            <p>{currentDescription}</p>
-          </ContentHeader>
-          
-          {/* Content Area */}
-          <ContentArea
-            key={`content-${activeSection}`}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          {resolvedSection === 'messages' ? (
+            /* Messages section renders full-width, bypassing ContentHeader/ContentArea padding */
             <AnimatePresence mode="wait">
               <motion.div
-                key={activeSection}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
+                key="messages"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
+                style={{ height: 'calc(100vh - 56px - 2rem)' }}
               >
                 <CurrentSectionComponent />
               </motion.div>
             </AnimatePresence>
-          </ContentArea>
+          ) : (
+            <>
+              {/* Content Header */}
+              <ContentHeader
+                key={activeSection}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <h1>{currentTitle}</h1>
+                <p>{currentDescription}</p>
+              </ContentHeader>
+
+              {/* Content Area */}
+              <ContentArea
+                key={`content-${activeSection}`}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSection}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <CurrentSectionComponent />
+                  </motion.div>
+                </AnimatePresence>
+              </ContentArea>
+            </>
+          )}
         </MainContent>
       </GalaxyContainer>
     </ThemeProvider>
