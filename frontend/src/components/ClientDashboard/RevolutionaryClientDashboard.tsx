@@ -20,7 +20,7 @@
  * - Performance-optimized with GPU acceleration
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import {
@@ -31,6 +31,14 @@ import {
 import StellarSidebar from './StellarSidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
+
+const MessagesGalaxy: React.FC = () => (
+  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
+    <MessagingPage />
+  </Suspense>
+);
 
 // === THEME DEFINITION ===
 const galaxyTheme = {
@@ -244,7 +252,6 @@ const Particle = styled(motion.div)`
 
 // === TAB MIGRATION: old IDs → new IDs ===
 const TAB_MIGRATION: Record<string, string> = {
-  messages: 'overview',
   community: 'overview',
   videos: 'overview',
   settings: 'account',
@@ -263,6 +270,7 @@ const sectionComponents: Record<string, React.FC> = {
   workouts: WorkoutUniverse,
   progress: ProgressConstellation,
   gamification: AchievementNebula,
+  messages: MessagesGalaxy,
   account: AccountGalaxy,
 };
 
@@ -273,6 +281,7 @@ const sectionTitles: Record<string, string> = {
   workouts: 'Training Universe',
   progress: 'Progress Constellation',
   gamification: 'Achievement Nebula',
+  messages: 'Stellar Messages',
   account: 'My Account',
 };
 
@@ -283,6 +292,7 @@ const sectionDescriptions: Record<string, string> = {
   workouts: 'Explore training programs and exercise galaxies',
   progress: 'Track your transformation through the cosmos',
   gamification: 'Celebrate your stellar accomplishments',
+  messages: 'Connect with your trainer and team',
   account: 'Session credits, profile, and account settings',
 };
 
