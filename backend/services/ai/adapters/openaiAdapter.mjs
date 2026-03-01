@@ -126,7 +126,11 @@ const openaiAdapter = {
       throw makeProviderError('openai', 'PROVIDER_AUTH', 'OpenAI SDK not installed');
     }
 
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const clientOpts = { apiKey: process.env.OPENAI_API_KEY };
+    if (process.env.OPENAI_BASE_URL) {
+      clientOpts.baseURL = process.env.OPENAI_BASE_URL;
+    }
+    const client = new OpenAI(clientOpts);
     // Use pre-built prompt if provided (e.g. long-horizon), else build workout prompt
     const prompt = ctx.prompt || buildWorkoutPrompt(ctx.deidentifiedPayload, ctx.serverConstraints);
     const systemMessage = ctx.systemMessage || WORKOUT_SYSTEM_MESSAGE;
