@@ -1,8 +1,6 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
 import {
   createMeasurement,
   getUserMeasurements,
@@ -16,35 +14,22 @@ import {
   getUpcomingChecks
 } from '../controllers/bodyMeasurementController.mjs';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { uploadPhoto } from '../services/photoStorageService.mjs';
 
 const router = express.Router();
 
-// Configure multer for measurement photo uploads
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    const dir = path.join(process.cwd(), 'uploads', 'measurements');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + uuidv4();
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Configure multer with memory storage (buffers for R2 upload)
 const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per photo
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB per photo (JPEG, small files)
   fileFilter: function(req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif|webp/;
+    const filetypes = /jpeg|jpg/;
     const mimetype = filetypes.test(file.mimetype);
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     if (mimetype && extname) {
       return cb(null, true);
     }
-    cb(new Error('Only image files (JPEG, PNG, GIF, WEBP) are allowed'));
+    cb(new Error('Only JPEG image files are allowed'));
   }
 });
 
@@ -74,24 +59,38 @@ router.post('/upload-photos', authorize(['admin', 'trainer']), (req, res, next) 
   upload.array('photos', 10)(req, res, (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({ success: false, message: 'File too large. Maximum 10MB per photo.' });
+        return res.status(413).json({ success: false, message: 'File too large. Maximum 2MB per photo.' });
       }
       if (err.code === 'LIMIT_FILE_COUNT') {
         return res.status(400).json({ success: false, message: 'Too many files. Maximum 10 photos per upload.' });
       }
-      if (err.message?.includes('Only image files')) {
+      if (err.message?.includes('Only JPEG')) {
         return res.status(400).json({ success: false, message: err.message });
       }
       return res.status(500).json({ success: false, message: 'Upload failed' });
     }
     next();
   });
-}, (req, res) => {
+}, async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ success: false, message: 'No files uploaded' });
   }
-  const photoUrls = req.files.map(file => `/uploads/measurements/${file.filename}`);
-  res.json({ success: true, photoUrls });
+
+  try {
+    const userId = req.user.id;
+    const results = await Promise.all(
+      req.files.map(file => uploadPhoto(file.buffer, {
+        userId,
+        category: 'measurements',
+        originalFilename: file.originalname,
+        contentType: file.mimetype,
+      }))
+    );
+    const photoUrls = results.map(r => r.url);
+    res.json({ success: true, photoUrls });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Photo upload failed: ' + err.message });
+  }
 });
 
 /**

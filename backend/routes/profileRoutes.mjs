@@ -4,7 +4,8 @@
  */
 import express from 'express';
 import multer from 'multer';
-import { 
+import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
+import {
   uploadProfilePhoto,
   getUserProfile,
   updateUserProfile,
@@ -63,10 +64,6 @@ router.post(
   async (req, res) => {
     try {
       const { default: path } = await import('path');
-      const { default: fs } = await import('fs/promises');
-      const { fileURLToPath } = await import('url');
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
 
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
@@ -81,14 +78,13 @@ router.post(
         });
       }
 
-      const uploadDir = path.join(__dirname, '../uploads/banners');
-      await fs.mkdir(uploadDir, { recursive: true });
-
-      const filename = `banner-${req.user.id}-${Date.now()}${fileExt}`;
-      const filePath = path.join(uploadDir, filename);
-      await fs.writeFile(filePath, req.file.buffer);
-
-      const bannerUrl = `/uploads/banners/${filename}`;
+      // Upload via photoStorageService (R2 or local fallback)
+      const { url: bannerUrl } = await uploadPhoto(req.file.buffer, {
+        userId: req.user.id,
+        category: 'banners',
+        originalFilename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
 
       // Import User model lazily
       const { getUser } = await import('../models/index.mjs');
@@ -99,13 +95,9 @@ router.post(
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
-      // Delete old banner if exists
-      if (user.bannerPhoto && !user.bannerPhoto.startsWith('http')) {
-        try {
-          const oldPath = path.join(__dirname, '..', user.bannerPhoto);
-          await fs.access(oldPath);
-          await fs.unlink(oldPath);
-        } catch { /* old file may not exist */ }
+      // Delete old banner (best-effort)
+      if (user.bannerPhoto) {
+        await deletePhoto(user.bannerPhoto);
       }
 
       await user.update({ bannerPhoto: bannerUrl });

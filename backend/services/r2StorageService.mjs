@@ -283,3 +283,26 @@ export function generateThumbnailKey({ videoId, filename }) {
 
   return `thumbnails/${videoId}/${id}.${ext}`;
 }
+
+/**
+ * Generate a scoped R2 object key for a photo upload.
+ *
+ * Format: `photos/{category}/{userId}/{YYYY-MM}/{uuid}.{ext}`
+ *
+ * @param {Object} opts
+ * @param {string|number} opts.userId   - User who owns the photo.
+ * @param {string}        opts.category - e.g. "profiles", "banners", "measurements".
+ * @param {string}        opts.filename - Original filename (used for extension).
+ * @returns {string} Object key.
+ */
+export function generatePhotoKey({ userId, category, filename }) {
+  const ext = path.extname(filename).replace(/^\./, '') || 'jpg';
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const id = uuidv4();
+
+  return `photos/${category}/${userId}/${yearMonth}/${id}.${ext}`;
+}
+
+/** Whether R2 env vars are configured. */
+export { r2Configured };
