@@ -177,6 +177,10 @@ export const getWaiverConsentFlags = () => getModel('WaiverConsentFlags');
 export const getPendingWaiverMatch = () => getModel('PendingWaiverMatch');
 export const getAiConsentLog = () => getModel('AiConsentLog');
 
+// Body Measurement & Milestone Models (Phase 11)
+export const getBodyMeasurement = () => getModel('BodyMeasurement');
+export const getMeasurementMilestone = () => getModel('MeasurementMilestone');
+
 // Video Catalog Models
 export const getVideoCatalog = () => getModel('VideoCatalog');
 export const getVideoCollection = () => getModel('VideoCollection');

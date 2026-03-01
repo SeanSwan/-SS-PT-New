@@ -1,4 +1,4 @@
-import { MeasurementMilestone, BodyMeasurement } from '../models/index.mjs';
+import { getMeasurementMilestone, getBodyMeasurement } from '../models/index.mjs';
 import { Op } from 'sequelize';
 
 /**
@@ -149,6 +149,8 @@ const MILESTONE_CONFIG = {
  */
 export async function detectMilestones(userId, newMeasurement) {
   try {
+    const BodyMeasurement = getBodyMeasurement();
+    const MeasurementMilestone = getMeasurementMilestone();
     // Get baseline (first) measurement
     const baselineMeasurement = await BodyMeasurement.findOne({
       where: {
@@ -313,6 +315,8 @@ function createMilestoneData(type, userId, measurementId, startValue, endValue, 
  * @returns {Array} Array of milestones
  */
 export async function getUserMilestones(userId, options = {}) {
+  const BodyMeasurement = getBodyMeasurement();
+  const MeasurementMilestone = getMeasurementMilestone();
   const queryOptions = {
     where: { userId },
     order: [['achievedAt', 'DESC']],
@@ -339,6 +343,8 @@ export async function getUserMilestones(userId, options = {}) {
  * @returns {Array} Array of milestones needing renewal conversations
  */
 export async function getMilestonesNeedingRenewalConversation() {
+  const BodyMeasurement = getBodyMeasurement();
+  const MeasurementMilestone = getMeasurementMilestone();
   return await MeasurementMilestone.findAll({
     where: {
       triggersRenewalConversation: true,
@@ -360,6 +366,7 @@ export async function getMilestonesNeedingRenewalConversation() {
  * @returns {Object} Updated milestone
  */
 export async function markRenewalConversationHeld(milestoneId, notes = '') {
+  const MeasurementMilestone = getMeasurementMilestone();
   const milestone = await MeasurementMilestone.findByPk(milestoneId);
   if (!milestone) {
     throw new Error('Milestone not found');
@@ -380,6 +387,7 @@ export async function markRenewalConversationHeld(milestoneId, notes = '') {
  * @returns {Object} Statistics object
  */
 export async function getMilestoneStats(userId) {
+  const MeasurementMilestone = getMeasurementMilestone();
   const milestones = await MeasurementMilestone.findAll({
     where: { userId }
   });
@@ -409,6 +417,7 @@ export async function getMilestoneStats(userId) {
  * @returns {Object} Created milestone
  */
 export async function createCustomMilestone(userId, measurementId, customData) {
+  const MeasurementMilestone = getMeasurementMilestone();
   const milestoneData = {
     userId,
     measurementId,

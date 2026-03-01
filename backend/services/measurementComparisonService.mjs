@@ -1,4 +1,4 @@
-import { BodyMeasurement } from '../models/index.mjs';
+import { getBodyMeasurement } from '../models/index.mjs';
 import { Op } from 'sequelize';
 
 /**
@@ -15,6 +15,7 @@ import { Op } from 'sequelize';
  */
 export async function calculateComparisons(userId, measurementId) {
   try {
+    const BodyMeasurement = getBodyMeasurement();
     // Get the new measurement
     const currentMeasurement = await BodyMeasurement.findByPk(measurementId);
     if (!currentMeasurement) {
@@ -387,6 +388,7 @@ function calculateProgressScore(comparisonData) {
  * @returns {Object} Formatted comparison summary
  */
 export async function getComparisonSummary(userId, measurementId) {
+  const BodyMeasurement = getBodyMeasurement();
   const measurement = await BodyMeasurement.findByPk(measurementId);
   if (!measurement) {
     throw new Error('Measurement not found');
