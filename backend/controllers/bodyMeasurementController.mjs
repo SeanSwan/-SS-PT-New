@@ -88,20 +88,29 @@ export async function createMeasurement(req, res) {
       isVerified: req.user.role === 'admin' || req.user.role === 'trainer'
     }, { transaction });
 
-    // Auto-calculate comparisons
-    const comparisonResult = await calculateComparisons(targetUserId, measurement.id);
-
-    // Update measurement with comparison data
-    await measurement.update({
-      comparisonData: comparisonResult.comparisonData,
-      hasProgress: comparisonResult.hasProgress,
-      progressScore: comparisonResult.progressScore
-    }, { transaction });
-
-    // Auto-detect milestones
-    const milestones = await detectMilestones(targetUserId, measurement);
-
+    // Commit to persist the measurement first
     await transaction.commit();
+
+    // Post-commit: calculate comparisons and milestones (non-blocking enrichment)
+    let comparisonResult = { comparisonData: {}, hasProgress: false, progressScore: 0 };
+    let milestones = [];
+
+    try {
+      comparisonResult = await calculateComparisons(targetUserId, measurement.id);
+      await measurement.update({
+        comparisonData: comparisonResult.comparisonData,
+        hasProgress: comparisonResult.hasProgress,
+        progressScore: comparisonResult.progressScore
+      });
+    } catch (err) {
+      console.warn('Failed to calculate comparisons:', err.message);
+    }
+
+    try {
+      milestones = await detectMilestones(targetUserId, measurement);
+    } catch (err) {
+      console.warn('Failed to detect milestones:', err.message);
+    }
 
     // Post-commit: sync measurement schedule dates on User (non-blocking)
     syncMeasurementDates(getUser(), targetUserId, measurement).catch(err =>
@@ -131,8 +140,8 @@ export async function createMeasurement(req, res) {
         comparisonSummary: {
           hasProgress: comparisonResult.hasProgress,
           progressScore: comparisonResult.progressScore,
-          insights: comparisonResult.comparisonData.insights,
-          celebrationMessage: comparisonResult.comparisonData.celebrationMessage
+          insights: comparisonResult.comparisonData?.insights || null,
+          celebrationMessage: comparisonResult.comparisonData?.celebrationMessage || null
         }
       }
     });
