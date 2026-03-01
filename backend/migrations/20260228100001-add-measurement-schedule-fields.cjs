@@ -3,10 +3,10 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    const tableInfo = await queryInterface.describeTable('"Users"');
+    const tableInfo = await queryInterface.describeTable('Users');
 
     if (!tableInfo.lastFullMeasurementDate) {
-      await queryInterface.addColumn('"Users"', 'lastFullMeasurementDate', {
+      await queryInterface.addColumn('Users', 'lastFullMeasurementDate', {
         type: Sequelize.DATE,
         allowNull: true,
         comment: 'Date of last full body measurement',
@@ -14,7 +14,7 @@ module.exports = {
     }
 
     if (!tableInfo.lastWeighInDate) {
-      await queryInterface.addColumn('"Users"', 'lastWeighInDate', {
+      await queryInterface.addColumn('Users', 'lastWeighInDate', {
         type: Sequelize.DATE,
         allowNull: true,
         comment: 'Date of last weight-only check',
@@ -22,7 +22,7 @@ module.exports = {
     }
 
     if (!tableInfo.measurementIntervalDays) {
-      await queryInterface.addColumn('"Users"', 'measurementIntervalDays', {
+      await queryInterface.addColumn('Users', 'measurementIntervalDays', {
         type: Sequelize.INTEGER,
         allowNull: true,
         defaultValue: 30,
@@ -31,7 +31,7 @@ module.exports = {
     }
 
     if (!tableInfo.weighInIntervalDays) {
-      await queryInterface.addColumn('"Users"', 'weighInIntervalDays', {
+      await queryInterface.addColumn('Users', 'weighInIntervalDays', {
         type: Sequelize.INTEGER,
         allowNull: true,
         defaultValue: 7,
@@ -41,9 +41,9 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.removeColumn('"Users"', 'lastFullMeasurementDate');
-    await queryInterface.removeColumn('"Users"', 'lastWeighInDate');
-    await queryInterface.removeColumn('"Users"', 'measurementIntervalDays');
-    await queryInterface.removeColumn('"Users"', 'weighInIntervalDays');
+    await queryInterface.removeColumn('Users', 'lastFullMeasurementDate');
+    await queryInterface.removeColumn('Users', 'lastWeighInDate');
+    await queryInterface.removeColumn('Users', 'measurementIntervalDays');
+    await queryInterface.removeColumn('Users', 'weighInIntervalDays');
   },
 };
