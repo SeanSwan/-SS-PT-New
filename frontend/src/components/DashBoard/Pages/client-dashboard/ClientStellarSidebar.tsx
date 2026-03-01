@@ -319,19 +319,19 @@ const clientNavigationConfig = [
     items: [
       { 
         label: 'Overview', 
-        path: '/client/overview', 
+        path: '/dashboard/client/overview', 
         icon: Home,
         description: 'Personalized hub with next workout and achievements'
       },
       { 
         label: 'My Workouts', 
-        path: '/client/workouts', 
+        path: '/dashboard/client/workouts', 
         icon: Dumbbell,
         description: 'List of assigned workout plans and routines'
       },
       { 
         label: 'My Progress', 
-        path: '/client/progress', 
+        path: '/dashboard/client/progress', 
         icon: TrendingUp,
         description: 'Personal analytics, charts, and achievements'
       }
@@ -342,19 +342,19 @@ const clientNavigationConfig = [
     items: [
       { 
         label: 'AI Workout Forge', 
-        path: '/client/workout-forge', 
+        path: '/dashboard/client/workout-forge', 
         icon: Brain,
         description: 'Generate personalized AI workouts (if package allows)'
       },
       {
         label: 'AI Meal Planner',
-        path: '/client/meal-planner',
+        path: '/dashboard/client/meal-planner',
         icon: UtensilsCrossed,
         description: 'Access to the Culinary Codex meal planning system'
       },
       {
         label: 'AI Privacy & Consent',
-        path: '/client/ai-consent',
+        path: '/dashboard/client/ai-consent',
         icon: Shield,
         description: 'Manage your AI data consent and privacy settings'
       }
@@ -365,19 +365,19 @@ const clientNavigationConfig = [
     items: [
       { 
         label: 'Book My Session', 
-        path: '/client/schedule', 
+        path: '/dashboard/client/schedule', 
         icon: Calendar,
         description: 'Universal scheduling system for booking sessions'
       },
       { 
         label: 'Community & Challenges', 
-        path: '/client/community', 
+        path: '/dashboard/client/community', 
         icon: Users,
         description: 'Social feed and community challenge board'
       },
       { 
         label: 'Messages', 
-        path: '/client/messages', 
+        path: '/dashboard/client/messages', 
         icon: MessageSquare,
         description: 'Inbox for trainer communications'
       }
@@ -388,13 +388,13 @@ const clientNavigationConfig = [
     items: [
       { 
         label: 'My Profile & Settings', 
-        path: '/client/profile', 
+        path: '/dashboard/client/profile', 
         icon: User,
         description: 'Manage profile information and preferences'
       },
       { 
         label: 'My Rewards', 
-        path: '/client/rewards', 
+        path: '/dashboard/client/rewards', 
         icon: Award,
         description: 'View and redeem earned points and achievements'
       }
@@ -480,7 +480,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
         <ClientSidebarHeader isCollapsed={isMobile ? false : isCollapsed}>
           <motion.div 
             className="client-logo"
-            onClick={() => navigate('/client/overview')}
+            onClick={() => navigate('/dashboard/client/overview')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

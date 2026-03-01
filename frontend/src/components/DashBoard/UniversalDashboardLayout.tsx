@@ -484,7 +484,9 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const currentUserId = useAppSelector(selectCurrentUserId);
 
   // Determine user role and validate access
-  const userRole = user?.role || 'client';
+  // Normalize 'user' → 'client' since DB default role is 'user' but dashboard treats them as clients
+  const rawRole = user?.role || 'client';
+  const userRole = rawRole === 'user' ? 'client' : rawRole;
   const isValidRole = ['admin', 'trainer', 'client'].includes(userRole);
 
   // Initialize Redux user context and fetch role-based data
