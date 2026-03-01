@@ -3,7 +3,7 @@ import type { WaiverRecordDetail, BadgeLabel, PendingMatch } from './adminWaiver
 import {
   Modal, ModalContent, ModalTitle, Section, SectionLabel,
   InfoGrid, InfoItem, ConsentGrid, ConsentItem, ContractBadge,
-  MatchCard, MatchRow, ConfidenceBar, ActionButton, ButtonRow, CloseButton,
+  SignatureImage, MatchCard, MatchRow, ConfidenceBar, ActionButton, ButtonRow, CloseButton,
 } from './adminWaivers.styles';
 
 interface Props {
@@ -91,6 +91,14 @@ const AdminWaiverDetailModal: React.FC<Props> = ({
                 {record.consentFlags.guardianAcknowledged ? '✓' : '✗'} Guardian
               </ConsentItem>
             </ConsentGrid>
+          </Section>
+        )}
+
+        {/* Signature */}
+        {record.signatureData && (
+          <Section>
+            <SectionLabel>Signature</SectionLabel>
+            <SignatureImage src={record.signatureData} alt={`Signature of ${record.fullName}`} />
           </Section>
         )}
 
