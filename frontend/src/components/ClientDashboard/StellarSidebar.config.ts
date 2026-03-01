@@ -12,6 +12,7 @@ import {
   XCircle,
   ClipboardList,
   Star,
+  MessageSquare,
 } from 'lucide-react';
 
 export type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
@@ -47,6 +48,7 @@ export const navigationItems: NavItemData[] = [
   { id: 'workouts', label: 'Workouts', icon: Activity, section: 'core', status: 'real' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, section: 'core', status: 'real' },
   { id: 'gamification', label: 'Gamification', icon: Trophy, section: 'core', status: 'real' },
+  { id: 'messages', label: 'Messages', icon: MessageSquare, section: 'core', status: 'real' },
 
   // Account
   { id: 'account', label: 'My Account', icon: User, section: 'account', status: 'real' },
