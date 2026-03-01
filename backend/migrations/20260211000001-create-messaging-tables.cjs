@@ -38,7 +38,7 @@ module.exports = {
       CREATE TABLE IF NOT EXISTS conversation_participants (
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
         role VARCHAR(20) NOT NULL DEFAULT 'member',
         joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(conversation_id, user_id)
@@ -51,7 +51,7 @@ module.exports = {
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-        sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
         content TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -64,7 +64,7 @@ module.exports = {
       CREATE TABLE IF NOT EXISTS message_receipts (
         id SERIAL PRIMARY KEY,
         message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
         read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(message_id, user_id)
       );
