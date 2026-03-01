@@ -277,29 +277,57 @@ export const getMessagesForConversation = async (req, res) => {
 /**
  * Search for users to start a conversation.
  * GET /api/messaging/users/search?q=...
+ *
+ * If no query (or query < 2 chars), returns suggested users (up to 20)
+ * so the modal shows available contacts immediately on open.
+ *
+ * Normalizes role: DB 'user' → 'client' for display.
  */
 export const searchUsers = async (req, res) => {
   const { q } = req.query;
   const currentUserId = req.user.id;
 
-  if (!q || q.length < 2) {
-    return res.json([]);
-  }
-
   try {
-    const users = await sequelize.query(
-      `SELECT id, "firstName", "lastName", username, photo, role
-       FROM users
-       WHERE ( "firstName" ILIKE :query OR "lastName" ILIKE :query OR username ILIKE :query OR email ILIKE :query )
-         AND id != :currentUserId
-         AND "deletedAt" IS NULL
-       LIMIT 10`,
-      {
-        replacements: { query: `%${q}%`, currentUserId },
-        type: QueryTypes.SELECT,
-      }
-    );
-    res.json(users);
+    let users;
+
+    if (!q || q.length < 2) {
+      // Return suggested users — most recently active, non-deleted, excluding self
+      users = await sequelize.query(
+        `SELECT id, "firstName", "lastName", username, photo, role
+         FROM users
+         WHERE id != :currentUserId
+           AND "deletedAt" IS NULL
+         ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
+         LIMIT 20`,
+        {
+          replacements: { currentUserId },
+          type: QueryTypes.SELECT,
+        }
+      );
+    } else {
+      // Search by name, username, or email
+      users = await sequelize.query(
+        `SELECT id, "firstName", "lastName", username, photo, role
+         FROM users
+         WHERE ( "firstName" ILIKE :query OR "lastName" ILIKE :query OR username ILIKE :query OR email ILIKE :query )
+           AND id != :currentUserId
+           AND "deletedAt" IS NULL
+         ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
+         LIMIT 20`,
+        {
+          replacements: { query: `%${q}%`, currentUserId },
+          type: QueryTypes.SELECT,
+        }
+      );
+    }
+
+    // Normalize role: DB default 'user' should display as 'client'
+    const normalized = users.map(u => ({
+      ...u,
+      role: u.role === 'user' ? 'client' : u.role,
+    }));
+
+    res.json(normalized);
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Failed to search for users.' });
