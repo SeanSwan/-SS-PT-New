@@ -536,7 +536,8 @@ const MeasurementEntry: React.FC = () => {
         setIsLoading(true);
         try {
           const response = await apiService.get(`/api/measurements/user/${selectedClient.id}/latest`);
-          setLatestMeasurement(response.data);
+          const measurement = response.data?.data || response.data;
+          setLatestMeasurement(measurement);
           setNewMeasurement({
             userId: selectedClient.id,
             measurementDate: new Date().toISOString().split('T')[0],
@@ -560,7 +561,8 @@ const MeasurementEntry: React.FC = () => {
         setLoadingRecent(true);
         try {
           const response = await apiService.get(`/api/measurements/user/${selectedClient.id}?limit=3`);
-          setRecentMeasurements(response.data?.measurements || []);
+          const recentData = response.data?.data?.measurements || response.data?.measurements || [];
+          setRecentMeasurements(recentData);
         } catch (error) {
           console.error('Failed to load recent measurements', error);
           setRecentMeasurements([]);
@@ -655,8 +657,10 @@ const MeasurementEntry: React.FC = () => {
       const response = await apiService.post('/api/measurements', payload);
 
       toast({ title: 'Success', description: 'Measurements saved successfully!' });
-      if (response.data?.milestonesAchieved?.length > 0) {
-        response.data.milestonesAchieved.forEach((milestone: any) => {
+      const saveData = response.data?.data || response.data;
+      const milestones = saveData?.milestones || saveData?.milestonesAchieved || [];
+      if (milestones.length > 0) {
+        milestones.forEach((milestone: any) => {
           toast({ title: 'Milestone!', description: milestone.celebrationMessage, variant: 'success' });
         });
       }
