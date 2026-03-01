@@ -5,27 +5,35 @@ interface MessageProps {
   message: {
     id: string;
     content: string;
-    senderId: number;
-    senderName: string;
-    createdAt: string;
+    sender_id?: number;
+    senderId?: number;
+    sender?: { id: number; name: string; photo?: string };
+    senderName?: string;
+    created_at?: string;
+    createdAt?: string;
     readBy?: Array<{ userId: number; userName: string }>;
   };
-  isOwnMessage: boolean;
+  isOwnMessage?: boolean;
 }
 
 const Message: React.FC<MessageProps> = ({ message, isOwnMessage }) => {
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
+  const timestamp = message.createdAt || message.created_at;
+  const senderName = message.senderName || message.sender?.name || '';
+
   return (
-    <MessageContainer $isOwn={isOwnMessage}>
-      <MessageBubble $isOwn={isOwnMessage}>
-        {!isOwnMessage && <SenderName>{message.senderName}</SenderName>}
+    <MessageContainer $isOwn={!!isOwnMessage}>
+      <MessageBubble $isOwn={!!isOwnMessage}>
+        {!isOwnMessage && senderName && <SenderName>{senderName}</SenderName>}
         <MessageContent>{message.content}</MessageContent>
         <MessageFooter>
-          <Timestamp>{formatTime(message.createdAt)}</Timestamp>
+          <Timestamp>{formatTime(timestamp)}</Timestamp>
           {isOwnMessage && message.readBy && message.readBy.length > 0 && (
             <ReadIndicator>✓✓</ReadIndicator>
           )}
