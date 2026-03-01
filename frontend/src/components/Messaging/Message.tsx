@@ -83,6 +83,8 @@ const MessageContent = styled.p`
   line-height: 1.5;
   margin: 0;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 `;
 
 const MessageFooter = styled.div`

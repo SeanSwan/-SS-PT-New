@@ -54,17 +54,28 @@ const MessagingPage: React.FC = () => {
 };
 
 const PageContainer = styled.div`
-  height: calc(100vh - 80px); /* Adjust based on header height */
+  height: calc(100vh - 80px);
   padding: 0;
   background: var(--dark-bg, #0a0e1a);
-  overflow: hidden; /* Prevent scrollbars from layout shifts */
+  overflow: hidden;
+
+  /* When embedded inside a dashboard panel, fill the parent instead */
+  .content-area &,
+  [class*="ContentArea"] &,
+  [class*="GalaxySection"] & {
+    height: 100%;
+  }
 `;
 
 const MessagingLayout = styled.div`
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: minmax(220px, 300px) 1fr;
   height: 100%;
   border-top: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
+
+  @media (min-width: 1280px) {
+    grid-template-columns: 350px 1fr;
+  }
 `;
 
 const ConversationPanel = styled.aside`
@@ -77,7 +88,8 @@ const ConversationPanel = styled.aside`
 const ChatPanel = styled.main`
   display: flex;
   flex-direction: column;
-  position: relative; /* For AnimatePresence */
+  position: relative;
+  min-width: 0; /* Prevent grid blowout from long content */
 `;
 
 const NoConversationSelected = styled.div`
