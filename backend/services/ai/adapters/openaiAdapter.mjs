@@ -1,8 +1,13 @@
 /**
- * OpenAI Provider Adapter
- * =======================
+ * OpenAI-Compatible Provider Adapter
+ * ====================================
  * Wraps the OpenAI SDK into the provider-agnostic AiProviderAdapter interface.
- * Migrated from the direct SDK call in aiWorkoutController.mjs.
+ * Works with any OpenAI-compatible API: OpenAI direct, OpenRouter, etc.
+ *
+ * Env vars (checked in priority order — first non-empty wins):
+ *   AI_API_KEY       → OPENAI_API_KEY        (API key)
+ *   AI_BASE_URL      → OPENAI_BASE_URL       (custom endpoint, e.g. OpenRouter)
+ *   AI_MODEL         → AI_OPENAI_MODEL       (model ID, default: gpt-4)
  *
  * Phase 3A — Provider Router (Smart Workout Logger)
  * Phase 3B — Refactored to use shared adapterUtils helpers
@@ -20,7 +25,10 @@ import {
   requireNonEmptyText,
 } from './adapterUtils.mjs';
 
-const DEFAULT_MODEL = process.env.AI_OPENAI_MODEL || 'gpt-4';
+/** Resolve env var with fallback: new name → legacy name → default */
+const getApiKey  = () => process.env.AI_API_KEY  || process.env.OPENAI_API_KEY  || '';
+const getBaseUrl = () => process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || '';
+const getModel   = () => process.env.AI_MODEL    || process.env.AI_OPENAI_MODEL || 'gpt-4';
 
 /**
  * Normalize OpenAI SDK/runtime errors into AiProviderError.
@@ -94,11 +102,11 @@ const openaiAdapter = {
   name: 'openai',
 
   /**
-   * Check if OPENAI_API_KEY is present.
+   * Check if an API key is present (AI_API_KEY or OPENAI_API_KEY).
    * @returns {boolean}
    */
   isConfigured() {
-    return Boolean(process.env.OPENAI_API_KEY);
+    return Boolean(getApiKey());
   },
 
   /**
@@ -110,10 +118,10 @@ const openaiAdapter = {
    */
   async generateWorkoutDraft(ctx) {
     if (!this.isConfigured()) {
-      throw makeProviderError('openai', 'PROVIDER_AUTH', 'OPENAI_API_KEY is not configured');
+      throw makeProviderError('openai', 'PROVIDER_AUTH', 'AI_API_KEY is not configured (set AI_API_KEY or OPENAI_API_KEY)');
     }
 
-    const modelName = ctx.modelPreference || DEFAULT_MODEL;
+    const modelName = ctx.modelPreference || getModel();
     const maxTokens = ctx.maxOutputTokens || 2000;
     const timeoutMs = ctx.timeoutMs || Number(process.env.AI_PROVIDER_TIMEOUT_MS) || DEFAULT_PROVIDER_TIMEOUT_MS;
 
@@ -126,9 +134,10 @@ const openaiAdapter = {
       throw makeProviderError('openai', 'PROVIDER_AUTH', 'OpenAI SDK not installed');
     }
 
-    const clientOpts = { apiKey: process.env.OPENAI_API_KEY };
-    if (process.env.OPENAI_BASE_URL) {
-      clientOpts.baseURL = process.env.OPENAI_BASE_URL;
+    const clientOpts = { apiKey: getApiKey() };
+    const baseUrl = getBaseUrl();
+    if (baseUrl) {
+      clientOpts.baseURL = baseUrl;
     }
     const client = new OpenAI(clientOpts);
     // Use pre-built prompt if provided (e.g. long-horizon), else build workout prompt

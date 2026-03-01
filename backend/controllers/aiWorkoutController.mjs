@@ -54,6 +54,7 @@ import { PROMPT_VERSION } from '../services/ai/types.mjs';
 import { buildTemplateContext } from '../services/ai/templateContextBuilder.mjs';
 import { buildProgressContext } from '../services/ai/progressContextBuilder.mjs';
 import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
+import { buildMeasurementContext } from '../services/ai/measurementContextBuilder.mjs';
 import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
 
 const ALLOWED_DAY_TYPES = new Set([
@@ -278,6 +279,7 @@ export const generateWorkoutPlan = async (req, res) => {
       ClientTrainerAssignment,
       ClientBaselineMeasurements,
       AiConsentLog,
+      BodyMeasurement,
     } = models;
 
     if (requesterRole === 'trainer') {
@@ -446,12 +448,30 @@ export const generateWorkoutPlan = async (req, res) => {
       }
     }
 
+    // Phase 11F: Fetch recent body measurements for AI context
+    let measurementContext = null;
+    if (BodyMeasurement) {
+      try {
+        const recentMeasurements = await BodyMeasurement.findAll({
+          where: { userId: targetUserId },
+          order: [['measurementDate', 'DESC']],
+          limit: 5,
+        });
+        if (recentMeasurements && recentMeasurements.length > 0) {
+          measurementContext = buildMeasurementContext(recentMeasurements);
+        }
+      } catch (measurementErr) {
+        logger.warn('Failed to build measurement context (non-blocking):', measurementErr.message);
+      }
+    }
+
     // Phase 5A: Build unified generation context
     const unifiedContext = buildUnifiedContext({
       deIdentifiedPayload: safePayload,
       nasmConstraints,
       templateContext,
       progressContext,
+      measurementContext,
     });
 
     // Attach progress + unified context to serverConstraints for prompt enrichment
@@ -460,6 +480,9 @@ export const generateWorkoutPlan = async (req, res) => {
     }
     if (unifiedContext.exerciseRecommendations?.length > 0) {
       serverConstraints.exerciseRecommendations = unifiedContext.exerciseRecommendations;
+    }
+    if (measurementContext) {
+      serverConstraints.measurementTrends = measurementContext;
     }
 
     const payloadHash = hashPayload(safePayload);

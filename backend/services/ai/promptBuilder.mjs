@@ -95,6 +95,13 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
     parts.push(buildTemplatePromptSection(templateContext));
   }
 
+  // Append measurement trends section when available
+  const measurementTrends = serverConstraints?.measurementTrends;
+  if (measurementTrends) {
+    parts.push('');
+    parts.push(buildMeasurementTrendsSection(measurementTrends));
+  }
+
   return parts.join('\n');
 }
 
@@ -188,6 +195,40 @@ export function buildTemplatePromptSection(templateContext) {
       lines.push('  PAR-Q+ cleared. No medical restrictions flagged.');
     }
   }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build the measurement trends section for the AI prompt.
+ *
+ * @param {Object} trends — Output of buildMeasurementContext()
+ * @returns {string}
+ */
+export function buildMeasurementTrendsSection(trends) {
+  if (!trends) return '';
+
+  const lines = ['--- Client Measurement Trends ---'];
+
+  if (trends.currentWeight != null) {
+    const unit = trends.weightUnit || 'lbs';
+    lines.push(`Weight: ${trends.currentWeight} ${unit}${trends.weightTrend ? ` (trend: ${trends.weightTrend})` : ''}`);
+  }
+  if (trends.currentBodyFat != null) {
+    lines.push(`Body Fat: ${trends.currentBodyFat}%${trends.bodyFatTrend ? ` (trend: ${trends.bodyFatTrend})` : ''}`);
+  }
+  if (trends.currentWaist != null) {
+    const unit = trends.waistUnit || 'inches';
+    lines.push(`Waist: ${trends.currentWaist} ${unit}${trends.waistTrend ? ` (trend: ${trends.waistTrend})` : ''}`);
+  }
+  if (trends.daysSinceLastMeasurement != null) {
+    lines.push(`Days since last measurement: ${trends.daysSinceLastMeasurement}`);
+  }
+  if (trends.measurementCount != null) {
+    lines.push(`Total measurements on record: ${trends.measurementCount}`);
+  }
+
+  lines.push('Consider these trends when selecting exercises and intensity.');
 
   return lines.join('\n');
 }

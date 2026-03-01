@@ -121,6 +121,7 @@
  */
 
 // backend/controllers/notificationController.mjs
+import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { getNotification, getUser } from '../models/index.mjs';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
@@ -223,10 +224,11 @@ export const markAllAsRead = async (req, res) => {
 
     const userId = req.user.id;
 
-    // Update all notifications for this user
+    // Update all non-persistent notifications for this user
+    // Persistent notifications (e.g., overdue measurements) survive "mark all read"
     await Notification.update(
       { read: true },
-      { where: { userId, read: false } }
+      { where: { userId, read: false, [Op.or]: [{ persistent: false }, { persistent: null }] } }
     );
 
     return successResponse(res, { success: true }, 'All notifications marked as read');

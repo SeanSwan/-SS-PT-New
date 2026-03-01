@@ -4,6 +4,7 @@ import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
 import ContactNotifications from '../components/ContactNotifications';
 import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
+import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
 import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
@@ -198,6 +199,9 @@ const AdminOverviewPanel: React.FC = () => {
       </div>
 
       <AdminOverviewMetrics metrics={metrics} />
+
+      {/* Upcoming Measurement Check-ins Widget */}
+      <UpcomingChecksWidget />
 
       {/* Cancelled Sessions Widget - Shows late cancellations with charge options */}
       <CancelledSessionsWidget maxItems={10} showChargeButtons={true} />

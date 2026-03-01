@@ -90,8 +90,15 @@ describe('openaiAdapter', () => {
       expect(openaiAdapter.isConfigured()).toBe(true);
     });
 
-    it('should return false when OPENAI_API_KEY is missing', () => {
+    it('should return true when AI_API_KEY is set (even without OPENAI_API_KEY)', () => {
       vi.stubEnv('OPENAI_API_KEY', '');
+      vi.stubEnv('AI_API_KEY', 'openrouter-key');
+      expect(openaiAdapter.isConfigured()).toBe(true);
+    });
+
+    it('should return false when both AI_API_KEY and OPENAI_API_KEY are missing', () => {
+      vi.stubEnv('OPENAI_API_KEY', '');
+      vi.stubEnv('AI_API_KEY', '');
       expect(openaiAdapter.isConfigured()).toBe(false);
     });
   });
@@ -143,6 +150,7 @@ describe('openaiAdapter', () => {
   describe('generateWorkoutDraft — errors', () => {
     it('should throw PROVIDER_AUTH when API key missing', async () => {
       vi.stubEnv('OPENAI_API_KEY', '');
+      vi.stubEnv('AI_API_KEY', '');
       try {
         await openaiAdapter.generateWorkoutDraft(makeCtx());
         expect.unreachable('Should have thrown');
