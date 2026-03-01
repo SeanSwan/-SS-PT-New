@@ -14,7 +14,8 @@
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:install": "playwright install chromium"
+    "test:e2e:install": "playwright install chromium",
+    "test:e2e:api": "playwright test --project=\"API Tests\" --workers=1"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

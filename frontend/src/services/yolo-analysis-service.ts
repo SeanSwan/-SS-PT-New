@@ -30,7 +30,7 @@ export interface AnalysisData {
 }
 
 // Default to localhost for development, override in production
-const YOLO_API_URL = process.env.REACT_APP_YOLO_API_URL || 'http://localhost:8005';
+const YOLO_API_URL = (import.meta as any).env?.VITE_YOLO_API_URL || 'http://localhost:8005';
 
 export const YoloAnalysisService = {
   /**

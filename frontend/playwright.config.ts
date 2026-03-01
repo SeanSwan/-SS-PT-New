@@ -26,5 +26,12 @@ export default defineConfig({
   projects: [
     { name: 'Desktop Chrome', use: { ...devices['Desktop Chrome'] } },
     { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
+    {
+      name: 'API Tests',
+      testMatch: /e2e\/api\/.*\.spec\.ts/,
+      use: { baseURL: 'http://localhost:10000' },
+      fullyParallel: false,
+      retries: 0,
+    },
   ],
 });
