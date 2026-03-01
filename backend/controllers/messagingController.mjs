@@ -11,6 +11,82 @@ import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
 
 /**
+ * Default admin contact — every user gets a welcome conversation with Sean.
+ * Looked up dynamically on first call, then cached for the process lifetime.
+ */
+let _defaultAdminId = null;
+async function getDefaultAdminId() {
+  if (_defaultAdminId) return _defaultAdminId;
+  // Find the site owner (Sean Swan, ID 1) or fall back to any admin
+  const [admin] = await sequelize.query(
+    `SELECT id FROM "Users" WHERE id = 1
+     UNION ALL
+     SELECT id FROM "Users" WHERE role = 'admin' ORDER BY id LIMIT 1`,
+    { type: QueryTypes.SELECT }
+  );
+  _defaultAdminId = admin?.id || null;
+  return _defaultAdminId;
+}
+
+/**
+ * Ensure a welcome conversation exists between a user and the default admin.
+ * Called lazily when a user first opens messaging.
+ */
+async function ensureAdminConversation(userId) {
+  const adminId = await getDefaultAdminId();
+  if (!adminId || adminId === userId) return; // Admin doesn't need a convo with themselves
+
+  // Check if a direct conversation already exists
+  const [existing] = await sequelize.query(
+    `SELECT c.id FROM conversations c
+     JOIN conversation_participants cp1 ON c.id = cp1.conversation_id AND cp1.user_id = :userId
+     JOIN conversation_participants cp2 ON c.id = cp2.conversation_id AND cp2.user_id = :adminId
+     WHERE c.type = 'direct'
+     LIMIT 1`,
+    { replacements: { userId, adminId }, type: QueryTypes.SELECT }
+  );
+  if (existing) return; // Already have a conversation
+
+  // Create the welcome conversation inside a transaction
+  const trx = await sequelize.transaction();
+  try {
+    const [convRows] = await sequelize.query(
+      `INSERT INTO conversations (type, name, created_at, updated_at)
+       VALUES ('direct', NULL, NOW(), NOW()) RETURNING id`,
+      { transaction: trx }
+    );
+    const convId = (convRows[0] || convRows).id;
+
+    await sequelize.query(
+      `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at)
+       VALUES (:convId, :userId, 'member', NOW()), (:convId, :adminId, 'member', NOW())`,
+      { replacements: { convId, userId, adminId }, transaction: trx }
+    );
+
+    // Send a welcome message from Sean
+    await sequelize.query(
+      `INSERT INTO messages (conversation_id, sender_id, content, created_at, updated_at)
+       VALUES (:convId, :adminId, :content, NOW(), NOW())`,
+      {
+        replacements: {
+          convId,
+          adminId,
+          content: 'Welcome to SwanStudios! 🦢 I''m Sean, your coach. Feel free to message me anytime — whether it''s about training, scheduling, or anything else. I''m here to help!',
+        },
+        transaction: trx,
+      }
+    );
+
+    await trx.commit();
+    console.log(`Created welcome conversation (${convId}) between user ${userId} and admin ${adminId}`);
+  } catch (err) {
+    await trx.rollback();
+    // Don't throw — this is a best-effort enhancement, not a hard requirement
+    console.error('Failed to create welcome conversation:', err.message);
+  }
+}
+
+/**
  * Get all conversations for the authenticated user.
  * GET /api/messaging/conversations
  */
@@ -29,6 +105,9 @@ export const getConversations = async (req, res) => {
     if (!tableCheck || parseInt(tableCheck.cnt) < 4) {
       return res.json([]);  // Tables not yet created — return empty rather than 500
     }
+
+    // Ensure the user has a welcome conversation with the admin (lazy, one-time)
+    await ensureAdminConversation(userId);
 
     const conversations = await sequelize.query(
       `
