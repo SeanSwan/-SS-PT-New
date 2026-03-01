@@ -63,6 +63,7 @@ export interface WaiverRecordDetail extends WaiverRecordSummary {
   userAgent: string | null;
   submittedByGuardian: boolean;
   guardianName: string | null;
+  signatureData: string | null;
   versionLinks: VersionLink[];
 }
 

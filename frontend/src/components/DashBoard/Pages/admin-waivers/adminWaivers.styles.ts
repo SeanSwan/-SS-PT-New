@@ -263,6 +263,15 @@ export const ConsentItem = styled.div<{ $accepted: boolean }>`
   color: ${({ $accepted }) => ($accepted ? '#00ff88' : '#ff6b6b')};
 `;
 
+export const SignatureImage = styled.img`
+  max-width: 100%;
+  max-height: 150px;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+`;
+
 export const MatchCard = styled.div`
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(120, 81, 169, 0.2);
