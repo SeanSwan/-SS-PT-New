@@ -131,21 +131,22 @@ export const createConversation = async (req, res) => {
   const trx = await sequelize.transaction();
   try {
     // Create conversation
-    const [conversation] = await trx.query(
+    const [convRows] = await sequelize.query(
       `INSERT INTO conversations (type, name, created_at, updated_at) VALUES (:type, :name, NOW(), NOW()) RETURNING *`,
       {
         replacements: { type, name: type === 'group' ? name : null },
-        type: QueryTypes.INSERT,
         transaction: trx,
       }
     );
+    const conversation = convRows[0];
 
     // Add participants
-    const participantValues = allParticipantIds.map(userId => `('${conversation.id}', ${userId}, 'member', NOW())`).join(',');
-    await trx.query(
-      `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at) VALUES ${participantValues}`,
-      { transaction: trx }
-    );
+    for (const uid of allParticipantIds) {
+      await sequelize.query(
+        `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at) VALUES (:convId, :uid, 'member', NOW())`,
+        { replacements: { convId: conversation.id, uid }, transaction: trx }
+      );
+    }
 
     await trx.commit();
 
