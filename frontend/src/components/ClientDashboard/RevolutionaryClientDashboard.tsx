@@ -35,9 +35,11 @@ import { useNavigate } from 'react-router-dom';
 const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
 
 const MessagesGalaxy: React.FC = () => (
-  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
-    <MessagingPage />
-  </Suspense>
+  <div style={{ margin: '-2rem', height: 'calc(100% + 4rem)' }}>
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
+      <MessagingPage />
+    </Suspense>
+  </div>
 );
 
 // === THEME DEFINITION ===
