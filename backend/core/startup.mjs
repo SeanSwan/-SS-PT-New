@@ -18,6 +18,7 @@ import setupAssociations from '../setupAssociations.mjs';
 import { runStartupMigrations } from '../utils/startupMigrations.mjs';
 import { syncDatabaseSafely } from '../utils/productionDatabaseSync.mjs';
 import seedStorefrontItems from '../seedStorefrontItems.mjs';
+import seedWaiverVersions from '../seeders/seed-waiver-versions.mjs';
 import logger from '../utils/logger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -234,6 +235,19 @@ const seedInitialData = async () => {
   } catch (seedError) {
     logger.error(`❌ Storefront seeding failed: ${seedError.message}`);
     logger.info('🚀 Continuing server startup - packages available via admin management');
+  }
+
+  // Seed waiver versions (Phase 5W-G) — idempotent, safe for every startup
+  try {
+    const { getModel } = await import('../models/index.mjs');
+    const waiverResult = await seedWaiverVersions(getModel);
+    if (waiverResult.seeded) {
+      logger.info(`✅ Waiver version seeding: ${waiverResult.created} created, ${waiverResult.existing} existing`);
+    } else {
+      logger.info(`ℹ️  Waiver version seeding skipped: ${waiverResult.reason}`);
+    }
+  } catch (waiverSeedError) {
+    logger.warn(`⚠️  Waiver version seeding failed (non-critical): ${waiverSeedError.message}`);
   }
 };
 
