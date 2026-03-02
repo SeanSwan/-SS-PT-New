@@ -1,86 +1,154 @@
 # SwanStudios Social — Complete Styling Reference for Gemini Review
 
+**Version:** 2.0 — Cinematic & Haptic Polish (Gemini-directed)
 **Preset:** F-Alt "Enchanted Apex: Crystalline Swan"
-**Framework:** styled-components (NO MUI)
-**File Modified:** `frontend/src/components/DashBoard/Pages/admin-dashboard/components/AdminSocialManagementView.tsx`
-**Purpose:** This document contains EVERY style, token, animation, and component pattern used in the Admin Social Management tab rewrite. Nothing is omitted. Gemini can use this to provide enhanced design direction.
+**Framework:** styled-components + framer-motion (NO MUI, NO Tailwind)
+**File:** `frontend/src/components/DashBoard/Pages/admin-dashboard/components/AdminSocialManagementView.tsx`
+**Purpose:** This document contains EVERY style, token, animation, spring constant, and component pattern currently live in the Admin Social Management tab. Nothing is omitted. All code is verbatim from the implementation.
 
 ---
 
 ## Table of Contents
 
-1. [Design Token Constants (T object)](#1-design-token-constants)
-2. [Keyframe Animations](#2-keyframe-animations)
-3. [Styled Components — Full CSS-in-JS Code](#3-styled-components)
-   - 3.1 SocialContainer
-   - 3.2 SocialHeader
-   - 3.3 HeaderTitle
-   - 3.4 HeaderActions
-   - 3.5 ActionButton
-   - 3.6 MetricsGrid
-   - 3.7 MetricCard
-   - 3.8 ContentGrid
-   - 3.9 GlassPanel
-   - 3.10 SectionHeader
-   - 3.11 SearchAndFilters
-   - 3.12 FilterButton
-   - 3.13 PostCardStyled
-   - 3.14 StatusBadge
-   - 3.15 ActionIcon
-   - 3.16 ActivityItem
-   - 3.17 EmptyState
-   - 3.18 LoadingDots
-4. [Component Structure & Data Flow](#4-component-structure)
-5. [Responsive Breakpoints](#5-responsive-breakpoints)
-6. [Rarity System — Status/Badge Coloring](#6-rarity-system)
-7. [Glass Surface Spec](#7-glass-surface-spec)
-8. [Motion & Animation Spec](#8-motion-animation-spec)
-9. [Typography Spec](#9-typography-spec)
-10. [Icon Usage Map](#10-icon-usage-map)
-11. [Backend API Integration Points](#11-backend-api-integration)
+1. [Crystalline Token Matrix (T Object)](#1-crystalline-token-matrix)
+2. [Spring Physics Constants](#2-spring-physics-constants)
+3. [Variant Color Helpers](#3-variant-color-helpers)
+4. [Keyframe Animations](#4-keyframe-animations)
+5. [Styled Components — Full CSS-in-JS Code](#5-styled-components)
+   - 5.1 SocialContainer
+   - 5.2 SocialHeader
+   - 5.3 HeaderTitle
+   - 5.4 HeaderActions
+   - 5.5 ActionButton
+   - 5.6 MetricsGrid
+   - 5.7 MetricCard
+   - 5.8 ContentGrid
+   - 5.9 GlassPanel
+   - 5.10 SectionHeader
+   - 5.11 SearchAndFilters
+   - 5.12 SearchInput
+   - 5.13 FilterButton
+   - 5.14 PostCardStyled
+   - 5.15 StatusBadge
+   - 5.16 ActionIcon
+   - 5.17 ActivityItem
+   - 5.18 EmptyState
+   - 5.19 Spinner
+   - 5.20 LoadingDots
+6. [Component Hierarchy & Data Flow](#6-component-hierarchy)
+7. [Haptic Moderation System](#7-haptic-moderation)
+8. [Responsive Breakpoints](#8-responsive-breakpoints)
+9. [Rarity / Status Badge Spec](#9-rarity-status-badges)
+10. [True Glass Surface Spec](#10-true-glass-surface)
+11. [Spring Motion & Animation Spec](#11-spring-motion-animation)
+12. [Typography Spec](#12-typography-spec)
+13. [Icon Usage Map](#13-icon-usage-map)
+14. [Backend API Integration](#14-backend-api-integration)
+15. [Gradient Reference](#15-gradient-reference)
+16. [Shadow Reference](#16-shadow-reference)
+17. [Border Radius Reference](#17-border-radius-reference)
+18. [Spacing Reference](#18-spacing-reference)
 
 ---
 
-## 1. Design Token Constants
+## 1. Crystalline Token Matrix
 
-These are the F-Alt "Crystalline Swan" brand tokens defined as a constant object `T` at the top of the file. Every styled component references these.
+The mandatory `T` constant object at the top of the file. Every styled component references these — no hardcoded colors anywhere else.
 
 ```typescript
 const T = {
-  // ── Primary Palette ──
-  midnightSapphire: '#002060',   // Primary surface/nav — deepest background
-  royalDepth:       '#003080',   // Surface — cards, panels, elevated elements
-  iceWing:          '#60C0F0',   // Gaming Accent — CTAs, highlights, primary interactive
-  arcticCyan:       '#50A0F0',   // Secondary Accent — links, badges, secondary interactive
-  gildedFern:       '#C6A84B',   // Luxury Accent — gold borders, rarity, premium feel
-  frostWhite:       '#E0ECF4',   // Text on dark — primary text color
-  swanLavender:     '#4070C0',   // Tertiary — subtle accents, active filter backgrounds
+  // ── Surface & Depths (The Ocean / The Night) ──
+  midnightSapphire: '#002060',   // Base void
+  royalDepth:       '#003080',   // Elevated elements
+  swanLavender:     '#4070C0',   // Active states / mid-tones
 
-  // ── Derived / Composite Tokens ──
-  glass:       'rgba(0, 32, 96, 0.55)',       // Glass surface background (midnightSapphire at 55% opacity)
-  glassBorder: 'rgba(198, 168, 75, 0.2)',     // Gilded border (gildedFern at 20% opacity)
-  glassHover:  'rgba(0, 48, 128, 0.7)',       // Hover state glass (royalDepth at 70% opacity)
-  textPrimary: '#E0ECF4',                     // Same as frostWhite — primary text
-  textMuted:   'rgba(224, 236, 244, 0.6)',    // Frost white at 60% opacity — secondary text
-  success:     '#22c55e',                     // Green — approved status
-  warning:     '#f59e0b',                     // Amber — pending/flagged warning
-  danger:      '#ef4444',                     // Red — rejected/removed status
+  // ── Bioluminescence & Ice (The Glow) ──
+  iceWing:          '#60C0F0',   // Primary Interactive Glow
+  arcticCyan:       '#50A0F0',   // Secondary Accents
+
+  // ── Luxury & Status (The Contrast) ──
+  gildedFern:       '#C6A84B',   // Gold borders, luxury accents
+  frostWhite:       '#E0ECF4',   // Primary Text (Never pure white)
+
+  // ── Semantic Haptics ──
+  success:          '#22C55E',   // Approve / Growth
+  warning:          '#F59E0B',   // Flagged / Pending
+  danger:           '#EF4444',   // Reject / Delete
+
+  // ── Premium Composite Tokens ──
+  glassSurface:     'linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%)',
+  glassBorder:      'rgba(198, 168, 75, 0.25)',   // 25% Gilded Fern
+  glassHighlight:   'inset 0 1px 1px rgba(224, 236, 244, 0.15)', // Apple-style inner lip
+  textMuted:        'rgba(224, 236, 244, 0.65)',
 };
 ```
 
 ### Token Usage Rules
-- **All backgrounds** use `T.glass` (glass surface) or gradient combinations of `T.royalDepth` → `T.iceWing`
-- **All borders** use `T.glassBorder` (gilded gold at 20%) as default, `T.iceWing` borders on focus/active
-- **All primary text** uses `T.frostWhite` (#E0ECF4)
-- **All secondary/muted text** uses `T.textMuted` (rgba(224, 236, 244, 0.6))
-- **Interactive elements** glow with `T.iceWing` on hover
+- **All backgrounds** use `T.glassSurface` (gradient glass) — NOT a flat rgba
+- **All borders** use `T.glassBorder` (gilded at 25%) as default
+- **All glass panels** get dual shadows: `T.glassHighlight` (inner lip) + `0 12px 40px rgba(0,0,0,0.3)` (ambient depth)
+- **All primary text** uses `T.frostWhite` (#E0ECF4) — never pure white
+- **All secondary text** uses `T.textMuted` (rgba at 65% — raised from original 60%)
+- **Dynamic tinting** uses CSS `color-mix(in srgb, COLOR PERCENT%, transparent)` — no JS color helpers
 - **Status colors** use `T.success`, `T.warning`, `T.danger` for semantic states
+
+### Key Difference from V1
+| Property | V1 (Original) | V2 (Gemini Polish) |
+|----------|---------------|---------------------|
+| `glassSurface` | `rgba(0, 32, 96, 0.55)` (flat) | `linear-gradient(135deg, rgba(0,48,128,0.45), rgba(0,32,96,0.25))` (gradient) |
+| `glassBorder` | 20% opacity | 25% opacity |
+| `glassHighlight` | Did not exist | `inset 0 1px 1px rgba(224,236,244,0.15)` |
+| `textMuted` | 60% opacity | 65% opacity |
+| Ambient shadow | Per-component | Standardized: `0 12px 40px rgba(0,0,0,0.3)` |
 
 ---
 
-## 2. Keyframe Animations
+## 2. Spring Physics Constants
 
-### 2.1 Aurora Shift (Header Title Gradient)
+All interactive Framer Motion uses spring physics — never linear CSS transitions for transforms.
+
+```typescript
+const physics = {
+  spring:    { type: 'spring', stiffness: 400, damping: 25, mass: 0.8 },
+  snappy:    { type: 'spring', stiffness: 600, damping: 30 },
+  glissando: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+};
+```
+
+### Usage Map
+| Constant | Feel | Used On |
+|----------|------|---------|
+| `physics.spring` | Natural bounce, weighted | MetricCard whileHover, ActionButton whileHover, PostCard entrance/exit |
+| `physics.snappy` | Quick responsive snap | ActionIcon whileHover/whileTap, FilterButton, Bulk Actions button |
+| `physics.glissando` | Smooth cinematic ease | Page entrance (SocialContainer initial→animate) |
+
+---
+
+## 3. Variant Color Helpers
+
+Used by ActionIcon to resolve variant → color without switch statements in CSS.
+
+```typescript
+const variantColorMap: Record<string, string> = {
+  approve: T.success,   // #22C55E
+  reject:  T.danger,    // #EF4444
+  flag:    T.warning,   // #F59E0B
+  default: T.iceWing,   // #60C0F0
+};
+const getVariantColor = (v?: string) => variantColorMap[v || 'default'] || T.iceWing;
+```
+
+This function is called inside styled-components template literals:
+```css
+color: ${props => getVariantColor(props.$variant)};
+background: color-mix(in srgb, ${props => getVariantColor(props.$variant)} 10%, transparent);
+```
+
+---
+
+## 4. Keyframe Animations
+
+### 4.1 Aurora Shift (Header Title Gradient)
 ```typescript
 const auroraShift = keyframes`
   0%   { background-position: 0% 50%; }
@@ -88,22 +156,22 @@ const auroraShift = keyframes`
   100% { background-position: 0% 50%; }
 `;
 ```
-- **Used on:** HeaderTitle (animated gradient text)
-- **Duration:** 6s ease infinite
-- **Effect:** Shifts a tri-color gradient (ice-wing → frost-white → gilded-fern) across the text
-- **Requirement:** `background-size: 200% 200%` on the parent element
+- **Applied to:** HeaderTitle
+- **Duration:** `6s ease-in-out infinite`
+- **Requires:** `background-size: 200% auto` on the element
 
-### 2.2 Pulse Glow (Defined but reserved for future use)
+### 4.2 Spin Animation (Loading Spinner)
 ```typescript
-const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(96, 192, 240, 0.2); }
-  50%      { box-shadow: 0 0 20px rgba(96, 192, 240, 0.4); }
+const spinAnimation = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 `;
 ```
-- **Color:** Ice Wing at 20%→40% glow
-- **Intended for:** Notification badges, pending items, or attention-grabbing elements
+- **Applied to:** `Spinner` styled component wrapping `<RefreshCw />`
+- **Duration:** `1s linear infinite`
+- **Replaces:** The previous `.animate-spin` CSS class approach
 
-### 2.3 Loading Dots (Inline Animated Ellipsis)
+### 4.3 Loading Dots (Inline Animated Ellipsis)
 ```typescript
 keyframes`
   0%  { content: '.'; }
@@ -111,85 +179,93 @@ keyframes`
   66% { content: '...'; }
 `
 ```
-- **Used on:** LoadingDots component during data fetch
-- **Duration:** 1s steps(1) infinite
+- **Duration:** `1s steps(1) infinite`
+- **Applied via:** `&::after` pseudo-element on `LoadingDots`
 
-### 2.4 Reduced Motion
+### 4.4 Reduced Motion
 ```css
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
 ```
-- Applied at the `SocialContainer` level — disables ALL animations for accessibility
+- Applied at `SocialContainer` level — kills ALL animations for accessibility
 
 ---
 
-## 3. Styled Components — Full CSS-in-JS Code
+## 5. Styled Components — Full CSS-in-JS Code
 
-### 3.1 SocialContainer (Root Wrapper)
+### 5.1 SocialContainer (Root Wrapper)
 ```typescript
 const SocialContainer = styled(motion.div)`
-  padding: 1.5rem;
-  min-height: 100%;
+  padding: 2rem;
+  min-height: 100dvh;
+  color: ${T.frostWhite};
 
+  @media (max-width: 768px) { padding: 1rem; }
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
 `;
 ```
-- **Framer Motion props:** `initial={{ opacity: 0, y: 12 }}`, `animate={{ opacity: 1, y: 0 }}`, `transition={{ duration: 0.4 }}`
-- **Notes:** Fade-up entrance animation; no background set (inherits from admin dashboard shell)
+- **Framer Motion props:** `initial={{ opacity: 0 }}`, `animate={{ opacity: 1 }}`, `transition={physics.glissando}`
+- **Changed from V1:** `padding: 2rem` (was 1.5rem), `min-height: 100dvh` (was 100%), added mobile padding reduction
 
-### 3.2 SocialHeader (Top Bar)
+### 5.2 SocialHeader (Top Bar)
 ```typescript
 const SocialHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
   border-bottom: 1px solid ${T.glassBorder};
   flex-wrap: wrap;
   gap: 1rem;
 `;
 ```
-- **Layout:** Flexbox space-between, wraps on small screens
-- **Border:** Gilded gold separator (1px solid rgba(198, 168, 75, 0.2))
+- **Changed from V1:** `margin-bottom: 2rem` (was 1.5rem), `padding-bottom: 1.25rem` (was 1rem)
 
-### 3.3 HeaderTitle (Aurora Gradient Text)
+### 5.3 HeaderTitle (Cinematic Anchor — Aurora Gradient Text)
 ```typescript
 const HeaderTitle = styled.h1`
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.frostWhite} 50%, ${T.gildedFern} 100%);
-  background-size: 200% 200%;
-  animation: ${auroraShift} 6s ease infinite;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.frostWhite} 40%, ${T.gildedFern} 100%);
+  background-size: 200% auto;
+  animation: ${auroraShift} 6s ease-in-out infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   margin: 0;
 
   .header-icon {
     background: linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing});
-    border-radius: 12px;
-    padding: 0.6rem;
-    color: ${T.frostWhite};
-    box-shadow: 0 4px 16px rgba(96, 192, 240, 0.3);
+    border-radius: 14px;
+    padding: 0.75rem;
+    box-shadow: 0 8px 24px rgba(96, 192, 240, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     -webkit-text-fill-color: ${T.frostWhite};
+    color: ${T.frostWhite};
   }
 `;
 ```
-- **Text effect:** Animated aurora gradient across text (ice-wing → frost-white → gilded-fern)
-- **Icon container:** Gradient pill with ice-wing glow shadow (0 4px 16px rgba(96, 192, 240, 0.3))
-- **Icon used:** `<Sparkles size={22} />` from lucide-react
+- **Changed from V1:**
+  - `font-size: 2rem` (was 1.75rem)
+  - Added `letter-spacing: -0.02em` (tighter, more premium)
+  - Gradient midpoint at 40% (was 50%) — frostWhite peak shifted left
+  - `background-size: 200% auto` (was `200% 200%`)
+  - `ease-in-out` (was `ease`)
+  - `.header-icon` border-radius: 14px (was 12px), padding: 0.75rem (was 0.6rem)
+  - Icon shadow upgraded: `0 8px 24px rgba(96,192,240,0.4), inset 0 1px 1px rgba(255,255,255,0.3)` — deeper glow + inner lip
+  - Gap: 1rem (was 0.75rem)
 
-### 3.4 HeaderActions (Button Group)
+### 5.4 HeaderActions
 ```typescript
 const HeaderActions = styled.div`
   display: flex;
@@ -197,8 +273,9 @@ const HeaderActions = styled.div`
   align-items: center;
 `;
 ```
+- Unchanged from V1
 
-### 3.5 ActionButton (Primary Interactive Button)
+### 5.5 ActionButton (Interactive Button)
 ```typescript
 const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   padding: 0.6rem 1.25rem;
@@ -207,15 +284,15 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   border: 1px solid ${props => {
     switch (props.$variant) {
       case 'primary': return T.iceWing;
-      case 'danger': return T.danger;
-      default: return T.glassBorder;
+      case 'danger':  return T.danger;
+      default:        return T.glassBorder;
     }
   }};
   background: ${props => {
     switch (props.$variant) {
       case 'primary': return `linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing})`;
-      case 'danger': return T.danger;
-      default: return T.glass;
+      case 'danger':  return T.danger;
+      default:        return T.glassSurface;
     }
   }};
   color: ${T.frostWhite};
@@ -226,86 +303,76 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   align-items: center;
   gap: 0.5rem;
   backdrop-filter: blur(12px);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(96, 192, 240, 0.25);
-  }
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: ${T.glassHighlight};
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 ```
-- **Touch target:** 44px minimum height (mobile-first)
-- **Variants:**
-  - `default` — glass surface with gilded border
-  - `primary` — royal-depth → ice-wing gradient with ice-wing border
-  - `danger` — solid red background with red border
-- **Hover:** Lifts 2px, adds ice-wing glow shadow
-- **Easing:** `cubic-bezier(0.25, 0.46, 0.45, 0.94)` — smooth deceleration
+- **Changed from V1:**
+  - Default background now `T.glassSurface` (gradient) instead of flat `T.glass`
+  - Added `-webkit-backdrop-filter` for Safari support
+  - Added `box-shadow: ${T.glassHighlight}` (inner lip)
+  - Removed CSS `transition` and `&:hover` CSS block — hover/tap now handled entirely by Framer Motion spring props
+- **Framer Motion props:** `whileHover={{ scale: 1.03, y: -2 }}`, `whileTap={{ scale: 0.97 }}`, `transition={physics.spring}`
 
-### 3.6 MetricsGrid (4-Column Dashboard Metrics)
+### 5.6 MetricsGrid (4-Column Responsive Grid)
 ```typescript
 const MetricsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 
   @media (max-width: 1280px) { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 640px)  { grid-template-columns: 1fr; }
 `;
 ```
-- **Breakpoints:** 4-col → 2-col (≤1280px) → 1-col (≤640px)
+- **Changed from V1:** `margin-bottom: 2rem` (was 1.5rem)
 
-### 3.7 MetricCard (Glass Stat Card with Accent Bar)
+### 5.7 MetricCard (Haptic Stat Container — True Glass)
 ```typescript
-const MetricCard = styled(motion.div)<{ $accent?: string }>`
-  background: ${T.glass};
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  padding: 1.25rem;
+const MetricCard = styled(motion.div)<{ $accent: string }>`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
   position: relative;
+  padding: 1.5rem;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
-    background: ${props => props.$accent || T.iceWing};
+    background: ${props => props.$accent};
+    box-shadow: 0 2px 12px ${props => props.$accent};
     border-radius: 16px 16px 0 0;
   }
 
-  &:hover {
-    border-color: rgba(96, 192, 240, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 32, 96, 0.4), 0 0 20px rgba(96, 192, 240, 0.1);
-  }
-
   .metric-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(96, 192, 240, 0.1);
-    color: ${props => props.$accent || T.iceWing};
-    margin-bottom: 0.75rem;
+    background: color-mix(in srgb, ${props => props.$accent} 15%, transparent);
+    color: ${props => props.$accent};
+    border: 1px solid color-mix(in srgb, ${props => props.$accent} 30%, transparent);
   }
 
   .metric-value {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
     color: ${T.frostWhite};
+    margin-top: 1rem;
     margin-bottom: 0.25rem;
   }
 
@@ -326,13 +393,18 @@ const MetricCard = styled(motion.div)<{ $accent?: string }>`
   }
 `;
 ```
-- **Glass surface:** `rgba(0, 32, 96, 0.55)` + `backdrop-filter: blur(20px)`
-- **Accent bar:** 3px top border, color set by `$accent` prop (T.iceWing, T.success, T.gildedFern, T.warning)
-- **Hover:** Border brightens to ice-wing, dual shadow (deep sapphire + ice glow)
-- **Icon container:** 40x40px rounded square with tinted background matching accent
-- **Framer Motion:** `whileHover={{ y: -3 }}` (lifts on hover)
+- **Changed from V1:**
+  - Uses True Glass Spec: `T.glassSurface` + `T.glassHighlight` + ambient shadow
+  - `backdrop-filter: blur(24px)` (was 20px)
+  - `padding: 1.5rem` (was 1.25rem)
+  - Accent bar `::before` gains `box-shadow: 0 2px 12px ${accent}` — the bar GLOWS
+  - `.metric-icon` — 44px (was 40px), `border-radius: 12px` (was 10px), uses `color-mix()` for background AND border
+  - `.metric-value` — `font-size: 2rem` (was 1.75rem), `margin-top: 1rem` (was margin-bottom only)
+  - Removed CSS `transition` and `&:hover` CSS block — handled by Framer Motion
+  - `$accent` prop is now required (was optional)
+- **Framer Motion props:** `initial={{ opacity: 0, y: 20 }}`, `animate={{ opacity: 1, y: 0 }}`, `transition={{ ...physics.spring, delay: index * 0.1 }}`, `whileHover={{ y: -4, scale: 1.01 }}`
 
-### 3.8 ContentGrid (Main 2-Column Layout)
+### 5.8 ContentGrid (2:1 Layout)
 ```typescript
 const ContentGrid = styled.div`
   display: grid;
@@ -342,27 +414,30 @@ const ContentGrid = styled.div`
   @media (max-width: 1024px) { grid-template-columns: 1fr; }
 `;
 ```
-- **Layout:** 2:1 ratio (posts panel : activity sidebar)
-- **Collapses:** Single column at ≤1024px
+- Unchanged from V1
 
-### 3.9 GlassPanel (Reusable Glass Container)
+### 5.9 GlassPanel (True Glass Container)
 ```typescript
 const GlassPanel = styled.div`
-  background: ${T.glass};
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
   overflow: hidden;
 `;
 ```
-- **Core glass pattern:** Used for both content management panel and activity sidebar
-- **Border radius:** 16px (consistent across all panels)
+- **Changed from V1:**
+  - Uses True Glass Spec: gradient glass + inner lip + ambient shadow
+  - `backdrop-filter: blur(24px)` (was 20px)
+  - Added `-webkit-backdrop-filter` for Safari
 
-### 3.10 SectionHeader (Panel Title Bar)
+### 5.10 SectionHeader (Panel Title Bar)
 ```typescript
 const SectionHeader = styled.div`
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(198, 168, 75, 0.1);
+  border-bottom: 1px solid rgba(198, 168, 75, 0.12);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -378,10 +453,9 @@ const SectionHeader = styled.div`
   }
 `;
 ```
-- **Separator:** More subtle than main header — gilded at 10% opacity
-- **Typography:** 1.1rem, 600 weight, frost white
+- **Changed from V1:** Border opacity `0.12` (was `0.1`)
 
-### 3.11 SearchAndFilters (Search Bar + Filter Buttons)
+### 5.11 SearchAndFilters (Search Bar Container)
 ```typescript
 const SearchAndFilters = styled.div`
   padding: 0.75rem 1.25rem;
@@ -398,52 +472,64 @@ const SearchAndFilters = styled.div`
 
     .search-icon {
       position: absolute;
-      left: 12px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
       color: ${T.textMuted};
     }
   }
+`;
+```
+- **Changed from V1:** Icon `left: 14px` (was 12px), `.search-input` class styles extracted into standalone `SearchInput` component
 
-  .search-input {
-    width: 100%;
-    padding: 0.6rem 1rem 0.6rem 2.5rem;
-    border: 1px solid rgba(96, 192, 240, 0.2);
-    border-radius: 10px;
-    background: rgba(0, 32, 96, 0.4);
-    color: ${T.frostWhite};
-    font-size: 0.875rem;
-    min-height: 44px;
-    box-sizing: border-box;
+### 5.12 SearchInput (Standalone Input — NEW)
+```typescript
+const SearchInput = styled.input`
+  width: 100%;
+  background: rgba(0, 32, 96, 0.5);
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  border-radius: 12px;
+  color: ${T.frostWhite};
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  font-size: 0.95rem;
+  min-height: 44px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
 
-    &::placeholder { color: ${T.textMuted}; }
-    &:focus {
-      outline: none;
-      border-color: ${T.iceWing};
-      box-shadow: 0 0 0 3px rgba(96, 192, 240, 0.15);
-    }
+  &::placeholder { color: ${T.textMuted}; }
+  &:focus {
+    outline: none;
+    background: rgba(0, 48, 128, 0.7);
+    border-color: ${T.iceWing};
+    box-shadow: 0 0 0 4px rgba(96, 192, 240, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 `;
 ```
-- **Search input:** Dark glass background (midnightSapphire at 40%), ice-wing border on focus with 3px glow ring
-- **Touch target:** 44px min-height on input
-- **Responsive:** Wraps on narrow screens, search has min-width 200px
+- **New in V2** — extracted from `.search-input` class inside SearchAndFilters
+- **Key differences from V1:**
+  - `background: rgba(0, 32, 96, 0.5)` (was 0.4)
+  - `border-radius: 12px` (was 10px)
+  - `padding: 0.75rem 1rem 0.75rem 2.75rem` (was 0.6rem/2.5rem)
+  - `font-size: 0.95rem` (was 0.875rem)
+  - Focus: `background` changes to `rgba(0, 48, 128, 0.7)` (darkens on focus — V1 didn't change bg)
+  - Focus ring: `4px` (was 3px) with added inner shadow `inset 0 1px 2px rgba(0,0,0,0.2)`
 
-### 3.12 FilterButton (Status Filter Pill)
+### 5.13 FilterButton (Status Filter Pill)
 ```typescript
 const FilterButton = styled(motion.button)<{ $active?: boolean }>`
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.25rem;
   min-height: 44px;
-  border: 1px solid ${props => props.$active ? T.iceWing : 'rgba(96, 192, 240, 0.2)'};
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid ${props => props.$active ? T.iceWing : 'rgba(255, 255, 255, 0.05)'};
   background: ${props => props.$active
     ? `linear-gradient(135deg, ${T.royalDepth}, ${T.swanLavender})`
     : 'transparent'};
   color: ${props => props.$active ? T.frostWhite : T.textMuted};
-  border-radius: 8px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  box-shadow: ${props => props.$active ? '0 4px 12px rgba(96, 192, 240, 0.2)' : 'none'};
 
   &:hover {
     border-color: ${T.iceWing};
@@ -451,35 +537,42 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   }
 `;
 ```
-- **Active state:** Royal-depth → swan-lavender gradient, ice-wing border, frost-white text
-- **Inactive state:** Transparent, muted border/text
-- **Touch target:** 44px min-height
+- **Changed from V1:**
+  - `padding: 0.6rem 1.25rem` (was `0.5rem 1rem`)
+  - `border-radius: 10px` (was 8px)
+  - Added `font-weight: 500` explicitly
+  - Inactive border: `rgba(255, 255, 255, 0.05)` — nearly invisible (was `rgba(96, 192, 240, 0.2)`)
+  - Active state gets `box-shadow: 0 4px 12px rgba(96, 192, 240, 0.2)` (V1 had none)
+  - Removed CSS `transition` — hover/tap handled by Framer Motion
+- **Framer Motion props:** `whileHover={{ scale: 1.04 }}`, `whileTap={{ scale: 0.96 }}`, `transition={physics.snappy}`
 
-### 3.13 PostCardStyled (Post Row in Moderation List)
+### 5.14 PostCardStyled (Moderation Feed Row)
 ```typescript
 const PostCardStyled = styled(motion.div)`
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(198, 168, 75, 0.08);
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
-  gap: 1rem;
-  transition: background 0.2s ease;
+  gap: 1.25rem;
 
-  &:hover { background: rgba(0, 48, 128, 0.3); }
+  &:hover {
+    background: linear-gradient(90deg, transparent, rgba(96, 192, 240, 0.05), transparent);
+  }
   &:last-child { border-bottom: none; }
 
   .post-avatar {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing});
+    background: linear-gradient(135deg, ${T.midnightSapphire}, ${T.iceWing});
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${T.frostWhite};
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     flex-shrink: 0;
     border: 2px solid ${T.glassBorder};
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 
   .post-body { flex: 1; min-width: 0; }
@@ -492,15 +585,15 @@ const PostCardStyled = styled(motion.div)`
     gap: 0.5rem;
   }
 
-  .user-name { font-weight: 600; color: ${T.frostWhite}; font-size: 0.9rem; }
+  .user-name { font-weight: 600; color: ${T.frostWhite}; font-size: 0.95rem; }
   .post-time { font-size: 0.75rem; color: ${T.textMuted}; }
-  .post-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+  .post-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 
   .post-text {
     color: ${T.textMuted};
     line-height: 1.6;
-    margin-bottom: 0.75rem;
-    font-size: 0.9rem;
+    margin: 0.75rem 0;
+    font-size: 0.95rem;
     word-break: break-word;
   }
 
@@ -519,113 +612,96 @@ const PostCardStyled = styled(motion.div)`
   }
 `;
 ```
-- **Avatar:** 44x44px circle with royal-depth → ice-wing gradient, gilded border (2px)
-- **Hover:** Row background shifts to royal-depth at 30% opacity
-- **Separator:** Ultra-subtle gilded line at 8% opacity
-- **Content:** Post text is muted color with 1.6 line-height for readability
-- **Framer Motion:** Staggered entrance (`initial={{ opacity: 0, y: 10 }}`, `animate={{ opacity: 1, y: 0 }}`)
+- **Changed from V1:**
+  - `padding: 1.5rem` (was `1.25rem 1.5rem`)
+  - `gap: 1.25rem` (was 1rem)
+  - Border: `rgba(255, 255, 255, 0.04)` (was gilded `rgba(198, 168, 75, 0.08)`)
+  - Hover: gradient sweep `linear-gradient(90deg, transparent, rgba(96,192,240,0.05), transparent)` (was flat `rgba(0, 48, 128, 0.3)`)
+  - Avatar: 48px (was 44px), gradient uses `midnightSapphire` start (was `royalDepth`), added `box-shadow: 0 4px 12px rgba(0,0,0,0.4)`
+  - `.user-name` font-size: 0.95rem (was 0.9rem)
+  - `.post-text` margin: `0.75rem 0` (was `margin-bottom: 0.75rem`), font-size: 0.95rem (was 0.9rem)
+  - `.post-actions` gap: 0.4rem (was 0.35rem)
+  - Removed CSS `transition: background` — Framer Motion handles animation
+- **Framer Motion props (entrance):** `initial={{ opacity: 0, y: 10 }}`, `animate={{ opacity: 1, y: 0 }}`, `transition={physics.spring}`
+- **Framer Motion props (haptic exit):** `exit={{ opacity: 0, x: action === 'approve' ? 50 : -50, scale: 0.95 }}`
+- **Layout prop:** `layout` — enables smooth AnimatePresence reflows
 
-### 3.14 StatusBadge (Moderation Status Pill)
+### 5.15 StatusBadge (Glowing Status Pill)
 ```typescript
 const StatusBadge = styled.span<{ $status: string }>`
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.65rem;
-  border-radius: 20px;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: capitalize;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 
   ${props => {
-    switch (props.$status) {
-      case 'approved':
-        return `
-          background: rgba(34, 197, 94, 0.15);
-          color: ${T.success};
-          border: 1px solid rgba(34, 197, 94, 0.3);
-        `;
-      case 'pending':
-        return `
-          background: rgba(198, 168, 75, 0.15);
-          color: ${T.gildedFern};
-          border: 1px solid rgba(198, 168, 75, 0.3);
-        `;
-      case 'flagged':
-        return `
-          background: rgba(239, 68, 68, 0.15);
-          color: ${T.danger};
-          border: 1px solid rgba(239, 68, 68, 0.3);
-        `;
-      default:
-        return `
-          background: rgba(96, 192, 240, 0.1);
-          color: ${T.iceWing};
-          border: 1px solid rgba(96, 192, 240, 0.2);
-        `;
-    }
+    const map: Record<string, { c: string; bg: string }> = {
+      approved: { c: T.success,    bg: 'rgba(34, 197, 94, 0.15)' },
+      pending:  { c: T.gildedFern, bg: 'rgba(198, 168, 75, 0.15)' },
+      flagged:  { c: T.danger,     bg: 'rgba(239, 68, 68, 0.15)' },
+    };
+    const style = map[props.$status] || { c: T.iceWing, bg: 'rgba(96, 192, 240, 0.15)' };
+    return `
+      color: ${style.c};
+      background: ${style.bg};
+      border: 1px solid color-mix(in srgb, ${style.c} 40%, transparent);
+      box-shadow: 0 0 12px color-mix(in srgb, ${style.c} 20%, transparent);
+    `;
   }}
 `;
 ```
-- **Pattern:** Tinted background (15% opacity) + matching text + border (30% opacity)
-- **Status mapping:**
-  - `approved` → green (#22c55e) — success semantic
-  - `pending` → gold (#C6A84B) — gilded/luxury attention
-  - `flagged` → red (#ef4444) — danger semantic
-  - `default` → ice-wing (#60C0F0) — neutral
-- **Shape:** Full pill (20px border-radius)
+- **Changed from V1:**
+  - `gap: 0.4rem` (was 0.35rem)
+  - `padding: 0.25rem 0.75rem` (was `0.2rem 0.65rem`)
+  - `border-radius: 999px` (was 20px — true pill)
+  - `font-weight: 700` (was 600)
+  - Added `letter-spacing: 0.05em`
+  - `text-transform: uppercase` (was `capitalize`)
+  - Border now uses `color-mix()` at 40% (V1 used hardcoded rgba values at 30%)
+  - **NEW: glow** — `box-shadow: 0 0 12px color-mix(in srgb, COLOR 20%, transparent)` — badges GLOW against sapphire bg
+  - Uses map object pattern instead of switch/case (cleaner)
 
-### 3.15 ActionIcon (Moderation Action Buttons)
+### 5.16 ActionIcon (Moderation Action Buttons)
 ```typescript
-const ActionIcon = styled(motion.button)<{ $variant?: 'approve' | 'reject' | 'flag' | 'edit' }>`
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
+const ActionIcon = styled(motion.button)<{ $variant?: 'approve' | 'reject' | 'flag' | 'default' }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, ${props => getVariantColor(props.$variant)} 20%, transparent);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  background: ${props => {
-    switch (props.$variant) {
-      case 'approve': return 'rgba(34, 197, 94, 0.1)';
-      case 'reject':  return 'rgba(239, 68, 68, 0.1)';
-      case 'flag':    return 'rgba(245, 158, 11, 0.1)';
-      default:        return 'rgba(96, 192, 240, 0.1)';
-    }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'approve': return T.success;
-      case 'reject':  return T.danger;
-      case 'flag':    return T.warning;
-      default:        return T.iceWing;
-    }
-  }};
+  background: color-mix(in srgb, ${props => getVariantColor(props.$variant)} 10%, transparent);
+  color: ${props => getVariantColor(props.$variant)};
 
   &:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 12px ${props => {
-      switch (props.$variant) {
-        case 'approve': return 'rgba(34, 197, 94, 0.3)';
-        case 'reject':  return 'rgba(239, 68, 68, 0.3)';
-        case 'flag':    return 'rgba(245, 158, 11, 0.3)';
-        default:        return 'rgba(96, 192, 240, 0.3)';
-      }
-    }};
+    background: color-mix(in srgb, ${props => getVariantColor(props.$variant)} 20%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, ${props => getVariantColor(props.$variant)} 40%, transparent);
   }
 `;
 ```
-- **Size:** 36x36px (compact — pairs of these in post rows)
-- **Hover:** Scales 1.1x with colored glow matching variant
-- **Framer Motion:** `whileHover={{ scale: 1.1 }}`, `whileTap={{ scale: 0.9 }}`
+- **Changed from V1:**
+  - 40x40px (was 36x36px)
+  - `border-radius: 10px` (was 8px)
+  - Has border now: `1px solid color-mix(... 20%)` (V1 had `border: none`)
+  - Uses `getVariantColor()` helper + `color-mix()` instead of per-variant switch blocks
+  - Hover glow: `0 0 16px` (was `0 0 12px`)
+  - Variant type includes `'default'` (was `'edit'`)
+  - Removed CSS `transition` — Framer Motion handles
+- **Framer Motion props:** `whileHover={{ scale: 1.15 }}` (was 1.1), `whileTap={{ scale: 0.85 }}` (was 0.9 — more haptic)
+- **Transition:** `physics.snappy`
 
-### 3.16 ActivityItem (Sidebar Activity Row)
+### 5.17 ActivityItem (Sidebar Activity Row)
 ```typescript
 const ActivityItem = styled.div`
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid rgba(198, 168, 75, 0.08);
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
@@ -644,14 +720,15 @@ const ActivityItem = styled.div`
     color: ${T.iceWing};
   }
 
-  .activity-text { font-size: 0.85rem; color: ${T.textPrimary}; margin-bottom: 0.15rem; }
+  .activity-text { font-size: 0.85rem; color: ${T.frostWhite}; margin-bottom: 0.15rem; }
   .activity-time { font-size: 0.75rem; color: ${T.textMuted}; }
 `;
 ```
-- **Icon:** 32px circle with ice-wing tint
-- **Separator:** Ultra-subtle gilded line at 8% opacity
+- **Changed from V1:**
+  - `padding: 0.85rem 1.25rem` (was 0.75rem)
+  - Border: `rgba(255, 255, 255, 0.04)` (was gilded at 8%)
 
-### 3.17 EmptyState (No Content Placeholder)
+### 5.18 EmptyState
 ```typescript
 const EmptyState = styled.div`
   padding: 3rem 1.5rem;
@@ -663,375 +740,406 @@ const EmptyState = styled.div`
   p { font-size: 0.9rem; margin: 0; }
 `;
 ```
-- **Generous padding:** 3rem top/bottom for breathing room
-- **Icon:** 40% opacity, centered above text
-- **Title:** Frost white, 1.1rem
-- **Body:** Muted text, 0.9rem
+- Unchanged from V1
 
-### 3.18 LoadingDots (Animated Ellipsis)
+### 5.19 Spinner (NEW — CSS Rotation Wrapper)
+```typescript
+const Spinner = styled.div`
+  display: inline-block;
+  animation: ${spinAnimation} 1s linear infinite;
+  line-height: 0;
+`;
+```
+- **New in V2** — replaces `.animate-spin` class dependency
+- Wraps any icon to make it spin (used on `<RefreshCw />` during loading)
+
+### 5.20 LoadingDots
 ```typescript
 const LoadingDots = styled.span`
   &::after {
     content: '';
-    animation: ${keyframes`
-      0%  { content: '.'; }
-      33% { content: '..'; }
-      66% { content: '...'; }
-    `} 1s steps(1) infinite;
+    animation: ${keyframes`0%{content:'.'} 33%{content:'..'} 66%{content:'...'}`} 1s steps(1) infinite;
   }
 `;
 ```
-- **Pure CSS animation** — no JS timer needed
+- Unchanged from V1
 
 ---
 
-## 4. Component Structure & Data Flow
+## 6. Component Hierarchy & Data Flow
 
-### Component Hierarchy
+### Component Tree
 ```
 AdminSocialManagementView (root)
-├── SocialHeader
-│   ├── HeaderTitle (aurora gradient text + Sparkles icon)
-│   └── HeaderActions
-│       ├── ActionButton (Refresh — triggers fetchPosts())
-│       └── ActionButton[$variant="primary"] (Export — placeholder)
-│
-├── MetricsGrid (4-column responsive)
-│   ├── MetricCard[$accent=T.iceWing] → Total Posts (live from API)
-│   ├── MetricCard[$accent=T.success] → Active Posters (unique userId count)
-│   ├── MetricCard[$accent=T.gildedFern] → Total Engagement (sum of likesCount)
-│   └── MetricCard[$accent=T.warning] → Pending Moderation (filtered count)
-│
-└── ContentGrid (2:1 layout)
-    ├── GlassPanel (Content Management)
-    │   ├── SectionHeader ("Content Management" + Bulk Actions button)
-    │   ├── SearchAndFilters
-    │   │   ├── search-input (text search)
-    │   │   └── FilterButton × 4 (All / Approved / Pending / Flagged)
-    │   └── PostCardStyled × N (from filtered API data)
-    │       ├── post-avatar (initials circle)
-    │       ├── post-header (username + timestamp + action buttons)
-    │       ├── post-text (content)
-    │       ├── post-metrics (likes / comments / type)
-    │       └── StatusBadge (moderation status)
-    │
-    └── GlassPanel (Recent Activity sidebar)
-        ├── SectionHeader ("Recent Activity")
-        └── ActivityItem × 4 (from latest posts)
+├── SocialContainer [motion.div — physics.glissando entrance]
+│   ├── SocialHeader
+│   │   ├── HeaderTitle (aurora gradient text + Sparkles icon)
+│   │   └── HeaderActions
+│   │       ├── ActionButton (Refresh — physics.spring hover)
+│   │       └── ActionButton[$variant="primary"] (Export — physics.spring hover)
+│   │
+│   ├── MetricsGrid (4-column responsive)
+│   │   ├── MetricCard[$accent=T.iceWing]    → Total Posts     [delay: 0.0s]
+│   │   ├── MetricCard[$accent=T.success]    → Active Posters  [delay: 0.1s]
+│   │   ├── MetricCard[$accent=T.gildedFern] → Engagement      [delay: 0.2s]
+│   │   └── MetricCard[$accent=T.warning]    → Pending Mod     [delay: 0.3s]
+│   │
+│   └── ContentGrid (2:1 layout)
+│       ├── GlassPanel (Content Management)
+│       │   ├── SectionHeader
+│       │   ├── SearchAndFilters
+│       │   │   ├── SearchInput (standalone styled input)
+│       │   │   └── FilterButton × 4 (physics.snappy)
+│       │   └── AnimatePresence[mode="popLayout"]
+│       │       └── PostCardStyled × N [layout, physics.spring, haptic exit]
+│       │           ├── post-avatar (48px, gradient + deep shadow)
+│       │           ├── post-header (username + timestamp + ActionIcons)
+│       │           ├── post-text
+│       │           ├── post-metrics
+│       │           └── StatusBadge (glowing pill)
+│       │
+│       └── GlassPanel (Activity Sidebar)
+│           ├── SectionHeader
+│           └── ActivityItem × 4
 ```
 
 ### State Management
 ```typescript
-const [refreshing, setRefreshing] = useState(false);       // Refresh button spinner
-const [searchTerm, setSearchTerm] = useState('');           // Search input value
-const [statusFilter, setStatusFilter] = useState('all');    // Active filter tab
-const [posts, setPosts] = useState<SocialPost[]>([]);       // API post data
-const [loading, setLoading] = useState(true);               // Initial load state
-const [totalPosts, setTotalPosts] = useState(0);            // Pagination total
-const [recentActivity, setRecentActivity] = useState([]);   // Derived from posts
+const [refreshing, setRefreshing]     = useState(false);
+const [searchTerm, setSearchTerm]     = useState('');
+const [statusFilter, setStatusFilter] = useState<'all'|'approved'|'pending'|'flagged'>('all');
+const [posts, setPosts]               = useState<SocialPost[]>([]);
+const [loading, setLoading]           = useState(true);
+const [totalPosts, setTotalPosts]     = useState(0);
+const [moderatedIds, setModeratedIds] = useState<Map<number, string>>(new Map());  // NEW in V2
+const [recentActivity, setRecentActivity] = useState([]);
 ```
 
-### API Calls
+### `moderatedIds` — New in V2
+A `Map<number, string>` tracking `postId → action` for posts that have been moderated. This enables:
+1. Filtering moderated posts out of the visible list (triggers exit animation)
+2. Providing directional exit (action = 'approve' → slide right, else → slide left)
+3. Reverting on API failure (remove from map → post reappears)
+
+---
+
+## 7. Haptic Moderation System
+
+When a moderator clicks Approve/Flag/Reject:
+
+### Step 1: Optimistic Removal
 ```typescript
-// Fetch posts feed
-GET /api/social/posts/feed?limit=50&offset=0
-→ Response: { success: true, posts: SocialPost[], pagination: { total } }
-
-// Moderate a post
-PUT /api/social/posts/${postId}
-→ Body: { moderationStatus: 'approved' | 'rejected' | 'flagged' }
-→ Optimistic UI update: setPosts(prev => prev.map(p => p.id === postId ? { ...p, moderationStatus } : p))
+setModeratedIds(prev => new Map(prev).set(postId, action));
 ```
+Post is immediately filtered from `filteredPosts` — triggers AnimatePresence exit.
 
-### Computed Metrics (Derived from posts array)
+### Step 2: Directional Exit Animation
 ```typescript
-const pendingCount = posts.filter(p => p.moderationStatus === 'pending').length;
-const flaggedCount = posts.filter(p => p.moderationStatus === 'flagged').length;
-const totalLikes   = posts.reduce((sum, p) => sum + (p.likesCount || 0), 0);
-const uniqueUsers  = new Set(posts.map(p => p.userId)).size;
+exit={{
+  opacity: 0,
+  x: moderatedIds.get(post.id) === 'approve' ? 50 : -50,
+  scale: 0.95,
+}}
+```
+- **Approve** → slides right (x: 50) — feels like acceptance
+- **Reject/Flag** → slides left (x: -50) — feels like dismissal
+
+### Step 3: Background API Call
+```typescript
+await api.put(`/api/social/posts/${postId}`, { moderationStatus: statusMap[action] });
 ```
 
----
+### Step 4: Revert on Failure
+```typescript
+catch (err) {
+  setModeratedIds(prev => { const m = new Map(prev); m.delete(postId); return m; });
+}
+```
+Post reappears with entrance animation if API fails.
 
-## 5. Responsive Breakpoints
-
-| Breakpoint | MetricsGrid | ContentGrid | SearchAndFilters |
-|-----------|-------------|-------------|-----------------|
-| ≥1281px | 4 columns | 2:1 (posts : sidebar) | Single row |
-| 768–1280px | 2 columns | 2:1 (posts : sidebar) | Wraps |
-| ≤1024px | 2 columns | Single column (stacked) | Wraps |
-| ≤640px | 1 column | Single column (stacked) | Wraps, search full-width |
-
-### Touch Targets (Mobile-First)
-- All buttons: `min-height: 44px`
-- Search input: `min-height: 44px`
-- Filter buttons: `min-height: 44px`
-- Post avatar: `44px × 44px`
-- Action icons: `36px × 36px` (compact, but grouped — total touch area exceeds 44px per row)
-
----
-
-## 6. Rarity System — Status/Badge Coloring
-
-This is the core visual language for distinguishing content states:
-
-| Status | Background | Text Color | Border | Usage |
-|--------|-----------|-----------|--------|-------|
-| Approved | `rgba(34, 197, 94, 0.15)` | `#22c55e` | `rgba(34, 197, 94, 0.3)` | Verified content |
-| Pending | `rgba(198, 168, 75, 0.15)` | `#C6A84B` | `rgba(198, 168, 75, 0.3)` | Awaiting review (gilded = attention) |
-| Flagged | `rgba(239, 68, 68, 0.15)` | `#ef4444` | `rgba(239, 68, 68, 0.3)` | Reported/problematic |
-| Default | `rgba(96, 192, 240, 0.1)` | `#60C0F0` | `rgba(96, 192, 240, 0.2)` | Neutral/unknown |
-
-### Metric Card Accents (Top Border Bar)
-| Metric | Accent Color | Meaning |
-|--------|-------------|---------|
-| Total Posts | `#60C0F0` (Ice Wing) | Primary metric |
-| Active Posters | `#22c55e` (Success) | Growth/positive |
-| Total Engagement | `#C6A84B` (Gilded Fern) | Luxury/premium |
-| Pending Moderation | `#f59e0b` (Warning) when >0, `#60C0F0` otherwise | Attention needed |
+### AnimatePresence Config
+```jsx
+<AnimatePresence mode="popLayout">
+  {filteredPosts.map(post => (
+    <PostCardStyled key={post.id} layout ... />
+  ))}
+</AnimatePresence>
+```
+- `mode="popLayout"` — exiting elements are popped out of layout flow, remaining items reflow smoothly
+- `layout` prop — enables Framer Motion layout animations for smooth reordering
 
 ---
 
-## 7. Glass Surface Spec
+## 8. Responsive Breakpoints
 
-### Standard Glass Panel
+| Breakpoint | MetricsGrid | ContentGrid | Container Padding |
+|-----------|-------------|-------------|------------------|
+| ≥1281px | 4 columns | 2:1 (posts : sidebar) | 2rem |
+| 769–1280px | 2 columns | 2:1 | 2rem |
+| ≤1024px | 2 columns | 1 column (stacked) | 2rem |
+| ≤768px | 2 columns | 1 column | 1rem |
+| ≤640px | 1 column | 1 column | 1rem |
+
+### Touch Targets (44px minimum)
+- ActionButton: `min-height: 44px`
+- SearchInput: `min-height: 44px`
+- FilterButton: `min-height: 44px`
+- MetricCard .metric-icon: `44px × 44px`
+- ActionIcon: `40px × 40px` (grouped — combined touch area exceeds 44px)
+- Post avatar: `48px × 48px`
+
+---
+
+## 9. Rarity / Status Badge Spec
+
+| Status | Text Color | Background | Border (color-mix 40%) | Glow (color-mix 20%) |
+|--------|-----------|------------|----------------------|---------------------|
+| approved | `#22C55E` | `rgba(34, 197, 94, 0.15)` | `color-mix(in srgb, #22C55E 40%, transparent)` | `0 0 12px color-mix(in srgb, #22C55E 20%, transparent)` |
+| pending | `#C6A84B` | `rgba(198, 168, 75, 0.15)` | `color-mix(in srgb, #C6A84B 40%, transparent)` | `0 0 12px color-mix(in srgb, #C6A84B 20%, transparent)` |
+| flagged | `#EF4444` | `rgba(239, 68, 68, 0.15)` | `color-mix(in srgb, #EF4444 40%, transparent)` | `0 0 12px color-mix(in srgb, #EF4444 20%, transparent)` |
+| default | `#60C0F0` | `rgba(96, 192, 240, 0.15)` | `color-mix(in srgb, #60C0F0 40%, transparent)` | `0 0 12px color-mix(in srgb, #60C0F0 20%, transparent)` |
+
+### MetricCard Accent Bar Colors
+| Metric | Accent | Glow |
+|--------|--------|------|
+| Total Posts | `#60C0F0` | `0 2px 12px #60C0F0` |
+| Active Posters | `#22C55E` | `0 2px 12px #22C55E` |
+| Engagement | `#C6A84B` | `0 2px 12px #C6A84B` |
+| Pending Moderation | `#F59E0B` or `#60C0F0` | Matching glow |
+
+---
+
+## 10. True Glass Surface Spec
+
+### Standard Glass Panel (GlassPanel, MetricCard)
 ```css
-background: rgba(0, 32, 96, 0.55);     /* Midnight Sapphire at 55% */
-backdrop-filter: blur(20px);
+background: linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%);
+backdrop-filter: blur(24px);
+-webkit-backdrop-filter: blur(24px);
+border: 1px solid rgba(198, 168, 75, 0.25);
+box-shadow:
+  inset 0 1px 1px rgba(224, 236, 244, 0.15),   /* Apple-style inner lip for 3D thickness */
+  0 12px 40px rgba(0, 0, 0, 0.3);                /* Ambient depth shadow */
 border-radius: 16px;
-border: 1px solid rgba(198, 168, 75, 0.2);  /* Gilded Fern at 20% */
-overflow: hidden;
 ```
 
-### Glass Hover State
+### Glass Button (Default ActionButton)
 ```css
-border-color: rgba(96, 192, 240, 0.3);  /* Ice Wing at 30% — brighter on hover */
-box-shadow: 0 8px 32px rgba(0, 32, 96, 0.4),  /* Deep sapphire shadow */
-            0 0 20px rgba(96, 192, 240, 0.1);   /* Ice Wing glow */
-```
-
-### Glass Input Field
-```css
-background: rgba(0, 32, 96, 0.4);       /* Slightly transparent */
-border: 1px solid rgba(96, 192, 240, 0.2);
-color: #E0ECF4;
-&:focus {
-  border-color: #60C0F0;
-  box-shadow: 0 0 0 3px rgba(96, 192, 240, 0.15);  /* Focus ring */
-}
-```
-
-### Glass Button (Default Variant)
-```css
-background: rgba(0, 32, 96, 0.55);
+background: linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%);
 backdrop-filter: blur(12px);
-border: 1px solid rgba(198, 168, 75, 0.2);
-&:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(96, 192, 240, 0.25);
-}
+-webkit-backdrop-filter: blur(12px);
+border: 1px solid rgba(198, 168, 75, 0.25);
+box-shadow: inset 0 1px 1px rgba(224, 236, 244, 0.15);
+```
+
+### Glass Input (SearchInput)
+```css
+background: rgba(0, 32, 96, 0.5);
+border: 1px solid rgba(96, 192, 240, 0.2);
+border-radius: 12px;
+/* On focus: */
+background: rgba(0, 48, 128, 0.7);
+border-color: #60C0F0;
+box-shadow: 0 0 0 4px rgba(96, 192, 240, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.2);
 ```
 
 ---
 
-## 8. Motion & Animation Spec
+## 11. Spring Motion & Animation Spec
 
-### Page Entrance
+### Page Entrance (Cinematic)
 ```typescript
-initial={{ opacity: 0, y: 12 }}
-animate={{ opacity: 1, y: 0 }}
-transition={{ duration: 0.4 }}
+initial={{ opacity: 0 }}
+animate={{ opacity: 1 }}
+transition={physics.glissando}  // { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
 ```
 
-### Post Card Entrance (Staggered)
+### MetricCard Entrance (Staggered Spring)
+```typescript
+initial={{ opacity: 0, y: 20 }}
+animate={{ opacity: 1, y: 0 }}
+transition={{ ...physics.spring, delay: index * 0.1 }}  // 0s, 0.1s, 0.2s, 0.3s
+whileHover={{ y: -4, scale: 1.01 }}
+```
+
+### Button Interactions (Spring)
+```typescript
+whileHover={{ scale: 1.03, y: -2 }}
+whileTap={{ scale: 0.97 }}
+transition={physics.spring}
+```
+
+### Filter Button Interactions (Snappy)
+```typescript
+whileHover={{ scale: 1.04 }}
+whileTap={{ scale: 0.96 }}
+transition={physics.snappy}
+```
+
+### ActionIcon Interactions (Haptic Snappy)
+```typescript
+whileHover={{ scale: 1.15 }}
+whileTap={{ scale: 0.85 }}
+transition={physics.snappy}
+```
+
+### PostCard Entrance & Haptic Exit (Spring)
 ```typescript
 initial={{ opacity: 0, y: 10 }}
 animate={{ opacity: 1, y: 0 }}
-exit={{ opacity: 0, y: -10 }}
-transition={{ duration: 0.25 }}
+exit={{ opacity: 0, x: action === 'approve' ? 50 : -50, scale: 0.95 }}
+transition={physics.spring}
+layout  // Enables smooth reflow
 ```
 
-### Button Interactions
+### AnimatePresence Container
 ```typescript
-whileHover={{ scale: 1.03 }}  // Subtle scale on buttons
-whileTap={{ scale: 0.97 }}    // Press feedback
-```
-
-### Metric Card Hover
-```typescript
-whileHover={{ y: -3 }}        // Lifts 3px
-transition={{ duration: 0.2 }}
-```
-
-### Action Icon Interactions
-```typescript
-whileHover={{ scale: 1.1 }}   // More pronounced for small targets
-whileTap={{ scale: 0.9 }}     // Strong press feedback
-```
-
-### Easing Curves
-- **Primary transition:** `cubic-bezier(0.25, 0.46, 0.45, 0.94)` — smooth deceleration (used on hover transforms)
-- **Quick transitions:** `ease` with 0.2s (used on color/opacity changes)
-- **Aurora animation:** `ease` with 6s (slow, ambient)
-
-### Accessibility
-```css
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
+<AnimatePresence mode="popLayout">
 ```
 
 ---
 
-## 9. Typography Spec
+## 12. Typography Spec
 
-| Element | Size | Weight | Color | Usage |
+| Element | Size | Weight | Color | Extra |
 |---------|------|--------|-------|-------|
-| HeaderTitle (h1) | 1.75rem | 700 | Aurora gradient (animated) | Page title |
-| SectionHeader (h2/h3) | 1.1rem | 600 | #E0ECF4 (Frost White) | Panel titles |
-| MetricCard .metric-value | 1.75rem | 700 | #E0ECF4 | Big stat numbers |
-| MetricCard .metric-label | 0.85rem | 500 | rgba(224, 236, 244, 0.6) | Stat labels |
-| MetricCard .metric-change | 0.8rem | 500 | rgba(224, 236, 244, 0.6) | Change indicator |
-| ActionButton | 0.875rem | 500 | #E0ECF4 | Button text |
-| FilterButton | 0.85rem | 400 | #E0ECF4 (active) / muted | Filter labels |
-| PostCard .user-name | 0.9rem | 600 | #E0ECF4 | Author name |
-| PostCard .post-text | 0.9rem | 400 | rgba(224, 236, 244, 0.6) | Post content (line-height: 1.6) |
-| PostCard .post-time | 0.75rem | 400 | rgba(224, 236, 244, 0.6) | Timestamp |
-| PostCard .metric | 0.8rem | 400 | rgba(224, 236, 244, 0.6) | Like/comment counts |
-| StatusBadge | 0.75rem | 600 | Status-specific | Status label (capitalized) |
-| ActivityItem .activity-text | 0.85rem | 400 | #E0ECF4 | Activity description |
-| ActivityItem .activity-time | 0.75rem | 400 | rgba(224, 236, 244, 0.6) | Activity timestamp |
-| EmptyState h3 | 1.1rem | 400 | #E0ECF4 | Empty state title |
-| EmptyState p | 0.9rem | 400 | rgba(224, 236, 244, 0.6) | Empty state body |
+| HeaderTitle (h1) | 2rem | 700 | Aurora gradient | letter-spacing: -0.02em |
+| SectionHeader (h2/h3) | 1.1rem | 600 | #E0ECF4 | — |
+| MetricCard .metric-value | 2rem | 700 | #E0ECF4 | — |
+| MetricCard .metric-label | 0.85rem | 500 | rgba(224,236,244,0.65) | — |
+| MetricCard .metric-change | 0.8rem | 500 | rgba(224,236,244,0.65) | — |
+| ActionButton | 0.875rem | 500 | #E0ECF4 | — |
+| FilterButton | 0.85rem | 500 | Active: #E0ECF4 / Inactive: 65% | — |
+| SearchInput | 0.95rem | 400 | #E0ECF4 | — |
+| PostCard .user-name | 0.95rem | 600 | #E0ECF4 | — |
+| PostCard .post-text | 0.95rem | 400 | rgba(224,236,244,0.65) | line-height: 1.6 |
+| PostCard .post-time | 0.75rem | 400 | rgba(224,236,244,0.65) | — |
+| PostCard .metric | 0.8rem | 400 | rgba(224,236,244,0.65) | — |
+| StatusBadge | 0.75rem | 700 | Status-specific | letter-spacing: 0.05em, UPPERCASE |
+| ActivityItem .activity-text | 0.85rem | 400 | #E0ECF4 | — |
+| ActivityItem .activity-time | 0.75rem | 400 | rgba(224,236,244,0.65) | — |
+| EmptyState h3 | 1.1rem | 400 | #E0ECF4 | — |
+| EmptyState p | 0.9rem | 400 | rgba(224,236,244,0.65) | — |
 
 ---
 
-## 10. Icon Usage Map
+## 13. Icon Usage Map
 
 All icons from `lucide-react`:
 
-| Icon | Size | Usage | Location |
-|------|------|-------|----------|
-| Sparkles | 22px | Header title icon | HeaderTitle .header-icon |
-| RefreshCw | 15px | Refresh button | HeaderActions |
-| BarChart3 | 15px | Export button | HeaderActions |
-| MessageSquare | 20px / 18px / 40px | Posts metric / Section header / Empty state | MetricCard / SectionHeader / EmptyState |
-| Users | 20px | Active Posters metric | MetricCard |
-| Heart | 20px / 14px / 12px | Engagement metric / Post like count / Metric change | MetricCard / PostCard / MetricCard |
-| Shield | 20px | Pending Moderation metric | MetricCard |
-| TrendingUp | 12px | "Live data" / "Unique users" indicator | MetricCard .metric-change |
-| AlertTriangle | 12px | Flagged count indicator | MetricCard .metric-change |
-| Settings | 15px | Bulk Actions button | SectionHeader |
-| Search | 15px | Search input icon | SearchAndFilters |
-| CheckCircle | 14px / 11px | Approve action / Approved status | ActionIcon / StatusBadge |
-| Flag | 14px / 11px | Flag action / Flagged status | ActionIcon / StatusBadge |
-| Trash2 | 14px | Reject/remove action | ActionIcon |
-| MoreHorizontal | 14px | Details/overflow action | ActionIcon |
-| Clock | 11px / 28px | Pending status / Empty activity | StatusBadge / EmptyState |
-| MessageCircle | 14px | Comment count | PostCard .post-metrics |
-| Eye | 14px | Post type indicator | PostCard .post-metrics |
-| Activity | 16px | Recent Activity section header | SectionHeader |
+| Icon | Size | Location |
+|------|------|----------|
+| Sparkles | 22px | HeaderTitle .header-icon |
+| RefreshCw | 15px / 32px | Refresh button / Loading state (inside Spinner) |
+| BarChart3 | 15px | Export button |
+| MessageSquare | 20px / 18px / 40px | Posts metric / Section header / Empty state |
+| Users | 20px | Active Posters metric |
+| Heart | 20px / 14px / 12px | Engagement metric / Post like count / Metric change |
+| Shield | 20px | Pending Moderation metric |
+| TrendingUp | 12px | Metric change labels |
+| AlertTriangle | 12px | Flagged count indicator |
+| Settings | 15px | Bulk Actions button |
+| Search | 15px | Search input icon |
+| CheckCircle | 16px / 11px | Approve ActionIcon / Approved StatusBadge |
+| Flag | 16px / 11px | Flag ActionIcon / Flagged StatusBadge |
+| Trash2 | 16px | Reject ActionIcon |
+| MoreHorizontal | 16px | Details ActionIcon |
+| Clock | 11px / 28px | Pending StatusBadge / Empty activity |
+| MessageCircle | 14px | Comment count in post |
+| Eye | 14px | Post type in post metrics |
+| Activity | 16px | Activity sidebar header |
 
 ---
 
-## 11. Backend API Integration Points
+## 14. Backend API Integration
 
-### Working Endpoints (Wired in this Component)
+### Wired Endpoints
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/social/posts/feed?limit=50&offset=0` | GET | Fetch all posts + user info |
+| `/api/social/posts/${id}` | PUT | Update moderationStatus (approve/reject/flag) |
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| `/api/social/posts/feed?limit=50&offset=0` | GET | Fetch all posts with user info | 200 — Working |
-| `/api/social/posts/${id}` | PUT | Update moderation status | 200 — Working |
+### Available but Not Wired
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/social/posts` | POST | Create new post |
+| `/api/social/posts/${id}` | GET | Get single post + comments |
+| `/api/social/posts/${id}/like` | POST | Like/unlike |
+| `/api/social/posts/${id}/comments` | POST | Add comment |
 
-### Available but Not Yet Wired
-
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| `/api/social/posts` | POST | Create new post | 201 — Working |
-| `/api/social/posts/${id}` | GET | Get single post + comments | 200 — Working |
-| `/api/social/posts/${id}/like` | POST | Like/unlike a post | 200 — Working |
-| `/api/social/posts/${id}/comments` | POST | Add comment to post | 201 — Working |
-
-### Broken (DB Tables Missing — Do Not Wire)
-
-| Endpoint | Method | Error |
-|----------|--------|-------|
-| `/api/social/friendships` | GET | 500 — Sequelize model error |
-| `/api/social/challenges` | GET | 404 — Route not registered |
-| `/api/v1/gamification/social-feed` | GET | 500 — `user_follows` table missing |
-| `/api/v1/gamification/discover-users` | GET | 500 — `user_follows` table missing |
-| `/api/v1/gamification/profile` | GET | 404 — Route not found |
+### Broken (Do Not Wire)
+| Endpoint | Error |
+|----------|-------|
+| `/api/social/friendships` | 500 — Sequelize model error |
+| `/api/social/challenges` | 404 — Route not registered |
+| `/api/v1/gamification/*` | 500 — `user_follows` table missing |
 
 ---
 
-## 12. Gradient Reference (Quick Lookup)
+## 15. Gradient Reference
 
-### Aurora Title Gradient
-```css
-linear-gradient(135deg, #60C0F0 0%, #E0ECF4 50%, #C6A84B 100%)
-```
-
-### Primary CTA Gradient
-```css
-linear-gradient(135deg, #003080, #60C0F0)
-```
-
-### Active Filter Gradient
-```css
-linear-gradient(135deg, #003080, #4070C0)
-```
-
-### Avatar Gradient
-```css
-linear-gradient(135deg, #003080, #60C0F0)
-```
+| Name | Value | Used On |
+|------|-------|---------|
+| Aurora Title | `linear-gradient(135deg, #60C0F0 0%, #E0ECF4 40%, #C6A84B 100%)` | HeaderTitle text |
+| Primary CTA | `linear-gradient(135deg, #003080, #60C0F0)` | ActionButton[primary], header-icon |
+| Active Filter | `linear-gradient(135deg, #003080, #4070C0)` | FilterButton[active] |
+| Glass Surface | `linear-gradient(135deg, rgba(0,48,128,0.45), rgba(0,32,96,0.25))` | GlassPanel, MetricCard, ActionButton |
+| Avatar | `linear-gradient(135deg, #002060, #60C0F0)` | PostCard .post-avatar |
+| Hover Sweep | `linear-gradient(90deg, transparent, rgba(96,192,240,0.05), transparent)` | PostCard hover |
 
 ---
 
-## 13. Shadow Reference (Quick Lookup)
+## 16. Shadow Reference
 
-| Name | Value | Usage |
-|------|-------|-------|
-| Header icon shadow | `0 4px 16px rgba(96, 192, 240, 0.3)` | Sparkles icon container |
-| Button hover shadow | `0 4px 16px rgba(96, 192, 240, 0.25)` | ActionButton hover |
-| Card hover shadow | `0 8px 32px rgba(0, 32, 96, 0.4), 0 0 20px rgba(96, 192, 240, 0.1)` | MetricCard hover |
-| Action icon hover glow | `0 0 12px rgba(R, G, B, 0.3)` | ActionIcon hover (color matches variant) |
-| Focus ring | `0 0 0 3px rgba(96, 192, 240, 0.15)` | Search input focus |
-
----
-
-## 14. Border Radius Reference
-
-| Value | Usage |
-|-------|-------|
-| 16px | GlassPanel, MetricCard, MetricCard accent bar top corners |
-| 12px | ActionButton, HeaderTitle .header-icon |
-| 10px | MetricCard .metric-icon, SearchAndFilters .search-input |
-| 8px | FilterButton, ActionIcon |
-| 20px | StatusBadge (full pill) |
-| 50% | Post avatar, Activity icon (circle) |
+| Name | Value | Used On |
+|------|-------|---------|
+| Glass inner lip | `inset 0 1px 1px rgba(224, 236, 244, 0.15)` | All glass surfaces (T.glassHighlight) |
+| Ambient depth | `0 12px 40px rgba(0, 0, 0, 0.3)` | GlassPanel, MetricCard |
+| Header icon glow | `0 8px 24px rgba(96, 192, 240, 0.4), inset 0 1px 1px rgba(255,255,255,0.3)` | HeaderTitle .header-icon |
+| Accent bar glow | `0 2px 12px ${accent}` | MetricCard ::before |
+| Active filter glow | `0 4px 12px rgba(96, 192, 240, 0.2)` | FilterButton[active] |
+| Action icon hover | `0 0 16px color-mix(in srgb, COLOR 40%, transparent)` | ActionIcon hover |
+| Status badge glow | `0 0 12px color-mix(in srgb, COLOR 20%, transparent)` | StatusBadge |
+| Avatar shadow | `0 4px 12px rgba(0, 0, 0, 0.4)` | PostCard .post-avatar |
+| Focus ring | `0 0 0 4px rgba(96, 192, 240, 0.15), inset 0 1px 2px rgba(0,0,0,0.2)` | SearchInput focus |
 
 ---
 
-## 15. Spacing Reference
+## 17. Border Radius Reference
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| Container padding | 1.5rem | SocialContainer |
-| Section gap | 1.5rem | Between MetricsGrid and ContentGrid |
-| Card padding | 1.25rem | MetricCard |
+| Value | Used On |
+|-------|---------|
+| 16px | GlassPanel, MetricCard, accent bar top corners |
+| 14px | HeaderTitle .header-icon |
+| 12px | ActionButton, SearchInput, MetricCard .metric-icon |
+| 10px | FilterButton, ActionIcon |
+| 999px | StatusBadge (true pill) |
+| 50% | Post avatar (48px circle), Activity icon (32px circle) |
+
+---
+
+## 18. Spacing Reference
+
+| Token | Value | Used On |
+|-------|-------|---------|
+| Container padding | 2rem (1rem on mobile ≤768px) | SocialContainer |
+| Header margin-bottom | 2rem | SocialHeader |
+| Metrics margin-bottom | 2rem | MetricsGrid |
+| Card padding | 1.5rem | MetricCard, PostCardStyled |
 | Panel header padding | 1.25rem 1.5rem | SectionHeader |
-| Post row padding | 1.25rem 1.5rem | PostCardStyled |
-| Activity row padding | 0.75rem 1.25rem | ActivityItem |
+| Activity row padding | 0.85rem 1.25rem | ActivityItem |
 | Grid gap (metrics) | 1rem | MetricsGrid |
 | Grid gap (content) | 1.5rem | ContentGrid |
+| Post card gap | 1.25rem | PostCardStyled |
 | Button gap | 0.75rem | HeaderActions |
-| Icon-text gap | 0.5rem | SectionHeader h2/h3, ActionButton |
+| Icon-text gap | 0.5rem / 1rem | SectionHeader / HeaderTitle |
 | Inline metric gap | 1.25rem | PostCard .post-metrics |
+| Action icon gap | 0.4rem | PostCard .post-actions |
 | Empty state padding | 3rem 1.5rem | EmptyState |
 
 ---
 
 *Generated for Gemini review — SwanStudios Social Phase A: Admin Social Management View*
+*Version 2.0 — Cinematic & Haptic Polish*
 *Preset F-Alt "Enchanted Apex: Crystalline Swan"*
 *Date: 2026-03-01*
