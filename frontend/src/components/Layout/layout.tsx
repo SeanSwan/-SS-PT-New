@@ -1,10 +1,9 @@
 // src/components/Layout/layout.tsx
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import Header from '../Header/header'; // FIXED: Import EnhancedHeader as Header
 import Footer from '../Footer/Footer';
-import { ConstructionBannerContainer } from '../common';
 
 const MainContainer = styled.div`
   display: flex;
@@ -33,22 +32,6 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  
-  // Construction banner state management
-  const [showConstructionBanner, setShowConstructionBanner] = useState(true);
-  
-  // Remember user preference to hide banner
-  useEffect(() => {
-    const bannerClosed = sessionStorage.getItem('construction-banner-closed');
-    if (bannerClosed === 'true') {
-      setShowConstructionBanner(false);
-    }
-  }, []);
-  
-  const handleCloseBanner = () => {
-    setShowConstructionBanner(false);
-    sessionStorage.setItem('construction-banner-closed', 'true');
-  };
 
   const isDashboardRoute =
     location.pathname.startsWith('/user-dashboard') ||
@@ -61,17 +44,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Header />
       
       <ContentWrapper>
-        {/* Construction Banner - Right below fixed header */}
-        {!isDashboardRoute && (
-          <ConstructionBannerContainer 
-            isVisible={showConstructionBanner}
-            onClose={handleCloseBanner}
-            showCloseButton={true}
-            customMessage="SwanStudios Platform Enhanced - Nearly Complete"
-            customSubMessage="We're putting the finishing touches on your upgraded experience"
-          />
-        )}
-        
         <Content>
           {children}
         </Content>
