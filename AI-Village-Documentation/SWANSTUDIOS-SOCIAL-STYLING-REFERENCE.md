@@ -3114,6 +3114,22 @@ const tabs = [
 ---
 
 *Generated for Gemini review — SwanStudios Social Phase B2: User Dashboard Rebuild*
-*Version 2.0 — Cinematic & Haptic Polish*
+*Version 2.0.1 — Gemini Directive Refinements Applied*
 *Preset F-Alt "Enchanted Apex: Crystalline Swan"*
 *Date: 2026-03-01*
+
+---
+
+### B2-11. Gemini Directive Refinements (Applied)
+
+After Gemini's spatial UI review, the following refinements were applied:
+
+| Refinement | Before | After | Gemini Rationale |
+|-----------|--------|-------|-----------------|
+| CoverOverlay opacity | `rgba(0,32,96,0.7)` | `rgba(0,32,96,0.8)` | Ensures text over bottom edge stays readable |
+| AvatarRing | `styled.div` (static) | `styled(motion.div)` + `whileHover={{ scale: 1.05 }}` | Avatar must feel "magnetic" — floating above cover |
+| AchievementCard | `styled.div` (no hover) | `styled(motion.div)` + hover bg via `color-mix` + `whileHover={{ scale: 1.02 }}` | RPG inventory item feel — luxury gaming aesthetic |
+| PhotoItem img | No hover transform | `transition: transform 0.5s ease` + `&:hover img { transform: scale(1.05) }` | Cinematic zoom on gallery hover |
+| PhotoItem shadow | No glassHighlight | Added `box-shadow: ${T.glassHighlight}` | Consistent glass depth across all panels |
+
+All five refinements compile clean and maintain zero token drift from Phase A/B.
