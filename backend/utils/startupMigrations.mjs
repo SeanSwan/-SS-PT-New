@@ -109,7 +109,7 @@ async function migrateMessagingTables() {
       CREATE TABLE IF NOT EXISTS conversation_participants (
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
         role VARCHAR(20) NOT NULL DEFAULT 'member',
         joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(conversation_id, user_id)
@@ -120,7 +120,7 @@ async function migrateMessagingTables() {
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-        sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
         content TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -131,7 +131,7 @@ async function migrateMessagingTables() {
       CREATE TABLE IF NOT EXISTS message_receipts (
         id SERIAL PRIMARY KEY,
         message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
         read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(message_id, user_id)
       );
@@ -443,17 +443,25 @@ async function migrateConversationParticipantsDeletedAt() {
  */
 async function migrateSeanSwanLastName() {
   try {
-    const [result] = await sequelize.query(
-      `UPDATE "Users" SET "lastName" = 'Swan'
-       WHERE id = 2 AND ("lastName" IS NULL OR TRIM("lastName") = '')
-       RETURNING id, "firstName", "lastName";`,
+    // Check if fix is needed
+    const [row] = await sequelize.query(
+      `SELECT id, "firstName", "lastName" FROM "Users" WHERE id = 2;`,
       { type: QueryTypes.SELECT }
     );
-    if (result) {
-      logger.info(`[Migration] Fixed Sean Swan lastName: "${result.firstName} ${result.lastName}"`);
-    } else {
-      logger.info('[Migration] Sean Swan lastName already set - no change needed');
+    if (!row) {
+      logger.info('[Migration] User id=2 not found, skipping Sean Swan lastName fix');
+      return;
     }
+    if (row.lastName && row.lastName.trim() !== '') {
+      logger.info(`[Migration] Sean Swan lastName already set to "${row.lastName}" - no change needed`);
+      return;
+    }
+
+    // Fix the empty lastName
+    await sequelize.query(
+      `UPDATE "Users" SET "lastName" = 'Swan' WHERE id = 2;`
+    );
+    logger.info('[Migration] Fixed Sean Swan lastName: "Sean Swan"');
   } catch (error) {
     logger.warn(`[Migration] Sean Swan lastName fix failed (non-critical): ${error.message}`);
   }

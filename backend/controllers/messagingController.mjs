@@ -131,7 +131,7 @@ export const getConversations = async (req, res) => {
         (
           SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
           FROM conversation_participants cp_inner
-          JOIN users u ON u.id = cp_inner.user_id
+          JOIN "Users" u ON u.id = cp_inner.user_id
           WHERE cp_inner.conversation_id = c.id AND cp_inner.user_id != :userId
         ) as participants,
         json_build_object('content', lm.content, 'timestamp', lm.created_at) as "lastMessage",
@@ -225,7 +225,7 @@ export const createConversation = async (req, res) => {
         const [existingConversation] = await sequelize.query(
           `SELECT c.id, c.type, c.name,
             (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
-             FROM conversation_participants cp_inner JOIN users u ON u.id = cp_inner.user_id
+             FROM conversation_participants cp_inner JOIN "Users" u ON u.id = cp_inner.user_id
              WHERE cp_inner.conversation_id = c.id) as participants
            FROM conversations c WHERE c.id = :conversationId`,
           { replacements: { conversationId: existing.id }, type: QueryTypes.SELECT }
@@ -260,7 +260,7 @@ export const createConversation = async (req, res) => {
       const [newConversation] = await sequelize.query(
         `SELECT c.id, c.type, c.name,
           (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
-           FROM conversation_participants cp_inner JOIN users u ON u.id = cp_inner.user_id
+           FROM conversation_participants cp_inner JOIN "Users" u ON u.id = cp_inner.user_id
            WHERE cp_inner.conversation_id = c.id) as participants
          FROM conversations c WHERE c.id = :conversationId`,
         {
@@ -332,10 +332,10 @@ export const getMessagesForConversation = async (req, res) => {
               'userName', reader."firstName"
             )
           )
-          FROM message_receipts mr JOIN users reader ON mr.user_id = reader.id WHERE mr.message_id = m.id
+          FROM message_receipts mr JOIN "Users" reader ON mr.user_id = reader.id WHERE mr.message_id = m.id
         ) as "readBy"
       FROM messages m
-      JOIN users u ON m.sender_id = u.id
+      JOIN "Users" u ON m.sender_id = u.id
       WHERE ${whereClause}
       ORDER BY m.created_at DESC
       LIMIT :limit
@@ -373,7 +373,7 @@ export const searchUsers = async (req, res) => {
       // Return suggested users — most recently active, non-deleted, excluding self
       users = await sequelize.query(
         `SELECT id, "firstName", "lastName", username, photo, role
-         FROM users
+         FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
          ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
@@ -387,7 +387,7 @@ export const searchUsers = async (req, res) => {
       // Search by name, username, or email
       users = await sequelize.query(
         `SELECT id, "firstName", "lastName", username, photo, role
-         FROM users
+         FROM "Users"
          WHERE ( "firstName" ILIKE :query OR "lastName" ILIKE :query OR username ILIKE :query OR email ILIKE :query )
            AND id != :currentUserId
            AND "deletedAt" IS NULL
@@ -487,7 +487,7 @@ export const sendMessage = async (req, res) => {
 
     // Fetch sender info
     const [sender] = await sequelize.query(
-      `SELECT id, "firstName" || ' ' || "lastName" as name, photo FROM users WHERE id = :senderId`,
+      `SELECT id, "firstName" || ' ' || "lastName" as name, photo FROM "Users" WHERE id = :senderId`,
       { replacements: { senderId }, type: QueryTypes.SELECT }
     );
 
