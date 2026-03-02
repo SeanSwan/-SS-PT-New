@@ -1143,3 +1143,871 @@ All icons from `lucide-react`:
 *Version 2.0 — Cinematic & Haptic Polish*
 *Preset F-Alt "Enchanted Apex: Crystalline Swan"*
 *Date: 2026-03-01*
+
+---
+---
+
+# PHASE B: Client Community Section — Complete Styling Reference
+
+**Version:** 2.0 — Cinematic & Haptic (same system as Phase A)
+**File:** `frontend/src/components/ClientDashboard/sections/CommunitySection.tsx`
+**Purpose:** Complete restyle of the client-facing Community tab from the old Galaxy-Swan (#00ffff) theme to V2 Crystalline Swan. This section is visible to ALL logged-in clients, not just admins.
+
+**What Changed:**
+- Removed all hardcoded `#00ffff` and `rgba(29, 31, 43, 0.8)` colors
+- Applied identical T token matrix (Preset F-Alt)
+- Wired Feed tab to real `useSocialFeed()` hook → live data from `/api/social/posts/feed`
+- Added post-type rarity badges (workout=gold, achievement=ice, challenge=lavender, transformation=red)
+- Added real Like/Unlike with Heart icon (wired to `/api/social/posts/:id/like`)
+- Added real comment submission with expandable comment sections
+- Added shimmer loading skeleton, error state, empty state
+- Added staggered spring entrance animations for post cards
+- Events/Groups tabs remain with placeholder data (no backend yet) but fully restyled
+
+---
+
+## B1. Token Matrix (Identical to Phase A)
+
+The same `T` constant is used — no drift between admin and client views:
+
+```typescript
+const T = {
+  midnightSapphire: '#002060',
+  royalDepth:       '#003080',
+  swanLavender:     '#4070C0',
+  iceWing:          '#60C0F0',
+  arcticCyan:       '#50A0F0',
+  gildedFern:       '#C6A84B',
+  frostWhite:       '#E0ECF4',
+  success:          '#22C55E',
+  warning:          '#F59E0B',
+  danger:           '#EF4444',
+  glassSurface:     'linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%)',
+  glassBorder:      'rgba(198, 168, 75, 0.25)',
+  glassHighlight:   'inset 0 1px 1px rgba(224, 236, 244, 0.15)',
+  textMuted:        'rgba(224, 236, 244, 0.65)',
+};
+```
+
+---
+
+## B2. Spring Physics (Identical to Phase A)
+
+```typescript
+const physics = {
+  spring:    { type: 'spring', stiffness: 400, damping: 25, mass: 0.8 },
+  snappy:    { type: 'spring', stiffness: 600, damping: 30 },
+  glissando: { duration: 0.4, ease: [0.23, 1, 0.32, 1] },
+};
+```
+
+---
+
+## B3. Post-Type Rarity Color Map (NEW in Phase B)
+
+Maps post types to rarity-style colors and icons:
+
+```typescript
+const postTypeMap: Record<string, { color: string; label: string; Icon: React.FC<{ size?: number }> }> = {
+  workout:        { color: T.gildedFern,   label: 'Workout',        Icon: Dumbbell },
+  achievement:    { color: T.iceWing,      label: 'Achievement',    Icon: Trophy },
+  challenge:      { color: T.swanLavender, label: 'Challenge',      Icon: Swords },
+  transformation: { color: T.danger,       label: 'Transformation', Icon: Flame },
+  general:        { color: T.arcticCyan,   label: 'Post',           Icon: Sparkles },
+};
+```
+
+**Rarity Mapping:**
+| Post Type | Rarity Tier | Color | Icon |
+|-----------|-------------|-------|------|
+| workout | Rare | `#C6A84B` (Gilded Fern) | Dumbbell |
+| achievement | Epic | `#60C0F0` (Ice Wing) | Trophy |
+| challenge | Uncommon | `#4070C0` (Swan Lavender) | Swords |
+| transformation | Legendary | `#EF4444` (Danger Red) | Flame |
+| general | Common | `#50A0F0` (Arctic Cyan) | Sparkles |
+
+---
+
+## B4. Keyframe Animations
+
+```typescript
+// Aurora gradient background shift (decorative)
+const auroraShift = keyframes`
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
+// Shimmer loading skeleton
+const shimmer = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+// Heart like pop effect
+const heartPop = keyframes`
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+`;
+```
+
+---
+
+## B5. Styled Components — Full CSS-in-JS Code
+
+### B5.1 Section (Root Container)
+
+```typescript
+const Section = styled.div`
+  width: 100%;
+  min-height: 100%;
+`;
+```
+
+### B5.2 HeaderRow
+
+```typescript
+const HeaderRow = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  margin-bottom: 28px;
+  gap: 14px;
+`;
+```
+
+### B5.3 HeaderIcon
+
+```typescript
+const HeaderIcon = styled.span`
+  color: ${T.iceWing};
+  display: inline-flex;
+  align-items: center;
+  filter: drop-shadow(0 0 8px ${T.iceWing}40);
+`;
+```
+
+### B5.4 Title
+
+```typescript
+const Title = styled.h1`
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${T.frostWhite};
+  margin: 0;
+  background: linear-gradient(135deg, ${T.frostWhite}, ${T.iceWing});
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+```
+
+**Note:** Gradient text effect — frost white to ice wing. Creates a crystalline text appearance.
+
+### B5.5 GlassPanel (Base for all cards/panels)
+
+```typescript
+const GlassPanel = styled(motion.div)`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid ${T.glassBorder};
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+`;
+```
+
+**True Glass Spec:** Same dual-shadow system as Phase A — inner lip (`glassHighlight`) + ambient depth.
+
+### B5.6 TabBar
+
+```typescript
+const TabBar = styled.div`
+  display: flex;
+  width: 100%;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 8px 32px rgba(0, 0, 0, 0.25);
+`;
+```
+
+### B5.7 TabButton
+
+```typescript
+const TabButton = styled.button<{ $active: boolean }>`
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: none;
+  background: ${({ $active }) =>
+    $active
+      ? `linear-gradient(135deg, color-mix(in srgb, ${T.iceWing} 15%, transparent), color-mix(in srgb, ${T.swanLavender} 10%, transparent))`
+      : 'transparent'};
+  color: ${({ $active }) => ($active ? T.iceWing : T.textMuted)};
+  font-size: 0.95rem;
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  border-bottom: 2px solid ${({ $active }) => ($active ? T.iceWing : 'transparent')};
+  position: relative;
+
+  /* Active glow underline */
+  ${({ $active }) => $active && css`
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: ${T.iceWing};
+      box-shadow: 0 0 12px ${T.iceWing}60;
+      border-radius: 2px;
+    }
+  `}
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 8%, transparent);
+    color: ${T.iceWing};
+  }
+`;
+```
+
+**Key Feature:** Active tab gets a glowing `::after` pseudo-element underline with `box-shadow: 0 0 12px` for the glow effect. Uses `color-mix()` for the active background gradient.
+
+### B5.8 SectionTitle
+
+```typescript
+const SectionTitle = styled.h2`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: ${T.frostWhite};
+  margin: 0;
+`;
+```
+
+### B5.9 TextArea (Post Composer)
+
+```typescript
+const TextArea = styled.textarea`
+  width: 100%;
+  min-height: 88px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid ${T.glassBorder};
+  background: rgba(0, 32, 96, 0.35);
+  color: ${T.frostWhite};
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &::placeholder { color: ${T.textMuted}; }
+
+  &:focus {
+    outline: none;
+    border-color: ${T.iceWing};
+    box-shadow: 0 0 0 3px color-mix(in srgb, ${T.iceWing} 15%, transparent),
+                ${T.glassHighlight};
+  }
+`;
+```
+
+**Focus Ring:** 3px `color-mix()` ring in ice wing at 15% — matches the admin SearchInput pattern.
+
+### B5.10 PrimaryButton
+
+```typescript
+const PrimaryButton = styled(motion.button)<{ $fullWidth?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.swanLavender} 100%);
+  color: ${T.midnightSapphire};
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+  box-shadow: 0 4px 16px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 24px color-mix(in srgb, ${T.iceWing} 45%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+```
+
+**44px touch target enforced.** Uses `whileTap={{ scale: 0.97 }}` in JSX with `physics.snappy` transition.
+
+### B5.11 OutlineButton
+
+```typescript
+const OutlineButton = styled(motion.button)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid ${T.iceWing};
+  border-radius: 14px;
+  background: transparent;
+  color: ${T.iceWing};
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 10%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, ${T.iceWing} 20%, transparent);
+  }
+`;
+```
+
+### B5.12 ActionButton (Like / Comment / Share)
+
+```typescript
+const ActionButton = styled.button<{ $liked?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: ${({ $liked }) => ($liked ? T.danger : T.textMuted)};
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  svg { transition: transform 0.2s ease; }
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 8%, transparent);
+    color: ${({ $liked }) => ($liked ? T.danger : T.iceWing)};
+  }
+
+  ${({ $liked }) => $liked && css`
+    svg {
+      animation: ${heartPop} 0.4s ease;
+      fill: ${T.danger};
+    }
+  `}
+`;
+```
+
+**Haptic Like:** When `$liked=true`, the Heart SVG fills with `T.danger` (#EF4444) and plays the `heartPop` keyframe animation (scale 1→1.35→0.9→1).
+
+### B5.13 SmallIconButton
+
+```typescript
+const SmallIconButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: ${T.textMuted};
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 10%, transparent);
+    color: ${T.iceWing};
+  }
+`;
+```
+
+### B5.14 PostHeader + AvatarCircle + PostMeta
+
+```typescript
+const PostHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 12px;
+`;
+
+const AvatarCircle = styled.div`
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.swanLavender} 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${T.midnightSapphire};
+  font-weight: 700;
+  font-size: 1rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px ${T.midnightSapphire},
+              0 0 0 3px color-mix(in srgb, ${T.iceWing} 40%, transparent);
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+`;
+
+const PostMeta = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+```
+
+**Avatar Ring:** Double ring — inner 2px dark (midnightSapphire), outer 3px ice-wing at 40%.
+
+### B5.15 UserName + TimeStamp + PostBody
+
+```typescript
+const UserName = styled.span`
+  font-weight: 600;
+  color: ${T.frostWhite};
+  font-size: 0.95rem;
+`;
+
+const TimeStamp = styled.span`
+  font-size: 0.8rem;
+  color: ${T.textMuted};
+`;
+
+const PostBody = styled.p`
+  color: rgba(224, 236, 244, 0.88);
+  line-height: 1.65;
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+`;
+```
+
+### B5.16 TypeBadge (Post Type Rarity Indicator)
+
+```typescript
+const TypeBadge = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: ${({ $color }) => $color};
+  background: color-mix(in srgb, ${({ $color }) => $color} 12%, transparent);
+  border: 1px solid color-mix(in srgb, ${({ $color }) => $color} 30%, transparent);
+`;
+```
+
+**Dynamic Color:** Takes `$color` from `postTypeMap[post.type].color` — the badge background is 12% of the type color, border is 30%.
+
+### B5.17 Divider
+
+```typescript
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${T.glassBorder};
+  margin: 14px 0;
+`;
+```
+
+### B5.18 ActionRow
+
+```typescript
+const ActionRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+`;
+```
+
+### B5.19 Comment Section Components
+
+```typescript
+const CommentSection = styled(motion.div)`
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, ${T.glassBorder} 50%, transparent);
+`;
+
+const CommentInputRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+`;
+
+const CommentInput = styled.input`
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid ${T.glassBorder};
+  background: rgba(0, 32, 96, 0.3);
+  color: ${T.frostWhite};
+  font-size: 0.88rem;
+  transition: border-color 0.3s ease;
+
+  &::placeholder { color: ${T.textMuted}; }
+  &:focus { outline: none; border-color: ${T.iceWing}; }
+`;
+
+const CommentBubble = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  &:last-child { margin-bottom: 0; }
+`;
+
+const CommentAvatar = styled.div`
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.arcticCyan}, ${T.swanLavender});
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${T.midnightSapphire};
+  font-size: 0.65rem;
+  font-weight: 700;
+`;
+
+const CommentBody = styled.div`
+  flex: 1;
+  background: rgba(0, 32, 96, 0.3);
+  border-radius: 12px;
+  padding: 8px 12px;
+`;
+
+const CommentAuthor = styled.span`
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: ${T.frostWhite};
+  margin-right: 8px;
+`;
+
+const CommentText = styled.span`
+  font-size: 0.85rem;
+  color: rgba(224, 236, 244, 0.8);
+`;
+
+const CommentTime = styled.span`
+  font-size: 0.72rem;
+  color: ${T.textMuted};
+  display: block;
+  margin-top: 4px;
+`;
+
+const SendButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  color: ${T.midnightSapphire};
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+
+  &:hover { box-shadow: 0 0 16px color-mix(in srgb, ${T.iceWing} 40%, transparent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+```
+
+### B5.20 Grid Helpers
+
+```typescript
+const GridRow = styled.div`
+  display: grid;
+  gap: 20px;
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+`;
+
+const GridRowThirds = styled.div`
+  display: grid;
+  gap: 20px;
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }
+`;
+```
+
+### B5.21 StyledCard (Events / Groups)
+
+```typescript
+const StyledCard = styled(motion.div)`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: ${T.glassHighlight}, 0 16px 48px rgba(0, 0, 0, 0.4),
+                0 0 24px color-mix(in srgb, ${T.iceWing} 12%, transparent);
+    border-color: color-mix(in srgb, ${T.gildedFern} 40%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
+  }
+`;
+```
+
+**Hover Treatment:** -3px translateY + expanded shadow + gilded border brightens to 40%. Ice-wing ambient glow at 12%.
+
+### B5.22 Chip
+
+```typescript
+const Chip = styled.span<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid ${({ $color }) => $color || T.iceWing};
+  color: ${({ $color }) => $color || T.iceWing};
+  background: color-mix(in srgb, ${({ $color }) => $color || T.iceWing} 8%, transparent);
+`;
+```
+
+**Customizable Color:** Accepts `$color` prop — defaults to ice wing. Groups use `T.gildedFern` for gold chips.
+
+### B5.23 DetailRow
+
+```typescript
+const DetailRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: ${T.textMuted};
+  font-size: 0.9rem;
+
+  svg { color: ${T.arcticCyan}; flex-shrink: 0; }
+`;
+```
+
+### B5.24 Loading & Error States
+
+```typescript
+const ShimmerCard = styled.div`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+`;
+
+const ShimmerLine = styled.div<{ $width?: string; $height?: string }>`
+  width: ${({ $width }) => $width || '100%'};
+  height: ${({ $height }) => $height || '14px'};
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(96, 192, 240, 0.06) 0%,
+    rgba(96, 192, 240, 0.14) 50%,
+    rgba(96, 192, 240, 0.06) 100%
+  );
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.6s ease infinite;
+  margin-bottom: 10px;
+`;
+
+const ErrorPanel = styled(GlassPanel)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 16px;
+`;
+
+const EmptyState = styled(GlassPanel)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 12px;
+  color: ${T.textMuted};
+`;
+```
+
+**Shimmer Skeleton:** Uses ice-wing rgb values at 6%→14%→6% with 200% background-size and 1.6s animation loop.
+
+---
+
+## B6. Component Hierarchy & Data Flow
+
+```
+CommunitySection
+├── HeaderRow (motion.div) ← glissando entrance
+│   ├── HeaderIcon (Users, 32px, iceWing)
+│   └── Title (gradient text: frostWhite → iceWing)
+│
+├── TabBar
+│   ├── TabButton[0] Feed (MessageCircle)
+│   ├── TabButton[1] Events (Calendar)
+│   └── TabButton[2] Groups (Users)
+│
+├── [Feed Tab — tabValue === 0]
+│   ├── GlassPanel (Post Composer)
+│   │   ├── SectionTitle "Share with the community"
+│   │   ├── TextArea (placeholder "What's on your mind?")
+│   │   └── PrimaryButton (Send icon, whileTap scale 0.97)
+│   │
+│   ├── [Loading] → 3x ShimmerCard (avatar + 3 lines)
+│   ├── [Error]   → ErrorPanel (AlertCircle + Retry button)
+│   ├── [Empty]   → EmptyState (MessageCircle + "No posts yet")
+│   │
+│   └── AnimatePresence mode="popLayout"
+│       └── posts.map → GlassPanel (per post)
+│           ├── PostHeader
+│           │   ├── AvatarCircle (photo or initials)
+│           │   ├── PostMeta (UserName + TimeStamp + TypeBadge)
+│           │   └── SmallIconButton (MoreVertical)
+│           ├── PostBody
+│           ├── [mediaUrl] → img with rounded border
+│           ├── Divider
+│           ├── ActionRow
+│           │   ├── ActionButton ❤️ Like (Heart, $liked prop)
+│           │   ├── ActionButton 💬 Comment (MessageSquare)
+│           │   └── ActionButton 🔗 Share (Share2)
+│           └── AnimatePresence → CommentSection
+│               ├── CommentBubble(s) (CommentAvatar + CommentBody)
+│               └── CommentInputRow (CommentInput + SendButton)
+│
+├── [Events Tab — tabValue === 1]
+│   ├── SpaceBetween (SectionTitle + OutlineButton "Create Event")
+│   └── GridRow (2-col @ 600px)
+│       └── StyledCard (per event)
+│           ├── SectionTitle (event.title)
+│           ├── DetailRow (Calendar icon + date/time)
+│           ├── DetailRow (MapPin icon + location)
+│           ├── DetailRow (Users icon + attendees)
+│           └── SpaceBetween (Chip + PrimaryButton "Join")
+│
+└── [Groups Tab — tabValue === 2]
+    ├── SpaceBetween (SectionTitle + OutlineButton "Browse All")
+    └── GridRowThirds (2-col @ 600px, 3-col @ 900px)
+        └── StyledCard (per group)
+            ├── SectionTitle (group.name)
+            ├── DetailRow (Users icon + members)
+            ├── Chip (category, $color=gildedFern)
+            └── PrimaryButton "Join Group" (fullWidth)
+```
+
+---
+
+## B7. API Integration (LIVE — Feed Tab)
+
+| Action | Hook Method | API Endpoint | Status |
+|--------|------------|--------------|--------|
+| Load feed | `useSocialFeed().posts` | `GET /api/social/posts/feed?limit=10&offset=N` | ✅ Live |
+| Create post | `createPost()` | `POST /api/social/posts` | ✅ Live |
+| Like post | `likePost(id)` | `POST /api/social/posts/:id/like` | ✅ Live |
+| Unlike post | `unlikePost(id)` | `DELETE /api/social/posts/:id/like` | ✅ Live |
+| Add comment | `addComment(id, text)` | `POST /api/social/posts/:id/comments` | ✅ Live |
+| Load more | `loadMore()` | Same feed endpoint w/ offset | ✅ Live |
+| Refresh | `refreshPosts()` | Resets pagination, fetches fresh | ✅ Live |
+
+**Events tab:** Placeholder data only (no backend)
+**Groups tab:** Placeholder data only (no backend)
+
+---
+
+## B8. Staggered Card Animation
+
+```typescript
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { ...physics.spring, delay: i * 0.06 },
+  }),
+};
+```
+
+Each post card staggers in with 60ms delay between siblings, using the spring physics (stiffness: 400, damping: 25, mass: 0.8).
+
+---
+
+## B9. Phase A → Phase B Diff Summary
+
+| Aspect | Phase A (Admin) | Phase B (Client Community) |
+|--------|----------------|---------------------------|
+| File | AdminSocialManagementView.tsx | CommunitySection.tsx |
+| Token Matrix | `T` object | Identical `T` object |
+| Physics | `physics.spring/snappy/glissando` | Identical |
+| Glass Spec | Dual shadow (glassHighlight + ambient) | Identical |
+| Data Source | `/api/social/posts/feed` (admin view) | Same API (client view) |
+| Moderation | Yes (approve/flag/reject w/ haptic) | No (client can't moderate) |
+| Like System | Not applicable | Heart with `heartPop` animation |
+| Comments | Not shown | Full expand/collapse with real API |
+| Post Types | Not shown | TypeBadge with rarity colors |
+| Loading State | LoadingDots | ShimmerCard skeleton |
+| Tabs | None (single view) | Feed / Events / Groups |
+| Card Hover | translateY(-2px) + cyan glow | translateY(-3px) + gilded border glow |
+| `color-mix()` | MetricCard, ActionIcon, StatusBadge | TabButton, ActionButton, Chip, cards |
+
+---
+
+*Generated for Gemini review — SwanStudios Social Phase B: Client Community Section*
+*Version 2.0 — Cinematic & Haptic Polish*
+*Preset F-Alt "Enchanted Apex: Crystalline Swan"*
+*Date: 2026-03-01*
