@@ -317,6 +317,7 @@ const Achievement = db.define('Achievement', {
   }
 }, {
   tableName: 'Achievements',
+  freezeTableName: true,
   timestamps: true,
   indexes: [
     {

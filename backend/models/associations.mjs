@@ -376,8 +376,8 @@ const setupAssociations = async () => {
     AdminSpecial.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
     // User to achievements (many-to-many through UserAchievements)
-    User.belongsToMany(Achievement, { 
-      through: 'UserAchievements',
+    User.belongsToMany(Achievement, {
+      through: UserAchievement,
       foreignKey: 'userId',
       otherKey: 'achievementId',
       as: 'achievements'
@@ -393,8 +393,8 @@ const setupAssociations = async () => {
     
     // ACHIEVEMENT ASSOCIATIONS
     // =======================
-    Achievement.belongsToMany(User, { 
-      through: 'UserAchievements',
+    Achievement.belongsToMany(User, {
+      through: UserAchievement,
       foreignKey: 'achievementId',
       otherKey: 'userId',
       as: 'users'

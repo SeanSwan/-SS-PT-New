@@ -328,6 +328,7 @@ const UserAchievement = db.define('UserAchievement', {
   }
 }, {
   tableName: 'UserAchievements',
+  freezeTableName: true,
   timestamps: true,
   indexes: [
     {
