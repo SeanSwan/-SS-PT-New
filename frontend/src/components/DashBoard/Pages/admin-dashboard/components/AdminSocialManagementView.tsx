@@ -1,169 +1,211 @@
 /**
  * AdminSocialManagementView.tsx
  * =============================
- * 
- * Comprehensive Social Media Administration System
- * Advanced social content management, analytics, and community oversight
- * Designed by Seraphina, The Digital Alchemist
- * 
+ *
+ * Social Media Command Center — Preset F-Alt "Enchanted Apex: Crystalline Swan"
+ *
+ * Palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0,
+ *          Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4
+ *
  * Features:
- * - Social content overview dashboard with real-time metrics
- * - User-generated content management and moderation
- * - Social analytics integration with engagement tracking
- * - Community management tools and guidelines enforcement
- * - Bulk moderation actions and automated workflows
- * - Real-time social feed monitoring
- * - Social commerce integration and tracking
- * - Advanced user behavior analytics
- * 
- * Master Prompt Alignment:
- * - Enterprise-grade social media management
- * - AAA 7-star administrative control
- * - Professional community oversight
- * - Gamification system integration
+ * - Real-time social feed from /api/social/posts/feed
+ * - Post moderation (approve / flag / reject) via API
+ * - Metric cards with crystalline glass surfaces
+ * - Rarity-styled moderation badges
+ * - Aurora gradient header, gilded borders, ice-wing CTAs
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled from 'styled-components';
-import { 
-  MessageSquare, 
-  Users, 
-  Heart, 
-  Share2, 
+import styled, { keyframes } from 'styled-components';
+import {
+  MessageSquare,
+  Users,
+  Heart,
+  Share2,
   TrendingUp,
   Eye,
   Flag,
   Shield,
   BarChart3,
-  Activity,
   RefreshCw,
   Search,
-  Filter,
   MoreHorizontal,
   CheckCircle,
   XCircle,
   AlertTriangle,
   Clock,
   UserCheck,
-  Ban,
   Trash2,
-  Edit,
-  Calendar,
-  Map,
   Settings,
-  Award,
-  Star,
-  MessageCircle
+  MessageCircle,
+  Sparkles,
+  Activity,
 } from 'lucide-react';
+import api from '../../../../../services/api';
 
-// === STYLED COMPONENTS ===
+// ─── F-Alt Token Constants ──────────────────────────────────────────
+const T = {
+  midnightSapphire: '#002060',
+  royalDepth:       '#003080',
+  iceWing:          '#60C0F0',
+  arcticCyan:       '#50A0F0',
+  gildedFern:       '#C6A84B',
+  frostWhite:       '#E0ECF4',
+  swanLavender:     '#4070C0',
+  // Derived
+  glass:       'rgba(0, 32, 96, 0.55)',
+  glassBorder: 'rgba(198, 168, 75, 0.2)',
+  glassHover:  'rgba(0, 48, 128, 0.7)',
+  textPrimary: '#E0ECF4',
+  textMuted:   'rgba(224, 236, 244, 0.6)',
+  success:     '#22c55e',
+  warning:     '#f59e0b',
+  danger:      '#ef4444',
+};
+
+// ─── Keyframes ──────────────────────────────────────────────────────
+const auroraShift = keyframes`
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
+const pulseGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 8px rgba(96, 192, 240, 0.2); }
+  50%      { box-shadow: 0 0 20px rgba(96, 192, 240, 0.4); }
+`;
+
+// ─── Styled Components (F-Alt Crystalline Swan) ─────────────────────
 const SocialContainer = styled(motion.div)`
-  padding: 2rem;
-  min-height: 100vh;
-  background: linear-gradient(135deg, rgba(30, 58, 138, 0.05) 0%, rgba(248, 250, 252, 1) 100%);
+  padding: 1.5rem;
+  min-height: 100%;
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
 `;
 
 const SocialHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.2);
+  border-bottom: 1px solid ${T.glassBorder};
+  flex-wrap: wrap;
+  gap: 1rem;
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #0ea5e9 100%);
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.frostWhite} 50%, ${T.gildedFern} 100%);
+  background-size: 200% 200%;
+  animation: ${auroraShift} 6s ease infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  
+  gap: 0.75rem;
+  margin: 0;
+
   .header-icon {
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing});
     border-radius: 12px;
-    padding: 0.75rem;
-    color: white;
-    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+    padding: 0.6rem;
+    color: ${T.frostWhite};
+    box-shadow: 0 4px 16px rgba(96, 192, 240, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-text-fill-color: ${T.frostWhite};
   }
 `;
 
 const HeaderActions = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
 `;
 
 const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.25rem;
   border-radius: 12px;
-  border: 2px solid ${props => {
+  min-height: 44px;
+  border: 1px solid ${props => {
     switch (props.$variant) {
-      case 'primary': return '#3b82f6';
-      case 'danger': return '#ef4444';
-      default: return '#e5e7eb';
+      case 'primary': return T.iceWing;
+      case 'danger': return T.danger;
+      default: return T.glassBorder;
     }
   }};
   background: ${props => {
     switch (props.$variant) {
-      case 'primary': return '#3b82f6';
-      case 'danger': return '#ef4444';
-      default: return 'white';
+      case 'primary': return `linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing})`;
+      case 'danger': return T.danger;
+      default: return T.glass;
     }
   }};
-  color: ${props => props.$variant === 'primary' || props.$variant === 'danger' ? 'white' : '#64748b'};
+  color: ${T.frostWhite};
   font-weight: 500;
+  font-size: 0.875rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
-  
+  backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
   &:hover {
-    background: ${props => {
-      switch (props.$variant) {
-        case 'primary': return '#2563eb';
-        case 'danger': return '#dc2626';
-        default: return '#f8fafc';
-      }
-    }};
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 16px rgba(96, 192, 240, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
 const MetricsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 1280px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 640px)  { grid-template-columns: 1fr; }
 `;
 
-const MetricCard = styled(motion.div)<{ $status?: 'positive' | 'negative' | 'neutral' }>`
-  background: white;
+const MetricCard = styled(motion.div)<{ $accent?: string }>`
+  background: ${T.glass};
+  backdrop-filter: blur(20px);
   border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid ${props => {
-    switch (props.$status) {
-      case 'positive': return '#10b981';
-      case 'negative': return '#ef4444';
-      default: return '#3b82f6';
-    }
-  }};
-  
-  .metric-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+  padding: 1.25rem;
+  border: 1px solid ${T.glassBorder};
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: ${props => props.$accent || T.iceWing};
+    border-radius: 16px 16px 0 0;
   }
-  
+
+  &:hover {
+    border-color: rgba(96, 192, 240, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 32, 96, 0.4), 0 0 20px rgba(96, 192, 240, 0.1);
+  }
+
   .metric-icon {
     width: 40px;
     height: 40px;
@@ -171,289 +213,260 @@ const MetricCard = styled(motion.div)<{ $status?: 'positive' | 'negative' | 'neu
     display: flex;
     align-items: center;
     justify-content: center;
-    background: ${props => {
-      switch (props.$status) {
-        case 'positive': return 'rgba(16, 185, 129, 0.1)';
-        case 'negative': return 'rgba(239, 68, 68, 0.1)';
-        default: return 'rgba(59, 130, 246, 0.1)';
-      }
-    }};
-    color: ${props => {
-      switch (props.$status) {
-        case 'positive': return '#10b981';
-        case 'negative': return '#ef4444';
-        default: return '#3b82f6';
-      }
-    }};
-  }
-  
-  .metric-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1e40af;
-    margin-bottom: 0.5rem;
-  }
-  
-  .metric-label {
-    color: #64748b;
-    font-size: 0.9rem;
-    font-weight: 500;
+    background: rgba(96, 192, 240, 0.1);
+    color: ${props => props.$accent || T.iceWing};
     margin-bottom: 0.75rem;
   }
-  
+
+  .metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: ${T.frostWhite};
+    margin-bottom: 0.25rem;
+  }
+
+  .metric-label {
+    color: ${T.textMuted};
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
   .metric-change {
     font-size: 0.8rem;
     display: flex;
     align-items: center;
     gap: 0.25rem;
     font-weight: 500;
-    color: ${props => {
-      switch (props.$status) {
-        case 'positive': return '#047857';
-        case 'negative': return '#dc2626';
-        default: return '#64748b';
-      }
-    }};
+    color: ${T.textMuted};
   }
 `;
 
 const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
+  gap: 1.5rem;
+
+  @media (max-width: 1024px) { grid-template-columns: 1fr; }
 `;
 
-const PostsSection = styled.div`
-  background: white;
+const GlassPanel = styled.div`
+  background: ${T.glass};
+  backdrop-filter: blur(20px);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid ${T.glassBorder};
   overflow: hidden;
 `;
 
 const SectionHeader = styled.div`
-  padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
-  border-bottom: 1px solid #e5e7eb;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(198, 168, 75, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  h2, h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: ${T.frostWhite};
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 `;
 
 const SearchAndFilters = styled.div`
-  padding: 1rem 1.5rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgba(198, 168, 75, 0.1);
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
-  
-  .search-input {
+  flex-wrap: wrap;
+
+  .search-wrapper {
     flex: 1;
-    padding: 0.75rem 1rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background: white;
-    font-size: 0.9rem;
-    
+    min-width: 200px;
+    position: relative;
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: ${T.textMuted};
+    }
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    border: 1px solid rgba(96, 192, 240, 0.2);
+    border-radius: 10px;
+    background: rgba(0, 32, 96, 0.4);
+    color: ${T.frostWhite};
+    font-size: 0.875rem;
+    min-height: 44px;
+    box-sizing: border-box;
+
+    &::placeholder { color: ${T.textMuted}; }
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: ${T.iceWing};
+      box-shadow: 0 0 0 3px rgba(96, 192, 240, 0.15);
     }
   }
 `;
 
 const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   padding: 0.5rem 1rem;
-  border: 1px solid ${props => props.$active ? '#3b82f6' : '#e5e7eb'};
-  background: ${props => props.$active ? '#3b82f6' : 'white'};
-  color: ${props => props.$active ? 'white' : '#64748b'};
-  border-radius: 6px;
+  min-height: 44px;
+  border: 1px solid ${props => props.$active ? T.iceWing : 'rgba(96, 192, 240, 0.2)'};
+  background: ${props => props.$active ? `linear-gradient(135deg, ${T.royalDepth}, ${T.swanLavender})` : 'transparent'};
+  color: ${props => props.$active ? T.frostWhite : T.textMuted};
+  border-radius: 8px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
   &:hover {
-    background: ${props => props.$active ? '#2563eb' : '#f8fafc'};
-    border-color: ${props => props.$active ? '#2563eb' : '#3b82f6'};
+    border-color: ${T.iceWing};
+    color: ${T.frostWhite};
   }
 `;
 
-const PostCard = styled(motion.div)`
-  padding: 1.5rem;
-  border-bottom: 1px solid #f1f5f9;
+const PostCardStyled = styled(motion.div)`
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(198, 168, 75, 0.08);
   display: flex;
   gap: 1rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: #f8fafc;
-  }
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
+  transition: background 0.2s ease;
+
+  &:hover { background: rgba(0, 48, 128, 0.3); }
+  &:last-child { border-bottom: none; }
+
   .post-avatar {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    background: linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing});
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: ${T.frostWhite};
     font-weight: 600;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
+    border: 2px solid ${T.glassBorder};
   }
-  
-  .post-content {
-    flex: 1;
-    
-    .post-header {
+
+  .post-body { flex: 1; min-width: 0; }
+
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .user-name { font-weight: 600; color: ${T.frostWhite}; font-size: 0.9rem; }
+  .post-time { font-size: 0.75rem; color: ${T.textMuted}; }
+  .post-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+
+  .post-text {
+    color: ${T.textMuted};
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    word-break: break-word;
+  }
+
+  .post-metrics {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 0.5rem;
+
+    .metric {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 0.75rem;
-      
-      .post-user {
-        .user-name {
-          font-weight: 600;
-          color: #1e40af;
-          margin-bottom: 0.25rem;
-        }
-        
-        .post-time {
-          font-size: 0.8rem;
-          color: #9ca3af;
-        }
-      }
-      
-      .post-actions {
-        display: flex;
-        gap: 0.5rem;
-      }
-    }
-    
-    .post-text {
-      color: #374151;
-      line-height: 1.6;
-      margin-bottom: 1rem;
-    }
-    
-    .post-metrics {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 1rem;
-      
-      .metric {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        color: #64748b;
-        
-        .metric-icon {
-          width: 16px;
-          height: 16px;
-        }
-      }
-    }
-    
-    .post-status {
-      display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
+      gap: 0.35rem;
       font-size: 0.8rem;
-      font-weight: 500;
-      
-      &.approved {
-        background: rgba(16, 185, 129, 0.1);
-        color: #047857;
-      }
-      
-      &.pending {
-        background: rgba(245, 158, 11, 0.1);
-        color: #d97706;
-      }
-      
-      &.flagged {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
-      }
+      color: ${T.textMuted};
     }
   }
 `;
 
+const StatusBadge = styled.span<{ $status: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  ${props => {
+    switch (props.$status) {
+      case 'approved': return `background: rgba(34, 197, 94, 0.15); color: ${T.success}; border: 1px solid rgba(34, 197, 94, 0.3);`;
+      case 'pending':  return `background: rgba(198, 168, 75, 0.15); color: ${T.gildedFern}; border: 1px solid rgba(198, 168, 75, 0.3);`;
+      case 'flagged':  return `background: rgba(239, 68, 68, 0.15); color: ${T.danger}; border: 1px solid rgba(239, 68, 68, 0.3);`;
+      default:         return `background: rgba(96, 192, 240, 0.1); color: ${T.iceWing}; border: 1px solid rgba(96, 192, 240, 0.2);`;
+    }
+  }}
+`;
+
 const ActionIcon = styled(motion.button)<{ $variant?: 'approve' | 'reject' | 'flag' | 'edit' }>`
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   background: ${props => {
     switch (props.$variant) {
-      case 'approve': return 'rgba(16, 185, 129, 0.1)';
-      case 'reject': return 'rgba(239, 68, 68, 0.1)';
-      case 'flag': return 'rgba(245, 158, 11, 0.1)';
-      case 'edit': return 'rgba(59, 130, 246, 0.1)';
-      default: return 'rgba(107, 114, 128, 0.1)';
+      case 'approve': return `rgba(34, 197, 94, 0.1)`;
+      case 'reject':  return `rgba(239, 68, 68, 0.1)`;
+      case 'flag':    return `rgba(245, 158, 11, 0.1)`;
+      default:        return `rgba(96, 192, 240, 0.1)`;
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'approve': return '#047857';
-      case 'reject': return '#dc2626';
-      case 'flag': return '#d97706';
-      case 'edit': return '#1e40af';
-      default: return '#374151';
+      case 'approve': return T.success;
+      case 'reject':  return T.danger;
+      case 'flag':    return T.warning;
+      default:        return T.iceWing;
     }
   }};
-  
+
   &:hover {
     transform: scale(1.1);
-    background: ${props => {
+    box-shadow: 0 0 12px ${props => {
       switch (props.$variant) {
-        case 'approve': return 'rgba(16, 185, 129, 0.2)';
-        case 'reject': return 'rgba(239, 68, 68, 0.2)';
-        case 'flag': return 'rgba(245, 158, 11, 0.2)';
-        case 'edit': return 'rgba(59, 130, 246, 0.2)';
-        default: return 'rgba(107, 114, 128, 0.2)';
+        case 'approve': return `rgba(34, 197, 94, 0.3)`;
+        case 'reject':  return `rgba(239, 68, 68, 0.3)`;
+        case 'flag':    return `rgba(245, 158, 11, 0.3)`;
+        default:        return `rgba(96, 192, 240, 0.3)`;
       }
     }};
   }
 `;
 
-const ActivitySidebar = styled.div`
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  height: fit-content;
-`;
-
 const ActivityItem = styled.div`
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgba(198, 168, 75, 0.08);
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
+
+  &:last-child { border-bottom: none; }
+
   .activity-icon {
     width: 32px;
     height: 32px;
@@ -462,487 +475,319 @@ const ActivityItem = styled.div`
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    background: rgba(96, 192, 240, 0.1);
+    color: ${T.iceWing};
   }
-  
-  .activity-content {
-    flex: 1;
-    
-    .activity-text {
-      font-size: 0.9rem;
-      color: #374151;
-      margin-bottom: 0.25rem;
-    }
-    
-    .activity-time {
-      font-size: 0.8rem;
-      color: #9ca3af;
-    }
+
+  .activity-text { font-size: 0.85rem; color: ${T.textPrimary}; margin-bottom: 0.15rem; }
+  .activity-time { font-size: 0.75rem; color: ${T.textMuted}; }
+`;
+
+const EmptyState = styled.div`
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: ${T.textMuted};
+
+  svg { margin-bottom: 1rem; opacity: 0.4; }
+  h3 { color: ${T.frostWhite}; margin: 0 0 0.5rem; font-size: 1.1rem; }
+  p { font-size: 0.9rem; margin: 0; }
+`;
+
+const LoadingDots = styled.span`
+  &::after {
+    content: '';
+    animation: ${keyframes`0%{content:'.'} 33%{content:'..'} 66%{content:'...'}`} 1s steps(1) infinite;
   }
 `;
 
-// === MOCK DATA ===
-const mockSocialMetrics = {
-  totalPosts: 2847,
-  postsToday: 47,
-  totalUsers: 1239,
-  activeUsers: 892,
-  totalEngagement: 15624,
-  engagementRate: 8.4,
-  pendingModeration: 12,
-  flaggedContent: 3
-};
+// ─── Types ──────────────────────────────────────────────────────────
+interface SocialPost {
+  id: number;
+  userId: number;
+  content: string;
+  type: string;
+  visibility: string;
+  moderationStatus: string;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: string;
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+    photo?: string;
+    role: string;
+  };
+}
 
-const mockPosts = [
-  {
-    id: 1,
-    user: {
-      name: 'Sarah Johnson',
-      avatar: 'SJ',
-      id: 'user_123'
-    },
-    content: 'Just completed my first workout with the AI trainer! The personalized recommendations were incredible. Feeling stronger already! 💪 #SwanStudios #FitnessJourney',
-    timestamp: new Date(Date.now() - 1000 * 60 * 15),
-    likes: 24,
-    comments: 8,
-    shares: 3,
-    views: 156,
-    status: 'approved' as const
-  },
-  {
-    id: 2,
-    user: {
-      name: 'Mike Chen',
-      avatar: 'MC',
-      id: 'user_456'
-    },
-    content: 'The nutrition planning feature is a game-changer! Generated a perfect meal plan that fits my dietary restrictions and fitness goals. Thank you SwanStudios team!',
-    timestamp: new Date(Date.now() - 1000 * 60 * 45),
-    likes: 18,
-    comments: 12,
-    shares: 6,
-    views: 203,
-    status: 'approved' as const
-  },
-  {
-    id: 3,
-    user: {
-      name: 'Anonymous User',
-      avatar: 'AU',
-      id: 'user_789'
-    },
-    content: 'This platform is terrible and overpriced. Complete waste of money. Do not recommend to anyone!!!',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    likes: 2,
-    comments: 0,
-    shares: 0,
-    views: 45,
-    status: 'flagged' as const
-  },
-  {
-    id: 4,
-    user: {
-      name: 'Emma Davis',
-      avatar: 'ED',
-      id: 'user_101'
-    },
-    content: 'Love the gamification system! Just unlocked my first achievement and earned 500 points. The community challenges keep me motivated every day.',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60),
-    likes: 31,
-    comments: 15,
-    shares: 8,
-    views: 278,
-    status: 'pending' as const
-  }
-];
-
-const mockRecentActivity = [
-  {
-    id: 1,
-    type: 'post_approved',
-    content: 'Post by Sarah Johnson approved',
-    timestamp: new Date(Date.now() - 1000 * 60 * 10),
-    icon: CheckCircle
-  },
-  {
-    id: 2,
-    type: 'user_flagged',
-    content: 'Content flagged for review',
-    timestamp: new Date(Date.now() - 1000 * 60 * 25),
-    icon: Flag
-  },
-  {
-    id: 3,
-    type: 'comment_removed',
-    content: 'Inappropriate comment removed',
-    timestamp: new Date(Date.now() - 1000 * 60 * 40),
-    icon: Trash2
-  },
-  {
-    id: 4,
-    type: 'user_verified',
-    content: 'New user verification completed',
-    timestamp: new Date(Date.now() - 1000 * 60 * 55),
-    icon: UserCheck
-  }
-];
-
-// === MAIN COMPONENT ===
+// ─── Main Component ─────────────────────────────────────────────────
 const AdminSocialManagementView: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'flagged'>('all');
-  const [filteredPosts, setFilteredPosts] = useState(mockPosts);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<Array<{ id: number; type: string; content: string; timestamp: Date; icon: React.FC<{ size?: number }> }>>([]);
 
-  // Filter posts based on search and status
-  useEffect(() => {
-    let filtered = mockPosts;
-    
-    if (searchTerm) {
-      filtered = filtered.filter(post => 
-        post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.user.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const fetchPosts = useCallback(async () => {
+    try {
+      const res = await api.get('/api/social/posts/feed?limit=50&offset=0');
+      const data = res.data;
+      if (data.success) {
+        setPosts(data.posts || []);
+        setTotalPosts(data.pagination?.total || data.posts?.length || 0);
+        // Build recent activity from real posts
+        const activities = (data.posts || []).slice(0, 4).map((p: SocialPost, i: number) => ({
+          id: i,
+          type: p.moderationStatus,
+          content: `Post by ${p.user?.firstName || 'User'} ${p.user?.lastName || ''} — ${p.moderationStatus}`,
+          timestamp: new Date(p.createdAt),
+          icon: p.moderationStatus === 'approved' ? CheckCircle : p.moderationStatus === 'flagged' ? Flag : Clock,
+        }));
+        setRecentActivity(activities);
+      }
+    } catch (err) {
+      console.error('Failed to fetch social posts:', err);
+    } finally {
+      setLoading(false);
     }
-    
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(post => post.status === statusFilter);
-    }
-    
-    setFilteredPosts(filtered);
-  }, [searchTerm, statusFilter]);
+  }, []);
+
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await fetchPosts();
     setRefreshing(false);
   };
 
-  const handlePostAction = (postId: number, action: 'approve' | 'reject' | 'flag') => {
-    console.log(`${action} post ${postId}`);
-    // Here you would implement the actual API call
+  const handlePostAction = async (postId: number, action: 'approve' | 'reject' | 'flag') => {
+    const statusMap: Record<string, string> = { approve: 'approved', reject: 'rejected', flag: 'flagged' };
+    try {
+      await api.put(`/api/social/posts/${postId}`, { moderationStatus: statusMap[action] });
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, moderationStatus: statusMap[action] } : p));
+    } catch (err) {
+      console.error(`Failed to ${action} post ${postId}:`, err);
+    }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      return timestamp.toLocaleDateString();
-    }
+  const formatTimestamp = (ts: string | Date) => {
+    const date = typeof ts === 'string' ? new Date(ts) : ts;
+    const diff = Date.now() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return date.toLocaleDateString();
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved': return <CheckCircle size={12} />;
-      case 'pending': return <Clock size={12} />;
-      case 'flagged': return <Flag size={12} />;
+      case 'approved': return <CheckCircle size={11} />;
+      case 'pending':  return <Clock size={11} />;
+      case 'flagged':  return <Flag size={11} />;
       default: return null;
     }
   };
 
+  const getInitials = (post: SocialPost) => {
+    if (post.user) return `${post.user.firstName?.[0] || ''}${post.user.lastName?.[0] || ''}`.toUpperCase();
+    return '??';
+  };
+
+  const filteredPosts = posts.filter(p => {
+    const matchesSearch = !searchTerm ||
+      p.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${p.user?.firstName} ${p.user?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || p.moderationStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Compute metrics from real data
+  const pendingCount = posts.filter(p => p.moderationStatus === 'pending').length;
+  const flaggedCount = posts.filter(p => p.moderationStatus === 'flagged').length;
+  const totalLikes = posts.reduce((sum, p) => sum + (p.likesCount || 0), 0);
+
   return (
     <SocialContainer
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.4 }}
     >
+      {/* Header */}
       <SocialHeader>
         <HeaderTitle>
           <div className="header-icon">
-            <MessageSquare size={24} />
+            <Sparkles size={22} />
           </div>
-          Social Media Command Center
+          Social Command Center
         </HeaderTitle>
-        
         <HeaderActions>
           <ActionButton
             onClick={handleRefresh}
             disabled={refreshing}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Refreshing' : 'Refresh'}
           </ActionButton>
-          
           <ActionButton
             $variant="primary"
-            onClick={() => console.log('Export social data')}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
-            <BarChart3 size={16} />
-            Export Analytics
+            <BarChart3 size={15} />
+            Export
           </ActionButton>
         </HeaderActions>
       </SocialHeader>
 
-      {/* Social Metrics Grid */}
+      {/* Metrics */}
       <MetricsGrid>
-        <MetricCard 
-          $status="neutral"
-          whileHover={{ y: -4 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="metric-header">
-            <div className="metric-icon">
-              <MessageSquare size={20} />
-            </div>
-          </div>
-          <div className="metric-value">{mockSocialMetrics.totalPosts.toLocaleString()}</div>
+        <MetricCard $accent={T.iceWing} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+          <div className="metric-icon"><MessageSquare size={20} /></div>
+          <div className="metric-value">{totalPosts}</div>
           <div className="metric-label">Total Posts</div>
-          <div className="metric-change">
-            <TrendingUp size={12} />
-            +{mockSocialMetrics.postsToday} today
-          </div>
+          <div className="metric-change"><TrendingUp size={12} /> Live data</div>
         </MetricCard>
 
-        <MetricCard 
-          $status="positive"
-          whileHover={{ y: -4 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="metric-header">
-            <div className="metric-icon">
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="metric-value">{mockSocialMetrics.activeUsers}</div>
-          <div className="metric-label">Active Users</div>
-          <div className="metric-change">
-            <TrendingUp size={12} />
-            72% of total users
-          </div>
+        <MetricCard $accent={T.success} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+          <div className="metric-icon" style={{ background: 'rgba(34, 197, 94, 0.1)', color: T.success }}><Users size={20} /></div>
+          <div className="metric-value">{new Set(posts.map(p => p.userId)).size}</div>
+          <div className="metric-label">Active Posters</div>
+          <div className="metric-change"><TrendingUp size={12} /> Unique users</div>
         </MetricCard>
 
-        <MetricCard 
-          $status="positive"
-          whileHover={{ y: -4 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="metric-header">
-            <div className="metric-icon">
-              <Heart size={20} />
-            </div>
-          </div>
-          <div className="metric-value">{mockSocialMetrics.totalEngagement.toLocaleString()}</div>
+        <MetricCard $accent={T.gildedFern} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+          <div className="metric-icon" style={{ background: 'rgba(198, 168, 75, 0.1)', color: T.gildedFern }}><Heart size={20} /></div>
+          <div className="metric-value">{totalLikes}</div>
           <div className="metric-label">Total Engagement</div>
-          <div className="metric-change">
-            <TrendingUp size={12} />
-            {mockSocialMetrics.engagementRate}% rate
-          </div>
+          <div className="metric-change"><Heart size={12} /> Likes across posts</div>
         </MetricCard>
 
-        <MetricCard 
-          $status={mockSocialMetrics.pendingModeration > 10 ? "negative" : "neutral"}
-          whileHover={{ y: -4 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="metric-header">
-            <div className="metric-icon">
-              <Shield size={20} />
-            </div>
-          </div>
-          <div className="metric-value">{mockSocialMetrics.pendingModeration}</div>
+        <MetricCard $accent={pendingCount > 0 ? T.warning : T.iceWing} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+          <div className="metric-icon" style={{ background: pendingCount > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(96, 192, 240, 0.1)', color: pendingCount > 0 ? T.warning : T.iceWing }}><Shield size={20} /></div>
+          <div className="metric-value">{pendingCount}</div>
           <div className="metric-label">Pending Moderation</div>
-          <div className="metric-change">
-            <AlertTriangle size={12} />
-            {mockSocialMetrics.flaggedContent} flagged
-          </div>
+          <div className="metric-change"><AlertTriangle size={12} /> {flaggedCount} flagged</div>
         </MetricCard>
       </MetricsGrid>
 
-      {/* Content Management */}
+      {/* Content Grid */}
       <ContentGrid>
-        <PostsSection>
+        {/* Posts Section */}
+        <GlassPanel>
           <SectionHeader>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e40af', margin: 0 }}>
-              Content Management
-            </h2>
-            
-            <ActionButton
-              onClick={() => console.log('Bulk actions')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Settings size={16} />
-              Bulk Actions
+            <h2><MessageSquare size={18} /> Content Management</h2>
+            <ActionButton whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Settings size={15} /> Bulk Actions
             </ActionButton>
           </SectionHeader>
 
           <SearchAndFilters>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+            <div className="search-wrapper">
+              <Search size={15} className="search-icon" />
               <input
                 type="text"
                 placeholder="Search posts, users, or content..."
                 className="search-input"
-                style={{ paddingLeft: '2.5rem' }}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
-            
-            <FilterButton
-              $active={statusFilter === 'all'}
-              onClick={() => setStatusFilter('all')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              All
-            </FilterButton>
-            
-            <FilterButton
-              $active={statusFilter === 'approved'}
-              onClick={() => setStatusFilter('approved')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Approved
-            </FilterButton>
-            
-            <FilterButton
-              $active={statusFilter === 'pending'}
-              onClick={() => setStatusFilter('pending')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Pending
-            </FilterButton>
-            
-            <FilterButton
-              $active={statusFilter === 'flagged'}
-              onClick={() => setStatusFilter('flagged')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Flagged
-            </FilterButton>
+            {(['all', 'approved', 'pending', 'flagged'] as const).map(f => (
+              <FilterButton
+                key={f}
+                $active={statusFilter === f}
+                onClick={() => setStatusFilter(f)}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </FilterButton>
+            ))}
           </SearchAndFilters>
 
-          <AnimatePresence>
-            {filteredPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="post-avatar">
-                  {post.user.avatar}
-                </div>
-                
-                <div className="post-content">
-                  <div className="post-header">
-                    <div className="post-user">
-                      <div className="user-name">{post.user.name}</div>
-                      <div className="post-time">{formatTimestamp(post.timestamp)}</div>
+          {loading ? (
+            <EmptyState>
+              <RefreshCw size={32} className="animate-spin" />
+              <h3>Loading posts<LoadingDots /></h3>
+              <p>Fetching from social feed API</p>
+            </EmptyState>
+          ) : filteredPosts.length === 0 ? (
+            <EmptyState>
+              <MessageSquare size={40} />
+              <h3>No posts found</h3>
+              <p>{searchTerm || statusFilter !== 'all' ? 'Try adjusting your filters' : 'The social feed is empty — create the first post!'}</p>
+            </EmptyState>
+          ) : (
+            <AnimatePresence>
+              {filteredPosts.map(post => (
+                <PostCardStyled
+                  key={post.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="post-avatar">{getInitials(post)}</div>
+                  <div className="post-body">
+                    <div className="post-header">
+                      <div>
+                        <div className="user-name">
+                          {post.user ? `${post.user.firstName} ${post.user.lastName}` : `User #${post.userId}`}
+                        </div>
+                        <div className="post-time">{formatTimestamp(post.createdAt)}</div>
+                      </div>
+                      <div className="post-actions">
+                        <ActionIcon $variant="approve" onClick={() => handlePostAction(post.id, 'approve')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Approve"><CheckCircle size={14} /></ActionIcon>
+                        <ActionIcon $variant="flag" onClick={() => handlePostAction(post.id, 'flag')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Flag"><Flag size={14} /></ActionIcon>
+                        <ActionIcon $variant="reject" onClick={() => handlePostAction(post.id, 'reject')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Remove"><Trash2 size={14} /></ActionIcon>
+                        <ActionIcon $variant="edit" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Details"><MoreHorizontal size={14} /></ActionIcon>
+                      </div>
                     </div>
-                    
-                    <div className="post-actions">
-                      <ActionIcon
-                        $variant="approve"
-                        onClick={() => handlePostAction(post.id, 'approve')}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        title="Approve Post"
-                      >
-                        <CheckCircle size={14} />
-                      </ActionIcon>
-                      
-                      <ActionIcon
-                        $variant="flag"
-                        onClick={() => handlePostAction(post.id, 'flag')}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        title="Flag Post"
-                      >
-                        <Flag size={14} />
-                      </ActionIcon>
-                      
-                      <ActionIcon
-                        $variant="reject"
-                        onClick={() => handlePostAction(post.id, 'reject')}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        title="Remove Post"
-                      >
-                        <Trash2 size={14} />
-                      </ActionIcon>
-                      
-                      <ActionIcon
-                        $variant="edit"
-                        onClick={() => console.log(`Edit post ${post.id}`)}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        title="View Details"
-                      >
-                        <MoreHorizontal size={14} />
-                      </ActionIcon>
+                    <div className="post-text">{post.content}</div>
+                    <div className="post-metrics">
+                      <div className="metric"><Heart size={14} /> {post.likesCount}</div>
+                      <div className="metric"><MessageCircle size={14} /> {post.commentsCount}</div>
+                      <div className="metric"><Eye size={14} /> {post.type}</div>
                     </div>
+                    <StatusBadge $status={post.moderationStatus}>
+                      {getStatusIcon(post.moderationStatus)}
+                      {post.moderationStatus}
+                    </StatusBadge>
                   </div>
-                  
-                  <div className="post-text">
-                    {post.content}
-                  </div>
-                  
-                  <div className="post-metrics">
-                    <div className="metric">
-                      <Heart className="metric-icon" />
-                      {post.likes}
-                    </div>
-                    <div className="metric">
-                      <MessageCircle className="metric-icon" />
-                      {post.comments}
-                    </div>
-                    <div className="metric">
-                      <Share2 className="metric-icon" />
-                      {post.shares}
-                    </div>
-                    <div className="metric">
-                      <Eye className="metric-icon" />
-                      {post.views}
-                    </div>
-                  </div>
-                  
-                  <div className={`post-status ${post.status}`}>
-                    {getStatusIcon(post.status)}
-                    {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                  </div>
-                </div>
-              </PostCard>
-            ))}
-          </AnimatePresence>
-        </PostsSection>
+                </PostCardStyled>
+              ))}
+            </AnimatePresence>
+          )}
+        </GlassPanel>
 
-        <ActivitySidebar>
+        {/* Activity Sidebar */}
+        <GlassPanel style={{ height: 'fit-content' }}>
           <SectionHeader>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e40af', margin: 0 }}>
-              Recent Activity
-            </h3>
+            <h3><Activity size={16} /> Recent Activity</h3>
           </SectionHeader>
-          
-          {mockRecentActivity.map((activity) => (
-            <ActivityItem key={activity.id}>
-              <div className="activity-icon">
-                <activity.icon size={16} />
-              </div>
-              <div className="activity-content">
-                <div className="activity-text">{activity.content}</div>
-                <div className="activity-time">{formatTimestamp(activity.timestamp)}</div>
-              </div>
-            </ActivityItem>
-          ))}
-        </ActivitySidebar>
+          {recentActivity.length === 0 ? (
+            <EmptyState>
+              <Clock size={28} />
+              <p>No recent activity</p>
+            </EmptyState>
+          ) : (
+            recentActivity.map(activity => (
+              <ActivityItem key={activity.id}>
+                <div className="activity-icon"><activity.icon size={14} /></div>
+                <div>
+                  <div className="activity-text">{activity.content}</div>
+                  <div className="activity-time">{formatTimestamp(activity.timestamp)}</div>
+                </div>
+              </ActivityItem>
+            ))
+          )}
+        </GlassPanel>
       </ContentGrid>
     </SocialContainer>
   );
