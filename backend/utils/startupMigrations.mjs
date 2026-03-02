@@ -405,6 +405,92 @@ async function migratePhase1bForeignKeys() {
 }
 
 /**
+ * Migration 7: Add deleted_at column to conversation_participants
+ * Enables per-user conversation soft delete (hide from one participant).
+ */
+async function migrateConversationParticipantsDeletedAt() {
+  try {
+    const [tables] = await sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE tablename = 'conversation_participants';`
+    );
+    if (!tables || tables.length === 0) {
+      logger.info('[Migration] conversation_participants table does not exist yet, skipping');
+      return;
+    }
+
+    const [cols] = await sequelize.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'conversation_participants' AND column_name = 'deleted_at';`
+    );
+    if (cols && cols.length > 0) {
+      logger.info('[Migration] conversation_participants.deleted_at already exists - no change needed');
+      return;
+    }
+
+    logger.info('[Migration] Adding deleted_at to conversation_participants...');
+    await sequelize.query(
+      `ALTER TABLE conversation_participants ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;`
+    );
+    logger.info('[Migration] conversation_participants.deleted_at added successfully');
+  } catch (error) {
+    logger.warn(`[Migration] conversation_participants.deleted_at failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
+ * Migration 8: Fix Sean Swan's lastName (id=2) if empty
+ * The admin account has lastName="" which displays as "Sean " in messages.
+ */
+async function migrateSeanSwanLastName() {
+  try {
+    const [result] = await sequelize.query(
+      `UPDATE "Users" SET "lastName" = 'Swan'
+       WHERE id = 2 AND ("lastName" IS NULL OR TRIM("lastName") = '')
+       RETURNING id, "firstName", "lastName";`,
+      { type: QueryTypes.SELECT }
+    );
+    if (result) {
+      logger.info(`[Migration] Fixed Sean Swan lastName: "${result.firstName} ${result.lastName}"`);
+    } else {
+      logger.info('[Migration] Sean Swan lastName already set - no change needed');
+    }
+  } catch (error) {
+    logger.warn(`[Migration] Sean Swan lastName fix failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
+ * Migration 9: Soft-delete unwanted test/duplicate accounts
+ * Sets deletedAt on users that should be removed for a cleaner slate.
+ * IDs: 3, 4, 33, 34, 55, 56
+ * Keeps: 2 (Sean Swan), 5 (Jasmine Swan), 35 (Vickie Valdez), 57 (QABot Tester)
+ */
+async function migrateCleanupTestUsers() {
+  try {
+    const idsToDelete = [3, 4, 33, 34, 55, 56];
+    const [already] = await sequelize.query(
+      `SELECT COUNT(*) as cnt FROM "Users"
+       WHERE id IN (${idsToDelete.join(',')}) AND "deletedAt" IS NULL;`,
+      { type: QueryTypes.SELECT }
+    );
+
+    const count = parseInt(already?.cnt || '0');
+    if (count === 0) {
+      logger.info('[Migration] Test user cleanup already done - no active users to delete');
+      return;
+    }
+
+    await sequelize.query(
+      `UPDATE "Users" SET "deletedAt" = NOW()
+       WHERE id IN (${idsToDelete.join(',')}) AND "deletedAt" IS NULL;`
+    );
+    logger.info(`[Migration] Soft-deleted ${count} test/duplicate users (IDs: ${idsToDelete.join(', ')})`);
+  } catch (error) {
+    logger.warn(`[Migration] Test user cleanup failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -418,6 +504,9 @@ export async function runStartupMigrations() {
     await migrateResetPasswordColumns();
     await migrateShoppingCartColumns();
     await migratePhase1bForeignKeys();
+    await migrateConversationParticipantsDeletedAt();
+    await migrateSeanSwanLastName();
+    await migrateCleanupTestUsers();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;

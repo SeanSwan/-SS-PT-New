@@ -17,9 +17,9 @@ import { QueryTypes } from 'sequelize';
 let _defaultAdminId = null;
 async function getDefaultAdminId() {
   if (_defaultAdminId) return _defaultAdminId;
-  // Find the site owner (Sean Swan, ID 1) or fall back to any admin
+  // Find the site owner (Sean Swan, ID 2) or fall back to any admin
   const [admin] = await sequelize.query(
-    `SELECT id FROM "Users" WHERE id = 1
+    `SELECT id FROM "Users" WHERE id = 2
      UNION ALL
      SELECT id FROM "Users" WHERE role = 'admin' ORDER BY id LIMIT 1`,
     { type: QueryTypes.SELECT }
@@ -112,7 +112,7 @@ export const getConversations = async (req, res) => {
     const conversations = await sequelize.query(
       `
       WITH user_conversations AS (
-        SELECT conversation_id FROM conversation_participants WHERE user_id = :userId
+        SELECT conversation_id FROM conversation_participants WHERE user_id = :userId AND deleted_at IS NULL
       ),
       last_messages AS (
         SELECT
@@ -144,7 +144,7 @@ export const getConversations = async (req, res) => {
       FROM conversations c
       JOIN conversation_participants cp ON c.id = cp.conversation_id
       LEFT JOIN last_messages lm ON c.id = lm.conversation_id AND lm.rn = 1
-      WHERE cp.user_id = :userId
+      WHERE cp.user_id = :userId AND cp.deleted_at IS NULL
       GROUP BY c.id, lm.content, lm.created_at
       ORDER BY lm.created_at DESC;
       `,
@@ -410,6 +410,47 @@ export const searchUsers = async (req, res) => {
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Failed to search for users.' });
+  }
+};
+
+/**
+ * Delete (hide) a conversation for the authenticated user.
+ * DELETE /api/messaging/conversations/:id
+ *
+ * Sets deleted_at on the user's conversation_participants row.
+ * The other participant(s) still see the conversation.
+ */
+export const deleteConversation = async (req, res) => {
+  const { id: conversationId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+
+  try {
+    // Verify user is a participant and not already deleted
+    const [participant] = await sequelize.query(
+      `SELECT id FROM conversation_participants
+       WHERE conversation_id = :conversationId AND user_id = :userId AND deleted_at IS NULL`,
+      { replacements: { conversationId, userId }, type: QueryTypes.SELECT }
+    );
+
+    if (!participant) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+
+    // Soft-delete: set deleted_at on this user's participant row
+    await sequelize.query(
+      `UPDATE conversation_participants SET deleted_at = NOW()
+       WHERE conversation_id = :conversationId AND user_id = :userId`,
+      { replacements: { conversationId, userId } }
+    );
+
+    res.json({ success: true, message: 'Conversation hidden.' });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    res.status(500).json({ error: 'Failed to delete conversation.' });
   }
 };
 
