@@ -61,13 +61,13 @@ export function createPainEntryService(authAxios: any) {
     /** Get all pain entries for a user (active + resolved) */
     async getAll(userId: number): Promise<{ success: boolean; entries: PainEntry[]; count: number }> {
       const { data } = await authAxios.get(`${BASE}/${userId}`);
-      return data;
+      return { success: data.success, entries: data.data || [], count: data.count || 0 };
     },
 
     /** Get only active pain entries for a user */
     async getActive(userId: number): Promise<{ success: boolean; entries: PainEntry[]; count: number }> {
       const { data } = await authAxios.get(`${BASE}/${userId}/active`);
-      return data;
+      return { success: data.success, entries: data.data || [], count: data.count || 0 };
     },
 
     /** Create a new pain entry */

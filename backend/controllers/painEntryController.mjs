@@ -173,14 +173,7 @@ export const createPainEntry = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PainEntry] Error creating entry:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to create pain entry',
-      debug: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      errorType: error.name,
-      // Include detail for all envs temporarily to debug deploy issue
-      detail: error.message,
-    });
+    return res.status(500).json({ success: false, message: 'Failed to create pain entry' });
   }
 };
 
