@@ -137,7 +137,7 @@ const CoverPhotoSection = styled.div<{ $src?: string | null }>`
 const CoverOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 40%, rgba(0, 32, 96, 0.7) 100%);
+  background: linear-gradient(to bottom, transparent 40%, rgba(0, 32, 96, 0.8) 100%);
 `;
 
 const CoverUploadButton = styled.button`
@@ -182,7 +182,7 @@ const AvatarWrapper = styled.div`
   margin-bottom: 16px;
 `;
 
-const AvatarRing = styled.div`
+const AvatarRing = styled(motion.div)`
   width: 120px;
   height: 120px;
   border-radius: 50%;
@@ -792,6 +792,7 @@ const PhotoItem = styled(motion.div)`
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight};
   cursor: pointer;
   transition: border-color 0.3s ease;
 
@@ -800,10 +801,12 @@ const PhotoItem = styled(motion.div)`
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 0.5s ease;
   }
 
   &:hover {
     border-color: color-mix(in srgb, ${T.iceWing} 50%, transparent);
+    img { transform: scale(1.05); }
   }
 `;
 
@@ -828,7 +831,7 @@ const UploadCard = styled(motion.div)`
 `;
 
 /* ─── Achievement Card ──────────────────────────────────────────── */
-const AchievementCard = styled.div<{ $rarity?: string }>`
+const AchievementCard = styled(motion.div)<{ $rarity?: string }>`
   display: flex;
   align-items: center;
   gap: 14px;
@@ -837,6 +840,11 @@ const AchievementCard = styled.div<{ $rarity?: string }>`
   background: rgba(0, 32, 96, 0.3);
   border: 1px solid color-mix(in srgb, ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted} 30%, transparent);
   margin-bottom: 12px;
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: color-mix(in srgb, ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted} 10%, transparent);
+  }
 
   &:last-child { margin-bottom: 0; }
 `;
@@ -1207,7 +1215,7 @@ const UserDashboard: React.FC = () => {
       {/* ═══════ Profile Header ═══════ */}
       <ProfileHeaderSection>
         <AvatarWrapper>
-          <AvatarRing>
+          <AvatarRing whileHover={{ scale: 1.05 }} transition={physics.spring}>
             <AvatarInner>
               {profile?.photo ? (
                 <img src={profile.photo} alt={displayName} />
@@ -1538,7 +1546,7 @@ const UserDashboard: React.FC = () => {
                 <SectionTitle style={{ marginBottom: 16 }}>Achievements</SectionTitle>
                 {achievements.length > 0 ? (
                   achievements.map((ach, i) => (
-                    <AchievementCard key={ach.id || i} $rarity={ach.rarity}>
+                    <AchievementCard key={ach.id || i} $rarity={ach.rarity} whileHover={{ scale: 1.02 }} transition={physics.snappy}>
                       <AchievementIcon $rarity={ach.rarity}>
                         <Award size={22} />
                       </AchievementIcon>
