@@ -2011,3 +2011,1109 @@ Each post card staggers in with 60ms delay between siblings, using the spring ph
 *Version 2.0 — Cinematic & Haptic Polish*
 *Preset F-Alt "Enchanted Apex: Crystalline Swan"*
 *Date: 2026-03-01*
+
+---
+---
+
+# Phase B2: User Dashboard — Complete Styling Reference
+
+**File:** `frontend/src/components/UserDashboard/UserDashboard.tsx`
+**Lines:** ~1,615 (rebuilt from 3,218-line monolith)
+**Purpose:** Main social media profile page at `/user-dashboard`. Ground-up rebuild using V2 Crystalline Swan design system. Branded "SwanStudios Community" (not "Swan Galaxy").
+
+---
+
+## B2-1. Token Matrix & Physics (Identical)
+
+Same `T` and `physics` objects as Phase A and Phase B — no deviations:
+
+```typescript
+const T = {
+  midnightSapphire: '#002060',
+  royalDepth:       '#003080',
+  swanLavender:     '#4070C0',
+  iceWing:          '#60C0F0',
+  arcticCyan:       '#50A0F0',
+  gildedFern:       '#C6A84B',
+  frostWhite:       '#E0ECF4',
+  success:          '#22C55E',
+  warning:          '#F59E0B',
+  danger:           '#EF4444',
+  glassSurface:     'linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%)',
+  glassBorder:      'rgba(198, 168, 75, 0.25)',
+  glassHighlight:   'inset 0 1px 1px rgba(224, 236, 244, 0.15)',
+  textMuted:        'rgba(224, 236, 244, 0.65)',
+};
+
+const physics = {
+  spring:    { type: 'spring' as const, stiffness: 400, damping: 25, mass: 0.8 },
+  snappy:    { type: 'spring' as const, stiffness: 600, damping: 30 },
+  glissando: { duration: 0.4, ease: [0.23, 1, 0.32, 1] },
+};
+```
+
+---
+
+## B2-2. Post-Type Rarity Map
+
+```typescript
+const postTypeMap: Record<string, { color: string; label: string; Icon: React.FC<{ size?: number }> }> = {
+  workout:        { color: T.gildedFern,   label: 'Workout',        Icon: Dumbbell },
+  achievement:    { color: T.iceWing,      label: 'Achievement',    Icon: Trophy },
+  challenge:      { color: T.swanLavender, label: 'Challenge',      Icon: Swords },
+  transformation: { color: T.danger,       label: 'Transformation', Icon: Flame },
+  general:        { color: T.arcticCyan,   label: 'Post',           Icon: Sparkles },
+};
+```
+
+---
+
+## B2-3. Achievement Rarity Colors
+
+```typescript
+const rarityColors: Record<string, string> = {
+  common:    T.textMuted,
+  uncommon:  T.arcticCyan,
+  rare:      T.iceWing,
+  epic:      T.swanLavender,
+  legendary: T.gildedFern,
+};
+```
+
+---
+
+## B2-4. Keyframe Animations
+
+```typescript
+const shimmer = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const heartPop = keyframes`
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+`;
+```
+
+---
+
+## B2-5. Styled Components — Full CSS-in-JS Code
+
+### B2-5.1 PageContainer
+```typescript
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: ${T.midnightSapphire};
+  color: ${T.frostWhite};
+`;
+```
+
+### B2-5.2 CoverPhotoSection
+```typescript
+const CoverPhotoSection = styled.div<{ $src?: string | null }>`
+  position: relative;
+  width: 100%;
+  height: 220px;
+  background: ${({ $src }) =>
+    $src
+      ? `url(${$src}) center/cover no-repeat`
+      : `linear-gradient(135deg, ${T.midnightSapphire} 0%, ${T.royalDepth} 40%, ${T.swanLavender} 100%)`};
+  border-bottom: 1px solid ${T.glassBorder};
+
+  @media (min-width: 768px) {
+    height: 280px;
+  }
+`;
+```
+
+### B2-5.3 CoverOverlay
+```typescript
+const CoverOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0, 32, 96, 0.7) 100%);
+`;
+```
+
+### B2-5.4 CoverUploadButton
+```typescript
+const CoverUploadButton = styled.button`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid rgba(224, 236, 244, 0.3);
+  border-radius: 14px;
+  background: rgba(0, 32, 96, 0.6);
+  backdrop-filter: blur(12px);
+  color: ${T.frostWhite};
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  z-index: 2;
+
+  &:hover {
+    background: rgba(0, 48, 128, 0.8);
+    border-color: ${T.iceWing};
+  }
+`;
+```
+
+### B2-5.5 ProfileHeaderSection
+```typescript
+const ProfileHeaderSection = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px 32px;
+  margin-top: -60px;
+  z-index: 2;
+`;
+```
+
+### B2-5.6 AvatarWrapper + AvatarRing + AvatarInner + AvatarUploadBtn
+```typescript
+const AvatarWrapper = styled.div`
+  position: relative;
+  margin-bottom: 16px;
+`;
+
+const AvatarRing = styled.div`
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  padding: 4px;
+  box-shadow: 0 0 0 4px ${T.midnightSapphire},
+              0 0 24px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+`;
+
+const AvatarInner = styled.div`
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: ${T.royalDepth};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${T.iceWing};
+  font-weight: 700;
+  font-size: 2.2rem;
+  overflow: hidden;
+  img { width: 100%; height: 100%; object-fit: cover; }
+`;
+
+const AvatarUploadBtn = styled.button`
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  border: 3px solid ${T.midnightSapphire};
+  color: ${T.midnightSapphire};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+  &:hover { box-shadow: 0 0 12px color-mix(in srgb, ${T.iceWing} 50%, transparent); }
+`;
+```
+
+### B2-5.7 DisplayName + Username + RoleBadge
+```typescript
+const DisplayName = styled.h1`
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  background: linear-gradient(135deg, ${T.frostWhite}, ${T.iceWing});
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const Username = styled.p`
+  font-size: 0.95rem;
+  color: ${T.textMuted};
+  margin: 0 0 8px;
+`;
+
+const RoleBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(12px);
+  border: 1px solid ${T.glassBorder};
+  color: ${T.gildedFern};
+  margin-bottom: 16px;
+`;
+```
+
+### B2-5.8 StatsRow + StatItem + StatNumber + StatLabel
+```typescript
+const StatsRow = styled.div`
+  display: flex;
+  gap: 32px;
+  margin-bottom: 16px;
+`;
+
+const StatItem = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: default;
+`;
+
+const StatNumber = styled.span`
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: ${T.iceWing};
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.8rem;
+  color: ${T.textMuted};
+  margin-top: 2px;
+`;
+```
+
+### B2-5.9 BioText
+```typescript
+const BioText = styled.p`
+  max-width: 600px;
+  text-align: center;
+  color: ${T.textMuted};
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 20px;
+`;
+```
+
+### B2-5.10 ActionButtonRow + ProfileAction
+```typescript
+const ActionButtonRow = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const ProfileAction = styled(motion.button)<{ $primary?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 24px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+
+  ${({ $primary }) => $primary ? css`
+    background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+    border: none;
+    color: ${T.midnightSapphire};
+    box-shadow: 0 4px 16px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+    &:hover { box-shadow: 0 6px 24px color-mix(in srgb, ${T.iceWing} 45%, transparent); }
+  ` : css`
+    background: transparent;
+    border: 1px solid ${T.glassBorder};
+    color: ${T.frostWhite};
+    &:hover {
+      border-color: ${T.iceWing};
+      box-shadow: 0 0 12px color-mix(in srgb, ${T.iceWing} 20%, transparent);
+    }
+  `}
+`;
+```
+
+### B2-5.11 ContentWrapper
+```typescript
+const ContentWrapper = styled.div`
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+`;
+```
+
+### B2-5.12 TabBar + TabButton
+```typescript
+const TabBar = styled.div`
+  display: flex;
+  width: 100%;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 8px 32px rgba(0, 0, 0, 0.25);
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  flex: 1;
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: none;
+  background: ${({ $active }) =>
+    $active
+      ? `linear-gradient(135deg, color-mix(in srgb, ${T.iceWing} 15%, transparent), color-mix(in srgb, ${T.swanLavender} 10%, transparent))`
+      : 'transparent'};
+  color: ${({ $active }) => ($active ? T.iceWing : T.textMuted)};
+  font-size: 0.9rem;
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease;
+  border-bottom: 2px solid ${({ $active }) => ($active ? T.iceWing : 'transparent')};
+  white-space: nowrap;
+  position: relative;
+
+  ${({ $active }) => $active && css`
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: ${T.iceWing};
+      box-shadow: 0 0 12px ${T.iceWing}60;
+      border-radius: 2px;
+    }
+  `}
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 8%, transparent);
+    color: ${T.iceWing};
+  }
+`;
+```
+
+### B2-5.13 GlassPanel + SectionTitle
+```typescript
+const GlassPanel = styled(motion.div)`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid ${T.glassBorder};
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: ${T.frostWhite};
+  margin: 0;
+`;
+```
+
+### B2-5.14 TextArea (Post Composer)
+```typescript
+const TextArea = styled.textarea`
+  width: 100%;
+  min-height: 88px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid ${T.glassBorder};
+  background: rgba(0, 32, 96, 0.35);
+  color: ${T.frostWhite};
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &::placeholder { color: ${T.textMuted}; }
+
+  &:focus {
+    outline: none;
+    border-color: ${T.iceWing};
+    box-shadow: 0 0 0 3px color-mix(in srgb, ${T.iceWing} 15%, transparent),
+                ${T.glassHighlight};
+  }
+`;
+```
+
+### B2-5.15 PrimaryButton + OutlineButton
+```typescript
+const PrimaryButton = styled(motion.button)<{ $fullWidth?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.swanLavender} 100%);
+  color: ${T.midnightSapphire};
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+  box-shadow: 0 4px 16px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+  transition: box-shadow 0.3s ease;
+  &:hover { box-shadow: 0 6px 24px color-mix(in srgb, ${T.iceWing} 45%, transparent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
+
+const OutlineButton = styled(motion.button)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid ${T.iceWing};
+  border-radius: 14px;
+  background: transparent;
+  color: ${T.iceWing};
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 10%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, ${T.iceWing} 20%, transparent);
+  }
+`;
+```
+
+### B2-5.16 ActionButton (Post Like/Comment/Share)
+```typescript
+const ActionButton = styled.button<{ $liked?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: ${({ $liked }) => ($liked ? T.danger : T.textMuted)};
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  svg { transition: transform 0.2s ease; }
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 8%, transparent);
+    color: ${({ $liked }) => ($liked ? T.danger : T.iceWing)};
+  }
+  ${({ $liked }) => $liked && css`
+    svg { animation: ${heartPop} 0.4s ease; fill: ${T.danger}; }
+  `}
+`;
+```
+
+### B2-5.17 SmallIconButton
+```typescript
+const SmallIconButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: ${T.textMuted};
+  cursor: pointer;
+  transition: background 0.2s ease;
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 10%, transparent);
+    color: ${T.iceWing};
+  }
+`;
+```
+
+### B2-5.18 PostHeader + PostAvatar + PostMeta + PostUserName + TimeStamp
+```typescript
+const PostHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 12px;
+`;
+
+const PostAvatar = styled.div`
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${T.midnightSapphire};
+  font-weight: 700;
+  font-size: 1rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px ${T.midnightSapphire},
+              0 0 0 3px color-mix(in srgb, ${T.iceWing} 40%, transparent);
+  img { width: 100%; height: 100%; object-fit: cover; }
+`;
+
+const PostMeta = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const PostUserName = styled.span`
+  font-weight: 600;
+  color: ${T.frostWhite};
+  font-size: 0.95rem;
+`;
+
+const TimeStamp = styled.span`
+  font-size: 0.8rem;
+  color: ${T.textMuted};
+`;
+```
+
+### B2-5.19 PostBody + Divider + PostActionRow
+```typescript
+const PostBody = styled.p`
+  color: rgba(224, 236, 244, 0.88);
+  line-height: 1.65;
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${T.glassBorder};
+  margin: 14px 0;
+`;
+
+const PostActionRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+`;
+```
+
+### B2-5.20 TypeBadge
+```typescript
+const TypeBadge = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: ${({ $color }) => $color};
+  background: color-mix(in srgb, ${({ $color }) => $color} 12%, transparent);
+  border: 1px solid color-mix(in srgb, ${({ $color }) => $color} 30%, transparent);
+`;
+```
+
+### B2-5.21 CommentSection + CommentInputRow + CommentInput + CommentBubble + CommentAvatarSmall + CommentBodyWrapper + SendBtn
+```typescript
+const CommentSection = styled(motion.div)`
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, ${T.glassBorder} 50%, transparent);
+`;
+
+const CommentInputRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+`;
+
+const CommentInput = styled.input`
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid ${T.glassBorder};
+  background: rgba(0, 32, 96, 0.3);
+  color: ${T.frostWhite};
+  font-size: 0.88rem;
+  transition: border-color 0.3s ease;
+  &::placeholder { color: ${T.textMuted}; }
+  &:focus { outline: none; border-color: ${T.iceWing}; }
+`;
+
+const CommentBubble = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  &:last-child { margin-bottom: 0; }
+`;
+
+const CommentAvatarSmall = styled.div`
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.arcticCyan}, ${T.swanLavender});
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${T.midnightSapphire};
+  font-size: 0.65rem;
+  font-weight: 700;
+`;
+
+const CommentBodyWrapper = styled.div`
+  flex: 1;
+  background: rgba(0, 32, 96, 0.3);
+  border-radius: 12px;
+  padding: 8px 12px;
+`;
+
+const SendBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  color: ${T.midnightSapphire};
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+  &:hover { box-shadow: 0 0 16px color-mix(in srgb, ${T.iceWing} 40%, transparent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+```
+
+### B2-5.22 GridRow + GridRowThirds
+```typescript
+const GridRow = styled.div`
+  display: grid;
+  gap: 20px;
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+`;
+
+const GridRowThirds = styled.div`
+  display: grid;
+  gap: 20px;
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }
+`;
+```
+
+### B2-5.23 StyledCard + Chip + DetailRow + SpaceBetween + CenterRow
+```typescript
+const StyledCard = styled(motion.div)`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: ${T.glassHighlight}, 0 16px 48px rgba(0, 0, 0, 0.4),
+                0 0 24px color-mix(in srgb, ${T.iceWing} 12%, transparent);
+    border-color: color-mix(in srgb, ${T.gildedFern} 40%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
+  }
+`;
+
+const Chip = styled.span<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid ${({ $color }) => $color || T.iceWing};
+  color: ${({ $color }) => $color || T.iceWing};
+  background: color-mix(in srgb, ${({ $color }) => $color || T.iceWing} 8%, transparent);
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: ${T.textMuted};
+  font-size: 0.9rem;
+  svg { color: ${T.arcticCyan}; flex-shrink: 0; }
+`;
+
+const SpaceBetween = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+`;
+
+const CenterRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 16px;
+`;
+```
+
+### B2-5.24 PhotoGrid + PhotoItem + UploadCard
+```typescript
+const PhotoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+`;
+
+const PhotoItem = styled(motion.div)`
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid ${T.glassBorder};
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  &:hover { border-color: color-mix(in srgb, ${T.iceWing} 50%, transparent); }
+`;
+
+const UploadCard = styled(motion.div)`
+  aspect-ratio: 1;
+  border-radius: 16px;
+  border: 2px dashed ${T.glassBorder};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: ${T.textMuted};
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease;
+  &:hover { border-color: ${T.iceWing}; color: ${T.iceWing}; }
+`;
+```
+
+### B2-5.25 AchievementCard + AchievementIcon
+```typescript
+const AchievementCard = styled.div<{ $rarity?: string }>`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(0, 32, 96, 0.3);
+  border: 1px solid color-mix(in srgb, ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted} 30%, transparent);
+  margin-bottom: 12px;
+  &:last-child { margin-bottom: 0; }
+`;
+
+const AchievementIcon = styled.div<{ $rarity?: string }>`
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted} 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted};
+`;
+```
+
+### B2-5.26 InfoRow + InfoLabel (About tab)
+```typescript
+const InfoRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, ${T.glassBorder} 50%, transparent);
+  color: ${T.frostWhite};
+  font-size: 0.92rem;
+  svg { color: ${T.arcticCyan}; flex-shrink: 0; }
+  &:last-child { border-bottom: none; }
+`;
+
+const InfoLabel = styled.span`
+  color: ${T.textMuted};
+  min-width: 120px;
+`;
+```
+
+### B2-5.27 TimelineItem + TimelineDot (Activity tab)
+```typescript
+const TimelineItem = styled.div`
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid color-mix(in srgb, ${T.glassBorder} 40%, transparent);
+  &:last-child { border-bottom: none; }
+`;
+
+const TimelineDot = styled.div<{ $color?: string }>`
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, ${({ $color }) => $color || T.iceWing} 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $color }) => $color || T.iceWing};
+`;
+```
+
+### B2-5.28 ShimmerCard + ShimmerLine + EmptyState
+```typescript
+const ShimmerCard = styled.div`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+`;
+
+const ShimmerLine = styled.div<{ $width?: string; $height?: string }>`
+  width: ${({ $width }) => $width || '100%'};
+  height: ${({ $height }) => $height || '14px'};
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(96,192,240,0.06) 0%, rgba(96,192,240,0.14) 50%, rgba(96,192,240,0.06) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.6s ease infinite;
+  margin-bottom: 10px;
+`;
+
+const EmptyState = styled(GlassPanel)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 12px;
+  color: ${T.textMuted};
+`;
+```
+
+### B2-5.29 LoadingOverlay
+```typescript
+const LoadingOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 32, 96, 0.8);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: ${T.frostWhite};
+  font-size: 1rem;
+`;
+```
+
+### B2-5.30 StatCard + StatCardValue + StatCardLabel (About tab — Fitness Stats)
+```typescript
+const StatCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: rgba(0, 32, 96, 0.3);
+  border: 1px solid ${T.glassBorder};
+  text-align: center;
+`;
+
+const StatCardValue = styled.span`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: ${T.iceWing};
+  margin-bottom: 4px;
+`;
+
+const StatCardLabel = styled.span`
+  font-size: 0.78rem;
+  color: ${T.textMuted};
+`;
+```
+
+---
+
+## B2-6. Component Hierarchy & Data Flow
+
+```
+UserDashboardWithErrorBoundary (default export)
+└── UserDashboardErrorBoundary (class component)
+    └── UserDashboard (functional component)
+        ├── Hooks:
+        │   ├── useAuth()         → user context
+        │   ├── useProfile()      → profile, stats, achievements, followStats, uploadProfilePhoto
+        │   └── useSocialFeed()   → posts, createPost, likePost, unlikePost, addComment
+        │
+        ├── CoverPhotoSection     → background image upload
+        ├── ProfileHeaderSection  → avatar, name, username, role badge, stats, bio, action buttons
+        ├── ContentWrapper
+        │   ├── TabBar (5 tabs: feed, community, photos, about, activity)
+        │   └── AnimatePresence
+        │       ├── [Feed]      → Post Composer + real API PostCards + Comments
+        │       ├── [Community] → Mock events (GridRow) + Mock groups (GridRowThirds)
+        │       ├── [Photos]    → Real upload + PhotoGrid
+        │       ├── [About]     → Personal Info + Fitness Stats (GridRow) + Achievements
+        │       └── [Activity]  → Mock timeline items
+        │
+        ├── Hidden <input type="file"> (profile, background, photo)
+        └── LoadingOverlay (AnimatePresence during uploads)
+```
+
+---
+
+## B2-7. API Integration Map
+
+| Feature | Hook | Endpoint | Method |
+|---------|------|----------|--------|
+| Profile data | `useProfile()` | `/api/profile` | GET |
+| User stats | `useProfile()` | `/api/profile/stats` | GET |
+| Achievements | `useProfile()` | `/api/profile/achievements` | GET |
+| Follow stats | `useProfile()` | `/api/profile/follow-stats` | GET |
+| Profile photo upload | `useProfile().uploadProfilePhoto` | `/api/profile/upload-profile-photo` | POST |
+| Background upload | `profileService.uploadImage` | `/api/upload/image` | POST |
+| Social feed | `useSocialFeed()` | `/api/social/posts/feed` | GET |
+| Create post | `useSocialFeed().createPost` | `/api/social/posts` | POST |
+| Like post | `useSocialFeed().likePost` | `/api/social/posts/:id/like` | POST |
+| Unlike post | `useSocialFeed().unlikePost` | `/api/social/posts/:id/like` | DELETE |
+| Add comment | `useSocialFeed().addComment` | `/api/social/posts/:id/comments` | POST |
+
+---
+
+## B2-8. Tab Definitions
+
+```typescript
+const tabs = [
+  { id: 'feed',      label: 'Feed',      Icon: MessageCircle },
+  { id: 'community', label: 'Community',  Icon: Users },
+  { id: 'photos',    label: 'Photos',     Icon: ImageIcon },
+  { id: 'about',     label: 'About',      Icon: User },
+  { id: 'activity',  label: 'Activity',   Icon: Activity },
+] as const;
+```
+
+---
+
+## B2-9. Icon Usage Map
+
+| Icon | Usage |
+|------|-------|
+| Camera | Cover photo upload, avatar upload |
+| Settings | Profile action button |
+| Heart | Post like action |
+| MessageCircle | Feed tab icon, empty state |
+| MessageSquare | Comment action button |
+| Share2 | Share action button, profile share |
+| Send | Comment submit, post submit |
+| Users | Community tab, events detail, groups detail |
+| UserPlus | Join group button |
+| Calendar | Community events, about joined date |
+| MapPin | Event location |
+| ImageIcon | Photos tab icon |
+| User | About tab icon, personal info |
+| Activity | Activity tab icon, role info |
+| MoreVertical | Post options menu |
+| Edit3 | Edit profile button |
+| Loader2 | Creating post spinner, upload overlay |
+| AlertCircle | Error boundary, feed error |
+| RefreshCw | Error retry button |
+| Dumbbell | Workout post type, fitness stats |
+| Trophy | Achievement post type |
+| Swords | Challenge post type |
+| Flame | Transformation post type |
+| Sparkles | General post type |
+| Clock | Activity timeline timestamp |
+| Award | Achievement icons |
+| Star | Role badge, points stat |
+| Plus | Photo upload card |
+| Zap | Streak stat |
+| TrendingUp | Level stat |
+
+---
+
+## B2-10. Phase B → Phase B2 Diff Summary
+
+| Aspect | Phase B (Client Community) | Phase B2 (User Dashboard) |
+|--------|---------------------------|--------------------------|
+| File | CommunitySection.tsx | UserDashboard.tsx |
+| Route | `/client-dashboard` → sidebar | `/user-dashboard` (standalone) |
+| Token Matrix | `T` object | Identical `T` object |
+| Physics | Identical | Identical |
+| Glass Spec | Identical | Identical |
+| Profile Header | None | Full: cover photo, avatar ring, stats, bio, actions |
+| Tabs | 3 (Feed, Events, Groups) | 5 (Feed, Community, Photos, About, Activity) |
+| Feed Data | Real API via useSocialFeed() | Same API via useSocialFeed() |
+| File Upload | None | Profile photo, cover photo, gallery photo |
+| Achievements | None | Real API with rarity-colored cards |
+| Fitness Stats | None | Real API: workouts, streak, points, level/tier |
+| Photo Gallery | None | CSS Grid auto-fill with upload |
+| Activity Timeline | None | Mock data with icon+color timeline |
+| Error Boundary | None | Class component wrapper |
+| Loading State | ShimmerCard skeleton | Same ShimmerCard + full-screen upload overlay |
+| Card Hover | translateY(-3px) + gilded border | Identical |
+| Comment System | Real API expand/collapse | Identical |
+| Like System | Heart with heartPop | Identical |
+| Post Types | TypeBadge with rarity | Identical |
+| `color-mix()` | Tabs, actions, chips, cards | Same + avatar ring, cover overlay, achievements |
+
+---
+
+*Generated for Gemini review — SwanStudios Social Phase B2: User Dashboard Rebuild*
+*Version 2.0 — Cinematic & Haptic Polish*
+*Preset F-Alt "Enchanted Apex: Crystalline Swan"*
+*Date: 2026-03-01*

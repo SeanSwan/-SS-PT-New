@@ -1,862 +1,209 @@
 /**
- * Revolutionary Cosmic Community Profile - SwanStudios Platform
- * ============================================================
- * 
- * Motivational Social Wellness Platform - "Meetup & Nextdoor but Better"
- * Designed by Seraphina, The Digital Alchemist
- * 
- * Vision: A platform of positivity, support, creativity, and cosmic wellness
- * - Fitness, dancing, singing, health, personal growth for EVERYONE
- * - Trainer recruitment and community building
- * - Family-friendly with professional opportunities
- * - Cosmic metaphors: orbital progress, stellar transformations, constellation achievements
- * 
- * Features:
- * - Intelligent performance adaptation (luxurious on powerful devices, functional on weak)
- * - Cosmic wellness metaphors and gamification
- * - Community meetup and social features
- * - Creative expression showcase (dance, music, fitness)
- * - Motivational achievement constellation system
- * - Stellar transformation progress tracking
- * - Trainer recruitment and networking tools
- * 
- * Master Prompt v28 Alignment:
- * - Content-first positive community experience
- * - Heavy gamification with cosmic metaphors
- * - Adaptive luxury with device-appropriate fallbacks
- * - Mobile-first with premium desktop enhancement
+ * SwanStudios Community — User Dashboard V2
+ * ==========================================
+ * Preset F-Alt "Enchanted Apex: Crystalline Swan"
+ * Ground-up rebuild using V2 Cinematic & Haptic design system.
+ *
+ * Hooks: useProfile() for profile/stats/achievements, useSocialFeed() for live feed
+ * Framework: styled-components + framer-motion (NO MUI)
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Camera, 
-  Settings, 
+import {
+  Camera,
+  Settings,
   Heart,
   MessageCircle,
-  Share2,
-  Upload,
-  Edit3,
-  Users,
-  Target,
-  Activity,
-  Zap,
-  Image as ImageIcon,
-  Star,
-  Award,
-  Crown,
-  Sparkles,
-  Plus,
-  Check,
-  X,
-  MapPin,
-  Calendar,
-  Globe,
-  Lock,
-  Eye,
-  EyeOff,
-  Link as LinkIcon,
-  Instagram,
-  Twitter,
-  Facebook,
-  // Community & Meetup Icons
-  Users2,
-  MapPin as LocationIcon,
-  Calendar as EventIcon,
-  Coffee,
-  Handshake,
   MessageSquare,
-  // Creative Expression Icons
-  Music,
-  Mic,
-  Music2,
-  Palette,
-  Video,
-  Camera as VideoCamera,
-  // Cosmic Fitness Metaphors
-  Orbit,
-  Rocket,
-  Radar,
-  Search,
-  Compass,
-  TrendingUp,
-  BarChart3,
-  // Wellness & Positive Energy
-  Smile,
-  Sun,
-  Rainbow,
+  Share2,
+  Send,
+  Users,
+  UserPlus,
+  Calendar,
+  MapPin,
+  Image as ImageIcon,
+  User,
+  Activity,
+  MoreVertical,
+  Edit3,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Dumbbell,
+  Trophy,
+  Swords,
   Flame,
-  Mountain,
-  Waves,
-  // Trainer & Professional
-  GraduationCap,
-  Certificate,
-  BadgeCheck,
-  Briefcase,
-  Network
+  Sparkles,
+  Clock,
+  Award,
+  Star,
+  Plus,
+  Zap,
+  TrendingUp,
 } from 'lucide-react';
-
 import { useAuth } from '../../context/AuthContext';
-import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import { useProfile } from '../../hooks/profile/useProfile';
-import productionApiService from '../../services/api.service';
+import { useSocialFeed } from '../../hooks/social/useSocialFeed';
 import profileService from '../../services/profileService';
-import cosmicPerformanceOptimizer from '../../utils/cosmicPerformanceOptimizer';
 
-// ===================== PERFORMANCE-AWARE GLOBAL STYLES =====================
-const injectPerformanceStyles = () => {
-  if (typeof document === 'undefined') return;
-  
-  const styleId = 'cosmic-performance-styles';
-  if (document.getElementById(styleId)) return; // Already injected
-  
-  const style = document.createElement('style');
-  style.id = styleId;
-  style.textContent = `
-    /* Global performance optimizations */
-    body.perf-weak * {
-      animation-duration: 0.1s !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.1s !important;
-    }
-    
-    body.perf-weak .cosmic-animation,
-    body.perf-weak .stellar-animation,
-    body.perf-weak .galaxy-animation {
-      animation: none !important;
-    }
-    
-    body.perf-medium * {
-      animation-duration: 0.3s !important;
-      transition-duration: 0.2s !important;
-    }
-    
-    /* Cosmic glow animation */
-    .cosmic-glow-animation {
-      animation: cosmic-glow 4s ease-in-out infinite;
-    }
-    
-    @keyframes cosmic-glow {
-      0%, 100% { 
-        filter: drop-shadow(0 0 20px currentColor) brightness(1);
-        transform: scale(1);
-      }
-      50% { 
-        filter: drop-shadow(0 0 40px currentColor) brightness(1.2);
-        transform: scale(1.02);
-      }
-    }
-    
-    /* Respect reduced motion preferences */
-    @media (prefers-reduced-motion: reduce) {
-      * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-      .cosmic-glow-animation {
-        animation: none !important;
-      }
-    }
-    
-    /* Tab hidden optimizations */
-    body.tab-hidden * {
-      animation-play-state: paused !important;
-    }
-  `;
-  document.head.appendChild(style);
+/* ═══════════════════════════════════════════════════════════════════
+   CRYSTALLINE TOKEN MATRIX — Preset F-Alt "Enchanted Apex"
+   ═══════════════════════════════════════════════════════════════════ */
+const T = {
+  midnightSapphire: '#002060',
+  royalDepth:       '#003080',
+  swanLavender:     '#4070C0',
+  iceWing:          '#60C0F0',
+  arcticCyan:       '#50A0F0',
+  gildedFern:       '#C6A84B',
+  frostWhite:       '#E0ECF4',
+  success:          '#22C55E',
+  warning:          '#F59E0B',
+  danger:           '#EF4444',
+  glassSurface:     'linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%)',
+  glassBorder:      'rgba(198, 168, 75, 0.25)',
+  glassHighlight:   'inset 0 1px 1px rgba(224, 236, 244, 0.15)',
+  textMuted:        'rgba(224, 236, 244, 0.65)',
 };
 
-// ===================== COSMIC ANIMATIONS WITH PERFORMANCE FALLBACKS =====================
-const stellarFloat = keyframes`
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-10px) rotate(2deg); }
-  66% { transform: translateY(5px) rotate(-1deg); }
+const physics = {
+  spring:    { type: 'spring' as const, stiffness: 400, damping: 25, mass: 0.8 },
+  snappy:    { type: 'spring' as const, stiffness: 600, damping: 30 },
+  glissando: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] },
+};
+
+/* ── Post-type rarity map ───────────────────────────────────────── */
+const postTypeMap: Record<string, { color: string; label: string; Icon: React.FC<{ size?: number }> }> = {
+  workout:        { color: T.gildedFern,   label: 'Workout',        Icon: Dumbbell },
+  achievement:    { color: T.iceWing,      label: 'Achievement',    Icon: Trophy },
+  challenge:      { color: T.swanLavender, label: 'Challenge',      Icon: Swords },
+  transformation: { color: T.danger,       label: 'Transformation', Icon: Flame },
+  general:        { color: T.arcticCyan,   label: 'Post',           Icon: Sparkles },
+};
+
+/* ── Achievement rarity colors ──────────────────────────────────── */
+const rarityColors: Record<string, string> = {
+  common:    T.textMuted,
+  uncommon:  T.arcticCyan,
+  rare:      T.iceWing,
+  epic:      T.swanLavender,
+  legendary: T.gildedFern,
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════════════════════════ */
+const shimmer = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 `;
 
-const cosmicGlow = keyframes`
-  0%, 100% { 
-    filter: drop-shadow(0 0 20px currentColor) brightness(1);
-    transform: scale(1);
-  }
-  50% { 
-    filter: drop-shadow(0 0 40px currentColor) brightness(1.2);
-    transform: scale(1.02);
-  }
+const heartPop = keyframes`
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
 `;
 
-const galaxySwirl = keyframes`
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.1); }
-  100% { transform: rotate(360deg) scale(1); }
-`;
+/* ═══════════════════════════════════════════════════════════════════
+   STYLED COMPONENTS
+   ═══════════════════════════════════════════════════════════════════ */
 
-const starTwinkle = keyframes`
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.3); }
-`;
-
-const nebulaPulse = keyframes`
-  0%, 100% { 
-    background-position: 0% 0%;
-    opacity: 0.8;
-  }
-  50% { 
-    background-position: 100% 100%;
-    opacity: 1;
-  }
-`;
-
-// Simplified animations for weak devices
-const simpleFloat = keyframes`
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-3px); }
-`;
-
-const simpleFade = keyframes`
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
-`;
-
-// ===================== MOTION COMPONENTS WITH PROPER PROP FILTERING =====================
-
-// Create properly filtered div components for non-motion elements
-const FilteredDiv = styled.div`
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-  }
-  
-  /* Disable hover effects on weak devices */
-  body.perf-weak &:hover {
-    transform: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover {
-      transform: none;
-    }
-  }
-`;
-
-// Motion div for animated elements
-const FilteredMotionDiv = styled(motion.div)`
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-  }
-  
-  /* Disable hover effects on weak devices */
-  body.perf-weak &:hover {
-    transform: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover {
-      transform: none;
-    }
-  }
-`;
-
-const FilteredButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  outline: none;
-`;
-
-// Additional filtered motion component for any other elements
-const FilteredMotionSpan = styled(motion.span)``;
-
-
-// Additional styled components for sidebar stats
-const AnimatedStatValue = styled.span`
-  color: ${({ theme }) => theme.colors.primary};
-  font-weight: 600;
-  animation: ${({ $performanceLevel }) => {
-    if ($performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
-    return css`${cosmicGlow} 4s ease-in-out infinite`;
-  }};
-  
-  /* Performance-based overrides */
-  body.perf-weak & {
-    animation: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-const AnimatedAchievementIcon = styled.div`
-  color: ${({ theme }) => theme.colors.accent};
-  animation: ${({ $performanceLevel }) => {
-    if ($performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFade} 3s ease-in-out infinite`;
-    return css`${starTwinkle} 3s ease-in-out infinite`;
-  }};
-  
-  /* Performance-based overrides */
-  body.perf-weak & {
-    animation: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-// ===================== COSMIC STYLED COMPONENTS =====================
-
-const ProfileContainer = styled(motion.div)`
+/* ─── Page Container ────────────────────────────────────────────── */
+const PageContainer = styled.div`
   min-height: 100vh;
-  background: ${({ theme }) => theme.background.primary};
-  position: relative;
-  overflow: hidden;
+  background: ${T.midnightSapphire};
+  color: ${T.frostWhite};
 `;
 
-const ContentWrapper = styled.div`
+/* ─── Cover Photo ───────────────────────────────────────────────── */
+const CoverPhotoSection = styled.div<{ $src?: string | null }>`
   position: relative;
-  z-index: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-  
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
+  width: 100%;
+  height: 220px;
+  background: ${({ $src }) =>
+    $src
+      ? `url(${$src}) center/cover no-repeat`
+      : `linear-gradient(135deg, ${T.midnightSapphire} 0%, ${T.royalDepth} 40%, ${T.swanLavender} 100%)`};
+  border-bottom: 1px solid ${T.glassBorder};
+
+  @media (min-width: 768px) {
+    height: 280px;
   }
 `;
 
-const ProfileHeader = styled(motion.div)`
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  margin-bottom: 1.25rem;
-  background: ${({ theme }) => theme.gradients.card};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  box-shadow: ${({ theme }) => theme.shadows.cosmic};
-`;
-
-const BackgroundImageContainer = styled.div`
-  height: ${({ $backgroundImage }) => ($backgroundImage ? '300px' : '170px')};
-  position: relative;
-  background: ${({ $backgroundImage, theme }) => 
-    $backgroundImage 
-      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.1)), url(${$backgroundImage})`
-      : theme.gradients.hero
-  };
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  @media (max-width: 768px) {
-    height: ${({ $backgroundImage }) => ($backgroundImage ? '180px' : '100px')};
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 100px;
-    background: linear-gradient(transparent, ${({ theme }) => theme.background.primary});
-  }
-`;
-
-const BackgroundUploadOverlay = styled(motion.div)`
+const CoverOverlay = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0, 32, 96, 0.7) 100%);
+`;
+
+const CoverUploadButton = styled.button`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid rgba(224, 236, 244, 0.3);
+  border-radius: 14px;
+  background: rgba(0, 32, 96, 0.6);
+  backdrop-filter: blur(12px);
+  color: ${T.frostWhite};
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  z-index: 2;
+
+  &:hover {
+    background: rgba(0, 48, 128, 0.8);
+    border-color: ${T.iceWing};
+  }
+`;
+
+/* ─── Profile Header ────────────────────────────────────────────── */
+const ProfileHeaderSection = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: ${({ $hasImage }) => ($hasImage ? 0 : 1)};
-  transition: opacity 0.3s ease;
-
-  &:hover {
-    opacity: 1;
-  }
+  padding: 0 24px 32px;
+  margin-top: -60px;
+  z-index: 2;
 `;
 
-const ProfileImageSection = styled.div`
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  ${({ $hasBackgroundImage }) => $hasBackgroundImage ? css`
-    bottom: -50px;
-  ` : css`
-    top: 12px;
-  `}
-
-  @media (max-width: 768px) {
-    ${({ $hasBackgroundImage }) => $hasBackgroundImage ? css`
-      bottom: -42px;
-    ` : css`
-      top: 8px;
-    `}
-  }
-`;
-
-const ProfileImageContainer = styled(motion.div)`
+const AvatarWrapper = styled.div`
   position: relative;
-  width: 160px;
-  height: 160px;
-  margin: 0 auto;
-
-  @media (max-width: 768px) {
-    width: 120px;
-    height: 120px;
-  }
+  margin-bottom: 16px;
 `;
 
-const ProfileImage = styled.div`
+const AvatarRing = styled.div`
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  padding: 4px;
+  box-shadow: 0 0 0 4px ${T.midnightSapphire},
+              0 0 24px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+`;
+
+const AvatarInner = styled.div`
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 4px solid ${({ theme }) => theme.colors.primary};
-  background: ${({ $image, theme }) => 
-    $image 
-      ? `url(${$image})` 
-      : theme.gradients.primary
-  };
-  background-size: cover;
-  background-position: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: ${({ theme }) => theme.shadows.cosmic};
-  animation: ${({ $enableLuxury, $performanceLevel }) => {
-    if (!$enableLuxury || $performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
-    return css`${cosmicGlow} 4s ease-in-out infinite`;
-  }};
-
+  background: ${T.royalDepth};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 3rem;
-  font-weight: bold;
-  
-  /* Respect system preferences */
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-  
-  /* Performance-based overrides */
-  body.perf-weak & {
-    animation: none;
-    box-shadow: ${({ theme }) => theme.shadows.primary};
-  }
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const ImageUploadButton = styled(motion.button)`
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.gradients.primary};
-  border: 2px solid ${({ theme }) => theme.background.primary};
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: ${({ theme }) => theme.shadows.primary};
-
-  &:hover {
-    transform: scale(1.1);
-    box-shadow: ${({ theme }) => theme.shadows.cosmic};
-  }
-
-  @media (max-width: 768px) {
-    width: 32px;
-    height: 32px;
-    bottom: 2px;
-    right: 2px;
-  }
-`;
-
-const ProfileInfo = styled(motion.div)`
-  text-align: center;
-  padding: 62px 2rem 1.5rem;
-  
-  @media (max-width: 768px) {
-    padding: 54px 1rem 1.1rem;
-  }
-`;
-
-const DisplayName = styled.h1`
-  font-size: 2.5rem;
+  color: ${T.iceWing};
   font-weight: 700;
-  background: ${({ theme }) => theme.gradients.stellar};
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 0.5rem;
-  animation: ${({ $performanceLevel }) => {
-    if ($performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFloat} 6s ease-in-out infinite`;
-    return css`${stellarFloat} 6s ease-in-out infinite`;
-  }};
-  
-  /* Respect system preferences */
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-  
-  /* Performance-based overrides */
-  body.perf-weak & {
-    animation: none;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const Username = styled.p`
-  color: ${({ theme }) => theme.text.secondary};
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  
-  @media (max-width: 768px) {
-    font-size: 1rem;
-  }
-`;
-
-const UserRole = styled(motion.span)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: ${({ theme }) => theme.gradients.primary};
-  color: white;
-  border-radius: 25px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  box-shadow: ${({ theme }) => theme.shadows.primary};
-  animation: ${({ $performanceLevel }) => {
-    if ($performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFade} 3s ease-in-out infinite`;
-    return css`${starTwinkle} 3s ease-in-out infinite`;
-  }};
-  
-  /* Performance-based overrides */
-  body.perf-weak & {
-    animation: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-const StatsContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 3rem;
-  margin: 1.25rem 0;
-
-  @media (max-width: 768px) {
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-  }
-`;
-
-const StatItem = styled(motion.div)`
-  text-align: center;
-  cursor: pointer;
-  transition: ${({ $enableAnimations }) => 
-    $enableAnimations ? 'transform 0.3s ease' : 'none'
-  };
-
-  &:hover {
-    transform: ${({ $enableAnimations }) => 
-      $enableAnimations ? 'translateY(-5px)' : 'none'
-    };
-  }
-  
-  /* Disable hover effects on weak devices */
-  body.perf-weak &:hover {
-    transform: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover {
-      transform: none;
-    }
-  }
-`;
-
-const StatValue = styled.div`
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: ${({ theme }) => theme.colors.primary};
-  animation: ${({ $performanceLevel }) => {
-    if ($performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
-    return css`${cosmicGlow} 4s ease-in-out infinite`;
-  }};
-  
-  /* Performance-based overrides */
-  body.perf-weak & {
-    animation: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 1.5rem;
-  }
-`;
-
-const StatLabel = styled.div`
-  color: ${({ theme }) => theme.text.secondary};
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-`;
-
-const Bio = styled.p`
-  color: ${({ theme }) => theme.text.secondary};
-  font-size: 1rem;
-  line-height: 1.6;
-  max-width: 600px;
-  margin: 0 auto 2rem;
-  
-  @media (max-width: 768px) {
-    font-size: 0.9rem;
-  }
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-`;
-
-const PrimaryButton = styled(motion.button)`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: ${({ theme }) => theme.gradients.primary};
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: ${({ theme }) => theme.shadows.primary};
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.cosmic};
-  }
-
-  @media (max-width: 768px) {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-  }
-`;
-
-const SecondaryButton = styled(motion.button)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: ${({ theme }) => theme.background.elevated};
-  color: ${({ theme }) => theme.text.primary};
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: ${({ theme }) => theme.gradients.card};
-    transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.primary};
-  }
-
-  @media (max-width: 768px) {
-    width: 44px;
-    height: 44px;
-  }
-`;
-
-const ContentGrid = styled.div`
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 2rem;
-  margin-top: 2rem;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-`;
-
-const Sidebar = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const SidebarCard = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients.card};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.elevation};
-`;
-
-const SidebarTitle = styled.h3`
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const MainContent = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const TabNavigation = styled.div`
-  display: flex;
-  background: ${({ theme }) => theme.gradients.card};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 16px;
-  padding: 0.5rem;
-  gap: 0.5rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.borders.elegant};
-    border-radius: 999px;
-  }
-
-  @media (max-width: 768px) {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    overflow-x: visible;
-  }
-`;
-
-const Tab = styled(motion.button)`
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  min-height: 44px;
-  border: none;
-  border-radius: 12px;
-  background: ${({ $active, theme }) => 
-    $active ? theme.gradients.primary : 'transparent'
-  };
-  color: ${({ $active, theme }) => 
-    $active ? 'white' : theme.text.secondary
-  };
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  font-weight: ${({ $active }) => $active ? '600' : '500'};
-  text-align: center;
-
-  &:hover {
-    background: ${({ $active, theme }) => 
-      $active ? theme.gradients.primary : theme.background.elevated
-    };
-    color: ${({ $active, theme }) => 
-      $active ? 'white' : theme.text.primary
-    };
-  }
-
-  @media (max-width: 768px) {
-    flex: initial;
-    width: 100%;
-    padding: 0.625rem 0.5rem;
-    font-size: 0.85rem;
-    gap: 0.35rem;
-  }
-`;
-
-const ContentCard = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients.card};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.elevation};
-`;
-
-const PhotoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
-`;
-
-const PhotoItem = styled(motion.div)`
-  aspect-ratio: 1;
-  border-radius: 12px;
-  background: ${({ theme }) => theme.gradients.card};
-  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  font-size: 2.2rem;
   overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: ${({ theme }) => theme.shadows.primary};
-  }
 
   img {
     width: 100%;
@@ -865,2354 +212,1403 @@ const PhotoItem = styled(motion.div)`
   }
 `;
 
-const UploadPlaceholder = styled(motion.div)`
-  aspect-ratio: 1;
-  border-radius: 12px;
-  background: ${({ theme }) => theme.background.elevated};
-  border: 2px dashed ${({ theme }) => theme.borders.elegant};
+const AvatarUploadBtn = styled.button`
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  border: 3px solid ${T.midnightSapphire};
+  color: ${T.midnightSapphire};
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: ${({ theme }) => theme.text.secondary};
+  transition: box-shadow 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.gradients.card};
-    border-color: ${({ theme }) => theme.colors.primary};
-    color: ${({ theme }) => theme.colors.primary};
-    transform: translateY(-2px);
+    box-shadow: 0 0 12px color-mix(in srgb, ${T.iceWing} 50%, transparent);
   }
 `;
 
-const HiddenInput = styled.input`
-  display: none;
-`;
-
-const LoadingOverlay = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(10px);
-`;
-
-const LoadingSpinner = styled(motion.div)`
-  width: 60px;
-  height: 60px;
-  border: 3px solid transparent;
-  border-top: 3px solid ${({ theme }) => theme.colors.primary};
-  border-radius: 50%;
-  animation: ${galaxySwirl} 1s linear infinite;
-  margin-bottom: 1rem;
-`;
-
-const LoadingText = styled.p`
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 1.1rem;
-  font-weight: 500;
-`;
-
-// ===================== SWAN GALAXY RADIANCE LIVE MESSAGE BOARD COMPONENTS =====================
-
-// Webb-inspired nebula animations
-const nebulaFlow = keyframes`
-  0% {
-    background-position: 0% 0%;
-    opacity: 0.6;
-  }
-  50% {
-    background-position: 100% 100%;
-    opacity: 0.8;
-  }
-  100% {
-    background-position: 0% 0%;
-    opacity: 0.6;
-  }
-`;
-
-const swanGlide = keyframes`
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-8px) rotate(1deg);
-  }
-  75% {
-    transform: translateY(4px) rotate(-0.5deg);
-  }
-`;
-
-const stellarRadiance = keyframes`
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 69, 19, 0.3);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(139, 69, 19, 0.6), 0 0 80px rgba(65, 105, 225, 0.2);
-    transform: scale(1.01);
-  }
-`;
-
-// Main Feed Container with Webb-inspired nebula background
-const LiveFeedContainer = styled(motion.div)`
-  position: relative;
-  background: ${({ theme }) => theme.gradients.card};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 20px;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      rgba(15, 23, 42, 0.8) 0%,
-      rgba(30, 58, 138, 0.6) 25%,
-      rgba(139, 69, 19, 0.4) 50%,
-      rgba(249, 115, 22, 0.3) 75%,
-      rgba(15, 23, 42, 0.8) 100%
-    );
-    background-size: 400% 400%;
-    animation: ${({ $enableAnimations }) => 
-      $enableAnimations ? css`${nebulaFlow} 20s ease-in-out infinite` : 'none'
-    };
-    pointer-events: none;
-    z-index: 0;
-  }
-  
-  /* Performance optimizations */
-  body.perf-weak &::before {
-    animation: none;
-    background: ${({ theme }) => theme.background.elevated};
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    &::before {
-      animation: none;
-    }
-  }
-`;
-
-const FeedContent = styled.div`
-  position: relative;
-  z-index: 1;
-  padding: 2rem;
-  
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
-`;
-
-const FeedHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-`;
-
-const FeedTitle = styled.h2`
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 2rem;
+const DisplayName = styled.h1`
+  font-size: 1.75rem;
   font-weight: 700;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: linear-gradient(135deg, #F59E0B, #3B82F6, #8B5CF6);
+  margin: 0 0 4px;
+  background: linear-gradient(135deg, ${T.frostWhite}, ${T.iceWing});
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: ${({ $performanceLevel }) => {
-    if ($performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFloat} 6s ease-in-out infinite`;
-    return css`${swanGlide} 8s ease-in-out infinite`;
-  }};
-  
-  @media (max-width: 768px) {
-    font-size: 1.6rem;
-    text-align: center;
-  }
-  
-  /* Performance overrides */
-  body.perf-weak & {
-    animation: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
 `;
 
-const CreatePostContainer = styled(motion.div)`
-  background: ${({ theme }) => theme.background.elevated};
-  backdrop-filter: blur(15px);
-  border: 2px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(59, 130, 246, 0.1) 0%,
-      rgba(139, 69, 19, 0.05) 50%,
-      rgba(249, 115, 22, 0.1) 100%
-    );
-    border-radius: 16px;
-    pointer-events: none;
-  }
+const Username = styled.p`
+  font-size: 0.95rem;
+  color: ${T.textMuted};
+  margin: 0 0 8px;
 `;
 
-const PostComposer = styled.div`
-  position: relative;
-  z-index: 1;
-`;
-
-const PostInput = styled.textarea`
-  width: 100%;
-  min-height: 120px;
-  background: ${({ theme }) => theme.background.primary};
-  border: 1px solid ${({ theme }) => theme.borders.subtle};
-  border-radius: 12px;
-  padding: 1rem;
-  color: ${({ theme }) => theme.text.primary};
-  font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.5;
-  resize: vertical;
-  transition: all 0.3s ease;
-  
-  &::placeholder {
-    color: ${({ theme }) => theme.text.secondary};
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary + '20'};
-  }
-`;
-
-const PostActions = styled.div`
-  display: flex;
-  justify-content: space-between;
+const RoleBadge = styled.span`
+  display: inline-flex;
   align-items: center;
-  margin-top: 1rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-`;
-
-const PostOptions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  
-  @media (max-width: 768px) {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-  }
-`;
-
-const PostOptionButton = styled(motion.button)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.625rem 1rem;
-  background: ${({ theme }) => theme.background.elevated};
-  border: 1px solid ${({ theme }) => theme.borders.subtle};
-  border-radius: 8px;
-  color: ${({ theme }) => theme.text.secondary};
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-  
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary + '20'};
-    border-color: ${({ theme }) => theme.colors.primary};
-    color: ${({ theme }) => theme.colors.primary};
-    transform: translateY(-1px);
-  }
-`;
-
-const PostButton = styled(motion.button)`
-  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-  color: white;
-  border: none;
-  min-height: 44px;
-  padding: 0.75rem 2rem;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(12px);
+  border: 1px solid ${T.glassBorder};
+  color: ${T.gildedFern};
+  margin-bottom: 16px;
 `;
 
-const PostsStream = styled.div`
+const StatsRow = styled.div`
+  display: flex;
+  gap: 32px;
+  margin-bottom: 16px;
+`;
+
+const StatItem = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const PostCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background.elevated};
-  backdrop-filter: blur(15px);
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  transition: all 0.3s ease;
-  animation: ${({ $enableAnimations, $performanceLevel }) => {
-    if (!$enableAnimations || $performanceLevel === 'weak') return 'none';
-    if ($performanceLevel === 'medium') return css`${simpleFade} 6s ease-in-out infinite`;
-    return css`${stellarRadiance} 8s ease-in-out infinite`;
-  }};
-  
-  &:hover {
-    transform: translateY(-4px);
-    border-color: ${({ theme }) => theme.colors.primary + '60'};
-  }
-  
-  /* Performance overrides */
-  body.perf-weak & {
-    animation: none;
-    &:hover {
-      transform: translateY(-1px);
-    }
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    &:hover {
-      transform: none;
-    }
-  }
-`;
-
-const PostHeader = styled.div`
-  display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 1.5rem 0;
+  cursor: default;
 `;
 
-const PostAuthorImage = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: ${({ $image, theme }) => 
-    $image ? `url(${$image})` : theme.gradients.primary
-  };
-  background-size: cover;
-  background-position: center;
-  border: 2px solid ${({ theme }) => theme.colors.primary + '40'};
+const StatNumber = styled.span`
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: ${T.iceWing};
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.8rem;
+  color: ${T.textMuted};
+  margin-top: 2px;
+`;
+
+const BioText = styled.p`
+  max-width: 600px;
+  text-align: center;
+  color: ${T.textMuted};
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 20px;
+`;
+
+const ActionButtonRow = styled.div`
   display: flex;
+  gap: 12px;
+`;
+
+const ProfileAction = styled(motion.button)<{ $primary?: boolean }>`
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 24px;
+  border-radius: 14px;
   font-weight: 600;
-  animation: ${({ $enableAnimations, $performanceLevel }) => {
-    if (!$enableAnimations || $performanceLevel === 'weak') return 'none';
-    return css`${cosmicGlow} 6s ease-in-out infinite`;
-  }};
-  
-  body.perf-weak & {
-    animation: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+
+  ${({ $primary }) => $primary ? css`
+    background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+    border: none;
+    color: ${T.midnightSapphire};
+    box-shadow: 0 4px 16px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+    &:hover { box-shadow: 0 6px 24px color-mix(in srgb, ${T.iceWing} 45%, transparent); }
+  ` : css`
+    background: transparent;
+    border: 1px solid ${T.glassBorder};
+    color: ${T.frostWhite};
+    &:hover {
+      border-color: ${T.iceWing};
+      box-shadow: 0 0 12px color-mix(in srgb, ${T.iceWing} 20%, transparent);
+    }
+  `}
 `;
 
-const PostAuthorInfo = styled.div`
+/* ─── Content Layout ────────────────────────────────────────────── */
+const ContentWrapper = styled.div`
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+`;
+
+/* ─── Tab Bar ───────────────────────────────────────────────────── */
+const TabBar = styled.div`
+  display: flex;
+  width: 100%;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 8px 32px rgba(0, 0, 0, 0.25);
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
   flex: 1;
-`;
-
-const PostAuthorName = styled.h4`
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem;
-`;
-
-const PostTimestamp = styled.p`
-  color: ${({ theme }) => theme.text.secondary};
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: none;
+  background: ${({ $active }) =>
+    $active
+      ? `linear-gradient(135deg, color-mix(in srgb, ${T.iceWing} 15%, transparent), color-mix(in srgb, ${T.swanLavender} 10%, transparent))`
+      : 'transparent'};
+  color: ${({ $active }) => ($active ? T.iceWing : T.textMuted)};
   font-size: 0.9rem;
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease;
+  border-bottom: 2px solid ${({ $active }) => ($active ? T.iceWing : 'transparent')};
+  white-space: nowrap;
+  position: relative;
+
+  ${({ $active }) => $active && css`
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: ${T.iceWing};
+      box-shadow: 0 0 12px ${T.iceWing}60;
+      border-radius: 2px;
+    }
+  `}
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 8%, transparent);
+    color: ${T.iceWing};
+  }
+`;
+
+/* ─── Glass Panel ───────────────────────────────────────────────── */
+const GlassPanel = styled(motion.div)`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid ${T.glassBorder};
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: ${T.frostWhite};
   margin: 0;
 `;
 
-const PostContent = styled.div`
-  padding: 1rem 1.5rem;
+/* ─── Post Composer ─────────────────────────────────────────────── */
+const TextArea = styled.textarea`
+  width: 100%;
+  min-height: 88px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid ${T.glassBorder};
+  background: rgba(0, 32, 96, 0.35);
+  color: ${T.frostWhite};
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &::placeholder { color: ${T.textMuted}; }
+
+  &:focus {
+    outline: none;
+    border-color: ${T.iceWing};
+    box-shadow: 0 0 0 3px color-mix(in srgb, ${T.iceWing} 15%, transparent),
+                ${T.glassHighlight};
+  }
 `;
 
-const PostText = styled.p`
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 1rem;
-  line-height: 1.6;
-  margin: 0 0 1rem;
-  word-wrap: break-word;
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 `;
 
-const PostMediaContainer = styled.div`
-  margin: 1rem 0;
+/* ─── Buttons ───────────────────────────────────────────────────── */
+const PrimaryButton = styled(motion.button)<{ $fullWidth?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.swanLavender} 100%);
+  color: ${T.midnightSapphire};
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+  box-shadow: 0 4px 16px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+  transition: box-shadow 0.3s ease;
+
+  &:hover { box-shadow: 0 6px 24px color-mix(in srgb, ${T.iceWing} 45%, transparent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
+
+const OutlineButton = styled(motion.button)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid ${T.iceWing};
+  border-radius: 14px;
+  background: transparent;
+  color: ${T.iceWing};
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 10%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, ${T.iceWing} 20%, transparent);
+  }
+`;
+
+/* ─── Post Card Action Buttons ──────────────────────────────────── */
+const ActionButton = styled.button<{ $liked?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: none;
   border-radius: 12px;
-  overflow: hidden;
-  
-  img, video {
-    width: 100%;
-    height: auto;
-    display: block;
+  background: transparent;
+  color: ${({ $liked }) => ($liked ? T.danger : T.textMuted)};
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  svg { transition: transform 0.2s ease; }
+
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 8%, transparent);
+    color: ${({ $liked }) => ($liked ? T.danger : T.iceWing)};
   }
+
+  ${({ $liked }) => $liked && css`
+    svg { animation: ${heartPop} 0.4s ease; fill: ${T.danger}; }
+  `}
 `;
 
-const PostFooter = styled.div`
-  display: flex;
+const SmallIconButton = styled.button`
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0 1.5rem 1.5rem;
-  border-top: 1px solid ${({ theme }) => theme.borders.subtle};
-  margin-top: 1rem;
-  padding-top: 1rem;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: ${T.textMuted};
+  cursor: pointer;
+  transition: background 0.2s ease;
 
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-
-    & > button:last-child {
-      align-self: flex-end;
-    }
+  &:hover {
+    background: color-mix(in srgb, ${T.iceWing} 10%, transparent);
+    color: ${T.iceWing};
   }
 `;
 
-const PostInteractions = styled.div`
+/* ─── Post Card Pieces ──────────────────────────────────────────── */
+const PostHeader = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  align-items: center;
-
-  @media (max-width: 768px) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-    width: 100%;
-  }
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 12px;
 `;
 
-const InteractionButton = styled(motion.button)`
+const PostAvatar = styled.div`
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  background: none;
-  border: none;
-  color: ${({ $active, theme }) => 
-    $active ? theme.colors.primary : theme.text.secondary
-  };
-  cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0.625rem 0.75rem;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary + '10'};
-    color: ${({ theme }) => theme.colors.primary};
-    transform: scale(1.05);
-  }
-  
-  body.perf-weak &:hover {
-    transform: none;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    &:hover {
-      transform: none;
-    }
-  }
+  color: ${T.midnightSapphire};
+  font-weight: 700;
+  font-size: 1rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px ${T.midnightSapphire},
+              0 0 0 3px color-mix(in srgb, ${T.iceWing} 40%, transparent);
 
-  @media (max-width: 768px) {
-    width: 100%;
-    font-size: 0.85rem;
-    gap: 0.35rem;
-    padding: 0.5rem 0.65rem;
-  }
+  img { width: 100%; height: 100%; object-fit: cover; }
 `;
 
-const JourneyWeaveButton = styled(motion.button)`
+const PostMeta = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const PostUserName = styled.span`
+  font-weight: 600;
+  color: ${T.frostWhite};
+  font-size: 0.95rem;
+`;
+
+const TimeStamp = styled.span`
+  font-size: 0.8rem;
+  color: ${T.textMuted};
+`;
+
+const PostBody = styled.p`
+  color: rgba(224, 236, 244, 0.88);
+  line-height: 1.65;
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${T.glassBorder};
+  margin: 14px 0;
+`;
+
+const PostActionRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+`;
+
+const TypeBadge = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: ${({ $color }) => $color};
+  background: color-mix(in srgb, ${({ $color }) => $color} 12%, transparent);
+  border: 1px solid color-mix(in srgb, ${({ $color }) => $color} 30%, transparent);
+`;
+
+/* ─── Comment Components ────────────────────────────────────────── */
+const CommentSection = styled(motion.div)`
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, ${T.glassBorder} 50%, transparent);
+`;
+
+const CommentInputRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+`;
+
+const CommentInput = styled.input`
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid ${T.glassBorder};
+  background: rgba(0, 32, 96, 0.3);
+  color: ${T.frostWhite};
+  font-size: 0.88rem;
+  transition: border-color 0.3s ease;
+
+  &::placeholder { color: ${T.textMuted}; }
+  &:focus { outline: none; border-color: ${T.iceWing}; }
+`;
+
+const CommentBubble = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  &:last-child { margin-bottom: 0; }
+`;
+
+const CommentAvatarSmall = styled.div`
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.arcticCyan}, ${T.swanLavender});
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #F59E0B, #DC2626);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
+  justify-content: center;
+  color: ${T.midnightSapphire};
+  font-size: 0.65rem;
+  font-weight: 700;
+`;
+
+const CommentBodyWrapper = styled.div`
+  flex: 1;
+  background: rgba(0, 32, 96, 0.3);
   border-radius: 12px;
-  font-weight: 600;
+  padding: 8px 12px;
+`;
+
+const SendBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
+  color: ${T.midnightSapphire};
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-  
+  transition: box-shadow 0.3s ease;
+
+  &:hover { box-shadow: 0 0 16px color-mix(in srgb, ${T.iceWing} 40%, transparent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+/* ─── Grid Helpers ──────────────────────────────────────────────── */
+const GridRow = styled.div`
+  display: grid;
+  gap: 20px;
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+`;
+
+const GridRowThirds = styled.div`
+  display: grid;
+  gap: 20px;
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }
+`;
+
+/* ─── Card ──────────────────────────────────────────────────────── */
+const StyledCard = styled(motion.div)`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    transform: translateY(-3px);
+    box-shadow: ${T.glassHighlight}, 0 16px 48px rgba(0, 0, 0, 0.4),
+                0 0 24px color-mix(in srgb, ${T.iceWing} 12%, transparent);
+    border-color: color-mix(in srgb, ${T.gildedFern} 40%, transparent);
   }
-  
-  @media (max-width: 768px) {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
   }
 `;
 
-// ===================== ERROR BOUNDARY =====================
-class UserDashboardErrorBoundary extends React.Component {
-  constructor(props) {
+const Chip = styled.span<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid ${({ $color }) => $color || T.iceWing};
+  color: ${({ $color }) => $color || T.iceWing};
+  background: color-mix(in srgb, ${({ $color }) => $color || T.iceWing} 8%, transparent);
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: ${T.textMuted};
+  font-size: 0.9rem;
+  svg { color: ${T.arcticCyan}; flex-shrink: 0; }
+`;
+
+const SpaceBetween = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+`;
+
+const CenterRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 16px;
+`;
+
+/* ─── Photo Grid ────────────────────────────────────────────────── */
+const PhotoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+`;
+
+const PhotoItem = styled(motion.div)`
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid ${T.glassBorder};
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, ${T.iceWing} 50%, transparent);
+  }
+`;
+
+const UploadCard = styled(motion.div)`
+  aspect-ratio: 1;
+  border-radius: 16px;
+  border: 2px dashed ${T.glassBorder};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: ${T.textMuted};
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease;
+
+  &:hover {
+    border-color: ${T.iceWing};
+    color: ${T.iceWing};
+  }
+`;
+
+/* ─── Achievement Card ──────────────────────────────────────────── */
+const AchievementCard = styled.div<{ $rarity?: string }>`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(0, 32, 96, 0.3);
+  border: 1px solid color-mix(in srgb, ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted} 30%, transparent);
+  margin-bottom: 12px;
+
+  &:last-child { margin-bottom: 0; }
+`;
+
+const AchievementIcon = styled.div<{ $rarity?: string }>`
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted} 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $rarity }) => rarityColors[$rarity || 'common'] || T.textMuted};
+`;
+
+/* ─── Info Row (About tab) ──────────────────────────────────────── */
+const InfoRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, ${T.glassBorder} 50%, transparent);
+  color: ${T.frostWhite};
+  font-size: 0.92rem;
+
+  svg { color: ${T.arcticCyan}; flex-shrink: 0; }
+
+  &:last-child { border-bottom: none; }
+`;
+
+const InfoLabel = styled.span`
+  color: ${T.textMuted};
+  min-width: 120px;
+`;
+
+/* ─── Timeline (Activity tab) ───────────────────────────────────── */
+const TimelineItem = styled.div`
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid color-mix(in srgb, ${T.glassBorder} 40%, transparent);
+
+  &:last-child { border-bottom: none; }
+`;
+
+const TimelineDot = styled.div<{ $color?: string }>`
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, ${({ $color }) => $color || T.iceWing} 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $color }) => $color || T.iceWing};
+`;
+
+/* ─── Loading & Error ───────────────────────────────────────────── */
+const ShimmerCard = styled.div`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+`;
+
+const ShimmerLine = styled.div<{ $width?: string; $height?: string }>`
+  width: ${({ $width }) => $width || '100%'};
+  height: ${({ $height }) => $height || '14px'};
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(96,192,240,0.06) 0%, rgba(96,192,240,0.14) 50%, rgba(96,192,240,0.06) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.6s ease infinite;
+  margin-bottom: 10px;
+`;
+
+const EmptyState = styled(GlassPanel)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 12px;
+  color: ${T.textMuted};
+`;
+
+/* ─── Loading Overlay ───────────────────────────────────────────── */
+const LoadingOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 32, 96, 0.8);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: ${T.frostWhite};
+  font-size: 1rem;
+`;
+
+/* ─── Stat Card (About tab) ─────────────────────────────────────── */
+const StatCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: rgba(0, 32, 96, 0.3);
+  border: 1px solid ${T.glassBorder};
+  text-align: center;
+`;
+
+const StatCardValue = styled.span`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: ${T.iceWing};
+  margin-bottom: 4px;
+`;
+
+const StatCardLabel = styled.span`
+  font-size: 0.78rem;
+  color: ${T.textMuted};
+`;
+
+/* ═══════════════════════════════════════════════════════════════════
+   PLACEHOLDER DATA (Events / Groups / Activity — no backend yet)
+   ═══════════════════════════════════════════════════════════════════ */
+const placeholderEvents = [
+  { id: 1, title: 'Group HIIT Session', date: 'Mar 15, 2026', time: '10:00 AM', location: 'Central Park', attendees: 12 },
+  { id: 2, title: 'Yoga & Meditation', date: 'Mar 18, 2026', time: '9:00 AM', location: 'Beach Front', attendees: 8 },
+];
+
+const placeholderGroups = [
+  { id: 1, name: 'Morning Runners', members: 56, category: 'Fitness' },
+  { id: 2, name: 'Dance Enthusiasts', members: 34, category: 'Dance' },
+  { id: 3, name: 'Wellness Warriors', members: 89, category: 'Wellness' },
+];
+
+const placeholderActivity = [
+  { id: 1, icon: Dumbbell, color: T.success, text: 'Completed a strength workout', time: '2 hours ago' },
+  { id: 2, icon: MessageCircle, color: T.iceWing, text: 'Shared a post with the community', time: '5 hours ago' },
+  { id: 3, icon: Award, color: T.gildedFern, text: 'Earned "First Steps" badge', time: '1 day ago' },
+  { id: 4, icon: Users, color: T.arcticCyan, text: 'Joined the SwanStudios community', time: '3 days ago' },
+];
+
+/* ═══════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════ */
+const formatRelativeTime = (dateStr: string): string => {
+  try {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString();
+  } catch { return ''; }
+};
+
+const getInitials = (user: { firstName?: string; lastName?: string; username?: string }): string => {
+  if (user.firstName && user.lastName) return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+  if (user.username) return user.username[0].toUpperCase();
+  return '?';
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB DEFINITIONS
+   ═══════════════════════════════════════════════════════════════════ */
+const tabs = [
+  { id: 'feed',      label: 'Feed',      Icon: MessageCircle },
+  { id: 'community', label: 'Community',  Icon: Users },
+  { id: 'photos',    label: 'Photos',     Icon: ImageIcon },
+  { id: 'about',     label: 'About',      Icon: User },
+  { id: 'activity',  label: 'Activity',   Icon: Activity },
+] as const;
+
+type TabId = typeof tabs[number]['id'];
+
+/* ═══════════════════════════════════════════════════════════════════
+   ERROR BOUNDARY
+   ═══════════════════════════════════════════════════════════════════ */
+class UserDashboardErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('UserDashboard Error:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          padding: '2rem',
-          background: 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%)',
-          color: 'white',
-          textAlign: 'center'
-        }}>
-          <h2>🌟 Cosmic Dashboard Loading Error</h2>
-          <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem' }}>
-            We're experiencing some stellar interference. Please refresh to reconnect to the cosmic network.
+        <PageContainer style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+          <AlertCircle size={48} color={T.warning} style={{ marginBottom: 16 }} />
+          <h2 style={{ color: T.frostWhite, marginBottom: 8 }}>Something went wrong</h2>
+          <p style={{ color: T.textMuted, marginBottom: 24 }}>
+            We ran into an issue loading the dashboard. Please refresh to try again.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #00ffff, #7851a9)',
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: '600'
-            }}
-          >
-            🚀 Reconnect to Cosmos
-          </button>
-        </div>
+          <PrimaryButton onClick={() => window.location.reload()} whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+            <RefreshCw size={16} />
+            Refresh Page
+          </PrimaryButton>
+        </PageContainer>
       );
     }
-
     return this.props.children;
   }
 }
 
-// ===================== MAIN COMPONENT =====================
-
-interface UserDashboardProps {}
-
-const UserDashboard: React.FC<UserDashboardProps> = () => {
-  // ===================== HOOKS & CONTEXT =====================
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════════════════════════════════ */
+const UserDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { theme } = useUniversalTheme();
-  
-  // Profile management hook with real database connection
+
+  // ── Profile data (real API) ──
   const {
     profile,
     stats,
-    posts,
     achievements,
     followStats,
-    isLoading,
-    isLoadingStats,
-    isLoadingPosts,
+    isLoading: isLoadingProfile,
     isUploading,
-    error,
-    refreshProfile,
-    updateProfile,
     uploadProfilePhoto,
     getDisplayName,
     getUsernameForDisplay,
-    getUserInitials
+    getUserInitials,
   } = useProfile();
-  
-  // Core UI State
-  const [activeTab, setActiveTab] = useState('feed');
+
+  // ── Social feed (real API) ──
+  const {
+    posts,
+    isLoading: isLoadingFeed,
+    error: feedError,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+    refreshPosts,
+    createPost,
+    isCreatingPost,
+    likePost,
+    unlikePost,
+    addComment,
+  } = useSocialFeed();
+
+  // ── Local state ──
+  const [activeTab, setActiveTab] = useState<TabId>('feed');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [uploadingType, setUploadingType] = useState<'profile' | 'background' | 'photo' | null>(null);
-  
-  // Community & Content State
+  const [postText, setPostText] = useState('');
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<string[]>([]);
-  const [creativeVideos, setCreativeVideos] = useState<string[]>([]);
-  const [localEvents, setLocalEvents] = useState<any[]>([]);
-  const [workoutGoals, setWorkoutGoals] = useState<any[]>([]);
-  
-  // Performance & Device Detection
-  const [devicePerformance, setDevicePerformance] = useState<'powerful' | 'medium' | 'weak'>('medium');
-  const [enableLuxuryAnimations, setEnableLuxuryAnimations] = useState(true);
-  const [performanceProfile, setPerformanceProfile] = useState<any>(null);
-  
-  // Social & Community Features
-  const [socialLinks, setSocialLinks] = useState({
-    instagram: '',
-    twitter: '',
-    facebook: '',
-    tiktok: '',
-    youtube: ''
-  });
-  const [communityInterests, setCommunityInterests] = useState<string[]>([]);
-  const [trainerStatus, setTrainerStatus] = useState<'interested' | 'applied' | 'certified' | null>(null);
-  
-  // Cosmic Progress Tracking
-  const [stellarTransformation, setStellarTransformation] = useState({
-    level: 5,
-    orbitalProgress: 78,
-    constellationPoints: 1247,
-    cosmicEnergy: 85
-  });
 
-  // ===================== REFS =====================
+  // ── Refs ──
   const profileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  
-  // ===================== PERFORMANCE DETECTION & EFFECTS =====================
-  useEffect(() => {
-    // Inject performance styles immediately
-    injectPerformanceStyles();
-    
-    const detectPerformance = async () => {
-      try {
-        const capabilities = cosmicPerformanceOptimizer.detectDeviceCapabilities();
-        const profile = cosmicPerformanceOptimizer.generatePerformanceProfile(capabilities);
-        
-        // Apply performance optimizations immediately
-        cosmicPerformanceOptimizer.applyPerformanceOptimizations(profile);
-        
-        setPerformanceProfile(profile);
-        setDevicePerformance(capabilities.performance);
-        setEnableLuxuryAnimations(capabilities.performance === 'powerful' && profile.animations === 'full');
-        
-        console.log('🌌 Device Performance Detected:', {
-          tier: capabilities.performance,
-          profile: profile,
-          luxuryAnimations: capabilities.performance === 'powerful' && profile.animations === 'full',
-          deviceSpecs: {
-            memory: capabilities.memory,
-            cores: capabilities.cores,
-            connection: capabilities.connectionType,
-            reducedMotion: capabilities.preferReducedMotion
-          }
-        });
-        
-        // Start performance monitoring for dynamic adjustments
-        const cleanup = cosmicPerformanceOptimizer.startPerformanceMonitoring();
-        
-        // Return cleanup function
-        return cleanup;
-      } catch (error) {
-        console.warn('Performance detection failed, using safe defaults:', error);
-        setDevicePerformance('medium');
-        setEnableLuxuryAnimations(false);
-        setPerformanceProfile({
-          animations: 'reduced',
-          blurEffects: 'simple',
-          particleEffects: false,
-          shadowComplexity: 'standard',
-          transitionDuration: 'normal',
-          imageQuality: 'standard'
-        });
-      }
-    };
-    
-    const performanceCleanup = detectPerformance();
-    
-    // Cleanup on unmount
-    return () => {
-      if (typeof performanceCleanup === 'function') {
-        performanceCleanup();
-      }
-    };
-  }, []);
-  
-  // Initialize Community Data
-  useEffect(() => {
-    // Mock local community events
-    setLocalEvents([
-      {
-        id: 1,
-        title: 'Cosmic Yoga Sunset Session',
-        type: 'yoga',
-        date: '2024-06-15',
-        time: '7:00 PM',
-        location: 'Griffith Observatory',
-        attendees: 24,
-        maxAttendees: 30,
-        host: 'Luna Starlight',
-        description: 'Join us for a magical yoga session under the stars!'
-      },
-      {
-        id: 2,
-        title: 'SwanStudios Dance Battle',
-        type: 'dancing',
-        date: '2024-06-18',
-        time: '6:00 PM',
-        location: 'Venice Beach',
-        attendees: 18,
-        maxAttendees: 25,
-        host: 'DJ Cosmic Beats',
-        description: 'Show off your moves and win cosmic prizes!'
-      },
-      {
-        id: 3,
-        title: 'Stellar Strength Training',
-        type: 'strength',
-        date: '2024-06-20',
-        time: '8:00 AM',
-        location: 'Santa Monica Pier',
-        attendees: 12,
-        maxAttendees: 15,
-        host: 'Captain Cosmos',
-        description: 'Build strength with our certified SwanStudios trainer!'
-      }
-    ]);
-    
-    // Mock community interests
-    setCommunityInterests(['Yoga', 'Dancing', 'Strength Training', 'Nutrition', 'Meditation']);
-    
-    // Mock workout goals with cosmic metaphors
-    setWorkoutGoals([
-      {
-        id: 1,
-        title: 'Orbital Cardio Mission',
-        description: 'Complete 30 cardio sessions this month',
-        progress: 18,
-        target: 30,
-        type: 'cardio',
-        cosmicReward: 'Stellar Runner Badge'
-      },
-      {
-        id: 2,
-        title: 'Constellation Flexibility',
-        description: 'Achieve full flexibility constellation',
-        progress: 7,
-        target: 12,
-        type: 'flexibility',
-        cosmicReward: 'Cosmic Flexibility Crown'
-      },
-      {
-        id: 3,
-        title: 'Galactic Strength Quest',
-        description: 'Reach new personal records in 5 exercises',
-        progress: 3,
-        target: 5,
-        type: 'strength',
-        cosmicReward: 'Cosmic Warrior Title'
-      }
-    ]);
-  }, []);
 
-  // Note: Utility functions (getDisplayName, getUsernameForDisplay, getUserInitials)
-  // are now provided by the useProfile hook
-
-  // ===================== FILE UPLOAD FUNCTIONS =====================
+  // ── File upload handler (preserved business logic) ──
   const handleFileUpload = useCallback(async (file: File, type: 'profile' | 'background' | 'photo') => {
     if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('File size must be less than 5MB'); return; }
 
     setUploadingType(type);
-
     try {
       switch (type) {
         case 'profile':
           await uploadProfilePhoto(file);
           break;
-        case 'background':
-          const backgroundUrl = await profileService.uploadImage(file, 'background');
-          setBackgroundImage(backgroundUrl);
+        case 'background': {
+          const url = await profileService.uploadImage(file, 'background');
+          setBackgroundImage(url);
           break;
-        case 'photo':
-          const photoUrl = await profileService.uploadImage(file, 'post');
-          setPhotos(prev => [...prev, photoUrl]);
+        }
+        case 'photo': {
+          const url = await profileService.uploadImage(file, 'post');
+          setPhotos(prev => [...prev, url]);
           break;
+        }
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert(`Failed to upload ${type}: ${error}`);
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert(`Failed to upload ${type}`);
     } finally {
       setUploadingType(null);
     }
   }, [uploadProfilePhoto]);
 
-  // ===================== BUTTON HANDLERS =====================
-  const handleProfileImageClick = useCallback(() => {
-    profileInputRef.current?.click();
-  }, []);
-
-  const handleBackgroundImageClick = useCallback(() => {
-    backgroundInputRef.current?.click();
-  }, []);
-
-  const handlePhotoUploadClick = useCallback(() => {
-    photoInputRef.current?.click();
-  }, []);
-
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'background' | 'photo') => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileUpload(file, type);
-    }
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'background' | 'photo') => {
+    const file = e.target.files?.[0];
+    if (file) handleFileUpload(file, type);
+    e.target.value = '';
   }, [handleFileUpload]);
 
-  const handleEditProfile = useCallback(() => {
-    console.log('✨ Edit Profile clicked');
-    // TODO: Implement edit profile modal/page
+  // ── Post handlers ──
+  const handlePostSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postText.trim() || isCreatingPost) return;
+    const result = await createPost({ content: postText, type: 'general', visibility: 'public' });
+    if (result) setPostText('');
+  }, [postText, isCreatingPost, createPost]);
+
+  const handleLikeToggle = useCallback(async (postId: string, isLiked: boolean) => {
+    if (isLiked) await unlikePost(postId);
+    else await likePost(postId);
+  }, [likePost, unlikePost]);
+
+  const toggleComments = useCallback((postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
   }, []);
 
-  const handleSettings = useCallback(() => {
-    console.log('⚙️ Settings clicked');
-    // TODO: Implement settings page
-  }, []);
+  const handleCommentSubmit = useCallback(async (postId: string) => {
+    const text = commentTexts[postId]?.trim();
+    if (!text) return;
+    const result = await addComment(postId, text);
+    if (result) setCommentTexts(prev => ({ ...prev, [postId]: '' }));
+  }, [commentTexts, addComment]);
 
-  const handleShare = useCallback(() => {
-    console.log('🔗 Share profile clicked');
-    // TODO: Implement share functionality
-  }, []);
+  // ── Derived data ──
+  const displayName = getDisplayName();
+  const username = getUsernameForDisplay();
+  const initials = getUserInitials();
+  const postCount = stats?.posts ?? followStats?.posts ?? 0;
+  const followerCount = followStats?.followers ?? stats?.followers ?? 0;
+  const followingCount = followStats?.following ?? stats?.following ?? 0;
 
-  const handleCreateEvent = useCallback(() => {
-    console.log('🎯 Create Event clicked');
-    // TODO: Implement create event functionality
-  }, []);
-
-  const handleJoinEvent = useCallback((eventId: number) => {
-    console.log('💖 Join Event clicked for event:', eventId);
-    // TODO: Implement join event functionality
-  }, []);
-
-  const handleShareVideo = useCallback(() => {
-    console.log('📹 Share Video clicked');
-    // TODO: Implement video upload functionality
-  }, []);
-
-  // ===================== REAL DATA FROM DATABASE =====================
-  // Stats are now loaded from the database via useProfile hook
-  // Default values for loading states
-  const displayStats = stats || {
-    posts: 0,
-    followers: 0,
-    following: 0,
-    workouts: 0,
-    streak: 0,
-    points: 0,
-    level: 1,
-    tier: 'bronze'
+  // ── Staggered card animation ──
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({ opacity: 1, y: 0, transition: { ...physics.spring, delay: i * 0.06 } }),
   };
 
-  // Real fitness stats from database
-  const fitnessStats = [
-    { icon: Orbit, label: 'Orbital Progress', value: `${Math.min(100, ((displayStats.points || 0) % 1000) / 10).toFixed(0)}%`, color: theme.colors.primary },
-    { icon: Rocket, label: 'Cosmic Energy', value: `${Math.min(100, (displayStats.streak || 0) * 5)}%`, color: theme.colors.accent },
-    { icon: Star, label: 'Constellation Points', value: (displayStats.points || 0).toLocaleString(), color: theme.colors.secondary },
-    { icon: Crown, label: 'Stellar Level', value: (displayStats.level || 1).toString(), color: theme.colors.primaryBlue }
-  ];
-
-  // Real achievements from database or fallback mock data
-  const displayAchievements = achievements.length > 0 ? achievements.map(achievement => ({
-    icon: Crown, // Default icon, could be mapped from achievement.iconUrl
-    title: achievement.name,
-    description: achievement.description,
-    rarity: achievement.rarity
-  })) : [
-    { icon: Crown, title: 'Welcome to SwanStudios!', description: 'Started your cosmic fitness journey', rarity: 'common' },
-    { icon: Star, title: 'First Steps', description: 'Completed your profile setup', rarity: 'common' },
-    { icon: Rocket, title: 'Ready to Shine', description: 'Ready for stellar transformation', rarity: 'common' }
-  ];
-
-  // ===================== SWAN GALAXY RADIANCE LIVE FEED FUNCTIONS =====================
-  
-  // Mock posts data with positive, inspiring content
-  const [feedPosts, setFeedPosts] = useState([
-    {
-      id: 1,
-      author: {
-        name: 'Luna Starlight',
-        username: 'luna_cosmic',
-        image: null,
-        initials: 'LS'
-      },
-      content: '🌟 Just completed my morning yoga flow watching the sunrise! There\'s something magical about starting the day with gratitude and movement. The way the light danced through the clouds reminded me that every new day is a gift. Who else loves morning workouts? ✨',
-      media: {
-        type: 'image',
-        url: 'https://picsum.photos/600/400?random=1'
-      },
-      timestamp: '2 hours ago',
-      interactions: {
-        inspires: 24,
-        resonates: 18,
-        uplifts: 31,
-        comments: 7
-      },
-      userInteractions: {
-        inspired: false,
-        resonated: false,
-        uplifted: false
-      }
-    },
-    {
-      id: 2,
-      author: {
-        name: 'Marcus Wellness',
-        username: 'marcus_strong',
-        image: null,
-        initials: 'MW'
-      },
-      content: '💪 Breakthrough moment at the gym today! Finally deadlifted my bodyweight for the first time. Six months ago, I could barely lift the bar. Progress isn\'t always linear, but consistency pays off. To everyone on their fitness journey - keep going, you\'re stronger than you think! 🚀',
-      media: null,
-      timestamp: '4 hours ago',
-      interactions: {
-        inspires: 42,
-        resonates: 28,
-        uplifts: 35,
-        comments: 12
-      },
-      userInteractions: {
-        inspired: true,
-        resonated: false,
-        uplifted: false
-      }
-    },
-    {
-      id: 3,
-      author: {
-        name: 'Sophia Dance',
-        username: 'sophia_moves',
-        image: null,
-        initials: 'SD'
-      },
-      content: '💃 Dance class tonight was pure magic! We learned a routine to \"What a Wonderful World\" and I couldn\'t help but smile the entire time. Dance isn\'t just movement - it\'s expression, joy, and connection. Feeling grateful for this amazing community where we lift each other up! 🎵',
-      media: {
-        type: 'video',
-        url: 'https://picsum.photos/600/400?random=2'
-      },
-      timestamp: '6 hours ago',
-      interactions: {
-        inspires: 38,
-        resonates: 31,
-        uplifts: 44,
-        comments: 15
-      },
-      userInteractions: {
-        inspired: false,
-        resonated: true,
-        uplifted: true
-      }
-    },
-    {
-      id: 4,
-      author: {
-        name: 'Chef Gabriel',
-        username: 'chef_gabriel',
-        image: null,
-        initials: 'CG'
-      },
-      content: '🥗 Made this rainbow Buddha bowl for lunch and it tasted as beautiful as it looks! Roasted sweet potato, quinoa, fresh greens, and tahini dressing. Nourishing our bodies is an act of self-love. What\'s your favorite healthy meal that makes you feel amazing? Share the love! 🌈',
-      media: {
-        type: 'image',
-        url: 'https://picsum.photos/600/400?random=3'
-      },
-      timestamp: '8 hours ago',
-      interactions: {
-        inspires: 29,
-        resonates: 33,
-        uplifts: 26,
-        comments: 9
-      },
-      userInteractions: {
-        inspired: false,
-        resonated: false,
-        uplifted: false
-      }
-    },
-    {
-      id: 5,
-      author: {
-        name: 'Trainer Alex',
-        username: 'alex_trainer',
-        image: null,
-        initials: 'TA'
-      },
-      content: '🎯 Reminder: Your worth isn\'t measured by the number on the scale, your speed on the treadmill, or how much you can lift. It\'s measured by your kindness, your effort, your resilience, and the positive energy you bring to the world. You are enough, exactly as you are. 💛',
-      media: null,
-      timestamp: '1 day ago',
-      interactions: {
-        inspires: 67,
-        resonates: 89,
-        uplifts: 102,
-        comments: 23
-      },
-      userInteractions: {
-        inspired: true,
-        resonated: true,
-        uplifted: true
-      }
-    }
-  ]);
-  
-  const [newPostContent, setNewPostContent] = useState('');
-  const [isPosting, setIsPosting] = useState(false);
-  
-  // Handle post creation
-  const handleCreatePost = useCallback(async () => {
-    if (!newPostContent.trim() || isPosting) return;
-    
-    setIsPosting(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newPost = {
-        id: Date.now(),
-        author: {
-          name: getDisplayName(),
-          username: getUsernameForDisplay(),
-          image: profile?.photo,
-          initials: getUserInitials()
-        },
-        content: newPostContent,
-        media: null,
-        timestamp: 'Just now',
-        interactions: {
-          inspires: 0,
-          resonates: 0,
-          uplifts: 0,
-          comments: 0
-        },
-        userInteractions: {
-          inspired: false,
-          resonated: false,
-          uplifted: false
-        }
-      };
-      
-      setFeedPosts(prev => [newPost, ...prev]);
-      setNewPostContent('');
-    } catch (error) {
-      console.error('Error creating post:', error);
-    } finally {
-      setIsPosting(false);
-    }
-  }, [newPostContent, isPosting, getDisplayName, getUsernameForDisplay, getUserInitials, profile?.photo]);
-  
-  // Handle post interactions
-  const handlePostInteraction = useCallback((postId: number, type: 'inspires' | 'resonates' | 'uplifts') => {
-    setFeedPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const wasActive = post.userInteractions[type === 'inspires' ? 'inspired' : type === 'resonates' ? 'resonated' : 'uplifted'];
-        return {
-          ...post,
-          interactions: {
-            ...post.interactions,
-            [type]: wasActive ? post.interactions[type] - 1 : post.interactions[type] + 1
-          },
-          userInteractions: {
-            ...post.userInteractions,
-            [type === 'inspires' ? 'inspired' : type === 'resonates' ? 'resonated' : 'uplifted']: !wasActive
-          }
-        };
-      }
-      return post;
-    }));
-  }, []);
-  
-  // Handle Journey Weave feature
-  const handleJourneyWeave = useCallback(() => {
-    console.log('🌟 Opening Journey Weave visualization...');
-    // TODO: Implement Journey Weave modal/page
-  }, []);
-  
-  // ===================== SWAN GALAXY RADIANCE LIVE FEED COMPONENT =====================
-  
-  const SwanGalaxyRadianceFeed = () => (
-    <LiveFeedContainer
-      $enableAnimations={enableLuxuryAnimations}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-    >
-      <FeedContent>
-        <FeedHeader>
-          <FeedTitle $performanceLevel={devicePerformance}>
-            <Sparkles size={32} />
-            Swan Galaxy Community
-          </FeedTitle>
-          <JourneyWeaveButton
-            onClick={handleJourneyWeave}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Radar size={20} />
-            Journey Weave
-          </JourneyWeaveButton>
-        </FeedHeader>
-        
-        {/* Create New Post */}
-        <CreatePostContainer
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <PostComposer>
-            <PostInput
-              placeholder="Share your positive energy with the SwanStudios community... ✨"
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              maxLength={500}
-            />
-            <PostActions>
-              <PostOptions>
-                <PostOptionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <ImageIcon size={18} />
-                  Photo
-                </PostOptionButton>
-                <PostOptionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <VideoCamera size={18} />
-                  Video
-                </PostOptionButton>
-                <PostOptionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Smile size={18} />
-                  Feeling
-                </PostOptionButton>
-              </PostOptions>
-              <PostButton
-                onClick={handleCreatePost}
-                disabled={!newPostContent.trim() || isPosting}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {isPosting ? (
-                  <LoadingSpinner style={{ width: '20px', height: '20px', margin: 0 }} />
-                ) : (
-                  <>Share Light</>  
-                )}
-              </PostButton>
-            </PostActions>
-          </PostComposer>
-        </CreatePostContainer>
-        
-        {/* Posts Stream */}
-        <PostsStream>
-          {feedPosts.map((post, index) => (
-            <PostCard
-              key={post.id}
-              $enableAnimations={enableLuxuryAnimations}
-              $performanceLevel={devicePerformance}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 + (index * 0.1) }}
-            >
-              <PostHeader>
-                <PostAuthorImage
-                  $image={post.author.image}
-                  $enableAnimations={enableLuxuryAnimations}
-                  $performanceLevel={devicePerformance}
-                >
-                  {!post.author.image && post.author.initials}
-                </PostAuthorImage>
-                <PostAuthorInfo>
-                  <PostAuthorName>{post.author.name}</PostAuthorName>
-                  <PostTimestamp>@{post.author.username} • {post.timestamp}</PostTimestamp>
-                </PostAuthorInfo>
-              </PostHeader>
-              
-              <PostContent>
-                <PostText>{post.content}</PostText>
-                {post.media && (
-                  <PostMediaContainer>
-                    {post.media.type === 'image' ? (
-                      <img src={post.media.url} alt="Post content" />
-                    ) : (
-                      <video 
-                        src={post.media.url} 
-                        controls 
-                        style={{ 
-                          background: `url(${post.media.url}) center/cover`,
-                          minHeight: '200px'
-                        }}
-                      />
-                    )}
-                  </PostMediaContainer>
-                )}
-              </PostContent>
-              
-              <PostFooter>
-                <PostInteractions>
-                  <InteractionButton
-                    $active={post.userInteractions.inspired}
-                    onClick={() => handlePostInteraction(post.id, 'inspires')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Star size={18} />
-                    {post.interactions.inspires} Inspires
-                  </InteractionButton>
-                  <InteractionButton
-                    $active={post.userInteractions.resonated}
-                    onClick={() => handlePostInteraction(post.id, 'resonates')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Heart size={18} />
-                    {post.interactions.resonates} Resonates
-                  </InteractionButton>
-                  <InteractionButton
-                    $active={post.userInteractions.uplifted}
-                    onClick={() => handlePostInteraction(post.id, 'uplifts')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Sun size={18} />
-                    {post.interactions.uplifts} Uplifts
-                  </InteractionButton>
-                  <InteractionButton
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <MessageCircle size={18} />
-                    {post.interactions.comments} Comments
-                  </InteractionButton>
-                </PostInteractions>
-                <InteractionButton
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Share2 size={18} />
-                </InteractionButton>
-              </PostFooter>
-            </PostCard>
-          ))}
-        </PostsStream>
-      </FeedContent>
-    </LiveFeedContainer>
-  );
-  
-  // ===================== TAB CONTENT COMPONENTS =====================
-  
-  const CommunityContent = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Local Events Section */}
-      <ContentCard
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ color: theme.text.primary, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Users2 size={24} />
-            Local Community Events
-          </h3>
-          <PrimaryButton onClick={handleCreateEvent} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
-            <Plus size={16} />
-            Create Event
-          </PrimaryButton>
-        </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-          {localEvents.map((event, index) => (
-            <FilteredMotionDiv
-              key={event.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={{ y: -5 }}
-              style={{
-                padding: '1.5rem',
-                background: theme.background.elevated,
-                borderRadius: '12px',
-                border: `1px solid ${theme.borders.subtle}`,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (enableLuxuryAnimations) {
-                  e.currentTarget.style.boxShadow = theme.shadows.primary;
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                <div style={{
-                  padding: '0.5rem',
-                  background: theme.colors.primary + '20',
-                  borderRadius: '8px',
-                  color: theme.colors.primary
-                }}>
-                  {event.type === 'yoga' && <Mountain size={20} />}
-                  {event.type === 'dancing' && <Music size={20} />}
-                  {event.type === 'strength' && <Zap size={20} />}
-                </div>
-                <div>
-                  <h4 style={{ color: theme.text.primary, margin: 0, fontSize: '1.1rem' }}>
-                    {event.title}
-                  </h4>
-                  <p style={{ color: theme.text.secondary, margin: 0, fontSize: '0.9rem' }}>
-                    by {event.host}
-                  </p>
-                </div>
-              </div>
-              
-              <p style={{ color: theme.text.secondary, marginBottom: '1rem', fontSize: '0.9rem' }}>
-                {event.description}
-              </p>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.text.secondary, fontSize: '0.8rem' }}>
-                  <Calendar size={16} />
-                  {event.date} at {event.time}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.text.secondary, fontSize: '0.8rem' }}>
-                  <LocationIcon size={16} />
-                  {event.location}
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: theme.text.secondary, fontSize: '0.9rem' }}>
-                  {event.attendees}/{event.maxAttendees} attending
-                </span>
-                <PrimaryButton 
-                  onClick={() => handleJoinEvent(event.id)}
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                >
-                  <Heart size={14} />
-                  Join Event
-                </PrimaryButton>
-              </div>
-            </FilteredMotionDiv>
-          ))}
-        </div>
-      </ContentCard>
-      
-      {/* Cosmic Goals Section */}
-      <ContentCard
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        <h3 style={{ color: theme.text.primary, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Radar size={24} />
-          Cosmic Fitness Missions
-        </h3>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {workoutGoals.map((goal, index) => {
-            const progressPercent = (goal.progress / goal.target) * 100;
-            return (
-              <FilteredMotionDiv
-                key={goal.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                style={{
-                  padding: '1.5rem',
-                  background: theme.background.elevated,
-                  borderRadius: '12px',
-                  border: `1px solid ${theme.borders.subtle}`
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <div>
-                    <h4 style={{ color: theme.text.primary, margin: 0, fontSize: '1.1rem' }}>
-                      {goal.title}
-                    </h4>
-                    <p style={{ color: theme.text.secondary, margin: 0, fontSize: '0.9rem' }}>
-                      {goal.description}
-                    </p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: theme.colors.primary, fontWeight: '600', fontSize: '1.1rem' }}>
-                      {goal.progress}/{goal.target}
-                    </span>
-                    <p style={{ color: theme.text.secondary, margin: 0, fontSize: '0.8rem' }}>
-                      {Math.round(progressPercent)}% complete
-                    </p>
-                  </div>
-                </div>
-                
-                <div style={{
-                  width: '100%',
-                  height: '8px',
-                  background: theme.background.primary,
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                  marginBottom: '1rem'
-                }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progressPercent}%` }}
-                    transition={{ duration: 1, delay: index * 0.2 }}
-                    style={{
-                      height: '100%',
-                      background: theme.gradients.primary,
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: theme.colors.accent, fontSize: '0.9rem', fontWeight: '500' }}>
-                    🏆 Reward: {goal.cosmicReward}
-                  </span>
-                  <div style={{
-                    padding: '0.25rem 0.75rem',
-                    background: theme.colors.primary + '20',
-                    borderRadius: '12px',
-                    color: theme.colors.primary,
-                    fontSize: '0.8rem',
-                    fontWeight: '500'
-                  }}>
-                    {goal.type}
-                  </div>
-                </div>
-              </FilteredMotionDiv>
-            );
-          })}
-        </div>
-      </ContentCard>
-      
-      {/* Trainer Interest Section */}
-      <ContentCard
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div 
-            className={enableLuxuryAnimations ? 'cosmic-glow-animation' : ''}
-            style={{
-              width: '80px',
-              height: '80px',
-              margin: '0 auto 1.5rem',
-              background: theme.gradients.primary,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <GraduationCap size={40} color="white" />
-          </div>
-          
-          <h3 style={{ color: theme.text.primary, marginBottom: '1rem' }}>
-            ✨ Become a SwanStudios Cosmic Trainer!
-          </h3>
-          
-          <p style={{ color: theme.text.secondary, marginBottom: '2rem', lineHeight: 1.6 }}>
-            Share your passion for fitness, dance, wellness & positive energy! 
-            Join our family of certified trainers and help others reach for the stars.
-            🌟 Work for SwanStudios and spread cosmic wellness across the galaxy!
-          </p>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            {trainerStatus === null && (
-              <PrimaryButton
-                onClick={() => setTrainerStatus('interested')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Star size={20} />
-                I'm Interested!
-              </PrimaryButton>
-            )}
-            
-            {trainerStatus === 'interested' && (
-              <PrimaryButton
-                onClick={() => setTrainerStatus('applied')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Rocket size={20} />
-                Apply Now
-              </PrimaryButton>
-            )}
-            
-            {trainerStatus === 'applied' && (
-              <div style={{
-                padding: '1rem',
-                background: theme.colors.accent + '20',
-                borderRadius: '12px',
-                color: theme.colors.accent
-              }}>
-                <Crown size={24} style={{ marginBottom: '0.5rem' }} />
-                <p style={{ margin: 0, fontWeight: '500' }}>Application Submitted! 🎉</p>
-                <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>We'll be in touch soon!</p>
-              </div>
-            )}
-            
-            <SecondaryButton>
-              <MessageSquare size={20} />
-            </SecondaryButton>
-          </div>
-        </div>
-      </ContentCard>
-    </div>
-  );
-
-  const CreativeExpressionContent = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Creative Videos Gallery */}
-      <ContentCard
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ color: theme.text.primary, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Music2 size={24} />
-            Creative Expression Gallery
-          </h3>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <SecondaryButton style={{ fontSize: '0.8rem', padding: '0.5rem' }}>
-              <VideoCamera size={16} />
-            </SecondaryButton>
-            <PrimaryButton onClick={handleShareVideo} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
-              <Upload size={16} />
-              Share Video
-            </PrimaryButton>
-          </div>
-        </div>
-        
-        <div style={{ marginBottom: '1.5rem' }}>
-          <p style={{ color: theme.text.secondary, marginBottom: '1rem' }}>
-            ✨ Share your dance moves, singing, workout creativity & positive energy with the SwanStudios community!
-          </p>
-          
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {['Dancing', 'Singing', 'Workouts', 'Yoga Flow', 'Motivation', 'Transformation'].map((tag, index) => (
-              <div
-                key={tag}
-                style={{
-                  padding: '0.25rem 0.75rem',
-                  background: theme.colors.primary + '20',
-                  borderRadius: '12px',
-                  color: theme.colors.primary,
-                  fontSize: '0.8rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                #{tag}
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <PhotoGrid>
-          <UploadPlaceholder onClick={handleShareVideo}>
-            <VideoCamera size={32} />
-            <span style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Share Creative Video</span>
-          </UploadPlaceholder>
-          
-          {/* Mock creative videos */}
-          {Array.from({ length: 6 }, (_, index) => (
-            <PhotoItem
-              key={`creative-${index}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              style={{ position: 'relative' }}
-            >
-              <img 
-                src={`https://picsum.photos/300/300?random=${index + 20}`} 
-                alt={`Creative video ${index + 1}`}
-              />
-              <div style={{
-                position: 'absolute',
-                top: '0.5rem',
-                right: '0.5rem',
-                background: 'rgba(0, 0, 0, 0.7)',
-                borderRadius: '4px',
-                padding: '0.25rem',
-                color: 'white',
-                fontSize: '0.7rem'
-              }}>
-                {['Dancing', 'Singing', 'Workout', 'Yoga', 'Motivation', 'Transform'][index]}
-              </div>
-              <div style={{
-                position: 'absolute',
-                bottom: '0.5rem',
-                left: '0.5rem',
-                background: 'rgba(0, 0, 0, 0.7)',
-                borderRadius: '50%',
-                padding: '0.25rem',
-                color: 'white'
-              }}>
-                <Video size={16} />
-              </div>
-            </PhotoItem>
-          ))}
-        </PhotoGrid>
-      </ContentCard>
-      
-      {/* Inspiration & Motivation Board */}
-      <ContentCard
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        <h3 style={{ color: theme.text.primary, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Sparkles size={24} />
-          Daily Inspiration & Positive Energy
-        </h3>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-          {[
-            {
-              icon: Sun,
-              title: 'Morning Motivation',
-              content: 'Today is a new day to shine your light and inspire others! ☀️',
-              author: 'SwanStudios Team',
-              time: '8:00 AM',
-              likes: 127,
-              color: theme.colors.accent
-            },
-            {
-              icon: Rainbow,
-              title: 'Transformation Tuesday',
-              content: 'Every small step forward is progress. Celebrate your cosmic journey! 🌈',
-              author: 'Luna Starlight',
-              time: '2 hours ago',
-              likes: 89,
-              color: theme.colors.secondary
-            },
-            {
-              icon: Heart,
-              title: 'Positive Vibes',
-              content: 'You are capable of amazing things. Keep spreading love and light! 💕',
-              author: 'Cosmic Community',
-              time: '5 hours ago',
-              likes: 156,
-              color: theme.colors.primary
-            }
-          ].map((post, index) => {
-            const Icon = post.icon;
-            return (
-              <div
-                key={index}
-                style={{
-                  padding: '1.5rem',
-                  background: theme.background.elevated,
-                  borderRadius: '12px',
-                  border: `1px solid ${theme.borders.subtle}`,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div style={{
-                    padding: '0.5rem',
-                    background: post.color + '20',
-                    borderRadius: '50%',
-                    color: post.color
-                  }}>
-                    <Icon size={20} />
-                  </div>
-                  <div>
-                    <h4 style={{ color: theme.text.primary, margin: 0, fontSize: '1rem' }}>
-                      {post.title}
-                    </h4>
-                    <p style={{ color: theme.text.secondary, margin: 0, fontSize: '0.8rem' }}>
-                      by {post.author} • {post.time}
-                    </p>
-                  </div>
-                </div>
-                
-                <p style={{ color: theme.text.primary, marginBottom: '1rem', lineHeight: 1.5 }}>
-                  {post.content}
-                </p>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  style={{
-                  background: 'none',
-                  border: 'none',
-                  color: theme.colors.primary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.9rem'
-                  }}
-                  >
-                  <Heart size={16} />
-                  {post.likes}
-                  </motion.button>
-                  
-                  <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  style={{
-                  background: 'none',
-                  border: 'none',
-                  color: theme.text.secondary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.9rem'
-                  }}
-                  >
-                  <MessageCircle size={16} />
-                  Share
-                  </motion.button>
-                  
-                  <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  style={{
-                  background: 'none',
-                  border: 'none',
-                  color: theme.text.secondary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.9rem'
-                  }}
-                  >
-                  <Sparkles size={16} />
-                  Inspire
-                  </motion.button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </ContentCard>
-    </div>
-  );
-
-  const PhotosContent = () => (
-    <ContentCard
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ color: theme.text.primary, margin: 0 }}>Photo Gallery</h3>
-        <PrimaryButton onClick={handlePhotoUploadClick} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
-          <Upload size={16} />
-          Upload Photo
-        </PrimaryButton>
-      </div>
-      
-      <PhotoGrid>
-        <UploadPlaceholder onClick={handlePhotoUploadClick}>
-          <Plus size={32} />
-          <span style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Add Photo</span>
-        </UploadPlaceholder>
-        
-        {photos.map((photo, index) => (
-          <PhotoItem
-            key={index}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-          >
-            <img src={photo} alt={`Gallery photo ${index + 1}`} />
-          </PhotoItem>
-        ))}
-        
-        {/* Mock photos for demonstration */}
-        {Array.from({ length: 8 }, (_, index) => (
-          <PhotoItem
-            key={`mock-${index}`}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: (photos.length + index) * 0.1 }}
-          >
-            <img 
-              src={`https://picsum.photos/300/300?random=${index + 1}`} 
-              alt={`Fitness photo ${index + 1}`}
-            />
-          </PhotoItem>
-        ))}
-      </PhotoGrid>
-      
-      <HiddenInput
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleFileChange(e, 'photo')}
-      />
-    </ContentCard>
-  );
-
-  const AboutContent = () => (
-    <ContentCard
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <h3 style={{ color: theme.text.primary, marginBottom: '1.5rem' }}>About Me</h3>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        <div style={{ 
-          padding: '1.5rem', 
-          background: theme.background.elevated, 
-          borderRadius: '12px',
-          border: `1px solid ${theme.borders.subtle}`
-        }}>
-          <h4 style={{ color: theme.text.primary, marginBottom: '1rem' }}>Personal Info</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: theme.text.secondary }}>Joined:</span>
-              <span style={{ color: theme.text.primary }}>March 2024</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: theme.text.secondary }}>Location:</span>
-              <span style={{ color: theme.text.primary }}>Los Angeles, CA</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: theme.text.secondary }}>Member Type:</span>
-              <span style={{ color: theme.text.primary }}>
-                {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div style={{ 
-          padding: '1.5rem', 
-          background: theme.background.elevated, 
-          borderRadius: '12px',
-          border: `1px solid ${theme.borders.subtle}`
-        }}>
-          <h4 style={{ color: theme.text.primary, marginBottom: '1rem' }}>Fitness Goals</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: theme.text.secondary }}>Primary Goal:</span>
-              <span style={{ color: theme.text.primary }}>Build Muscle</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: theme.text.secondary }}>Experience:</span>
-              <span style={{ color: theme.text.primary }}>Intermediate</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: theme.text.secondary }}>Favorite Activity:</span>
-              <span style={{ color: theme.text.primary }}>Weight Training</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ContentCard>
-  );
-
-  const ActivityContent = () => (
-    <ContentCard
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <h3 style={{ color: theme.text.primary, marginBottom: '1.5rem' }}>Recent Activity</h3>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {[
-          { action: 'Completed a workout', time: '2 hours ago', icon: '💪' },
-          { action: 'Shared a post about nutrition', time: '1 day ago', icon: '📝' },
-          { action: 'Achieved "Week Warrior" badge', time: '3 days ago', icon: '🏆' },
-          { action: 'Joined SwanStudios community', time: '1 week ago', icon: '🎉' }
-        ].map((activity, index) => (
-          <FilteredMotionDiv
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '1rem',
-              background: theme.background.elevated,
-              borderRadius: '12px',
-              border: `1px solid ${theme.borders.subtle}`
-            }}
-          >
-            <span style={{ fontSize: '1.5rem' }}>{activity.icon}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ color: theme.text.primary, margin: 0, fontWeight: '500' }}>
-                {activity.action}
-              </p>
-              <p style={{ color: theme.text.secondary, margin: 0, fontSize: '0.9rem' }}>
-                {activity.time}
-              </p>
-            </div>
-          </FilteredMotionDiv>
-        ))}
-      </div>
-    </ContentCard>
-  );
-
-  // ===================== RENDER =====================
-  
-  // Show loading state while profile data loads
-  if (isLoading && !profile) {
-    return (
-      <ProfileContainer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <LoadingOverlay>
-          <LoadingSpinner />
-          <LoadingText>Loading your cosmic profile...</LoadingText>
-        </LoadingOverlay>
-      </ProfileContainer>
-    );
-  }
-  
-  // Show error state if there's an error
-  if (error && !profile) {
-    return (
-      <ProfileContainer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <ContentWrapper>
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '4rem 2rem',
-            color: theme.text.primary 
-          }}>
-            <h2>⚠️ Error Loading Profile</h2>
-            <p style={{ color: theme.text.secondary, marginBottom: '2rem' }}>
-              {error}
-            </p>
-            <PrimaryButton onClick={() => window.location.reload()}>
-              <Rocket size={20} />
-              Retry
-            </PrimaryButton>
-          </div>
-        </ContentWrapper>
-      </ProfileContainer>
-    );
-  }
-  
   return (
-    <ProfileContainer
-      $performanceLevel={devicePerformance}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: (performanceProfile?.transitionDuration === 'fast' || devicePerformance === 'weak') ? 0.2 : 0.8 }}
-    >
-      <ContentWrapper>
-        {/* Profile Header with Background Image */}
-        <ProfileHeader
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <BackgroundImageContainer $backgroundImage={backgroundImage}>
-            <BackgroundUploadOverlay
-              $hasImage={Boolean(backgroundImage)}
-              onClick={handleBackgroundImageClick}
-              whileHover={enableLuxuryAnimations ? { opacity: 1 } : undefined}
-              whileTap={enableLuxuryAnimations ? { scale: 0.98 } : undefined}
-            >
-              <Camera size={48} color="white" />
-              <p style={{ color: 'white', marginTop: '1rem', fontSize: '1.1rem', fontWeight: '500' }}>
-                {backgroundImage ? 'Change Cover Photo' : 'Add Cover Photo'}
-              </p>
-            </BackgroundUploadOverlay>
-          </BackgroundImageContainer>
+    <PageContainer>
+      {/* ═══════ Cover Photo ═══════ */}
+      <CoverPhotoSection $src={backgroundImage}>
+        <CoverOverlay />
+        <CoverUploadButton onClick={() => backgroundInputRef.current?.click()}>
+          <Camera size={16} />
+          {backgroundImage ? 'Change Cover' : 'Add Cover Photo'}
+        </CoverUploadButton>
+      </CoverPhotoSection>
 
-          <ProfileImageSection $hasBackgroundImage={Boolean(backgroundImage)}>
-            <ProfileImageContainer
-              whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
-              whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
-              transition={enableLuxuryAnimations ? { duration: 0.3 } : undefined}
-            >
-              <ProfileImage 
-                $image={profile?.photo} 
-                $enableLuxury={enableLuxuryAnimations}
-                $performanceLevel={devicePerformance}
-              >
-              {!profile?.photo && getUserInitials()}
-            </ProfileImage>
-              
-              <ImageUploadButton
-                onClick={handleProfileImageClick}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
-                whileTap={enableLuxuryAnimations ? { scale: 0.9 } : undefined}
-              >
-                <Camera size={20} />
-              </ImageUploadButton>
-            </ProfileImageContainer>
-          </ProfileImageSection>
-
-          <ProfileInfo
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <DisplayName $performanceLevel={devicePerformance}>{getDisplayName()}</DisplayName>
-            <Username>@{getUsernameForDisplay()}</Username>
-            
-            <UserRole
-              $performanceLevel={devicePerformance}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: performanceProfile?.transitionDuration === 'fast' ? 0.2 : 0.5, delay: performanceProfile?.transitionDuration === 'fast' ? 0.1 : 0.4 }}
-            >
-              <Crown size={16} />
-              {profile?.role?.charAt(0).toUpperCase() + profile?.role?.slice(1) || 'User'}
-            </UserRole>
-
-            <StatsContainer>
-              <StatItem 
-                $enableAnimations={enableLuxuryAnimations}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
-              >
-                <StatValue $performanceLevel={devicePerformance}>
-                  {isLoadingStats ? '...' : displayStats.posts}
-                </StatValue>
-                <StatLabel>Posts</StatLabel>
-              </StatItem>
-              <StatItem 
-                $enableAnimations={enableLuxuryAnimations}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
-              >
-                <StatValue $performanceLevel={devicePerformance}>
-                  {isLoadingStats ? '...' : displayStats.followers.toLocaleString()}
-                </StatValue>
-                <StatLabel>Followers</StatLabel>
-              </StatItem>
-              <StatItem 
-                $enableAnimations={enableLuxuryAnimations}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
-              >
-                <StatValue $performanceLevel={devicePerformance}>
-                  {isLoadingStats ? '...' : displayStats.following}
-                </StatValue>
-                <StatLabel>Following</StatLabel>
-              </StatItem>
-            </StatsContainer>
-
-            <Bio>
-              {profile?.bio || (
-                `✨ Spreading positive energy through fitness, dance & wellness • 🌟 SwanStudios cosmic community member
-                💃 Love dancing, singing & helping others shine • 🚀 Join me on this stellar transformation journey!
-                ${trainerStatus === 'interested' ? ' • 🎯 Interested in becoming a SwanStudios trainer!' : ''}
-                ${trainerStatus === 'certified' ? ' • 👑 Certified SwanStudios Trainer - Let\'s reach the stars together!' : ''}`
+      {/* ═══════ Profile Header ═══════ */}
+      <ProfileHeaderSection>
+        <AvatarWrapper>
+          <AvatarRing>
+            <AvatarInner>
+              {profile?.photo ? (
+                <img src={profile.photo} alt={displayName} />
+              ) : (
+                initials
               )}
-            </Bio>
+            </AvatarInner>
+          </AvatarRing>
+          <AvatarUploadBtn onClick={() => profileInputRef.current?.click()}>
+            <Camera size={14} />
+          </AvatarUploadBtn>
+        </AvatarWrapper>
 
-            <ActionButtons>
-              <PrimaryButton
-                onClick={handleEditProfile}
-                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
-                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
-              >
-                <Edit3 size={20} />
-                Edit Profile
-              </PrimaryButton>
-              
-              <SecondaryButton
-                onClick={handleSettings}
-                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
-                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
-              >
-                <Settings size={20} />
-              </SecondaryButton>
-              
-              <SecondaryButton
-                onClick={handleShare}
-                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
-                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
-              >
-                <Share2 size={20} />
-              </SecondaryButton>
-            </ActionButtons>
-          </ProfileInfo>
-        </ProfileHeader>
+        <DisplayName>{displayName || 'SwanStudios Member'}</DisplayName>
+        <Username>@{username || 'member'}</Username>
+        <RoleBadge>
+          <Star size={12} />
+          {user?.role || 'Member'}
+        </RoleBadge>
 
-        {/* Content Grid */}
-        <ContentGrid>
-          {/* Sidebar */}
-          <Sidebar
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            {/* Cosmic Progress Tracking */}
-            <SidebarCard>
-              <SidebarTitle>
-                <Orbit size={20} />
-                Stellar Transformation Journey
-              </SidebarTitle>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {fitnessStats.map((stat, index) => {
-                  const Icon = stat.icon;
+        <StatsRow>
+          <StatItem whileHover={{ scale: 1.08 }} transition={physics.snappy}>
+            <StatNumber>{postCount}</StatNumber>
+            <StatLabel>Posts</StatLabel>
+          </StatItem>
+          <StatItem whileHover={{ scale: 1.08 }} transition={physics.snappy}>
+            <StatNumber>{followerCount}</StatNumber>
+            <StatLabel>Followers</StatLabel>
+          </StatItem>
+          <StatItem whileHover={{ scale: 1.08 }} transition={physics.snappy}>
+            <StatNumber>{followingCount}</StatNumber>
+            <StatLabel>Following</StatLabel>
+          </StatItem>
+        </StatsRow>
+
+        <BioText>
+          {profile?.bio || 'Welcome to SwanStudios Community — your space for fitness, wellness, and connection.'}
+        </BioText>
+
+        <ActionButtonRow>
+          <ProfileAction $primary whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+            <Edit3 size={16} />
+            Edit Profile
+          </ProfileAction>
+          <ProfileAction whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+            <Settings size={16} />
+          </ProfileAction>
+          <ProfileAction whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+            <Share2 size={16} />
+          </ProfileAction>
+        </ActionButtonRow>
+      </ProfileHeaderSection>
+
+      {/* ═══════ Content ═══════ */}
+      <ContentWrapper>
+        {/* Tab Bar */}
+        <TabBar>
+          {tabs.map(({ id, label, Icon }) => (
+            <TabButton key={id} $active={activeTab === id} onClick={() => setActiveTab(id)}>
+              <Icon size={17} />
+              {label}
+            </TabButton>
+          ))}
+        </TabBar>
+
+        <AnimatePresence mode="wait">
+          {/* ═══════ FEED TAB ═══════ */}
+          {activeTab === 'feed' && (
+            <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={physics.glissando}>
+              {/* Post Composer */}
+              <GlassPanel initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={physics.spring}>
+                <SectionTitle style={{ marginBottom: 16 }}>Share with the community</SectionTitle>
+                <form onSubmit={handlePostSubmit}>
+                  <TextArea
+                    placeholder="What's on your mind?"
+                    value={postText}
+                    onChange={(e) => setPostText(e.target.value)}
+                    rows={3}
+                  />
+                  <ButtonRow>
+                    <PrimaryButton type="submit" disabled={!postText.trim() || isCreatingPost} whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+                      {isCreatingPost ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Posting...</> : <><Send size={16} /> Post</>}
+                    </PrimaryButton>
+                  </ButtonRow>
+                </form>
+              </GlassPanel>
+
+              {/* Loading */}
+              {isLoadingFeed && [1, 2, 3].map(n => (
+                <ShimmerCard key={n}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <ShimmerLine $width="44px" $height="44px" style={{ borderRadius: '50%', marginBottom: 0, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}><ShimmerLine $width="40%" /><ShimmerLine $width="25%" $height="10px" /></div>
+                  </div>
+                  <ShimmerLine /><ShimmerLine $width="80%" /><ShimmerLine $width="60%" />
+                </ShimmerCard>
+              ))}
+
+              {/* Error */}
+              {!isLoadingFeed && feedError && (
+                <EmptyState>
+                  <AlertCircle size={40} color={T.warning} />
+                  <SectionTitle>Unable to load feed</SectionTitle>
+                  <p style={{ color: T.textMuted, margin: 0 }}>Something went wrong. Please try again.</p>
+                  <PrimaryButton onClick={() => refreshPosts()} whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+                    <RefreshCw size={16} /> Retry
+                  </PrimaryButton>
+                </EmptyState>
+              )}
+
+              {/* Empty */}
+              {!isLoadingFeed && !feedError && posts.length === 0 && (
+                <EmptyState>
+                  <MessageCircle size={40} color={T.iceWing} style={{ opacity: 0.6 }} />
+                  <SectionTitle>No posts yet</SectionTitle>
+                  <p style={{ color: T.textMuted, margin: 0 }}>Be the first to share something with the community!</p>
+                </EmptyState>
+              )}
+
+              {/* Post Cards */}
+              <AnimatePresence mode="popLayout">
+                {!isLoadingFeed && !feedError && posts.map((post, index) => {
+                  const typeInfo = postTypeMap[post.type] || postTypeMap.general;
+                  const TypeIcon = typeInfo.Icon;
+                  const isCommentsOpen = expandedComments.has(post.id);
+
                   return (
-                    <FilteredMotionDiv
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{
-                          padding: '0.5rem',
-                          background: `${stat.color}20`,
-                          borderRadius: '8px',
-                          color: stat.color
-                        }}>
-                          <Icon size={20} />
+                    <GlassPanel key={post.id} as={motion.div} custom={index} variants={cardVariants} initial="hidden" animate="visible" layout>
+                      <PostHeader>
+                        <PostAvatar>
+                          {post.user.photo ? <img src={post.user.photo} alt="" /> : getInitials(post.user)}
+                        </PostAvatar>
+                        <PostMeta>
+                          <PostUserName>{post.user.firstName && post.user.lastName ? `${post.user.firstName} ${post.user.lastName}` : post.user.username}</PostUserName>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <TimeStamp>{formatRelativeTime(post.createdAt)}</TimeStamp>
+                            {post.type !== 'general' && <TypeBadge $color={typeInfo.color}><TypeIcon size={11} />{typeInfo.label}</TypeBadge>}
+                          </div>
+                        </PostMeta>
+                        <SmallIconButton><MoreVertical size={18} /></SmallIconButton>
+                      </PostHeader>
+
+                      <PostBody>{post.content}</PostBody>
+
+                      {post.mediaUrl && (
+                        <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, border: `1px solid ${T.glassBorder}` }}>
+                          <img src={post.mediaUrl} alt="Post media" style={{ width: '100%', display: 'block' }} />
                         </div>
-                        <span style={{ color: theme.text.primary }}>{stat.label}</span>
-                      </div>
-                      <AnimatedStatValue $performanceLevel={devicePerformance}>
-                        {stat.value}
-                      </AnimatedStatValue>
-                    </FilteredMotionDiv>
+                      )}
+
+                      <Divider />
+
+                      <PostActionRow>
+                        <ActionButton $liked={post.isLiked} onClick={() => handleLikeToggle(post.id, post.isLiked)}>
+                          <Heart size={17} />{post.likesCount > 0 ? post.likesCount : 'Like'}
+                        </ActionButton>
+                        <ActionButton onClick={() => toggleComments(post.id)}>
+                          <MessageSquare size={17} />{post.commentsCount > 0 ? post.commentsCount : 'Comment'}
+                        </ActionButton>
+                        <ActionButton><Share2 size={17} />Share</ActionButton>
+                      </PostActionRow>
+
+                      <AnimatePresence>
+                        {isCommentsOpen && (
+                          <CommentSection initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={physics.glissando}>
+                            {post.comments && post.comments.length > 0 && (
+                              <div style={{ marginBottom: 14 }}>
+                                {post.comments.map((comment) => (
+                                  <CommentBubble key={comment.id}>
+                                    <CommentAvatarSmall>{getInitials(comment.user)}</CommentAvatarSmall>
+                                    <CommentBodyWrapper>
+                                      <div>
+                                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: T.frostWhite, marginRight: 8 }}>{comment.user.firstName || comment.user.username}</span>
+                                        <span style={{ fontSize: '0.85rem', color: 'rgba(224,236,244,0.8)' }}>{comment.content}</span>
+                                      </div>
+                                      <span style={{ fontSize: '0.72rem', color: T.textMuted, display: 'block', marginTop: 4 }}>{formatRelativeTime(comment.createdAt)}</span>
+                                    </CommentBodyWrapper>
+                                  </CommentBubble>
+                                ))}
+                              </div>
+                            )}
+                            <CommentInputRow>
+                              <CommentInput
+                                placeholder="Write a comment..."
+                                value={commentTexts[post.id] || ''}
+                                onChange={(e) => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCommentSubmit(post.id); } }}
+                              />
+                              <SendBtn onClick={() => handleCommentSubmit(post.id)} disabled={!commentTexts[post.id]?.trim()}><Send size={16} /></SendBtn>
+                            </CommentInputRow>
+                          </CommentSection>
+                        )}
+                      </AnimatePresence>
+                    </GlassPanel>
                   );
                 })}
-              </div>
-            </SidebarCard>
+              </AnimatePresence>
 
-            {/* Community Achievements */}
-            <SidebarCard>
-              <SidebarTitle>
-                <Crown size={20} />
-                Cosmic Community Achievements
-              </SidebarTitle>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {displayAchievements.slice(0, 3).map((achievement, index) => {
-                  const Icon = achievement.icon;
-                  return (
-                    <FilteredMotionDiv
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.75rem',
-                        background: theme.background.elevated,
-                        borderRadius: '8px',
-                        border: `1px solid ${theme.borders.subtle}`
-                      }}
-                    >
-                      <AnimatedAchievementIcon $performanceLevel={devicePerformance}>
-                        <Icon size={20} />
-                      </AnimatedAchievementIcon>
+              {/* Load More */}
+              {!isLoadingFeed && !feedError && hasMore && posts.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 16px' }}>
+                  <OutlineButton onClick={loadMore} whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+                    {isLoadingMore ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</> : 'Load more posts'}
+                  </OutlineButton>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ═══════ COMMUNITY TAB ═══════ */}
+          {activeTab === 'community' && (
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={physics.glissando}>
+              <SpaceBetween style={{ marginBottom: 24 }}>
+                <SectionTitle>Upcoming Events</SectionTitle>
+                <OutlineButton whileTap={{ scale: 0.97 }} transition={physics.snappy}><Calendar size={18} /> Create Event</OutlineButton>
+              </SpaceBetween>
+              <GridRow>
+                {placeholderEvents.map((event, i) => (
+                  <StyledCard key={event.id} custom={i} variants={cardVariants} initial="hidden" animate="visible">
+                    <SectionTitle style={{ marginBottom: 14 }}>{event.title}</SectionTitle>
+                    <DetailRow><Calendar size={18} /><span>{event.date} at {event.time}</span></DetailRow>
+                    <DetailRow><MapPin size={18} /><span>{event.location}</span></DetailRow>
+                    <DetailRow><Users size={18} /><span>{event.attendees} attending</span></DetailRow>
+                    <SpaceBetween>
+                      <Chip $color={T.iceWing}>{event.location}</Chip>
+                      <PrimaryButton whileTap={{ scale: 0.97 }} transition={physics.snappy}>Join</PrimaryButton>
+                    </SpaceBetween>
+                  </StyledCard>
+                ))}
+              </GridRow>
+
+              <SpaceBetween style={{ marginBottom: 24, marginTop: 32 }}>
+                <SectionTitle>Suggested Groups</SectionTitle>
+                <OutlineButton whileTap={{ scale: 0.97 }} transition={physics.snappy}><Users size={18} /> Browse All</OutlineButton>
+              </SpaceBetween>
+              <GridRowThirds>
+                {placeholderGroups.map((group, i) => (
+                  <StyledCard key={group.id} custom={i} variants={cardVariants} initial="hidden" animate="visible">
+                    <SectionTitle style={{ marginBottom: 14 }}>{group.name}</SectionTitle>
+                    <DetailRow><Users size={18} /><span>{group.members} members</span></DetailRow>
+                    <Chip $color={T.gildedFern} style={{ marginBottom: 16 }}>{group.category}</Chip>
+                    <CenterRow>
+                      <PrimaryButton $fullWidth whileTap={{ scale: 0.97 }} transition={physics.snappy}><UserPlus size={18} /> Join Group</PrimaryButton>
+                    </CenterRow>
+                  </StyledCard>
+                ))}
+              </GridRowThirds>
+            </motion.div>
+          )}
+
+          {/* ═══════ PHOTOS TAB ═══════ */}
+          {activeTab === 'photos' && (
+            <motion.div key="photos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={physics.glissando}>
+              <GlassPanel>
+                <SectionTitle style={{ marginBottom: 20 }}>Photo Gallery</SectionTitle>
+                <PhotoGrid>
+                  <UploadCard onClick={() => photoInputRef.current?.click()} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={physics.snappy}>
+                    <Plus size={28} />
+                    Add Photo
+                  </UploadCard>
+                  {photos.map((url, i) => (
+                    <PhotoItem key={i} custom={i} variants={cardVariants} initial="hidden" animate="visible">
+                      <img src={url} alt={`Photo ${i + 1}`} />
+                    </PhotoItem>
+                  ))}
+                </PhotoGrid>
+                {photos.length === 0 && (
+                  <p style={{ color: T.textMuted, textAlign: 'center', marginTop: 24, fontSize: '0.9rem' }}>
+                    No photos yet. Upload your first photo to get started!
+                  </p>
+                )}
+              </GlassPanel>
+            </motion.div>
+          )}
+
+          {/* ═══════ ABOUT TAB ═══════ */}
+          {activeTab === 'about' && (
+            <motion.div key="about" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={physics.glissando}>
+              {/* Personal Info */}
+              <GlassPanel>
+                <SectionTitle style={{ marginBottom: 16 }}>Personal Info</SectionTitle>
+                <InfoRow>
+                  <User size={18} />
+                  <InfoLabel>Name</InfoLabel>
+                  <span>{displayName || 'Not set'}</span>
+                </InfoRow>
+                <InfoRow>
+                  <Activity size={18} />
+                  <InfoLabel>Role</InfoLabel>
+                  <span style={{ textTransform: 'capitalize' }}>{user?.role || 'Member'}</span>
+                </InfoRow>
+                <InfoRow>
+                  <Calendar size={18} />
+                  <InfoLabel>Joined</InfoLabel>
+                  <span>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}</span>
+                </InfoRow>
+              </GlassPanel>
+
+              {/* Fitness Stats */}
+              <GlassPanel>
+                <SectionTitle style={{ marginBottom: 20 }}>Fitness Stats</SectionTitle>
+                <GridRow>
+                  <StatCard>
+                    <Dumbbell size={24} color={T.iceWing} style={{ marginBottom: 8 }} />
+                    <StatCardValue>{stats?.workouts ?? 0}</StatCardValue>
+                    <StatCardLabel>Workouts</StatCardLabel>
+                  </StatCard>
+                  <StatCard>
+                    <Zap size={24} color={T.gildedFern} style={{ marginBottom: 8 }} />
+                    <StatCardValue>{stats?.streak ?? 0}</StatCardValue>
+                    <StatCardLabel>Day Streak</StatCardLabel>
+                  </StatCard>
+                  <StatCard>
+                    <Star size={24} color={T.arcticCyan} style={{ marginBottom: 8 }} />
+                    <StatCardValue>{stats?.points ?? 0}</StatCardValue>
+                    <StatCardLabel>Points</StatCardLabel>
+                  </StatCard>
+                  <StatCard>
+                    <TrendingUp size={24} color={T.swanLavender} style={{ marginBottom: 8 }} />
+                    <StatCardValue>Lv {stats?.level ?? 1}</StatCardValue>
+                    <StatCardLabel>{stats?.tier ? stats.tier.charAt(0).toUpperCase() + stats.tier.slice(1) : 'Bronze'}</StatCardLabel>
+                  </StatCard>
+                </GridRow>
+              </GlassPanel>
+
+              {/* Achievements */}
+              <GlassPanel>
+                <SectionTitle style={{ marginBottom: 16 }}>Achievements</SectionTitle>
+                {achievements.length > 0 ? (
+                  achievements.map((ach, i) => (
+                    <AchievementCard key={ach.id || i} $rarity={ach.rarity}>
+                      <AchievementIcon $rarity={ach.rarity}>
+                        <Award size={22} />
+                      </AchievementIcon>
                       <div>
-                        <p style={{ 
-                          color: theme.text.primary, 
-                          margin: 0, 
-                          fontWeight: '500',
-                          fontSize: '0.9rem'
-                        }}>
-                          {achievement.title}
-                        </p>
-                        <p style={{ 
-                          color: theme.text.secondary, 
-                          margin: 0, 
-                          fontSize: '0.8rem'
-                        }}>
-                          {achievement.description}
-                        </p>
+                        <div style={{ fontWeight: 600, color: T.frostWhite, fontSize: '0.92rem', marginBottom: 2 }}>{ach.name}</div>
+                        <div style={{ color: T.textMuted, fontSize: '0.82rem' }}>{ach.description}</div>
                       </div>
-                    </FilteredMotionDiv>
+                    </AchievementCard>
+                  ))
+                ) : (
+                  <p style={{ color: T.textMuted, textAlign: 'center', fontSize: '0.9rem' }}>
+                    Start your journey to earn achievements!
+                  </p>
+                )}
+              </GlassPanel>
+            </motion.div>
+          )}
+
+          {/* ═══════ ACTIVITY TAB ═══════ */}
+          {activeTab === 'activity' && (
+            <motion.div key="activity" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={physics.glissando}>
+              <GlassPanel>
+                <SectionTitle style={{ marginBottom: 16 }}>Recent Activity</SectionTitle>
+                {placeholderActivity.map((item) => {
+                  const ItemIcon = item.icon;
+                  return (
+                    <TimelineItem key={item.id}>
+                      <TimelineDot $color={item.color}>
+                        <ItemIcon size={18} />
+                      </TimelineDot>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: T.frostWhite, fontSize: '0.92rem', marginBottom: 4 }}>{item.text}</div>
+                        <div style={{ color: T.textMuted, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} /> {item.time}
+                        </div>
+                      </div>
+                    </TimelineItem>
                   );
                 })}
-              </div>
-            </SidebarCard>
-          </Sidebar>
-
-          {/* Main Content */}
-          <MainContent
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            {/* Tab Navigation */}
-            <TabNavigation>
-              {[
-                { id: 'feed', label: 'Live Feed', icon: Sparkles },
-                { id: 'community', label: 'Community', icon: Users2 },
-                { id: 'creative', label: 'Creative', icon: Music2 },
-                { id: 'photos', label: 'Photos', icon: ImageIcon },
-                { id: 'about', label: 'About', icon: Users },
-                { id: 'activity', label: 'Activity', icon: Activity },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <Tab
-                    key={tab.id}
-                    $active={activeTab === tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Icon size={18} />
-                    {tab.label}
-                  </Tab>
-                );
-              })}
-            </TabNavigation>
-
-            {/* Tab Content */}
-            <AnimatePresence mode="wait">
-              {activeTab === 'feed' && <SwanGalaxyRadianceFeed key="feed" />}
-              {activeTab === 'community' && <CommunityContent key="community" />}
-              {activeTab === 'creative' && <CreativeExpressionContent key="creative" />}
-              {activeTab === 'photos' && <PhotosContent key="photos" />}
-              {activeTab === 'about' && <AboutContent key="about" />}
-              {activeTab === 'activity' && <ActivityContent key="activity" />}
-            </AnimatePresence>
-          </MainContent>
-        </ContentGrid>
-
-        {/* Hidden File Inputs */}
-        <HiddenInput
-          ref={profileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleFileChange(e, 'profile')}
-        />
-        
-        <HiddenInput
-          ref={backgroundInputRef}
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleFileChange(e, 'background')}
-        />
+              </GlassPanel>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </ContentWrapper>
 
-      {/* Loading Overlay */}
+      {/* ═══════ Hidden File Inputs ═══════ */}
+      <input ref={profileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileChange(e, 'profile')} />
+      <input ref={backgroundInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileChange(e, 'background')} />
+      <input ref={photoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileChange(e, 'photo')} />
+
+      {/* ═══════ Upload Loading Overlay ═══════ */}
       <AnimatePresence>
-        {isUploading && (
-          <LoadingOverlay
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <LoadingSpinner />
-            <LoadingText>
-              {uploadingType === 'profile' && 'Uploading profile image...'}
-              {uploadingType === 'background' && 'Uploading cover photo...'}
-              {uploadingType === 'photo' && 'Uploading photo...'}
-            </LoadingText>
+        {(isUploading || uploadingType) && (
+          <LoadingOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Loader2 size={36} style={{ animation: 'spin 1s linear infinite' }} />
+            {uploadingType === 'profile' && 'Uploading profile photo...'}
+            {uploadingType === 'background' && 'Uploading cover photo...'}
+            {uploadingType === 'photo' && 'Uploading photo...'}
+            {!uploadingType && 'Uploading...'}
           </LoadingOverlay>
         )}
       </AnimatePresence>
-    </ProfileContainer>
+    </PageContainer>
   );
 };
 
-// Wrap the component in error boundary
-const UserDashboardWithErrorBoundary: React.FC<UserDashboardProps> = () => {
+export default function UserDashboardWithErrorBoundary() {
   return (
     <UserDashboardErrorBoundary>
       <UserDashboard />
     </UserDashboardErrorBoundary>
   );
-};
-
-export default UserDashboardWithErrorBoundary;
+}
