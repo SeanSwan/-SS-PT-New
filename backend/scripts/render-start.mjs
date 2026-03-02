@@ -36,6 +36,23 @@ async function start() {
         '--env', 'production'
       ]);
       console.log('Migrations completed successfully');
+
+      // Run achievement seeder (idempotent — skips if data exists)
+      console.log('Running achievement seeder...');
+      try {
+        await run('npx', [
+          'sequelize-cli', 'db:seed',
+          '--seed', '20260301001000-seed-achievements.cjs',
+          '--config', 'config/config.cjs',
+          '--seeders-path', 'seeders',
+          '--models-path', 'models',
+          '--env', 'production'
+        ]);
+        console.log('Achievement seeder completed');
+      } catch (seedErr) {
+        // Seeder failure is non-fatal — server can still start
+        console.warn('Achievement seeder failed (non-fatal):', seedErr.message);
+      }
     } catch (err) {
       console.error('FATAL: Migration failed:', err.message);
       process.exit(1);
