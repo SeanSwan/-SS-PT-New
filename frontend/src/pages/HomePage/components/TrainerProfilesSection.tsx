@@ -645,17 +645,17 @@ const TrainerProfilesSection: React.FC = () => {
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Theme-aware button variant (preserved for admin-command branch)
+  // Theme-aware button variant
   const getThemeButtonVariant = () => {
     switch (currentTheme) {
-      case 'swan-galaxy':
-        return 'cosmic';
-      case 'admin-command':
+      case 'crystalline-default':
         return 'primary';
-      case 'dark-galaxy':
+      case 'crystalline-light':
+        return 'primary';
+      case 'crystalline-dark':
         return 'cosmic';
       default:
-        return 'cosmic';
+        return 'primary';
     }
   };
 

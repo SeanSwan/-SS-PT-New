@@ -104,7 +104,7 @@ const TestApp = () => {
       <Provider store={store}>
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-            <UniversalThemeProvider defaultTheme="swan-galaxy">
+            <UniversalThemeProvider defaultTheme="crystalline-default">
               <ThemeProvider theme={{ ...theme.dark, swanStudios: swanStudiosTheme }}>
                 <AuthProvider>
                   <ToastProvider>

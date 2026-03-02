@@ -1,264 +1,311 @@
 /**
  * UniversalThemeContext.tsx
  * ========================
- * 
- * Revolutionary Universal Theme System for SwanStudios Platform
- * Designed by Seraphina, The Digital Alchemist
- * 
+ *
+ * Crystalline Swan Theme System for SwanStudios Platform
+ *
  * Features:
- * - Three gorgeous theme variants: Swan Galaxy, Admin Command, Dark Galaxy
- * - Seamless theme switching with persistence
- * - Award-winning color hierarchies and gradient systems
- * - Performance-optimized theme switching
+ * - Three Crystalline Swan variants: Default, Light, Dark
+ * - Palette derived from the SwanStudios swan logo
+ * - Seamless theme switching with localStorage persistence
  * - WCAG AA accessibility compliance
- * 
- * Master Prompt v28 Alignment:
- * - Sensational aesthetics with cosmic design philosophy
- * - Mobile-first responsive theming
- * - Universal application across all components
+ *
+ * Master Palette — Preset F-Alt "Enchanted Apex: Crystalline Swan"
+ * - Midnight Sapphire #002060 — Primary / logo deep navy
+ * - Royal Depth #003080 — Surface / logo circle
+ * - Ice Wing #60C0F0 — Gaming accent / wing highlight
+ * - Arctic Cyan #50A0F0 — Secondary accent / feathers
+ * - Gilded Fern #C6A84B — Luxury gold accent
+ * - Frost White #E0ECF4 — Light background / head highlight
+ * - Swan Lavender #4070C0 — Tertiary / mid-body purple-blue
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { injectThemeVariables } from '../../utils/theme/themeUtils';
 
+// === TYPOGRAPHY STACKS ===
+const fonts = {
+  heading: '"Plus Jakarta Sans", "Sora", sans-serif',
+  drama: '"Cormorant Garamond", Georgia, serif',
+  data: '"Fira Code", "Cascadia Code", monospace',
+  ui: '"Sora", "Plus Jakarta Sans", sans-serif',
+};
+
 // === THEME DEFINITIONS ===
 
 /**
- * SWAN GALAXY THEME
- * Primary: Blue/Cyan (#00FFFF, #00A0E3)
- * Secondary: Purple (#7851A9)
- * Accent: Gold/Yellow (#FFD700)
+ * CRYSTALLINE DEFAULT THEME
+ * The flagship dark-mode Crystalline Swan — navy foundation with ice-wing accents.
+ * Background: #002060 -> #003080
+ * Primary accent: #60C0F0 (Ice Wing)
+ * Gold accent: #C6A84B (Gilded Fern)
  */
-const swanGalaxyTheme = {
-  id: 'swan-galaxy',
-  name: 'Swan Galaxy',
+const crystallineDefault = {
+  id: 'crystalline-default' as const,
+  name: 'Crystalline Swan',
+  fonts,
   colors: {
     // Foundation
-    deepSpace: '#0a0a1a',
-    stardust: '#1e1e3f',
-    void: '#000000',
-    
-    // PRIMARY HIERARCHY (Blue/Cyan)
-    primary: '#00FFFF',        // Main cyan
-    primaryBlue: '#00A0E3',    // Brand blue (favicon color)
-    primaryDeep: '#0085C7',    // Deep blue
-    primaryLight: '#B8E6FF',   // Light blue
-    primaryNeon: '#00FFFF',    // Neon cyan
-    
-    // SECONDARY HIERARCHY (Purple)
-    secondary: '#7851A9',      // Main purple
-    secondaryLight: '#c8b6ff', // Light purple
-    secondaryDeep: '#7b2cbf',  // Deep purple
-    
-    // ACCENT COLORS (Yellow/Gold)
-    accent: '#FFD700',         // Gold accent
-    accentLight: '#FFF4C4',    // Light gold
-    accentWarm: '#FFE55C',     // Warm yellow
-    
+    deepSpace: '#002060',
+    stardust: '#003080',
+    void: '#001040',
+
+    // PRIMARY HIERARCHY (Ice Wing / Arctic Cyan)
+    primary: '#60C0F0',
+    primaryBlue: '#50A0F0',
+    primaryDeep: '#4070C0',
+    primaryLight: '#90D4F8',
+    primaryNeon: '#60C0F0',
+
+    // SECONDARY HIERARCHY (Swan Lavender / Royal Depth)
+    secondary: '#4070C0',
+    secondaryLight: '#6090D0',
+    secondaryDeep: '#003080',
+
+    // ACCENT COLORS (Gilded Fern)
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
     // Supporting colors
-    white: '#ffffff',
-    silver: '#E8F0FF',
-    muted: 'rgba(255, 255, 255, 0.7)',
-    error: '#ff416c',
-    success: '#10b981',
-    warning: '#f59e0b',
+    white: '#E0ECF4',
+    silver: '#E0ECF4',
+    muted: 'rgba(224, 236, 244, 0.7)',
+    error: '#FF6B6B',
+    success: '#4ADE80',
+    warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #00FFFF, #00A0E3)',
-    secondary: 'linear-gradient(135deg, #7851A9, #7b2cbf)',
-    cosmic: 'linear-gradient(135deg, #00FFFF, #7851A9)',
-    hero: 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%)',
-    card: 'rgba(30, 30, 60, 0.4)',
-    accent: 'linear-gradient(135deg, #FFD700, #FFE55C)',
-    stellar: 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)',
-    swanCosmic: 'linear-gradient(135deg, #00FFFF, #7851A9)',
+    primary: 'linear-gradient(135deg, #002060, #60C0F0)',
+    secondary: 'linear-gradient(135deg, #003080, #4070C0)',
+    cosmic: 'linear-gradient(135deg, #002060, #50A0F0)',
+    hero: 'radial-gradient(ellipse at center, #003080 0%, #002060 70%)',
+    card: 'rgba(0, 48, 128, 0.4)',
+    accent: 'linear-gradient(135deg, #002060, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #60C0F0 0%, #C6A84B 100%)',
+    swanCosmic: 'linear-gradient(135deg, #60C0F0, #4070C0)',
+    glass: 'linear-gradient(135deg, rgba(0, 48, 128, 0.4), rgba(96, 192, 240, 0.1))',
   },
   shadows: {
-    primary: '0 0 20px rgba(0, 255, 255, 0.3)',
-    secondary: '0 0 20px rgba(120, 81, 169, 0.3)',
-    cosmic: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 255, 255, 0.3)',
-    accent: '0 0 15px rgba(255, 215, 0, 0.5)',
+    primary: '0 0 20px rgba(96, 192, 240, 0.2)',
+    secondary: '0 0 20px rgba(64, 112, 192, 0.2)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(96, 192, 240, 0.2)',
+    accent: '0 0 15px rgba(198, 168, 75, 0.4)',
     elevation: '0 15px 35px rgba(0, 0, 0, 0.5)',
     glow: '0 0 15px currentColor',
+    glass: '0 8px 32px rgba(0, 32, 96, 0.3)',
+    button: '0 4px 16px rgba(96, 192, 240, 0.25)',
   },
   borders: {
-    subtle: 'rgba(255, 255, 255, 0.05)',
-    elegant: 'rgba(0, 255, 255, 0.2)',
-    prominent: 'rgba(0, 160, 227, 0.4)',
+    subtle: 'rgba(96, 192, 240, 0.08)',
+    elegant: 'rgba(96, 192, 240, 0.2)',
+    prominent: 'rgba(80, 160, 240, 0.4)',
+    glass: '1px solid rgba(96, 192, 240, 0.15)',
+    card: '1px solid rgba(96, 192, 240, 0.12)',
+    focus: '2px solid #60C0F0',
   },
   background: {
-    primary: '#0a0a1a',
-    secondary: '#1e1e3f',
-    surface: 'rgba(30, 30, 60, 0.6)',
-    elevated: 'rgba(50, 50, 80, 0.4)',
+    primary: '#002060',
+    secondary: '#003080',
+    surface: 'rgba(0, 48, 128, 0.6)',
+    elevated: 'rgba(0, 48, 128, 0.4)',
   },
   text: {
-    primary: '#ffffff',
-    secondary: '#E8F0FF',
-    muted: 'rgba(255, 255, 255, 0.7)',
-  }
+    primary: '#E0ECF4',
+    secondary: 'rgba(224, 236, 244, 0.85)',
+    muted: 'rgba(224, 236, 244, 0.6)',
+    heading: '#E0ECF4',
+    subheading: 'rgba(224, 236, 244, 0.9)',
+    body: 'rgba(224, 236, 244, 0.85)',
+    label: 'rgba(224, 236, 244, 0.7)',
+    accent: '#60C0F0',
+  },
 };
 
 /**
- * ADMIN COMMAND THEME
- * Professional blue command center aesthetic
- * Primary: Command Blue (#3b82f6)
- * Secondary: Navy (#1e3a8a)
- * Accent: Cyan highlights
+ * CRYSTALLINE LIGHT THEME
+ * Frost-white canvas with navy text and arctic-blue accents.
+ * Background: #E0ECF4 -> #F5F8FC
+ * Primary accent: #50A0F0 (slightly darker for contrast on white)
+ * Gold accent: #C6A84B
  */
-const adminCommandTheme = {
-  id: 'admin-command',
-  name: 'Admin Command',
+const crystallineLight = {
+  id: 'crystalline-light' as const,
+  name: 'Crystalline Light',
+  fonts,
   colors: {
     // Foundation
-    deepSpace: '#0a0a0f',
-    stardust: '#1e3a8a',       // Navy blue base
-    void: '#000000',
-    
-    // PRIMARY HIERARCHY (Professional Blue)
-    primary: '#3b82f6',        // Main command blue
-    primaryBlue: '#2563eb',    // Deep command blue
-    primaryDeep: '#1d4ed8',    // Deepest blue
-    primaryLight: '#93c5fd',   // Light command blue
-    primaryNeon: '#00ffff',    // Cyan accent
-    
-    // SECONDARY HIERARCHY (Navy/Dark Blue)
-    secondary: '#1e3a8a',      // Navy command
-    secondaryLight: '#3b82f6', // Light navy
-    secondaryDeep: '#1e40af',  // Deep navy
-    
-    // ACCENT COLORS (Cyan/Electric)
-    accent: '#00ffff',         // Electric cyan
-    accentLight: '#a5f3fc',    // Light cyan
-    accentWarm: '#0ea5e9',     // Warm electric blue
-    
+    deepSpace: '#E0ECF4',
+    stardust: '#F5F8FC',
+    void: '#FFFFFF',
+
+    // PRIMARY HIERARCHY (Arctic Cyan — darkened for contrast)
+    primary: '#50A0F0',
+    primaryBlue: '#4070C0',
+    primaryDeep: '#003080',
+    primaryLight: '#80C0F8',
+    primaryNeon: '#50A0F0',
+
+    // SECONDARY HIERARCHY (Swan Lavender)
+    secondary: '#4070C0',
+    secondaryLight: '#6090D0',
+    secondaryDeep: '#002060',
+
+    // ACCENT COLORS (Gilded Fern)
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#A88A30',
+
     // Supporting colors
-    white: '#ffffff',
-    silver: '#e5e7eb',
-    muted: 'rgba(255, 255, 255, 0.7)',
-    error: '#ef4444',
-    success: '#10b981',
-    warning: '#f59e0b',
+    white: '#FFFFFF',
+    silver: '#F5F8FC',
+    muted: 'rgba(0, 32, 96, 0.55)',
+    error: '#DC2626',
+    success: '#16A34A',
+    warning: '#D97706',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-    secondary: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
-    cosmic: 'linear-gradient(135deg, #3b82f6, #1e3a8a)',
-    hero: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #00ffff 100%)',
-    card: 'rgba(30, 58, 138, 0.4)',
-    accent: 'linear-gradient(135deg, #00ffff, #0ea5e9)',
-    stellar: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
-    swanCosmic: 'linear-gradient(135deg, #3b82f6, #1e3a8a)',
+    primary: 'linear-gradient(135deg, #50A0F0, #4070C0)',
+    secondary: 'linear-gradient(135deg, #E0ECF4, #F5F8FC)',
+    cosmic: 'linear-gradient(135deg, #50A0F0, #002060)',
+    hero: 'radial-gradient(ellipse at center, #F5F8FC 0%, #E0ECF4 70%)',
+    card: 'rgba(224, 236, 244, 0.7)',
+    accent: 'linear-gradient(135deg, #C6A84B, #D8C478)',
+    stellar: 'linear-gradient(45deg, #50A0F0 0%, #C6A84B 100%)',
+    swanCosmic: 'linear-gradient(135deg, #50A0F0, #4070C0)',
+    glass: 'linear-gradient(135deg, rgba(224, 236, 244, 0.7), rgba(255, 255, 255, 0.5))',
   },
   shadows: {
-    primary: '0 0 20px rgba(59, 130, 246, 0.3)',
-    secondary: '0 0 20px rgba(30, 58, 138, 0.3)',
-    cosmic: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(59, 130, 246, 0.3)',
-    accent: '0 0 15px rgba(0, 255, 255, 0.5)',
-    elevation: '0 15px 35px rgba(0, 0, 0, 0.6)',
+    primary: '0 0 20px rgba(0, 32, 96, 0.08)',
+    secondary: '0 0 20px rgba(64, 112, 192, 0.08)',
+    cosmic: '0 8px 32px rgba(0, 32, 96, 0.12), 0 0 40px rgba(80, 160, 240, 0.06)',
+    accent: '0 0 15px rgba(198, 168, 75, 0.25)',
+    elevation: '0 15px 35px rgba(0, 32, 96, 0.1)',
     glow: '0 0 15px currentColor',
+    glass: '0 8px 32px rgba(0, 32, 96, 0.06)',
+    button: '0 4px 16px rgba(80, 160, 240, 0.2)',
   },
   borders: {
-    subtle: 'rgba(255, 255, 255, 0.05)',
-    elegant: 'rgba(59, 130, 246, 0.2)',
-    prominent: 'rgba(37, 99, 235, 0.4)',
+    subtle: 'rgba(64, 112, 192, 0.08)',
+    elegant: 'rgba(64, 112, 192, 0.15)',
+    prominent: 'rgba(64, 112, 192, 0.25)',
+    glass: '1px solid rgba(64, 112, 192, 0.12)',
+    card: '1px solid rgba(64, 112, 192, 0.12)',
+    focus: '2px solid #50A0F0',
   },
   background: {
-    primary: '#0a0a0f',
-    secondary: '#1e3a8a',
-    surface: 'rgba(30, 58, 138, 0.6)',
-    elevated: 'rgba(59, 130, 246, 0.2)',
+    primary: '#E0ECF4',
+    secondary: '#F5F8FC',
+    surface: '#FFFFFF',
+    elevated: 'rgba(255, 255, 255, 0.9)',
   },
   text: {
-    primary: '#ffffff',
-    secondary: '#e5e7eb',
-    muted: 'rgba(255, 255, 255, 0.7)',
-  }
+    primary: '#002060',
+    secondary: 'rgba(0, 32, 96, 0.75)',
+    muted: 'rgba(0, 32, 96, 0.55)',
+    heading: '#002060',
+    subheading: 'rgba(0, 32, 96, 0.85)',
+    body: 'rgba(0, 32, 96, 0.75)',
+    label: 'rgba(0, 32, 96, 0.6)',
+    accent: '#4070C0',
+  },
 };
 
 /**
- * DARK GALAXY THEME
- * Minimalist dark aesthetic with galaxy touches
- * Primary: White/Silver
- * Secondary: Charcoal/Gray
- * Accent: Subtle cyan highlights
+ * CRYSTALLINE DARK THEME
+ * Maximum-contrast deep black with stronger ice-glow effects.
+ * Background: #000A1A -> #001030
+ * Primary accent: #60C0F0 (brighter glow)
+ * Gold accent: #C6A84B
  */
-const darkGalaxyTheme = {
-  id: 'dark-galaxy',
-  name: 'Dark Galaxy',
+const crystallineDark = {
+  id: 'crystalline-dark' as const,
+  name: 'Crystalline Dark',
+  fonts,
   colors: {
     // Foundation
-    deepSpace: '#000000',
-    stardust: '#1a1a1a',
+    deepSpace: '#000A1A',
+    stardust: '#001030',
     void: '#000000',
-    
-    // PRIMARY HIERARCHY (White/Silver)
-    primary: '#ffffff',        // Pure white
-    primaryBlue: '#f8fafc',    // Off-white
-    primaryDeep: '#e2e8f0',    // Light gray
-    primaryLight: '#ffffff',   // Pure white
-    primaryNeon: '#00ffff',    // Cyan accent
-    
-    // SECONDARY HIERARCHY (Grays)
-    secondary: '#4a5568',      // Medium gray
-    secondaryLight: '#718096', // Light gray
-    secondaryDeep: '#2d3748',  // Dark gray
-    
-    // ACCENT COLORS (Subtle Cyan)
-    accent: '#00ffff',         // Cyan accent
-    accentLight: '#e0ffff',    // Very light cyan
-    accentWarm: '#40e0d0',     // Turquoise
-    
+
+    // PRIMARY HIERARCHY (Ice Wing — brighter for glow)
+    primary: '#60C0F0',
+    primaryBlue: '#50A0F0',
+    primaryDeep: '#4070C0',
+    primaryLight: '#A0D8FC',
+    primaryNeon: '#70D0FF',
+
+    // SECONDARY HIERARCHY (Swan Lavender)
+    secondary: '#4070C0',
+    secondaryLight: '#6090D0',
+    secondaryDeep: '#002060',
+
+    // ACCENT COLORS (Gilded Fern)
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
     // Supporting colors
-    white: '#ffffff',
-    silver: '#f7fafc',
-    muted: 'rgba(255, 255, 255, 0.6)',
-    error: '#e53e3e',
-    success: '#38a169',
-    warning: '#d69e2e',
+    white: '#E0ECF4',
+    silver: '#E0ECF4',
+    muted: 'rgba(224, 236, 244, 0.6)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-    secondary: 'linear-gradient(135deg, #4a5568, #2d3748)',
-    cosmic: 'linear-gradient(135deg, #ffffff, #4a5568)',
-    hero: 'linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #2d3748 100%)',
-    card: 'rgba(26, 26, 26, 0.8)',
-    accent: 'linear-gradient(135deg, #00ffff, #40e0d0)',
-    stellar: 'linear-gradient(45deg, #ffffff 0%, #00ffff 100%)',
-    swanCosmic: 'linear-gradient(135deg, #ffffff, #4a5568)',
+    primary: 'linear-gradient(135deg, #000A1A, #60C0F0)',
+    secondary: 'linear-gradient(135deg, #001030, #4070C0)',
+    cosmic: 'linear-gradient(135deg, #000A1A, #50A0F0)',
+    hero: 'radial-gradient(ellipse at center, #001030 0%, #000A1A 70%)',
+    card: 'rgba(0, 16, 48, 0.5)',
+    accent: 'linear-gradient(135deg, #000A1A, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #70D0FF 0%, #C6A84B 100%)',
+    swanCosmic: 'linear-gradient(135deg, #60C0F0, #4070C0)',
+    glass: 'linear-gradient(135deg, rgba(0, 16, 48, 0.6), rgba(96, 192, 240, 0.08))',
   },
   shadows: {
-    primary: '0 0 20px rgba(255, 255, 255, 0.2)',
-    secondary: '0 0 20px rgba(74, 85, 104, 0.3)',
-    cosmic: '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 255, 255, 0.1)',
-    accent: '0 0 15px rgba(0, 255, 255, 0.4)',
-    elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
+    primary: '0 0 20px rgba(96, 192, 240, 0.3)',
+    secondary: '0 0 20px rgba(64, 112, 192, 0.3)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(96, 192, 240, 0.3)',
+    accent: '0 0 15px rgba(198, 168, 75, 0.5)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.7)',
     glow: '0 0 15px currentColor',
+    glass: '0 8px 32px rgba(0, 10, 26, 0.5)',
+    button: '0 4px 16px rgba(96, 192, 240, 0.3)',
   },
   borders: {
-    subtle: 'rgba(255, 255, 255, 0.1)',
-    elegant: 'rgba(255, 255, 255, 0.2)',
-    prominent: 'rgba(0, 255, 255, 0.4)',
+    subtle: 'rgba(96, 192, 240, 0.1)',
+    elegant: 'rgba(96, 192, 240, 0.25)',
+    prominent: 'rgba(96, 192, 240, 0.45)',
+    glass: '1px solid rgba(96, 192, 240, 0.2)',
+    card: '1px solid rgba(96, 192, 240, 0.15)',
+    focus: '2px solid #70D0FF',
   },
   background: {
-    primary: '#000000',
-    secondary: '#1a1a1a',
-    surface: 'rgba(26, 26, 26, 0.8)',
-    elevated: 'rgba(74, 85, 104, 0.2)',
+    primary: '#000A1A',
+    secondary: '#001030',
+    surface: 'rgba(0, 16, 48, 0.8)',
+    elevated: 'rgba(0, 16, 48, 0.5)',
   },
   text: {
-    primary: '#ffffff',
-    secondary: '#f7fafc',
-    muted: 'rgba(255, 255, 255, 0.6)',
-  }
+    primary: '#E0ECF4',
+    secondary: 'rgba(224, 236, 244, 0.85)',
+    muted: 'rgba(224, 236, 244, 0.55)',
+    heading: '#E0ECF4',
+    subheading: 'rgba(224, 236, 244, 0.9)',
+    body: 'rgba(224, 236, 244, 0.85)',
+    label: 'rgba(224, 236, 244, 0.65)',
+    accent: '#70D0FF',
+  },
 };
 
 // === THEME MAPPING ===
 export const themes = {
-  'swan-galaxy': swanGalaxyTheme,
-  'admin-command': adminCommandTheme,
-  'dark-galaxy': darkGalaxyTheme,
+  'crystalline-default': crystallineDefault,
+  'crystalline-light': crystallineLight,
+  'crystalline-dark': crystallineDark,
 } as const;
 
 export type ThemeId = keyof typeof themes;
@@ -266,7 +313,7 @@ export type ThemeId = keyof typeof themes;
 // === THEME CONTEXT ===
 interface ThemeContextType {
   currentTheme: ThemeId;
-  theme: typeof swanGalaxyTheme;
+  theme: typeof crystallineDefault;
   setTheme: (themeId: ThemeId) => void;
   toggleTheme: () => void;
   availableThemes: Array<{ id: ThemeId; name: string }>;
@@ -282,7 +329,7 @@ interface UniversalThemeProviderProps {
 
 export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
   children,
-  defaultTheme = 'swan-galaxy'
+  defaultTheme = 'crystalline-default'
 }) => {
   const [currentTheme, setCurrentThemeState] = useState<ThemeId>(defaultTheme);
 
@@ -302,22 +349,22 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
   const setTheme = (themeId: ThemeId) => {
     setCurrentThemeState(themeId);
     localStorage.setItem('swanstudios-theme', themeId);
-    
+
     // Inject CSS variables for the new theme
     injectThemeVariables(themeId);
-    
+
     // Dispatch custom event for components that need to react to theme changes
-    window.dispatchEvent(new CustomEvent('themeChanged', { 
-      detail: { themeId, theme: themes[themeId] } 
+    window.dispatchEvent(new CustomEvent('themeChanged', {
+      detail: { themeId, theme: themes[themeId] }
     }));
   };
 
-  // Cycle through themes
+  // Cycle through themes: default -> light -> dark -> default
   const toggleTheme = () => {
-    const themeIds = Object.keys(themes) as ThemeId[];
-    const currentIndex = themeIds.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % themeIds.length;
-    setTheme(themeIds[nextIndex]);
+    const cycle: ThemeId[] = ['crystalline-default', 'crystalline-light', 'crystalline-dark'];
+    const currentIndex = cycle.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % cycle.length;
+    setTheme(cycle[nextIndex]);
   };
 
   // Available themes list
@@ -358,12 +405,12 @@ export const useUniversalTheme = () => {
  */
 export const getGlowButtonVariant = (themeId: ThemeId): string => {
   switch (themeId) {
-    case 'swan-galaxy':
-      return 'primary'; // Blue/cyan glow
-    case 'admin-command':
-      return 'primary'; // Professional blue glow  
-    case 'dark-galaxy':
-      return 'cosmic'; // Minimalist white/cyan glow
+    case 'crystalline-default':
+      return 'primary'; // Ice-wing blue glow
+    case 'crystalline-light':
+      return 'primary'; // Arctic cyan on frost
+    case 'crystalline-dark':
+      return 'cosmic'; // Deep ice glow
     default:
       return 'primary';
   }
