@@ -511,7 +511,7 @@ export const getUserAchievements = async (req, res) => {
         currentStreak: user?.streakDays || 0,
         totalPoints: user?.points || 0,
         currentLevel: user?.level || 1,
-        currentTier: user?.tier || 'bronze'
+        currentTier: user?.tier || 'bronze_forge'
       }
     };
     

@@ -1,9 +1,50 @@
+/**
+ * useGamificationData Hook
+ * ========================
+ * React Query-based hook for fetching and caching gamification data.
+ *
+ * Architecture:
+ *   AuthContext (authAxios) -> React Query -> API endpoints -> Cached state
+ *
+ * Endpoints consumed:
+ *   GET /api/v1/gamification/profile       -> user level, tier, points, stats
+ *   GET /api/v1/gamification/achievements  -> user's earned achievements w/ progress
+ *   GET /api/v1/gamification/achievements/available -> all available achievement templates
+ *
+ * Backward compatibility:
+ *   This hook preserves the same return shape as the previous mock-data version
+ *   so that existing consumers (client-gamification-view-enhanced, SocialPage,
+ *   useSocialFeed, etc.) continue to work without modification.
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import {
+  type TierName,
+  type SkillTree,
+  type UserAchievement as NewUserAchievement,
+  type GamificationProfile as NewGamificationProfile,
+  type LevelProgress,
+  getLevelProgress,
+  TIER_DISPLAY,
+} from '../../types/gamification';
 
-// Define types for our gamification system
+// Re-export the new types for consumers that import them from this file
+export type { TierName, SkillTree, LevelProgress };
+export {
+  getLevelProgress,
+  TIER_DISPLAY,
+  calculateLevel,
+  pointsForLevel,
+  getTier,
+} from '../../types/gamification';
+
+// ─── Legacy types preserved for backward compatibility ──────────────────────
+// Existing consumers import these interfaces from this file.
+// We keep them so downstream code compiles without changes.
+
 export interface Achievement {
   id: string;
   name: string;
@@ -124,405 +165,456 @@ export interface LeaderboardEntry {
   };
 }
 
+// ─── Tier mapping helper ────────────────────────────────────────────────────
+// Maps new TierName values to the legacy 4-tier system used by existing UI.
+
+function mapTierToLegacy(tier: TierName): 'bronze' | 'silver' | 'gold' | 'platinum' {
+  switch (tier) {
+    case 'bronze_forge':     return 'bronze';
+    case 'silver_edge':      return 'silver';
+    case 'titanium_core':    return 'gold';
+    case 'obsidian_warrior': return 'platinum';
+    case 'crystalline_swan': return 'platinum';
+    default:                 return 'bronze';
+  }
+}
+
+function getNextLegacyTier(
+  currentTier: 'bronze' | 'silver' | 'gold' | 'platinum'
+): 'silver' | 'gold' | 'platinum' | undefined {
+  switch (currentTier) {
+    case 'bronze':  return 'silver';
+    case 'silver':  return 'gold';
+    case 'gold':    return 'platinum';
+    case 'platinum': return undefined;
+    default:        return undefined;
+  }
+}
+
+// ─── Achievement mapping ────────────────────────────────────────────────────
+// Maps new UserAchievement shape to legacy Achievement/UserAchievement.
+
+function mapAchievementToLegacy(ua: NewUserAchievement): UserAchievement {
+  return {
+    id: ua.id,
+    achievementId: ua.achievementId,
+    earnedAt: ua.earnedAt || new Date().toISOString(),
+    progress: ua.progress,
+    isCompleted: ua.isCompleted,
+    pointsAwarded: ua.pointsAwarded,
+    achievement: {
+      id: ua.achievement?.id || ua.achievementId,
+      name: ua.achievement?.name || ua.achievement?.title || 'Achievement',
+      description: ua.achievement?.description || '',
+      icon: ua.achievement?.iconEmoji || '🏆',
+      pointValue: ua.achievement?.xpReward || ua.pointsAwarded,
+      requirementType: ua.achievement?.category || 'milestone',
+      requirementValue: ua.achievement?.requiredPoints || ua.maxProgress,
+      tier: 'bronze', // legacy field - not meaningful in new system
+      isActive: true,
+      badgeImageUrl: ua.achievement?.iconUrl,
+    },
+  };
+}
+
+// ─── Options ────────────────────────────────────────────────────────────────
+
 interface UseGamificationDataOptions {
   userId?: string;
 }
 
+// ─── The Hook ───────────────────────────────────────────────────────────────
+
 /**
- * Custom hook to manage gamification data using React Query
- * Provides optimized data fetching, caching, and state management
+ * Custom hook to manage gamification data using React Query.
+ * Fetches real data from the gamification API endpoints and provides
+ * caching, refetching, and backward-compatible return values.
  */
 export const useGamificationData = (options: UseGamificationDataOptions = {}) => {
   const { userId } = options;
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Determine which user to fetch data for (current user or specified user)
   const targetUserId = userId || user?.id;
-  
-  // Generate query keys for React Query
+
+  // Query keys
   const keys = {
     profile: ['gamification', 'profile', targetUserId],
     achievements: ['gamification', 'achievements'],
     rewards: ['gamification', 'rewards'],
     leaderboard: ['gamification', 'leaderboard'],
-    milestones: ['gamification', 'milestones'],
   };
-  
-  // Fetch user's gamification profile
-  const fetchProfile = useCallback(async () => {
-    try {
-      // This would be a real API call in production
-      // const response = await authAxios.get(`/api/gamification/users/${targetUserId}/profile`);
-      // return response.data.profile;
-      
-      // For demo purposes, we're using mock data
-      // Mock data implementation would go here - for now we'll simulate a 500ms delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock profile data similar to what's in the existing component
-      const mockProfile: GamificationProfile = {
-        id: targetUserId || '1',
-        firstName: user?.firstName || 'John',
-        lastName: user?.lastName || 'Doe',
-        username: user?.username || 'johndoe',
-        photo: user?.photo,
-        points: 4800,
-        level: 24,
-        tier: 'silver',
-        streakDays: 8,
-        achievements: [
-          // Achievement data would be populated here
-        ],
-        rewards: [
-          // Rewards data would be populated here
-        ],
-        milestones: [
-          // Milestones data would be populated here
-        ],
-        leaderboardPosition: 2,
-        recentTransactions: [
-          // Transactions data would be populated here
-        ],
-        nextMilestone: {
-          id: '3',
-          name: 'Gold Badge',
-          description: 'Earn 20,000 points to unlock Gold tier rewards',
-          targetPoints: 20000,
-          tier: 'gold',
-          bonusPoints: 1000,
-          icon: 'Award',
-          isActive: true
-        },
-        nextLevelProgress: 65,
-        nextLevelPoints: 2500,
-        nextTierProgress: 24,
-        nextTier: 'gold'
-      };
-      
-      // Mock progress snapshots for the last 30 days
-      const mockSnapshots: ProgressSnapshot[] = [
-        { date: '2024-04-01', points: 3800, level: 20, achievements: 2, tier: 'silver' },
-        { date: '2024-04-08', points: 4200, level: 22, achievements: 3, tier: 'silver' },
-        { date: '2024-04-15', points: 4500, level: 23, achievements: 3, tier: 'silver' },
-        { date: '2024-04-22', points: 4650, level: 23, achievements: 4, tier: 'silver' },
-        { date: '2024-04-29', points: 4800, level: 24, achievements: 4, tier: 'silver' }
-      ];
-      
-      // Mock streak calendar for the last 30 days
-      const today = new Date();
-      const mockStreakCalendar: StreakDay[] = [];
-      
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(today.getDate() - i);
-        
-        // Create some pattern of completed workouts
-        // More likely to have workouts on weekdays, less on weekends
-        const dayOfWeek = date.getDay();
-        let completed = false;
-        let points = 0;
-        
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not weekend
-          // Higher chance of completion on weekdays
-          completed = Math.random() > 0.3; 
-          if (completed) {
-            points = Math.floor(Math.random() * 30) + 30; // 30-60 points
-          }
-        } else {
-          // Lower chance of completion on weekends
-          completed = Math.random() > 0.7;
-          if (completed) {
-            points = Math.floor(Math.random() * 20) + 20; // 20-40 points
-          }
-        }
-        
-        // Make sure the last 8 days have workouts to match the streak
-        if (i < 8) {
-          completed = true;
-          points = Math.floor(Math.random() * 30) + 30;
-        }
-        
-        mockStreakCalendar.push({
-          date: date.toISOString().split('T')[0],
-          completed,
-          points
-        });
-      }
-      
-      const enhancedProfile = {
-        ...mockProfile,
-        progressSnapshots: mockSnapshots,
-        streakCalendar: mockStreakCalendar
-      };
-      
-      return enhancedProfile;
-    } catch (error) {
-      console.error('Error fetching gamification profile:', error);
-      throw error;
-    }
-  }, [authAxios, targetUserId, user]);
-  
-  // Fetch all achievements
-  const fetchAchievements = useCallback(async () => {
-    try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/gamification/achievements?isActive=true');
-      // return response.data.achievements;
-      
-      // For demo purposes, we're using mock data
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const mockAchievements: Achievement[] = [
-        // Mock achievements would be populated here
-      ];
-      
-      return mockAchievements;
-    } catch (error) {
-      console.error('Error fetching achievements:', error);
-      throw error;
-    }
-  }, [authAxios]);
-  
-  // Fetch all rewards
-  const fetchRewards = useCallback(async () => {
-    try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/gamification/rewards?isActive=true');
-      // return response.data.rewards;
-      
-      // For demo purposes, we're using mock data
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const mockRewards: Reward[] = [
-        // Mock rewards would be populated here
-      ];
-      
-      return mockRewards;
-    } catch (error) {
-      console.error('Error fetching rewards:', error);
-      throw error;
-    }
-  }, [authAxios]);
-  
-  // Fetch leaderboard
-  const fetchLeaderboard = useCallback(async () => {
-    try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/gamification/leaderboard?limit=5');
-      // return response.data.leaderboard;
-      
-      // For demo purposes, we're using mock data
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const mockLeaderboard: LeaderboardEntry[] = [
-        {
-          userId: 'user1',
-          overallLevel: 58,
-          client: {
-            id: 'user1',
-            firstName: 'Alice',
-            lastName: 'Williams',
-            username: 'awilliams',
-            photo: '/images/avatar1.jpg'
-          }
-        },
-        {
-          userId: targetUserId || 'user2',
-          overallLevel: 45,
-          client: {
-            id: targetUserId || 'user2',
-            firstName: user?.firstName || 'John',
-            lastName: user?.lastName || 'Doe',
-            username: user?.username || 'johndoe',
-            photo: user?.photo || '/images/avatar2.jpg'
-          }
-        },
-        {
-          userId: 'user3',
-          overallLevel: 42,
-          client: {
-            id: 'user3',
-            firstName: 'Sam',
-            lastName: 'Johnson',
-            username: 'samjohnson',
-            photo: '/images/avatar3.jpg'
-          }
-        },
-        {
-          userId: 'user4',
-          overallLevel: 36,
-          client: {
-            id: 'user4',
-            firstName: 'Emily',
-            lastName: 'Davis',
-            username: 'emilyd',
-            photo: '/images/avatar4.jpg'
-          }
-        },
-        {
-          userId: 'user5',
-          overallLevel: 28,
-          client: {
-            id: 'user5',
-            firstName: 'Mike',
-            lastName: 'Brown',
-            username: 'mikeb',
-            photo: '/images/avatar5.jpg'
-          }
-        }
-      ];
-      
-      return mockLeaderboard;
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error);
-      throw error;
-    }
-  }, [authAxios, targetUserId, user]);
-  
-  // Create React Query hooks
+
+  // ── Fetch gamification profile from real API ──────────────────────────
+
   const profileQuery = useQuery({
     queryKey: keys.profile,
-    queryFn: fetchProfile,
-    enabled: !!targetUserId, // Only run query if targetUserId is available
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    queryFn: async (): Promise<GamificationProfile> => {
+      try {
+        const { data } = await authAxios.get('/api/v1/gamification/profile');
+
+        // The API may return the profile at data.profile or data directly
+        const raw: NewGamificationProfile | undefined = data?.profile || data;
+
+        if (!raw || typeof raw.points !== 'number') {
+          throw new Error('Invalid gamification profile response');
+        }
+
+        // Compute level progress client-side for consistency
+        const lp = getLevelProgress(raw.points);
+        const legacyTier = mapTierToLegacy(raw.tier || lp.tier);
+        const nextTier = getNextLegacyTier(legacyTier);
+
+        // Map recent achievements to legacy shape
+        const legacyAchievements: UserAchievement[] = (raw.recentAchievements || []).map(
+          mapAchievementToLegacy
+        );
+
+        // Build the legacy GamificationProfile shape that existing consumers expect
+        const profile: GamificationProfile = {
+          id: String(raw.userId ?? targetUserId ?? ''),
+          firstName: user?.firstName || '',
+          lastName: user?.lastName || '',
+          username: user?.username || '',
+          photo: user?.profileImageUrl,
+          points: raw.points,
+          level: raw.level ?? lp.level,
+          tier: legacyTier,
+          streakDays: raw.stats?.streakDays ?? 0,
+          achievements: legacyAchievements,
+          rewards: [],
+          milestones: [],
+          leaderboardPosition: 0,
+          recentTransactions: [],
+          nextLevelProgress: lp.progressPercent,
+          nextLevelPoints: lp.pointsNeededForNext,
+          nextTierProgress: 0, // will be filled below
+          nextTier: nextTier,
+          progressSnapshots: undefined,
+          streakCalendar: undefined,
+        };
+
+        // Compute tier progress
+        if (nextTier) {
+          const tierTargets: Record<string, number> = {
+            silver: 5000,
+            gold: 20000,
+            platinum: 50000,
+          };
+          const target = tierTargets[nextTier] || 50000;
+          profile.nextTierProgress = Math.min(100, (raw.points / target) * 100);
+        }
+
+        return profile;
+      } catch (error: any) {
+        // Graceful fallback: if the API is unavailable, try the simpler
+        // profile/achievements endpoint as a backup
+        console.warn('[Gamification] Primary profile endpoint failed, trying fallback:', error.message);
+
+        try {
+          const { data } = await authAxios.get('/api/profile/achievements');
+          const fallback = data?.data;
+
+          if (fallback?.user) {
+            const points = fallback.user.points || 0;
+            const lp = getLevelProgress(points);
+            const legacyTier = mapTierToLegacy(lp.tier);
+            const nextTier = getNextLegacyTier(legacyTier);
+
+            return {
+              id: String(targetUserId || ''),
+              firstName: user?.firstName || '',
+              lastName: user?.lastName || '',
+              username: user?.username || '',
+              photo: user?.profileImageUrl,
+              points,
+              level: fallback.user.level || lp.level,
+              tier: legacyTier,
+              streakDays: fallback.user.streakDays || 0,
+              achievements: [],
+              rewards: [],
+              milestones: [],
+              leaderboardPosition: 0,
+              recentTransactions: [],
+              nextLevelProgress: lp.progressPercent,
+              nextLevelPoints: lp.pointsNeededForNext,
+              nextTierProgress: 0,
+              nextTier: nextTier,
+            };
+          }
+        } catch (fallbackError) {
+          console.warn('[Gamification] Fallback endpoint also failed:', fallbackError);
+        }
+
+        // Return a minimal profile so the UI can still render
+        const lp = getLevelProgress(0);
+        return {
+          id: String(targetUserId || ''),
+          firstName: user?.firstName || '',
+          lastName: user?.lastName || '',
+          username: user?.username || '',
+          photo: user?.profileImageUrl,
+          points: 0,
+          level: 0,
+          tier: 'bronze' as const,
+          streakDays: 0,
+          achievements: [],
+          rewards: [],
+          milestones: [],
+          leaderboardPosition: 0,
+          recentTransactions: [],
+          nextLevelProgress: 0,
+          nextLevelPoints: lp.pointsNeededForNext,
+          nextTierProgress: 0,
+          nextTier: 'silver' as const,
+        };
+      }
+    },
+    enabled: !!targetUserId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2
+    retry: 1, // Don't retry aggressively - fallback handles it
   });
-  
+
+  // ── Fetch achievements ────────────────────────────────────────────────
+
   const achievementsQuery = useQuery({
     queryKey: keys.achievements,
-    queryFn: fetchAchievements,
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    queryFn: async (): Promise<Achievement[]> => {
+      try {
+        const { data } = await authAxios.get('/api/v1/gamification/achievements');
+
+        // API may return { achievements: [...] } or raw array
+        const rawList: NewUserAchievement[] = data?.achievements || data || [];
+
+        return rawList.map((ua) => {
+          const mapped = mapAchievementToLegacy(ua);
+          return mapped.achievement;
+        });
+      } catch (error: any) {
+        console.warn('[Gamification] Achievements endpoint failed:', error.message);
+
+        // Fallback: try the profile achievements endpoint
+        try {
+          const { data } = await authAxios.get('/api/profile/achievements');
+          const fallbackAchievements = data?.data?.achievements || [];
+
+          return fallbackAchievements.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            description: a.description,
+            icon: a.iconUrl || '🏆',
+            pointValue: 0,
+            requirementType: a.category || 'milestone',
+            requirementValue: 0,
+            tier: 'bronze' as const,
+            isActive: true,
+            badgeImageUrl: a.iconUrl,
+          }));
+        } catch (fallbackError) {
+          console.warn('[Gamification] Achievements fallback also failed:', fallbackError);
+          return [];
+        }
+      }
+    },
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    retry: 2
+    retry: 1,
   });
-  
+
+  // ── Fetch rewards (placeholder - endpoint TBD) ────────────────────────
+
   const rewardsQuery = useQuery({
     queryKey: keys.rewards,
-    queryFn: fetchRewards,
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    queryFn: async (): Promise<Reward[]> => {
+      try {
+        const { data } = await authAxios.get('/api/v1/gamification/rewards');
+        return data?.rewards || data || [];
+      } catch {
+        // Rewards endpoint may not exist yet - return empty gracefully
+        return [];
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
-    retry: 2
+    retry: 1,
   });
-  
+
+  // ── Fetch leaderboard (placeholder - endpoint TBD) ────────────────────
+
   const leaderboardQuery = useQuery({
     queryKey: keys.leaderboard,
-    queryFn: fetchLeaderboard,
-    staleTime: 1000 * 60 * 3, // 3 minutes
+    queryFn: async (): Promise<LeaderboardEntry[]> => {
+      try {
+        const { data } = await authAxios.get('/api/v1/gamification/leaderboard');
+        return data?.leaderboard || data || [];
+      } catch {
+        // Leaderboard endpoint may not exist yet - return empty gracefully
+        return [];
+      }
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
     refetchOnWindowFocus: false,
-    retry: 2
+    retry: 1,
   });
-  
-  // Mutation for redeeming rewards
+
+  // ── Client-side level progress (instant, no API wait) ─────────────────
+
+  const levelProgress = useMemo(() => {
+    const points = profileQuery.data?.points ?? 0;
+    return getLevelProgress(points);
+  }, [profileQuery.data?.points]);
+
+  // ── Achievements grouped by skill tree ────────────────────────────────
+
+  const achievementsBySkillTree = useMemo(() => {
+    const list = achievementsQuery.data || [];
+    const grouped: Record<string, Achievement[]> = {};
+    for (const a of list) {
+      const key = a.requirementType || 'other';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(a);
+    }
+    return grouped;
+  }, [achievementsQuery.data]);
+
+  // ── Mutation: redeem reward ───────────────────────────────────────────
+
   const redeemRewardMutation = useMutation({
     mutationFn: async (rewardId: string) => {
-      // This would be a real API call in production
-      // return await authAxios.post(`/api/gamification/users/${targetUserId}/rewards/${rewardId}/redeem`);
-      
-      // For demo purposes, we'll simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 700));
-      
-      // Find the reward to redeem
-      const reward = rewardsQuery.data?.find(r => r.id === rewardId);
-      
-      if (!reward) {
-        throw new Error('Reward not found');
-      }
-      
-      const profile = profileQuery.data;
-      
-      if (!profile || reward.pointCost > profile.points) {
-        throw new Error('Insufficient points');
-      }
-      
-      return { success: true, reward };
+      const { data } = await authAxios.post(
+        `/api/v1/gamification/rewards/${rewardId}/redeem`
+      );
+      return data;
     },
     onSuccess: (data, rewardId) => {
-      // Update the profile data in the cache
-      queryClient.setQueryData(keys.profile, (oldData: GamificationProfile | undefined) => {
-        if (!oldData) return oldData;
-        
-        const reward = rewardsQuery.data?.find(r => r.id === rewardId);
-        if (!reward) return oldData;
-        
-        return {
-          ...oldData,
-          points: oldData.points - reward.pointCost,
-          rewards: [
-            ...oldData.rewards,
-            {
-              id: Date.now().toString(),
-              rewardId: reward.id,
-              redeemedAt: new Date().toISOString(),
-              status: 'pending',
-              pointsCost: reward.pointCost,
-              reward: reward
-            }
-          ],
-          recentTransactions: [
-            {
-              id: Date.now().toString(),
-              points: reward.pointCost,
-              balance: oldData.points - reward.pointCost,
-              transactionType: 'spend',
-              source: 'reward_redemption',
-              description: `Reward Redeemed: ${reward.name}`,
-              createdAt: new Date().toISOString()
-            },
-            ...oldData.recentTransactions
-          ]
-        };
-      });
-      
-      // Update the rewards data in the cache
-      queryClient.setQueryData(keys.rewards, (oldData: Reward[] | undefined) => {
-        if (!oldData) return oldData;
-        
-        return oldData.map(r => 
-          r.id === rewardId 
-            ? { ...r, stock: r.stock - 1, redemptionCount: r.redemptionCount + 1 } 
-            : r
-        );
-      });
-      
+      // Optimistic update: deduct points from cached profile
+      queryClient.setQueryData(
+        keys.profile,
+        (oldData: GamificationProfile | undefined) => {
+          if (!oldData) return oldData;
+
+          const reward = rewardsQuery.data?.find((r) => r.id === rewardId);
+          if (!reward) return oldData;
+
+          return {
+            ...oldData,
+            points: oldData.points - reward.pointCost,
+            rewards: [
+              ...oldData.rewards,
+              {
+                id: Date.now().toString(),
+                rewardId: reward.id,
+                redeemedAt: new Date().toISOString(),
+                status: 'pending' as const,
+                pointsCost: reward.pointCost,
+                reward,
+              },
+            ],
+            recentTransactions: [
+              {
+                id: Date.now().toString(),
+                points: reward.pointCost,
+                balance: oldData.points - reward.pointCost,
+                transactionType: 'spend' as const,
+                source: 'reward_redemption',
+                description: `Reward Redeemed: ${reward.name}`,
+                createdAt: new Date().toISOString(),
+              },
+              ...oldData.recentTransactions,
+            ],
+          };
+        }
+      );
+
+      // Also update rewards cache
+      queryClient.setQueryData(
+        keys.rewards,
+        (oldData: Reward[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map((r) =>
+            r.id === rewardId
+              ? { ...r, stock: r.stock - 1, redemptionCount: r.redemptionCount + 1 }
+              : r
+          );
+        }
+      );
+
       toast({
-        title: "Success",
-        description: `You've successfully redeemed: ${data.reward.name}`,
-        variant: "default"
+        title: 'Success',
+        description: `You've successfully redeemed: ${data?.reward?.name || 'your reward'}`,
+        variant: 'default',
       });
     },
     onError: (error: any) => {
-      console.error('Error redeeming reward:', error);
+      console.error('[Gamification] Error redeeming reward:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to redeem reward.",
-        variant: "destructive"
+        title: 'Error',
+        description: error?.response?.data?.message || error.message || 'Failed to redeem reward.',
+        variant: 'destructive',
       });
-    }
+    },
   });
-  
+
+  // ── Invalidation helpers ──────────────────────────────────────────────
+
+  const invalidateProfile = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: keys.profile });
+  }, [queryClient, keys.profile]);
+
+  const invalidateLeaderboard = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: keys.leaderboard });
+  }, [queryClient, keys.leaderboard]);
+
+  const refetch = useCallback(() => {
+    profileQuery.refetch();
+    achievementsQuery.refetch();
+  }, [profileQuery, achievementsQuery]);
+
+  // ── Return value (backward-compatible shape) ──────────────────────────
+
   return {
-    // Data queries
+    // Data queries — returned as React Query result objects so consumers
+    // can access .data, .isLoading, .isError etc.
     profile: profileQuery,
     achievements: achievementsQuery,
     rewards: rewardsQuery,
     leaderboard: leaderboardQuery,
-    
+
+    // New typed level progress (client-side computed)
+    levelProgress,
+
+    // Achievements grouped by category / skill tree
+    achievementsBySkillTree,
+
     // Mutations
     redeemReward: redeemRewardMutation.mutate,
     isRedeeming: redeemRewardMutation.isPending,
-    
-    // Utility methods
-    invalidateProfile: () => queryClient.invalidateQueries({ queryKey: keys.profile }),
-    invalidateLeaderboard: () => queryClient.invalidateQueries({ queryKey: keys.leaderboard }),
-    
-    // Loading states
-    isLoading: profileQuery.isLoading || achievementsQuery.isLoading || rewardsQuery.isLoading || leaderboardQuery.isLoading,
-    
-    // Error states
-    hasError: profileQuery.isError || achievementsQuery.isError || rewardsQuery.isError || leaderboardQuery.isError,
-    error: profileQuery.error || achievementsQuery.error || rewardsQuery.error || leaderboardQuery.error,
+
+    // Invalidation / refetch helpers
+    invalidateProfile,
+    invalidateLeaderboard,
+    refetch,
+
+    // Aggregate loading state
+    isLoading:
+      profileQuery.isLoading ||
+      achievementsQuery.isLoading ||
+      rewardsQuery.isLoading ||
+      leaderboardQuery.isLoading,
+
+    // Aggregate error state
+    hasError:
+      profileQuery.isError ||
+      achievementsQuery.isError ||
+      rewardsQuery.isError ||
+      leaderboardQuery.isError,
+    error:
+      profileQuery.error ||
+      achievementsQuery.error ||
+      rewardsQuery.error ||
+      leaderboardQuery.error,
   };
 };

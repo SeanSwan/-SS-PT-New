@@ -157,13 +157,7 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
           return (
             <SafeRender 
               component={
-                <OverviewSection 
-                  currentLevel={5}
-                  currentPoints={450}
-                  nextLevelPoints={1000}
-                  badges={[]}
-                  trophies={[]} 
-                />
+                <OverviewSection />
               }
               fallback="Overview Section"
             />

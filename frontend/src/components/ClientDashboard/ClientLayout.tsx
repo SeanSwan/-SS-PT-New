@@ -164,13 +164,7 @@ const ClientLayout: React.FC = () => {
     switch (activeSection) {
       case DashboardSection.OVERVIEW:
         return (
-          <OverviewSection 
-            currentLevel={5}
-            currentPoints={450}
-            nextLevelPoints={1000}
-            badges={[]}
-            trophies={[]} 
-          />
+          <OverviewSection />
         );
       case DashboardSection.WORKOUTS:
         return <MyWorkoutsSection />;

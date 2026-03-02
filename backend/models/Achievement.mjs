@@ -277,20 +277,46 @@ const Achievement = db.define('Achievement', {
     }
   },
   
+  // Octalysis Skill Tree (Crystalline Swan Gamification)
+  skillTree: {
+    type: DataTypes.ENUM('awakening', 'forge_nasm', 'iron_gravity', 'tribe_social', 'free_spirit', 'unbroken_streaks'),
+    allowNull: true,
+    comment: 'Octalysis-inspired skill tree branch'
+  },
+
+  skillTreeOrder: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Ordering within a skill tree branch'
+  },
+
+  templateId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Links to achievement template definitions'
+  },
+
+  tierLevel: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 1,
+    comment: 'Tier progression level within skill trees'
+  },
+
   // Timestamps
   createdAt: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
   },
-  
+
   updatedAt: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'achievements',
+  tableName: 'Achievements',
   timestamps: true,
   indexes: [
     {

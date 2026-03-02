@@ -1,7 +1,8 @@
 # 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v5.0
 ## UNIFIED: Swarm Protocols + 5-Brain Review + Cinematic Web Design System + Skills.sh Integration + Security-First + Mobile-First Execution
 
-**LATEST UPDATE:** 2026-02-21 — Cinematic Web Design System, 10-Skill Integration (skills.sh + Claude hosted), Enchanted Apex Preset, Universal Client Builder Mode
+**LATEST UPDATE:** 2026-03-01 - Added Gamification Architecture section (Octalysis + SDT, leveling, 6 skill trees, achievement templates, rarity system, DB schema, API reference, frontend integration)
+**Previous:** 2026-02-27 — Added SwanStudios Social Master Strategy v4.1, global dark-mode requirements, and cross-app social/training reference linkage
 **Previous:** v4.0 (2026-02-15) — Security-First, Mobile-First, Anti-Hallucination
 
 ---
@@ -14,6 +15,7 @@
 
 **File Location:** `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`
 **Companion File:** `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md` (standalone — drop into any project for client sites)
+**Social Strategy File:** `AI-Village-Documentation/SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md` (social architecture, compliance, moderation, gamification integration, global dark mode)
 
 ---
 
@@ -313,11 +315,12 @@ admin   → Full system access (CRUD, configuration)
 ## 📚 QUICK FILE REFERENCE
 
 ### 🎯 Start Here:
-1. `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` — What's happening NOW
-2. `CLAUDE.md` — Project intelligence
-3. `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md` — **Standalone design protocol (NEW)**
-4. `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` — UI/UX Redesign (ACTIVE)
-5. `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` — Complete guide
+1. `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` - What's happening NOW
+2. `CLAUDE.md` - Project intelligence
+3. `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md` - **Standalone design protocol (NEW)**
+4. `AI-Village-Documentation/SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md` - Social product blueprint + compliance + dark-mode coverage
+5. `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` - UI/UX Redesign (ACTIVE)
+6. `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` - Complete guide
 
 ### 🎨 Design:
 - **Cinematic System:** `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md`
@@ -332,6 +335,7 @@ admin   → Full system access (CRUD, configuration)
 ### 💪 Systems:
 - Personal Training: `docs/ai-workflow/personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md`
 - Gamification: `docs/ai-workflow/gamification/GAMIFICATION-MASTER-PROMPT-FINAL.md`
+- Social: `AI-Village-Documentation/SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md`
 - NASM: `docs/ai-workflow/NASM-4-TIER-INTEGRATION-MASTER-BLUEPRINT.md`
 - Dashboard: `docs/ai-workflow/PHASE-6-7-DASHBOARD-REAL-DATA-INTEGRATION.md`
 - Client Data: `docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md`
@@ -345,12 +349,13 @@ admin   → Full system access (CRUD, configuration)
 
 ## CRITICAL: READ THESE FILES FIRST (60 SECONDS)
 
-1. `CLAUDE.md` (project root) — Project intelligence
-2. `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` — Where are we NOW?
-3. `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md` — Design protocol (if UI work)
-4. `.agents/skills/frontend-design/SKILL.md` + `.agents/skills/ui-ux-pro-max/SKILL.md` (if UI work)
-5. `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md` — Coordination rules
-6. `docs/ai-workflow/AI-HANDOFF/[YOUR-AI-NAME]-STATUS.md` — Your work log
+1. `CLAUDE.md` (project root) - Project intelligence
+2. `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` - Where are we NOW?
+3. `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md` - Design protocol (if UI work)
+4. `AI-Village-Documentation/SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md` - Required for social, training, moderation, and dark-mode decisions
+5. `.agents/skills/frontend-design/SKILL.md` + `.agents/skills/ui-ux-pro-max/SKILL.md` (if UI work)
+6. `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md` - Coordination rules
+7. `docs/ai-workflow/AI-HANDOFF/[YOUR-AI-NAME]-STATUS.md` - Your work log
 
 **After reading, report back onboarded and ready.**
 
@@ -480,12 +485,156 @@ I'm Claude Code, Main Orchestrator + Cinematic Frontend Builder.
 
 ---
 
+## 🏆 GAMIFICATION ARCHITECTURE
+
+SwanStudios uses a comprehensive gamification system built on two research-backed frameworks:
+- **Octalysis Framework** — Epic Meaning, Development & Accomplishment, Empowerment of Creativity, Social Influence, Unpredictability, Loss & Avoidance
+- **Self-Determination Theory (SDT)** — Competence (mastery via skill trees), Relatedness (social engagement), Autonomy (holistic wellness choices)
+
+**Canonical Source:** `docs/ai-workflow/gamification/GAMIFICATION-MASTER-PROMPT-FINAL.md`
+
+### Leveling System
+
+**Formula:** `Level = floor(0.1 * sqrt(totalPoints))`
+
+Logarithmic curve — early levels are fast, later levels require exponentially more points.
+
+| Tier | Name | Levels | Points Range (approx) |
+|------|------|--------|-----------------------|
+| 1 | Bronze Forge | 1-10 | 100 - 10,000 |
+| 2 | Silver Edge | 11-25 | 12,100 - 62,500 |
+| 3 | Titanium Core | 26-50 | 67,600 - 250,000 |
+| 4 | Obsidian Warrior | 51-99 | 260,100 - 980,100 |
+| 5 | Crystalline Swan | 100 | 1,000,000+ |
+
+### Points Configuration
+
+| Action | Points | Category |
+|--------|--------|----------|
+| Complete workout | 50 | Iron & Gravity |
+| Personal record | 100 | Iron & Gravity |
+| Create post | 10 | Social / Tribe |
+| Daily login | 10 | Streaks / Unbroken |
+| 30-day streak bonus | 300 | Streaks / Unbroken |
+| Complete NASM module | 50 | Forge / Education |
+| Log nutrition | 15 | Free Spirit / Holistic |
+| Log meditation | 20 | Free Spirit / Holistic |
+
+Points are configurable via `GamificationSettings` model (admin-tunable per action type).
+
+### 6 Skill Trees
+
+| # | Skill Tree | Achievements | Octalysis Drive | Description |
+|---|-----------|-------------|-----------------|-------------|
+| 1 | The Awakening | 15 | Epic Meaning | Onboarding, first steps, account setup |
+| 2 | The Forge (NASM) | 35 | Development & Accomplishment | Education, certification, knowledge mastery |
+| 3 | Iron & Gravity | 40 | Empowerment of Creativity | Workout performance, PRs, volume milestones |
+| 4 | The Tribe (Social) | 40 | Social Influence | Community engagement, posts, follows, reactions |
+| 5 | The Free Spirit (Holistic) | 35 | Unpredictability | Wellness beyond workouts — nutrition, meditation, sleep |
+| 6 | The Unbroken (Streaks) | 35 | Loss & Avoidance | Consistency, dedication, streak maintenance |
+
+**Total:** 200 core achievements + 5-tier expansion per template = ~550 total + 50 hidden/secret achievements
+
+### Achievement Template Pattern
+
+Achievements use a `templateId + tierLevel` expansion system:
+
+```
+templateId: "workout_warrior"
+  ├── Tier 1: Complete 10 workouts   (Common)
+  ├── Tier 2: Complete 50 workouts   (Common)
+  ├── Tier 3: Complete 200 workouts  (Rare)
+  ├── Tier 4: Complete 500 workouts  (Epic)
+  └── Tier 5: Complete 1000 workouts (Legendary)
+```
+
+Each template generates up to 5 concrete achievements. Tiers inherit the template's skill tree, category, and point formula while scaling thresholds and rarity.
+
+### Rarity System (Crystalline Swan Palette)
+
+| Rarity | Color | Hex | Visual Treatment |
+|--------|-------|-----|------------------|
+| Common | Swan Lavender | `#4070C0` | Solid border |
+| Rare | Gilded Fern | `#C6A84B` | Gold border + subtle glow |
+| Epic | Ice Wing | `#60C0F0` | Cyan border + pulse animation |
+| Legendary | Gradient | sapphire → cyan → gold | Animated gradient border + particle effect |
+
+Colors map directly to Preset F-Alt (Enchanted Apex: Crystalline Swan) palette tokens.
+
+### Database Schema
+
+```
+┌─────────────────────┐     ┌──────────────────────┐
+│   Achievement       │     │  UserAchievement     │
+│─────────────────────│     │──────────────────────│
+│ id (UUID PK)        │────→│ achievementId (FK)   │
+│ templateId          │     │ userId (FK)          │
+│ tierLevel (1-5)     │     │ progress (INT)       │
+│ skillTree           │     │ unlockedAt           │
+│ category            │     │ notifiedAt           │
+│ rarity              │     └──────────────────────┘
+│ pointValue          │
+│ targetValue         │     ┌──────────────────────┐
+│ isHidden            │     │  PointTransaction    │
+│ iconUrl             │     │──────────────────────│
+│ ~30 fields total    │     │ userId (FK)          │
+└─────────────────────┘     │ points (INT)         │
+                            │ action (STRING)      │
+┌─────────────────────┐     │ metadata (JSONB)     │
+│ GamificationSettings│     │ createdAt            │
+│─────────────────────│     └──────────────────────┘
+│ action (STRING)     │
+│ points (INT)        │
+│ isActive (BOOL)     │
+│ admin-configurable  │
+└─────────────────────┘
+```
+
+- **Achievement** — 30+ fields, UUID PK, defines all achievement templates and tiers
+- **UserAchievement** — per-user progress tracking, unlock timestamps
+- **PointTransaction** — immutable audit ledger for all point awards
+- **GamificationSettings** — admin-tunable points-per-action configuration
+
+### API Reference
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/v1/gamification/profile` | User's gamification profile (level, points, tier) |
+| GET | `/api/v1/gamification/achievements` | User's unlocked achievements |
+| GET | `/api/v1/gamification/achievements/available` | All available achievements (catalog) |
+| GET | `/api/profile/achievements` | Profile-scoped achievement display |
+| POST | `/api/v1/gamification/points/award` | Award points for an action |
+| GET | `/api/v1/gamification/leaderboard` | Leaderboard rankings |
+| PUT | `/api/v1/gamification/settings` | Admin: update points configuration |
+
+### Frontend Integration
+
+- **Hook:** `useGamificationData()` — fetches profile, achievements, and progress data
+- **User Dashboard → About tab:** Achievement showcase, skill tree progress, current tier badge
+- **Client Dashboard → Overview:** Points summary, recent achievements, level progress bar
+- **Achievement Cards:** Styled with rarity borders per Crystalline Swan palette (see Rarity System above)
+- **Level-Up Animations:** Crystalline shatter effect on tier advancement (Preset F-Alt gaming layer)
+- **XP Progress Bars:** Arctic cyan (`#50A0F0`) fill on midnight sapphire (`#002060`) track
+
+### Integration with Social System
+
+Social events feed directly into the gamification engine:
+- Creating a post awards 10 points (The Tribe skill tree)
+- Receiving Swans contributes to social achievement progress
+- Achievement unlocks can auto-generate celebratory social posts
+- Leaderboard standings are visible on social profiles
+
+See `AI-Village-Documentation/SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md` Section 6 for full integration rules.
+
+---
+
 ## ✅ QUICK START CHECKLIST
 
 - [ ] Read CURRENT-TASK.md
 - [ ] Read HANDOFF-PROTOCOL.md
 - [ ] Read your status file
 - [ ] Read CINEMATIC-WEB-DESIGN-SYSTEM.md (if UI work)
+- [ ] Read SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md (if social/training/moderation work)
 - [ ] Read relevant skills (frontend-design, ui-ux-pro-max, web-design-guidelines)
 - [ ] Report back ready
 - [ ] Wait for task assignment
