@@ -519,10 +519,10 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
   }
   
   body {
-    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 
+    font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont,
                  'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    background: radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%);
-    color: white;
+    background: var(--bg-primary, #002060);
+    color: var(--text-primary, #E0ECF4);
     min-height: 100vh;
     line-height: 1.6;
     text-rendering: optimizeLegibility;

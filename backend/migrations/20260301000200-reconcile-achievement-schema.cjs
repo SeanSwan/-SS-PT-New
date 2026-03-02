@@ -43,6 +43,17 @@ module.exports = {
     try {
       const table = 'Achievements';
 
+      // Check if table exists before trying to add columns
+      const [tables] = await queryInterface.sequelize.query(
+        `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = '${table}';`,
+        { transaction }
+      );
+      if (tables.length === 0) {
+        console.log(`Migration 20260301000200: ${table} table not found — skipping schema reconciliation`);
+        await transaction.commit();
+        return;
+      }
+
       // --- Achievement Identity ---
       await safeAddColumn(table, 'title', {
         type: Sequelize.STRING,
