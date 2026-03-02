@@ -45,6 +45,7 @@ import GoalProgressChart from './charts/GoalProgressChart';
 import ChallengeActivityChart from './charts/ChallengeActivityChart';
 import StreakCalendarChart from './charts/StreakCalendarChart';
 import AiConsentPanel from './AiConsentPanel';
+import ClientProgressSnapshot from './ClientProgressSnapshot';
 
 // === SHARED STYLED COMPONENTS ===
 const SectionCard = styled(motion.div)`
@@ -514,6 +515,9 @@ export const AchievementNebula: React.FC = () => {
           Leaderboards will appear once community challenges go live.
         </div>
       </SectionCard>
+
+      {/* Progress Snapshot — measurements, graph, last workout, weekly weight */}
+      {user?.id && <ClientProgressSnapshot userId={user.id} />}
     </motion.div>
   );
 };
