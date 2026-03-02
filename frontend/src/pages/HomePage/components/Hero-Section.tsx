@@ -441,14 +441,14 @@ const HeroSection: React.FC = () => {
   // Theme-aware button variants
   const getThemeButtonVariant = (type: 'primary' | 'secondary') => {
     switch (currentTheme) {
-      case 'swan-galaxy':
-        return type === 'primary' ? 'cosmic' : 'purple';
-      case 'admin-command':
+      case 'crystalline-default':
         return type === 'primary' ? 'primary' : 'cosmic';
-      case 'dark-galaxy':
+      case 'crystalline-light':
+        return type === 'primary' ? 'primary' : 'cosmic';
+      case 'crystalline-dark':
         return type === 'primary' ? 'cosmic' : 'primary';
       default:
-        return 'cosmic';
+        return 'primary';
     }
   };
 

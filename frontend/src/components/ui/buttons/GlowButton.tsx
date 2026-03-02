@@ -1,6 +1,38 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { motion } from "framer-motion";
+
+// Import the raw context so we can do a safe useContext (no throw) inside the
+// component.  The module itself always resolves — it is the *provider* that
+// may or may not be mounted higher in the tree.
+import { useUniversalTheme as _useUniversalTheme } from '../../../context/ThemeContext/UniversalThemeContext';
+
+// ─── Crystalline Swan Palette ──────────────────────────────────────────────────
+// New 6-variant color scheme aligned with the Crystalline Swan design direction.
+// Old variant names (neonBlue, purple, emerald, ruby, cosmic) are mapped to new
+// names via LEGACY_VARIANT_MAP for full backward compatibility.
+// ────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Canonical Crystalline Swan color scheme variants.
+ * Legacy names are accepted at runtime through the backward-compat map but
+ * the exported type advertises both sets so existing consumers keep compiling.
+ */
+export type GlowButtonColorScheme =
+  | 'primary'
+  | 'accent'
+  | 'gilded'
+  | 'success'
+  | 'danger'
+  | 'ghost'
+  // Legacy aliases — kept in the union so existing typed call-sites compile
+  | 'neonBlue'
+  | 'purple'
+  | 'emerald'
+  | 'ruby'
+  | 'cosmic';
+
+export type GlowButtonSize = 'small' | 'medium' | 'large';
 
 // TypeScript interfaces for better type safety
 export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,9 +53,6 @@ export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
   glowIntensity?: 'low' | 'medium' | 'high';
 }
 
-export type GlowButtonColorScheme = 'primary' | 'neonBlue' | 'purple' | 'emerald' | 'ruby' | 'cosmic';
-export type GlowButtonSize = 'small' | 'medium' | 'large';
-
 interface ButtonTheme {
   background: string;
   color: string;
@@ -42,65 +71,136 @@ interface ButtonSize {
   borderRadius: string;
 }
 
-// Button theme options with different color schemes
-const BUTTON_THEMES: Record<GlowButtonColorScheme, ButtonTheme> = {
-  // PRIMARY theme (Blue/Cyan) - Galaxy-Swan primary
+// ─── Backward-compatibility map ────────────────────────────────────────────────
+// Maps legacy variant names to their Crystalline Swan equivalents.
+type CanonicalVariant = 'primary' | 'accent' | 'gilded' | 'success' | 'danger' | 'ghost';
+
+const LEGACY_VARIANT_MAP: Record<string, CanonicalVariant> = {
+  neonBlue: 'accent',
+  purple: 'primary',
+  emerald: 'success',
+  ruby: 'danger',
+  cosmic: 'primary',
+};
+
+/** Resolve any variant (including legacy names) to a canonical variant key. */
+const resolveVariant = (v: string): CanonicalVariant => {
+  if (v in LEGACY_VARIANT_MAP) return LEGACY_VARIANT_MAP[v];
+  // Already a canonical variant
+  return v as CanonicalVariant;
+};
+
+// ─── Crystalline Swan button themes ────────────────────────────────────────────
+const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
+  // PRIMARY — Midnight Sapphire base, Ice Wing glow
   primary: {
-    background: "#041e2e", // Dark blue base
-    color: "#fff",
-    shadow: "rgba(4, 64, 104, 0.2)",
-    shineLeft: "rgba(0, 160, 227, 0.5)", // swanBlue
-    shineRight: "rgba(0, 255, 255, 0.65)", // swanCyan
-    glowStart: "#00A0E3", // swanBlue
-    glowEnd: "#00FFFF", // swanCyan
+    background: "#002060",
+    color: "#E0ECF4",
+    shadow: "rgba(0, 32, 96, 0.35)",
+    shineLeft: "rgba(96, 192, 240, 0.5)",   // Ice Wing
+    shineRight: "rgba(80, 160, 240, 0.65)",  // Arctic Cyan
+    glowStart: "#60C0F0",                    // Ice Wing
+    glowEnd: "#50A0F0",                      // Arctic Cyan
   },
-  // NEON BLUE theme - Bright electric blue
-  neonBlue: {
-    background: "#001122", // Very dark blue base
-    color: "#fff",
-    shadow: "rgba(0, 136, 255, 0.3)",
-    shineLeft: "rgba(0, 136, 255, 0.6)", // Electric blue
-    shineRight: "rgba(0, 200, 255, 0.8)", // Bright cyan
-    glowStart: "#0088FF", // Electric blue
-    glowEnd: "#00C8FF", // Bright cyan
+  // ACCENT — Royal Depth base, Arctic Cyan glow
+  accent: {
+    background: "#003080",
+    color: "#E0ECF4",
+    shadow: "rgba(0, 48, 128, 0.35)",
+    shineLeft: "rgba(80, 160, 240, 0.55)",   // Arctic Cyan
+    shineRight: "rgba(96, 192, 240, 0.7)",   // Ice Wing
+    glowStart: "#50A0F0",                    // Arctic Cyan
+    glowEnd: "#60C0F0",                      // Ice Wing
   },
-  // SECONDARY theme (Purple) - Galaxy-Swan secondary
-  purple: {
-    background: "#09041e",
-    color: "#fff",
-    shadow: "rgba(33, 4, 104, 0.2)",
-    shineLeft: "rgba(120, 0, 245, 0.5)",
-    shineRight: "rgba(200, 148, 255, 0.65)",
-    glowStart: "#B000E8",
-    glowEnd: "#009FFD",
+  // GILDED — Dark gold base, Gilded Fern glow (premium / CTA / checkout)
+  gilded: {
+    background: "#1A1505",
+    color: "#E0ECF4",
+    shadow: "rgba(198, 168, 75, 0.25)",
+    shineLeft: "rgba(198, 168, 75, 0.55)",   // Gilded Fern
+    shineRight: "rgba(218, 195, 110, 0.7)",  // Lighter gold
+    glowStart: "#C6A84B",                    // Gilded Fern
+    glowEnd: "#DAC36E",                      // Lighter gold
   },
-  emerald: {
-    background: "#0c1e0e",
-    color: "#fff",
-    shadow: "rgba(4, 104, 49, 0.2)",
-    shineLeft: "rgba(0, 245, 111, 0.5)",
-    shineRight: "rgba(148, 255, 200, 0.65)",
-    glowStart: "#00E8B0",
-    glowEnd: "#00FD9F",
+  // SUCCESS — Dark green base, green glow
+  success: {
+    background: "#0A1E10",
+    color: "#E0ECF4",
+    shadow: "rgba(34, 197, 94, 0.2)",
+    shineLeft: "rgba(34, 197, 94, 0.5)",
+    shineRight: "rgba(74, 222, 128, 0.65)",
+    glowStart: "#22C55E",
+    glowEnd: "#4ADE80",
   },
-  ruby: {
-    background: "#1e040c",
-    color: "#fff",
-    shadow: "rgba(104, 4, 33, 0.2)",
-    shineLeft: "rgba(245, 0, 90, 0.5)",
-    shineRight: "rgba(255, 148, 180, 0.65)",
-    glowStart: "#E80046",
-    glowEnd: "#FD009F",
+  // DANGER — Dark red base, red glow
+  danger: {
+    background: "#1E0A0A",
+    color: "#E0ECF4",
+    shadow: "rgba(239, 68, 68, 0.2)",
+    shineLeft: "rgba(239, 68, 68, 0.5)",
+    shineRight: "rgba(252, 129, 129, 0.65)",
+    glowStart: "#EF4444",
+    glowEnd: "#FC8181",
   },
-  cosmic: {
-    background: "#0a0a18",
-    color: "#fff",
-    shadow: "rgba(10, 10, 40, 0.3)",
-    shineLeft: "rgba(86, 11, 173, 0.5)",
-    shineRight: "rgba(255, 255, 255, 0.65)",
-    glowStart: "#5D3FD3",
-    glowEnd: "#FF2E63",
-  }
+  // GHOST — transparent base, Swan Lavender glow (tertiary / text-like)
+  ghost: {
+    background: "transparent",
+    color: "#E0ECF4",
+    shadow: "rgba(64, 112, 192, 0.1)",
+    shineLeft: "rgba(64, 112, 192, 0.3)",    // Swan Lavender
+    shineRight: "rgba(96, 192, 240, 0.4)",   // Ice Wing
+    glowStart: "#4070C0",                    // Swan Lavender
+    glowEnd: "#60C0F0",                      // Ice Wing
+  },
+};
+
+// ─── Light-theme overrides ─────────────────────────────────────────────────────
+// When the active theme is crystalline-light, we swap colors for visibility on
+// light backgrounds: glow color becomes the fill, opacity is reduced, and
+// stronger box-shadows replace the soft glow.
+const LIGHT_THEME_OVERRIDES: Record<CanonicalVariant, Partial<ButtonTheme>> = {
+  primary: {
+    background: "#60C0F0",            // Glow → fill
+    color: "#FFFFFF",
+    shadow: "rgba(0, 32, 96, 0.18)",
+    shineLeft: "rgba(0, 32, 96, 0.3)",
+    shineRight: "rgba(80, 160, 240, 0.4)",
+  },
+  accent: {
+    background: "#50A0F0",
+    color: "#FFFFFF",
+    shadow: "rgba(0, 48, 128, 0.18)",
+    shineLeft: "rgba(0, 48, 128, 0.3)",
+    shineRight: "rgba(96, 192, 240, 0.4)",
+  },
+  gilded: {
+    background: "#C6A84B",
+    color: "#FFFFFF",
+    shadow: "rgba(26, 21, 5, 0.18)",
+    shineLeft: "rgba(26, 21, 5, 0.3)",
+    shineRight: "rgba(198, 168, 75, 0.4)",
+  },
+  success: {
+    background: "#22C55E",
+    color: "#FFFFFF",
+    shadow: "rgba(10, 30, 16, 0.18)",
+    shineLeft: "rgba(10, 30, 16, 0.3)",
+    shineRight: "rgba(34, 197, 94, 0.4)",
+  },
+  danger: {
+    background: "#EF4444",
+    color: "#FFFFFF",
+    shadow: "rgba(30, 10, 10, 0.18)",
+    shineLeft: "rgba(30, 10, 10, 0.3)",
+    shineRight: "rgba(239, 68, 68, 0.4)",
+  },
+  ghost: {
+    background: "transparent",
+    color: "#002060",                 // Dark text on light
+    shadow: "rgba(64, 112, 192, 0.08)",
+    shineLeft: "rgba(64, 112, 192, 0.15)",
+    shineRight: "rgba(64, 112, 192, 0.25)",
+  },
 };
 
 // Button sizes
@@ -148,7 +248,13 @@ const ripple = keyframes`
 `;
 
 // Convert button variables to CSS vars
-const generateButtonVars = (theme: ButtonTheme, size: ButtonSize, fullWidth?: boolean, glowIntensity?: string) => css`
+const generateButtonVars = (
+  theme: ButtonTheme,
+  size: ButtonSize,
+  fullWidth?: boolean,
+  glowIntensity?: string,
+  isLightTheme?: boolean,
+) => css`
   --button-background: ${theme.background};
   --button-color: ${theme.color};
   --button-shadow: ${theme.shadow};
@@ -159,7 +265,11 @@ const generateButtonVars = (theme: ButtonTheme, size: ButtonSize, fullWidth?: bo
   --pointer-x: 0px;
   --pointer-y: 0px;
   --button-glow: transparent;
-  --button-glow-opacity: ${glowIntensity === 'high' ? '1.2' : glowIntensity === 'low' ? '0.6' : '1'};
+  --button-glow-opacity: ${
+    isLightTheme
+      ? (glowIntensity === 'high' ? '0.5' : glowIntensity === 'low' ? '0.15' : '0.3')
+      : (glowIntensity === 'high' ? '1.2' : glowIntensity === 'low' ? '0.6' : '1')
+  };
   --button-glow-duration: 0.5s;
   --button-font-size: ${size.fontSize};
   --button-padding: ${size.padding};
@@ -174,7 +284,7 @@ const ButtonContainer = styled.div<{ fullWidth?: boolean }>`
   position: relative;
   transition: transform 0.2s ease;
   width: ${props => props.fullWidth ? '100%' : 'auto'};
-  
+
   &:active {
     transform: translateY(2px) scale(0.98);
   }
@@ -185,6 +295,8 @@ interface StyledButtonProps {
   $size: ButtonSize;
   $fullWidth?: boolean;
   $glowIntensity?: string;
+  $isLightTheme?: boolean;
+  $isGhost?: boolean;
 }
 
 // StyledGlowButton with proper prop filtering
@@ -192,7 +304,8 @@ const StyledGlowButton = styled.button.withConfig({
   shouldForwardProp: (prop) => {
     // These are props we don't want to pass to the HTML button element
     const nonDOMProps = [
-      '$theme', '$size', '$fullWidth', '$glowIntensity', 'isAnimating', 'variant', 
+      '$theme', '$size', '$fullWidth', '$glowIntensity', '$isLightTheme', '$isGhost',
+      'isAnimating', 'variant',
       'startIcon', 'endIcon', 'leftIcon', 'rightIcon', // Icon props
       'animateOnRender', 'isLoading', // State props
       'text', 'glowIntensity', 'theme' // Content prop + alias
@@ -200,11 +313,15 @@ const StyledGlowButton = styled.button.withConfig({
     return !nonDOMProps.includes(prop);
   }
 })<StyledButtonProps>`
-  ${({ $theme, $size, $fullWidth, $glowIntensity }) => generateButtonVars($theme, $size, $fullWidth, $glowIntensity)}
-  
+  ${({ $theme, $size, $fullWidth, $glowIntensity, $isLightTheme }) =>
+    generateButtonVars($theme, $size, $fullWidth, $glowIntensity, $isLightTheme)}
+
   appearance: none;
   outline: none;
-  border: none;
+  border: ${({ $isGhost, $isLightTheme }) =>
+    $isGhost
+      ? ($isLightTheme ? '1.5px solid #4070C0' : '1px solid rgba(64, 112, 192, 0.4)')
+      : 'none'};
   font-family: 'Inter', sans-serif;
   font-size: var(--button-font-size);
   font-weight: 500;
@@ -217,31 +334,40 @@ const StyledGlowButton = styled.button.withConfig({
   margin: 0;
   background: none;
   z-index: 1;
-  box-shadow: 0 8px 20px var(--button-shadow);
+  box-shadow: ${({ $isLightTheme }) =>
+    $isLightTheme
+      ? '0 2px 8px var(--button-shadow), 0 1px 3px rgba(0,0,0,0.08)'
+      : '0 8px 20px var(--button-shadow)'};
   width: var(--button-width);
   height: var(--button-height);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   &:hover {
-    --button-glow-opacity: 1;
+    --button-glow-opacity: ${({ $isLightTheme }) => $isLightTheme ? '0.5' : '1'};
     --button-glow-duration: .25s;
     transform: translateY(-1px);
-    box-shadow: 0 10px 25px var(--button-shadow);
+    box-shadow: ${({ $isLightTheme }) =>
+      $isLightTheme
+        ? '0 4px 14px var(--button-shadow), 0 2px 6px rgba(0,0,0,0.1)'
+        : '0 10px 25px var(--button-shadow)'};
   }
-  
+
   &:focus {
     outline: 2px solid var(--button-glow-end);
     outline-offset: 2px;
   }
-  
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
     filter: grayscale(40%);
-    
+
     &:hover {
       transform: none;
-      box-shadow: 0 8px 20px var(--button-shadow);
+      box-shadow: ${({ $isLightTheme }) =>
+        $isLightTheme
+          ? '0 2px 8px var(--button-shadow)'
+          : '0 8px 20px var(--button-shadow)'};
     }
   }
 `;
@@ -285,7 +411,7 @@ const ButtonSpan = styled.span.withConfig({
   overflow: hidden;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  
+
   ${({ isAnimating }) => isAnimating && css`
     animation: ${pulse} 2s infinite;
   `}
@@ -329,7 +455,7 @@ const Spinner = styled.div`
   border-top-color: #fff;
   animation: spin 0.8s linear infinite;
   margin-right: 8px;
-  
+
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
@@ -349,9 +475,31 @@ interface RippleData {
   y: number;
 }
 
+// ─── Safe theme hook ───────────────────────────────────────────────────────────
+// Returns the current theme id, falling back to null when the GlowButton is
+// rendered outside a UniversalThemeProvider (e.g. in Storybook or tests).
+// We cannot wrap useContext in try/catch because hooks must not be called
+// conditionally, so instead we call useContext unconditionally but tolerate
+// `undefined` when the provider is missing.
+function useSafeTheme(): string | null {
+  try {
+    const ctx = _useUniversalTheme();
+    return ctx?.currentTheme ?? null;
+  } catch {
+    // Provider not mounted — fall through to default (dark) behavior
+    return null;
+  }
+}
+
 /**
- * Enhanced GlowButton Component
- * A premium button component with animated glow effects, customizable themes, and accessibility features
+ * Enhanced GlowButton Component — Crystalline Swan Edition
+ *
+ * A premium button component with animated glow effects, customizable color
+ * schemes, theme awareness, and accessibility features.
+ *
+ * Color schemes:  primary | accent | gilded | success | danger | ghost
+ * Legacy aliases: neonBlue → accent, purple → primary, emerald → success,
+ *                 ruby → danger, cosmic → primary
  */
 const GlowButton: React.FC<GlowButtonProps> = ({
   text,
@@ -374,25 +522,37 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [ripples, setRipples] = useState<RippleData[]>([]);
   const [isAnimating, setIsAnimating] = useState(animateOnRender);
-  
+
+  // ── Theme awareness ────────────────────────────────────────────────────────
+  const currentTheme = useSafeTheme();
+  const isLightTheme = currentTheme === 'crystalline-light';
+
   // Resolve icon props (support both leftIcon/rightIcon and startIcon/endIcon)
   const resolvedLeftIcon = leftIcon || startIcon;
   const resolvedRightIcon = rightIcon || endIcon;
-  
-  // Get theme and size configurations
-  // Resolve variant (support theme alias) and size configurations
-  const resolvedVariant = typeof theme === "string" ? theme : variant;
-  const buttonTheme = BUTTON_THEMES[resolvedVariant] || BUTTON_THEMES.primary;
+
+  // Resolve variant (support theme alias + legacy names) and size configurations
+  const rawVariant = typeof theme === "string" ? theme : variant;
+  const canonicalVariant = resolveVariant(rawVariant);
+
+  // Build the final ButtonTheme, merging light-theme overrides when needed
+  const buttonTheme = useMemo<ButtonTheme>(() => {
+    const base = BUTTON_THEMES[canonicalVariant] || BUTTON_THEMES.primary;
+    if (!isLightTheme) return base;
+    const overrides = LIGHT_THEME_OVERRIDES[canonicalVariant];
+    return overrides ? { ...base, ...overrides } : base;
+  }, [canonicalVariant, isLightTheme]);
+
   const buttonSize = BUTTON_SIZES[size] || BUTTON_SIZES.medium;
-  
+
   // Handle cursor tracking for glow effect
   useEffect(() => {
     const button = buttonRef.current;
     if (!button) return;
-    
+
     const handlePointerMove = (e: PointerEvent) => {
       if (disabled) return;
-      
+
       const rect = button.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -400,18 +560,18 @@ const GlowButton: React.FC<GlowButtonProps> = ({
       // Use CSS custom properties instead of GSAP
       button.style.setProperty('--pointer-x', `${x}px`);
       button.style.setProperty('--pointer-y', `${y}px`);
-      
+
       // Simple color interpolation instead of chroma-js
       const progress = x / rect.width;
-      const glowColor = progress > 0.5 
+      const glowColor = progress > 0.5
         ? getComputedStyle(button).getPropertyValue('--button-glow-end').trim()
         : getComputedStyle(button).getPropertyValue('--button-glow-start').trim();
-      
+
       button.style.setProperty('--button-glow', glowColor);
     };
-    
+
     button.addEventListener("pointermove", handlePointerMove);
-    
+
     // Cleanup event listener
     return () => {
       button.removeEventListener("pointermove", handlePointerMove);
@@ -421,22 +581,22 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   // Handle click ripple effect
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled || isLoading) return;
-    
+
     // Create ripple effect
     const rect = buttonRef.current?.getBoundingClientRect();
     if (!rect) return;
-    
+
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     const rippleId = Date.now();
     setRipples(prev => [...prev, { id: rippleId, x, y }]);
-    
+
     // Remove ripple after animation completes
     setTimeout(() => {
       setRipples(prev => prev.filter(ripple => ripple.id !== rippleId));
     }, 600);
-    
+
     // Execute onClick callback
     if (onClick) onClick(e);
   };
@@ -460,6 +620,8 @@ const GlowButton: React.FC<GlowButtonProps> = ({
           $size={buttonSize}
           $fullWidth={fullWidth}
           $glowIntensity={glowIntensity}
+          $isLightTheme={isLightTheme}
+          $isGhost={canonicalVariant === 'ghost'}
           {...props}
           aria-busy={isLoading}
           aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}
@@ -474,11 +636,11 @@ const GlowButton: React.FC<GlowButtonProps> = ({
             {!isLoading && resolvedRightIcon && (
               <IconContainer position="right">{resolvedRightIcon}</IconContainer>
             )}
-            
+
             {/* Render ripples */}
             {ripples.map(ripple => (
-              <Ripple 
-                key={ripple.id} 
+              <Ripple
+                key={ripple.id}
                 $x={ripple.x}
                 $y={ripple.y}
               />

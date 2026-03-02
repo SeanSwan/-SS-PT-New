@@ -1,21 +1,21 @@
 /**
  * themeUtils.ts
  * ============
- * 
- * Universal Theme Utilities for SwanStudios Platform
- * Designed by The Swan Alchemist following Master Prompt v28.6
- * 
+ *
+ * Crystalline Swan Theme Utilities for SwanStudios Platform
+ *
  * Features:
- * - CSS Custom Properties generation for all themes
+ * - CSS Custom Properties generation for all Crystalline Swan themes
  * - Theme-aware styled-component helpers
  * - Performance-optimized theme switching
  * - Cross-component theme consistency
- * 
- * INTEGRATION PHILOSOPHY:
- * - BLUE/CYAN = PRIMARY hierarchy
- * - PURPLE = SECONDARY hierarchy  
- * - Seamless theme switching without flicker
- * - Video background compatibility
+ *
+ * PALETTE:
+ * - Midnight Sapphire #002060 — Primary foundation
+ * - Ice Wing #60C0F0 — PRIMARY accent
+ * - Arctic Cyan #50A0F0 — Secondary accent
+ * - Gilded Fern #C6A84B — Gold luxury accent
+ * - Swan Lavender #4070C0 — Tertiary
  */
 
 import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContext';
@@ -28,30 +28,30 @@ import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContex
  */
 export const generateCSSVariables = (themeId: ThemeId): string => {
   const theme = themes[themeId];
-  
+
   return `
     /* === FOUNDATION COLORS === */
     --color-deep-space: ${theme.colors.deepSpace};
     --color-stardust: ${theme.colors.stardust};
     --color-void: ${theme.colors.void};
-    
-    /* === PRIMARY HIERARCHY (Blue/Cyan) === */
+
+    /* === PRIMARY HIERARCHY (Ice Wing / Arctic Cyan) === */
     --color-primary: ${theme.colors.primary};
     --color-primary-blue: ${theme.colors.primaryBlue};
     --color-primary-deep: ${theme.colors.primaryDeep};
     --color-primary-light: ${theme.colors.primaryLight};
     --color-primary-neon: ${theme.colors.primaryNeon};
-    
-    /* === SECONDARY HIERARCHY (Purple) === */
+
+    /* === SECONDARY HIERARCHY (Swan Lavender) === */
     --color-secondary: ${theme.colors.secondary};
     --color-secondary-light: ${theme.colors.secondaryLight};
     --color-secondary-deep: ${theme.colors.secondaryDeep};
-    
-    /* === ACCENT COLORS === */
+
+    /* === ACCENT COLORS (Gilded Fern) === */
     --color-accent: ${theme.colors.accent};
     --color-accent-light: ${theme.colors.accentLight};
     --color-accent-warm: ${theme.colors.accentWarm};
-    
+
     /* === SUPPORT COLORS === */
     --color-white: ${theme.colors.white};
     --color-silver: ${theme.colors.silver};
@@ -59,7 +59,7 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --color-error: ${theme.colors.error};
     --color-success: ${theme.colors.success};
     --color-warning: ${theme.colors.warning};
-    
+
     /* === GRADIENTS === */
     --gradient-primary: ${theme.gradients.primary};
     --gradient-secondary: ${theme.gradients.secondary};
@@ -69,7 +69,8 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --gradient-accent: ${theme.gradients.accent};
     --gradient-stellar: ${theme.gradients.stellar};
     --gradient-swan-cosmic: ${theme.gradients.swanCosmic};
-    
+    --gradient-glass: ${theme.gradients.glass};
+
     /* === SHADOWS === */
     --shadow-primary: ${theme.shadows.primary};
     --shadow-secondary: ${theme.shadows.secondary};
@@ -77,22 +78,38 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --shadow-accent: ${theme.shadows.accent};
     --shadow-elevation: ${theme.shadows.elevation};
     --shadow-glow: ${theme.shadows.glow};
-    
+    --shadow-glass: ${theme.shadows.glass};
+    --shadow-button: ${theme.shadows.button};
+
     /* === BORDERS === */
     --border-subtle: ${theme.borders.subtle};
     --border-elegant: ${theme.borders.elegant};
     --border-prominent: ${theme.borders.prominent};
-    
+    --border-glass: ${theme.borders.glass};
+    --border-card: ${theme.borders.card};
+    --border-focus: ${theme.borders.focus};
+
     /* === BACKGROUNDS === */
     --bg-primary: ${theme.background.primary};
     --bg-secondary: ${theme.background.secondary};
     --bg-surface: ${theme.background.surface};
     --bg-elevated: ${theme.background.elevated};
-    
+
     /* === TEXT === */
     --text-primary: ${theme.text.primary};
     --text-secondary: ${theme.text.secondary};
     --text-muted: ${theme.text.muted};
+    --text-heading: ${theme.text.heading};
+    --text-subheading: ${theme.text.subheading};
+    --text-body: ${theme.text.body};
+    --text-label: ${theme.text.label};
+    --text-accent: ${theme.text.accent};
+
+    /* === TYPOGRAPHY === */
+    --font-heading: ${theme.fonts.heading};
+    --font-drama: ${theme.fonts.drama};
+    --font-data: ${theme.fonts.data};
+    --font-ui: ${theme.fonts.ui};
   `;
 };
 
@@ -102,13 +119,13 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
  */
 export const injectThemeVariables = (themeId: ThemeId): void => {
   const cssVariables = generateCSSVariables(themeId);
-  
+
   // Remove existing theme variables
   let themeStyleElement = document.getElementById('theme-variables');
   if (themeStyleElement) {
     themeStyleElement.remove();
   }
-  
+
   // Create new style element with theme variables
   themeStyleElement = document.createElement('style');
   themeStyleElement.id = 'theme-variables';
@@ -117,9 +134,9 @@ export const injectThemeVariables = (themeId: ThemeId): void => {
       ${cssVariables}
     }
   `;
-  
+
   document.head.appendChild(themeStyleElement);
-  
+
   // Also set data attribute for theme-aware CSS selectors
   document.documentElement.setAttribute('data-theme', themeId);
 };
@@ -184,35 +201,49 @@ export const cssVars = {
   primaryBlue: 'var(--color-primary-blue)',
   secondary: 'var(--color-secondary)',
   accent: 'var(--color-accent)',
-  
+
   // Backgrounds
   bgPrimary: 'var(--bg-primary)',
   bgSecondary: 'var(--bg-secondary)',
   bgSurface: 'var(--bg-surface)',
   bgElevated: 'var(--bg-elevated)',
-  
+
   // Text
   textPrimary: 'var(--text-primary)',
   textSecondary: 'var(--text-secondary)',
   textMuted: 'var(--text-muted)',
-  
+  textHeading: 'var(--text-heading)',
+  textAccent: 'var(--text-accent)',
+
   // Gradients
   gradientPrimary: 'var(--gradient-primary)',
   gradientSecondary: 'var(--gradient-secondary)',
   gradientCosmic: 'var(--gradient-cosmic)',
   gradientStellar: 'var(--gradient-stellar)',
-  
+  gradientGlass: 'var(--gradient-glass)',
+
   // Shadows
   shadowPrimary: 'var(--shadow-primary)',
   shadowSecondary: 'var(--shadow-secondary)',
   shadowCosmic: 'var(--shadow-cosmic)',
   shadowAccent: 'var(--shadow-accent)',
   shadowElevation: 'var(--shadow-elevation)',
-  
+  shadowGlass: 'var(--shadow-glass)',
+  shadowButton: 'var(--shadow-button)',
+
   // Borders
   borderSubtle: 'var(--border-subtle)',
   borderElegant: 'var(--border-elegant)',
   borderProminent: 'var(--border-prominent)',
+  borderGlass: 'var(--border-glass)',
+  borderCard: 'var(--border-card)',
+  borderFocus: 'var(--border-focus)',
+
+  // Typography
+  fontHeading: 'var(--font-heading)',
+  fontDrama: 'var(--font-drama)',
+  fontData: 'var(--font-data)',
+  fontUi: 'var(--font-ui)',
 };
 
 // === ANIMATION HELPERS ===
@@ -227,28 +258,28 @@ export const getAnimationConfig = (themeId: ThemeId) => {
     easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
     reducedMotion: 'prefers-reduced-motion: reduce',
   };
-  
+
   switch (themeId) {
-    case 'swan-galaxy':
+    case 'crystalline-default':
       return {
         ...baseConfig,
         duration: '0.4s',
         intensity: 'enhanced',
         glow: true,
       };
-    case 'admin-command':
+    case 'crystalline-light':
       return {
         ...baseConfig,
         duration: '0.3s',
         intensity: 'standard',
         glow: false,
       };
-    case 'dark-galaxy':
+    case 'crystalline-dark':
       return {
         ...baseConfig,
-        duration: '0.2s',
-        intensity: 'minimal',
-        glow: false,
+        duration: '0.35s',
+        intensity: 'enhanced',
+        glow: true,
       };
     default:
       return baseConfig;
@@ -262,12 +293,12 @@ export const getAnimationConfig = (themeId: ThemeId) => {
  */
 export const getGlowButtonVariant = (themeId: ThemeId): string => {
   switch (themeId) {
-    case 'swan-galaxy':
-      return 'primary'; // Blue/cyan cosmic
-    case 'admin-command':
-      return 'primary'; // Professional blue
-    case 'dark-galaxy':
-      return 'cosmic'; // Minimalist white/cyan
+    case 'crystalline-default':
+      return 'primary'; // Ice-wing blue
+    case 'crystalline-light':
+      return 'primary'; // Arctic cyan on frost
+    case 'crystalline-dark':
+      return 'cosmic'; // Deep ice glow
     default:
       return 'primary';
   }
@@ -278,7 +309,7 @@ export const getGlowButtonVariant = (themeId: ThemeId): string => {
  */
 export const getIconColor = (themeId: ThemeId, type: 'primary' | 'secondary' | 'accent' = 'primary'): string => {
   const theme = themes[themeId];
-  
+
   switch (type) {
     case 'primary':
       return theme.colors.primary;
@@ -300,7 +331,7 @@ export const getIconColor = (themeId: ThemeId, type: 'primary' | 'secondary' | '
 export const switchThemeOptimized = (themeId: ThemeId, callback?: () => void): void => {
   requestAnimationFrame(() => {
     injectThemeVariables(themeId);
-    
+
     if (callback) {
       requestAnimationFrame(callback);
     }
@@ -325,19 +356,19 @@ export const switchThemeDebounced = (themeId: ThemeId, delay: number = 100): voi
  */
 export const getContrastColor = (themeId: ThemeId, background: 'light' | 'dark' = 'dark'): string => {
   const theme = themes[themeId];
-  
+
   if (background === 'light') {
-    return theme.colors.void; // Dark text on light background
+    return theme.colors.void;
   }
-  
-  return theme.text.primary; // Light text on dark background
+
+  return theme.text.primary;
 };
 
 /**
  * Check if current theme supports high contrast
  */
 export const supportsHighContrast = (themeId: ThemeId): boolean => {
-  return themeId === 'dark-galaxy'; // Dark Galaxy theme has best contrast
+  return themeId === 'crystalline-dark';
 };
 
 export default {

@@ -1,324 +1,315 @@
 /**
  * galaxy-swan-theme.ts
- * Enhanced Galaxy-Swan Theme - Blending elegant Swan brand identity with cosmic Galaxy aesthetics
- * Designed for SwanStudios platform with sophisticated color harmonies and visual continuity
- * 
+ * Crystalline Swan Theme — Extended token set for SwanStudios platform
+ *
+ * Master Palette — Preset F-Alt "Enchanted Apex: Crystalline Swan"
+ * Derived from the SwanStudios swan logo:
+ *
  * COLOR HIERARCHY:
- * - BLUE (Cyan/Neon Blue) = PRIMARY
- * - PURPLE = SECONDARY  
- * - Other colors follow in supporting roles
+ * - Midnight Sapphire #002060 — Primary foundation / logo deep navy
+ * - Royal Depth #003080 — Surface / logo circle
+ * - Ice Wing #60C0F0 — PRIMARY accent / wing highlight
+ * - Arctic Cyan #50A0F0 — Secondary accent / feathers
+ * - Gilded Fern #C6A84B — Luxury gold accent
+ * - Frost White #E0ECF4 — Light background / head highlight
+ * - Swan Lavender #4070C0 — Tertiary / mid-body purple-blue
  */
 
-// Swan Brand Colors (inspired by logo and elegant Swan imagery)
+// Crystalline Swan Brand Colors (derived from swan logo)
 const swanColors = {
-  // Primary Swan Whites & Silvers
-  swanPure: '#FFFFFF',
-  swanSilver: '#E8F0FF', 
-  swanPearl: '#F0F8FF',
-  swanMist: 'rgba(255, 255, 255, 0.95)',
-  
-  // Swan Blues (PRIMARY BRAND COLORS)
-  swanBlue: '#00A0E3', // Primary brand blue
-  swanCyan: '#00FFFF', // Primary neon blue/cyan - MAIN PRIMARY
-  swanDeep: '#0085C7',
-  swanIce: '#B8E6FF',
-  
-  // Swan Accent Colors (subtle elegance)
-  swanGold: '#FFD700',
-  swanRose: '#FFE4E1',
-  swanSage: '#E8F5E8',
+  // Frost Whites & Silvers
+  swanPure: '#E0ECF4',         // Frost White — primary light
+  swanSilver: '#D0DCE8',       // Muted silver
+  swanPearl: '#F5F8FC',        // Near-white pearl
+  swanMist: 'rgba(224, 236, 244, 0.95)',
+
+  // Swan Blues — PRIMARY BRAND COLORS
+  swanBlue: '#50A0F0',         // Arctic Cyan — secondary accent
+  swanCyan: '#60C0F0',         // Ice Wing — MAIN PRIMARY
+  swanDeep: '#4070C0',         // Swan Lavender — tertiary
+  swanIce: '#90D4F8',          // Light ice highlight
+
+  // Swan Accent Colors
+  swanGold: '#C6A84B',         // Gilded Fern
+  swanRose: '#D8C478',         // Light gold
+  swanSage: '#B8963A',         // Deep gold
 };
 
-// Existing Galaxy Colors (Purple as SECONDARY)
+// Foundation Colors (Midnight Sapphire / Royal Depth)
 const galaxyColors = {
   // Deep Space Foundations
-  cosmic: '#7851A9', // SECONDARY - Purple cosmic
-  nebula: '#00FFFF', // Same as swanCyan - PRIMARY
-  stardust: '#1e1e3f',
-  void: '#0a0a1a',
-  
-  // Galaxy Gradients (Purple as secondary)
-  nebulaPurple: '#7b2cbf', // SECONDARY
-  cosmicBlue: '#46cdcf', // PRIMARY supporting
-  starlight: '#a9f8fb', // PRIMARY supporting
-  galaxyPink: '#c8b6ff', // Tertiary
-  
+  cosmic: '#4070C0',           // Swan Lavender — tertiary
+  nebula: '#60C0F0',           // Same as swanCyan — PRIMARY
+  stardust: '#003080',         // Royal Depth
+  void: '#002060',             // Midnight Sapphire
+
+  // Supporting Blues
+  nebulaPurple: '#003080',     // Royal Depth (was purple)
+  cosmicBlue: '#50A0F0',       // Arctic Cyan
+  starlight: '#90D4F8',        // Light ice
+  galaxyPink: '#6090D0',       // Light lavender
+
   // Depth Levels
-  deepSpace: 'rgba(10, 10, 30, 0.8)',
-  midSpace: 'rgba(30, 30, 60, 0.6)',
-  outerSpace: 'rgba(50, 50, 80, 0.4)',
+  deepSpace: 'rgba(0, 32, 96, 0.8)',
+  midSpace: 'rgba(0, 48, 128, 0.6)',
+  outerSpace: 'rgba(0, 48, 128, 0.4)',
 };
 
 /**
- * Galaxy-Swan Unified Color Palette
- * BLUE = PRIMARY, PURPLE = SECONDARY
+ * Crystalline Swan Unified Color Palette
+ * ICE WING = PRIMARY, SWAN LAVENDER = SECONDARY, GILDED FERN = ACCENT
  */
 export const galaxySwanTheme = {
   // === FOUNDATION COLORS ===
   background: {
-    primary: galaxyColors.void,
-    secondary: galaxyColors.stardust,
+    primary: galaxyColors.void,        // #002060 — Midnight Sapphire
+    secondary: galaxyColors.stardust,  // #003080 — Royal Depth
     overlay: galaxyColors.deepSpace,
     surface: galaxyColors.midSpace,
     elevated: galaxyColors.outerSpace,
   },
-  
+
   // === BRAND HIERARCHY ===
-  // PRIMARY COLORS (Blue/Cyan)
+  // PRIMARY COLORS (Ice Wing / Arctic Cyan)
   primary: {
-    main: swanColors.swanCyan, // #00FFFF - Main primary
-    blue: swanColors.swanBlue, // #00A0E3 - Brand blue
-    deep: swanColors.swanDeep, // #0085C7 - Deep blue
-    light: swanColors.swanIce, // #B8E6FF - Light blue
-    starlight: galaxyColors.starlight, // #a9f8fb - Supporting
-    cosmicBlue: galaxyColors.cosmicBlue, // #46cdcf - Supporting
+    main: swanColors.swanCyan,         // #60C0F0 — Ice Wing
+    blue: swanColors.swanBlue,         // #50A0F0 — Arctic Cyan
+    deep: swanColors.swanDeep,         // #4070C0 — Swan Lavender
+    light: swanColors.swanIce,         // #90D4F8 — Light ice
+    starlight: galaxyColors.starlight, // #90D4F8
+    cosmicBlue: galaxyColors.cosmicBlue, // #50A0F0
   },
-  
-  // SECONDARY COLORS (Purple)
+
+  // SECONDARY COLORS (Swan Lavender / Royal Depth)
   secondary: {
-    main: galaxyColors.cosmic, // #7851A9 - Main secondary
-    nebula: galaxyColors.nebulaPurple, // #7b2cbf - Vibrant purple
-    pink: galaxyColors.galaxyPink, // #c8b6ff - Light purple
+    main: galaxyColors.cosmic,          // #4070C0 — Swan Lavender
+    nebula: galaxyColors.nebulaPurple,  // #003080 — Royal Depth
+    pink: galaxyColors.galaxyPink,      // #6090D0 — Light lavender
   },
-  
+
   // === SWAN BRAND INTEGRATION ===
   swan: {
     // Primary Swan brand colors for headers, logos, key UI elements
-    pure: swanColors.swanPure,
+    pure: swanColors.swanPure,          // #E0ECF4
     silver: swanColors.swanSilver,
     pearl: swanColors.swanPearl,
     mist: swanColors.swanMist,
-    
-    // Swan blues harmonizing with Galaxy (PRIMARY)
-    blue: swanColors.swanBlue,
-    cyan: swanColors.swanCyan, // MAIN PRIMARY
-    deep: swanColors.swanDeep,
-    ice: swanColors.swanIce,
-    
-    // Subtle accents
-    gold: swanColors.swanGold,
-    rose: swanColors.swanRose,
-    sage: swanColors.swanSage,
+
+    // Swan blues (PRIMARY)
+    blue: swanColors.swanBlue,          // #50A0F0 — Arctic Cyan
+    cyan: swanColors.swanCyan,          // #60C0F0 — Ice Wing MAIN PRIMARY
+    deep: swanColors.swanDeep,          // #4070C0 — Swan Lavender
+    ice: swanColors.swanIce,            // #90D4F8
+
+    // Accents
+    gold: swanColors.swanGold,          // #C6A84B — Gilded Fern
+    rose: swanColors.swanRose,          // #D8C478
+    sage: swanColors.swanSage,          // #B8963A
   },
-  
-  // === GALAXY COSMIC COLORS ===
+
+  // === GALAXY FOUNDATION COLORS ===
   galaxy: {
-    cosmic: galaxyColors.cosmic, // SECONDARY
-    nebula: galaxyColors.nebula, // Same as primary cyan
+    cosmic: galaxyColors.cosmic,
+    nebula: galaxyColors.nebula,
     stardust: galaxyColors.stardust,
     void: galaxyColors.void,
-    purple: galaxyColors.nebulaPurple, // SECONDARY
-    blue: galaxyColors.cosmicBlue, // PRIMARY supporting
-    starlight: galaxyColors.starlight, // PRIMARY supporting
-    pink: galaxyColors.galaxyPink, // Tertiary
+    purple: galaxyColors.nebulaPurple,
+    blue: galaxyColors.cosmicBlue,
+    starlight: galaxyColors.starlight,
+    pink: galaxyColors.galaxyPink,
   },
-  
-  // === HARMONIZED COLOR FUNCTIONS ===
+
+  // === HARMONIZED GRADIENTS ===
   gradients: {
-    // PRIMARY gradients (Blue-based)
+    // PRIMARY gradients (Ice Wing)
     primaryCosmic: `linear-gradient(135deg, ${swanColors.swanCyan}, ${swanColors.swanBlue})`,
     primaryNebula: `linear-gradient(45deg, ${swanColors.swanCyan}, ${galaxyColors.starlight})`,
     blueStardust: `linear-gradient(to right, ${swanColors.swanBlue}, ${galaxyColors.stardust})`,
-    
-    // SECONDARY gradients (Purple-based)
+
+    // SECONDARY gradients (Swan Lavender)
     secondaryCosmic: `linear-gradient(135deg, ${galaxyColors.cosmic}, ${galaxyColors.nebulaPurple})`,
     purpleNebula: `linear-gradient(45deg, ${galaxyColors.cosmic}, ${galaxyColors.galaxyPink})`,
-    
+
     // PRIMARY-SECONDARY blends
     swanCosmic: `linear-gradient(135deg, ${swanColors.swanCyan}, ${galaxyColors.cosmic})`,
     pearlNebula: `linear-gradient(45deg, ${swanColors.swanPearl}, ${swanColors.swanCyan})`,
     silverStardust: `linear-gradient(to right, ${swanColors.swanSilver}, ${galaxyColors.stardust})`,
-    
-    // Enhanced Galaxy gradients with Swan touches
+
+    // Enhanced Crystalline gradients
     cosmicSwan: `linear-gradient(135deg, ${galaxyColors.cosmic}, ${swanColors.swanCyan})`,
     nebulaFrost: `linear-gradient(to bottom, ${swanColors.swanCyan}, ${swanColors.swanIce})`,
-    
+
+    // Accent gradients (Gilded Fern)
+    goldAccent: `linear-gradient(135deg, ${swanColors.swanGold}, ${swanColors.swanRose})`,
+
     // Premium package gradients (maintaining existing structure)
     ruby: `linear-gradient(135deg, rgba(232, 0, 70, 0.3), rgba(253, 0, 159, 0.3))`,
     emerald: `linear-gradient(135deg, rgba(0, 232, 176, 0.3), rgba(0, 253, 159, 0.3))`,
-    cosmic: `linear-gradient(135deg, rgba(93, 63, 211, 0.3), rgba(255, 46, 99, 0.3))`,
-    purple: `linear-gradient(135deg, rgba(120, 0, 245, 0.3), rgba(200, 148, 255, 0.3))`,
+    cosmic: `linear-gradient(135deg, rgba(0, 48, 128, 0.3), rgba(96, 192, 240, 0.3))`,
+    purple: `linear-gradient(135deg, rgba(64, 112, 192, 0.3), rgba(96, 144, 208, 0.3))`,
   },
-  
+
   // === INTERACTIVE STATES ===
   interactive: {
     // Hover states using PRIMARY colors
-    hover: `rgba(0, 255, 255, 0.1)`, // Primary cyan
-    active: swanColors.swanCyan, // Primary
-    focus: `0 0 0 2px ${swanColors.swanCyan}`, // Primary
-    
-    // Button states (PRIMARY first, SECONDARY second)
+    hover: `rgba(96, 192, 240, 0.1)`,
+    active: swanColors.swanCyan,
+    focus: `0 0 0 2px ${swanColors.swanCyan}`,
+
+    // Button states
     buttonPrimary: `linear-gradient(135deg, ${swanColors.swanCyan}, ${swanColors.swanBlue})`,
     buttonSecondary: `linear-gradient(135deg, ${galaxyColors.cosmic}, ${galaxyColors.nebulaPurple})`,
-    buttonActive: swanColors.swanCyan, // Primary
+    buttonActive: swanColors.swanCyan,
   },
-  
+
   // === TEXT & CONTENT ===
   text: {
-    primary: swanColors.swanPure,
+    primary: swanColors.swanPure,       // #E0ECF4
     secondary: swanColors.swanSilver,
-    accent: swanColors.swanCyan, // PRIMARY
-    muted: 'rgba(255, 255, 255, 0.7)',
-    inverse: galaxyColors.void,
+    accent: swanColors.swanCyan,        // #60C0F0 — PRIMARY
+    muted: 'rgba(224, 236, 244, 0.7)',
+    inverse: galaxyColors.void,         // #002060
   },
-  
+
   // === BORDERS & DIVIDERS ===
   borders: {
-    subtle: 'rgba(255, 255, 255, 0.05)',
-    elegant: `rgba(0, 255, 255, 0.2)`, // PRIMARY
-    prominent: `rgba(0, 160, 227, 0.4)`, // PRIMARY
-    glow: `0 0 10px rgba(0, 255, 255, 0.3)`, // PRIMARY
+    subtle: 'rgba(96, 192, 240, 0.08)',
+    elegant: `rgba(96, 192, 240, 0.2)`,
+    prominent: `rgba(80, 160, 240, 0.4)`,
+    glow: `0 0 10px rgba(96, 192, 240, 0.3)`,
   },
-  
+
   // === SHADOWS & EFFECTS ===
   shadows: {
-    // PRIMARY-based shadows
-    primaryGlow: `0 0 20px rgba(0, 255, 255, 0.3)`,
-    primaryElevated: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 255, 255, 0.2)`,
-    
-    // SECONDARY-based shadows  
-    secondaryGlow: `0 0 20px rgba(120, 81, 169, 0.3)`,
-    secondaryElevated: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(120, 81, 169, 0.2)`,
-    
-    // Combined effects (PRIMARY + SECONDARY)
-    swanCosmic: `0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 255, 255, 0.3)`,
-    
+    // PRIMARY-based shadows (Ice Wing)
+    primaryGlow: `0 0 20px rgba(96, 192, 240, 0.3)`,
+    primaryElevated: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(96, 192, 240, 0.2)`,
+
+    // SECONDARY-based shadows (Swan Lavender)
+    secondaryGlow: `0 0 20px rgba(64, 112, 192, 0.3)`,
+    secondaryElevated: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(64, 112, 192, 0.2)`,
+
+    // Combined effects
+    swanCosmic: `0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(96, 192, 240, 0.3)`,
+
     // Legacy names (for compatibility)
-    swanGlow: `0 0 20px rgba(0, 255, 255, 0.3)`, // PRIMARY
-    swanElevated: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 255, 255, 0.2)`, // PRIMARY
-    cosmic: `0 0 30px rgba(120, 81, 169, 0.4)`, // SECONDARY
-    nebula: `0 0 25px rgba(0, 255, 255, 0.5)`, // PRIMARY
+    swanGlow: `0 0 20px rgba(96, 192, 240, 0.3)`,
+    swanElevated: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(96, 192, 240, 0.2)`,
+    cosmic: `0 0 30px rgba(64, 112, 192, 0.4)`,
+    nebula: `0 0 25px rgba(96, 192, 240, 0.5)`,
   },
-  
+
   // === COMPONENT-SPECIFIC THEMES ===
   components: {
-    // Header theming (PRIMARY focus)
+    // Header theming
     header: {
       background: galaxyColors.void,
-      border: `1px solid rgba(0, 255, 255, 0.1)`, // PRIMARY
-      logoGlow: swanColors.swanCyan, // PRIMARY
-      navHover: swanColors.swanCyan, // PRIMARY
+      border: `1px solid rgba(96, 192, 240, 0.1)`,
+      logoGlow: swanColors.swanCyan,
+      navHover: swanColors.swanCyan,
     },
 
-    // Card theming (PRIMARY accents)
+    // Card theming
     card: {
-      background: 'rgba(30, 30, 60, 0.4)',
-      border: `1px solid rgba(0, 255, 255, 0.2)`, // PRIMARY
-      hoverBorder: `rgba(0, 255, 255, 0.6)`, // PRIMARY
-      hoverBackground: 'rgba(30, 30, 60, 0.6)',
+      background: 'rgba(0, 48, 128, 0.4)',
+      border: `1px solid rgba(96, 192, 240, 0.15)`,
+      hoverBorder: `rgba(96, 192, 240, 0.4)`,
+      hoverBackground: 'rgba(0, 48, 128, 0.6)',
     },
 
-    // Button theming (PRIMARY first)
+    // Button theming
     button: {
-      primary: `linear-gradient(135deg, ${swanColors.swanCyan}, ${swanColors.swanBlue})`, // PRIMARY
-      secondary: `linear-gradient(135deg, ${galaxyColors.cosmic}, ${galaxyColors.nebulaPurple})`, // SECONDARY
-      accent: swanColors.swanCyan, // PRIMARY
+      primary: `linear-gradient(135deg, ${swanColors.swanCyan}, ${swanColors.swanBlue})`,
+      secondary: `linear-gradient(135deg, ${galaxyColors.cosmic}, ${galaxyColors.nebulaPurple})`,
+      accent: swanColors.swanCyan,
     },
   },
 
   // === V2.0 THEME TOKENS ===
-  // Added for Homepage Refactor v2.0 - Galaxy-Swan Theme Blueprint compliance
 
   /**
    * Glass Opacity Tokens (Glassmorphism)
    * Used by FrostedCard component for consistent backdrop-filter effects
-   *
-   * Usage:
-   * - thin: Subtle hints (tooltips, overlays)
-   * - mid: Standard cards (features, packages)
-   * - thick: Prominent cards (hero CTAs, modals)
-   * - opaque: Fallback for prefers-reduced-transparency
-   *
-   * @see frontend/src/components/ui-kit/glass/FrostedCard.tsx
    */
   glass: {
-    thin: 0.06,   // Subtle glass effect (backdrop-blur: 5px)
-    mid: 0.10,    // Standard glass effect (backdrop-blur: 10px)
-    thick: 0.14,  // Prominent glass effect (backdrop-blur: 15px)
-    opaque: 0.95, // Accessibility fallback (no blur)
+    thin: 0.06,
+    mid: 0.10,
+    thick: 0.14,
+    opaque: 0.95,
   },
 
   /**
-   * Parallax Timing Functions (Scroll-based depth effects)
-   * Used by ParallaxSectionWrapper for layered visual hierarchy
-   *
-   * Usage:
-   * - slow: Background elements (far depth, 200px offset)
-   * - medium: Mid-ground elements (standard depth, 150px offset)
-   * - fast: Foreground elements (near depth, 100px offset)
-   *
-   * @see frontend/src/components/ui-kit/parallax/ParallaxSectionWrapper.tsx
+   * Parallax Timing Functions
    */
   parallax: {
-    slow: 'cubic-bezier(0.22, 0.61, 0.36, 1)',   // Gentle easing for far elements
-    medium: 'cubic-bezier(0.33, 0.66, 0.44, 1)', // Standard easing for mid elements
-    fast: 'cubic-bezier(0.44, 0.72, 0.52, 1)',   // Snappy easing for near elements
+    slow: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+    medium: 'cubic-bezier(0.33, 0.66, 0.44, 1)',
+    fast: 'cubic-bezier(0.44, 0.72, 0.52, 1)',
   },
-  
+
   // === GLOW BUTTON THEME MAPPING ===
-  // Maps to existing GlowButton themes with PRIMARY/SECONDARY hierarchy
   glowButton: {
-    // PRIMARY theme (blue/cyan) - Default
+    // PRIMARY theme (Ice Wing / Arctic Cyan)
     primary: {
-      background: "#041e2e", // Dark blue base
-      color: "#fff",
-      shadow: "rgba(4, 64, 104, 0.2)",
-      shineLeft: "rgba(0, 160, 227, 0.5)", // swanBlue
-      shineRight: "rgba(0, 255, 255, 0.65)", // swanCyan
-      glowStart: "#00A0E3", // swanBlue
-      glowEnd: "#00FFFF", // swanCyan
+      background: "#001840",
+      color: "#E0ECF4",
+      shadow: "rgba(0, 32, 96, 0.3)",
+      shineLeft: "rgba(80, 160, 240, 0.5)",
+      shineRight: "rgba(96, 192, 240, 0.65)",
+      glowStart: "#50A0F0",
+      glowEnd: "#60C0F0",
     },
-    
-    // SECONDARY theme (purple) - Galaxy-Swan secondary
+
+    // SECONDARY theme (Swan Lavender)
     secondary: {
-      background: "#09041e",
-      color: "#fff",
-      shadow: "rgba(33, 4, 104, 0.2)",
-      shineLeft: "rgba(120, 0, 245, 0.5)",
-      shineRight: "rgba(200, 148, 255, 0.65)",
-      glowStart: "#B000E8",
-      glowEnd: "#009FFD",
+      background: "#001040",
+      color: "#E0ECF4",
+      shadow: "rgba(0, 16, 64, 0.3)",
+      shineLeft: "rgba(64, 112, 192, 0.5)",
+      shineRight: "rgba(96, 144, 208, 0.65)",
+      glowStart: "#4070C0",
+      glowEnd: "#50A0F0",
     },
-    
+
     // Keep existing themes for compatibility
     purple: {
-      background: "#09041e",
-      color: "#fff",
-      shadow: "rgba(33, 4, 104, 0.2)",
-      shineLeft: "rgba(120, 0, 245, 0.5)",
-      shineRight: "rgba(200, 148, 255, 0.65)",
-      glowStart: "#B000E8",
-      glowEnd: "#009FFD",
+      background: "#001040",
+      color: "#E0ECF4",
+      shadow: "rgba(0, 16, 64, 0.3)",
+      shineLeft: "rgba(64, 112, 192, 0.5)",
+      shineRight: "rgba(96, 144, 208, 0.65)",
+      glowStart: "#4070C0",
+      glowEnd: "#50A0F0",
     },
-    
+
     emerald: {
       background: "#0c1e0e",
-      color: "#fff",
+      color: "#E0ECF4",
       shadow: "rgba(4, 104, 49, 0.2)",
       shineLeft: "rgba(0, 245, 111, 0.5)",
       shineRight: "rgba(148, 255, 200, 0.65)",
       glowStart: "#00E8B0",
       glowEnd: "#00FD9F",
     },
-    
+
     ruby: {
       background: "#1e040c",
-      color: "#fff",
+      color: "#E0ECF4",
       shadow: "rgba(104, 4, 33, 0.2)",
       shineLeft: "rgba(245, 0, 90, 0.5)",
       shineRight: "rgba(255, 148, 180, 0.65)",
       glowStart: "#E80046",
       glowEnd: "#FD009F",
     },
-    
+
     cosmic: {
-      background: "#0a0a18",
-      color: "#fff",
-      shadow: "rgba(10, 10, 40, 0.3)",
-      shineLeft: "rgba(86, 11, 173, 0.5)",
-      shineRight: "rgba(255, 255, 255, 0.65)",
-      glowStart: "#5D3FD3",
-      glowEnd: "#FF2E63",
+      background: "#000A1A",
+      color: "#E0ECF4",
+      shadow: "rgba(0, 10, 26, 0.4)",
+      shineLeft: "rgba(64, 112, 192, 0.5)",
+      shineRight: "rgba(224, 236, 244, 0.65)",
+      glowStart: "#4070C0",
+      glowEnd: "#60C0F0",
     },
   },
 };
@@ -355,11 +346,11 @@ export const mediaQueries = {
   // Performance-based media queries
   reducedMotion: '@media (prefers-reduced-motion: reduce)',
   highContrast: '@media (prefers-contrast: high)',
-  
+
   // Device capability detection
   lowEndDevice: '@media (max-width: 768px) and (max-height: 1024px)',
   highEndDevice: '@media (min-width: 1024px) and (min-height: 768px)',
-  
+
   // Standard responsive breakpoints
   mobile: '@media (max-width: 480px)',
   tablet: '@media (min-width: 481px) and (max-width: 768px)',
@@ -378,20 +369,20 @@ export const themeUtils = {
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   },
-  
+
   // Get appropriate animation tier based on user preferences
   getAnimationTier: () => {
     if (typeof window !== 'undefined') {
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const isLowEnd = window.matchMedia('(max-width: 768px)').matches;
-      
+
       if (prefersReduced) return animationConfig.reduced;
       if (isLowEnd) return animationConfig.standard;
       return animationConfig.enhanced;
     }
     return animationConfig.standard;
   },
-  
+
   // Generate theme-appropriate gradient
   generateGradient: (startColor: string, endColor: string, angle: number = 135) => {
     return `linear-gradient(${angle}deg, ${startColor}, ${endColor})`;
@@ -402,25 +393,18 @@ export default galaxySwanTheme;
 
 /**
  * GLOW BUTTON THEME VARIANTS
- * Maps Galaxy-Swan theme to GlowButton component themes
- * PRIMARY = Blue/Cyan, SECONDARY = Purple
+ * Maps Crystalline Swan theme to GlowButton component themes
+ * ICE WING = PRIMARY, SWAN LAVENDER = SECONDARY
  */
 export const getGlowButtonTheme = (variant: 'primary' | 'secondary' | 'purple' | 'emerald' | 'ruby' | 'cosmic' = 'primary') => {
-  // Map the Galaxy-Swan theme to GlowButton format
-  // BLUE = PRIMARY, PURPLE = SECONDARY
   const themeMap = {
-    // PRIMARY (Blue/Cyan) - Default for most buttons
     primary: galaxySwanTheme.glowButton.primary,
-    
-    // SECONDARY (Purple) - For secondary actions
-    secondary: galaxySwanTheme.glowButton.purple, // Use purple theme for secondary
-    
-    // Legacy compatibility - keep existing names working
+    secondary: galaxySwanTheme.glowButton.purple,
     purple: galaxySwanTheme.glowButton.purple,
     emerald: galaxySwanTheme.glowButton.emerald,
     ruby: galaxySwanTheme.glowButton.ruby,
     cosmic: galaxySwanTheme.glowButton.cosmic,
   };
-  
-  return themeMap[variant] || themeMap.primary; // Always default to PRIMARY (blue)
+
+  return themeMap[variant] || themeMap.primary;
 };

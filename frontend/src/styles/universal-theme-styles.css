@@ -247,33 +247,35 @@
 
 /* === THEME-SPECIFIC ADJUSTMENTS === */
 
-/* Swan Galaxy Theme Specific */
-[data-theme="swan-galaxy"] {
-  /* Enhanced glow effects for swan-galaxy */
+/* Crystalline Default Theme Specific */
+[data-theme="crystalline-default"] {
+  /* Enhanced ice-wing glow effects */
   .enhanced-glow {
     filter: drop-shadow(0 0 10px var(--color-primary));
   }
 }
 
-/* Admin Command Theme Specific */
-[data-theme="admin-command"] {
-  /* Professional, reduced effects for admin */
+/* Crystalline Light Theme Specific */
+[data-theme="crystalline-light"] {
+  /* Softer effects for light theme */
   .animate-theme-float,
   .animate-theme-pulse {
-    animation-duration: 4s; /* Slower, more professional */
+    animation-duration: 4s; /* Gentler on light backgrounds */
+  }
+  .enhanced-glow {
+    filter: drop-shadow(0 0 6px var(--color-primary));
   }
 }
 
-/* Dark Galaxy Theme Specific */
-[data-theme="dark-galaxy"] {
-  /* Minimal effects for dark theme */
-  .animate-theme-glow,
+/* Crystalline Dark Theme Specific */
+[data-theme="crystalline-dark"] {
+  /* Stronger glow effects for deep dark */
   .enhanced-glow {
-    filter: none; /* Remove glow effects */
+    filter: drop-shadow(0 0 14px var(--color-primary));
   }
-  
+
   .shadow-theme-cosmic {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(96, 192, 240, 0.15) !important;
   }
 }
 

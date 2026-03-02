@@ -11,7 +11,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useUniversalTheme } from '../context/ThemeContext';
-import { FaPalette, FaMoon, FaCommand } from 'react-icons/fa';
+import { FaStar, FaSun, FaMoon } from 'react-icons/fa';
 
 const ShowcaseContainer = styled(motion.div)`
   padding: 2rem;
@@ -107,14 +107,14 @@ const ThemeShowcase: React.FC = () => {
 
   const getThemeIcon = (themeId: string) => {
     switch (themeId) {
-      case 'swan-galaxy':
-        return <FaPalette />;
-      case 'admin-command':
-        return <FaCommand />;
-      case 'dark-galaxy':
+      case 'crystalline-default':
+        return <FaStar />;
+      case 'crystalline-light':
+        return <FaSun />;
+      case 'crystalline-dark':
         return <FaMoon />;
       default:
-        return <FaPalette />;
+        return <FaStar />;
     }
   };
 

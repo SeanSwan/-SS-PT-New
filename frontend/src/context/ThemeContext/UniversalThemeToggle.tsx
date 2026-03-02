@@ -1,44 +1,33 @@
 /**
  * UniversalThemeToggle.tsx
  * =======================
- * 
- * Cosmic Theme Toggle Component for Universal Theme Switching
- * Designed by Seraphina, The Digital Alchemist
- * 
+ *
+ * Crystalline Swan Theme Toggle Component
+ *
  * Features:
- * - Stunning cosmic toggle animation with theme-aware colors
- * - Three-state toggle: Swan Galaxy → Admin Command → Dark Galaxy
+ * - Three-state toggle: Crystalline Default -> Light -> Dark
+ * - Icons: Sparkles (default) -> Sun (light) -> Moon (dark)
  * - Smooth morphing animations between states
- * - Mobile-optimized touch interactions
+ * - Mobile-optimized touch interactions (44px minimum target)
  * - WCAG AA accessibility compliance
  * - Tooltips indicating current and next theme
- * 
- * Master Prompt v28 Alignment:
- * - Award-winning micro-interactions with stellar animations
- * - Mobile-first responsive design
- * - Accessibility as art
  */
 
 import React, { useState, useEffect } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Moon, Command } from 'lucide-react';
+import { Sparkles, Sun, Moon } from 'lucide-react';
 import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
-const cosmicRotate = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
 const stellarPulse = keyframes`
-  0%, 100% { 
-    opacity: 0.8; 
+  0%, 100% {
+    opacity: 0.8;
     transform: scale(1);
     filter: brightness(1);
   }
-  50% { 
-    opacity: 1; 
+  50% {
+    opacity: 1;
     transform: scale(1.05);
     filter: brightness(1.2);
   }
@@ -63,16 +52,16 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
   height: 44px;
   border-radius: 50%;
   border: 2px solid transparent;
-  background: ${({ $currentTheme, theme }) => {
+  background: ${({ $currentTheme }) => {
     switch ($currentTheme) {
-      case 'swan-galaxy':
-        return theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)';
-      case 'admin-command':
-        return theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #2563eb)';
-      case 'dark-galaxy':
-        return theme.gradients?.secondary || 'linear-gradient(135deg, #4a5568, #2d3748)';
+      case 'crystalline-default':
+        return 'linear-gradient(135deg, #002060, #60C0F0)';
+      case 'crystalline-light':
+        return 'linear-gradient(135deg, #50A0F0, #F5F8FC)';
+      case 'crystalline-dark':
+        return 'linear-gradient(135deg, #000A1A, #4070C0)';
       default:
-        return theme.gradients?.primary || '#00FFFF';
+        return 'linear-gradient(135deg, #002060, #60C0F0)';
     }
   }};
   cursor: pointer;
@@ -81,84 +70,82 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
   justify-content: center;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  color: ${({ $currentTheme }) => 
-    $currentTheme === 'dark-galaxy' ? '#ffffff' : 
-    $currentTheme === 'admin-command' ? '#ffffff' : '#000000'
+  color: ${({ $currentTheme }) =>
+    $currentTheme === 'crystalline-light' ? '#002060' : '#E0ECF4'
   };
-  
-  /* Cosmic glow effect */
-  box-shadow: ${({ $currentTheme, theme }) => {
+
+  /* Crystalline glow effect */
+  box-shadow: ${({ $currentTheme }) => {
     switch ($currentTheme) {
-      case 'swan-galaxy':
-        return '0 0 20px rgba(0, 255, 255, 0.4), 0 0 40px rgba(0, 160, 227, 0.2)';
-      case 'admin-command':
-        return '0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(37, 99, 235, 0.2)';
-      case 'dark-galaxy':
-        return '0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(0, 255, 255, 0.2)';
+      case 'crystalline-default':
+        return '0 0 20px rgba(96, 192, 240, 0.4), 0 0 40px rgba(0, 32, 96, 0.2)';
+      case 'crystalline-light':
+        return '0 0 20px rgba(80, 160, 240, 0.3), 0 0 40px rgba(198, 168, 75, 0.15)';
+      case 'crystalline-dark':
+        return '0 0 20px rgba(96, 192, 240, 0.5), 0 0 40px rgba(64, 112, 192, 0.3)';
       default:
-        return theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)';
+        return '0 0 20px rgba(96, 192, 240, 0.4)';
     }
   }};
-  
-  /* Hovering orbital particles */
+
+  /* Orbiting particle — gold accent */
   &::before {
     content: '';
     position: absolute;
     width: 4px;
     height: 4px;
-    background: ${({ $currentTheme }) => 
-      $currentTheme === 'dark-galaxy' ? '#00ffff' : 
-      $currentTheme === 'admin-command' ? '#00ffff' : '#FFD700'
+    background: ${({ $currentTheme }) =>
+      $currentTheme === 'crystalline-light' ? '#C6A84B' : '#C6A84B'
     };
     border-radius: 50%;
     animation: ${orbitingParticles} 3s linear infinite;
     opacity: 0.8;
   }
-  
+
+  /* Orbiting particle — ice accent */
   &::after {
     content: '';
     position: absolute;
     width: 3px;
     height: 3px;
-    background: ${({ $currentTheme }) => 
-      $currentTheme === 'dark-galaxy' ? '#ffffff' : 
-      $currentTheme === 'admin-command' ? '#a5f3fc' : '#c8b6ff'
+    background: ${({ $currentTheme }) =>
+      $currentTheme === 'crystalline-light' ? '#4070C0' : '#60C0F0'
     };
     border-radius: 50%;
     animation: ${orbitingParticles} 4s linear infinite reverse;
     animation-delay: -1s;
     opacity: 0.6;
   }
-  
+
   &:hover {
     transform: scale(1.1);
     animation: ${stellarPulse} 2s ease-in-out infinite;
     box-shadow: ${({ $currentTheme }) => {
       switch ($currentTheme) {
-        case 'swan-galaxy':
-          return '0 0 30px rgba(0, 255, 255, 0.6), 0 0 60px rgba(255, 215, 0, 0.3)';
-        case 'admin-command':
-          return '0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(0, 255, 255, 0.3)';
-        case 'dark-galaxy':
-          return '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(0, 255, 255, 0.4)';
+        case 'crystalline-default':
+          return '0 0 30px rgba(96, 192, 240, 0.6), 0 0 60px rgba(198, 168, 75, 0.2)';
+        case 'crystalline-light':
+          return '0 0 30px rgba(80, 160, 240, 0.5), 0 0 60px rgba(198, 168, 75, 0.2)';
+        case 'crystalline-dark':
+          return '0 0 30px rgba(96, 192, 240, 0.7), 0 0 60px rgba(64, 112, 192, 0.4)';
         default:
-          return '0 0 30px rgba(0, 255, 255, 0.6)';
+          return '0 0 30px rgba(96, 192, 240, 0.6)';
       }
     }};
   }
-  
+
   &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors?.accent || '#FFD700'};
+    outline: 2px solid ${({ theme }) => theme.colors?.accent || '#C6A84B'};
     outline-offset: 3px;
   }
-  
+
   &:active {
     transform: scale(0.95);
   }
-  
+
   @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 `;
 
@@ -177,8 +164,8 @@ const TooltipContainer = styled(motion.div)`
   bottom: -45px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(10, 10, 15, 0.95);
-  color: white;
+  background: rgba(0, 10, 26, 0.95);
+  color: #E0ECF4;
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.75rem;
@@ -186,9 +173,9 @@ const TooltipContainer = styled(motion.div)`
   white-space: nowrap;
   pointer-events: none;
   z-index: 1000;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(96, 192, 240, 0.15);
   backdrop-filter: blur(10px);
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -199,34 +186,34 @@ const TooltipContainer = styled(motion.div)`
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-bottom: 6px solid rgba(10, 10, 15, 0.95);
+    border-bottom: 6px solid rgba(0, 10, 26, 0.95);
   }
 `;
 
 // === THEME ICON MAPPING ===
 const getThemeIcon = (themeId: ThemeId, size = 20) => {
   switch (themeId) {
-    case 'swan-galaxy':
-      return <Palette size={size} />;
-    case 'admin-command':
-      return <Command size={size} />;
-    case 'dark-galaxy':
+    case 'crystalline-default':
+      return <Sparkles size={size} />;
+    case 'crystalline-light':
+      return <Sun size={size} />;
+    case 'crystalline-dark':
       return <Moon size={size} />;
     default:
-      return <Palette size={size} />;
+      return <Sparkles size={size} />;
   }
 };
 
 const getThemeDescription = (themeId: ThemeId) => {
   switch (themeId) {
-    case 'swan-galaxy':
-      return 'Swan Galaxy Theme';
-    case 'admin-command':
-      return 'Admin Command Theme';
-    case 'dark-galaxy':
-      return 'Dark Galaxy Theme';
+    case 'crystalline-default':
+      return 'Crystalline Swan';
+    case 'crystalline-light':
+      return 'Crystalline Light';
+    case 'crystalline-dark':
+      return 'Crystalline Dark';
     default:
-      return 'Current Theme';
+      return 'Crystalline Swan';
   }
 };
 
@@ -264,31 +251,31 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
 
   // Animation variants
   const iconVariants = {
-    idle: { 
-      scale: 1, 
+    idle: {
+      scale: 1,
       rotate: 0,
       transition: { duration: 0.3 }
     },
-    hover: { 
-      scale: 1.1, 
+    hover: {
+      scale: 1.1,
       rotate: 15,
       transition: { duration: 0.3 }
     },
-    tap: { 
-      scale: 0.9, 
+    tap: {
+      scale: 0.9,
       rotate: -15,
       transition: { duration: 0.1 }
     }
   };
 
   const tooltipVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       y: 10,
       scale: 0.8
     },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       scale: 1,
       transition: {
@@ -309,7 +296,7 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
         whileHover="hover"
         whileTap="tap"
         aria-label={`Switch to ${getThemeDescription(nextTheme)}`}
-        title={`Current: ${getThemeDescription(currentTheme)} - Click to switch`}
+        title={`Current: ${getThemeDescription(currentTheme)} — Click to switch`}
       >
         <ThemeIcon
           as={motion.div}
