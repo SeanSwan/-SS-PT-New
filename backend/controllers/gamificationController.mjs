@@ -864,13 +864,7 @@ const gamificationController = {
           ['tier', 'ASC'],
           ['requirementValue', 'ASC'],
           ['name', 'ASC']
-        ],
-        include: [{
-          model: Exercise,
-          as: 'exercise',
-          attributes: ['id', 'name'],
-          required: false
-        }]
+        ]
       });
       
       return res.status(200).json({ success: true, achievements });
@@ -891,14 +885,7 @@ const gamificationController = {
     try {
       const { id } = req.params;
       
-      const achievement = await Achievement.findByPk(id, {
-        include: [{
-          model: Exercise,
-          as: 'exercise',
-          attributes: ['id', 'name'],
-          required: false
-        }]
-      });
+      const achievement = await Achievement.findByPk(id);
       
       if (!achievement) {
         return res.status(404).json({

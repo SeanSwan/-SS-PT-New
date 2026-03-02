@@ -512,6 +512,16 @@ router.patch('/notifications/:notificationId/read', authenticate, requireUser, g
 // ============================================================================
 
 /**
+ * @route   GET /api/v1/gamification/profile
+ * @desc    Get current user's gamification profile (convenience route)
+ * @access  Authenticated users
+ */
+router.get('/profile', authenticate, requireUser, (req, res) => {
+  req.params.userId = req.user.id;
+  return gamificationController.getUserProfile(req, res);
+});
+
+/**
  * @route   GET /api/v1/gamification/users/:userId/profile
  * @desc    Get user gamification profile
  * @access  Authenticated users
