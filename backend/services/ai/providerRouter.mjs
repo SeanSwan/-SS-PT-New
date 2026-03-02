@@ -46,6 +46,15 @@ export function resetAdapters() {
 }
 
 /**
+ * Get the names of all currently registered adapters.
+ * Used by the /api/ai/health endpoint to confirm adapters loaded.
+ * @returns {string[]}
+ */
+export function getRegisteredAdapterNames() {
+  return [...adapters.keys()];
+}
+
+/**
  * Get the ordered list of provider names to try.
  * @returns {string[]}
  */

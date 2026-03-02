@@ -9,13 +9,16 @@
  *   - Template context (from templateContextBuilder)
  *   - Progress context (from progressContextBuilder)
  *   - 1RM estimates & load recommendations (from oneRepMax)
+ *   - Pain/injury constraints (from ClientPainEntry records)
  *
  * Produces:
  *   - UnifiedContext: single object for prompt building
  *   - Explainability: coach-readable rationale for decisions
  *   - Safety constraints: hard limits on intensity/exercises
+ *   - Pain constraints: injury-aware movement restrictions (NASM CES + Squat University)
  *
  * Phase 5A — Smart Workout Logger MVP Coach Copilot
+ * Phase 12 — Pain/Injury Tracking (NASM CES + Squat University)
  */
 import { estimate1RM, recommendLoad } from './oneRepMax.mjs';
 
@@ -47,6 +50,7 @@ export function buildUnifiedContext(inputs = {}) {
     templateContext,
     progressContext,
     measurementContext,
+    painEntries,
   } = inputs;
 
   const missingInputs = [];
@@ -109,6 +113,13 @@ export function buildUnifiedContext(inputs = {}) {
     dataSources.push('body_measurements');
   }
 
+  // ── Pain & Injury Constraints (NASM CES + Squat University) ──
+  let painConstraints = null;
+  if (Array.isArray(painEntries) && painEntries.length > 0) {
+    painConstraints = buildPainConstraints(painEntries);
+    dataSources.push('pain_injury_tracking');
+  }
+
   // ── Exercise Recommendations (1RM + load) ───────────────────
   const exerciseRecommendations = buildExerciseRecommendations(
     progressContext,
@@ -116,13 +127,14 @@ export function buildUnifiedContext(inputs = {}) {
   );
 
   // ── Safety Constraints ──────────────────────────────────────
-  const safetyConstraints = buildSafetyConstraints(nasmConstraints);
+  const safetyConstraints = buildSafetyConstraints(nasmConstraints, painConstraints);
 
   // ── Explainability ──────────────────────────────────────────
   const explainability = buildExplainability({
     nasmConstraints,
     templateContext,
     progressContext,
+    painConstraints,
     missingInputs,
     dataSources,
   });
@@ -147,6 +159,7 @@ export function buildUnifiedContext(inputs = {}) {
     templateGuidance,
     progressSummary,
     measurementTrends,
+    painConstraints,
     exerciseRecommendations,
     safetyConstraints,
     explainability,
@@ -183,30 +196,114 @@ function buildExerciseRecommendations(progressContext, nasmConstraints) {
 }
 
 /**
- * Build safety constraints from NASM data.
+ * Build safety constraints from NASM data + pain/injury data.
  */
-function buildSafetyConstraints(nasmConstraints) {
-  if (!nasmConstraints) {
-    return {
-      medicalClearanceRequired: false,
-      maxIntensityPct: 100,
-      movementRestrictions: [],
-    };
+function buildSafetyConstraints(nasmConstraints, painConstraints) {
+  const medClear = nasmConstraints?.medicalClearanceRequired ?? false;
+  const movementRestrictions = [...(nasmConstraints?.ohsaCompensations || [])];
+
+  // Merge pain-based movement restrictions into safety constraints
+  if (painConstraints) {
+    for (const entry of painConstraints.severeAreas) {
+      if (entry.aggravatingMovements) {
+        for (const mv of entry.aggravatingMovements.split(',')) {
+          const trimmed = mv.trim();
+          if (trimmed && !movementRestrictions.includes(trimmed)) {
+            movementRestrictions.push(`AVOID: ${trimmed} (pain severity ${entry.painLevel}/10 in ${entry.bodyRegion})`);
+          }
+        }
+      }
+    }
+    for (const entry of painConstraints.moderateAreas) {
+      if (entry.aggravatingMovements) {
+        for (const mv of entry.aggravatingMovements.split(',')) {
+          const trimmed = mv.trim();
+          if (trimmed && !movementRestrictions.includes(trimmed)) {
+            movementRestrictions.push(`MODIFY: ${trimmed} (pain severity ${entry.painLevel}/10 in ${entry.bodyRegion})`);
+          }
+        }
+      }
+    }
   }
 
-  const medClear = nasmConstraints.medicalClearanceRequired ?? false;
+  // Severe pain areas reduce max intensity
+  const hasSeverePain = painConstraints?.severeAreas?.length > 0;
+  let maxIntensityPct = 100;
+  if (medClear) maxIntensityPct = 70;
+  else if (hasSeverePain) maxIntensityPct = 80;
 
   return {
     medicalClearanceRequired: medClear,
-    maxIntensityPct: medClear ? 70 : 100,
-    movementRestrictions: nasmConstraints.ohsaCompensations || [],
+    maxIntensityPct,
+    movementRestrictions,
+    painRestrictionCount: painConstraints
+      ? painConstraints.severeAreas.length + painConstraints.moderateAreas.length
+      : 0,
+  };
+}
+
+/**
+ * Build structured pain constraints from ClientPainEntry records.
+ * Categorizes entries by severity and extracts postural syndromes.
+ *
+ * @param {Object[]} painEntries — Array of ClientPainEntry instances (plain or Sequelize)
+ * @returns {Object} Categorized pain constraints
+ */
+function buildPainConstraints(painEntries) {
+  const entries = painEntries.map(e => {
+    const plain = typeof e.get === 'function' ? e.get({ plain: true }) : e;
+    return plain;
+  });
+
+  const severeAreas = [];    // painLevel 7-10
+  const moderateAreas = [];  // painLevel 4-6
+  const mildAreas = [];      // painLevel 1-3
+
+  const posturalSyndromes = new Set();
+
+  for (const entry of entries) {
+    const level = entry.painLevel || 0;
+    const summary = {
+      bodyRegion: entry.bodyRegion,
+      side: entry.side,
+      painLevel: level,
+      painType: entry.painType,
+      description: entry.description || null,
+      aggravatingMovements: entry.aggravatingMovements || null,
+      relievingFactors: entry.relievingFactors || null,
+      aiNotes: entry.aiNotes || null,
+      posturalSyndrome: entry.posturalSyndrome || 'none',
+      onsetDate: entry.onsetDate || null,
+    };
+
+    if (level >= 7) {
+      severeAreas.push(summary);
+    } else if (level >= 4) {
+      moderateAreas.push(summary);
+    } else {
+      mildAreas.push(summary);
+    }
+
+    if (entry.posturalSyndrome && entry.posturalSyndrome !== 'none') {
+      posturalSyndromes.add(entry.posturalSyndrome);
+    }
+  }
+
+  return {
+    totalActive: entries.length,
+    severeAreas,
+    moderateAreas,
+    mildAreas,
+    posturalSyndromes: [...posturalSyndromes],
+    hasSevere: severeAreas.length > 0,
+    hasModerate: moderateAreas.length > 0,
   };
 }
 
 /**
  * Build explainability metadata for coach review.
  */
-function buildExplainability({ nasmConstraints, templateContext, progressContext, missingInputs, dataSources }) {
+function buildExplainability({ nasmConstraints, templateContext, progressContext, painConstraints, missingInputs, dataSources }) {
   const explainability = {
     dataSources: [...dataSources],
     phaseRationale: null,
@@ -238,6 +335,30 @@ function buildExplainability({ nasmConstraints, templateContext, progressContext
     explainability.safetyFlags.push(
       `Movement compensations detected: ${nasmConstraints.ohsaCompensations.join(', ')}. Corrective exercises included.`
     );
+  }
+
+  // Pain/injury flags
+  if (painConstraints) {
+    if (painConstraints.hasSevere) {
+      const regions = painConstraints.severeAreas.map(a => `${a.bodyRegion} (${a.painLevel}/10)`).join(', ');
+      explainability.safetyFlags.push(
+        `SEVERE PAIN: ${regions} — exercises targeting these areas AVOIDED. NASM CES corrective protocol applied.`
+      );
+    }
+    if (painConstraints.hasModerate) {
+      const regions = painConstraints.moderateAreas.map(a => `${a.bodyRegion} (${a.painLevel}/10)`).join(', ');
+      explainability.safetyFlags.push(
+        `Moderate pain: ${regions} — exercises MODIFIED with reduced load and alternatives.`
+      );
+    }
+    if (painConstraints.posturalSyndromes.length > 0) {
+      const labels = painConstraints.posturalSyndromes.map(s =>
+        s === 'upper_crossed' ? 'Upper Crossed Syndrome' : 'Lower Crossed Syndrome'
+      );
+      explainability.safetyFlags.push(
+        `Postural syndrome detected: ${labels.join(', ')}. CES 4-phase corrective exercises included in warm-up.`
+      );
+    }
   }
 
   // Progress flags

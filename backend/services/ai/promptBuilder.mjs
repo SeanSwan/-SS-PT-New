@@ -102,6 +102,13 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
     parts.push(buildMeasurementTrendsSection(measurementTrends));
   }
 
+  // Append pain/injury constraints section when available
+  const painConstraints = serverConstraints?.painConstraints;
+  if (painConstraints) {
+    parts.push('');
+    parts.push(buildPainConstraintsSection(painConstraints));
+  }
+
   return parts.join('\n');
 }
 
@@ -231,4 +238,128 @@ export function buildMeasurementTrendsSection(trends) {
   lines.push('Consider these trends when selecting exercises and intensity.');
 
   return lines.join('\n');
+}
+
+/**
+ * Build the pain/injury constraints section for the AI prompt.
+ * Incorporates NASM CES 4-Phase Corrective Strategy and
+ * Squat University (Dr. Aaron Horschig) 3-Step Fix Protocol.
+ *
+ * @param {Object} painConstraints — Output of buildPainConstraints()
+ * @returns {string}
+ */
+export function buildPainConstraintsSection(painConstraints) {
+  if (!painConstraints || painConstraints.totalActive === 0) return '';
+
+  const lines = [];
+  lines.push('--- Client Pain & Injury Constraints (SAFETY CRITICAL) ---');
+  lines.push('Protocol: NASM CES 4-Phase (Inhibit → Lengthen → Activate → Integrate)');
+  lines.push('         + Squat University 3-Step Fix (Mobility → Stability → Integration)');
+  lines.push('');
+
+  // Severe areas (7-10): HARD AVOID
+  if (painConstraints.severeAreas.length > 0) {
+    lines.push('SEVERE INJURIES (7-10/10) — HARD RESTRICTIONS:');
+    for (const entry of painConstraints.severeAreas) {
+      lines.push(`  • ${formatBodyRegion(entry.bodyRegion)} (${entry.side}): severity ${entry.painLevel}/10, type: ${entry.painType || 'unspecified'}`);
+      if (entry.description) {
+        lines.push(`    Client reports: "${entry.description}"`);
+      }
+      if (entry.aiNotes) {
+        lines.push(`    Trainer guidance: "${entry.aiNotes}"`);
+      }
+      if (entry.aggravatingMovements) {
+        lines.push(`    → HARD RESTRICTION: AVOID ${entry.aggravatingMovements}`);
+      }
+      if (entry.relievingFactors) {
+        lines.push(`    → Relieving: ${entry.relievingFactors}`);
+      }
+      lines.push(`    → Squat Uni: Check joints ABOVE and BELOW ${formatBodyRegion(entry.bodyRegion)} for mobility restrictions`);
+      lines.push(`    → Do NOT load this area. Include corrective warm-up only.`);
+    }
+    lines.push('');
+  }
+
+  // Moderate areas (4-6): MODIFY
+  if (painConstraints.moderateAreas.length > 0) {
+    lines.push('MODERATE PAIN (4-6/10) — MODIFY & REDUCE LOAD:');
+    for (const entry of painConstraints.moderateAreas) {
+      lines.push(`  • ${formatBodyRegion(entry.bodyRegion)} (${entry.side}): severity ${entry.painLevel}/10, type: ${entry.painType || 'unspecified'}`);
+      if (entry.description) {
+        lines.push(`    Client reports: "${entry.description}"`);
+      }
+      if (entry.aiNotes) {
+        lines.push(`    Trainer guidance: "${entry.aiNotes}"`);
+      }
+      if (entry.aggravatingMovements) {
+        lines.push(`    → MODIFY: Reduce load for ${entry.aggravatingMovements}. Suggest alternatives.`);
+      }
+      lines.push(`    → Include 1 corrective exercise per session for this area.`);
+    }
+    lines.push('');
+  }
+
+  // Mild areas (1-3): INCLUDE WITH CAUTION
+  if (painConstraints.mildAreas.length > 0) {
+    lines.push('MILD DISCOMFORT (1-3/10) — INCLUDE WITH CORRECTIVE WARM-UP:');
+    for (const entry of painConstraints.mildAreas) {
+      lines.push(`  • ${formatBodyRegion(entry.bodyRegion)} (${entry.side}): severity ${entry.painLevel}/10, type: ${entry.painType || 'unspecified'}`);
+      if (entry.aiNotes) {
+        lines.push(`    Trainer guidance: "${entry.aiNotes}"`);
+      }
+      lines.push(`    → Include corrective warm-up. Monitor during session.`);
+    }
+    lines.push('');
+  }
+
+  // Postural syndromes
+  if (painConstraints.posturalSyndromes.length > 0) {
+    lines.push('POSTURAL SYNDROMES DETECTED — CES 4-Phase Corrective Strategy:');
+    for (const syndrome of painConstraints.posturalSyndromes) {
+      if (syndrome === 'upper_crossed') {
+        lines.push('  Upper Crossed Syndrome (UCS):');
+        lines.push('    Tight/overactive: upper traps, levator scapulae, pectorals, SCM');
+        lines.push('    Weak/underactive: deep cervical flexors, mid/lower traps, serratus anterior, rhomboids');
+        lines.push('    INHIBIT: Foam roll upper traps, pecs (30-60s each)');
+        lines.push('    LENGTHEN: Static stretch upper traps, levator scapulae, pecs (30s holds)');
+        lines.push('    ACTIVATE: Chin tucks, prone Y-raises, band pull-aparts, serratus punches');
+        lines.push('    INTEGRATE: Wall slides, cable face pulls during warm-up');
+        lines.push('    Squat Uni: Thoracic extension mobility drills, wall angel test for progress');
+      } else if (syndrome === 'lower_crossed') {
+        lines.push('  Lower Crossed Syndrome (LCS):');
+        lines.push('    Tight/overactive: hip flexors (psoas, rectus femoris), lumbar erectors');
+        lines.push('    Weak/underactive: abdominals (TVA, obliques), gluteus maximus & medius');
+        lines.push('    INHIBIT: Foam roll hip flexors, TFL, lumbar erectors (30-60s each)');
+        lines.push('    LENGTHEN: Half-kneeling hip flexor stretch, prone quad stretch (30s holds)');
+        lines.push('    ACTIVATE: Glute bridges, side-lying clams, dead bugs, bird dogs');
+        lines.push('    INTEGRATE: Single-leg RDL, cable pull-throughs during warm-up');
+        lines.push('    Squat Uni: Hip hinge pattern drill, tripod foot stability check');
+      }
+    }
+    lines.push('');
+  }
+
+  // General guidelines
+  lines.push('PAIN-AWARE PROGRAMMING GUIDELINES:');
+  lines.push('  • Severity 7-10: AVOID all direct loading. Corrective warm-up only.');
+  lines.push('  • Severity 4-6: MODIFY with reduced load (50-70% normal). Suggest alternatives.');
+  lines.push('  • Severity 1-3: INCLUDE with caution. Add corrective warm-up exercises.');
+  lines.push('  • Always check joints ABOVE and BELOW the pain site for restrictions (Squat Uni principle).');
+  lines.push('  • Include 1-2 corrective exercises per session for each active injury area.');
+  lines.push('  • Apply CES 4-Phase for each injury: Inhibit → Lengthen → Activate → Integrate.');
+  lines.push('  • If both UCS and LCS present: prioritize core stabilization and postural correction.');
+
+  return lines.join('\n');
+}
+
+/**
+ * Format a body region ID into a human-readable label.
+ * e.g., "left_shoulder" → "Left Shoulder", "lower_back_left" → "Lower Back (Left)"
+ */
+function formatBodyRegion(region) {
+  if (!region) return 'Unknown';
+  return region
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }

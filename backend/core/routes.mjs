@@ -54,6 +54,7 @@ import workoutRoutes from '../routes/workoutRoutes.mjs';
 import workoutPlanRoutes from '../routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 import bodyMeasurementRoutes from '../routes/bodyMeasurementRoutes.mjs';
+import painEntryRoutes from '../routes/painEntryRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
@@ -267,6 +268,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/recommendations', recommendationRoutes);
   app.use('/api/food-scanner', foodScannerRoutes);
   app.use('/api/measurements', bodyMeasurementRoutes);
+  app.use('/api/pain-entries', painEntryRoutes);
 
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
   // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)
