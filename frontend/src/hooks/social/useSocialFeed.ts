@@ -397,12 +397,14 @@ export const useSocialFeed = () => {
     }
   }, [authAxios, user]);
   
-  // Initial data fetch
+  // Initial data fetch — depend only on user identity, not fetchPosts reference
+  // (fetchPosts changes on every offset/toast update which would cause infinite loops)
   useEffect(() => {
     if (user) {
       fetchPosts(true);
     }
-  }, [user, fetchPosts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
   
   return {
     posts,
