@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
-import { User, Plus } from 'lucide-react';
+import { User, Plus, Trash2 } from 'lucide-react';
 import { useSocket } from '../../context/SocketContext';
 import NewConversationModal from './NewConversationModal';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
@@ -97,6 +97,25 @@ const ConversationList: React.FC<ConversationListProps> = ({ selectedConversatio
     }
   }, [socket, queryClient, selectedConversationId]);
 
+  const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
+    e.stopPropagation(); // Don't select the conversation
+    if (!window.confirm('Delete this conversation? It will be hidden from your view.')) return;
+
+    try {
+      await api.delete(`/api/messaging/conversations/${convId}`);
+      // Remove from React Query cache
+      queryClient.setQueryData(['conversations'], (old: Conversation[] | undefined) =>
+        old ? old.filter(c => c.id !== convId) : old
+      );
+      // If this was the selected conversation, deselect
+      if (selectedConversationId === convId) {
+        onSelectConversation('');
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  };
+
   const getDisplayName = (conv: Conversation) => {
     if (conv.type === 'group') return conv.name || 'Group Chat';
     return conv.participants?.[0]?.name || 'Unknown User';
@@ -149,6 +168,12 @@ const ConversationList: React.FC<ConversationListProps> = ({ selectedConversatio
                     <LastMessage>{conv.lastMessage?.content}</LastMessage>
                   </Content>
                   {conv.unreadCount > 0 && <UnreadBadge>{conv.unreadCount}</UnreadBadge>}
+                  <DeleteButton
+                    onClick={(e) => handleDeleteConversation(e, conv.id)}
+                    title="Delete conversation"
+                  >
+                    <Trash2 size={16} />
+                  </DeleteButton>
                 </ConversationItem>
               </motion.div>
             ))}
@@ -198,12 +223,17 @@ const ConversationItem = styled.div<{ $active: boolean }>`
   align-items: center;
   padding: 1rem 1.5rem;
   cursor: pointer;
+  position: relative;
   background: ${props => props.$active ? 'var(--glass-bg, rgba(0, 206, 209, 0.1))' : 'transparent'};
   border-left: 3px solid ${props => props.$active ? 'var(--primary-cyan, #00CED1)' : 'transparent'};
   transition: background 0.2s;
 
   &:hover {
     background: var(--glass-bg, rgba(0, 206, 209, 0.05));
+  }
+
+  &:hover > button:last-child {
+    opacity: 1;
   }
 `;
 
@@ -266,6 +296,32 @@ const UnreadBadge = styled.div`
   justify-content: center;
   font-size: 0.8rem;
   font-weight: bold;
+`;
+
+const DeleteButton = styled.button`
+  opacity: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #B8B8B8);
+  cursor: pointer;
+  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    color: #ff4d4f;
+    background: rgba(255, 77, 79, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    opacity: 1;
+  }
 `;
 
 const NewConversationButton = styled.button`

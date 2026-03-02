@@ -12,6 +12,7 @@ import { body } from 'express-validator';
 import {
   getConversations,
   createConversation,
+  deleteConversation,
   getMessagesForConversation,
   sendMessage,
   searchUsers,
@@ -27,6 +28,9 @@ router.get('/conversations', protect, getConversations);
 router.post('/conversations', protect, [
   body('participantIds').isArray({ min: 1 }).withMessage('At least one participant is required.'),
 ], createConversation);
+
+// Delete (hide) a conversation for the authenticated user
+router.delete('/conversations/:id', protect, deleteConversation);
 
 // Get messages for a specific conversation
 router.get('/conversations/:id/messages', protect, getMessagesForConversation);
