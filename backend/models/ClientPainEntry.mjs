@@ -26,7 +26,7 @@ ClientPainEntry.init({
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: { model: 'users', key: 'id' },
+    references: { model: 'Users', key: 'id' },
     onUpdate: 'CASCADE',
     onDelete: 'CASCADE',
     comment: 'The client who has the pain/injury',
@@ -34,7 +34,7 @@ ClientPainEntry.init({
   createdById: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: { model: 'users', key: 'id' },
+    references: { model: 'Users', key: 'id' },
     onUpdate: 'CASCADE',
     onDelete: 'SET NULL',
     comment: 'Admin/trainer who recorded this entry',
