@@ -229,6 +229,14 @@ async function updateAuditLog(auditLog, fields) {
 }
 
 export const generateWorkoutPlan = async (req, res) => {
+  logger.info('[AI Workout] generateWorkoutPlan called', {
+    method: req.method,
+    path: req.originalUrl,
+    requesterId: req.user?.id,
+    targetUserId: req.body?.userId,
+    mode: req.body?.mode,
+  });
+
   const startTime = Date.now();
   const requesterId = req.user?.id;
   let auditLog = null;
@@ -465,6 +473,27 @@ export const generateWorkoutPlan = async (req, res) => {
       }
     }
 
+    // Phase 12: Fetch active pain/injury entries for AI context
+    let painEntries = null;
+    const { ClientPainEntry } = models;
+    if (ClientPainEntry) {
+      try {
+        painEntries = await ClientPainEntry.findAll({
+          where: { userId: targetUserId, isActive: true },
+          order: [['painLevel', 'DESC']],
+        });
+        if (painEntries && painEntries.length > 0) {
+          logger.info('[AI Workout] Pain entries found for context', {
+            userId: targetUserId,
+            count: painEntries.length,
+            severeCount: painEntries.filter(e => e.painLevel >= 7).length,
+          });
+        }
+      } catch (painErr) {
+        logger.warn('Failed to fetch pain entries (non-blocking):', painErr.message);
+      }
+    }
+
     // Phase 5A: Build unified generation context
     const unifiedContext = buildUnifiedContext({
       deIdentifiedPayload: safePayload,
@@ -472,6 +501,7 @@ export const generateWorkoutPlan = async (req, res) => {
       templateContext,
       progressContext,
       measurementContext,
+      painEntries: painEntries || [],
     });
 
     // Attach progress + unified context to serverConstraints for prompt enrichment
@@ -483,6 +513,9 @@ export const generateWorkoutPlan = async (req, res) => {
     }
     if (measurementContext) {
       serverConstraints.measurementTrends = measurementContext;
+    }
+    if (unifiedContext.painConstraints) {
+      serverConstraints.painConstraints = unifiedContext.painConstraints;
     }
 
     const payloadHash = hashPayload(safePayload);
@@ -654,6 +687,7 @@ export const generateWorkoutPlan = async (req, res) => {
         generationMode: unifiedContext.generationMode,
         explainability: unifiedContext.explainability,
         safetyConstraints: unifiedContext.safetyConstraints,
+        painConstraints: unifiedContext.painConstraints || null,
         exerciseRecommendations: unifiedContext.exerciseRecommendations,
         warnings: [
           ...(unifiedContext.explainability?.progressFlags || []),

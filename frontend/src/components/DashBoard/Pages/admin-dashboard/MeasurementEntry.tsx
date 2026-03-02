@@ -11,6 +11,7 @@ import {
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
 import GlowButton from '../../../ui/buttons/GlowButton';
+import BodyMap from '../../../BodyMap';
 
 // ─── Interfaces (unchanged from blueprint) ─────────────────────────────────────
 interface Client { id: string; name: string; }
@@ -1334,6 +1335,13 @@ const MeasurementEntry: React.FC = () => {
           </ProgressGraphSection>
         )}
       </AnimatePresence>
+
+      {/* ── Pain & Injury Body Map ── */}
+      {selectedClient && (
+        <motion.div variants={itemVariants}>
+          <BodyMap userId={Number(selectedClient.id)} />
+        </motion.div>
+      )}
 
       {/* ── Measurement Entry Form ── */}
       {selectedClient &&

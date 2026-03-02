@@ -133,6 +133,9 @@ const setupAssociations = async () => {
     const BodyMeasurementModule = await import('./BodyMeasurement.mjs');
     const MeasurementMilestoneModule = await import('./MeasurementMilestone.mjs');
 
+    // Pain/Injury Tracking (NASM CES + Squat University)
+    const ClientPainEntryModule = await import('./ClientPainEntry.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -252,6 +255,9 @@ const setupAssociations = async () => {
     // Body Measurement & Milestone Models (Phase 11)
     const BodyMeasurement = BodyMeasurementModule.default;
     const MeasurementMilestone = MeasurementMilestoneModule.default;
+
+    // Pain/Injury Tracking (NASM CES + Squat University)
+    const ClientPainEntry = ClientPainEntryModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -830,6 +836,12 @@ const setupAssociations = async () => {
     MeasurementMilestone.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     console.log('✅ Body Measurement & Milestone models integrated');
 
+    // Pain/Injury Tracking Associations (NASM CES + Squat University)
+    User.hasMany(ClientPainEntry, { foreignKey: 'userId', as: 'painEntries' });
+    ClientPainEntry.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    ClientPainEntry.belongsTo(User, { foreignKey: 'createdById', as: 'createdBy' });
+    console.log('✅ Pain/Injury Tracking models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -960,7 +972,10 @@ const setupAssociations = async () => {
 
       // Body Measurement & Milestone Models (Phase 11)
       BodyMeasurement,
-      MeasurementMilestone
+      MeasurementMilestone,
+
+      // Pain/Injury Tracking
+      ClientPainEntry
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

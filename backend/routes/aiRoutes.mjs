@@ -12,17 +12,46 @@ import { listTemplates, getTemplate } from '../controllers/aiTemplateController.
 import { generateLongHorizonPlan, approveLongHorizonPlan } from '../controllers/longHorizonController.mjs';
 
 // --- Register provider adapters at import time (Phase 3A+3B) ---
-import { registerAdapter } from '../services/ai/providerRouter.mjs';
+import { registerAdapter, getRegisteredAdapterNames } from '../services/ai/providerRouter.mjs';
 import openaiAdapter from '../services/ai/adapters/openaiAdapter.mjs';
 import anthropicAdapter from '../services/ai/adapters/anthropicAdapter.mjs';
 import geminiAdapter from '../services/ai/adapters/geminiAdapter.mjs';
 import veniceAdapter from '../services/ai/adapters/veniceAdapter.mjs';
-registerAdapter(openaiAdapter);
-registerAdapter(anthropicAdapter);
-registerAdapter(geminiAdapter);
-registerAdapter(veniceAdapter);
+
+// Defensive adapter registration — one failure won't break all AI routes
+const adapterPairs = [
+  ['openai', openaiAdapter],
+  ['anthropic', anthropicAdapter],
+  ['gemini', geminiAdapter],
+  ['venice', veniceAdapter],
+];
+for (const [name, adapter] of adapterPairs) {
+  try {
+    registerAdapter(adapter);
+  } catch (err) {
+    console.error(`[AI Routes] Failed to register ${name} adapter:`, err.message);
+  }
+}
 
 const router = express.Router();
+
+// GET /api/ai/health — lightweight route existence check (no auth required)
+router.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'AI routes loaded',
+    adapters: getRegisteredAdapterNames(),
+    routes: [
+      'POST /api/ai/workout-generation',
+      'POST /api/ai/workout-generation/approve',
+      'POST /api/ai/long-horizon/generate',
+      'POST /api/ai/long-horizon/approve',
+      'GET  /api/ai/templates',
+    ],
+    killSwitch: process.env.AI_WORKOUT_GENERATION_ENABLED !== 'false' ? 'enabled' : 'disabled',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // POST /api/ai/workout-generation
 // Middleware chain: auth → kill switch → rate limiter → controller (RBAC + consent inside controller)

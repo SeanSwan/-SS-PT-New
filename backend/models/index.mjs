@@ -181,6 +181,9 @@ export const getAiConsentLog = () => getModel('AiConsentLog');
 export const getBodyMeasurement = () => getModel('BodyMeasurement');
 export const getMeasurementMilestone = () => getModel('MeasurementMilestone');
 
+// Pain/Injury Tracking (NASM CES + Squat University)
+export const getClientPainEntry = () => getModel('ClientPainEntry');
+
 // Video Catalog Models
 export const getVideoCatalog = () => getModel('VideoCatalog');
 export const getVideoCollection = () => getModel('VideoCollection');
