@@ -376,6 +376,7 @@ export const searchUsers = async (req, res) => {
          FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
+           AND ("isActive" = true OR "isActive" IS NULL)
          ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
          LIMIT 20`,
         {
@@ -391,6 +392,7 @@ export const searchUsers = async (req, res) => {
          WHERE ( "firstName" ILIKE :query OR "lastName" ILIKE :query OR username ILIKE :query OR email ILIKE :query )
            AND id != :currentUserId
            AND "deletedAt" IS NULL
+           AND ("isActive" = true OR "isActive" IS NULL)
          ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
          LIMIT 20`,
         {
