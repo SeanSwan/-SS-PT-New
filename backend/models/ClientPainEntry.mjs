@@ -8,6 +8,9 @@
  * - NASM CES 4-Phase: Inhibit → Lengthen → Activate → Integrate
  * - Squat University 3-Step: Mobility → Stability → Integration
  * - Upper/Lower Crossed Syndrome detection
+ *
+ * NOTE: Uses STRING instead of ENUM for side/painType/posturalSyndrome
+ * to avoid PostgreSQL ENUM type issues with sequelize.sync({ alter: true }).
  */
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
@@ -30,7 +33,7 @@ ClientPainEntry.init({
   },
   createdById: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: { model: 'users', key: 'id' },
     onUpdate: 'CASCADE',
     onDelete: 'SET NULL',
@@ -42,9 +45,12 @@ ClientPainEntry.init({
     comment: 'Body region identifier (e.g., "left_quad", "lower_back", "right_shoulder")',
   },
   side: {
-    type: DataTypes.ENUM('left', 'right', 'center', 'bilateral'),
+    type: DataTypes.STRING(20),
     allowNull: false,
     defaultValue: 'center',
+    validate: {
+      isIn: [['left', 'right', 'center', 'bilateral']],
+    },
   },
   painLevel: {
     type: DataTypes.INTEGER,
@@ -53,8 +59,11 @@ ClientPainEntry.init({
     comment: 'Pain severity 1-10 (1-3 mild, 4-6 moderate, 7-10 severe)',
   },
   painType: {
-    type: DataTypes.ENUM('sharp', 'dull', 'aching', 'burning', 'tingling', 'numbness', 'stiffness', 'throbbing'),
+    type: DataTypes.STRING(30),
     allowNull: true,
+    validate: {
+      isIn: [['sharp', 'dull', 'aching', 'burning', 'tingling', 'numbness', 'stiffness', 'throbbing']],
+    },
     comment: 'Type/quality of pain',
   },
   description: {
@@ -99,9 +108,12 @@ ClientPainEntry.init({
     comment: 'Guidance notes injected into AI prompt context',
   },
   posturalSyndrome: {
-    type: DataTypes.ENUM('upper_crossed', 'lower_crossed', 'none'),
+    type: DataTypes.STRING(20),
     allowNull: false,
     defaultValue: 'none',
+    validate: {
+      isIn: [['upper_crossed', 'lower_crossed', 'none']],
+    },
     comment: 'Associated postural syndrome (UCS/LCS)',
   },
   assessmentFindings: {
