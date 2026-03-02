@@ -207,9 +207,9 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       console.warn('Follow stats endpoint not available yet:', err.message);
       // Set default follow stats instead of showing error
       setFollowStats({
-        followers: 0,
-        following: 0,
-        mutualFollows: 0
+        followers: { count: 0, list: [] },
+        following: { count: 0, list: [] },
+        ratio: 0
       });
     } finally {
       setIsLoadingFollowStats(false);

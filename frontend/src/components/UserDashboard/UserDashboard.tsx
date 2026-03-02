@@ -1191,9 +1191,13 @@ const UserDashboard: React.FC = () => {
   const displayName = getDisplayName();
   const username = getUsernameForDisplay();
   const initials = getUserInitials();
-  const postCount = stats?.posts ?? followStats?.posts ?? 0;
-  const followerCount = followStats?.followers ?? stats?.followers ?? 0;
-  const followingCount = followStats?.following ?? stats?.following ?? 0;
+  const postCount = stats?.posts ?? 0;
+  const followerCount = (typeof followStats?.followers === 'object'
+    ? followStats.followers.count
+    : followStats?.followers) ?? stats?.followers ?? 0;
+  const followingCount = (typeof followStats?.following === 'object'
+    ? followStats.following.count
+    : followStats?.following) ?? stats?.following ?? 0;
 
   // ── Staggered card animation ──
   const cardVariants = {
