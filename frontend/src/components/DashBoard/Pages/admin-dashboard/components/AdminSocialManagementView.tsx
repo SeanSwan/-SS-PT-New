@@ -3,15 +3,17 @@
  * =============================
  *
  * Social Media Command Center — Preset F-Alt "Enchanted Apex: Crystalline Swan"
+ * Cinematic & Haptic System — Gemini-polished spatial UI spec
  *
  * Palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0,
  *          Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4
  *
  * Features:
  * - Real-time social feed from /api/social/posts/feed
- * - Post moderation (approve / flag / reject) via API
- * - Metric cards with crystalline glass surfaces
- * - Rarity-styled moderation badges
+ * - Haptic moderation (approve slides right, reject slides left) via API
+ * - Dual-layer glassmorphism with Apple-style inner-lip shadows
+ * - Spring-physics Framer Motion on all interactive elements
+ * - Rarity-styled moderation badges with glow
  * - Aurora gradient header, gilded borders, ice-wing CTAs
  */
 
@@ -22,7 +24,6 @@ import {
   MessageSquare,
   Users,
   Heart,
-  Share2,
   TrendingUp,
   Eye,
   Flag,
@@ -32,10 +33,8 @@ import {
   Search,
   MoreHorizontal,
   CheckCircle,
-  XCircle,
   AlertTriangle,
   Clock,
-  UserCheck,
   Trash2,
   Settings,
   MessageCircle,
@@ -44,25 +43,48 @@ import {
 } from 'lucide-react';
 import api from '../../../../../services/api';
 
-// ─── F-Alt Token Constants ──────────────────────────────────────────
+// ─── F-Alt Crystalline Token Matrix (Mandatory — no hardcoded colors) ───
 const T = {
+  // ── Surface & Depths (The Ocean / The Night) ──
   midnightSapphire: '#002060',
   royalDepth:       '#003080',
+  swanLavender:     '#4070C0',
+
+  // ── Bioluminescence & Ice (The Glow) ──
   iceWing:          '#60C0F0',
   arcticCyan:       '#50A0F0',
+
+  // ── Luxury & Status (The Contrast) ──
   gildedFern:       '#C6A84B',
   frostWhite:       '#E0ECF4',
-  swanLavender:     '#4070C0',
-  // Derived
-  glass:       'rgba(0, 32, 96, 0.55)',
-  glassBorder: 'rgba(198, 168, 75, 0.2)',
-  glassHover:  'rgba(0, 48, 128, 0.7)',
-  textPrimary: '#E0ECF4',
-  textMuted:   'rgba(224, 236, 244, 0.6)',
-  success:     '#22c55e',
-  warning:     '#f59e0b',
-  danger:      '#ef4444',
+
+  // ── Semantic Haptics ──
+  success:          '#22C55E',
+  warning:          '#F59E0B',
+  danger:           '#EF4444',
+
+  // ── Premium Composite Tokens ──
+  glassSurface:     'linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%)',
+  glassBorder:      'rgba(198, 168, 75, 0.25)',
+  glassHighlight:   'inset 0 1px 1px rgba(224, 236, 244, 0.15)',
+  textMuted:        'rgba(224, 236, 244, 0.65)',
 };
+
+// ─── Framer Motion Spring Physics ────────────────────────────────────
+const physics = {
+  spring: { type: 'spring' as const, stiffness: 400, damping: 25, mass: 0.8 },
+  snappy: { type: 'spring' as const, stiffness: 600, damping: 30 },
+  glissando: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+};
+
+// ─── Variant Color Helpers (ActionIcon) ──────────────────────────────
+const variantColorMap: Record<string, string> = {
+  approve: T.success,
+  reject:  T.danger,
+  flag:    T.warning,
+  default: T.iceWing,
+};
+const getVariantColor = (v?: string) => variantColorMap[v || 'default'] || T.iceWing;
 
 // ─── Keyframes ──────────────────────────────────────────────────────
 const auroraShift = keyframes`
@@ -71,16 +93,19 @@ const auroraShift = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
-const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(96, 192, 240, 0.2); }
-  50%      { box-shadow: 0 0 20px rgba(96, 192, 240, 0.4); }
+const spinAnimation = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 `;
 
-// ─── Styled Components (F-Alt Crystalline Swan) ─────────────────────
-const SocialContainer = styled(motion.div)`
-  padding: 1.5rem;
-  min-height: 100%;
+// ─── Styled Components (Cinematic & Haptic — Crystalline Swan) ──────
 
+const SocialContainer = styled(motion.div)`
+  padding: 2rem;
+  min-height: 100dvh;
+  color: ${T.frostWhite};
+
+  @media (max-width: 768px) { padding: 1rem; }
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -90,37 +115,38 @@ const SocialHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
   border-bottom: 1px solid ${T.glassBorder};
   flex-wrap: wrap;
   gap: 1rem;
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.frostWhite} 50%, ${T.gildedFern} 100%);
-  background-size: 200% 200%;
-  animation: ${auroraShift} 6s ease infinite;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, ${T.iceWing} 0%, ${T.frostWhite} 40%, ${T.gildedFern} 100%);
+  background-size: 200% auto;
+  animation: ${auroraShift} 6s ease-in-out infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   margin: 0;
 
   .header-icon {
     background: linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing});
-    border-radius: 12px;
-    padding: 0.6rem;
-    color: ${T.frostWhite};
-    box-shadow: 0 4px 16px rgba(96, 192, 240, 0.3);
+    border-radius: 14px;
+    padding: 0.75rem;
+    box-shadow: 0 8px 24px rgba(96, 192, 240, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     -webkit-text-fill-color: ${T.frostWhite};
+    color: ${T.frostWhite};
   }
 `;
 
@@ -137,15 +163,15 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   border: 1px solid ${props => {
     switch (props.$variant) {
       case 'primary': return T.iceWing;
-      case 'danger': return T.danger;
-      default: return T.glassBorder;
+      case 'danger':  return T.danger;
+      default:        return T.glassBorder;
     }
   }};
   background: ${props => {
     switch (props.$variant) {
       case 'primary': return `linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing})`;
-      case 'danger': return T.danger;
-      default: return T.glass;
+      case 'danger':  return T.danger;
+      default:        return T.glassSurface;
     }
   }};
   color: ${T.frostWhite};
@@ -156,17 +182,12 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   align-items: center;
   gap: 0.5rem;
   backdrop-filter: blur(12px);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(96, 192, 240, 0.25);
-  }
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: ${T.glassHighlight};
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
@@ -174,54 +195,50 @@ const MetricsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 
   @media (max-width: 1280px) { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 640px)  { grid-template-columns: 1fr; }
 `;
 
-const MetricCard = styled(motion.div)<{ $accent?: string }>`
-  background: ${T.glass};
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  padding: 1.25rem;
+const MetricCard = styled(motion.div)<{ $accent: string }>`
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
   position: relative;
+  padding: 1.5rem;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
-    background: ${props => props.$accent || T.iceWing};
+    background: ${props => props.$accent};
+    box-shadow: 0 2px 12px ${props => props.$accent};
     border-radius: 16px 16px 0 0;
   }
 
-  &:hover {
-    border-color: rgba(96, 192, 240, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 32, 96, 0.4), 0 0 20px rgba(96, 192, 240, 0.1);
-  }
-
   .metric-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(96, 192, 240, 0.1);
-    color: ${props => props.$accent || T.iceWing};
-    margin-bottom: 0.75rem;
+    background: color-mix(in srgb, ${props => props.$accent} 15%, transparent);
+    color: ${props => props.$accent};
+    border: 1px solid color-mix(in srgb, ${props => props.$accent} 30%, transparent);
   }
 
   .metric-value {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
     color: ${T.frostWhite};
+    margin-top: 1rem;
     margin-bottom: 0.25rem;
   }
 
@@ -251,16 +268,18 @@ const ContentGrid = styled.div`
 `;
 
 const GlassPanel = styled.div`
-  background: ${T.glass};
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
+  background: ${T.glassSurface};
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid ${T.glassBorder};
+  box-shadow: ${T.glassHighlight}, 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
   overflow: hidden;
 `;
 
 const SectionHeader = styled.div`
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(198, 168, 75, 0.1);
+  border-bottom: 1px solid rgba(198, 168, 75, 0.12);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -291,44 +310,49 @@ const SearchAndFilters = styled.div`
 
     .search-icon {
       position: absolute;
-      left: 12px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
       color: ${T.textMuted};
     }
   }
+`;
 
-  .search-input {
-    width: 100%;
-    padding: 0.6rem 1rem 0.6rem 2.5rem;
-    border: 1px solid rgba(96, 192, 240, 0.2);
-    border-radius: 10px;
-    background: rgba(0, 32, 96, 0.4);
-    color: ${T.frostWhite};
-    font-size: 0.875rem;
-    min-height: 44px;
-    box-sizing: border-box;
+const SearchInput = styled.input`
+  width: 100%;
+  background: rgba(0, 32, 96, 0.5);
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  border-radius: 12px;
+  color: ${T.frostWhite};
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  font-size: 0.95rem;
+  min-height: 44px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
 
-    &::placeholder { color: ${T.textMuted}; }
-    &:focus {
-      outline: none;
-      border-color: ${T.iceWing};
-      box-shadow: 0 0 0 3px rgba(96, 192, 240, 0.15);
-    }
+  &::placeholder { color: ${T.textMuted}; }
+  &:focus {
+    outline: none;
+    background: rgba(0, 48, 128, 0.7);
+    border-color: ${T.iceWing};
+    box-shadow: 0 0 0 4px rgba(96, 192, 240, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 `;
 
 const FilterButton = styled(motion.button)<{ $active?: boolean }>`
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.25rem;
   min-height: 44px;
-  border: 1px solid ${props => props.$active ? T.iceWing : 'rgba(96, 192, 240, 0.2)'};
-  background: ${props => props.$active ? `linear-gradient(135deg, ${T.royalDepth}, ${T.swanLavender})` : 'transparent'};
-  color: ${props => props.$active ? T.frostWhite : T.textMuted};
-  border-radius: 8px;
+  border-radius: 10px;
+  font-weight: 500;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   white-space: nowrap;
+  border: 1px solid ${props => props.$active ? T.iceWing : 'rgba(255, 255, 255, 0.05)'};
+  background: ${props => props.$active
+    ? `linear-gradient(135deg, ${T.royalDepth}, ${T.swanLavender})`
+    : 'transparent'};
+  color: ${props => props.$active ? T.frostWhite : T.textMuted};
+  box-shadow: ${props => props.$active ? '0 4px 12px rgba(96, 192, 240, 0.2)' : 'none'};
 
   &:hover {
     border-color: ${T.iceWing};
@@ -337,28 +361,30 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
 `;
 
 const PostCardStyled = styled(motion.div)`
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(198, 168, 75, 0.08);
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
-  gap: 1rem;
-  transition: background 0.2s ease;
+  gap: 1.25rem;
 
-  &:hover { background: rgba(0, 48, 128, 0.3); }
+  &:hover {
+    background: linear-gradient(90deg, transparent, rgba(96, 192, 240, 0.05), transparent);
+  }
   &:last-child { border-bottom: none; }
 
   .post-avatar {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, ${T.royalDepth}, ${T.iceWing});
+    background: linear-gradient(135deg, ${T.midnightSapphire}, ${T.iceWing});
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${T.frostWhite};
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     flex-shrink: 0;
     border: 2px solid ${T.glassBorder};
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 
   .post-body { flex: 1; min-width: 0; }
@@ -371,15 +397,15 @@ const PostCardStyled = styled(motion.div)`
     gap: 0.5rem;
   }
 
-  .user-name { font-weight: 600; color: ${T.frostWhite}; font-size: 0.9rem; }
+  .user-name { font-weight: 600; color: ${T.frostWhite}; font-size: 0.95rem; }
   .post-time { font-size: 0.75rem; color: ${T.textMuted}; }
-  .post-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+  .post-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 
   .post-text {
     color: ${T.textMuted};
     line-height: 1.6;
-    margin-bottom: 0.75rem;
-    font-size: 0.9rem;
+    margin: 0.75rem 0;
+    font-size: 0.95rem;
     word-break: break-word;
   }
 
@@ -401,66 +427,51 @@ const PostCardStyled = styled(motion.div)`
 const StatusBadge = styled.span<{ $status: string }>`
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.65rem;
-  border-radius: 20px;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: capitalize;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 
   ${props => {
-    switch (props.$status) {
-      case 'approved': return `background: rgba(34, 197, 94, 0.15); color: ${T.success}; border: 1px solid rgba(34, 197, 94, 0.3);`;
-      case 'pending':  return `background: rgba(198, 168, 75, 0.15); color: ${T.gildedFern}; border: 1px solid rgba(198, 168, 75, 0.3);`;
-      case 'flagged':  return `background: rgba(239, 68, 68, 0.15); color: ${T.danger}; border: 1px solid rgba(239, 68, 68, 0.3);`;
-      default:         return `background: rgba(96, 192, 240, 0.1); color: ${T.iceWing}; border: 1px solid rgba(96, 192, 240, 0.2);`;
-    }
+    const map: Record<string, { c: string; bg: string }> = {
+      approved: { c: T.success,    bg: 'rgba(34, 197, 94, 0.15)' },
+      pending:  { c: T.gildedFern, bg: 'rgba(198, 168, 75, 0.15)' },
+      flagged:  { c: T.danger,     bg: 'rgba(239, 68, 68, 0.15)' },
+    };
+    const style = map[props.$status] || { c: T.iceWing, bg: 'rgba(96, 192, 240, 0.15)' };
+    return `
+      color: ${style.c};
+      background: ${style.bg};
+      border: 1px solid color-mix(in srgb, ${style.c} 40%, transparent);
+      box-shadow: 0 0 12px color-mix(in srgb, ${style.c} 20%, transparent);
+    `;
   }}
 `;
 
-const ActionIcon = styled(motion.button)<{ $variant?: 'approve' | 'reject' | 'flag' | 'edit' }>`
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
+const ActionIcon = styled(motion.button)<{ $variant?: 'approve' | 'reject' | 'flag' | 'default' }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, ${props => getVariantColor(props.$variant)} 20%, transparent);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  background: ${props => {
-    switch (props.$variant) {
-      case 'approve': return `rgba(34, 197, 94, 0.1)`;
-      case 'reject':  return `rgba(239, 68, 68, 0.1)`;
-      case 'flag':    return `rgba(245, 158, 11, 0.1)`;
-      default:        return `rgba(96, 192, 240, 0.1)`;
-    }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'approve': return T.success;
-      case 'reject':  return T.danger;
-      case 'flag':    return T.warning;
-      default:        return T.iceWing;
-    }
-  }};
+  background: color-mix(in srgb, ${props => getVariantColor(props.$variant)} 10%, transparent);
+  color: ${props => getVariantColor(props.$variant)};
 
   &:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 12px ${props => {
-      switch (props.$variant) {
-        case 'approve': return `rgba(34, 197, 94, 0.3)`;
-        case 'reject':  return `rgba(239, 68, 68, 0.3)`;
-        case 'flag':    return `rgba(245, 158, 11, 0.3)`;
-        default:        return `rgba(96, 192, 240, 0.3)`;
-      }
-    }};
+    background: color-mix(in srgb, ${props => getVariantColor(props.$variant)} 20%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, ${props => getVariantColor(props.$variant)} 40%, transparent);
   }
 `;
 
 const ActivityItem = styled.div`
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid rgba(198, 168, 75, 0.08);
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
@@ -479,7 +490,7 @@ const ActivityItem = styled.div`
     color: ${T.iceWing};
   }
 
-  .activity-text { font-size: 0.85rem; color: ${T.textPrimary}; margin-bottom: 0.15rem; }
+  .activity-text { font-size: 0.85rem; color: ${T.frostWhite}; margin-bottom: 0.15rem; }
   .activity-time { font-size: 0.75rem; color: ${T.textMuted}; }
 `;
 
@@ -491,6 +502,12 @@ const EmptyState = styled.div`
   svg { margin-bottom: 1rem; opacity: 0.4; }
   h3 { color: ${T.frostWhite}; margin: 0 0 0.5rem; font-size: 1.1rem; }
   p { font-size: 0.9rem; margin: 0; }
+`;
+
+const Spinner = styled.div`
+  display: inline-block;
+  animation: ${spinAnimation} 1s linear infinite;
+  line-height: 0;
 `;
 
 const LoadingDots = styled.span`
@@ -529,7 +546,14 @@ const AdminSocialManagementView: React.FC = () => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPosts, setTotalPosts] = useState(0);
-  const [recentActivity, setRecentActivity] = useState<Array<{ id: number; type: string; content: string; timestamp: Date; icon: React.FC<{ size?: number }> }>>([]);
+  const [moderatedIds, setModeratedIds] = useState<Map<number, string>>(new Map());
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    id: number;
+    type: string;
+    content: string;
+    timestamp: Date;
+    icon: React.FC<{ size?: number }>;
+  }>>([]);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -538,7 +562,7 @@ const AdminSocialManagementView: React.FC = () => {
       if (data.success) {
         setPosts(data.posts || []);
         setTotalPosts(data.pagination?.total || data.posts?.length || 0);
-        // Build recent activity from real posts
+        setModeratedIds(new Map());
         const activities = (data.posts || []).slice(0, 4).map((p: SocialPost, i: number) => ({
           id: i,
           type: p.moderationStatus,
@@ -563,13 +587,18 @@ const AdminSocialManagementView: React.FC = () => {
     setRefreshing(false);
   };
 
+  // Haptic moderation: optimistic removal + directional exit animation
   const handlePostAction = async (postId: number, action: 'approve' | 'reject' | 'flag') => {
     const statusMap: Record<string, string> = { approve: 'approved', reject: 'rejected', flag: 'flagged' };
+    // Track action for directional exit (approve = right, reject = left)
+    setModeratedIds(prev => new Map(prev).set(postId, action));
+    // Fire API in background
     try {
       await api.put(`/api/social/posts/${postId}`, { moderationStatus: statusMap[action] });
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, moderationStatus: statusMap[action] } : p));
     } catch (err) {
       console.error(`Failed to ${action} post ${postId}:`, err);
+      // Revert on failure
+      setModeratedIds(prev => { const m = new Map(prev); m.delete(postId); return m; });
     }
   };
 
@@ -597,7 +626,9 @@ const AdminSocialManagementView: React.FC = () => {
     return '??';
   };
 
+  // Filter posts: exclude moderated ones (they exit with animation)
   const filteredPosts = posts.filter(p => {
+    if (moderatedIds.has(p.id)) return false;
     const matchesSearch = !searchTerm ||
       p.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       `${p.user?.firstName} ${p.user?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
@@ -605,16 +636,23 @@ const AdminSocialManagementView: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Compute metrics from real data
-  const pendingCount = posts.filter(p => p.moderationStatus === 'pending').length;
-  const flaggedCount = posts.filter(p => p.moderationStatus === 'flagged').length;
+  const pendingCount = posts.filter(p => p.moderationStatus === 'pending' && !moderatedIds.has(p.id)).length;
+  const flaggedCount = posts.filter(p => p.moderationStatus === 'flagged' && !moderatedIds.has(p.id)).length;
   const totalLikes = posts.reduce((sum, p) => sum + (p.likesCount || 0), 0);
+
+  // Metric card config for staggered entrance
+  const metrics = [
+    { accent: T.iceWing,   icon: MessageSquare, value: totalPosts, label: 'Total Posts', sub: 'Live data', subIcon: TrendingUp },
+    { accent: T.success,   icon: Users,         value: new Set(posts.map(p => p.userId)).size, label: 'Active Posters', sub: 'Unique users', subIcon: TrendingUp },
+    { accent: T.gildedFern, icon: Heart,        value: totalLikes, label: 'Total Engagement', sub: 'Likes across posts', subIcon: Heart },
+    { accent: pendingCount > 0 ? T.warning : T.iceWing, icon: Shield, value: pendingCount, label: 'Pending Moderation', sub: `${flaggedCount} flagged`, subIcon: AlertTriangle },
+  ];
 
   return (
     <SocialContainer
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={physics.glissando}
     >
       {/* Header */}
       <SocialHeader>
@@ -628,16 +666,21 @@ const AdminSocialManagementView: React.FC = () => {
           <ActionButton
             onClick={handleRefresh}
             disabled={refreshing}
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.03, y: -2 }}
             whileTap={{ scale: 0.97 }}
+            transition={physics.spring}
           >
-            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing
+              ? <Spinner><RefreshCw size={15} /></Spinner>
+              : <RefreshCw size={15} />
+            }
             {refreshing ? 'Refreshing' : 'Refresh'}
           </ActionButton>
           <ActionButton
             $variant="primary"
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.03, y: -2 }}
             whileTap={{ scale: 0.97 }}
+            transition={physics.spring}
           >
             <BarChart3 size={15} />
             Export
@@ -645,35 +688,23 @@ const AdminSocialManagementView: React.FC = () => {
         </HeaderActions>
       </SocialHeader>
 
-      {/* Metrics */}
+      {/* Metrics — Staggered entrance */}
       <MetricsGrid>
-        <MetricCard $accent={T.iceWing} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
-          <div className="metric-icon"><MessageSquare size={20} /></div>
-          <div className="metric-value">{totalPosts}</div>
-          <div className="metric-label">Total Posts</div>
-          <div className="metric-change"><TrendingUp size={12} /> Live data</div>
-        </MetricCard>
-
-        <MetricCard $accent={T.success} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
-          <div className="metric-icon" style={{ background: 'rgba(34, 197, 94, 0.1)', color: T.success }}><Users size={20} /></div>
-          <div className="metric-value">{new Set(posts.map(p => p.userId)).size}</div>
-          <div className="metric-label">Active Posters</div>
-          <div className="metric-change"><TrendingUp size={12} /> Unique users</div>
-        </MetricCard>
-
-        <MetricCard $accent={T.gildedFern} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
-          <div className="metric-icon" style={{ background: 'rgba(198, 168, 75, 0.1)', color: T.gildedFern }}><Heart size={20} /></div>
-          <div className="metric-value">{totalLikes}</div>
-          <div className="metric-label">Total Engagement</div>
-          <div className="metric-change"><Heart size={12} /> Likes across posts</div>
-        </MetricCard>
-
-        <MetricCard $accent={pendingCount > 0 ? T.warning : T.iceWing} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
-          <div className="metric-icon" style={{ background: pendingCount > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(96, 192, 240, 0.1)', color: pendingCount > 0 ? T.warning : T.iceWing }}><Shield size={20} /></div>
-          <div className="metric-value">{pendingCount}</div>
-          <div className="metric-label">Pending Moderation</div>
-          <div className="metric-change"><AlertTriangle size={12} /> {flaggedCount} flagged</div>
-        </MetricCard>
+        {metrics.map((m, i) => (
+          <MetricCard
+            key={m.label}
+            $accent={m.accent}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...physics.spring, delay: i * 0.1 }}
+            whileHover={{ y: -4, scale: 1.01 }}
+          >
+            <div className="metric-icon"><m.icon size={20} /></div>
+            <div className="metric-value">{m.value}</div>
+            <div className="metric-label">{m.label}</div>
+            <div className="metric-change"><m.subIcon size={12} /> {m.sub}</div>
+          </MetricCard>
+        ))}
       </MetricsGrid>
 
       {/* Content Grid */}
@@ -682,7 +713,11 @@ const AdminSocialManagementView: React.FC = () => {
         <GlassPanel>
           <SectionHeader>
             <h2><MessageSquare size={18} /> Content Management</h2>
-            <ActionButton whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <ActionButton
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={physics.snappy}
+            >
               <Settings size={15} /> Bulk Actions
             </ActionButton>
           </SectionHeader>
@@ -690,10 +725,9 @@ const AdminSocialManagementView: React.FC = () => {
           <SearchAndFilters>
             <div className="search-wrapper">
               <Search size={15} className="search-icon" />
-              <input
+              <SearchInput
                 type="text"
                 placeholder="Search posts, users, or content..."
-                className="search-input"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -703,8 +737,9 @@ const AdminSocialManagementView: React.FC = () => {
                 key={f}
                 $active={statusFilter === f}
                 onClick={() => setStatusFilter(f)}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                transition={physics.snappy}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </FilterButton>
@@ -713,7 +748,7 @@ const AdminSocialManagementView: React.FC = () => {
 
           {loading ? (
             <EmptyState>
-              <RefreshCw size={32} className="animate-spin" />
+              <Spinner><RefreshCw size={32} /></Spinner>
               <h3>Loading posts<LoadingDots /></h3>
               <p>Fetching from social feed API</p>
             </EmptyState>
@@ -724,14 +759,19 @@ const AdminSocialManagementView: React.FC = () => {
               <p>{searchTerm || statusFilter !== 'all' ? 'Try adjusting your filters' : 'The social feed is empty — create the first post!'}</p>
             </EmptyState>
           ) : (
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {filteredPosts.map(post => (
                 <PostCardStyled
                   key={post.id}
+                  layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
+                  exit={{
+                    opacity: 0,
+                    x: moderatedIds.get(post.id) === 'approve' ? 50 : -50,
+                    scale: 0.95,
+                  }}
+                  transition={physics.spring}
                 >
                   <div className="post-avatar">{getInitials(post)}</div>
                   <div className="post-body">
@@ -743,10 +783,45 @@ const AdminSocialManagementView: React.FC = () => {
                         <div className="post-time">{formatTimestamp(post.createdAt)}</div>
                       </div>
                       <div className="post-actions">
-                        <ActionIcon $variant="approve" onClick={() => handlePostAction(post.id, 'approve')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Approve"><CheckCircle size={14} /></ActionIcon>
-                        <ActionIcon $variant="flag" onClick={() => handlePostAction(post.id, 'flag')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Flag"><Flag size={14} /></ActionIcon>
-                        <ActionIcon $variant="reject" onClick={() => handlePostAction(post.id, 'reject')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Remove"><Trash2 size={14} /></ActionIcon>
-                        <ActionIcon $variant="edit" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Details"><MoreHorizontal size={14} /></ActionIcon>
+                        <ActionIcon
+                          $variant="approve"
+                          onClick={() => handlePostAction(post.id, 'approve')}
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          transition={physics.snappy}
+                          title="Approve"
+                        >
+                          <CheckCircle size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          $variant="flag"
+                          onClick={() => handlePostAction(post.id, 'flag')}
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          transition={physics.snappy}
+                          title="Flag"
+                        >
+                          <Flag size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          $variant="reject"
+                          onClick={() => handlePostAction(post.id, 'reject')}
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          transition={physics.snappy}
+                          title="Remove"
+                        >
+                          <Trash2 size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          $variant="default"
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          transition={physics.snappy}
+                          title="Details"
+                        >
+                          <MoreHorizontal size={16} />
+                        </ActionIcon>
                       </div>
                     </div>
                     <div className="post-text">{post.content}</div>
