@@ -54,8 +54,10 @@ async function start() {
         console.warn('Achievement seeder failed (non-fatal):', seedErr.message);
       }
     } catch (err) {
-      console.error('FATAL: Migration failed:', err.message);
-      process.exit(1);
+      // Migration failure is non-fatal — let the server start so we can debug
+      console.error('WARNING: Migration failed (non-fatal):', err.message);
+      console.error('The server will start but some features may not work correctly.');
+      console.error('Check the migration error above and fix manually if needed.');
     }
   }
 
