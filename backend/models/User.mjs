@@ -261,10 +261,10 @@ User.init(
       comment: 'Current level in the gamification system'
     },
     tier: {
-      type: DataTypes.ENUM('bronze', 'silver', 'gold', 'platinum'),
+      type: DataTypes.ENUM('bronze_forge', 'silver_edge', 'titanium_core', 'obsidian_warrior', 'crystalline_swan'),
       allowNull: true,
-      defaultValue: 'bronze',
-      comment: 'Current tier in the gamification system'
+      defaultValue: 'bronze_forge',
+      comment: 'Current tier in the Crystalline Swan gamification system'
     },
     streakDays: {
       type: DataTypes.INTEGER,

@@ -523,7 +523,7 @@ const gamificationController = {
         include: [
           {
             model: UserAchievement,
-            as: 'achievements',
+            as: 'userAchievements',
             include: [{
               model: Achievement,
               as: 'achievement'
@@ -601,23 +601,17 @@ const gamificationController = {
           nextLevelProgress = ((user.points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
         }
         
-        // Calculate next tier progress
-        if (user.tier !== 'platinum' && settings.tierThresholds) {
+        // Calculate next tier progress using Octalysis tier system
+        const tierOrder = ['bronze_forge', 'silver_edge', 'titanium_core', 'obsidian_warrior', 'crystalline_swan'];
+        const currentTierIndex = tierOrder.indexOf(user.tier);
+        if (currentTierIndex < tierOrder.length - 1 && settings.tierThresholds) {
           const currentTierThreshold = settings.tierThresholds[user.tier] || 0;
-          let nextTierThreshold = 0;
-          
-          if (user.tier === 'bronze') {
-            nextTier = 'silver';
-            nextTierThreshold = settings.tierThresholds.silver;
-          } else if (user.tier === 'silver') {
-            nextTier = 'gold';
-            nextTierThreshold = settings.tierThresholds.gold;
-          } else if (user.tier === 'gold') {
-            nextTier = 'platinum';
-            nextTierThreshold = settings.tierThresholds.platinum;
+          nextTier = tierOrder[currentTierIndex + 1];
+          const nextTierThreshold = settings.tierThresholds[nextTier] || 0;
+
+          if (nextTierThreshold > currentTierThreshold) {
+            nextTierProgress = ((user.points - currentTierThreshold) / (nextTierThreshold - currentTierThreshold)) * 100;
           }
-          
-          nextTierProgress = ((user.points - currentTierThreshold) / (nextTierThreshold - currentTierThreshold)) * 100;
         }
       }
       
@@ -762,18 +756,17 @@ const gamificationController = {
       // Update user points
       await user.update({ points: newBalance }, { transaction });
       
-      // Check if user has reached new tier
-      if (settings && settings.tierThresholds) {
-        let newTier = user.tier;
-        
-        if (newBalance >= settings.tierThresholds.platinum && user.tier !== 'platinum') {
-          newTier = 'platinum';
-        } else if (newBalance >= settings.tierThresholds.gold && user.tier !== 'gold' && user.tier !== 'platinum') {
-          newTier = 'gold';
-        } else if (newBalance >= settings.tierThresholds.silver && user.tier !== 'silver' && user.tier !== 'gold' && user.tier !== 'platinum') {
-          newTier = 'silver';
+      // Check if user has reached new level/tier using logarithmic leveling
+      {
+        const { calculateLevel, getTier } = await import('../utils/levelingAlgorithm.mjs');
+        const newLevel = calculateLevel(newBalance);
+        const newTier = getTier(newLevel);
+
+        // Update level if changed
+        if (newLevel !== user.level) {
+          await user.update({ level: newLevel }, { transaction });
         }
-        
+
         if (newTier !== user.tier) {
           await user.update({ tier: newTier }, { transaction });
           

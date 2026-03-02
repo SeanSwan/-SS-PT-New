@@ -1540,7 +1540,7 @@ const UserDashboard: React.FC = () => {
                   <StatCard>
                     <TrendingUp size={24} color={T.swanLavender} style={{ marginBottom: 8 }} />
                     <StatCardValue>Lv {stats?.level ?? 1}</StatCardValue>
-                    <StatCardLabel>{stats?.tier ? stats.tier.charAt(0).toUpperCase() + stats.tier.slice(1) : 'Bronze'}</StatCardLabel>
+                    <StatCardLabel>{stats?.tier ? stats.tier.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Bronze Forge'}</StatCardLabel>
                   </StatCard>
                 </GridRow>
               </GlassPanel>

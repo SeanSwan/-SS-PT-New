@@ -163,6 +163,123 @@ Source of truth modules remain:
 
 ---
 
+## 6A. Social-Gamification Integration
+
+This section details how the gamification engine and social layer reinforce each other. All social-gamification interactions flow through existing gamification APIs (`/api/v1/gamification/*`) and the existing `gamificationSlice` — no parallel point systems.
+
+### 6A.1 The Social Gamification Loop
+
+Social activity and gamification form a self-reinforcing flywheel:
+
+```
+User completes action (workout, post, streak)
+        │
+        ▼
+Gamification engine awards points + checks achievement thresholds
+        │
+        ▼
+Achievement unlocked → auto-generates celebratory social post
+        │
+        ▼
+Community reacts (Swans, comments, follows)
+        │
+        ▼
+Social reactions award points to both giver and receiver
+        │
+        ▼
+Increased engagement → more actions → cycle continues
+```
+
+**Key integration points:**
+- `POST /api/v1/social/posts` (post creation) triggers a 10-point award via `POST /api/v1/gamification/points/award`
+- Swan reactions received contribute to The Tribe (Social) skill tree achievement progress
+- Achievement unlock events emit a `gamification.achievement.unlocked` internal event that the social service can consume to auto-generate a celebratory post (opt-in per user notification preferences)
+- Leaderboard data (`GET /api/v1/gamification/leaderboard`) surfaces on social profiles
+
+### 6A.2 Community Engagement Tiers
+
+Tier progression within the gamification system unlocks social capabilities, layered on top of the Trust Score system (Section 7.2):
+
+| Gamification Tier | Level Range | Social Features Unlocked |
+|-------------------|-------------|--------------------------|
+| Bronze Forge | 1-10 | Standard posting, commenting, Swan reactions |
+| Silver Edge | 11-25 | Custom profile badges, challenge participation, achievement sharing |
+| Titanium Core | 26-50 | Challenge creation, community mentorship tag, discover feed eligibility boost |
+| Obsidian Warrior | 51-99 | Custom flair, priority in discover feed ranking, community event hosting |
+| Crystalline Swan | 100 | Legendary profile frame, featured community spotlight, Swan economy bonus multiplier |
+
+Gamification tier unlocks are additive to Trust Score gates. A user must meet both their Trust Score threshold (Section 7.2) AND gamification tier minimum to access a feature. Trust Score remains the safety gate; gamification tier is the engagement reward.
+
+### 6A.3 Achievement-Driven Content
+
+Achievement milestones generate organic content for the social feed:
+
+**Auto-Generated Post Types:**
+1. **Achievement Unlock** — "Just earned [achievement name]!" with rarity-styled achievement card
+2. **Tier Advancement** — "[User] advanced to [Tier Name]!" with crystalline shatter animation
+3. **Streak Milestone** — "[User] hit a [N]-day streak!" with streak flame visual
+4. **Personal Record** — "[User] set a new PR!" with stat comparison card
+5. **Skill Tree Completion** — "[User] mastered [Skill Tree]!" with full tree visualization
+
+**Content Rules:**
+- Auto-posts are opt-in (controlled via `PUT /api/v1/social/notifications/preferences`)
+- Auto-posts are clearly tagged as system-generated (distinct from user-authored content)
+- Users can edit or delete auto-generated posts like any other post
+- Auto-posts count toward rate limits but do not trigger AI moderation (pre-approved templates)
+- Achievement card embeds use rarity-styled visuals from the Crystalline Swan palette (Common: `#4070C0`, Rare: `#C6A84B`, Epic: `#60C0F0`, Legendary: animated gradient)
+
+### 6A.4 Retention Psychology
+
+The gamification system uses ethically-grounded behavioral patterns (SDT-aligned, no dark patterns):
+
+| Mechanism | Octalysis Drive | Implementation | Guardrail |
+|-----------|----------------|----------------|-----------|
+| **Streaks** | Loss & Avoidance | Daily login + workout streaks with escalating bonuses (30-day = 300 pts) | Rest day forgiveness (1 free skip per 7 days), no shame messaging |
+| **Near-Miss** | Unpredictability | "3 more workouts to unlock [achievement]!" progress nudges | Shown max once per session, dismissible |
+| **Social Proof** | Social Influence | "12 friends earned this achievement" counters on locked achievements | Privacy-respecting (count only, no names unless friends) |
+| **Loss Aversion** | Loss & Avoidance | Streak freeze warnings ("Your 45-day streak is at risk!") | Warning tone is encouraging, never punitive |
+| **Variable Reward** | Unpredictability | Mystery bonus Swans (Section 7.1), hidden achievements, surprise milestone celebrations | No pay-to-reveal, no gambling mechanics |
+| **Progress Endowment** | Development & Accomplishment | Partial progress bars visible on locked achievements | Always shows actual progress, never inflated |
+
+**Anti-Toxic-Loop Commitment:** No infinite scroll dopamine traps. No pay-to-win progression. No artificial scarcity on core features. Progression speed is tuned to real fitness outcomes, not engagement maximization.
+
+### 6A.5 Monetization Integration
+
+Premium gamification features are gated behind the monetization readiness criteria in Section 12. Phase 1 has no pay-to-win mechanics.
+
+**Future Premium Features (Phase 2+, post-monetization gate):**
+- **Cosmetic Achievement Frames** — Premium visual treatments for achievement cards (no gameplay advantage)
+- **Extended Analytics** — Detailed skill tree progression analytics, historical point trends
+- **Custom Challenges** — Paid users can create custom challenges with unique achievement rewards
+- **Accelerated Cosmetics** — Premium profile flair and badge animations (progression speed remains equal)
+
+**Hard Rules:**
+- Free users can reach Crystalline Swan (Level 100) at the same rate as paid users
+- No points multipliers for purchase
+- No achievements locked behind paywall
+- No Swan economy purchases (Section 7.1 rule 5 remains inviolable)
+- Premium features are cosmetic or analytical only
+
+### 6A.6 Social Feature Cross-Reference with Points
+
+Mapping existing social actions to the gamification points system:
+
+| Social Action | Points | Skill Tree | Achievement Examples |
+|---------------|--------|------------|----------------------|
+| Create post | 10 | The Tribe | "First Voice" (1st post), "Town Crier" (100 posts) |
+| Receive Swan reaction | 5 | The Tribe | "Swan Magnet" (50 Swans received), "Community Star" (500) |
+| Give Swan reaction | 2 | The Tribe | "Generous Spirit" (give 100 Swans) |
+| Follow another user | 2 | The Tribe | "Social Butterfly" (follow 20 users) |
+| Receive follow | 3 | The Tribe | "Rising Influence" (gain 50 followers) |
+| Post comment | 5 | The Tribe | "Conversationalist" (50 comments) |
+| Complete challenge | 75 | The Tribe | "Challenger" (complete 5 challenges) |
+| Share workout to social | 15 | The Tribe + Iron & Gravity | "Open Book" (share 10 workouts) |
+| Report content (valid) | 10 | The Tribe | "Guardian" (5 valid reports) — trust score bonus |
+
+**Double-Counting Prevention:** Actions that span multiple skill trees award points once but can advance progress in multiple achievement tracks simultaneously. The `PointTransaction` ledger records the canonical action; achievement progress listeners independently evaluate their own thresholds.
+
+---
+
 ## 7. Swan Economy and Trust Score
 
 ### 7.1 Swan Economy
@@ -366,3 +483,4 @@ SwanStudios Social is not done until all items below are true:
 3. `docs/ai-workflow/blueprints/WAIVER-CONSENT-QR-FLOW-CONTRACT.md`
 4. `docs/ai-workflow/gamification/GAMIFICATION-MASTER-PROMPT-FINAL.md`
 5. `docs/ai-workflow/AI-HANDOFF/MASTER-ONBOARDING-PROMPT.md`
+6. `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md` Section "Gamification Architecture" — leveling formula, skill trees, database schema, API reference

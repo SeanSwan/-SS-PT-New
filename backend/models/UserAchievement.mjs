@@ -18,7 +18,7 @@ const UserAchievement = db.define('UserAchievement', {
   
   // Foreign Keys
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -327,7 +327,7 @@ const UserAchievement = db.define('UserAchievement', {
     defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'user_achievements',
+  tableName: 'UserAchievements',
   timestamps: true,
   indexes: [
     {

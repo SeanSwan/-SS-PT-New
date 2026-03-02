@@ -423,6 +423,18 @@ const setupAssociations = async () => {
       as: 'userAchievements'
     });
 
+    // REWARD & MILESTONE ASSOCIATIONS
+    // ================================
+    UserReward.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(UserReward, { foreignKey: 'userId', as: 'rewards' });
+    UserReward.belongsTo(Reward, { foreignKey: 'rewardId', as: 'reward' });
+    Reward.hasMany(UserReward, { foreignKey: 'rewardId', as: 'userRewards' });
+
+    UserMilestone.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(UserMilestone, { foreignKey: 'userId', as: 'milestones' });
+    UserMilestone.belongsTo(Milestone, { foreignKey: 'milestoneId', as: 'milestone' });
+    Milestone.hasMany(UserMilestone, { foreignKey: 'milestoneId', as: 'userMilestones' });
+
     // E-COMMERCE ASSOCIATIONS
     // ======================
     User.hasMany(ShoppingCart, { foreignKey: 'userId', as: 'shoppingCarts' });
