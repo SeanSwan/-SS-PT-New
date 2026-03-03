@@ -36,7 +36,7 @@
  *   npx sequelize-cli db:seed:undo --seed 20260301001000-seed-achievements.cjs
  */
 
-const crypto = require('crypto');
+// crypto.randomUUID() removed — let PostgreSQL auto-generate id column
 
 // ---------------------------------------------------------------------------
 // Tier expansion engine
@@ -65,7 +65,7 @@ function expandToTiers(tpl, maxTiers = 5) {
     const tierNum   = i + 1;
 
     rows.push({
-      id:            crypto.randomUUID(),
+      // Let PostgreSQL auto-generate id (works with both INTEGER and UUID columns)
       // identity
       name:          tierNum === 1 ? tpl.name : `${tpl.name}_tier${tierNum}`,
       title:         tierNum === 1 ? tpl.title : `${tpl.title} ${TIER_NAMES[tierIndex]}`,
@@ -522,7 +522,7 @@ function hiddenAchievements() {
   ];
 
   return templates.map(tpl => ({
-    id:             crypto.randomUUID(),
+    // Let PostgreSQL auto-generate id (works with both INTEGER and UUID columns)
     name:           tpl.name,
     title:          tpl.title,
     description:    tpl.description,
