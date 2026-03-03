@@ -662,17 +662,12 @@ const gamificationController = {
       const leaderboard = await User.findAll({
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
-          'points', 'level', 'tier', 'badgesPrimary'
+          'points', 'level', 'tier'
         ],
         where: whereClause,
         order: [['points', 'DESC']],
         limit: parseInt(limit),
-        offset: parseInt(offset),
-        include: [{
-          model: Achievement,
-          as: 'primaryBadge',
-          attributes: ['id', 'name', 'icon', 'badgeImageUrl']
-        }]
+        offset: parseInt(offset)
       });
       
       const total = await User.count({ where: whereClause });

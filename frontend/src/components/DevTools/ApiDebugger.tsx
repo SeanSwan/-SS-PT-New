@@ -229,10 +229,10 @@ const SectionTitle = styled.h3`
 
 // Endpoints to check
 const ENDPOINTS = [
-  { name: 'Notifications', url: '/notifications', key: 'notifications' },
-  { name: 'Sessions', url: '/sessions', key: 'sessions' },
-  { name: 'User Profile', url: '/users/profile', key: 'profile' },
-  { name: 'Workouts', url: '/workout/plans', key: 'workouts' }
+  { name: 'Notifications', url: '/api/notifications', key: 'notifications' },
+  { name: 'Sessions', url: '/api/sessions', key: 'sessions' },
+  { name: 'User Profile', url: '/api/users/profile', key: 'profile' },
+  { name: 'Workouts', url: '/api/workout/plans', key: 'workouts' }
 ];
 
 const ApiDebugger = () => {

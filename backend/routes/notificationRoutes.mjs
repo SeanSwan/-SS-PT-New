@@ -62,34 +62,6 @@ const router = express.Router();
 router.get('/', protect, getAllNotifications);
 
 /**
- * @route   PUT /api/notifications/:id/read
- * @desc    Mark a notification as read
- * @access  Private
- */
-router.put('/:id/read', protect, markAsRead);
-
-/**
- * @route   PATCH /api/notifications/:id/read
- * @desc    Mark a notification as read (PATCH alias)
- * @access  Private
- */
-router.patch('/:id/read', protect, markAsRead);
-
-/**
- * @route   PUT /api/notifications/read-all
- * @desc    Mark all notifications as read
- * @access  Private
- */
-router.put('/read-all', protect, markAllAsRead);
-
-/**
- * @route   PATCH /api/notifications/read-all
- * @desc    Mark all notifications as read (PATCH alias)
- * @access  Private
- */
-router.patch('/read-all', protect, markAllAsRead);
-
-/**
  * @route   GET /api/notifications/count
  * @desc    Get unread notification count
  * @access  Private
@@ -117,6 +89,34 @@ router.get('/count', protect, async (req, res) => {
     });
   }
 });
+
+/**
+ * @route   PUT /api/notifications/read-all
+ * @desc    Mark all notifications as read
+ * @access  Private
+ */
+router.put('/read-all', protect, markAllAsRead);
+
+/**
+ * @route   PATCH /api/notifications/read-all
+ * @desc    Mark all notifications as read (PATCH alias)
+ * @access  Private
+ */
+router.patch('/read-all', protect, markAllAsRead);
+
+/**
+ * @route   PUT /api/notifications/:id/read
+ * @desc    Mark a notification as read
+ * @access  Private
+ */
+router.put('/:id/read', protect, markAsRead);
+
+/**
+ * @route   PATCH /api/notifications/:id/read
+ * @desc    Mark a notification as read (PATCH alias)
+ * @access  Private
+ */
+router.patch('/:id/read', protect, markAsRead);
 
 /**
  * @route   DELETE /api/notifications/:id
