@@ -1,36 +1,41 @@
 /**
  * SwanStudios Community Feed Component
  * ===================================
- * 
- * Professional community feed with real-time updates and engaging interactions
+ *
+ * Community feed wired to real social API via useSocialFeed hook.
+ * Shows real posts from the user's feed with like/comment/share interactions.
  */
 
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  Star, 
-  Sun, 
-  Plus,
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  Star,
   Image as ImageIcon,
   Video,
-  Smile
+  Smile,
+  Loader2,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+import { useAuth } from '../../../context/AuthContext';
 
-// Professional styled components
+// ─── Styled Components ─────────────────────────────────────────────────────
+
 const FeedContainer = styled(motion.div)`
   background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
   backdrop-filter: blur(24px);
   border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
-  
+
   @media (max-width: 768px) {
     padding: 1.5rem;
     border-radius: 16px;
@@ -42,7 +47,7 @@ const FeedHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
@@ -58,10 +63,30 @@ const FeedTitle = styled.h2`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
     justify-content: center;
+  }
+`;
+
+const RefreshButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  border-radius: 8px;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
+    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
   }
 `;
 
@@ -86,11 +111,11 @@ const PostInput = styled.textarea`
   line-height: 1.5;
   resize: vertical;
   transition: all 0.3s ease;
-  
+
   &::placeholder {
     color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
   }
-  
+
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
@@ -103,7 +128,7 @@ const PostActions = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-top: 1rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
@@ -128,7 +153,7 @@ const PostOptionButton = styled(motion.button)`
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
-  
+
   &:hover {
     background: ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
     border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
@@ -147,12 +172,12 @@ const PostButton = styled(motion.button)`
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -172,7 +197,7 @@ const PostCard = styled(motion.div)`
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
     border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
@@ -190,7 +215,7 @@ const PostAuthorImage = styled.div<{ $image?: string }>`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: ${({ $image, theme }) => 
+  background: ${({ $image, theme }) =>
     $image ? `url(${$image})` : theme.gradients?.primary || 'linear-gradient(135deg, #3B82F6, #8B5CF6)'
   };
   background-size: cover;
@@ -201,6 +226,7 @@ const PostAuthorImage = styled.div<{ $image?: string }>`
   justify-content: center;
   color: white;
   font-weight: 600;
+  font-size: 0.9rem;
 `;
 
 const PostAuthorInfo = styled.div`
@@ -232,6 +258,14 @@ const PostText = styled.p`
   word-wrap: break-word;
 `;
 
+const PostMedia = styled.img`
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+`;
+
 const PostFooter = styled.div`
   display: flex;
   align-items: center;
@@ -254,14 +288,14 @@ const InteractionButton = styled(motion.button)<{ $active?: boolean }>`
   gap: 0.5rem;
   background: none;
   border: none;
-  color: ${({ $active, theme }) => 
+  color: ${({ $active, theme }) =>
     $active ? theme.colors?.primary || '#3B82F6' : theme.text?.secondary || 'rgba(255,255,255,0.7)'
   };
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 8px;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: ${({ theme }) => theme.colors?.primary + '10' || 'rgba(59, 130, 246, 0.1)'};
     color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
@@ -269,133 +303,111 @@ const InteractionButton = styled(motion.button)<{ $active?: boolean }>`
   }
 `;
 
-// Mock posts data
-const mockPosts = [
-  {
-    id: 1,
-    author: {
-      name: 'Alex Rivera',
-      username: 'alex_fit',
-      image: null,
-      initials: 'AR'
-    },
-    content: '🌟 Just completed my morning workout! There\'s something magical about starting the day with movement and positive energy. Feeling grateful for this amazing SwanStudios community! ✨',
-    timestamp: '2 hours ago',
-    interactions: {
-      likes: 24,
-      comments: 8,
-      shares: 3
-    },
-    userInteractions: {
-      liked: false,
-      commented: false,
-      shared: false
-    }
-  },
-  {
-    id: 2,
-    author: {
-      name: 'Luna Wellness',
-      username: 'luna_health',
-      image: null,
-      initials: 'LW'
-    },
-    content: '💪 Progress update: Finally achieved my goal of 10 push-ups in a row! Six months ago, I could barely do one. Consistency and the supportive SwanStudios community made all the difference. Keep going everyone! 🚀',
-    timestamp: '4 hours ago',
-    interactions: {
-      likes: 42,
-      comments: 15,
-      shares: 7
-    },
-    userInteractions: {
-      liked: true,
-      commented: false,
-      shared: false
-    }
-  },
-  {
-    id: 3,
-    author: {
-      name: 'Marcus Strong',
-      username: 'marcus_power',
-      image: null,
-      initials: 'MS'
-    },
-    content: '🎯 Reminder: Your fitness journey is unique to you. Don\'t compare your chapter 1 to someone else\'s chapter 20. Focus on your progress, celebrate small wins, and keep moving forward. You\'ve got this! 💛',
-    timestamp: '6 hours ago',
-    interactions: {
-      likes: 67,
-      comments: 23,
-      shares: 12
-    },
-    userInteractions: {
-      liked: true,
-      commented: true,
-      shared: false
-    }
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
+  text-align: center;
+  line-height: 1.6;
+`;
+
+const LoadMoreButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  border-radius: 12px;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors?.primary + '15' || 'rgba(59, 130, 246, 0.15)'};
+    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
   }
-];
+`;
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function getInitials(firstName?: string, lastName?: string, username?: string): string {
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  if (username) return username.substring(0, 2).toUpperCase();
+  return '??';
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHrs = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHrs / 24);
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 const CommunityFeed: React.FC = () => {
+  const { user } = useAuth();
+  const {
+    posts,
+    isLoading,
+    error,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+    refreshPosts,
+    createPost,
+    isCreatingPost,
+    likePost,
+    unlikePost,
+  } = useSocialFeed();
+
   const [newPostContent, setNewPostContent] = useState('');
-  const [isPosting, setIsPosting] = useState(false);
-  const [posts, setPosts] = useState(mockPosts);
 
   const handleCreatePost = async () => {
-    if (!newPostContent.trim() || isPosting) return;
-    
-    setIsPosting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newPost = {
-      id: Date.now(),
-      author: {
-        name: 'You',
-        username: 'your_username',
-        image: null,
-        initials: 'YU'
-      },
+    if (!newPostContent.trim() || isCreatingPost) return;
+
+    await createPost({
       content: newPostContent,
-      timestamp: 'Just now',
-      interactions: {
-        likes: 0,
-        comments: 0,
-        shares: 0
-      },
-      userInteractions: {
-        liked: false,
-        commented: false,
-        shared: false
-      }
-    };
-    
-    setPosts(prev => [newPost, ...prev]);
+      type: 'general',
+      visibility: 'friends',
+    });
+
     setNewPostContent('');
-    setIsPosting(false);
   };
 
-  const handleInteraction = (postId: number, type: 'likes' | 'comments' | 'shares') => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const interactionKey = type === 'likes' ? 'liked' : type === 'comments' ? 'commented' : 'shared';
-        const wasActive = post.userInteractions[interactionKey];
-        
-        return {
-          ...post,
-          interactions: {
-            ...post.interactions,
-            [type]: wasActive ? post.interactions[type] - 1 : post.interactions[type] + 1
-          },
-          userInteractions: {
-            ...post.userInteractions,
-            [interactionKey]: !wasActive
-          }
-        };
-      }
-      return post;
-    }));
+  const handleLikeToggle = async (postId: string, isLiked: boolean) => {
+    if (isLiked) {
+      await unlikePost(postId);
+    } else {
+      await likePost(postId);
+    }
   };
 
   return (
@@ -409,8 +421,16 @@ const CommunityFeed: React.FC = () => {
           <Star size={24} />
           Community Feed
         </FeedTitle>
+        <RefreshButton
+          onClick={refreshPosts}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </RefreshButton>
       </FeedHeader>
-      
+
       {/* Create New Post */}
       <CreatePostSection>
         <PostInput
@@ -436,70 +456,122 @@ const CommunityFeed: React.FC = () => {
           </PostOptions>
           <PostButton
             onClick={handleCreatePost}
-            disabled={!newPostContent.trim() || isPosting}
+            disabled={!newPostContent.trim() || isCreatingPost}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {isPosting ? 'Posting...' : 'Share'}
+            {isCreatingPost ? 'Posting...' : 'Share'}
           </PostButton>
         </PostActions>
       </CreatePostSection>
-      
+
+      {/* Loading State */}
+      {isLoading && (
+        <LoadingState>
+          <Loader2 size={32} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
+          Loading feed...
+        </LoadingState>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <EmptyState>
+          <AlertCircle size={32} />
+          Unable to load feed. Please try refreshing.
+        </EmptyState>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !error && posts.length === 0 && (
+        <EmptyState>
+          <Star size={32} />
+          No posts yet! Be the first to share something with the community.
+        </EmptyState>
+      )}
+
       {/* Posts Stream */}
-      <PostsStream>
-        <AnimatePresence>
-          {posts.map((post, index) => (
-            <PostCard
-              key={post.id}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+      {!isLoading && posts.length > 0 && (
+        <PostsStream>
+          <AnimatePresence>
+            {posts.map((post, index) => {
+              const authorName = post.user
+                ? `${post.user.firstName || ''} ${post.user.lastName || ''}`.trim() || post.user.username
+                : 'Unknown';
+              const initials = post.user
+                ? getInitials(post.user.firstName, post.user.lastName, post.user.username)
+                : '??';
+
+              return (
+                <PostCard
+                  key={post.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                >
+                  <PostHeader>
+                    <PostAuthorImage $image={post.user?.photo || undefined}>
+                      {!post.user?.photo && initials}
+                    </PostAuthorImage>
+                    <PostAuthorInfo>
+                      <PostAuthorName>{authorName}</PostAuthorName>
+                      <PostTimestamp>
+                        @{post.user?.username || 'unknown'} &bull; {formatRelativeTime(post.createdAt)}
+                      </PostTimestamp>
+                    </PostAuthorInfo>
+                  </PostHeader>
+
+                  <PostContent>
+                    <PostText>{post.content}</PostText>
+                    {post.mediaUrl && <PostMedia src={post.mediaUrl} alt="Post media" />}
+                  </PostContent>
+
+                  <PostFooter>
+                    <PostInteractions>
+                      <InteractionButton
+                        $active={post.isLiked}
+                        onClick={() => handleLikeToggle(post.id, post.isLiked)}
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        <Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} />
+                        {post.likesCount}
+                      </InteractionButton>
+                      <InteractionButton
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        <MessageCircle size={18} />
+                        {post.commentsCount}
+                      </InteractionButton>
+                      <InteractionButton
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        <Share2 size={18} />
+                      </InteractionButton>
+                    </PostInteractions>
+                  </PostFooter>
+                </PostCard>
+              );
+            })}
+          </AnimatePresence>
+
+          {/* Load More */}
+          {hasMore && (
+            <LoadMoreButton
+              onClick={loadMore}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <PostHeader>
-                <PostAuthorImage $image={post.author.image}>
-                  {!post.author.image && post.author.initials}
-                </PostAuthorImage>
-                <PostAuthorInfo>
-                  <PostAuthorName>{post.author.name}</PostAuthorName>
-                  <PostTimestamp>@{post.author.username} • {post.timestamp}</PostTimestamp>
-                </PostAuthorInfo>
-              </PostHeader>
-              
-              <PostContent>
-                <PostText>{post.content}</PostText>
-              </PostContent>
-              
-              <PostFooter>
-                <PostInteractions>
-                  <InteractionButton
-                    $active={post.userInteractions.liked}
-                    onClick={() => handleInteraction(post.id, 'likes')}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <Heart size={18} />
-                    {post.interactions.likes}
-                  </InteractionButton>
-                  <InteractionButton
-                    $active={post.userInteractions.commented}
-                    onClick={() => handleInteraction(post.id, 'comments')}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <MessageCircle size={18} />
-                    {post.interactions.comments}
-                  </InteractionButton>
-                  <InteractionButton
-                    onClick={() => handleInteraction(post.id, 'shares')}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <Share2 size={18} />
-                    {post.interactions.shares}
-                  </InteractionButton>
-                </PostInteractions>
-              </PostFooter>
-            </PostCard>
-          ))}
-        </AnimatePresence>
-      </PostsStream>
+              {isLoadingMore ? (
+                <>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  Loading more...
+                </>
+              ) : (
+                'Load more posts'
+              )}
+            </LoadMoreButton>
+          )}
+        </PostsStream>
+      )}
     </FeedContainer>
   );
 };
