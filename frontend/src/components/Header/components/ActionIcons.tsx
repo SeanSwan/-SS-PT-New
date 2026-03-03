@@ -51,15 +51,21 @@ const CartIconButton = styled(IconButton)`
   }
 `;
 
-const ProfileIconButton = styled(IconButton)`
+const ProfileIconButton = styled(IconButton)<{ $hasImage?: boolean }>`
   background: var(--accent-primary);
-  width: 36px;
-  height: 36px;
-  font-size: 0.9rem;
+  width: 44px;
+  height: 44px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--bg-base);
   box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary) 50%, transparent);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  ${({ $hasImage }) => $hasImage && `
+    padding: 0;
+    background: transparent;
+  `}
 
   &:hover {
     filter: brightness(1.15);
@@ -71,6 +77,13 @@ const ProfileIconButton = styled(IconButton)`
     outline: 3px solid var(--accent-secondary, #ff4081);
     outline-offset: 2px;
   }
+`;
+
+const ProfileAvatar = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 `;
 
 const SignInIconButton = styled(IconButton)`
@@ -178,8 +191,12 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
       {user ? (
         <motion.div variants={itemVariants} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Tooltip title={`${user?.firstName || 'User'} Profile`}>
-            <ProfileIconButton aria-label="User profile">
-              {user?.firstName?.[0]?.toUpperCase() || 'U'}
+            <ProfileIconButton aria-label="User profile" $hasImage={!!user?.profileImageUrl}>
+              {user?.profileImageUrl ? (
+                <ProfileAvatar src={user.profileImageUrl} alt={user?.firstName || 'User'} />
+              ) : (
+                user?.firstName?.[0]?.toUpperCase() || 'U'
+              )}
             </ProfileIconButton>
           </Tooltip>
 

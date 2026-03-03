@@ -1110,10 +1110,10 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
         // Show optimistic preview immediately
         const previewUrl = URL.createObjectURL(file);
         setBackgroundImage(previewUrl);
-        // Upload to backend
+        // Upload to backend — profile.bannerPhoto will update via useEffect
         await uploadBannerPhoto(file);
-        // Revoke blob URL after upload
-        URL.revokeObjectURL(previewUrl);
+        // Don't revoke blob URL here — the useEffect will replace backgroundImage
+        // with the real server URL when profile.bannerPhoto updates
       }
     } catch (error) {
       console.error('Upload error:', error);
