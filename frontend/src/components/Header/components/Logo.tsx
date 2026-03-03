@@ -7,12 +7,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import logoImage from '../../../assets/Logo.png';
 
-// Galaxy Theme Colors (copied from header for consistency)
-const GALAXY_THEME_COLORS = {
-  primary: '#00d9ff',
-  primaryLight: '#4de6ff',
-  textPrimary: '#ffffff',
-};
+// Theme-aware colors via CSS variables
 
 // Animation keyframes (copied from header)
 const galaxyFloat = keyframes`
@@ -24,17 +19,17 @@ const galaxyFloat = keyframes`
 `;
 
 const cosmicGlow = keyframes`
-  0% { 
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
-    text-shadow: 0 0 12px rgba(0, 255, 255, 0.6);
+  0% {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #00ffff) 40%, transparent));
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #00ffff) 60%, transparent);
   }
-  50% { 
-    filter: drop-shadow(0 0 16px rgba(0, 255, 255, 0.8));
-    text-shadow: 0 0 20px rgba(0, 255, 255, 0.9);
+  50% {
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-primary, #00ffff) 80%, transparent));
+    text-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #00ffff) 90%, transparent);
   }
-  100% { 
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
-    text-shadow: 0 0 12px rgba(0, 255, 255, 0.6);
+  100% {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #00ffff) 40%, transparent));
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #00ffff) 60%, transparent);
   }
 `;
 
@@ -43,12 +38,12 @@ const LogoContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   font-weight: 600;
-  color: ${GALAXY_THEME_COLORS.primary};
+  color: var(--accent-primary);
   position: relative;
   margin-right: 24px;
   cursor: pointer;
   z-index: 3;
-  
+
   @media (max-width: 768px) {
     margin-right: 16px;
   }
@@ -63,17 +58,17 @@ const LogoElement = styled.div`
   .logo-text {
     font-size: 1.25rem;
     font-weight: 700;
-    color: ${GALAXY_THEME_COLORS.textPrimary};
+    color: var(--text-primary);
     position: relative;
     letter-spacing: 0.8px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    text-shadow: 
-      0 0 12px rgba(0, 217, 255, 0.7),
-      0 0 24px rgba(0, 217, 255, 0.4),
-      0 0 36px rgba(0, 217, 255, 0.2);
-    
-    /* Improved cosmic text effect with better contrast */
-    background: linear-gradient(135deg, ${GALAXY_THEME_COLORS.primary} 0%, ${GALAXY_THEME_COLORS.primaryLight} 50%, ${GALAXY_THEME_COLORS.primary} 100%);
+    text-shadow:
+      0 0 12px color-mix(in srgb, var(--accent-primary) 70%, transparent),
+      0 0 24px color-mix(in srgb, var(--accent-primary) 40%, transparent),
+      0 0 36px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+
+    /* Cosmic text effect using theme accent */
+    background: linear-gradient(135deg, var(--accent-primary) 0%, color-mix(in srgb, var(--accent-primary) 70%, white) 50%, var(--accent-primary) 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

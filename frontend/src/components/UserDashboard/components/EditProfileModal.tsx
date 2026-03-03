@@ -35,8 +35,8 @@ const Overlay = styled(motion.div)`
 `;
 
 const Modal = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.secondary || '#1a1a2e'};
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.15)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 20px;
   padding: 2rem;
   width: 100%;
@@ -54,17 +54,17 @@ const Header = styled.div`
 `;
 
 const Title = styled.h2`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
 `;
 
 const CloseButton = styled.button`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.1)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-surface, var(--bg-elevated));
+  border: 1px solid var(--border-soft);
   border-radius: 10px;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   width: 40px;
   height: 40px;
   display: flex;
@@ -74,7 +74,7 @@ const CloseButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.colors?.error || '#FF6B6B'};
+    background: var(--danger, #FF6B6B);
     color: white;
   }
 `;
@@ -85,7 +85,7 @@ const FormGroup = styled.div`
 
 const Label = styled.label`
   display: block;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -96,31 +96,31 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   padding: 0.75rem 1rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.15)'};
+  background: var(--bg-base);
+  border: 1px solid var(--border-soft);
   border-radius: 10px;
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   outline: none;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
 
   &:focus {
-    border-color: ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+    border-color: var(--accent-primary);
   }
 
   &::placeholder {
-    color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.4)'};
+    color: var(--text-muted);
   }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
   padding: 0.75rem 1rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.15)'};
+  background: var(--bg-base);
+  border: 1px solid var(--border-soft);
   border-radius: 10px;
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   outline: none;
   transition: border-color 0.2s ease;
@@ -130,11 +130,11 @@ const TextArea = styled.textarea`
   box-sizing: border-box;
 
   &:focus {
-    border-color: ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+    border-color: var(--accent-primary);
   }
 
   &::placeholder {
-    color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.4)'};
+    color: var(--text-muted);
   }
 `;
 
@@ -145,7 +145,7 @@ const SaveButton = styled(motion.button)`
   justify-content: center;
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #60C0F0, #4070C0)'};
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #7851a9));
   color: white;
   border: none;
   border-radius: 12px;
