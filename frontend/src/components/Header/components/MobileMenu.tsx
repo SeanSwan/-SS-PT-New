@@ -14,17 +14,7 @@ import { IconButton } from '../../ui/primitives/components';
 // Icons (lucide-react replacements for MUI icons)
 import { Menu, X, ShoppingBag, User, LayoutDashboard, Users, Video, FileText } from 'lucide-react';
 
-// Galaxy Theme Colors (copied from header for consistency)
-const GALAXY_THEME_COLORS = {
-  primary: '#00d9ff',
-  primaryLight: '#4de6ff',
-  textSecondary: 'rgba(255, 255, 255, 0.87)',
-  textPrimary: '#ffffff',
-  accent: '#ff4081',
-  accentLight: '#ff6b9d',
-  backgroundPrimary: 'rgba(8, 8, 20, 0.95)',
-  backgroundSecondary: 'rgba(16, 16, 32, 0.9)',
-};
+// Theme-aware colors via CSS variables (no more hardcoded dark-only values)
 
 // Animation keyframes
 const starTwinkle = keyframes`
@@ -35,7 +25,7 @@ const starTwinkle = keyframes`
 // Styled components
 const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   display: none;
-  color: ${GALAXY_THEME_COLORS.textSecondary};
+  color: var(--text-secondary);
   padding: 8px;
   border-radius: 12px;
   position: relative;
@@ -51,7 +41,7 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
     background: ${({ $isOpen }) =>
       $isOpen
         ? 'linear-gradient(135deg, rgba(255, 64, 108, 0.2) 0%, rgba(255, 0, 0, 0.1) 100%)'
-        : 'linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 64, 108, 0.05) 100%)'
+        : `linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 10%, transparent) 0%, rgba(255, 64, 108, 0.05) 100%)`
     };
     border-radius: 12px;
     opacity: ${({ $isOpen }) => $isOpen ? 1 : 0};
@@ -63,7 +53,7 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   }
 
   &:hover {
-    color: ${({ $isOpen }) => $isOpen ? GALAXY_THEME_COLORS.accentLight : GALAXY_THEME_COLORS.primary};
+    color: ${({ $isOpen }) => $isOpen ? 'var(--danger, #ff6b9d)' : 'var(--accent-primary)'};
     background: none;
     transform: scale(1.05);
 
@@ -73,7 +63,7 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   }
 
   &:focus-visible {
-    outline: 2px solid ${GALAXY_THEME_COLORS.primary};
+    outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
 `;
@@ -84,11 +74,7 @@ const MobileMenuOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg,
-    ${GALAXY_THEME_COLORS.backgroundPrimary} 0%,
-    rgba(16, 16, 32, 0.98) 35%,
-    ${GALAXY_THEME_COLORS.backgroundSecondary} 100%
-  );
+  background: var(--bg-base);
   backdrop-filter: blur(20px) saturate(1.8);
   padding: 80px 24px 24px;
   display: flex;
@@ -103,9 +89,9 @@ const MobileMenuOverlay = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 20% 30%, rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-                radial-gradient(circle at 80% 70%, rgba(255, 64, 108, 0.1) 1px, transparent 1px),
-                radial-gradient(circle at 40% 80%, rgba(0, 255, 255, 0.08) 1px, transparent 1px);
+    background: radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent-primary) 10%, transparent) 1px, transparent 1px),
+                radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent-secondary, #ff4081) 10%, transparent) 1px, transparent 1px),
+                radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent-primary) 8%, transparent) 1px, transparent 1px);
     background-size: 50px 50px, 80px 80px, 60px 60px;
     animation: ${starTwinkle} 4s ease-in-out infinite alternate;
     pointer-events: none;
@@ -118,7 +104,7 @@ const MobileMenuOverlay = styled(motion.div)`
 
 const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   margin: 6px 0;
-  color: ${({ $isActive }) => $isActive ? GALAXY_THEME_COLORS.primary : GALAXY_THEME_COLORS.textSecondary};
+  color: ${({ $isActive }) => $isActive ? 'var(--accent-primary)' : 'var(--text-secondary)'};
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: ${({ $isActive }) => $isActive ? 600 : 500};
@@ -132,7 +118,7 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
 
   background: ${({ $isActive }) =>
     $isActive
-      ? `linear-gradient(135deg, rgba(0, 217, 255, 0.12) 0%, rgba(255, 64, 129, 0.06) 100%)`
+      ? `linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #ff4081) 6%, transparent) 100%)`
       : 'transparent'
   };
 
@@ -143,17 +129,17 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     top: 50%;
     width: ${({ $isActive }) => $isActive ? '4px' : '0px'};
     height: 60%;
-    background: linear-gradient(180deg, ${GALAXY_THEME_COLORS.primary} 0%, ${GALAXY_THEME_COLORS.accentLight} 100%);
+    background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary, #ff6b9d) 100%);
     transform: translateY(-50%);
     border-radius: 2px;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent);
   }
 
   &:hover {
-    color: ${GALAXY_THEME_COLORS.primary};
-    background: linear-gradient(135deg, rgba(0, 217, 255, 0.18) 0%, rgba(255, 64, 129, 0.09) 100%);
-    text-shadow: 0 0 14px rgba(0, 217, 255, 0.7);
+    color: var(--accent-primary);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #ff4081) 9%, transparent) 100%);
+    text-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 70%, transparent);
     transform: translateX(8px);
 
     &::after {
@@ -162,7 +148,7 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   }
 
   svg {
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary) 40%, transparent));
   }
 
   @media (max-width: 480px) {
@@ -176,7 +162,7 @@ const MobileLogoutButton = styled(motion.button)`
   margin: 8px 0;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 500;
   padding: 16px 20px;
@@ -190,7 +176,7 @@ const MobileLogoutButton = styled(motion.button)`
   position: relative;
 
   &:hover {
-    color: ${GALAXY_THEME_COLORS.accentLight};
+    color: var(--danger, #ff6b9d);
     background: linear-gradient(135deg, rgba(255, 64, 129, 0.18) 0%, rgba(244, 67, 54, 0.09) 100%);
     text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
     transform: translateX(8px);

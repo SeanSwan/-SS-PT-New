@@ -9,14 +9,7 @@ import { motion } from 'framer-motion';
 import { Box } from '../../ui/primitives';
 import DashboardSelector from '../../DashboardSelector/DashboardSelector';
 
-// Galaxy Theme Colors (copied from header for consistency)
-const GALAXY_THEME_COLORS = {
-  primary: '#00d9ff',
-  primaryLight: '#4de6ff',
-  textSecondary: 'rgba(255, 255, 255, 0.87)',
-  accentLight: '#ff6b9d',
-  accent: '#ff4081',
-};
+// Theme-aware colors via CSS variables (no more hardcoded dark-only values)
 
 // Styled components (extracted from header.tsx)
 const NavLinksContainer = styled.div`
@@ -47,8 +40,8 @@ const Nav = styled(motion.nav)`
 `;
 
 const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
-  color: ${({ $isActive }) => 
-    $isActive ? GALAXY_THEME_COLORS.primary : GALAXY_THEME_COLORS.textSecondary};
+  color: ${({ $isActive }) =>
+    $isActive ? 'var(--accent-primary)' : 'var(--text-secondary)'};
   text-decoration: none;
   margin: 0;
   padding: 12px 16px;
@@ -61,8 +54,8 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.3px;
   border-radius: 8px;
-  
-  /* Enhanced galaxy hover effects with better contrast */
+
+  /* Enhanced hover effects with better contrast */
   &::before {
     content: '';
     position: absolute;
@@ -70,9 +63,9 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, 
-      rgba(0, 217, 255, 0.12) 0%, 
-      rgba(255, 64, 129, 0.06) 100%
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%,
+      color-mix(in srgb, var(--accent-secondary, #ff4081) 6%, transparent) 100%
     );
     border-radius: 8px;
     opacity: ${({ $isActive }) => $isActive ? 1 : 0};
@@ -87,31 +80,31 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     left: 50%;
     width: ${({ $isActive }) => $isActive ? '80%' : '0%'};
     height: 2px;
-    background: linear-gradient(90deg, transparent 0%, ${GALAXY_THEME_COLORS.primary} 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, var(--accent-primary) 50%, transparent 100%);
     transform: translateX(-50%);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 10px rgba(0, 217, 255, 0.7);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 70%, transparent);
   }
-  
+
   &:hover {
-    color: ${GALAXY_THEME_COLORS.primary};
-    text-shadow: 0 0 14px rgba(0, 217, 255, 0.7);
+    color: var(--accent-primary);
+    text-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 70%, transparent);
     transform: translateY(-1px);
-    
+
     &::before {
       opacity: 1;
     }
-    
+
     &::after {
       width: 80%;
     }
   }
-  
+
   /* Focus state for accessibility */
   &:focus-visible {
-    outline: 2px solid ${GALAXY_THEME_COLORS.primary};
+    outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
-    color: ${GALAXY_THEME_COLORS.primary};
+    color: var(--accent-primary);
   }
   
   @media (max-width: 1200px) {
@@ -128,7 +121,7 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
 const LogoutButton = styled.button`
   background: transparent;
   border: none;
-  color: ${GALAXY_THEME_COLORS.textSecondary};
+  color: var(--text-secondary);
   padding: 10px 16px;
   font-size: 0.95rem;
   font-weight: 500;
@@ -138,7 +131,7 @@ const LogoutButton = styled.button`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 8px;
   position: relative;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -146,30 +139,30 @@ const LogoutButton = styled.button`
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, 
-      rgba(255, 64, 129, 0.12) 0%, 
+    background: linear-gradient(135deg,
+      rgba(255, 64, 129, 0.12) 0%,
       rgba(244, 67, 54, 0.08) 100%
     );
     border-radius: 8px;
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-  
+
   &:hover {
-    color: ${GALAXY_THEME_COLORS.accentLight};
+    color: var(--danger, #ff6b9d);
     text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
     transform: translateY(-1px);
-    
+
     &::before {
       opacity: 1;
     }
   }
-  
+
   /* Focus state for accessibility */
   &:focus-visible {
-    outline: 2px solid ${GALAXY_THEME_COLORS.accent};
+    outline: 2px solid var(--danger, #ff4081);
     outline-offset: 2px;
-    color: ${GALAXY_THEME_COLORS.accent};
+    color: var(--danger, #ff4081);
   }
 `;
 

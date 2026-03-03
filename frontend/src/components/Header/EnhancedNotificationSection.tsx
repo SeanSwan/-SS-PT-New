@@ -36,9 +36,6 @@ import {
   Trash2,
 } from 'lucide-react';
 
-// alpha utility
-import { alpha } from '../../styles/mui-replacements';
-
 // Redux and API
 import { RootState } from '../../redux/store';
 import { fetchNotifications, markAsRead, markAllAsRead, removeNotification, Notification } from '../../store/slices/notificationSlice';
@@ -60,12 +57,12 @@ const growIn = keyframes`
 const NotificationBell = styled(IconButton)`
   position: relative;
   transition: transform 0.2s ease-in-out;
-  color: white;
+  color: var(--text-primary);
 
   &:hover {
     transform: rotate(8deg);
-    color: #00a0e3;
-    background-color: rgba(0, 160, 227, 0.05);
+    color: var(--accent-primary);
+    background-color: color-mix(in srgb, var(--accent-primary) 5%, transparent);
   }
 `;
 
@@ -78,7 +75,7 @@ const NotificationScrollArea = styled(Box)`
   max-height: 440px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 160, 227, 0.3) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent-primary) 30%, transparent) transparent;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -89,19 +86,19 @@ const NotificationScrollArea = styled(Box)`
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 160, 227, 0.3);
+    background-color: color-mix(in srgb, var(--accent-primary) 30%, transparent);
     border-radius: 3px;
   }
 `;
 
 const NotificationItem = styled(ListItem)<{ $read: boolean }>`
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background-color: ${props => props.$read ? 'transparent' : 'rgba(0, 160, 227, 0.08)'};
+  border-bottom: 1px solid var(--border-soft);
+  background-color: ${props => props.$read ? 'transparent' : 'color-mix(in srgb, var(--accent-primary) 8%, transparent)'};
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: rgba(0, 160, 227, 0.12);
+    background-color: color-mix(in srgb, var(--accent-primary) 12%, transparent);
     cursor: pointer;
   }
 
@@ -120,19 +117,19 @@ const EmptyState = styled(Box)`
 `;
 
 const DeleteButton = styled(IconButton)`
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted);
 
   &:hover {
-    color: #ec4899;
+    color: var(--danger, #ec4899);
     background-color: rgba(236, 72, 153, 0.08);
   }
 `;
 
 const MarkAllReadButton = styled(Button)`
-  color: #00a0e3;
+  color: var(--accent-primary);
 
   &:hover {
-    background-color: rgba(0, 160, 227, 0.08);
+    background-color: color-mix(in srgb, var(--accent-primary) 8%, transparent);
   }
 `;
 
@@ -275,10 +272,10 @@ const EnhancedNotificationSection: React.FC = () => {
                 maxWidth: '100%',
                 maxHeight: '80vh',
                 overflow: 'hidden',
-                backgroundColor: '#0a0a1a',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backgroundColor: 'var(--bg-elevated)',
+                border: '1px solid var(--border-soft)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                color: 'white',
+                color: 'var(--text-primary)',
                 borderRadius: '8px',
               }}
             >
@@ -287,7 +284,7 @@ const EnhancedNotificationSection: React.FC = () => {
                   <Box
                     style={{
                       padding: 16,
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderBottom: '1px solid var(--border-soft)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -320,22 +317,22 @@ const EnhancedNotificationSection: React.FC = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: 'rgba(10, 10, 26, 0.7)',
+                          backgroundColor: 'color-mix(in srgb, var(--bg-base) 70%, transparent)',
                           zIndex: 10,
                         }}
                       >
-                        <CircularProgress size={32} style={{ color: '#00a0e3' }} />
+                        <CircularProgress size={32} style={{ color: 'var(--accent-primary)' }} />
                       </Box>
                     )}
 
                     <NotificationScrollArea>
                       {notifications.length === 0 ? (
                         <EmptyState>
-                          <BellOff size={40} style={{ color: 'rgba(255,255,255,0.2)', marginBottom: 16 }} />
-                          <Typography variant="body1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                          <BellOff size={40} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
+                          <Typography variant="body1" style={{ color: 'var(--text-secondary)' }}>
                             No notifications yet
                           </Typography>
-                          <Typography variant="body2" style={{ color: 'rgba(255,255,255,0.6)', marginTop: 8, maxWidth: 250 }}>
+                          <Typography variant="body2" style={{ color: 'var(--text-secondary)', marginTop: 8, maxWidth: 250 }}>
                             We'll notify you here when there's new activity in your account
                           </Typography>
                         </EmptyState>
@@ -359,8 +356,8 @@ const EnhancedNotificationSection: React.FC = () => {
                                 <Avatar
                                   style={{
                                     background: notification.read
-                                      ? 'rgba(255, 255, 255, 0.1)'
-                                      : alpha('#00d9ff', 0.15),
+                                      ? 'var(--bg-surface, rgba(255, 255, 255, 0.1))'
+                                      : 'color-mix(in srgb, var(--accent-primary) 15%, transparent)',
                                   }}
                                 >
                                   {getNotificationIcon(notification.type)}
@@ -372,7 +369,7 @@ const EnhancedNotificationSection: React.FC = () => {
                                     variant="subtitle2"
                                     style={{
                                       fontWeight: notification.read ? 400 : 600,
-                                      color: notification.read ? 'rgba(255,255,255,0.87)' : '#00a0e3',
+                                      color: notification.read ? 'var(--text-primary)' : 'var(--accent-primary)',
                                       fontSize: '0.875rem',
                                       marginBottom: 4,
                                     }}
@@ -385,7 +382,7 @@ const EnhancedNotificationSection: React.FC = () => {
                                     <Typography
                                       variant="body2"
                                       style={{
-                                        color: 'rgba(255,255,255,0.6)',
+                                        color: 'var(--text-secondary)',
                                         fontSize: '0.8rem',
                                         display: '-webkit-box',
                                         WebkitLineClamp: 2,
@@ -405,7 +402,7 @@ const EnhancedNotificationSection: React.FC = () => {
                                     >
                                       <Typography
                                         variant="caption"
-                                        style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}
+                                        style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}
                                       >
                                         {formatNotificationDate(notification.createdAt)}
                                       </Typography>
@@ -417,7 +414,7 @@ const EnhancedNotificationSection: React.FC = () => {
                                           style={{
                                             height: 18,
                                             fontSize: '0.65rem',
-                                            backgroundColor: '#00a0e3',
+                                            backgroundColor: 'var(--accent-primary)',
                                             color: 'white',
                                             fontWeight: 600,
                                           }}

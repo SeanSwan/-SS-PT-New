@@ -16,15 +16,7 @@ import { ShoppingCart, User } from 'lucide-react';
 import EnhancedNotificationSectionWrapper from '../EnhancedNotificationSectionWrapper';
 import UniversalThemeToggle from '../../../context/ThemeContext/UniversalThemeToggle';
 
-// Galaxy Theme Colors (copied from header for consistency)
-const GALAXY_THEME_COLORS = {
-  primary: '#00d9ff',
-  primaryLight: '#4de6ff',
-  textSecondary: 'rgba(255, 255, 255, 0.87)',
-  textPrimary: '#ffffff',
-  accent: '#ff4081',
-  backgroundPrimary: 'rgba(8, 8, 20, 0.95)',
-};
+// Theme-aware colors via CSS variables (no more hardcoded dark-only values)
 
 // Styled components
 const ActionsContainer = styled(motion.div)`
@@ -44,55 +36,55 @@ const ActionsContainer = styled(motion.div)`
 `;
 
 const CartIconButton = styled(IconButton)`
-  color: ${GALAXY_THEME_COLORS.textSecondary};
+  color: var(--text-secondary);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    color: ${GALAXY_THEME_COLORS.primary};
-    background: rgba(0, 217, 255, 0.12);
+    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
     transform: scale(1.05);
   }
 
   &:focus-visible {
-    outline: 2px solid ${GALAXY_THEME_COLORS.primary};
+    outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
 `;
 
 const ProfileIconButton = styled(IconButton)`
-  background: ${GALAXY_THEME_COLORS.primary};
+  background: var(--accent-primary);
   width: 36px;
   height: 36px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: ${GALAXY_THEME_COLORS.backgroundPrimary};
-  box-shadow: 0 0 18px rgba(0, 217, 255, 0.5);
+  color: var(--bg-base);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary) 50%, transparent);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: ${GALAXY_THEME_COLORS.primaryLight};
-    box-shadow: 0 0 28px rgba(0, 217, 255, 0.7);
+    filter: brightness(1.15);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--accent-primary) 70%, transparent);
     transform: scale(1.1) rotate(5deg);
   }
 
   &:focus-visible {
-    outline: 3px solid ${GALAXY_THEME_COLORS.accent};
+    outline: 3px solid var(--accent-secondary, #ff4081);
     outline-offset: 2px;
   }
 `;
 
 const SignInIconButton = styled(IconButton)`
-  color: ${GALAXY_THEME_COLORS.textSecondary};
+  color: var(--text-secondary);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    color: ${GALAXY_THEME_COLORS.primary};
-    background: rgba(0, 217, 255, 0.12);
+    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
     transform: scale(1.05);
   }
 
   &:focus-visible {
-    outline: 2px solid ${GALAXY_THEME_COLORS.primary};
+    outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
 `;
@@ -100,7 +92,7 @@ const SignInIconButton = styled(IconButton)`
 const LogoutButton = styled.button`
   background: transparent;
   border: none;
-  color: ${GALAXY_THEME_COLORS.textSecondary};
+  color: var(--text-secondary);
   padding: 10px 16px;
   font-size: 0.95rem;
   font-weight: 500;
@@ -128,16 +120,16 @@ const LogoutButton = styled.button`
   }
 
   &:hover {
-    color: ${GALAXY_THEME_COLORS.accent};
+    color: var(--danger, #ff4081);
     text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
     transform: translateY(-1px);
     &::before { opacity: 1; }
   }
 
   &:focus-visible {
-    outline: 2px solid ${GALAXY_THEME_COLORS.accent};
+    outline: 2px solid var(--danger, #ff4081);
     outline-offset: 2px;
-    color: ${GALAXY_THEME_COLORS.accent};
+    color: var(--danger, #ff4081);
   }
 `;
 
