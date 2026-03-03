@@ -2419,12 +2419,27 @@ const gamificationController = {
       }
       steps.push('Count checked: 0 achievements');
 
-      // Step 2: Check id column type for diagnostics
+      // Step 2: Check id column and fix if needed
       const [idCol] = await db.query(
         `SELECT data_type, column_default FROM information_schema.columns
          WHERE table_name = 'Achievements' AND column_name = 'id' AND table_schema = 'public';`
       );
-      steps.push(`id column: ${idCol[0]?.data_type} (default: ${idCol[0]?.column_default})`);
+      const idType = idCol[0]?.data_type;
+      const idDefault = idCol[0]?.column_default;
+      steps.push(`id column: ${idType} (default: ${idDefault})`);
+
+      // If id is integer without a sequence, add one for auto-increment
+      if (idType === 'integer' && (!idDefault || !idDefault.includes('nextval'))) {
+        try {
+          await db.query(`CREATE SEQUENCE IF NOT EXISTS "Achievements_id_seq";`);
+          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" SET DEFAULT nextval('"Achievements_id_seq"');`);
+          await db.query(`ALTER SEQUENCE "Achievements_id_seq" OWNED BY "Achievements".id;`);
+          steps.push('Added auto-increment sequence to id column');
+        } catch (seqErr) {
+          steps.push(`Sequence setup failed: ${seqErr.message}`);
+          return res.json({ success: false, steps, error: seqErr.message });
+        }
+      }
 
       // Step 3: Test minimal insert (no id — let DB auto-generate)
       try {
