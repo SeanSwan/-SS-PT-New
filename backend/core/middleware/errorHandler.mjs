@@ -46,24 +46,36 @@ export const setupErrorHandling = (app) => {
 
   // ===================== GLOBAL ERROR HANDLER =====================
   app.use((err, req, res, next) => {
-    logger.error(`Unhandled error: ${err.message}`, { 
+    logger.error(`Unhandled error: ${err.message}`, {
       stack: err.stack,
       url: req.url,
       method: req.method,
       ip: req.ip
     });
-    
+
     const errorResponse = {
       success: false,
-      message: isProduction 
-        ? 'An unexpected error occurred. Our team has been notified.' 
+      message: isProduction
+        ? 'An unexpected error occurred. Our team has been notified.'
         : err.message || 'An unexpected error occurred',
     };
-    
+
     if (!isProduction) {
       errorResponse.error = err.stack;
     }
-    
+
+    // TEMPORARY DEBUG: Expose error details for auth routes to diagnose login 400
+    if (req.url?.startsWith('/api/auth/')) {
+      errorResponse._debug = {
+        error: err.message,
+        name: err.name,
+        status: err.status,
+        statusCode: err.statusCode,
+        type: err.type,
+        stack: err.stack?.split('\n').slice(0, 8)
+      };
+    }
+
     res.status(err.status || 500).json(errorResponse);
   });
 
