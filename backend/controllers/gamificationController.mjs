@@ -920,36 +920,57 @@ const gamificationController = {
     try {
       const {
         name,
+        title,
         description,
-        icon,
-        pointValue,
-        requirementType,
-        requirementValue,
-        tier,
+        iconEmoji,
+        iconUrl,
+        category,
+        rarity,
+        xpReward,
+        requiredPoints,
+        maxProgress,
+        progressUnit,
+        requirements,
+        difficulty,
+        skillTree,
+        skillTreeOrder,
+        templateId,
+        tierLevel,
+        tags,
         isActive,
-        exerciseId,
-        specificRequirement,
-        badgeImageUrl
+        isHidden,
+        isSecret
       } = req.body;
-      
-      if (!name || !description || !requirementType) {
+
+      if (!name || !description) {
         return res.status(400).json({
           success: false,
-          message: 'Name, description, and requirementType are required'
+          message: 'Name and description are required'
         });
       }
 
       const achievement = await Achievement.create({
         name,
+        title: title || name,
         description,
-        icon: icon || 'Award',
-        pointValue: pointValue || 100,
-        requirementType,
-        requirementValue: requirementValue || 1,
+        iconEmoji: iconEmoji || '🏆',
+        iconUrl,
+        category: category || 'fitness',
+        rarity: rarity || 'common',
+        xpReward: xpReward || 100,
+        requiredPoints: requiredPoints || 0,
+        maxProgress: maxProgress || 1,
+        progressUnit: progressUnit || 'completion',
+        requirements: requirements || [],
+        difficulty: difficulty || 3,
+        skillTree,
+        skillTreeOrder,
+        templateId,
+        tierLevel: tierLevel || 1,
+        tags: tags || [],
         isActive: isActive !== undefined ? isActive : true,
-        exerciseId: requirementType === 'specific_exercise' ? exerciseId : null,
-        specificRequirement,
-        badgeImageUrl
+        isHidden: isHidden || false,
+        isSecret: isSecret || false
       });
       
       return res.status(201).json({
@@ -973,19 +994,6 @@ const gamificationController = {
   updateAchievement: async (req, res) => {
     try {
       const { id } = req.params;
-      const {
-        name,
-        description,
-        icon,
-        pointValue,
-        requirementType,
-        requirementValue,
-        tier,
-        isActive,
-        exerciseId,
-        specificRequirement,
-        badgeImageUrl
-      } = req.body;
 
       const achievement = await Achievement.findByPk(id);
 
@@ -996,27 +1004,24 @@ const gamificationController = {
         });
       }
 
-      const updatedFields = {};
+      // Whitelist updatable model fields
+      const allowedFields = [
+        'name', 'title', 'description', 'iconEmoji', 'iconUrl',
+        'category', 'rarity', 'xpReward', 'requiredPoints',
+        'maxProgress', 'progressUnit', 'requirements', 'unlockConditions',
+        'prerequisiteAchievements', 'difficulty', 'skillTree',
+        'skillTreeOrder', 'templateId', 'tierLevel', 'tags',
+        'isActive', 'isHidden', 'isSecret', 'isLimited',
+        'availableFrom', 'availableUntil'
+      ];
 
-      if (name !== undefined) updatedFields.name = name;
-      if (description !== undefined) updatedFields.description = description;
-      if (icon !== undefined) updatedFields.icon = icon;
-      if (pointValue !== undefined) updatedFields.pointValue = pointValue;
-      if (requirementType !== undefined) updatedFields.requirementType = requirementType;
-      if (requirementValue !== undefined) updatedFields.requirementValue = requirementValue;
-      if (isActive !== undefined) updatedFields.isActive = isActive;
-      if (badgeImageUrl !== undefined) updatedFields.badgeImageUrl = badgeImageUrl;
-      
-      if (requirementType === 'specific_exercise') {
-        if (exerciseId !== undefined) updatedFields.exerciseId = exerciseId;
-      } else {
-        updatedFields.exerciseId = null;
+      const updatedFields = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updatedFields[field] = req.body[field];
+        }
       }
-      
-      if (specificRequirement !== undefined) {
-        updatedFields.specificRequirement = specificRequirement;
-      }
-      
+
       await achievement.update(updatedFields);
       
       return res.status(200).json({
