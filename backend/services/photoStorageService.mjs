@@ -67,9 +67,11 @@ export async function uploadPhoto(buffer, { userId, category, originalFilename, 
       }));
 
       // Build the public URL
+      // When R2_PUBLIC_URL is set, build full URL; otherwise use absolute path
+      // so the frontend can request /photos/... from our proxy route
       const url = R2_PUBLIC_URL
         ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${objectKey}`
-        : objectKey; // store key only — caller must resolve
+        : `/${objectKey}`;
 
       logger.info('[PhotoStorage] Uploaded to R2: %s (%d bytes)', objectKey, buffer.length);
       return { url, storageKey: objectKey, storage: 'r2' };
