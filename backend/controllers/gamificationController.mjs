@@ -389,6 +389,18 @@ import UserMilestone from '../models/UserMilestone.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
+
+// Safe attribute lists — only columns guaranteed to exist in DB
+// (Model defines 30+ fields but original migration only created ~12)
+const SAFE_ACHIEVEMENT_ATTRS = [
+  'id', 'name', 'description', 'icon', 'pointValue', 'requirementType',
+  'requirementValue', 'isActive', 'badgeImageUrl', 'createdAt', 'updatedAt'
+];
+const SAFE_USER_ACHIEVEMENT_ATTRS = [
+  'id', 'userId', 'achievementId', 'earnedAt', 'progress', 'isCompleted',
+  'pointsAwarded', 'notificationSent', 'createdAt', 'updatedAt'
+];
+
 const gamificationController = {
   /**
    * Get gamification settings
@@ -518,15 +530,17 @@ const gamificationController = {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
           'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
-          'totalExercises', 'badgesPrimary'
+          'totalExercises'
         ],
         include: [
           {
             model: UserAchievement,
             as: 'userAchievements',
+            attributes: ['id', 'earnedAt', 'progress', 'isCompleted', 'pointsAwarded'],
             include: [{
               model: Achievement,
-              as: 'achievement'
+              as: 'achievement',
+              attributes: ['id', 'name', 'description', 'icon', 'pointValue', 'badgeImageUrl']
             }]
           },
           {
@@ -544,10 +558,6 @@ const gamificationController = {
               model: Milestone,
               as: 'milestone'
             }]
-          },
-          {
-            model: Achievement,
-            as: 'primaryBadge'
           }
         ]
       });
@@ -846,23 +856,27 @@ const gamificationController = {
    */
   getAllAchievements: async (req, res) => {
     try {
-      const { isActive, tier } = req.query;
-      
+      const { isActive, category, skillTree } = req.query;
+
       const whereClause = {};
-      
+
       if (isActive !== undefined) {
         whereClause.isActive = isActive === 'true';
       }
-      
-      if (tier) {
-        whereClause.tier = tier;
+
+      if (category) {
+        whereClause.category = category;
       }
-      
+
+      if (skillTree) {
+        whereClause.skillTree = skillTree;
+      }
+
       const achievements = await Achievement.findAll({
         where: whereClause,
+        attributes: ['id', 'name', 'description', 'icon', 'pointValue', 'requirementType',
+          'requirementValue', 'isActive', 'badgeImageUrl', 'createdAt', 'updatedAt'],
         order: [
-          ['tier', 'ASC'],
-          ['requirementValue', 'ASC'],
           ['name', 'ASC']
         ]
       });
@@ -884,9 +898,11 @@ const gamificationController = {
   getAchievement: async (req, res) => {
     try {
       const { id } = req.params;
-      
-      const achievement = await Achievement.findByPk(id);
-      
+
+      const achievement = await Achievement.findByPk(id, {
+        attributes: SAFE_ACHIEVEMENT_ATTRS
+      });
+
       if (!achievement) {
         return res.status(404).json({
           success: false,
@@ -924,13 +940,13 @@ const gamificationController = {
         badgeImageUrl
       } = req.body;
       
-      if (!name || !description || !requirementType || !tier) {
+      if (!name || !description || !requirementType) {
         return res.status(400).json({
           success: false,
-          message: 'Name, description, requirementType, and tier are required'
+          message: 'Name, description, and requirementType are required'
         });
       }
-      
+
       const achievement = await Achievement.create({
         name,
         description,
@@ -938,7 +954,6 @@ const gamificationController = {
         pointValue: pointValue || 100,
         requirementType,
         requirementValue: requirementValue || 1,
-        tier,
         isActive: isActive !== undefined ? isActive : true,
         exerciseId: requirementType === 'specific_exercise' ? exerciseId : null,
         specificRequirement,
@@ -979,25 +994,26 @@ const gamificationController = {
         specificRequirement,
         badgeImageUrl
       } = req.body;
-      
-      const achievement = await Achievement.findByPk(id);
-      
+
+      const achievement = await Achievement.findByPk(id, {
+        attributes: SAFE_ACHIEVEMENT_ATTRS
+      });
+
       if (!achievement) {
         return res.status(404).json({
           success: false,
           message: 'Achievement not found'
         });
       }
-      
+
       const updatedFields = {};
-      
+
       if (name !== undefined) updatedFields.name = name;
       if (description !== undefined) updatedFields.description = description;
       if (icon !== undefined) updatedFields.icon = icon;
       if (pointValue !== undefined) updatedFields.pointValue = pointValue;
       if (requirementType !== undefined) updatedFields.requirementType = requirementType;
       if (requirementValue !== undefined) updatedFields.requirementValue = requirementValue;
-      if (tier !== undefined) updatedFields.tier = tier;
       if (isActive !== undefined) updatedFields.isActive = isActive;
       if (badgeImageUrl !== undefined) updatedFields.badgeImageUrl = badgeImageUrl;
       
@@ -1037,8 +1053,11 @@ const gamificationController = {
     try {
       const { id } = req.params;
       
-      const achievement = await Achievement.findByPk(id, { transaction });
-      
+      const achievement = await Achievement.findByPk(id, {
+        attributes: SAFE_ACHIEVEMENT_ATTRS,
+        transaction
+      });
+
       if (!achievement) {
         await transaction.rollback();
         return res.status(404).json({
@@ -1046,7 +1065,7 @@ const gamificationController = {
           message: 'Achievement not found'
         });
       }
-      
+
       // Delete all user achievement records
       await UserAchievement.destroy({
         where: { achievementId: id },
@@ -1104,8 +1123,11 @@ const gamificationController = {
       }
       
       // Check if achievement exists
-      const achievement = await Achievement.findByPk(achievementId, { transaction });
-      
+      const achievement = await Achievement.findByPk(achievementId, {
+        attributes: SAFE_ACHIEVEMENT_ATTRS,
+        transaction
+      });
+
       if (!achievement) {
         await transaction.rollback();
         return res.status(404).json({
@@ -1113,9 +1135,10 @@ const gamificationController = {
           message: 'Achievement not found'
         });
       }
-      
+
       // Check if user already has this achievement
       let userAchievement = await UserAchievement.findOne({
+        attributes: SAFE_USER_ACHIEVEMENT_ATTRS,
         where: {
           userId,
           achievementId
@@ -1204,19 +1227,23 @@ const gamificationController = {
       
       // Check if user achievement exists
       let userAchievement = await UserAchievement.findOne({
+        attributes: SAFE_USER_ACHIEVEMENT_ATTRS,
         where: {
           userId,
           achievementId
         },
         include: [{
           model: Achievement,
-          as: 'achievement'
+          as: 'achievement',
+          attributes: SAFE_ACHIEVEMENT_ATTRS
         }]
       });
-      
+
       if (!userAchievement) {
         // Create new record with initial progress
-        const achievement = await Achievement.findByPk(achievementId);
+        const achievement = await Achievement.findByPk(achievementId, {
+          attributes: SAFE_ACHIEVEMENT_ATTRS
+        });
         
         if (!achievement) {
           return res.status(404).json({

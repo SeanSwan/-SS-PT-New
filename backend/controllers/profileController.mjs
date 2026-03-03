@@ -473,31 +473,33 @@ export const getUserAchievements = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // Get user achievements
+    // Get user achievements — use explicit attributes to avoid querying columns
+    // that may not exist in DB yet (model has 30+ fields, migration only ~12)
     const userAchievements = await UserAchievement.findAll({
       where: { userId },
+      attributes: ['id', 'earnedAt', 'progress', 'isCompleted', 'pointsAwarded'],
       include: [
         {
           model: Achievement,
           as: 'achievement',
-          attributes: ['id', 'name', 'description', 'iconUrl', 'rarity', 'category']
+          attributes: ['id', 'name', 'description', 'icon', 'pointValue', 'badgeImageUrl']
         }
       ],
       order: [['earnedAt', 'DESC']]
     });
-    
+
     // Get user's complete gamification data
     const user = await User.findByPk(userId, {
       attributes: [
         'points', 'level', 'tier', 'streakDays', 'lastActivityDate',
-        'totalWorkouts', 'totalExercises', 'exercisesCompleted'
+        'totalWorkouts', 'totalExercises'
       ]
     });
     
     // Calculate additional stats
     const totalAchievements = userAchievements.length;
     const achievementsByRarity = userAchievements.reduce((acc, ua) => {
-      const rarity = ua.achievement.rarity || 'common';
+      const rarity = ua.achievement?.rarity || ua.achievement?.dataValues?.rarity || 'common';
       acc[rarity] = (acc[rarity] || 0) + 1;
       return acc;
     }, {});
