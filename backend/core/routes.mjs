@@ -424,6 +424,56 @@ export const setupRoutes = async (app) => {
   // ===================== GENERAL API ROUTES (BEFORE SPA FALLBACK) =====================
   app.use('/api', apiRoutes);
 
+  // ===================== R2 PHOTO PROXY (BEFORE SPA FALLBACK) =====================
+  // Serve photos stored in Cloudflare R2. Photos are stored with keys like
+  // "photos/profiles/57/2026-03/uuid.jpg" — the browser requests /photos/...
+  // which must be proxied to R2 before the SPA catch-all rejects it as a static asset.
+  app.get('/photos/:category/:userId/:yearMonth/:filename', async (req, res) => {
+    try {
+      const { category, userId, yearMonth, filename } = req.params;
+      const objectKey = `photos/${category}/${userId}/${yearMonth}/${filename}`;
+
+      // Validate parameters
+      if (!['profiles', 'banners', 'measurements'].includes(category) ||
+          !/^\d+$/.test(userId) ||
+          !/^\d{4}-\d{2}$/.test(yearMonth) ||
+          !/^[\w-]+\.\w+$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid photo path' });
+      }
+
+      const { r2Configured, getR2Client } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) {
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+        const client = getR2Client();
+
+        const ext = filename.split('.').pop().toLowerCase();
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+
+        const command = new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: objectKey,
+          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentDisposition: 'inline',
+        });
+
+        const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+        return res.redirect(302, signedUrl);
+      }
+
+      // Fallback: try local uploads dir
+      const localPath = path.join(process.cwd(), 'uploads', category, filename);
+      if (existsSync(localPath)) {
+        return res.sendFile(localPath);
+      }
+
+      return res.status(404).json({ error: 'Photo not found' });
+    } catch (err) {
+      logger.error('[PhotoProxy] Error serving photo: %s', err.message);
+      return res.status(500).json({ error: 'Failed to serve photo' });
+    }
+  });
+
   // ===================== ENHANCED SPA FALLBACK ROUTING (PRODUCTION) =====================
   if (isProduction) {
     // Use the robust paths determined in middleware setup
@@ -448,10 +498,12 @@ export const setupRoutes = async (app) => {
           });
         }
         
-        // Exclude static asset requests (but allow HTML files)
-        const staticAssetPattern = /\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json|xml|txt)$/i;
-        if (staticAssetPattern.test(requestPath)) {
-          return res.status(404).send('Static asset not found');
+        // Exclude static asset requests (but allow HTML files and /photos/* proxy paths)
+        if (!requestPath.startsWith('/photos/')) {
+          const staticAssetPattern = /\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json|xml|txt)$/i;
+          if (staticAssetPattern.test(requestPath)) {
+            return res.status(404).send('Static asset not found');
+          }
         }
         
         // Exclude common non-browser requests

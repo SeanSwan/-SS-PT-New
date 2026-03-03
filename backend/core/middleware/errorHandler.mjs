@@ -25,8 +25,8 @@ export const setupErrorHandling = (app) => {
       }
     }
     
-    // API routes or files not found
-    if (req.path.startsWith('/api/') || req.path.includes('.')) {
+    // API routes or files not found (exclude /photos/ handled by R2 proxy)
+    if (req.path.startsWith('/api/') || (req.path.includes('.') && !req.path.startsWith('/photos/'))) {
       logger.warn(`Route not found: ${req.path} (${req.method})`);
       return res.status(404).json({
         success: false,
