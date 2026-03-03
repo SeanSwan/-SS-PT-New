@@ -1,12 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import styled, { keyframes, css } from 'styled-components';
-import { Info, Mail, Phone, HeartPulse, Dumbbell, X } from 'lucide-react';
+import { Info, Mail, Phone, HeartPulse, Dumbbell, X, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Import from Redux store
 import { RootState } from '../../../../../store';
-import { fetchAllOrientations, OrientationData } from '../../../../../store/slices/orientationSlice';
+import {
+  fetchAllOrientations,
+  linkOrientationToUser,
+  OrientationData,
+} from '../../../../../store/slices/orientationSlice';
 
 // ============================================================
 // Theme Tokens
@@ -504,6 +508,7 @@ const OrientationList: React.FC = () => {
   // Local state for dialog
   const [selectedOrientation, setSelectedOrientation] = useState<OrientationData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [linkingOrientationId, setLinkingOrientationId] = useState<number | null>(null);
 
   // Fetch orientation data on component mount
   useEffect(() => {
@@ -522,6 +527,21 @@ const OrientationList: React.FC = () => {
     // Clear the selection after animation completes
     setTimeout(() => setSelectedOrientation(null), 300);
   }, []);
+
+  const handleApproveAndLink = useCallback(async (orientation: OrientationData) => {
+    const matchedUserId = orientation.matchedUser?.id;
+    if (!matchedUserId || linkingOrientationId === orientation.id) return;
+
+    setLinkingOrientationId(orientation.id);
+    try {
+      // @ts-ignore dispatch type inference with async thunks
+      await dispatch(linkOrientationToUser({ orientationId: orientation.id, userId: matchedUserId }));
+      // @ts-ignore refresh queue after link action
+      await dispatch(fetchAllOrientations());
+    } finally {
+      setLinkingOrientationId(null);
+    }
+  }, [dispatch, linkingOrientationId]);
 
   // Close on Escape key
   useEffect(() => {
@@ -554,6 +574,18 @@ const OrientationList: React.FC = () => {
 
     const variant = levels[level] || 'default';
     return <ChipBadge $variant={variant}>{level}</ChipBadge>;
+  };
+
+  const getAccountStatusChip = (orientation: OrientationData) => {
+    if (orientation.userId) {
+      return <ChipBadge $variant="success">Linked</ChipBadge>;
+    }
+
+    if (orientation.matchedUser) {
+      return <ChipBadge $variant="info">Match Found</ChipBadge>;
+    }
+
+    return <ChipBadge $variant="default">No Match</ChipBadge>;
   };
 
   if (loading) {
@@ -597,6 +629,7 @@ const OrientationList: React.FC = () => {
                 {!isMobile && <StyledTh>Email</StyledTh>}
                 {!isMobile && <StyledTh>Phone</StyledTh>}
                 <StyledTh>Experience</StyledTh>
+                <StyledTh>Account</StyledTh>
                 <StyledTh>Submitted</StyledTh>
                 <StyledTh $align="right">Actions</StyledTh>
               </tr>
@@ -604,7 +637,7 @@ const OrientationList: React.FC = () => {
             <tbody>
               {orientations.length === 0 ? (
                 <tr>
-                  <StyledTd colSpan={isMobile ? 4 : 6}>
+                  <StyledTd colSpan={isMobile ? 5 : 7}>
                     <EmptyMessage>No orientation submissions found.</EmptyMessage>
                   </StyledTd>
                 </tr>
@@ -615,8 +648,22 @@ const OrientationList: React.FC = () => {
                     {!isMobile && <StyledTd>{orientation.email}</StyledTd>}
                     {!isMobile && <StyledTd>{orientation.phone}</StyledTd>}
                     <StyledTd>{getExperienceLevelChip(orientation.experienceLevel)}</StyledTd>
+                    <StyledTd>{getAccountStatusChip(orientation)}</StyledTd>
                     <StyledTd>{formatDate(orientation.createdAt)}</StyledTd>
                     <StyledTd $align="right">
+                      {!orientation.userId && orientation.matchedUser && (
+                        <TooltipWrapper>
+                          <TooltipText>Approve & Link to Account</TooltipText>
+                          <IconBtn
+                            type="button"
+                            aria-label="Approve and Link"
+                            onClick={() => handleApproveAndLink(orientation)}
+                            disabled={linkingOrientationId === orientation.id}
+                          >
+                            <Link2 size={18} />
+                          </IconBtn>
+                        </TooltipWrapper>
+                      )}
                       <TooltipWrapper>
                         <TooltipText>View Details</TooltipText>
                         <IconBtn
@@ -689,6 +736,16 @@ const OrientationList: React.FC = () => {
                         <DetailsRow
                           label="Waiver Initials"
                           value={selectedOrientation.waiverInitials}
+                        />
+                        <DetailsRow
+                          label="Account Link"
+                          value={
+                            selectedOrientation.user
+                              ? `${selectedOrientation.user.firstName} ${selectedOrientation.user.lastName} (${selectedOrientation.user.email})`
+                              : selectedOrientation.matchedUser
+                                ? `Match found: ${selectedOrientation.matchedUser.firstName} ${selectedOrientation.matchedUser.lastName} (${selectedOrientation.matchedUser.email})`
+                                : 'No account match yet'
+                          }
                         />
                       </Column>
 

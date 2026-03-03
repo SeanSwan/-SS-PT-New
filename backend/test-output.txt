@@ -1,0 +1,316 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/backend[39m
+
+[90mstdout[2m | tests/api/sessionGrantService.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/payments.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | __tests__/storefront-custom-pricing.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/sessionNotifications.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/passwordHashing.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/videoLibraryV2.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/releaseGate.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/postDeploySmoke.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/purchaseAttribution.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/sessions.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/middleware/rbac.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/sessionTypePolicy.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/auth.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/cartSchemaRecovery.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/forcePasswordChange.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/clientDeactivation.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mdefines exactly 5 session types[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mall session types have required fields[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mPersonal Training costs 1 credit[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mExtended Training costs 2 credits[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mPartner Training costs 1 credit per person[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mAssessment costs 0 credits[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mOrientation costs 0 credits[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mall colors are valid hex codes[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mno duplicate session type names[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionTypePolicy.test.mjs[2m > [22mSession Type Policy[2m > [22mbuffers are non-negative integers[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22mforcePasswordChange defaults to false on new User model[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22madmin can set forcePasswordChange=true when creating client[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22mforce password change blocks normal token generation flow[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22mpassword change clears the forcePasswordChange flag[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22muser without forcePasswordChange proceeds to normal login[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22mtempToken has 15-minute expiry and force-password-change type[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22minvalid tempToken type is rejected[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/forcePasswordChange.test.mjs[2m > [22mForce Password Change Flow[2m > [22mpassword must meet minimum length requirement[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22mdeactivation sets isActive=false (not hard delete)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22mdeactivated client retains all data[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22minactive user is blocked at login before token issuance[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22mactive user is not blocked at login[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22mfuture sessions are identified for cancellation[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22monly cancellable statuses are targeted[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22mcancelled sessions get appropriate notes[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22msoftDelete defaults to true in deleteClient[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22mdeactivation preserves paranoid model (not hard delete)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/clientDeactivation.test.mjs[2m > [22mClient Deactivation[2m > [22monly admin role can deactivate clients[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/cartSchemaRecovery.test.mjs[2m > [22mcart schema recovery[2m > [22mfalls back to raw SQL when model query fails on missing column[32m 2[2mms[22m[39m
+ [32m✓[39m tests/api/cartSchemaRecovery.test.mjs[2m > [22mcart schema recovery[2m > [22mrecovers from UUID/integer type-drift by using deterministic UUID fallback[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/cartSchemaRecovery.test.mjs[2m > [22mcart schema recovery[2m > [22mfalls back to raw cart-item query when include query fails from schema drift[32m 2[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mPOST /api/auth/login[2m > [22mshould return 401 for invalid email[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mPOST /api/auth/login[2m > [22mshould validate email format[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mPOST /api/auth/login[2m > [22mshould require password field[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mPOST /api/auth/register[2m > [22mshould reject duplicate email registration[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mPOST /api/auth/register[2m > [22mshould validate password strength[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mPOST /api/auth/register[2m > [22mshould require all required fields[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mGET /api/auth/validate-token[2m > [22mshould validate JWT structure[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mGET /api/auth/validate-token[2m > [22mshould extract Bearer token from header[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mUser Roles[2m > [22mshould have valid role values[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mAuthentication API[2m > [22mUser Roles[2m > [22mshould identify admin users correctly[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/auth.test.mjs[2m > [22mToken Generation[2m > [22mshould create tokens with expected structure[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mGET /api/workout/sessions[2m > [22mshould return sessions for authenticated user[32m 3[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mGET /api/workout/sessions[2m > [22mshould filter sessions by status[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mGET /api/workout/sessions/:id[2m > [22mshould return session by ID[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mGET /api/workout/sessions/:id[2m > [22mshould return null for non-existent session[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mPOST /api/workout/sessions[2m > [22mshould create a new session with valid data[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mPOST /api/workout/sessions[2m > [22mshould validate required fields[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mPOST /api/workout/sessions[2m > [22mshould validate session types[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mPUT /api/workout/sessions/:id[2m > [22mshould update session status[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mPUT /api/workout/sessions/:id[2m > [22mshould validate status transitions[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mDELETE /api/workout/sessions/:id[2m > [22mshould delete session[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mDELETE /api/workout/sessions/:id[2m > [22mshould not delete completed sessions[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mSession Authorization[2m > [22mshould allow session owner to view[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mSession Authorization[2m > [22mshould allow assigned trainer to view[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mSession Authorization[2m > [22mshould allow admin to view any session[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Management API[2m > [22mSession Authorization[2m > [22mshould deny unrelated user access[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessions.test.mjs[2m > [22mSession Statistics[2m > [22mshould calculate workout statistics correctly[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Session Attribution Correctness[2m > [22mshould grant exactly N sessions from a single-item cart[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Session Attribution Correctness[2m > [22mshould add sessions to buyer account (baseline 0 → 10)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Session Attribution Correctness[2m > [22mshould add sessions to user with existing balance (5 → 15)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Session Attribution Correctness[2m > [22mshould calculate sessions correctly for multi-item cart[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Session Attribution Correctness[2m > [22mshould handle cart item with null storefrontItem gracefully[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Session Attribution Correctness[2m > [22mshould set sessionsGranted flag on cart after processing[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Two-Client Isolation (Buyer vs Control)[2m > [22mshould grant sessions ONLY to buyer, not control user[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Two-Client Isolation (Buyer vs Control)[2m > [22mshould scope cart lookup by userId[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Two-Client Isolation (Buyer vs Control)[2m > [22mshould not leak cart data between users[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Idempotency (No Double Grants)[2m > [22mshould detect sessionsGranted=true and skip grant[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Idempotency (No Double Grants)[2m > [22mshould return sessionsAdded=0 for idempotent request[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Idempotency (No Double Grants)[2m > [22mshould grant sessions when sessionsGranted=false[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Idempotency (No Double Grants)[2m > [22mshould prevent double grant on rapid double-call[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Cross-User Cart Access Blocked[2m > [22mshould reject verify-session when userId does not match cart owner[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP0: Cross-User Cart Access Blocked[2m > [22mshould enforce userId in WHERE clause (not just checkoutSessionId)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Negative Checks[2m > [22mshould reject unpaid Stripe session[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Negative Checks[2m > [22mshould return 404 for non-existent cart[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Negative Checks[2m > [22mshould handle empty cart (0 sessions calculated)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Negative Checks[2m > [22mshould not grant sessions for quantity=0 items[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Webhook + Verify-Session (FIXED)[2m > [22mboth webhook and verify-session grant sessions via shared service[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Webhook + Verify-Session (FIXED)[2m > [22midempotency uses sessionsGranted ONLY (not status)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Webhook + Verify-Session (FIXED)[2m > [22mwebhook-first race: sessions still granted by verify-session[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP1: Webhook + Verify-Session (FIXED)[2m > [22mverify-first race: webhook is idempotent[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP2: Pricing Integrity[2m > [22mshould match authoritative session-to-price mapping[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP2: Pricing Integrity[2m > [22mshould enforce finite session counts (no unlimited)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/purchaseAttribution.test.mjs[2m > [22mPurchase Session Attribution[2m > [22mP2: Race Condition — Read-Then-Write Pattern[2m > [22mdocuments the non-atomic session update pattern[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mRole Authorization[2m > [22mshould allow admin access to all routes[32m 1[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mRole Authorization[2m > [22mshould restrict client routes from trainers[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mRole Authorization[2m > [22mshould identify role correctly from token payload[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mTrainer-Client Assignment Check (P0-3 Fix)[2m > [22mshould allow trainer access to assigned client[32m 1[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mTrainer-Client Assignment Check (P0-3 Fix)[2m > [22mshould deny trainer access to unassigned client[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mTrainer-Client Assignment Check (P0-3 Fix)[2m > [22mshould ignore inactive assignments[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mTrainer-Client Assignment Check (P0-3 Fix)[2m > [22mshould allow admin to bypass assignment check[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mcheckTrainerClientRelationship Middleware[2m > [22mshould extract clientId from params[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mcheckTrainerClientRelationship Middleware[2m > [22mshould extract clientId from query[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mcheckTrainerClientRelationship Middleware[2m > [22mshould extract clientId from body[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mcheckTrainerClientRelationship Middleware[2m > [22mshould return 400 if clientId missing for trainer[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mAssignment Status Validation[2m > [22mshould recognize active status[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mAssignment Status Validation[2m > [22mshould recognize inactive status[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mAssignment Status Validation[2m > [22mshould only allow active assignments for access[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mError Responses[2m > [22mshould return 403 for denied access[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mError Responses[2m > [22mshould return 401 for missing auth[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mRBAC Middleware[2m > [22mError Responses[2m > [22mshould return 400 for invalid role[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22madminOnly Middleware[2m > [22mshould allow admin users[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22madminOnly Middleware[2m > [22mshould deny non-admin users[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mprotect Middleware[2m > [22mshould require valid JWT token[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mprotect Middleware[2m > [22mshould reject missing authorization header[32m 0[2mms[22m[39m
+ [32m✓[39m tests/middleware/rbac.test.mjs[2m > [22mprotect Middleware[2m > [22mshould reject malformed Bearer token[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mcreates notification when session is scheduled for a client[32m 3[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mnotification includes link to schedule page[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mcreates notification when session is cancelled[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mcreates notification when session is rescheduled[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mnotification defaults to read=false[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mhandles missing Notification model gracefully[32m 3[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22mnotification type must be valid[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionNotifications.test.mjs[2m > [22mSession Notifications[2m > [22madmin notification uses type admin[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mCart Management[2m > [22mshould create active cart for user[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mCart Management[2m > [22mshould find or create active cart[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mCart Management[2m > [22mshould calculate cart total correctly[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mCheckout Session[2m > [22mshould create checkout session with cart metadata[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mCheckout Session[2m > [22mshould transition cart to pending_payment status[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mPayment Verification (IDEMPOTENCY)[2m > [22mshould detect already-processed orders[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mPayment Verification (IDEMPOTENCY)[2m > [22mshould skip session grant for idempotent requests[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mPayment Verification (IDEMPOTENCY)[2m > [22mshould grant sessions only once[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mPayment Verification (IDEMPOTENCY)[2m > [22mshould update sessionsGranted flag atomically[32m 2[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mSession Credit Allocation[2m > [22mshould calculate sessions from package[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mSession Credit Allocation[2m > [22mshould add sessions to user account[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mSession Credit Allocation[2m > [22mshould handle multiple items in cart[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mWebhook vs Verify-Session Race Condition[2m > [22mshould handle webhook arriving first[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mWebhook vs Verify-Session Race Condition[2m > [22mshould handle verify-session arriving first[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPayment Flow API[2m > [22mWebhook vs Verify-Session Race Condition[2m > [22mshould ensure consistent final state[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPricing Validation[2m > [22mshould match authoritative package prices[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/payments.test.mjs[2m > [22mPricing Validation[2m > [22mshould not have unlimited session packages[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mgrants sessions for valid unprocessed cart[32m 2[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mreturns alreadyProcessed=true for sessionsGranted=true cart[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mgrants sessions when status=completed but sessionsGranted=false[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22muses user.increment for atomic session addition[32m 2[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22macquires row lock on cart during grant[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22macquires row lock on user during grant[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mrolls back transaction on error[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mthrows for non-existent cart and rolls back exactly once[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mhandles cart with 0 sessions gracefully[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mconcurrent calls grant sessions exactly once[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mwebhook-first race: webhook grants, verify-session is idempotent[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/sessionGrantService.test.mjs[2m > [22mSessionGrantService[2m > [22mverify-first race: verify grants, webhook is idempotent[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrequestUploadUrl — Upload Mode A/B[2m > [22mMode A: returns mode="A" when sha256hex is provided[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrequestUploadUrl — Upload Mode A/B[2m > [22mMode B: returns mode="B" when sha256hex is omitted[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrequestUploadUrl — Upload Mode A/B[2m > [22mstrips TRUST_FIELDS from the draft row written to DB[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrequestUploadUrl — Upload Mode A/B[2m > [22mreturns 400 when required fields are missing[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrequestUploadUrl — Upload Mode A/B[2m > [22mreturns 400 for disallowed MIME type[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrequestUploadUrl — Upload Mode A/B[2m > [22mreturns 400 for file size exceeding 2 GB[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mreturns 403 when creatorId does not match req.user.id (ownership check)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mreturns 409 when hostedKey is already set (one-time gate)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mreturns 400 when objectKey does not match pendingObjectKey (key binding)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mMode A: verifies checksum and stores it on success[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mMode A: returns 400 on checksum mismatch[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mMode B: enqueues checksum_verify job (no immediate checksum)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mcompleteUpload — Server-Trust Gates[2m > [22mreturns 400 when required fields (videoId, objectKey) are missing[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mpublishVideo — Publish Gates[2m > [22mrejects publish when metadataCompleted is false (400)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mpublishVideo — Publish Gates[2m > [22mrejects publish when source="upload" and fileChecksumSha256 is null (400)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mpublishVideo — Publish Gates[2m > [22msucceeds when both gates pass (metadata complete + checksum present)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mpublishVideo — Publish Gates[2m > [22msucceeds for YouTube source (no checksum required)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mpublishVideo — Publish Gates[2m > [22munpublish sets status to draft and clears publishedAt[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mpublishVideo — Publish Gates[2m > [22mreturns 404 for non-existent video[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22mreturns 404 for non-existent video[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22mreturns 404 for unpublished video when user is not admin (anti-probing)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22manti-probing: unpublished and non-existent return IDENTICAL response shape[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22mreturns 401 for login_required (members-only video, anonymous user)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22mreturns 403 for access_denied (premium video, user without grant)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22mreturns 200 with video data when entitlement is granted (hosted)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22mreturns 200 with youtubeVideoId for YouTube source[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mwatchVideo — Entitlement & Anti-Probing[2m > [22msets Cache-Control: private, no-store header[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mreturns 403 { error: "access_denied" } when video not found[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mreturns 403 { error: "access_denied" } for YouTube-source video[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mreturns 403 { error: "access_denied" } when entitlement denied[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mreturns 403 { error: "access_denied" } when signedUrl is null[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mall failure paths produce byte-identical response bodies (no type leakage)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mreturns 200 with signedUrl when entitlement is granted[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22mrefreshUrl — Uniform 403 (Anti-Leakage)[2m > [22mreturns 403 even on internal server errors (uniform error)[32m 4[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22misUniqueViolation — Dual Detection[2m > [22mcatches SequelizeUniqueConstraintError by name and retries slug[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22misUniqueViolation — Dual Detection[2m > [22mcatches PG error code 23505 (even without SequelizeUniqueConstraintError name)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22misUniqueViolation — Dual Detection[2m > [22mdoes NOT catch non-unique errors (rethrows)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/videoLibraryV2.test.mjs[2m > [22misUniqueViolation — Dual Detection[2m > [22mexhausts all retry attempts and falls back to timestamp slug[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeCreate hashes plaintext password[32m 96[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeCreate does NOT double-hash pre-hashed password[32m 84[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mverify-session idempotency[2m > [22mfirst call grants sessions[32m 5[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mverify-session idempotency[2m > [22msecond call returns alreadyProcessed with sessionsAdded=0[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mverify-session idempotency[2m > [22mfull double-call sequence: first grants, second is idempotent[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mwebhook 5xx failure contract[2m > [22mreturns 500 when grantSessionsForCart throws[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mwebhook 5xx failure contract[2m > [22mreturns 200 on successful grant[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mwebhook 5xx failure contract[2m > [22mreturns 200 on idempotent grant (already processed)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22mwebhook 5xx failure contract[2m > [22mStripe retries are safe: repeated webhook after failure still grants[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22madmin-created user login flow[2m > [22madmin creates user with plaintext -> beforeCreate hashes -> login works[32m 91[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22madmin-created user login flow[2m > [22mprofile update without password change preserves login[32m 83[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: register user hashes password correctly[32m 90[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: user can login after registration[32m 83[2mms[22m[39m
+[90mstdout[2m | __tests__/storefront-custom-pricing.test.mjs
+[22m[39mLoading environment variables from: C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\.env
+Environment: DEVELOPMENT
+Development database connection parameters:
+Host: localhost
+Port: 5432
+Database: swanstudios
+User: swanadmin
+Password: ******** (set)
+Development database configuration applied
+
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeUpdate hashes new plaintext password[32m 85[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeUpdate skips already-hashed password[32m 83[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: profile update (no password) preserves login[32m 85[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: admin-created user can log in (no double-hash)[32m 83[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22madmin-created user login flow[2m > [22mpassword reset via admin route -> login works with new password[32m 212[2mms[22m[39m
+[90mstdout[2m | __tests__/storefront-custom-pricing.test.mjs[2m > [22m[2mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22m[2mBusiness Rule Validation[2m > [22m[2mshould reject negative sessions
+[22m[39m[DB]: Executing (default): SELECT 1+1 AS result
+
+[90mstdout[2m | __tests__/storefront-custom-pricing.test.mjs[2m > [22m[2mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22m[2mBusiness Rule Validation[2m > [22m[2mshould reject negative sessions
+[22m[39m✅ Database connection established successfully
+
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBronze Tier Pricing (10-19 sessions)[2m > [22mshould calculate correct pricing for 10 sessions (minimum bronze)[32m 14[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBronze Tier Pricing (10-19 sessions)[2m > [22mshould calculate correct pricing for 15 sessions (mid-bronze)[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBronze Tier Pricing (10-19 sessions)[2m > [22mshould calculate correct pricing for 19 sessions (maximum bronze)[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBronze Tier Pricing (10-19 sessions)[2m > [22mshould provide metadata with next tier info for bronze[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mSilver Tier Pricing (20-39 sessions)[2m > [22mshould calculate correct pricing for 20 sessions (minimum silver)[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mSilver Tier Pricing (20-39 sessions)[2m > [22mshould calculate correct pricing for 25 sessions (mid-silver)[32m 5[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mSilver Tier Pricing (20-39 sessions)[2m > [22mshould calculate correct pricing for 39 sessions (maximum silver)[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mSilver Tier Pricing (20-39 sessions)[2m > [22mshould include silver tier badge in savings message[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mSilver Tier Pricing (20-39 sessions)[2m > [22mshould provide metadata with next tier info for silver[32m 4[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mGold Tier Pricing (40-100 sessions)[2m > [22mshould calculate correct pricing for 40 sessions (minimum gold)[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mGold Tier Pricing (40-100 sessions)[2m > [22mshould calculate correct pricing for 50 sessions (mid-gold)[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mGold Tier Pricing (40-100 sessions)[2m > [22mshould calculate correct pricing for 100 sessions (maximum gold)[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mGold Tier Pricing (40-100 sessions)[2m > [22mshould include gold tier badge in savings message[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mGold Tier Pricing (40-100 sessions)[2m > [22mshould indicate no next tier for gold[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBusiness Rule Validation[2m > [22mshould reject requests with missing sessions parameter[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBusiness Rule Validation[2m > [22mshould reject sessions below minimum (< 10)[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBusiness Rule Validation[2m > [22mshould reject sessions above maximum (> 100)[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBusiness Rule Validation[2m > [22mshould reject non-numeric sessions parameter[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBusiness Rule Validation[2m > [22mshould reject negative sessions[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mBusiness Rule Validation[2m > [22mshould reject zero sessions[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mEdge Cases[2m > [22mshould handle tier boundary at 19→20 sessions[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mEdge Cases[2m > [22mshould handle tier boundary at 39→40 sessions[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mEdge Cases[2m > [22mshould handle custom base price per session[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mEdge Cases[2m > [22mshould handle decimal sessions (should round)[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mEdge Cases[2m > [22mshould calculate correct discount percentage[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mPerformance[2m > [22mshould respond within 100ms[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mPerformance[2m > [22mshould handle concurrent requests efficiently[32m 12[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mResponse Format[2m > [22mshould return all required pricing fields[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mResponse Format[2m > [22mshould return metadata with all required fields[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mResponse Format[2m > [22mshould return numeric types for pricing values[32m 2[2mms[22m[39m
+ [32m✓[39m __tests__/storefront-custom-pricing.test.mjs[2m > [22mCustom Package Pricing Endpoint - /api/storefront/calculate-price[2m > [22mResponse Format[2m > [22mshould return string types for text fields[32m 2[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: pre-hashed password is NOT double-hashed[32m 84[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: session granting works for valid cart[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: session granting is idempotent[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: webhook-first race grants sessions then verify is idempotent[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: session increment is atomic (user.increment)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: session granting uses a DB transaction[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeUpdate skips when password not changed[32m 83[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeUpdate handles empty password string[32m 0[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22madmin-created user can login after beforeCreate hook[32m 84[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mprofile update without password change preserves login[32m 84[2mms[22m[39m
+ [32m✓[39m tests/api/passwordHashing.test.mjs[2m > [22mPassword Hashing Hooks[2m > [22mbeforeCreate handles null password without throwing[32m 1[2mms[22m[39m
+ [32m✓[39m tests/api/postDeploySmoke.test.mjs[2m > [22mPost-Deploy Smoke Tests[2m > [22madmin-created user login flow[2m > [22mfull lifecycle: create -> login -> update profile -> login -> reset password -> login[32m 249[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m16 passed[39m[22m[90m (16)[39m
+[2m      Tests [22m [1m[32m242 passed[39m[22m[90m (242)[39m
+[2m   Start at [22m 21:52:06
+[2m   Duration [22m 966ms[2m (transform 1.46s, setup 309ms, import 2.43s, tests 1.86s, environment 1ms)[22m
+

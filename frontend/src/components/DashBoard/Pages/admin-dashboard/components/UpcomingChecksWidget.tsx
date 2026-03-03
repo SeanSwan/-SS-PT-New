@@ -136,11 +136,15 @@ const UpcomingChecksWidget: React.FC = () => {
     setLoading(true);
     try {
       const res = await authAxios.get('/api/measurements/schedule/upcoming');
-      const data = res.data?.data || res.data?.clients || [];
+      const clientsData =
+        res.data?.data?.clients ??
+        res.data?.clients ??
+        res.data?.data ??
+        [];
 
       // Flatten: each client may have measurement + weighIn entries
       const flattened: UpcomingCheck[] = [];
-      for (const c of (Array.isArray(data) ? data : [])) {
+      for (const c of (Array.isArray(clientsData) ? clientsData : [])) {
         if (c.measurementStatus) {
           flattened.push({
             userId: c.id || c.userId,

@@ -15,11 +15,21 @@ export interface OrientationData {
   waiverInitials: string;
   trainingGoals: string | null;
   experienceLevel: string | null;
-  userId: string;
+  userId: number | null;
+  status?: 'pending' | 'scheduled' | 'completed' | 'cancelled';
+  source?: string;
+  isLinked?: boolean;
   createdAt: string;
   updatedAt: string;
+  matchedUser?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  } | null;
   user?: {
-    id: string;
+    id: number;
     firstName: string;
     lastName: string;
     email: string;
@@ -47,9 +57,8 @@ export const fetchAllOrientations = createAsyncThunk(
   'orientation/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      // Extend the api service with the new endpoint
       const response = await api.get('/orientation/all');
-      return response.data;
+      return response.data?.data || [];
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch orientation data');
     }
@@ -61,9 +70,24 @@ export const fetchOrientationByUserId = createAsyncThunk(
   async (userId: string, { rejectWithValue }) => {
     try {
       const response = await api.get(`/orientation/user/${userId}`);
-      return response.data;
+      return response.data?.data || null;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch orientation data');
+    }
+  }
+);
+
+export const linkOrientationToUser = createAsyncThunk(
+  'orientation/linkToUser',
+  async (
+    { orientationId, userId }: { orientationId: number; userId?: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.post(`/orientation/${orientationId}/link-user`, { userId });
+      return response.data?.data || null;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to link orientation to user');
     }
   }
 );
@@ -109,6 +133,39 @@ const orientationSlice = createSlice({
       })
       .addCase(fetchOrientationByUserId.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(linkOrientationToUser.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(linkOrientationToUser.fulfilled, (state, action) => {
+        const payload = action.payload as { orientation?: OrientationData; linkedUser?: OrientationData['user'] } | null;
+        const updatedOrientation = payload?.orientation;
+
+        if (!updatedOrientation) return;
+
+        const index = state.orientations.findIndex((item) => item.id === updatedOrientation.id);
+        if (index >= 0) {
+          state.orientations[index] = {
+            ...state.orientations[index],
+            ...updatedOrientation,
+            user: payload?.linkedUser || state.orientations[index].user || null,
+            matchedUser: payload?.linkedUser || null,
+            isLinked: true,
+          };
+        }
+
+        if (state.selectedOrientation?.id === updatedOrientation.id) {
+          state.selectedOrientation = {
+            ...state.selectedOrientation,
+            ...updatedOrientation,
+            user: payload?.linkedUser || state.selectedOrientation.user || null,
+            matchedUser: payload?.linkedUser || null,
+            isLinked: true,
+          };
+        }
+      })
+      .addCase(linkOrientationToUser.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },

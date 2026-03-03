@@ -48,7 +48,7 @@ import AdminExerciseCommandCenter from './Pages/admin-exercises';
 import VideoStudioManager from './Pages/admin-video-studio/VideoStudioManager';
 import VideoDetailView from './Pages/admin-video-studio/VideoDetailView';
 import { TheAestheticCodex } from '../../core';
-import ContactNotifications from './Pages/admin-dashboard/components/ContactNotifications';
+import OrientationList from './Pages/admin-dashboard/components/OrientationList';
 import ParamRedirect from './ParamRedirect';
 
 const HomepageDesignLab = React.lazy(() => import('./Pages/admin-design/HomepageDesignLab'));
@@ -106,6 +106,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/nasm-compliance" element={<Navigate to="/dashboard/people/nasm" replace />} />
     <Route path="/social-management" element={<Navigate to="/dashboard/people/social" replace />} />
     <Route path="/messages" element={<Navigate to="/dashboard/people/messages" replace />} />
+    <Route path="/client-orientation" element={<Navigate to="/dashboard/people/orientations" replace />} />
 
     {/* Scheduling workspace redirects */}
     <Route path="/admin/master-schedule" element={<Navigate to="/dashboard/scheduling" replace />} />
@@ -161,7 +162,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/home" element={<DashboardWorkspace />}>
       <Route index element={<RevolutionaryAdminDashboard />} />
       <Route path="notifications" element={<NotificationsSection />} />
-      <Route path="alerts" element={<ContactNotifications autoRefresh showActions />} />
+      <Route path="alerts" element={<Navigate to="/dashboard/home" replace />} />
       <Route path="approvals" element={<PendingOrdersAdminPanel />} />
       <Route path="snapshot" element={<SystemHealthPanel />} />
     </Route>
@@ -171,6 +172,7 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="users" element={<ModernUserManagementSystem />} />
       <Route path="trainers" element={<TrainersManagementSection />} />
       <Route path="trainers/permissions" element={<TrainerPermissionsManager onPermissionChange={() => {}} />} />
+      <Route path="orientations" element={<OrientationList />} />
       <Route path="onboarding" element={
         <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
           <ClientOnboardingWizard />
