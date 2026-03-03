@@ -6,7 +6,7 @@
  * Shows real posts from the user's feed with like/comment/share interactions.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,7 +19,9 @@ import {
   Smile,
   Loader2,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Send,
+  X
 } from 'lucide-react';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useAuth } from '../../../context/AuthContext';
@@ -347,6 +349,134 @@ const LoadMoreButton = styled(motion.button)`
   }
 `;
 
+const CommentSection = styled(motion.div)`
+  padding: 0 1.5rem 1.5rem;
+  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+`;
+
+const CommentInputRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+`;
+
+const CommentInput = styled.input`
+  flex: 1;
+  padding: 0.6rem 1rem;
+  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.3)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  border-radius: 20px;
+  color: ${({ theme }) => theme.text?.primary || 'white'};
+  font-size: 0.9rem;
+
+  &::placeholder {
+    color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.4)'};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+  }
+`;
+
+const CommentSendButton = styled(motion.button)`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+const CommentItem = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.8)'};
+`;
+
+const CommentAuthor = styled.span`
+  font-weight: 600;
+  color: ${({ theme }) => theme.text?.primary || 'white'};
+`;
+
+const FeelingPicker = styled(motion.div)`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem;
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  border-radius: 12px;
+  margin-top: 0.75rem;
+`;
+
+const FeelingOption = styled.button`
+  padding: 0.4rem 0.6rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
+    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    transform: scale(1.15);
+  }
+`;
+
+const HiddenInput = styled.input`
+  display: none;
+`;
+
+const MediaPreview = styled.div`
+  position: relative;
+  margin-top: 0.75rem;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 200px;
+`;
+
+const MediaPreviewImage = styled.img`
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+`;
+
+const MediaRemoveButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.9);
+  }
+`;
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getInitials(firstName?: string, lastName?: string, username?: string): string {
@@ -372,6 +502,8 @@ function formatRelativeTime(dateStr: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+const FEELINGS = ['😊', '💪', '🔥', '🎯', '🏆', '❤️', '😎', '🙌', '⚡', '🌟'];
+
 const CommunityFeed: React.FC = () => {
   const { user } = useAuth();
   const {
@@ -386,9 +518,33 @@ const CommunityFeed: React.FC = () => {
     isCreatingPost,
     likePost,
     unlikePost,
+    addComment,
   } = useSocialFeed();
 
   const [newPostContent, setNewPostContent] = useState('');
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [showFeelings, setShowFeelings] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [postComments, setPostComments] = useState<Record<string, any[]>>({});
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const preview = URL.createObjectURL(file);
+      setMediaPreview(preview);
+    }
+  };
+
+  const handleRemoveMedia = () => {
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview);
+      setMediaPreview(null);
+    }
+  };
 
   const handleCreatePost = async () => {
     if (!newPostContent.trim() || isCreatingPost) return;
@@ -400,6 +556,8 @@ const CommunityFeed: React.FC = () => {
     });
 
     setNewPostContent('');
+    handleRemoveMedia();
+    setShowFeelings(false);
   };
 
   const handleLikeToggle = async (postId: string, isLiked: boolean) => {
@@ -408,6 +566,44 @@ const CommunityFeed: React.FC = () => {
     } else {
       await likePost(postId);
     }
+  };
+
+  const handleToggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  };
+
+  const handleAddComment = async (postId: string) => {
+    const content = commentInputs[postId]?.trim();
+    if (!content) return;
+    try {
+      await addComment(postId, content);
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+    }
+  };
+
+  const handleShare = async (postId: string) => {
+    const shareUrl = `${window.location.origin}/social/post/${postId}`;
+    const shareData = { title: 'Check out this post on SwanStudios', url: shareUrl };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch { /* cancelled */ }
+    } else {
+      try { await navigator.clipboard.writeText(shareUrl); } catch { /* fallback */ }
+    }
+  };
+
+  const handleFeelingSelect = (emoji: string) => {
+    setNewPostContent(prev => prev + ' ' + emoji);
+    setShowFeelings(false);
   };
 
   return (
@@ -439,17 +635,44 @@ const CommunityFeed: React.FC = () => {
           onChange={(e) => setNewPostContent(e.target.value)}
           maxLength={500}
         />
+        {/* Media Preview */}
+        {mediaPreview && (
+          <MediaPreview>
+            <MediaPreviewImage src={mediaPreview} alt="Media preview" />
+            <MediaRemoveButton onClick={handleRemoveMedia}>
+              <X size={14} />
+            </MediaRemoveButton>
+          </MediaPreview>
+        )}
+
+        {/* Feeling Picker */}
+        <AnimatePresence>
+          {showFeelings && (
+            <FeelingPicker
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              {FEELINGS.map((emoji) => (
+                <FeelingOption key={emoji} onClick={() => handleFeelingSelect(emoji)}>
+                  {emoji}
+                </FeelingOption>
+              ))}
+            </FeelingPicker>
+          )}
+        </AnimatePresence>
+
         <PostActions>
           <PostOptions>
-            <PostOptionButton whileHover={{ scale: 1.05 }}>
+            <PostOptionButton whileHover={{ scale: 1.05 }} onClick={() => photoInputRef.current?.click()}>
               <ImageIcon size={18} />
               Photo
             </PostOptionButton>
-            <PostOptionButton whileHover={{ scale: 1.05 }}>
+            <PostOptionButton whileHover={{ scale: 1.05 }} onClick={() => videoInputRef.current?.click()}>
               <Video size={18} />
               Video
             </PostOptionButton>
-            <PostOptionButton whileHover={{ scale: 1.05 }}>
+            <PostOptionButton whileHover={{ scale: 1.05 }} onClick={() => setShowFeelings(!showFeelings)}>
               <Smile size={18} />
               Feeling
             </PostOptionButton>
@@ -463,6 +686,10 @@ const CommunityFeed: React.FC = () => {
             {isCreatingPost ? 'Posting...' : 'Share'}
           </PostButton>
         </PostActions>
+
+        {/* Hidden file inputs */}
+        <HiddenInput ref={photoInputRef} type="file" accept="image/*" onChange={handleMediaSelect} />
+        <HiddenInput ref={videoInputRef} type="file" accept="video/*" onChange={handleMediaSelect} />
       </CreatePostSection>
 
       {/* Loading State */}
@@ -536,18 +763,60 @@ const CommunityFeed: React.FC = () => {
                         {post.likesCount}
                       </InteractionButton>
                       <InteractionButton
+                        $active={expandedComments.has(post.id)}
+                        onClick={() => handleToggleComments(post.id)}
                         whileHover={{ scale: 1.1 }}
                       >
                         <MessageCircle size={18} />
                         {post.commentsCount}
                       </InteractionButton>
                       <InteractionButton
+                        onClick={() => handleShare(post.id)}
                         whileHover={{ scale: 1.1 }}
                       >
                         <Share2 size={18} />
                       </InteractionButton>
                     </PostInteractions>
                   </PostFooter>
+
+                  {/* Comment Section */}
+                  <AnimatePresence>
+                    {expandedComments.has(post.id) && (
+                      <CommentSection
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                      >
+                        {/* Existing comments */}
+                        {(postComments[post.id] || []).map((comment: any, ci: number) => (
+                          <CommentItem key={ci}>
+                            <CommentAuthor>{comment.author || 'User'}:</CommentAuthor>
+                            {comment.content}
+                          </CommentItem>
+                        ))}
+
+                        {/* Comment input */}
+                        <CommentInputRow>
+                          <CommentInput
+                            placeholder="Write a comment..."
+                            value={commentInputs[post.id] || ''}
+                            onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddComment(post.id);
+                            }}
+                          />
+                          <CommentSendButton
+                            onClick={() => handleAddComment(post.id)}
+                            disabled={!commentInputs[post.id]?.trim()}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <Send size={14} />
+                          </CommentSendButton>
+                        </CommentInputRow>
+                      </CommentSection>
+                    )}
+                  </AnimatePresence>
                 </PostCard>
               );
             })}
