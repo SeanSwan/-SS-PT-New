@@ -473,16 +473,15 @@ export const getUserAchievements = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // Get user achievements — use explicit attributes to avoid querying columns
-    // that may not exist in DB yet (model has 30+ fields, migration only ~12)
+    // UserAchievement: explicit attrs needed (migration-created table, model has extra cols)
+    // Achievement: NO explicit attrs needed (model-created table, all model cols exist)
     const userAchievements = await UserAchievement.findAll({
       where: { userId },
       attributes: ['id', 'earnedAt', 'progress', 'isCompleted', 'pointsAwarded'],
       include: [
         {
           model: Achievement,
-          as: 'achievement',
-          attributes: ['id', 'name', 'description', 'icon', 'pointValue', 'badgeImageUrl']
+          as: 'achievement'
         }
       ],
       order: [['earnedAt', 'DESC']]
