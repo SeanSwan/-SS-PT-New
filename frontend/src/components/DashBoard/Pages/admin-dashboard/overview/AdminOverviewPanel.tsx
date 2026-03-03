@@ -4,6 +4,7 @@ import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
 import ContactNotifications from '../components/ContactNotifications';
 import OrientationIntakeWidget from '../components/OrientationIntakeWidget';
+import SocialOverviewWidget from '../components/SocialOverviewWidget';
 import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
 import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
@@ -164,6 +165,7 @@ const AdminOverviewPanel: React.FC = () => {
       <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
       <OrientationIntakeWidget />
       <ContactNotifications autoRefresh={true} showActions={true} />
+      <SocialOverviewWidget />
 
       <div
         style={{

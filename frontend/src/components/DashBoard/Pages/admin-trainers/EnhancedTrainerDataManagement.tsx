@@ -78,7 +78,8 @@ import {
   ChevronDown,
   BarChart2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ImagePlus
 } from 'lucide-react';
 
 // === STYLED COMPONENTS ===
@@ -856,6 +857,55 @@ const EnhancedTrainerDataManagement: React.FC = () => {
     return isActive ? '#10b981' : '#ef4444';
   };
 
+  const handleSetTrainerPhoto = async (trainer: Trainer) => {
+    const nextPhoto = window.prompt(
+      `Set profile photo URL for ${trainer.firstName} ${trainer.lastName}. Leave empty to clear the photo.`,
+      trainer.photo || ''
+    );
+
+    if (nextPhoto === null) {
+      return;
+    }
+
+    const trimmedPhoto = nextPhoto.trim();
+    try {
+      const response = await fetch(`/api/admin/users/${trainer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify({
+          photo: trimmedPhoto || null,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Failed to update trainer photo');
+      }
+
+      setTrainers((prev) =>
+        prev.map((row) =>
+          row.id === trainer.id
+            ? { ...row, photo: trimmedPhoto || undefined }
+            : row
+        )
+      );
+
+      toast({
+        title: 'Trainer photo updated',
+        description: `${trainer.firstName} ${trainer.lastName} photo was updated.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Photo update failed',
+        description: error?.message || 'Could not update trainer photo',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Pagination helpers
   const totalPages = Math.ceil(filteredTrainers.length / rowsPerPage);
   const paginatedTrainers = filteredTrainers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -1119,6 +1169,16 @@ const EnhancedTrainerDataManagement: React.FC = () => {
                             }}
                           >
                             <Pencil size={18} />
+                          </IconBtn>
+                          <IconBtn
+                            $color="#C6A84B"
+                            title="Set Profile Photo"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetTrainerPhoto(trainer);
+                            }}
+                          >
+                            <ImagePlus size={18} />
                           </IconBtn>
                           <IconBtn
                             $color="#8b5cf6"

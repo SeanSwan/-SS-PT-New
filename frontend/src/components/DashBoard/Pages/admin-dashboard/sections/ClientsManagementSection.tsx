@@ -34,7 +34,7 @@ import {
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star, DollarSign,
   TrendingUp, Target, Award, CreditCard, MessageSquare,
-  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles, Ruler, Scale
+  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles, Ruler, Scale, ImagePlus
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
@@ -237,11 +237,14 @@ const ClientHeader = styled.div`
   margin-bottom: 1rem;
 `;
 
-const ClientAvatar = styled.div<{ $status?: string }>`
+const ClientAvatar = styled.div<{ $status?: string; $src?: string }>`
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #00ffff 100%);
+  background: ${({ $src }) =>
+    $src
+      ? `url(${$src}) center/cover no-repeat`
+      : 'linear-gradient(135deg, #3b82f6 0%, #00ffff 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -847,6 +850,47 @@ const ClientsManagementSection: React.FC = () => {
     }
   };
 
+  const handleSetClientPhoto = async (client: Client) => {
+    const nextPhoto = window.prompt(
+      `Set profile photo URL for ${client.name}. Leave empty to clear the photo.`,
+      client.avatar || ''
+    );
+
+    if (nextPhoto === null) {
+      return;
+    }
+
+    const trimmedPhoto = nextPhoto.trim();
+
+    try {
+      setLoading(prev => ({ ...prev, operations: true }));
+      setErrors(prev => ({ ...prev, operations: null }));
+
+      const response = await authAxios.put(`/api/admin/clients/${client.id}`, {
+        photo: trimmedPhoto || null,
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to update client photo');
+      }
+
+      setClients(prev =>
+        prev.map(row =>
+          row.id === client.id
+            ? { ...row, avatar: trimmedPhoto }
+            : row
+        )
+      );
+      setActiveActionMenu(null);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to update client photo';
+      setErrors(prev => ({ ...prev, operations: errorMessage }));
+      console.error('❌ Error updating client photo:', errorMessage);
+    } finally {
+      setLoading(prev => ({ ...prev, operations: false }));
+    }
+  };
+
   const handleViewSessions = async (clientId: string) => {
     try {
       setLoading(prev => ({ ...prev, operations: true }));
@@ -1074,8 +1118,8 @@ const ClientsManagementSection: React.FC = () => {
             >
               <ClientHeader>
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <ClientAvatar $status={client.status}>
-                    {getUserInitials(client.name)}
+                  <ClientAvatar $status={client.status} $src={client.avatar || undefined}>
+                    {!client.avatar && getUserInitials(client.name)}
                   </ClientAvatar>
                   <ClientInfo>
                     <ClientName>{client.name}</ClientName>
@@ -1160,6 +1204,13 @@ const ClientsManagementSection: React.FC = () => {
                     >
                       <DollarSign size={16} />
                       View Revenue
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => handleSetClientPhoto(client)}
+                    >
+                      <ImagePlus size={16} />
+                      Set Profile Photo
                     </ActionItem>
                     <ActionItem
                       data-testid="menu-start-onboarding"
