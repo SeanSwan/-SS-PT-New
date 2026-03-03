@@ -110,10 +110,11 @@ const fadeIn = keyframes`
 // Professional Styled Components with enhanced design system
 const ProfileContainer = styled(motion.div)`
   min-height: 100vh;
-  background: ${({ theme }) => theme.background?.primary || 'linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%)'};
+  background: var(--bg-base);
+  color: var(--text-primary);
   position: relative;
   overflow: hidden;
-  
+
   /* Subtle background pattern for premium feel */
   &::before {
     content: '';
@@ -236,7 +237,7 @@ const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
     left: 0;
     right: 0;
     height: 120px;
-    background: linear-gradient(transparent, ${({ theme }) => theme.background?.primary || '#0a0a1a'});
+    background: linear-gradient(transparent, var(--bg-base));
     z-index: 1;
   }
   
@@ -322,7 +323,7 @@ const ProfileImageContainer = styled(motion.div)`
     right: -4px;
     bottom: -4px;
     border-radius: 50%;
-    background: ${({ theme }) => theme.background?.primary || '#0a0a1a'};
+    background: var(--bg-base);
     z-index: 1;
   }
 
@@ -372,7 +373,7 @@ const ProfileImage = styled.div<{ $image?: string }>`
       background: url(${$image});
       background-size: cover;
       background-position: center;
-      border: 4px solid ${theme.background?.primary || '#0a0a1a'};
+      border: 4px solid var(--bg-base, #0a0a1a);
     `
     : css`
       background: linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'});
@@ -420,7 +421,7 @@ const ImageUploadButton = styled(motion.button)`
     ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%, 
     ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 100%
   );
-  border: 3px solid ${({ theme }) => theme.background?.primary || '#0a0a1a'};
+  border: 3px solid var(--bg-base, #0a0a1a);
   color: white;
   display: flex;
   align-items: center;
@@ -570,7 +571,7 @@ const DisplayName = styled.h1`
 `;
 
 const Username = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.75)'};
+  color: var(--text-secondary);
   font-size: 1.25rem;
   font-weight: 500;
   margin-bottom: 1rem;
@@ -696,11 +697,11 @@ const StatItem = styled(motion.div)`
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 1rem;
   border-radius: 16px;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.03)'};
+  background: var(--bg-elevated);
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
-  
+
   /* Premium hover effects */
   &::before {
     content: '';
@@ -720,8 +721,8 @@ const StatItem = styled(motion.div)`
 
   &:hover {
     transform: translateY(-8px) scale(1.05);
-    background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.08)'};
-    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    background: var(--bg-elevated);
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
     box-shadow: 
       0 12px 32px rgba(0, 0, 0, 0.2),
       0 6px 16px rgba(0, 0, 0, 0.15),
@@ -791,7 +792,7 @@ const StatValue = styled.div`
 `;
 
 const StatLabel = styled.div`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.75)'};
+  color: var(--text-secondary);
   font-size: 0.95rem;
   font-weight: 600;
   margin-top: 0.25rem;
@@ -799,9 +800,9 @@ const StatLabel = styled.div`
   text-transform: uppercase;
   opacity: 0.9;
   transition: all 0.3s ease;
-  
+
   ${StatItem}:hover & {
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    color: var(--accent-primary);
     opacity: 1;
   }
   
@@ -815,7 +816,7 @@ const StatLabel = styled.div`
 `;
 
 const Bio = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.6;
   max-width: 600px;
@@ -863,15 +864,15 @@ const SecondaryButton = styled(motion.button)`
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.1)'};
-  color: ${({ theme }) => theme.text?.primary || 'white'};
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.2)'};
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.gradients?.card || 'rgba(255,255,255,0.15)'};
+    background: var(--bg-surface, var(--bg-elevated));
     transform: translateY(-2px);
   }
 
@@ -900,16 +901,16 @@ const Sidebar = styled(motion.div)`
 `;
 
 const SidebarCard = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients?.card || 'rgba(255,255,255,0.05)'};
+  background: var(--bg-elevated);
   backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.1)'};
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 `;
 
 const SidebarTitle = styled.h3`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 1rem;
@@ -926,9 +927,9 @@ const MainContent = styled(motion.div)`
 
 const TabNavigation = styled.div`
   display: flex;
-  background: ${({ theme }) => theme.gradients?.card || 'rgba(255,255,255,0.05)'};
+  background: var(--bg-elevated);
   backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.1)'};
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 0.5rem;
   overflow-x: auto;
@@ -941,11 +942,11 @@ const Tab = styled(motion.button)<{ $active?: boolean }>`
   padding: 0.75rem 1rem;
   border: none;
   border-radius: 12px;
-  background: ${({ $active, theme }) => 
-    $active ? theme.gradients?.primary || 'linear-gradient(135deg, #00ffff, #7851a9)' : 'transparent'
+  background: ${({ $active }) =>
+    $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #7851a9))' : 'transparent'
   };
-  color: ${({ $active, theme }) => 
-    $active ? 'white' : theme.text?.secondary || 'rgba(255,255,255,0.7)'
+  color: ${({ $active }) =>
+    $active ? 'white' : 'var(--text-secondary)'
   };
   cursor: pointer;
   transition: all 0.3s ease;
@@ -953,11 +954,11 @@ const Tab = styled(motion.button)<{ $active?: boolean }>`
   font-weight: ${({ $active }) => $active ? '600' : '500'};
 
   &:hover {
-    background: ${({ $active, theme }) => 
-      $active ? theme.gradients?.primary || 'linear-gradient(135deg, #00ffff, #7851a9)' : theme.background?.elevated || 'rgba(255,255,255,0.1)'
+    background: ${({ $active }) =>
+      $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #7851a9))' : 'var(--bg-surface, var(--bg-elevated))'
     };
-    color: ${({ $active, theme }) => 
-      $active ? 'white' : theme.text?.primary || 'white'
+    color: ${({ $active }) =>
+      $active ? 'white' : 'var(--text-primary)'
     };
   }
 `;
