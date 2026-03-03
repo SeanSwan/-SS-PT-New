@@ -182,12 +182,7 @@ const socialController = {
             'id', 'firstName', 'lastName', 'username', 'photo',
             'points', 'level', 'tier', 'badgesPrimary'
           ],
-          include: [{
-            model: Achievement,
-            as: 'primaryBadge',
-            attributes: ['id', 'name', 'icon', 'badgeImageUrl'],
-            required: false
-          }]
+          include: []
         }],
         order: [['followedAt', 'DESC']],
         limit: parseInt(limit),
@@ -242,12 +237,7 @@ const socialController = {
             'id', 'firstName', 'lastName', 'username', 'photo',
             'points', 'level', 'tier', 'badgesPrimary'
           ],
-          include: [{
-            model: Achievement,
-            as: 'primaryBadge',
-            attributes: ['id', 'name', 'icon', 'badgeImageUrl'],
-            required: false
-          }]
+          include: []
         }],
         order: [['followedAt', 'DESC']],
         limit: parseInt(limit),
@@ -469,14 +459,7 @@ const socialController = {
         whereClause.id[Op.notIn] = followingIds;
       }
 
-      let includeClause = [
-        {
-          model: Achievement,
-          as: 'primaryBadge',
-          attributes: ['id', 'name', 'icon', 'badgeImageUrl'],
-          required: false
-        }
-      ];
+      let includeClause = [];
 
       // If looking for mutual follows, modify the query
       if (mutualFollows === 'true') {
