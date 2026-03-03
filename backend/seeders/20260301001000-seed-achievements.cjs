@@ -47,11 +47,6 @@ const RARITY_MAP   = ['common', 'common', 'rare', 'epic', 'legendary'];
 const XP_MULT      = [1, 2, 4, 8, 16];
 const REQ_MULT     = [1, 2.5, 5, 10, 25];
 
-// The DB tier ENUM is ('bronze','silver','gold','platinum').
-// Diamond (tier 5) maps to 'platinum' in the DB column since the ENUM
-// does not include 'diamond'. The full tier label lives in tags.tierLabel.
-const DB_TIER_MAP  = ['bronze', 'silver', 'gold', 'platinum', 'platinum'];
-
 const DIFFICULTY_MAP = [1, 2, 3, 4, 5]; // INTEGER 1-5 matches tier index
 
 /**
@@ -80,7 +75,6 @@ function expandToTiers(tpl, maxTiers = 5) {
       // classification
       category:      tpl.category,
       rarity:        RARITY_MAP[tierIndex],
-      tier:          DB_TIER_MAP[tierIndex],
       // rewards
       xpReward:      Math.round((tpl.xpReward || 50) * XP_MULT[tierIndex]),
       requiredPoints: Math.round((tpl.requiredPoints || 0) * REQ_MULT[tierIndex]),
@@ -97,6 +91,11 @@ function expandToTiers(tpl, maxTiers = 5) {
         tierLabel:      TIER_NAMES[tierIndex],
         sortOrder:      (tpl.skillTreeOrder * 10) + tierNum,
       }),
+      // Octalysis skill tree fields (top-level model columns)
+      skillTree:     tpl.skillTree || null,
+      skillTreeOrder: tpl.skillTreeOrder || null,
+      templateId:    tpl.name,
+      tierLevel:     tierNum,
       // difficulty
       difficulty:    DIFFICULTY_MAP[tierIndex],
       // flags
@@ -530,7 +529,6 @@ function hiddenAchievements() {
     iconEmoji:      tpl.iconEmoji,
     category:       tpl.category,
     rarity:         'legendary',
-    tier:           'platinum',
     xpReward:       tpl.xpReward,
     requiredPoints: 0,
     maxProgress:    tpl.maxProgress,
@@ -545,6 +543,11 @@ function hiddenAchievements() {
       sortOrder:      9999,
       hidden:         true,
     }),
+    // Octalysis skill tree fields (top-level model columns)
+    skillTree:      tpl.skillTree || null,
+    skillTreeOrder: tpl.skillTreeOrder || null,
+    templateId:     tpl.name,
+    tierLevel:      1,
     difficulty:     5,
     isActive:       true,
     isHidden:       true,
