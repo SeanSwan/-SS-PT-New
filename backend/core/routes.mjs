@@ -354,6 +354,54 @@ export const setupRoutes = async (app) => {
   app.use('/api/notes', clientNoteRoutes);            // GET/POST /api/notes/:userId
   app.use('/api/stats', statsRoutes);                 // GET /api/stats/:userId/summary
 
+  // ===================== R2 PHOTO SERVE PROXY =====================
+  // Photos stored in R2 get URLs like /api/serve-photo/photos/banners/57/2026-03/uuid.jpg
+  // The /api/ prefix ensures Render routes these to the backend (not the static site).
+  app.get('/api/serve-photo/photos/:category/:userId/:yearMonth/:filename', async (req, res) => {
+    try {
+      const { category, userId, yearMonth, filename } = req.params;
+      const objectKey = `photos/${category}/${userId}/${yearMonth}/${filename}`;
+
+      if (!['profiles', 'banners', 'measurements'].includes(category) ||
+          !/^\d+$/.test(userId) ||
+          !/^\d{4}-\d{2}$/.test(yearMonth) ||
+          !/^[\w-]+\.\w+$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid photo path' });
+      }
+
+      const { r2Configured, getR2Client } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) {
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+        const client = getR2Client();
+
+        const ext = filename.split('.').pop().toLowerCase();
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+
+        const command = new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: objectKey,
+          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentDisposition: 'inline',
+        });
+
+        const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+        return res.redirect(302, signedUrl);
+      }
+
+      // Fallback: try local uploads dir
+      const localPath = path.join(process.cwd(), 'uploads', category, filename);
+      if (existsSync(localPath)) {
+        return res.sendFile(localPath);
+      }
+
+      return res.status(404).json({ error: 'Photo not found' });
+    } catch (err) {
+      logger.error('[PhotoServeProxy] Error serving photo: %s', err.message);
+      return res.status(500).json({ error: 'Failed to serve photo' });
+    }
+  });
+
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);
   app.use('/api/mcp', mcpRoutes);
