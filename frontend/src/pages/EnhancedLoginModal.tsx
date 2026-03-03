@@ -103,50 +103,6 @@ const FormWrapper = styled(motion.div)`
   }
 `;
 
-const PremiumBadge = styled(motion.div)`
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Playfair Display', serif;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  background: rgba(10, 10, 30, 0.7);
-  backdrop-filter: blur(5px);
-  color: white;
-  z-index: 5;
-  letter-spacing: 2px;
-
-  &:before {
-    content: "★★★★★★★";
-    display: block;
-    font-size: 0.6rem;
-    letter-spacing: 2px;
-    color: gold;
-    text-align: center;
-    margin-bottom: 2px;
-  }
-  
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
-    border-radius: 20px;
-  }
-`;
 
 const CloseButton = styled(motion.button)`
   position: absolute;
@@ -663,14 +619,6 @@ const EnhancedLoginModal: React.FC = () => {
           </video>
         </VideoBackground>
 
-        <PremiumBadge
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-        >
-          MEMBER
-        </PremiumBadge>
-        
         <CloseButton 
           onClick={handleClose} 
           aria-label="Close login modal" 
