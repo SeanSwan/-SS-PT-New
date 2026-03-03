@@ -95,7 +95,7 @@ export interface Achievement {
   tierLevel: number;
   isHidden: boolean;
   isSecret: boolean;
-  difficulty: 'easy' | 'medium' | 'hard' | 'extreme';
+  difficulty: number; // 1-5 (INTEGER, matches backend model)
 }
 
 export interface UserAchievement {
