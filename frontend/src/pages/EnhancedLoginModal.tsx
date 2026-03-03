@@ -66,7 +66,7 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background: ${({ theme }) => theme.gradients.hero};
+    background: color-mix(in srgb, var(--bg-base) 55%, transparent);
     z-index: 1;
   }
 
