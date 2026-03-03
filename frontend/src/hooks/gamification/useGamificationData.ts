@@ -387,10 +387,36 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
         const { data } = await authAxios.get('/api/v1/gamification/achievements');
 
         // API may return { achievements: [...] } or raw array
-        const rawList: NewUserAchievement[] = data?.achievements || data || [];
+        const rawList: any[] = data?.achievements || data || [];
 
-        return rawList.map((ua) => {
-          const mapped = mapAchievementToLegacy(ua);
+        return rawList.map((item) => {
+          // Detect flat Achievement objects (from getAllAchievements) vs
+          // UserAchievement records (which have a nested .achievement sub-object)
+          const isFlat = item.name || item.title || item.iconEmoji;
+
+          if (isFlat) {
+            // Flat Achievement — map directly to legacy shape
+            return {
+              id: String(item.id),
+              name: item.name || item.title || 'Achievement',
+              description: item.description || '',
+              icon: item.iconEmoji || item.iconUrl || '🏆',
+              pointValue: item.xpReward || item.pointValue || 0,
+              requirementType: item.category || item.skillTree || 'milestone',
+              requirementValue: item.requiredPoints || 0,
+              tier: 'bronze' as const,
+              isActive: item.isActive !== false,
+              badgeImageUrl: item.iconUrl,
+              // Pass through extra fields for AboutSection
+              rarity: item.rarity,
+              skillTree: item.skillTree,
+              xpReward: item.xpReward,
+              iconEmoji: item.iconEmoji,
+            };
+          }
+
+          // Nested UserAchievement record — use existing mapper
+          const mapped = mapAchievementToLegacy(item as NewUserAchievement);
           return mapped.achievement;
         });
       } catch (error: any) {
