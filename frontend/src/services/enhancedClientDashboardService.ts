@@ -453,21 +453,12 @@ class EnhancedClientDashboardService {
         // Try to parse the MCP content for engagement data
         const content = mcpResponse.content || '';
         
-        // For now, return fallback data since MCP analysis is complex
-        // In the future, this would parse the AI-generated content
+        // MCP analysis received — return fallback since parsing AI content
+        // into structured gamification data is not yet implemented.
+        // Real gamification data is fetched by useGamificationData hook instead.
         console.log('✅ MCP analysis received:', content.substring(0, 200) + '...');
-        
-        return {
-          userId: targetUserId,
-          level: 8,
-          xp: 2450,
-          xpToNextLevel: 550,
-          totalXp: 8250,
-          streak: 7,
-          badges: this.transformBadges([]),
-          achievements: this.transformAchievements([]),
-          leaderboardPosition: 1,
-        };
+
+        return this.getFallbackGamificationData();
       }
 
       throw new Error('Invalid response format from MCP server');
@@ -618,45 +609,27 @@ class EnhancedClientDashboardService {
   private getFallbackGamificationData(): GamificationData {
     return {
       userId: this.userId || '',
-      level: 8,
-      xp: 2450,
-      xpToNextLevel: 550,
-      totalXp: 8250,
-      streak: 7,
-      badges: [
-        {
-          id: 'consistency_champion',
-          name: 'Consistency Champion',
-          description: 'Completed 7 days in a row',
-          icon: '🏆',
-          category: 'achievement',
-          isUnlocked: true,
-          earnedDate: new Date(),
-        },
-      ],
-      achievements: [
-        {
-          id: 'first_week',
-          title: 'First Week Complete',
-          description: 'Complete your first week of workouts',
-          xpReward: 100,
-          completedDate: new Date(),
-        },
-      ],
-      leaderboardPosition: 1,
+      level: 0,
+      xp: 0,
+      xpToNextLevel: 100,
+      totalXp: 0,
+      streak: 0,
+      badges: [],
+      achievements: [],
+      leaderboardPosition: 0,
     };
   }
 
   private getFallbackStats(): DashboardStats {
     return {
-      totalWorkouts: 156,
-      weeklyWorkouts: 4,
-      monthlyWorkouts: 24,
-      currentStreak: 7,
-      longestStreak: 18,
-      averageWorkoutDuration: 45,
-      caloriesBurned: 2340,
-      goalsCompleted: 12,
+      totalWorkouts: 0,
+      weeklyWorkouts: 0,
+      monthlyWorkouts: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      averageWorkoutDuration: 0,
+      caloriesBurned: 0,
+      goalsCompleted: 0,
     };
   }
 
