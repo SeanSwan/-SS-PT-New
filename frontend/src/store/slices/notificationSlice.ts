@@ -79,7 +79,7 @@ export const fetchNotifications = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     try {
       // Call the API to fetch notifications
-      const response = await api.get('/notifications');
+      const response = await api.get('/api/notifications');
       return response.data;
     } catch (error: any) {
       // Silently handle 503 errors (service unavailable) without console warnings

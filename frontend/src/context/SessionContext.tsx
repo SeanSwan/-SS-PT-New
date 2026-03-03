@@ -745,11 +745,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     
     setLoading(true);
     try {
-      // FIXED: Use user-level endpoint instead of admin-only endpoint
-      const response = await apiService.get(`/api/sessions/${user.id}`);
-      if (response.data) {
-        // Apply limit client-side since user endpoint doesn't accept limit param
-        const limitedSessions = Array.isArray(response.data) ? response.data.slice(0, limit) : [];
+      // Use role-based sessions endpoint (filters by req.user automatically)
+      const response = await apiService.get('/api/sessions');
+      const data = response.data?.sessions ?? response.data;
+      if (data) {
+        const limitedSessions = Array.isArray(data) ? data.slice(0, limit) : [];
         setSessions(limitedSessions);
       }
     } catch (error) {
