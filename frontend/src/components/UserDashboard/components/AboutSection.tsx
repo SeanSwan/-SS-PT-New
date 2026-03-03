@@ -1,42 +1,48 @@
 /**
  * SwanStudios About Section Component
  * ==================================
- * 
- * Professional about section with personal info, goals, and achievements
+ *
+ * Professional about section with personal info, goals, and achievements.
+ * Fetches real gamification data via useGamificationData hook.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { 
+import {
   User,
   MapPin,
   Calendar,
   Target,
   Trophy,
-  Heart,
   Star,
-  Award,
   Edit3,
   Save,
-  X,
   Plus,
   Zap,
-  Mountain,
-  Flame
+  Loader2
 } from 'lucide-react';
+import { useGamificationData, getLevelProgress } from '../../../hooks/gamification/useGamificationData';
+import { useAuth } from '../../../context/AuthContext';
+import {
+  SKILL_TREE_DISPLAY,
+  RARITY_COLORS,
+  type SkillTree,
+  type Rarity,
+} from '../../../types/gamification';
 
-// Professional styled components
+// ─── Styled Components ───────────────────────────────────────────────────────
+
 const AboutContainer = styled(motion.div)`
   background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
   backdrop-filter: blur(24px);
   border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
-  
+
   @media (max-width: 768px) {
     padding: 1.5rem;
     border-radius: 16px;
@@ -47,7 +53,7 @@ const SectionGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -60,7 +66,7 @@ const InfoCard = styled(motion.div)`
   border-radius: 16px;
   padding: 1.5rem;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
     border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
@@ -96,7 +102,7 @@ const EditButton = styled(motion.button)`
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
     color: white;
@@ -118,7 +124,7 @@ const InfoItem = styled.div`
   background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.2)'};
   border-radius: 12px;
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
   }
@@ -166,7 +172,7 @@ const GoalItem = styled(motion.div)`
   padding: 1rem;
   border-left: 4px solid ${({ theme }) => theme.colors?.primary || '#3B82F6'};
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
     transform: translateX(4px);
@@ -189,8 +195,8 @@ const GoalTitle = styled.h4`
 
 const GoalStatus = styled.span<{ $completed?: boolean }>`
   padding: 0.25rem 0.75rem;
-  background: ${({ $completed, theme }) => 
-    $completed 
+  background: ${({ $completed, theme }) =>
+    $completed
       ? 'linear-gradient(135deg, #10B981, #059669)'
       : theme.colors?.primary || '#3B82F6'
   };
@@ -237,17 +243,17 @@ const AchievementsList = styled.div`
   gap: 1rem;
 `;
 
-const AchievementItem = styled(motion.div)`
+const AchievementItem = styled(motion.div)<{ $rarityColor?: string }>`
   background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.2)'};
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
   transition: all 0.3s ease;
-  border: 1px solid transparent;
-  
+  border: 1px solid ${({ $rarityColor }) => $rarityColor ? $rarityColor + '30' : 'transparent'};
+
   &:hover {
     background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    border-color: ${({ $rarityColor }) => $rarityColor ? $rarityColor + '60' : 'rgba(59, 130, 246, 0.4)'};
     transform: translateY(-2px);
   }
 `;
@@ -279,149 +285,148 @@ const AchievementDescription = styled.p`
   line-height: 1.3;
 `;
 
-const AchievementDate = styled.p`
-  color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+const AchievementMeta = styled.p<{ $color?: string }>`
+  color: ${({ $color, theme }) => $color || theme.colors?.primary || '#3B82F6'};
   font-size: 0.75rem;
   font-weight: 500;
   margin: 0;
 `;
 
-const AddButton = styled(motion.button)`
-  width: 100%;
-  padding: 1rem;
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.2)'};
-  border: 2px dashed ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.2)'};
-  border-radius: 12px;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
-  cursor: pointer;
-  transition: all 0.3s ease;
+const SkillTreeTag = styled.span<{ $color?: string }>`
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: ${({ $color }) => $color ? $color + '20' : 'rgba(59,130,246,0.2)'};
+  color: ${({ $color }) => $color || '#3B82F6'};
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+`;
+
+const LoadingState = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  
-  &:hover {
-    background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+  gap: 0.75rem;
+  padding: 3rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 `;
 
-// Mock data
-const personalInfo = [
-  {
-    icon: MapPin,
-    label: 'Location',
-    value: 'Los Angeles, CA',
-    color: 'linear-gradient(135deg, #10B981, #059669)'
-  },
-  {
-    icon: Calendar,
-    label: 'Joined',
-    value: 'March 2024',
-    color: 'linear-gradient(135deg, #3B82F6, #1D4ED8)'
-  },
-  {
-    icon: Target,
-    label: 'Primary Goal',
-    value: 'Build Muscle & Strength',
-    color: 'linear-gradient(135deg, #F59E0B, #D97706)'
-  },
-  {
-    icon: Zap,
-    label: 'Fitness Level',
-    value: 'Intermediate',
-    color: 'linear-gradient(135deg, #8B5CF6, #7C3AED)'
-  }
-];
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  font-size: 0.9rem;
+`;
 
-const fitnessGoals = [
-  {
-    id: 1,
-    title: 'Complete 100 Workouts',
-    description: 'Consistency is key to achieving lasting results',
-    progress: 75,
-    completed: false,
-    target: 100,
-    current: 75
-  },
-  {
-    id: 2,
-    title: 'Deadlift Bodyweight',
-    description: 'Build functional strength and power',
-    progress: 90,
-    completed: false,
-    target: 185,
-    current: 165
-  },
-  {
-    id: 3,
-    title: 'Morning Yoga Routine',
-    description: 'Start each day with mindful movement',
-    progress: 100,
-    completed: true,
-    target: 30,
-    current: 30
-  }
-];
+// ─── Rarity color helper ─────────────────────────────────────────────────────
 
-const achievements = [
-  {
-    id: 1,
-    title: 'First Month Strong',
-    description: 'Completed your first month of consistent training',
-    icon: '🎯',
-    color: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-    date: '2 weeks ago'
-  },
-  {
-    id: 2,
-    title: 'Community Helper',
-    description: 'Helped 10 community members with their fitness journey',
-    icon: '❤️',
-    color: 'linear-gradient(135deg, #EF4444, #DC2626)',
-    date: '1 month ago'
-  },
-  {
-    id: 3,
-    title: 'Flexibility Master',
-    description: 'Achieved full range of motion in all major movements',
-    icon: '🧘',
-    color: 'linear-gradient(135deg, #10B981, #059669)',
-    date: '1 month ago'
-  },
-  {
-    id: 4,
-    title: 'SwanStudios Rookie',
-    description: 'Welcome to the SwanStudios family!',
-    icon: '⭐',
-    color: 'linear-gradient(135deg, #F59E0B, #D97706)',
-    date: '3 months ago'
+function getRarityGradient(rarity?: Rarity): string {
+  switch (rarity) {
+    case 'legendary': return 'linear-gradient(135deg, #002060, #60C0F0, #C6A84B)';
+    case 'epic':      return 'linear-gradient(135deg, #60C0F0, #50A0F0)';
+    case 'rare':      return 'linear-gradient(135deg, #C6A84B, #A08030)';
+    default:          return 'linear-gradient(135deg, #4070C0, #3060A0)';
   }
-];
+}
+
+function getRarityFlat(rarity?: Rarity): string {
+  return RARITY_COLORS[rarity || 'common'] ?? '#4070C0';
+}
+
+// ─── Date formatting ─────────────────────────────────────────────────────────
+
+function formatJoinDate(dateStr?: string): string {
+  if (!dateStr) return 'Unknown';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 const AboutSection: React.FC = () => {
   const [editingPersonal, setEditingPersonal] = useState(false);
-  const [editingGoals, setEditingGoals] = useState(false);
+  const { user } = useAuth();
+  const { profile, achievements, isLoading, levelProgress: lp } = useGamificationData();
 
-  const handleEditPersonal = () => {
-    setEditingPersonal(!editingPersonal);
-  };
+  const profileData = profile?.data;
 
-  const handleEditGoals = () => {
-    setEditingGoals(!editingGoals);
-  };
+  // Build personal info from user + gamification profile
+  const personalInfo = useMemo(() => {
+    const level = lp?.level ?? profileData?.level ?? 0;
+    const tier = lp?.tierDisplay?.name ?? 'Bronze Forge';
+    const tierEmoji = lp?.tierDisplay?.emoji ?? '🔨';
 
-  const handleAddGoal = () => {
-    console.log('Add new goal');
-    // TODO: Implement add goal functionality
-  };
+    return [
+      {
+        icon: Calendar,
+        label: 'Joined',
+        value: formatJoinDate(user?.createdAt),
+        color: 'linear-gradient(135deg, #3B82F6, #1D4ED8)'
+      },
+      {
+        icon: Zap,
+        label: 'Level',
+        value: `Level ${level} — ${tierEmoji} ${tier}`,
+        color: 'linear-gradient(135deg, #8B5CF6, #7C3AED)'
+      },
+      {
+        icon: Target,
+        label: 'Total XP',
+        value: `${(lp?.currentPoints ?? profileData?.points ?? 0).toLocaleString()} points`,
+        color: 'linear-gradient(135deg, #F59E0B, #D97706)'
+      },
+      {
+        icon: Star,
+        label: 'Streak',
+        value: `${profileData?.streakDays ?? 0} day${(profileData?.streakDays ?? 0) !== 1 ? 's' : ''}`,
+        color: 'linear-gradient(135deg, #10B981, #059669)'
+      }
+    ];
+  }, [user, profileData, lp]);
 
-  const handleAddAchievement = () => {
-    console.log('Add new achievement');
-    // TODO: Implement add achievement functionality
-  };
+  // Get achievements grouped by skill tree
+  const achievementList = useMemo(() => {
+    const raw = achievements?.data ?? [];
+    // Map to a display-friendly shape — take first 12
+    return (Array.isArray(raw) ? raw : []).slice(0, 12).map((a: any) => ({
+      id: a.id,
+      title: a.title || a.name || 'Achievement',
+      description: a.description || '',
+      icon: a.iconEmoji || a.icon || '🏆',
+      rarity: (a.rarity || 'common') as Rarity,
+      xpReward: a.xpReward || a.pointValue || 0,
+      skillTree: a.skillTree as SkillTree | undefined,
+      category: a.category || 'milestone',
+    }));
+  }, [achievements?.data]);
+
+  // Compute skill tree stats
+  const skillTreeStats = useMemo(() => {
+    const raw = achievements?.data ?? [];
+    const trees: Record<string, number> = {};
+    (Array.isArray(raw) ? raw : []).forEach((a: any) => {
+      const st = a.skillTree;
+      if (st) trees[st] = (trees[st] || 0) + 1;
+    });
+    return trees;
+  }, [achievements?.data]);
+
+  if (isLoading) {
+    return (
+      <AboutContainer initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <LoadingState>
+          <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+          Loading profile...
+        </LoadingState>
+      </AboutContainer>
+    );
+  }
 
   return (
     <AboutContainer
@@ -439,17 +444,17 @@ const AboutSection: React.FC = () => {
           <CardHeader>
             <CardTitle>
               <User size={20} />
-              Personal Info
+              Profile
             </CardTitle>
             <EditButton
-              onClick={handleEditPersonal}
+              onClick={() => setEditingPersonal(!editingPersonal)}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
             >
               {editingPersonal ? <Save size={16} /> : <Edit3 size={16} />}
             </EditButton>
           </CardHeader>
-          
+
           <InfoList>
             {personalInfo.map((info, index) => {
               const Icon = info.icon;
@@ -468,7 +473,7 @@ const AboutSection: React.FC = () => {
           </InfoList>
         </InfoCard>
 
-        {/* Fitness Goals */}
+        {/* Skill Tree Progress */}
         <InfoCard
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -477,54 +482,30 @@ const AboutSection: React.FC = () => {
           <CardHeader>
             <CardTitle>
               <Target size={20} />
-              Fitness Goals
+              Skill Trees
             </CardTitle>
-            <EditButton
-              onClick={handleEditGoals}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {editingGoals ? <Save size={16} /> : <Edit3 size={16} />}
-            </EditButton>
           </CardHeader>
-          
+
           <GoalsList>
-            {fitnessGoals.map((goal) => (
-              <GoalItem
-                key={goal.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <GoalHeader>
-                  <GoalTitle>{goal.title}</GoalTitle>
-                  <GoalStatus $completed={goal.completed}>
-                    {goal.completed ? 'Completed' : 'In Progress'}
-                  </GoalStatus>
-                </GoalHeader>
-                <GoalDescription>{goal.description}</GoalDescription>
-                <ProgressBar>
-                  <ProgressFill
-                    $progress={goal.progress}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${goal.progress}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                  />
-                </ProgressBar>
-                <ProgressText>
-                  {goal.current} / {goal.target} ({goal.progress}%)
-                </ProgressText>
-              </GoalItem>
-            ))}
-            
-            <AddButton
-              onClick={handleAddGoal}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Plus size={20} />
-              Add New Goal
-            </AddButton>
+            {(Object.entries(SKILL_TREE_DISPLAY) as [SkillTree, typeof SKILL_TREE_DISPLAY[SkillTree]][]).map(([key, tree]) => {
+              const count = skillTreeStats[key] || 0;
+              return (
+                <GoalItem
+                  key={key}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <GoalHeader>
+                    <GoalTitle>{tree.emoji} {tree.name}</GoalTitle>
+                    <GoalStatus $completed={count > 0}>
+                      {count} available
+                    </GoalStatus>
+                  </GoalHeader>
+                  <GoalDescription>{tree.description}</GoalDescription>
+                </GoalItem>
+              );
+            })}
           </GoalsList>
         </InfoCard>
       </SectionGrid>
@@ -539,40 +520,47 @@ const AboutSection: React.FC = () => {
         <CardHeader>
           <CardTitle>
             <Trophy size={20} />
-            Achievements & Milestones
+            Achievements ({achievementList.length > 0 ? `${achievementList.length} shown` : '0'})
           </CardTitle>
         </CardHeader>
-        
-        <AchievementsList>
-          {achievements.map((achievement, index) => (
-            <AchievementItem
-              key={achievement.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-            >
-              <AchievementIcon $color={achievement.color}>
-                {achievement.icon}
-              </AchievementIcon>
-              <AchievementTitle>{achievement.title}</AchievementTitle>
-              <AchievementDescription>{achievement.description}</AchievementDescription>
-              <AchievementDate>{achievement.date}</AchievementDate>
-            </AchievementItem>
-          ))}
-          
-          <AchievementItem
-            whileHover={{ scale: 1.05 }}
-            onClick={handleAddAchievement}
-            style={{ cursor: 'pointer' }}
-          >
-            <AchievementIcon $color="linear-gradient(135deg, #6B7280, #4B5563)">
-              <Plus size={24} />
-            </AchievementIcon>
-            <AchievementTitle>Add Achievement</AchievementTitle>
-            <AchievementDescription>Record a new milestone</AchievementDescription>
-          </AchievementItem>
-        </AchievementsList>
+
+        {achievementList.length === 0 ? (
+          <EmptyState>
+            No achievements available yet. Complete workouts and engage with the community to earn achievements!
+          </EmptyState>
+        ) : (
+          <AchievementsList>
+            {achievementList.map((achievement, index) => {
+              const stDisplay = achievement.skillTree ? SKILL_TREE_DISPLAY[achievement.skillTree] : null;
+              const rarityColor = getRarityFlat(achievement.rarity);
+
+              return (
+                <AchievementItem
+                  key={achievement.id}
+                  $rarityColor={rarityColor}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <AchievementIcon $color={getRarityGradient(achievement.rarity)}>
+                    {achievement.icon}
+                  </AchievementIcon>
+                  <AchievementTitle>{achievement.title}</AchievementTitle>
+                  <AchievementDescription>{achievement.description}</AchievementDescription>
+                  <AchievementMeta $color={rarityColor}>
+                    {achievement.xpReward > 0 ? `${achievement.xpReward} XP` : ''} · {achievement.rarity}
+                  </AchievementMeta>
+                  {stDisplay && (
+                    <SkillTreeTag $color={stDisplay.color}>
+                      {stDisplay.emoji} {stDisplay.name}
+                    </SkillTreeTag>
+                  )}
+                </AchievementItem>
+              );
+            })}
+          </AchievementsList>
+        )}
       </InfoCard>
     </AboutContainer>
   );
