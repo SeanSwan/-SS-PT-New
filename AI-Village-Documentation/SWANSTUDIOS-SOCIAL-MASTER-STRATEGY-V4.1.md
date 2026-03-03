@@ -476,7 +476,78 @@ SwanStudios Social is not done until all items below are true:
 
 ---
 
-## 16. Canonical References
+## 16. Implementation Status Audit (March 2, 2026)
+
+This section tracks the implementation status of all features defined in this strategy.
+
+### Fully Implemented
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Social Posts CRUD (create, read, delete) | **Done** | `POST/GET/DELETE /api/social/posts/*` |
+| Comments (create, delete) | **Done** | `POST/DELETE /api/social/posts/:id/comments` |
+| Likes (like/unlike posts) | **Done** | Uses "likes" not "Swans" — see gap below |
+| Friendships (request/accept/decline/block) | **Done** | `/api/social/friendships/*` |
+| Challenges (create/join/leave/progress/leaderboard) | **Done** | `/api/social/challenges/*` |
+| Post creation awards points | **Done** | 10 pts general, 25 workout, 50 transformation |
+| Comment creation awards points | **Done** | 5 pts per comment |
+| Gamification engine (achievements, leveling, tiers) | **Done** | 804 achievements, 6 skill trees, logarithmic leveling |
+| 3-theme system (dark/light/dark-neon) | **Done** | Crystalline Swan / Arctic Dawn / Void Crystal |
+| Semantic CSS tokens | **Done** | `--bg-base`, `--text-primary`, `--accent-gold`, etc. (17 vars) |
+| Theme persistence in localStorage | **Done** | `swanstudios-theme` key |
+| Profile photo upload | **Done** | `POST /api/profile/upload-profile-photo` (Cloudflare R2) |
+| Banner photo upload | **Done** | `POST /api/profile/upload-banner-photo` (Cloudflare R2) |
+| Social feed (real data) | **Done** | `useSocialFeed` hook → `/api/social/posts/feed` |
+| UserDashboard real data | **Done** | All mock data replaced with real API data |
+| Edit Profile modal | **Done** | firstName, lastName, bio, fitnessGoal, phone |
+| Gamification on dashboards | **Done** | Real level, tier, XP, achievements on both dashboards |
+
+### Partially Implemented
+
+| Feature | Status | Gap |
+|---------|--------|-----|
+| Moderation fields on posts | **Partial** | SocialPost model has moderationStatus/flags, but no AI cascade |
+| Report model | **Partial** | PostReport model exists, but no API endpoint exposed |
+| Social notifications | **Partial** | Uses main notification system, not social-specific endpoints |
+| Theme coverage | **Partial** | Social + dashboard covered; admin/training surfaces need audit |
+| WCAG AA contrast | **Partial** | Theme tokens designed for AA, but no automated contrast testing |
+
+### Not Implemented (Deferred to Phase 2+)
+
+| Feature | Strategy Section | Reason for Deferral |
+|---------|-----------------|---------------------|
+| **Swan Economy** (daily allowance, streak bonus, mystery bonus) | 7.1 | Requires new tables, daily cron job, anti-inflation logic |
+| **Trust Score** (progressive unlock 0-90+) | 7.2 | Requires new model, middleware, admin UI |
+| **AI Moderation Cascade** (Venice → Mistral → OpenAI → Perspective) | 8.2 | Requires 3rd-party API keys, fallback chain, timeout policy |
+| **Admin moderation UI** (reports, bulk action, moderation log) | 8.3 | Requires report API, queue system, SLA tracking |
+| **User reporting endpoints** (POST report, GET my reports) | 9 | Model exists but no routes |
+| **Data export/delete** (GDPR/CCPA) | 9 | Requires data mapping, purge workflow, legal review |
+| **COPPA age gating** (under-13 restrictions) | 4 | Requires legal review, age verification flow |
+| **Achievement auto-posts** (auto-generate social posts on unlock) | 6A.3 | Requires event system, opt-in preferences |
+| **Social profiles endpoint** (GET/PUT social profile) | 9 | Using main profile; dedicated social profile TBD |
+| **Followers/following list endpoints** | 9 | Count available via stats; list endpoints not built |
+| **Notification preferences** (GET/PUT preferences) | 9 | Main notifications work; social-specific prefs TBD |
+| **Discover feed ranking** | 13 | Algorithm not defined |
+| **QA test suite** (social-feed.spec.ts, etc.) | 10 | Playwright specs not written |
+| **Flash-of-wrong-theme prevention** | 3.1 | Needs inline script in HTML before React hydration |
+| **System theme mode** (prefers-color-scheme) | 3.1 | Only dark/light/default; no OS preference detection |
+
+### Open Gaps (Section 13) Status
+
+| Gap | Status | Owner/Date |
+|-----|--------|------------|
+| Final schema migration sequence for social tables | **Deferred** | Phase 2 — Swan/Trust tables needed |
+| Discover feed ranking policy | **Deferred** | Phase 2 — algorithm TBD |
+| Trust-score threshold tuning | **Deferred** | Phase 2 — requires Trust Score system |
+| Provider timeout/retry policy | **Deferred** | Phase 2 — requires AI moderation cascade |
+| Admin runbook for provider outages | **Deferred** | Phase 2 — operational doc |
+| Dark-mode token mapping file | **Resolved** | `frontend/src/utils/theme/themeUtils.ts` |
+| Snapshot test baseline | **Deferred** | Phase 2 — Playwright visual regression |
+| COPPA/CCPA release checklist | **Deferred** | Phase 2 — legal review required |
+
+---
+
+## 17. Canonical References
 
 1. `AI-Village-Documentation/CINEMATIC-WEB-DESIGN-SYSTEM.md`
 2. `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`
