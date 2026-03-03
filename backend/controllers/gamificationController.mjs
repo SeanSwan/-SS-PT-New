@@ -2399,6 +2399,95 @@ const gamificationController = {
         error: error.message
       });
     }
+  },
+
+  /**
+   * DEBUG: Seed achievements (admin-only, temporary)
+   * Returns actual error if seeding fails.
+   */
+  debugSeedAchievements: async (req, res) => {
+    try {
+      // Step 1: Check current count
+      const currentCount = await Achievement.count();
+      if (currentCount > 0) {
+        return res.json({
+          success: true,
+          message: `Already have ${currentCount} achievements — skipping seed`,
+          count: currentCount
+        });
+      }
+
+      // Step 2: Check table columns
+      const [columns] = await db.query(
+        `SELECT column_name, data_type, is_nullable, column_default
+         FROM information_schema.columns
+         WHERE table_name = 'Achievements' AND table_schema = 'public'
+         ORDER BY ordinal_position;`
+      );
+
+      // Step 3: Check if requirementType is nullable
+      const reqTypeCol = columns.find(c => c.column_name === 'requirementType');
+
+      // Step 4: Try to insert a single test row
+      let testInsertResult = null;
+      try {
+        const testId = '00000000-0000-0000-0000-000000000001';
+        await db.query(
+          `INSERT INTO "Achievements" (id, name, description, "createdAt", "updatedAt")
+           VALUES ('${testId}', '__test_seed__', 'Test achievement seed', NOW(), NOW())
+           ON CONFLICT (id) DO NOTHING;`
+        );
+        // Clean up test row
+        await db.query(`DELETE FROM "Achievements" WHERE id = '${testId}';`);
+        testInsertResult = 'SUCCESS — minimal insert works';
+      } catch (testErr) {
+        testInsertResult = `FAILED: ${testErr.message}`;
+      }
+
+      // Step 5: Try the actual seeder
+      let seederResult = null;
+      try {
+        const path = await import('path');
+        const { createRequire } = await import('module');
+        const require = createRequire(import.meta.url);
+        const seederPath = path.default.resolve(
+          import.meta.url.replace('file:///', '').replace(/\/[^/]+$/, ''),
+          '..', 'seeders', '20260301001000-seed-achievements.cjs'
+        );
+
+        // Use queryInterface from db
+        const queryInterface = db.getQueryInterface();
+        const Sequelize = (await import('sequelize')).default || await import('sequelize');
+        const seeder = require(seederPath);
+        await seeder.up(queryInterface, Sequelize);
+
+        const finalCount = await Achievement.count();
+        seederResult = `SUCCESS — ${finalCount} achievements seeded`;
+      } catch (seederErr) {
+        seederResult = `FAILED: ${seederErr.message}\n${seederErr.stack?.split('\n').slice(0, 5).join('\n')}`;
+      }
+
+      const finalCount = await Achievement.count();
+
+      return res.json({
+        success: finalCount > 0,
+        count: finalCount,
+        diagnostics: {
+          columnCount: columns.length,
+          requirementType: reqTypeCol || 'NOT FOUND',
+          testInsert: testInsertResult,
+          seederResult,
+          columnNames: columns.map(c => c.column_name)
+        }
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Debug seed failed',
+        error: error.message,
+        stack: error.stack?.split('\n').slice(0, 8).join('\n')
+      });
+    }
   }
 };
 

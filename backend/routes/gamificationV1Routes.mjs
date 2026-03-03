@@ -228,6 +228,13 @@ router.put('/achievements/:id', authenticate, requireAdmin, gamificationControll
 router.delete('/achievements/:id', authenticate, requireAdmin, gamificationController.deleteAchievement);
 
 /**
+ * @route   POST /api/v1/gamification/admin/seed-achievements
+ * @desc    Debug: seed achievements and return diagnostics
+ * @access  Admin only (temporary)
+ */
+router.post('/admin/seed-achievements', authenticate, requireAdmin, gamificationController.debugSeedAchievements);
+
+/**
  * @route   POST /api/v1/gamification/users/:userId/achievements/:achievementId
  * @desc    Award achievement to user
  * @access  Trainer/Admin
