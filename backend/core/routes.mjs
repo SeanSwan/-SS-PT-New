@@ -197,55 +197,88 @@ export const setupRoutes = async (app) => {
 
   // ===================== TEMPORARY DEBUG LOGIN (remove after fixing) =====================
   app.post('/api/debug-login', async (req, res) => {
+    const steps = [];
     try {
       const { username, password } = req.body;
       if (!username || !password) {
         return res.json({ error: 'Missing username or password' });
       }
 
-      // Try to load the User model
-      const { default: initModels } = await import('../models/index.mjs');
-      const db = initModels;
-      let User;
-      try {
-        // Try different ways to get User model
-        if (db.User) {
-          User = db.User;
-        } else if (db.models && db.models.User) {
-          User = db.models.User;
-        } else {
-          // Direct import
-          const userModule = await import('../models/User.mjs');
-          User = userModule.default;
-        }
-      } catch (modelErr) {
-        return res.json({ error: 'Failed to load User model', details: modelErr.message });
-      }
-
+      const UserModel = (await import('../models/User.mjs')).default;
       const { Op } = await import('sequelize');
-      const user = await User.findOne({
+      const jwt = (await import('jsonwebtoken')).default;
+      const bcrypt = (await import('bcryptjs')).default;
+
+      steps.push('Imports OK');
+
+      const user = await UserModel.findOne({
         where: { [Op.or]: [{ username }, { email: username }] }
       });
+      steps.push(`User found: ${!!user}, id=${user?.id}, role=${user?.role}`);
 
-      if (!user) {
-        return res.json({ error: 'User not found', username });
+      if (!user) return res.json({ steps, error: 'User not found' });
+
+      // Test password
+      const isMatch = await user.checkPassword(password);
+      steps.push(`Password match: ${isMatch}`);
+      if (!isMatch) return res.json({ steps, error: 'Wrong password' });
+
+      // Test token generation
+      const JWT_SECRET = process.env.JWT_SECRET;
+      steps.push(`JWT_SECRET exists: ${!!JWT_SECRET}, length: ${JWT_SECRET?.length}`);
+
+      const accessToken = jwt.sign(
+        { id: user.id, role: user.role, tokenType: 'access' },
+        JWT_SECRET,
+        { expiresIn: '3h' }
+      );
+      steps.push(`Access token generated: ${accessToken.substring(0, 20)}...`);
+
+      const refreshTokenVal = jwt.sign(
+        { id: user.id, tokenType: 'refresh' },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      steps.push('Refresh token generated');
+
+      // Test user update
+      try {
+        await user.update({
+          failedLoginAttempts: 0,
+          lastLogin: new Date(),
+          lastActive: new Date(),
+          lastLoginIP: req.ip,
+          refreshTokenHash: await bcrypt.hash(refreshTokenVal, 10)
+        });
+        steps.push('User update succeeded');
+      } catch (updateErr) {
+        steps.push(`User update FAILED: ${updateErr.message}`);
       }
 
-      // Check tier value
-      return res.json({
-        success: true,
-        userId: user.id,
+      // Test sanitization
+      const sanitized = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
         username: user.username,
         role: user.role,
         tier: user.tier,
-        tierType: typeof user.tier,
-        level: user.level,
-        points: user.points
+      };
+      steps.push('Sanitization OK');
+
+      return res.json({
+        success: true,
+        steps,
+        token: accessToken.substring(0, 30) + '...',
+        user: sanitized
       });
     } catch (err) {
       return res.json({
+        steps,
         error: err.message,
         name: err.name,
+        status: err.status || err.statusCode,
         stack: err.stack?.split('\n').slice(0, 5)
       });
     }
