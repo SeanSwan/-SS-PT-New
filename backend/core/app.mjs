@@ -205,7 +205,7 @@ export const createApp = async () => {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", "data:", "blob:", "https://cdn.example.com"],
+          imgSrc: ["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", "https://*.r2.dev"],
           connectSrc: ["'self'", "https://api.stripe.com"],
         }
       },
