@@ -34,11 +34,12 @@ import {
 // ─── Styled Components ───────────────────────────────────────────────────────
 
 const AboutContainer = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
+  background: var(--bg-elevated);
   backdrop-filter: blur(24px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
+  border: 1px solid var(--border-soft);
   border-radius: 20px;
   padding: 2rem;
+  color: var(--text-primary);
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
@@ -61,15 +62,15 @@ const SectionGrid = styled.div`
 `;
 
 const InfoCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-surface, var(--bg-elevated));
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 1.5rem;
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-2px);
-    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
   }
 `;
 
@@ -81,7 +82,7 @@ const CardHeader = styled.div`
 `;
 
 const CardTitle = styled.h3`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
@@ -93,9 +94,9 @@ const CardTitle = styled.h3`
 const EditButton = styled(motion.button)`
   width: 32px;
   height: 32px;
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.3)'};
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -104,7 +105,7 @@ const EditButton = styled(motion.button)`
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: var(--accent-primary);
     color: white;
     transform: scale(1.1);
   }
@@ -121,12 +122,12 @@ const InfoItem = styled.div`
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.2)'};
+  background: var(--bg-base);
   border-radius: 12px;
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+    background: var(--bg-elevated);
   }
 `;
 
@@ -147,14 +148,14 @@ const InfoContent = styled.div`
 `;
 
 const InfoLabel = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
   font-size: 0.875rem;
   margin: 0 0 0.25rem;
   font-weight: 500;
 `;
 
 const InfoValue = styled.p`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
@@ -167,14 +168,14 @@ const GoalsList = styled.div`
 `;
 
 const GoalItem = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.2)'};
+  background: var(--bg-base);
   border-radius: 12px;
   padding: 1rem;
-  border-left: 4px solid ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+  border-left: 4px solid var(--accent-primary);
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+    background: var(--bg-elevated);
     transform: translateX(4px);
   }
 `;
@@ -187,7 +188,7 @@ const GoalHeader = styled.div`
 `;
 
 const GoalTitle = styled.h4`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
@@ -208,7 +209,7 @@ const GoalStatus = styled.span<{ $completed?: boolean }>`
 `;
 
 const GoalDescription = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin: 0 0 0.75rem;
   line-height: 1.4;
@@ -217,7 +218,7 @@ const GoalDescription = styled.p`
 const ProgressBar = styled.div`
   width: 100%;
   height: 8px;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 0.5rem;
@@ -231,7 +232,7 @@ const ProgressFill = styled(motion.div)<{ $progress: number }>`
 `;
 
 const ProgressText = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin: 0;
   text-align: right;
@@ -244,7 +245,7 @@ const AchievementsList = styled.div`
 `;
 
 const AchievementItem = styled(motion.div)<{ $rarityColor?: string }>`
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.2)'};
+  background: var(--bg-base);
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
@@ -252,7 +253,7 @@ const AchievementItem = styled(motion.div)<{ $rarityColor?: string }>`
   border: 1px solid ${({ $rarityColor }) => $rarityColor ? $rarityColor + '30' : 'transparent'};
 
   &:hover {
-    background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+    background: var(--bg-elevated);
     border-color: ${({ $rarityColor }) => $rarityColor ? $rarityColor + '60' : 'rgba(59, 130, 246, 0.4)'};
     transform: translateY(-2px);
   }
@@ -272,14 +273,14 @@ const AchievementIcon = styled.div<{ $color?: string }>`
 `;
 
 const AchievementTitle = styled.h4`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
 `;
 
 const AchievementDescription = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.875rem;
   margin: 0 0 0.5rem;
   line-height: 1.3;
@@ -309,7 +310,7 @@ const LoadingState = styled.div`
   justify-content: center;
   gap: 0.75rem;
   padding: 3rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
 
   @keyframes spin {
     to { transform: rotate(360deg); }
@@ -319,7 +320,7 @@ const LoadingState = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
   font-size: 0.9rem;
 `;
 

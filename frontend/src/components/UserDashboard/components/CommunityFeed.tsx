@@ -29,11 +29,12 @@ import { useAuth } from '../../../context/AuthContext';
 // ─── Styled Components ─────────────────────────────────────────────────────
 
 const FeedContainer = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
+  background: var(--bg-elevated);
   backdrop-filter: blur(24px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
+  border: 1px solid var(--border-soft);
   border-radius: 20px;
   padding: 2rem;
+  color: var(--text-primary);
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
@@ -58,7 +59,7 @@ const FeedHeader = styled.div`
 `;
 
 const FeedTitle = styled.h2`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
@@ -77,24 +78,24 @@ const RefreshButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.85rem;
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
   }
 `;
 
 const CreatePostSection = styled.div`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
@@ -103,11 +104,11 @@ const CreatePostSection = styled.div`
 const PostInput = styled.textarea`
   width: 100%;
   min-height: 100px;
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.3)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-base);
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
   padding: 1rem;
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 1rem;
   line-height: 1.5;
@@ -115,13 +116,13 @@ const PostInput = styled.textarea`
   transition: all 0.3s ease;
 
   &::placeholder {
-    color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
+    color: var(--text-muted);
   }
 
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent);
   }
 `;
 
@@ -148,18 +149,18 @@ const PostOptionButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
 
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
     transform: translateY(-1px);
   }
 `;
@@ -194,15 +195,15 @@ const PostsStream = styled.div`
 `;
 
 const PostCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-2px);
-    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
   }
 `;
 
@@ -236,14 +237,14 @@ const PostAuthorInfo = styled.div`
 `;
 
 const PostAuthorName = styled.h4`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 0.25rem;
 `;
 
 const PostTimestamp = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
 `;
@@ -253,7 +254,7 @@ const PostContent = styled.div`
 `;
 
 const PostText = styled.p`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   line-height: 1.6;
   margin: 0 0 1rem;
@@ -273,7 +274,7 @@ const PostFooter = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem 1.5rem;
-  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  border-top: 1px solid var(--border-soft);
   margin-top: 1rem;
   padding-top: 1rem;
 `;
@@ -290,8 +291,8 @@ const InteractionButton = styled(motion.button)<{ $active?: boolean }>`
   gap: 0.5rem;
   background: none;
   border: none;
-  color: ${({ $active, theme }) =>
-    $active ? theme.colors?.primary || '#3B82F6' : theme.text?.secondary || 'rgba(255,255,255,0.7)'
+  color: ${({ $active }) =>
+    $active ? 'var(--accent-primary)' : 'var(--text-secondary)'
   };
   cursor: pointer;
   padding: 0.5rem;
@@ -299,8 +300,8 @@ const InteractionButton = styled(motion.button)<{ $active?: boolean }>`
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary + '10' || 'rgba(59, 130, 246, 0.1)'};
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+    color: var(--accent-primary);
     transform: scale(1.05);
   }
 `;
@@ -312,7 +313,7 @@ const LoadingState = styled.div`
   justify-content: center;
   padding: 3rem;
   gap: 1rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
+  color: var(--text-muted);
 `;
 
 const EmptyState = styled.div`
@@ -322,7 +323,7 @@ const EmptyState = styled.div`
   justify-content: center;
   padding: 3rem;
   gap: 1rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
+  color: var(--text-muted);
   text-align: center;
   line-height: 1.6;
 `;
@@ -334,24 +335,24 @@ const LoadMoreButton = styled(motion.button)`
   gap: 0.5rem;
   width: 100%;
   padding: 1rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.95rem;
   transition: all 0.3s ease;
 
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary + '15' || 'rgba(59, 130, 246, 0.15)'};
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
   }
 `;
 
 const CommentSection = styled(motion.div)`
   padding: 0 1.5rem 1.5rem;
-  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  border-top: 1px solid var(--border-soft);
 `;
 
 const CommentInputRow = styled.div`
@@ -364,19 +365,19 @@ const CommentInputRow = styled.div`
 const CommentInput = styled.input`
   flex: 1;
   padding: 0.6rem 1rem;
-  background: ${({ theme }) => theme.background?.primary || 'rgba(0,0,0,0.3)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-base);
+  border: 1px solid var(--border-soft);
   border-radius: 20px;
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 0.9rem;
 
   &::placeholder {
-    color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.4)'};
+    color: var(--text-muted);
   }
 
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    border-color: var(--accent-primary);
   }
 `;
 
@@ -384,7 +385,7 @@ const CommentSendButton = styled(motion.button)`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+  background: var(--accent-primary);
   color: white;
   border: none;
   display: flex;
@@ -403,12 +404,12 @@ const CommentItem = styled.div`
   gap: 0.5rem;
   padding: 0.5rem 0;
   font-size: 0.9rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.8)'};
+  color: var(--text-secondary);
 `;
 
 const CommentAuthor = styled.span`
   font-weight: 600;
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
 `;
 
 const FeelingPicker = styled(motion.div)`
@@ -416,8 +417,8 @@ const FeelingPicker = styled(motion.div)`
   gap: 0.5rem;
   flex-wrap: wrap;
   padding: 0.5rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
   margin-top: 0.75rem;
 `;

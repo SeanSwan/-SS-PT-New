@@ -26,15 +26,16 @@ import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 
 // Professional styled components
 const GalleryContainer = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
+  background: var(--bg-elevated);
   backdrop-filter: blur(24px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
+  border: 1px solid var(--border-soft);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 
+  color: var(--text-primary);
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
-  
+
   @media (max-width: 768px) {
     padding: 1.5rem;
     border-radius: 16px;
@@ -55,14 +56,14 @@ const GalleryHeader = styled.div`
 `;
 
 const GalleryTitle = styled.h2`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
     justify-content: center;
@@ -107,29 +108,29 @@ const TagsContainer = styled.div`
 
 const Tag = styled(motion.div)<{ $active?: boolean }>`
   padding: 0.5rem 1rem;
-  background: ${({ $active, theme }) => 
-    $active 
-      ? theme.colors?.primary || '#3B82F6'
-      : theme.background?.elevated || 'rgba(255,255,255,0.05)'
+  background: ${({ $active }) =>
+    $active
+      ? 'var(--accent-primary)'
+      : 'var(--bg-elevated)'
   };
-  color: ${({ $active, theme }) => 
-    $active 
+  color: ${({ $active }) =>
+    $active
       ? 'white'
-      : theme.text?.secondary || 'rgba(255,255,255,0.7)'
+      : 'var(--text-secondary)'
   };
-  border: 1px solid ${({ $active, theme }) => 
-    $active 
-      ? theme.colors?.primary || '#3B82F6'
-      : theme.borders?.subtle || 'rgba(255,255,255,0.1)'
+  border: 1px solid ${({ $active }) =>
+    $active
+      ? 'var(--accent-primary)'
+      : 'var(--border-soft)'
   };
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: var(--accent-primary);
     color: white;
     transform: translateY(-1px);
   }
@@ -151,17 +152,17 @@ const GalleryGrid = styled.div`
 `;
 
 const VideoCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-surface, var(--bg-elevated));
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-4px);
-    border-color: ${({ theme }) => theme.colors?.primary + '60' || 'rgba(59, 130, 246, 0.6)'};
+    border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   }
 `;
@@ -224,7 +225,7 @@ const VideoInfo = styled.div`
 `;
 
 const VideoTitle = styled.h3`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
@@ -232,7 +233,7 @@ const VideoTitle = styled.h3`
 `;
 
 const VideoDescription = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.4;
   margin: 0 0 1rem;
@@ -246,7 +247,7 @@ const VideoStats = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
   font-size: 0.875rem;
 `;
 
@@ -257,7 +258,7 @@ const StatItem = styled.div`
 `;
 
 const UploadCard = styled(motion.div)`
-  border: 2px dashed ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.2)'};
+  border: 2px dashed var(--border-soft);
   border-radius: 16px;
   padding: 2rem;
   display: flex;
@@ -268,11 +269,11 @@ const UploadCard = styled(motion.div)`
   cursor: pointer;
   transition: all 0.3s ease;
   min-height: 280px;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.02)'};
-  
+  background: var(--bg-surface, var(--bg-elevated));
+
   &:hover {
-    background: ${({ theme }) => theme.gradients?.card || 'rgba(255,255,255,0.05)'};
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: var(--bg-elevated);
+    border-color: var(--accent-primary);
     transform: translateY(-2px);
   }
 `;
@@ -290,14 +291,14 @@ const UploadIcon = styled.div`
 `;
 
 const UploadText = styled.h3`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
 `;
 
 const UploadSubtext = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin: 0;
   line-height: 1.4;
@@ -306,11 +307,11 @@ const UploadSubtext = styled.p`
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 2rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
 
   h3 {
     margin: 1rem 0 0.5rem;
-    color: ${({ theme }) => theme.text?.primary || 'white'};
+    color: var(--text-primary);
     font-weight: 600;
   }
 

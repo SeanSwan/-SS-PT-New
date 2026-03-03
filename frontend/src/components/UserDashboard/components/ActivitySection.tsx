@@ -35,15 +35,16 @@ import { useProfile } from '../../../hooks/profile/useProfile';
 
 // Professional styled components
 const ActivityContainer = styled(motion.div)`
-  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
+  background: var(--bg-elevated);
   backdrop-filter: blur(24px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
+  border: 1px solid var(--border-soft);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 
+  color: var(--text-primary);
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
-  
+
   @media (max-width: 768px) {
     padding: 1.5rem;
     border-radius: 16px;
@@ -64,14 +65,14 @@ const ActivityHeader = styled.div`
 `;
 
 const ActivityTitle = styled.h2`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
     justify-content: center;
@@ -94,29 +95,29 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: ${({ $active, theme }) => 
-    $active 
-      ? theme.colors?.primary || '#3B82F6'
-      : theme.background?.elevated || 'rgba(255,255,255,0.05)'
+  background: ${({ $active }) =>
+    $active
+      ? 'var(--accent-primary)'
+      : 'var(--bg-elevated)'
   };
-  color: ${({ $active, theme }) => 
-    $active 
+  color: ${({ $active }) =>
+    $active
       ? 'white'
-      : theme.text?.secondary || 'rgba(255,255,255,0.7)'
+      : 'var(--text-secondary)'
   };
-  border: 1px solid ${({ $active, theme }) => 
-    $active 
-      ? theme.colors?.primary || '#3B82F6'
-      : theme.borders?.subtle || 'rgba(255,255,255,0.1)'
+  border: 1px solid ${({ $active }) =>
+    $active
+      ? 'var(--accent-primary)'
+      : 'var(--border-soft)'
   };
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.875rem;
   font-weight: 500;
-  
+
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: var(--accent-primary);
     color: white;
     transform: translateY(-1px);
   }
@@ -135,15 +136,15 @@ const StatsOverview = styled.div`
 `;
 
 const StatCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-surface, var(--bg-elevated));
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 1.5rem;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
-    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
   }
 `;
 
@@ -160,14 +161,14 @@ const StatIcon = styled.div<{ $color?: string }>`
 `;
 
 const StatValue = styled.h3`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 0.25rem;
 `;
 
 const StatLabel = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.875rem;
   margin: 0;
   font-weight: 500;
@@ -180,16 +181,16 @@ const ActivityFeed = styled.div`
 `;
 
 const ActivityItem = styled(motion.div)`
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-surface, var(--bg-elevated));
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 1.25rem;
   transition: all 0.3s ease;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-2px);
-    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 `;
@@ -225,7 +226,7 @@ const ActivityItemHeader = styled.div`
 `;
 
 const ActivityItemTitle = styled.h4`
-  color: ${({ theme }) => theme.text?.primary || 'white'};
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
@@ -233,18 +234,18 @@ const ActivityItemTitle = styled.h4`
 `;
 
 const ActivityTime = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
   font-size: 0.875rem;
   margin: 0;
   white-space: nowrap;
-  
+
   @media (max-width: 768px) {
     white-space: normal;
   }
 `;
 
 const ActivityDescription = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin: 0 0 0.75rem;
   line-height: 1.4;
@@ -255,7 +256,7 @@ const ActivityMeta = styled.div`
   gap: 1rem;
   align-items: center;
   font-size: 0.8rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
 `;
 
 const MetaItem = styled.div`
@@ -267,10 +268,10 @@ const MetaItem = styled.div`
 const ShowMoreButton = styled(motion.button)`
   width: 100%;
   padding: 1rem;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(255,255,255,0.1)'};
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -279,30 +280,30 @@ const ShowMoreButton = styled(motion.button)`
   gap: 0.5rem;
   font-weight: 500;
   margin-top: 1rem;
-  
+
   &:hover {
-    background: ${({ theme }) => theme.colors?.primary + '20' || 'rgba(59, 130, 246, 0.2)'};
-    border-color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
   }
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 2rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
 `;
 
 const EmptyIcon = styled.div`
   width: 80px;
   height: 80px;
-  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.05)'};
+  background: var(--bg-surface, var(--bg-elevated));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
+  color: var(--text-muted);
 `;
 
 const LoadingContainer = styled.div`
@@ -311,7 +312,7 @@ const LoadingContainer = styled.div`
   align-items: center;
   justify-content: center;
   padding: 3rem 2rem;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+  color: var(--text-muted);
 
   svg {
     animation: spin 1s linear infinite;
