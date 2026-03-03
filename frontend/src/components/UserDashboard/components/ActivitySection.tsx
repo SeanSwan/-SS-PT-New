@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Activity,
   Clock,
   Calendar,
@@ -28,8 +28,10 @@ import {
   TrendingUp,
   Filter,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Loader2
 } from 'lucide-react';
+import { useProfile } from '../../../hooks/profile/useProfile';
 
 // Professional styled components
 const ActivityContainer = styled(motion.div)`
@@ -303,115 +305,26 @@ const EmptyIcon = styled.div`
   color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.5)'};
 `;
 
-// Mock activity data
-const mockStats = [
-  {
-    icon: Target,
-    label: 'Goals Completed',
-    value: '12',
-    color: 'linear-gradient(135deg, #10B981, #059669)'
-  },
-  {
-    icon: Zap,
-    label: 'Workouts This Month',
-    value: '18',
-    color: 'linear-gradient(135deg, #F59E0B, #D97706)'
-  },
-  {
-    icon: Heart,
-    label: 'Community Likes',
-    value: '142',
-    color: 'linear-gradient(135deg, #EF4444, #DC2626)'
-  },
-  {
-    icon: TrendingUp,
-    label: 'Streak Days',
-    value: '7',
-    color: 'linear-gradient(135deg, #8B5CF6, #7C3AED)'
-  }
-];
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
 
-const mockActivities = [
-  {
-    id: 1,
-    type: 'workout',
-    title: 'Completed Full Body Strength Training',
-    description: 'Crushed a 45-minute strength workout focusing on compound movements',
-    icon: Zap,
-    color: 'linear-gradient(135deg, #F59E0B, #D97706)',
-    time: '2 hours ago',
-    meta: {
-      duration: '45 min',
-      calories: '380',
-      exercises: '8'
-    }
-  },
-  {
-    id: 2,
-    type: 'social',
-    title: 'Liked Alex Rivera\'s workout post',
-    description: 'Showed support for a community member\'s morning routine',
-    icon: Heart,
-    color: 'linear-gradient(135deg, #EF4444, #DC2626)',
-    time: '4 hours ago',
-    meta: {
-      type: 'Like',
-      community: 'SwanStudios'
-    }
-  },
-  {
-    id: 3,
-    type: 'achievement',
-    title: 'Unlocked "Week Warrior" Badge',
-    description: 'Completed workouts for 7 consecutive days',
-    icon: Trophy,
-    color: 'linear-gradient(135deg, #10B981, #059669)',
-    time: '1 day ago',
-    meta: {
-      streak: '7 days',
-      badge: 'Week Warrior'
-    }
-  },
-  {
-    id: 4,
-    type: 'content',
-    title: 'Shared a workout photo',
-    description: 'Posted progress photo from today\'s training session',
-    icon: Camera,
-    color: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-    time: '2 days ago',
-    meta: {
-      likes: '23',
-      comments: '5'
-    }
-  },
-  {
-    id: 5,
-    type: 'goal',
-    title: 'Updated fitness goal',
-    description: 'Set a new target to deadlift 200lbs by the end of the month',
-    icon: Target,
-    color: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-    time: '3 days ago',
-    meta: {
-      goal: 'Strength',
-      target: '200lbs'
-    }
-  },
-  {
-    id: 6,
-    type: 'community',
-    title: 'Joined a community challenge',
-    description: 'Signed up for the "30 Days of Movement" community challenge',
-    icon: Users,
-    color: 'linear-gradient(135deg, #06B6D4, #0891B2)',
-    time: '1 week ago',
-    meta: {
-      challenge: '30 Days Movement',
-      participants: '156'
-    }
+  svg {
+    animation: spin 1s linear infinite;
   }
-];
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+// Stats and activities are now loaded from useProfile hook
+
 
 const filterOptions = [
   { id: 'all', label: 'All Activity', icon: Activity },
@@ -424,15 +337,71 @@ const filterOptions = [
 const ActivitySection: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [showMore, setShowMore] = useState(false);
-  const [activities] = useState(mockActivities);
+  const { stats, posts, isLoadingStats, isLoadingPosts } = useProfile();
 
-  const filteredActivities = activities.filter(activity => 
-    activeFilter === 'all' || activity.type === activeFilter
+  const realStats = React.useMemo(() => [
+    { icon: Target, label: 'Workouts', value: String(stats?.workouts || 0), color: '#60C0F0' },
+    { icon: Zap, label: 'Streak Days', value: String(stats?.streak || 0), color: '#C6A84B' },
+    { icon: Heart, label: 'Followers', value: String(stats?.followers || 0), color: '#F472B6' },
+    { icon: TrendingUp, label: 'Level', value: String(stats?.level || 0), color: '#4ADE80' },
+  ], [stats]);
+
+  const realActivities = React.useMemo(() => {
+    if (!posts || posts.length === 0) return [];
+    return posts.slice(0, 6).map((post, index) => {
+      const typeMap: Record<string, { icon: any; color: string; label: string }> = {
+        workout: { icon: Zap, color: '#60C0F0', label: 'Workout' },
+        achievement: { icon: Award, color: '#C6A84B', label: 'Achievement' },
+        challenge: { icon: Target, color: '#4ADE80', label: 'Challenge' },
+        milestone: { icon: TrendingUp, color: '#F472B6', label: 'Milestone' },
+        general: { icon: Activity, color: '#50A0F0', label: 'Post' },
+      };
+      const typeInfo = typeMap[post.type] || typeMap.general;
+
+      // Format relative time
+      const postDate = new Date(post.createdAt);
+      const now = new Date();
+      const diffMs = now.getTime() - postDate.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+      let timeStr = 'Just now';
+      if (diffDays > 0) timeStr = `${diffDays}d ago`;
+      else if (diffHours > 0) timeStr = `${diffHours}h ago`;
+
+      return {
+        id: post.id || String(index),
+        type: typeInfo.label,
+        title: post.content?.substring(0, 60) || typeInfo.label,
+        description: post.content || '',
+        icon: typeInfo.icon,
+        color: typeInfo.color,
+        time: timeStr,
+      };
+    });
+  }, [posts]);
+
+  const filteredActivities = realActivities.filter(activity =>
+    activeFilter === 'all' || activity.type.toLowerCase() === activeFilter
   );
 
   const displayedActivities = showMore ? filteredActivities : filteredActivities.slice(0, 4);
 
   const hasMoreActivities = filteredActivities.length > 4;
+
+  if (isLoadingStats || isLoadingPosts) {
+    return (
+      <ActivityContainer
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <LoadingContainer>
+          <Loader2 size={40} />
+          <p style={{ marginTop: '1rem' }}>Loading activity...</p>
+        </LoadingContainer>
+      </ActivityContainer>
+    );
+  }
 
   return (
     <ActivityContainer
@@ -466,7 +435,7 @@ const ActivitySection: React.FC = () => {
 
       {/* Stats Overview */}
       <StatsOverview>
-        {mockStats.map((stat, index) => {
+        {realStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <StatCard
@@ -513,12 +482,9 @@ const ActivitySection: React.FC = () => {
                     <ActivityDescription>{activity.description}</ActivityDescription>
                     
                     <ActivityMeta>
-                      {Object.entries(activity.meta).map(([key, value]) => (
-                        <MetaItem key={key}>
-                          <span style={{ textTransform: 'capitalize' }}>{key}:</span>
-                          <span style={{ fontWeight: 500 }}>{value}</span>
-                        </MetaItem>
-                      ))}
+                      <MetaItem>
+                        <span style={{ fontWeight: 500 }}>{activity.type}</span>
+                      </MetaItem>
                     </ActivityMeta>
                   </ActivityContent>
                 </ActivityItem>
@@ -530,9 +496,9 @@ const ActivitySection: React.FC = () => {
             <EmptyIcon>
               <Activity size={32} />
             </EmptyIcon>
-            <h3 style={{ margin: '0 0 0.5rem', color: 'inherit' }}>No activities yet</h3>
+            <h3 style={{ margin: '0 0 0.5rem', color: 'inherit' }}>No recent activity yet</h3>
             <p style={{ margin: 0, fontSize: '0.9rem' }}>
-              Start your fitness journey to see your activities here
+              Start a workout or create a post!
             </p>
           </EmptyState>
         )}

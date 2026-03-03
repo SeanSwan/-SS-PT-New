@@ -110,6 +110,25 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --font-drama: ${theme.fonts.drama};
     --font-data: ${theme.fonts.data};
     --font-ui: ${theme.fonts.ui};
+
+    /* === SEMANTIC VARIABLES (Social Master Strategy §3.1) === */
+    --bg-base: ${theme.background.primary};
+    --bg-elevated: ${theme.background.elevated};
+    --bg-glass: ${theme.gradients.glass};
+    --bg-surface: ${theme.background.surface};
+    --text-primary: ${theme.text.primary};
+    --text-secondary: ${theme.text.secondary};
+    --text-muted: ${theme.text.muted};
+    --text-inverse: ${themeId === 'crystalline-light' ? '#E0ECF4' : '#0F172A'};
+    --border-soft: ${theme.borders.subtle};
+    --border-strong: ${theme.borders.prominent};
+    --accent-primary: ${theme.colors.primary};
+    --accent-secondary: ${theme.colors.secondary};
+    --accent-gold: ${theme.colors.accent};
+    --success: ${theme.colors.success};
+    --warning: ${theme.colors.warning};
+    --danger: ${theme.colors.error};
+    --info: ${theme.colors.primary};
   `;
 };
 
@@ -244,6 +263,20 @@ export const cssVars = {
   fontDrama: 'var(--font-drama)',
   fontData: 'var(--font-data)',
   fontUi: 'var(--font-ui)',
+
+  // Semantic (Social Master Strategy §3.1)
+  bgBase: 'var(--bg-base)',
+  bgGlass: 'var(--bg-glass)',
+  textInverse: 'var(--text-inverse)',
+  borderSoft: 'var(--border-soft)',
+  borderStrong: 'var(--border-strong)',
+  accentPrimary: 'var(--accent-primary)',
+  accentSecondary: 'var(--accent-secondary)',
+  accentGold: 'var(--accent-gold)',
+  success: 'var(--success)',
+  warning: 'var(--warning)',
+  danger: 'var(--danger)',
+  info: 'var(--info)',
 };
 
 // === ANIMATION HELPERS ===

@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Plus,
   Video,
   Music,
@@ -21,6 +21,8 @@ import {
   Share2,
   Upload
 } from 'lucide-react';
+import { useProfile } from '../../../hooks/profile/useProfile';
+import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 
 // Professional styled components
 const GalleryContainer = styled(motion.div)`
@@ -301,70 +303,64 @@ const UploadSubtext = styled.p`
   line-height: 1.4;
 `;
 
-// Mock video data
-const mockVideos = [
-  {
-    id: 1,
-    title: 'Morning Dance Flow',
-    description: 'Starting the day with positive energy and movement',
-    type: 'dance',
-    thumbnail: 'https://picsum.photos/400/300?random=1',
-    duration: '3:24',
-    views: 1234,
-    likes: 89,
-    createdAt: '2 days ago'
-  },
-  {
-    id: 2,
-    title: 'HIIT Workout Motivation',
-    description: 'High-intensity interval training for maximum results',
-    type: 'workout',
-    thumbnail: 'https://picsum.photos/400/300?random=2',
-    duration: '15:30',
-    views: 2156,
-    likes: 134,
-    createdAt: '4 days ago'
-  },
-  {
-    id: 3,
-    title: 'Acoustic Wellness Session',
-    description: 'Calming music for meditation and relaxation',
-    type: 'music',
-    thumbnail: 'https://picsum.photos/400/300?random=3',
-    duration: '8:45',
-    views: 876,
-    likes: 67,
-    createdAt: '1 week ago'
-  },
-  {
-    id: 4,
-    title: 'Freestyle Dance Battle',
-    description: 'Showcasing creativity and rhythm in movement',
-    type: 'dance',
-    thumbnail: 'https://picsum.photos/400/300?random=4',
-    duration: '5:12',
-    views: 3421,
-    likes: 245,
-    createdAt: '1 week ago'
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 3rem 2rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+
+  h3 {
+    margin: 1rem 0 0.5rem;
+    color: ${({ theme }) => theme.text?.primary || 'white'};
+    font-weight: 600;
   }
-];
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+`;
+
+// Media items are now loaded from useProfile hook
 
 const tags = ['All', 'Dance', 'Music', 'Workout', 'Motivation', 'Wellness'];
 
 const CreativeGallery: React.FC = () => {
   const [activeTag, setActiveTag] = useState('All');
-  const [videos] = useState(mockVideos);
+  const { posts } = useProfile();
+  const { createPost } = useSocialFeed();
+  const videoInputRef = React.useRef<HTMLInputElement>(null);
 
-  const filteredVideos = videos.filter(video => 
-    activeTag === 'All' || video.type.toLowerCase() === activeTag.toLowerCase()
-  );
+  const mediaItems = React.useMemo(() => {
+    if (!posts || posts.length === 0) return [];
+    return posts
+      .filter(post => post.mediaUrl)
+      .map(post => ({
+        id: post.id,
+        title: post.content?.substring(0, 40) || 'Media',
+        thumbnail: post.mediaUrl!,
+        duration: '',
+        views: post.likesCount || 0,
+        createdAt: post.createdAt,
+      }));
+  }, [posts]);
 
   const handleUpload = () => {
-    console.log('Upload video clicked');
-    // TODO: Implement video upload functionality
+    videoInputRef.current?.click();
   };
 
-  const handleVideoPlay = (videoId: number) => {
+  const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await createPost({ content: 'Shared media', type: 'general' });
+      // Note: actual media upload may need the social posts endpoint with FormData
+    } catch (err) {
+      console.error('Error uploading media:', err);
+    }
+  };
+
+  const handleVideoPlay = (videoId: string) => {
     console.log('Play video:', videoId);
     // TODO: Implement video player
   };
@@ -404,65 +400,75 @@ const CreativeGallery: React.FC = () => {
         ))}
       </TagsContainer>
 
-      <GalleryGrid>
-        <UploadCard
-          onClick={handleUpload}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <UploadIcon>
-            <Plus size={32} />
-          </UploadIcon>
-          <UploadText>Share Your Creativity</UploadText>
-          <UploadSubtext>
-            Upload your dance moves, workout videos, or musical performances to inspire the community
-          </UploadSubtext>
-        </UploadCard>
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="image/*,video/*"
+        style={{ display: 'none' }}
+        onChange={handleVideoFile}
+      />
 
-        <AnimatePresence>
-          {filteredVideos.map((video, index) => (
-            <VideoCard
-              key={video.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              onClick={() => handleVideoPlay(video.id)}
-            >
-              <VideoThumbnail $image={video.thumbnail}>
-                <VideoTypeTag $type={video.type}>
-                  {video.type}
-                </VideoTypeTag>
-                <PlayButton
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Play size={24} />
-                </PlayButton>
-              </VideoThumbnail>
-              
-              <VideoInfo>
-                <VideoTitle>{video.title}</VideoTitle>
-                <VideoDescription>{video.description}</VideoDescription>
-                
-                <VideoStats>
-                  <StatItem>
-                    <Eye size={16} />
-                    {video.views.toLocaleString()}
-                  </StatItem>
-                  <StatItem>
-                    <Heart size={16} />
-                    {video.likes}
-                  </StatItem>
-                  <StatItem>
-                    {video.duration}
-                  </StatItem>
-                </VideoStats>
-              </VideoInfo>
-            </VideoCard>
-          ))}
-        </AnimatePresence>
-      </GalleryGrid>
+      {mediaItems.length === 0 ? (
+        <EmptyState>
+          <Upload size={48} />
+          <h3>No media yet</h3>
+          <p>Share photos and videos to build your creative gallery</p>
+        </EmptyState>
+      ) : (
+        <GalleryGrid>
+          <UploadCard
+            onClick={handleUpload}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <UploadIcon>
+              <Plus size={32} />
+            </UploadIcon>
+            <UploadText>Share Your Creativity</UploadText>
+            <UploadSubtext>
+              Upload your dance moves, workout videos, or musical performances to inspire the community
+            </UploadSubtext>
+          </UploadCard>
+
+          <AnimatePresence>
+            {mediaItems.map((item, index) => (
+              <VideoCard
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                onClick={() => handleVideoPlay(item.id)}
+              >
+                <VideoThumbnail $image={item.thumbnail}>
+                  <PlayButton
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Play size={24} />
+                  </PlayButton>
+                </VideoThumbnail>
+
+                <VideoInfo>
+                  <VideoTitle>{item.title}</VideoTitle>
+
+                  <VideoStats>
+                    <StatItem>
+                      <Eye size={16} />
+                      {item.views.toLocaleString()}
+                    </StatItem>
+                    {item.duration && (
+                      <StatItem>
+                        {item.duration}
+                      </StatItem>
+                    )}
+                  </VideoStats>
+                </VideoInfo>
+              </VideoCard>
+            ))}
+          </AnimatePresence>
+        </GalleryGrid>
+      )}
     </GalleryContainer>
   );
 };

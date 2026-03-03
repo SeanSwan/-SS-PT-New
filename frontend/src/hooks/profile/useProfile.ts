@@ -32,6 +32,7 @@ interface UseProfileReturn {
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   uploadProfilePhoto: (file: File) => Promise<void>;
+  uploadBannerPhoto: (file: File) => Promise<void>;
   loadUserPosts: (userId?: string, limit?: number, offset?: number) => Promise<void>;
   loadMorePosts: () => Promise<void>;
   refreshStats: () => Promise<void>;
@@ -287,6 +288,32 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   }, [user]);
 
   /**
+   * Upload banner/cover photo
+   */
+  const uploadBannerPhoto = useCallback(async (file: File) => {
+    if (!user) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const result = await profileService.uploadBannerPhoto(file);
+      // Update local profile state with new banner URL
+      if (result.user) {
+        setProfile(result.user);
+      } else {
+        setProfile(prev => prev ? { ...prev, bannerPhoto: result.bannerPhoto } : prev);
+      }
+    } catch (err: any) {
+      console.error('Error uploading banner photo:', err);
+      setError(err.message || 'Failed to upload banner photo');
+      throw err;
+    } finally {
+      setIsUploading(false);
+    }
+  }, [user]);
+
+  /**
    * Utility function to get display name
    */
   const getDisplayName = useCallback(() => {
@@ -350,6 +377,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     refreshProfile,
     updateProfile,
     uploadProfilePhoto,
+    uploadBannerPhoto,
     loadUserPosts,
     loadMorePosts,
     refreshStats,

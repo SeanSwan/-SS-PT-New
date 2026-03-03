@@ -156,7 +156,7 @@ export const updateUserProfile = async (req, res) => {
     
     // Fields that are allowed to be updated by the user
     const allowedFields = [
-      'firstName', 'lastName', 'phone', 'email', 'photo',
+      'firstName', 'lastName', 'phone', 'email', 'photo', 'bio',
       'dateOfBirth', 'gender', 'weight', 'height',
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
       'emailNotifications', 'smsNotifications', 'preferences',
