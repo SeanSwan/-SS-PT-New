@@ -661,8 +661,7 @@ const socialController = {
             },
             {
               model: Achievement,
-              as: 'achievement',
-              attributes: ['id', 'name', 'description', 'icon', 'tier', 'pointValue']
+              as: 'achievement'
             }
           ],
           order: [['earnedAt', 'DESC']],

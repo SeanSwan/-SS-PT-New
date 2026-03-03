@@ -390,12 +390,11 @@ import WorkoutSession from '../models/WorkoutSession.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 
-// Safe attribute lists — only columns guaranteed to exist in DB
-// (Model defines 30+ fields but original migration only created ~12)
-const SAFE_ACHIEVEMENT_ATTRS = [
-  'id', 'name', 'description', 'icon', 'pointValue', 'requirementType',
-  'requirementValue', 'isActive', 'badgeImageUrl', 'createdAt', 'updatedAt'
-];
+// Safe attribute list for UserAchievement — only columns from the .cjs migration.
+// The model defines extra fields (maxProgress, etc.) that don't exist in the
+// migration-created table, so we MUST use explicit attributes.
+// NOTE: Achievement queries do NOT need explicit attrs because the Achievements
+// table was model-created (via Sequelize sync), so ALL model columns exist.
 const SAFE_USER_ACHIEVEMENT_ATTRS = [
   'id', 'userId', 'achievementId', 'earnedAt', 'progress', 'isCompleted',
   'pointsAwarded', 'notificationSent', 'createdAt', 'updatedAt'
@@ -539,8 +538,7 @@ const gamificationController = {
             attributes: ['id', 'earnedAt', 'progress', 'isCompleted', 'pointsAwarded'],
             include: [{
               model: Achievement,
-              as: 'achievement',
-              attributes: ['id', 'name', 'description', 'icon', 'pointValue', 'badgeImageUrl']
+              as: 'achievement'
             }]
           },
           {
@@ -874,11 +872,7 @@ const gamificationController = {
 
       const achievements = await Achievement.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'description', 'icon', 'pointValue', 'requirementType',
-          'requirementValue', 'isActive', 'badgeImageUrl', 'createdAt', 'updatedAt'],
-        order: [
-          ['name', 'ASC']
-        ]
+        order: [['name', 'ASC']]
       });
       
       return res.status(200).json({ success: true, achievements });
@@ -899,9 +893,7 @@ const gamificationController = {
     try {
       const { id } = req.params;
 
-      const achievement = await Achievement.findByPk(id, {
-        attributes: SAFE_ACHIEVEMENT_ATTRS
-      });
+      const achievement = await Achievement.findByPk(id);
 
       if (!achievement) {
         return res.status(404).json({
@@ -909,7 +901,7 @@ const gamificationController = {
           message: 'Achievement not found'
         });
       }
-      
+
       return res.status(200).json({ success: true, achievement });
     } catch (error) {
       console.error('Error getting achievement:', error);
@@ -995,9 +987,7 @@ const gamificationController = {
         badgeImageUrl
       } = req.body;
 
-      const achievement = await Achievement.findByPk(id, {
-        attributes: SAFE_ACHIEVEMENT_ATTRS
-      });
+      const achievement = await Achievement.findByPk(id);
 
       if (!achievement) {
         return res.status(404).json({
@@ -1053,10 +1043,7 @@ const gamificationController = {
     try {
       const { id } = req.params;
       
-      const achievement = await Achievement.findByPk(id, {
-        attributes: SAFE_ACHIEVEMENT_ATTRS,
-        transaction
-      });
+      const achievement = await Achievement.findByPk(id, { transaction });
 
       if (!achievement) {
         await transaction.rollback();
@@ -1123,10 +1110,7 @@ const gamificationController = {
       }
       
       // Check if achievement exists
-      const achievement = await Achievement.findByPk(achievementId, {
-        attributes: SAFE_ACHIEVEMENT_ATTRS,
-        transaction
-      });
+      const achievement = await Achievement.findByPk(achievementId, { transaction });
 
       if (!achievement) {
         await transaction.rollback();
@@ -1234,16 +1218,13 @@ const gamificationController = {
         },
         include: [{
           model: Achievement,
-          as: 'achievement',
-          attributes: SAFE_ACHIEVEMENT_ATTRS
+          as: 'achievement'
         }]
       });
 
       if (!userAchievement) {
         // Create new record with initial progress
-        const achievement = await Achievement.findByPk(achievementId, {
-          attributes: SAFE_ACHIEVEMENT_ATTRS
-        });
+        const achievement = await Achievement.findByPk(achievementId);
         
         if (!achievement) {
           return res.status(404).json({
