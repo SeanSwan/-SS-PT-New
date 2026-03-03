@@ -2403,7 +2403,7 @@ const gamificationController = {
 
   /**
    * DEBUG: Seed achievements (admin-only, temporary)
-   * Fixes id column type if needed, then seeds.
+   * Seeder now omits id field — PostgreSQL auto-generates it.
    */
   debugSeedAchievements: async (req, res) => {
     const steps = [];
@@ -2419,68 +2419,27 @@ const gamificationController = {
       }
       steps.push('Count checked: 0 achievements');
 
-      // Step 2: Check id column type
+      // Step 2: Check id column type for diagnostics
       const [idCol] = await db.query(
         `SELECT data_type, column_default FROM information_schema.columns
          WHERE table_name = 'Achievements' AND column_name = 'id' AND table_schema = 'public';`
       );
-      const idType = idCol[0]?.data_type;
-      steps.push(`id column type: ${idType}`);
+      steps.push(`id column: ${idCol[0]?.data_type} (default: ${idCol[0]?.column_default})`);
 
-      // Step 3: If id is integer, alter to UUID
-      if (idType === 'integer') {
-        steps.push('Fixing id column: INTEGER → UUID...');
-        try {
-          // Drop FK constraints from UserAchievements first
-          await db.query(`
-            DO $$ BEGIN
-              ALTER TABLE "UserAchievements" DROP CONSTRAINT IF EXISTS "UserAchievements_achievementId_fkey";
-            EXCEPTION WHEN undefined_table THEN NULL;
-            END $$;
-          `);
-          steps.push('Dropped FK constraint (if existed)');
-
-          // Drop default (serial sequence)
-          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" DROP DEFAULT;`);
-
-          // Alter column type — table is empty so no data conversion needed
-          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" TYPE UUID USING gen_random_uuid();`);
-          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();`);
-          steps.push('id column altered to UUID successfully');
-
-          // Re-add FK constraint
-          try {
-            await db.query(`
-              ALTER TABLE "UserAchievements"
-              ADD CONSTRAINT "UserAchievements_achievementId_fkey"
-              FOREIGN KEY ("achievementId") REFERENCES "Achievements"("id")
-              ON UPDATE CASCADE ON DELETE CASCADE;
-            `);
-            steps.push('FK constraint re-added');
-          } catch (fkErr) {
-            steps.push(`FK re-add skipped: ${fkErr.message.split('\n')[0]}`);
-          }
-        } catch (alterErr) {
-          steps.push(`id ALTER FAILED: ${alterErr.message}`);
-          return res.json({ success: false, steps, error: alterErr.message });
-        }
-      }
-
-      // Step 4: Verify UUID insert works
+      // Step 3: Test minimal insert (no id — let DB auto-generate)
       try {
-        const testId = '00000000-0000-0000-0000-000000000001';
         await db.query(
-          `INSERT INTO "Achievements" (id, name, description, "createdAt", "updatedAt")
-           VALUES ('${testId}', '__test__', 'Test', NOW(), NOW());`
+          `INSERT INTO "Achievements" (name, description, "createdAt", "updatedAt")
+           VALUES ('__test__', 'Test achievement seed', NOW(), NOW());`
         );
-        await db.query(`DELETE FROM "Achievements" WHERE id = '${testId}';`);
-        steps.push('Test UUID insert: SUCCESS');
+        await db.query(`DELETE FROM "Achievements" WHERE name = '__test__';`);
+        steps.push('Test insert (no id): SUCCESS');
       } catch (testErr) {
-        steps.push(`Test UUID insert FAILED: ${testErr.message}`);
+        steps.push(`Test insert FAILED: ${testErr.message}`);
         return res.json({ success: false, steps, error: testErr.message });
       }
 
-      // Step 5: Run seeder using queryInterface
+      // Step 4: Run seeder
       try {
         const { createRequire } = await import('module');
         const { fileURLToPath } = await import('url');
@@ -2489,7 +2448,6 @@ const gamificationController = {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = pathMod.default.dirname(__filename);
         const seederPath = pathMod.default.resolve(__dirname, '..', 'seeders', '20260301001000-seed-achievements.cjs');
-
         steps.push(`Seeder path: ${seederPath}`);
 
         const require = createRequire(import.meta.url);
@@ -2501,7 +2459,6 @@ const gamificationController = {
 
         const finalCount = await Achievement.count();
         steps.push(`Seeding complete: ${finalCount} achievements`);
-
         return res.json({ success: true, count: finalCount, steps });
       } catch (seederErr) {
         steps.push(`Seeder FAILED: ${seederErr.message}`);
