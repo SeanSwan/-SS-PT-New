@@ -5,8 +5,9 @@
  * Crystalline Swan Theme Toggle Component
  *
  * Features:
- * - Three-state toggle: Crystalline Default -> Light -> Dark
- * - Icons: Sparkles (default) -> Sun (light) -> Moon (dark)
+ * - Three-state toggle: Crystalline Swan -> Arctic Dawn -> Void Crystal
+ * - Icons: Sparkles (default) -> Sun (light) -> Zap (dark/neon)
+ * - Per-theme styling: glass glow for dark themes, clean solid for light
  * - Smooth morphing animations between states
  * - Mobile-optimized touch interactions (44px minimum target)
  * - WCAG AA accessibility compliance
@@ -16,7 +17,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Moon } from 'lucide-react';
+import { Sparkles, Sun, Zap } from 'lucide-react';
 import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
@@ -50,84 +51,132 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
   position: relative;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  border: 2px solid transparent;
+  border-radius: ${({ $currentTheme }) =>
+    $currentTheme === 'crystalline-light' ? '12px' : '50%'
+  };
+  border: ${({ $currentTheme }) => {
+    switch ($currentTheme) {
+      case 'crystalline-default':
+        return '2px solid rgba(96, 192, 240, 0.3)';
+      case 'crystalline-light':
+        return '2px solid #E2E8F0';
+      case 'crystalline-dark':
+        return '2px solid rgba(34, 211, 238, 0.4)';
+      default:
+        return '2px solid transparent';
+    }
+  }};
   background: ${({ $currentTheme }) => {
     switch ($currentTheme) {
       case 'crystalline-default':
-        return 'linear-gradient(135deg, #002060, #60C0F0)';
+        return 'linear-gradient(135deg, #001545, #60C0F0)';
       case 'crystalline-light':
-        return 'linear-gradient(135deg, #50A0F0, #F5F8FC)';
+        return '#FFFFFF';
       case 'crystalline-dark':
-        return 'linear-gradient(135deg, #000A1A, #4070C0)';
+        return 'linear-gradient(135deg, #030712, #22D3EE)';
       default:
-        return 'linear-gradient(135deg, #002060, #60C0F0)';
+        return 'linear-gradient(135deg, #001545, #60C0F0)';
     }
   }};
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  color: ${({ $currentTheme }) =>
-    $currentTheme === 'crystalline-light' ? '#002060' : '#E0ECF4'
+  overflow: ${({ $currentTheme }) =>
+    $currentTheme === 'crystalline-light' ? 'visible' : 'hidden'
   };
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: ${({ $currentTheme }) => {
+    switch ($currentTheme) {
+      case 'crystalline-default':
+        return '#E0ECF4';
+      case 'crystalline-light':
+        return '#2563EB';
+      case 'crystalline-dark':
+        return '#22D3EE';
+      default:
+        return '#E0ECF4';
+    }
+  }};
 
-  /* Crystalline glow effect */
+  /* Per-theme effects */
   box-shadow: ${({ $currentTheme }) => {
     switch ($currentTheme) {
       case 'crystalline-default':
-        return '0 0 20px rgba(96, 192, 240, 0.4), 0 0 40px rgba(0, 32, 96, 0.2)';
+        return '0 0 20px rgba(96, 192, 240, 0.4), 0 0 40px rgba(0, 21, 69, 0.2)';
       case 'crystalline-light':
-        return '0 0 20px rgba(80, 160, 240, 0.3), 0 0 40px rgba(198, 168, 75, 0.15)';
+        return '0 2px 8px rgba(0, 32, 96, 0.1)';
       case 'crystalline-dark':
-        return '0 0 20px rgba(96, 192, 240, 0.5), 0 0 40px rgba(64, 112, 192, 0.3)';
+        return '0 0 25px rgba(34, 211, 238, 0.5), 0 0 50px rgba(167, 139, 250, 0.2)';
       default:
         return '0 0 20px rgba(96, 192, 240, 0.4)';
     }
   }};
 
-  /* Orbiting particle — gold accent */
+  /* Orbiting particle — only on dark themes */
   &::before {
     content: '';
     position: absolute;
     width: 4px;
     height: 4px;
-    background: ${({ $currentTheme }) =>
-      $currentTheme === 'crystalline-light' ? '#C6A84B' : '#C6A84B'
-    };
+    background: ${({ $currentTheme }) => {
+      switch ($currentTheme) {
+        case 'crystalline-default':
+          return '#C6A84B';
+        case 'crystalline-light':
+          return 'transparent';
+        case 'crystalline-dark':
+          return '#F59E0B';
+        default:
+          return '#C6A84B';
+      }
+    }};
     border-radius: 50%;
     animation: ${orbitingParticles} 3s linear infinite;
-    opacity: 0.8;
+    opacity: ${({ $currentTheme }) =>
+      $currentTheme === 'crystalline-light' ? '0' : '0.8'
+    };
   }
 
-  /* Orbiting particle — ice accent */
+  /* Orbiting particle — accent color per theme */
   &::after {
     content: '';
     position: absolute;
     width: 3px;
     height: 3px;
-    background: ${({ $currentTheme }) =>
-      $currentTheme === 'crystalline-light' ? '#4070C0' : '#60C0F0'
-    };
+    background: ${({ $currentTheme }) => {
+      switch ($currentTheme) {
+        case 'crystalline-default':
+          return '#60C0F0';
+        case 'crystalline-light':
+          return 'transparent';
+        case 'crystalline-dark':
+          return '#A78BFA';
+        default:
+          return '#60C0F0';
+      }
+    }};
     border-radius: 50%;
     animation: ${orbitingParticles} 4s linear infinite reverse;
     animation-delay: -1s;
-    opacity: 0.6;
+    opacity: ${({ $currentTheme }) =>
+      $currentTheme === 'crystalline-light' ? '0' : '0.6'
+    };
   }
 
   &:hover {
     transform: scale(1.1);
-    animation: ${stellarPulse} 2s ease-in-out infinite;
+    animation: ${({ $currentTheme }) =>
+      $currentTheme === 'crystalline-light' ? 'none' : stellarPulse
+    } 2s ease-in-out infinite;
     box-shadow: ${({ $currentTheme }) => {
       switch ($currentTheme) {
         case 'crystalline-default':
           return '0 0 30px rgba(96, 192, 240, 0.6), 0 0 60px rgba(198, 168, 75, 0.2)';
         case 'crystalline-light':
-          return '0 0 30px rgba(80, 160, 240, 0.5), 0 0 60px rgba(198, 168, 75, 0.2)';
+          return '0 4px 16px rgba(37, 99, 235, 0.2)';
         case 'crystalline-dark':
-          return '0 0 30px rgba(96, 192, 240, 0.7), 0 0 60px rgba(64, 112, 192, 0.4)';
+          return '0 0 35px rgba(34, 211, 238, 0.7), 0 0 70px rgba(167, 139, 250, 0.3)';
         default:
           return '0 0 30px rgba(96, 192, 240, 0.6)';
       }
@@ -135,7 +184,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
   }
 
   &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors?.accent || '#C6A84B'};
+    outline: 2px solid ${({ $currentTheme }) => {
+      switch ($currentTheme) {
+        case 'crystalline-default':
+          return '#C6A84B';
+        case 'crystalline-light':
+          return '#2563EB';
+        case 'crystalline-dark':
+          return '#F59E0B';
+        default:
+          return '#C6A84B';
+      }
+    }};
     outline-offset: 3px;
   }
 
@@ -164,8 +224,16 @@ const TooltipContainer = styled(motion.div)`
   bottom: -45px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 10, 26, 0.95);
-  color: #E0ECF4;
+  background: ${({ theme }) =>
+    theme.id === 'crystalline-light'
+      ? '#FFFFFF'
+      : theme.id === 'crystalline-dark'
+        ? 'rgba(3, 7, 18, 0.95)'
+        : 'rgba(0, 21, 69, 0.95)'
+  };
+  color: ${({ theme }) =>
+    theme.id === 'crystalline-light' ? '#0F172A' : '#F1F5F9'
+  };
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.75rem;
@@ -173,8 +241,23 @@ const TooltipContainer = styled(motion.div)`
   white-space: nowrap;
   pointer-events: none;
   z-index: 1000;
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  backdrop-filter: blur(10px);
+  border: ${({ theme }) =>
+    theme.id === 'crystalline-light'
+      ? '1px solid #E2E8F0'
+      : theme.id === 'crystalline-dark'
+        ? '1px solid rgba(34, 211, 238, 0.2)'
+        : '1px solid rgba(96, 192, 240, 0.18)'
+  };
+  backdrop-filter: ${({ theme }) =>
+    theme.id === 'crystalline-light' ? 'none' : 'blur(10px)'
+  };
+  box-shadow: ${({ theme }) =>
+    theme.id === 'crystalline-light'
+      ? '0 2px 8px rgba(0, 32, 96, 0.1)'
+      : theme.id === 'crystalline-dark'
+        ? '0 4px 16px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 211, 238, 0.1)'
+        : '0 4px 16px rgba(0, 0, 0, 0.4)'
+  };
 
   &::before {
     content: '';
@@ -186,7 +269,13 @@ const TooltipContainer = styled(motion.div)`
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-bottom: 6px solid rgba(0, 10, 26, 0.95);
+    border-bottom: 6px solid ${({ theme }) =>
+      theme.id === 'crystalline-light'
+        ? '#FFFFFF'
+        : theme.id === 'crystalline-dark'
+          ? 'rgba(3, 7, 18, 0.95)'
+          : 'rgba(0, 21, 69, 0.95)'
+    };
   }
 `;
 
@@ -198,7 +287,7 @@ const getThemeIcon = (themeId: ThemeId, size = 20) => {
     case 'crystalline-light':
       return <Sun size={size} />;
     case 'crystalline-dark':
-      return <Moon size={size} />;
+      return <Zap size={size} />;
     default:
       return <Sparkles size={size} />;
   }
@@ -209,9 +298,9 @@ const getThemeDescription = (themeId: ThemeId) => {
     case 'crystalline-default':
       return 'Crystalline Swan';
     case 'crystalline-light':
-      return 'Crystalline Light';
+      return 'Arctic Dawn';
     case 'crystalline-dark':
-      return 'Crystalline Dark';
+      return 'Void Crystal';
     default:
       return 'Crystalline Swan';
   }

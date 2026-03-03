@@ -29,6 +29,8 @@ export interface UserProfile {
   emailNotifications?: boolean;
   smsNotifications?: boolean;
   preferences?: string;
+  bannerPhoto?: string;
+  bio?: string;
   points?: number;
   level?: number;
   tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
@@ -199,6 +201,38 @@ class ProfileService {
     } catch (error: any) {
       console.error('ProfileService: Error uploading profile photo:', error);
       throw new Error(error.response?.data?.message || 'Failed to upload profile photo');
+    }
+  }
+
+  /**
+   * Upload banner/cover photo
+   */
+  async uploadBannerPhoto(file: File): Promise<{ bannerPhoto: string; user: UserProfile }> {
+    try {
+      const formData = new FormData();
+      formData.append('bannerPhoto', file);
+
+      const response: AxiosResponse = await productionApiService.post(
+        '/api/profile/upload-banner-photo',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return {
+          bannerPhoto: response.data.data?.bannerPhoto || response.data.bannerPhoto,
+          user: response.data.user || response.data.data?.user,
+        };
+      } else {
+        throw new Error(response.data.message || 'Failed to upload banner photo');
+      }
+    } catch (error: any) {
+      console.error('ProfileService: Error uploading banner photo:', error);
+      throw new Error(error.response?.data?.message || 'Failed to upload banner photo');
     }
   }
 

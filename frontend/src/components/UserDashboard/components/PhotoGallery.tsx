@@ -8,7 +8,7 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Plus,
   Upload,
   Image as ImageIcon,
@@ -20,6 +20,8 @@ import {
   Search,
   X
 } from 'lucide-react';
+import { useProfile } from '../../../hooks/profile/useProfile';
+import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 
 // Professional styled components
 const GalleryContainer = styled(motion.div)`
@@ -379,103 +381,84 @@ const CloseButton = styled(motion.button)`
   }
 `;
 
-// Mock photo data
-const mockPhotos = [
-  {
-    id: 1,
-    title: 'Morning Workout Session',
-    image: 'https://picsum.photos/400/400?random=1',
-    category: 'fitness',
-    views: 234,
-    likes: 45,
-    createdAt: '2 days ago'
-  },
-  {
-    id: 2,
-    title: 'Healthy Meal Prep',
-    image: 'https://picsum.photos/400/400?random=2',
-    category: 'nutrition',
-    views: 567,
-    likes: 89,
-    createdAt: '3 days ago'
-  },
-  {
-    id: 3,
-    title: 'Dance Studio Vibes',
-    image: 'https://picsum.photos/400/400?random=3',
-    category: 'dance',
-    views: 432,
-    likes: 67,
-    createdAt: '5 days ago'
-  },
-  {
-    id: 4,
-    title: 'Outdoor Yoga Flow',
-    image: 'https://picsum.photos/400/400?random=4',
-    category: 'fitness',
-    views: 345,
-    likes: 78,
-    createdAt: '1 week ago'
-  },
-  {
-    id: 5,
-    title: 'Progress Photo',
-    image: 'https://picsum.photos/400/400?random=5',
-    category: 'progress',
-    views: 123,
-    likes: 34,
-    createdAt: '1 week ago'
-  },
-  {
-    id: 6,
-    title: 'Team Workout',
-    image: 'https://picsum.photos/400/400?random=6',
-    category: 'community',
-    views: 678,
-    likes: 123,
-    createdAt: '2 weeks ago'
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 3rem 2rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
+
+  h3 {
+    margin: 1rem 0 0.5rem;
+    color: ${({ theme }) => theme.text?.primary || 'white'};
+    font-weight: 600;
   }
-];
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+`;
+
+// Photos are now loaded from useProfile hook
 
 const categories = ['All', 'Fitness', 'Nutrition', 'Dance', 'Progress', 'Community'];
+
+interface PhotoItem {
+  id: string;
+  url: string;
+  title: string;
+  likes: number;
+  comments: number;
+  createdAt: string;
+}
 
 const PhotoGallery: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [photos, setPhotos] = useState(mockPhotos);
-  const [selectedPhoto, setSelectedPhoto] = useState<typeof mockPhotos[0] | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { posts } = useProfile();
+  const { createPost } = useSocialFeed();
+
+  const photos = React.useMemo(() => {
+    if (!posts || posts.length === 0) return [];
+    return posts
+      .filter(post => post.mediaUrl && !post.mediaUrl.match(/\.(mp4|webm|mov)$/i))
+      .map(post => ({
+        id: post.id,
+        url: post.mediaUrl!,
+        title: post.content?.substring(0, 30) || 'Photo',
+        likes: post.likesCount || 0,
+        comments: post.commentsCount || 0,
+        createdAt: post.createdAt,
+      }));
+  }, [posts]);
 
   const filteredPhotos = photos.filter(photo => {
-    const matchesCategory = activeCategory === 'All' || 
-      photo.category.toLowerCase() === activeCategory.toLowerCase();
     const matchesSearch = photo.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesSearch;
   });
 
   const handleUpload = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Create a new photo object
-      const newPhoto = {
-        id: Date.now(),
-        title: 'New Upload',
-        image: URL.createObjectURL(file),
-        category: 'fitness',
-        views: 0,
-        likes: 0,
-        createdAt: 'Just now'
-      };
-      
-      setPhotos(prev => [newPhoto, ...prev]);
+  const handlePhotoUpload = async (file: File) => {
+    try {
+      await createPost({ content: 'Shared a photo', type: 'general' });
+    } catch (err) {
+      console.error('Error uploading photo:', err);
     }
   };
 
-  const handlePhotoClick = (photo: typeof mockPhotos[0]) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handlePhotoUpload(file);
+    }
+  };
+
+  const handlePhotoClick = (photo: PhotoItem) => {
     setSelectedPhoto(photo);
   };
 
@@ -483,12 +466,15 @@ const PhotoGallery: React.FC = () => {
     setSelectedPhoto(null);
   };
 
-  const handleLike = (photoId: number) => {
-    setPhotos(prev => prev.map(photo => 
-      photo.id === photoId 
-        ? { ...photo, likes: photo.likes + 1 }
-        : photo
-    ));
+  const handleShare = async (photoUrl: string) => {
+    const shareData = { title: 'Check out this photo on SwanStudios', url: photoUrl };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch { /* cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(photoUrl);
+      } catch { /* fallback */ }
+    }
   };
 
   return (
@@ -534,71 +520,79 @@ const PhotoGallery: React.FC = () => {
           ))}
         </SearchAndFilterContainer>
 
-        <PhotoGrid>
-          <UploadCard
-            onClick={handleUpload}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <UploadIcon>
-              <Plus size={24} />
-            </UploadIcon>
-            <UploadText>Add Photo</UploadText>
-            <UploadSubtext>
-              Share your fitness journey
-            </UploadSubtext>
-          </UploadCard>
+        {filteredPhotos.length === 0 && searchTerm === '' ? (
+          <EmptyState>
+            <ImageIcon size={48} />
+            <h3>No photos yet</h3>
+            <p>Upload photos or share moments with the community</p>
+          </EmptyState>
+        ) : (
+          <PhotoGrid>
+            <UploadCard
+              onClick={handleUpload}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <UploadIcon>
+                <Plus size={24} />
+              </UploadIcon>
+              <UploadText>Add Photo</UploadText>
+              <UploadSubtext>
+                Share your fitness journey
+              </UploadSubtext>
+            </UploadCard>
 
-          <AnimatePresence>
-            {filteredPhotos.map((photo, index) => (
-              <PhotoCard
-                key={photo.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                onClick={() => handlePhotoClick(photo)}
-              >
-                <PhotoImage $image={photo.image} />
-                
-                <PhotoActions>
-                  <ActionButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLike(photo.id);
-                    }}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <Heart size={16} />
-                  </ActionButton>
-                  <ActionButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('Share photo:', photo.id);
-                    }}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <Share2 size={16} />
-                  </ActionButton>
-                </PhotoActions>
-                
-                <PhotoOverlay>
-                  <PhotoTitle>{photo.title}</PhotoTitle>
-                  <PhotoStats>
-                    <StatItem>
-                      <Eye size={16} />
-                      {photo.views}
-                    </StatItem>
-                    <StatItem>
+            <AnimatePresence>
+              {filteredPhotos.map((photo, index) => (
+                <PhotoCard
+                  key={photo.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  onClick={() => handlePhotoClick(photo)}
+                >
+                  <PhotoImage $image={photo.url} />
+
+                  <PhotoActions>
+                    <ActionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Like handled via social feed
+                      }}
+                      whileHover={{ scale: 1.1 }}
+                    >
                       <Heart size={16} />
-                      {photo.likes}
-                    </StatItem>
-                  </PhotoStats>
-                </PhotoOverlay>
-              </PhotoCard>
-            ))}
-          </AnimatePresence>
-        </PhotoGrid>
+                    </ActionButton>
+                    <ActionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(photo.url);
+                      }}
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      <Share2 size={16} />
+                    </ActionButton>
+                  </PhotoActions>
+
+                  <PhotoOverlay>
+                    <PhotoTitle>{photo.title}</PhotoTitle>
+                    <PhotoStats>
+                      <StatItem>
+                        <Heart size={16} />
+                        {photo.likes}
+                      </StatItem>
+                      <StatItem>
+                        <Eye size={16} />
+                        {photo.comments}
+                      </StatItem>
+                    </PhotoStats>
+                  </PhotoOverlay>
+                </PhotoCard>
+              ))}
+            </AnimatePresence>
+          </PhotoGrid>
+        )}
 
         <HiddenInput
           ref={fileInputRef}
@@ -618,7 +612,7 @@ const PhotoGallery: React.FC = () => {
             onClick={handleCloseModal}
           >
             <ModalImage
-              src={selectedPhoto.image}
+              src={selectedPhoto.url}
               alt={selectedPhoto.title}
               onClick={(e) => e.stopPropagation()}
             />

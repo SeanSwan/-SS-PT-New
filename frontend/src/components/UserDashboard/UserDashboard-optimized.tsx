@@ -37,6 +37,7 @@ import {
   Plus
 } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import { useProfile } from '../../hooks/profile/useProfile';
@@ -47,6 +48,7 @@ const CreativeGallery = lazy(() => import('./components/CreativeGallery'));
 const PhotoGallery = lazy(() => import('./components/PhotoGallery'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
 const ActivitySection = lazy(() => import('./components/ActivitySection'));
+const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
 // Professional-grade animations with performance consideration
 const slideInUp = keyframes`
@@ -353,67 +355,56 @@ const ProfileImage = styled.div<{ $image?: string }>`
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 5px solid transparent;
-  background: ${({ $image, theme }) => 
-    $image 
-      ? `linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'}) padding-box, url(${$image}) border-box` 
-      : `linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'}) padding-box, 
-         linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) border-box`
-  };
-  background-size: cover, cover;
-  background-position: center, center;
-  background-origin: border-box, padding-box;
-  background-clip: padding-box, border-box;
   position: relative;
   overflow: hidden;
-  box-shadow: 
+  z-index: 2;
+  box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.1),
     0 8px 32px rgba(0, 0, 0, 0.4),
     0 4px 16px rgba(0, 0, 0, 0.2),
     inset 0 2px 4px rgba(255, 255, 255, 0.1);
   animation: ${subtleGlow} 6s ease-in-out infinite;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 3.5rem;
-  font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  letter-spacing: 0.05em;
-  z-index: 2;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  /* Professional hover effect */
+
+  ${({ $image, theme }) => $image
+    ? css`
+      background: url(${$image});
+      background-size: cover;
+      background-position: center;
+      border: 4px solid ${theme.background?.primary || '#0a0a1a'};
+    `
+    : css`
+      background: linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'});
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 3.5rem;
+      font-weight: 700;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      letter-spacing: 0.05em;
+      border: 5px solid transparent;
+    `
+  }
+
   &:hover {
     transform: scale(1.05);
-    box-shadow: 
+    box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.2),
       0 12px 40px rgba(0, 0, 0, 0.5),
       0 6px 20px rgba(0, 0, 0, 0.3),
       inset 0 2px 4px rgba(255, 255, 255, 0.2);
   }
-  
-  /* Fallback for browsers that don't support complex backgrounds */
-  ${({ $image, theme }) => !$image && css`
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    border: 5px solid ${theme.colors?.primary || '#3B82F6'};
-  `}
-  
+
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    
-    &:hover {
-      transform: none;
-    }
+    &:hover { transform: none; }
   }
 
   @media (max-width: 768px) {
     font-size: 2.5rem;
     border-width: 3px;
-    
-    &:hover {
-      transform: none;
-    }
+    &:hover { transform: none; }
   }
 `;
 
@@ -1071,15 +1062,27 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
     isLoading,
     error,
     uploadProfilePhoto,
+    uploadBannerPhoto,
+    updateProfile,
     getDisplayName,
     getUsernameForDisplay,
     getUserInitials
   } = useProfile();
+
+  const navigate = useNavigate();
   
   // Local state
   const [activeTab, setActiveTab] = useState('feed');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Load banner image from profile data
+  React.useEffect(() => {
+    if (profile?.bannerPhoto) {
+      setBackgroundImage(profile.bannerPhoto);
+    }
+  }, [profile?.bannerPhoto]);
+
   // Refs for file uploads
   const profileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
@@ -1097,19 +1100,27 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
   // File upload handlers
   const handleFileUpload = useCallback(async (file: File, type: 'profile' | 'background') => {
     if (!file || !file.type.startsWith('image/')) return;
-    
+
     try {
       if (type === 'profile') {
         await uploadProfilePhoto(file);
       } else {
-        // Handle background upload here
-        const url = URL.createObjectURL(file);
-        setBackgroundImage(url);
+        // Show optimistic preview immediately
+        const previewUrl = URL.createObjectURL(file);
+        setBackgroundImage(previewUrl);
+        // Upload to backend
+        await uploadBannerPhoto(file);
+        // Revoke blob URL after upload
+        URL.revokeObjectURL(previewUrl);
       }
     } catch (error) {
       console.error('Upload error:', error);
+      // Revert optimistic update on error
+      if (type === 'background') {
+        setBackgroundImage(profile?.bannerPhoto || null);
+      }
     }
-  }, [uploadProfilePhoto]);
+  }, [uploadProfilePhoto, uploadBannerPhoto, profile?.bannerPhoto]);
   
   const handleProfileImageClick = useCallback(() => {
     profileInputRef.current?.click();
@@ -1128,16 +1139,31 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
   
   // Action handlers
   const handleEditProfile = useCallback(() => {
-    console.log('Edit Profile clicked');
+    setShowEditModal(true);
   }, []);
-  
+
   const handleSettings = useCallback(() => {
-    console.log('Settings clicked');
-  }, []);
-  
-  const handleShare = useCallback(() => {
-    console.log('Share clicked');
-  }, []);
+    navigate('/dashboard/profile');
+  }, [navigate]);
+
+  const handleShare = useCallback(async () => {
+    const shareUrl = `${window.location.origin}/user-dashboard`;
+    const shareData = {
+      title: `${getDisplayName()} on SwanStudios`,
+      url: shareUrl
+    };
+
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch { /* user cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Profile link copied to clipboard!');
+      } catch {
+        // Fallback
+      }
+    }
+  }, [getDisplayName]);
   
   // Loading state
   if (isLoading && !profile) {
@@ -1372,6 +1398,20 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             accept="image/*"
             onChange={(e) => handleFileChange(e, 'background')}
           />
+
+          {/* Edit Profile Modal */}
+          {showEditModal && (
+            <Suspense fallback={null}>
+              <EditProfileModal
+                profile={profile}
+                onClose={() => setShowEditModal(false)}
+                onSave={async (data) => {
+                  await updateProfile(data);
+                  setShowEditModal(false);
+                }}
+              />
+            </Suspense>
+          )}
         </ContentWrapper>
       </ProfileContainer>
     </ErrorBoundary>
