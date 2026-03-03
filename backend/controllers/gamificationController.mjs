@@ -2403,9 +2403,10 @@ const gamificationController = {
 
   /**
    * DEBUG: Seed achievements (admin-only, temporary)
-   * Returns actual error if seeding fails.
+   * Fixes id column type if needed, then seeds.
    */
   debugSeedAchievements: async (req, res) => {
+    const steps = [];
     try {
       // Step 1: Check current count
       const currentCount = await Achievement.count();
@@ -2416,76 +2417,104 @@ const gamificationController = {
           count: currentCount
         });
       }
+      steps.push('Count checked: 0 achievements');
 
-      // Step 2: Check table columns
-      const [columns] = await db.query(
-        `SELECT column_name, data_type, is_nullable, column_default
-         FROM information_schema.columns
-         WHERE table_name = 'Achievements' AND table_schema = 'public'
-         ORDER BY ordinal_position;`
+      // Step 2: Check id column type
+      const [idCol] = await db.query(
+        `SELECT data_type, column_default FROM information_schema.columns
+         WHERE table_name = 'Achievements' AND column_name = 'id' AND table_schema = 'public';`
       );
+      const idType = idCol[0]?.data_type;
+      steps.push(`id column type: ${idType}`);
 
-      // Step 3: Check if requirementType is nullable
-      const reqTypeCol = columns.find(c => c.column_name === 'requirementType');
+      // Step 3: If id is integer, alter to UUID
+      if (idType === 'integer') {
+        steps.push('Fixing id column: INTEGER → UUID...');
+        try {
+          // Drop FK constraints from UserAchievements first
+          await db.query(`
+            DO $$ BEGIN
+              ALTER TABLE "UserAchievements" DROP CONSTRAINT IF EXISTS "UserAchievements_achievementId_fkey";
+            EXCEPTION WHEN undefined_table THEN NULL;
+            END $$;
+          `);
+          steps.push('Dropped FK constraint (if existed)');
 
-      // Step 4: Try to insert a single test row
-      let testInsertResult = null;
+          // Drop default (serial sequence)
+          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" DROP DEFAULT;`);
+
+          // Alter column type — table is empty so no data conversion needed
+          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" TYPE UUID USING gen_random_uuid();`);
+          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();`);
+          steps.push('id column altered to UUID successfully');
+
+          // Re-add FK constraint
+          try {
+            await db.query(`
+              ALTER TABLE "UserAchievements"
+              ADD CONSTRAINT "UserAchievements_achievementId_fkey"
+              FOREIGN KEY ("achievementId") REFERENCES "Achievements"("id")
+              ON UPDATE CASCADE ON DELETE CASCADE;
+            `);
+            steps.push('FK constraint re-added');
+          } catch (fkErr) {
+            steps.push(`FK re-add skipped: ${fkErr.message.split('\n')[0]}`);
+          }
+        } catch (alterErr) {
+          steps.push(`id ALTER FAILED: ${alterErr.message}`);
+          return res.json({ success: false, steps, error: alterErr.message });
+        }
+      }
+
+      // Step 4: Verify UUID insert works
       try {
         const testId = '00000000-0000-0000-0000-000000000001';
         await db.query(
           `INSERT INTO "Achievements" (id, name, description, "createdAt", "updatedAt")
-           VALUES ('${testId}', '__test_seed__', 'Test achievement seed', NOW(), NOW())
-           ON CONFLICT (id) DO NOTHING;`
+           VALUES ('${testId}', '__test__', 'Test', NOW(), NOW());`
         );
-        // Clean up test row
         await db.query(`DELETE FROM "Achievements" WHERE id = '${testId}';`);
-        testInsertResult = 'SUCCESS — minimal insert works';
+        steps.push('Test UUID insert: SUCCESS');
       } catch (testErr) {
-        testInsertResult = `FAILED: ${testErr.message}`;
+        steps.push(`Test UUID insert FAILED: ${testErr.message}`);
+        return res.json({ success: false, steps, error: testErr.message });
       }
 
-      // Step 5: Try the actual seeder
-      let seederResult = null;
+      // Step 5: Run seeder using queryInterface
       try {
-        const path = await import('path');
         const { createRequire } = await import('module');
-        const require = createRequire(import.meta.url);
-        const seederPath = path.default.resolve(
-          import.meta.url.replace('file:///', '').replace(/\/[^/]+$/, ''),
-          '..', 'seeders', '20260301001000-seed-achievements.cjs'
-        );
+        const { fileURLToPath } = await import('url');
+        const pathMod = await import('path');
 
-        // Use queryInterface from db
-        const queryInterface = db.getQueryInterface();
-        const Sequelize = (await import('sequelize')).default || await import('sequelize');
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = pathMod.default.dirname(__filename);
+        const seederPath = pathMod.default.resolve(__dirname, '..', 'seeders', '20260301001000-seed-achievements.cjs');
+
+        steps.push(`Seeder path: ${seederPath}`);
+
+        const require = createRequire(import.meta.url);
         const seeder = require(seederPath);
-        await seeder.up(queryInterface, Sequelize);
+
+        const queryInterface = db.getQueryInterface();
+        const SequelizeMod = await import('sequelize');
+        await seeder.up(queryInterface, SequelizeMod.default || SequelizeMod);
 
         const finalCount = await Achievement.count();
-        seederResult = `SUCCESS — ${finalCount} achievements seeded`;
+        steps.push(`Seeding complete: ${finalCount} achievements`);
+
+        return res.json({ success: true, count: finalCount, steps });
       } catch (seederErr) {
-        seederResult = `FAILED: ${seederErr.message}\n${seederErr.stack?.split('\n').slice(0, 5).join('\n')}`;
+        steps.push(`Seeder FAILED: ${seederErr.message}`);
+        steps.push(seederErr.stack?.split('\n').slice(1, 4).join('\n'));
+        return res.json({ success: false, steps, error: seederErr.message });
       }
 
-      const finalCount = await Achievement.count();
-
-      return res.json({
-        success: finalCount > 0,
-        count: finalCount,
-        diagnostics: {
-          columnCount: columns.length,
-          requirementType: reqTypeCol || 'NOT FOUND',
-          testInsert: testInsertResult,
-          seederResult,
-          columnNames: columns.map(c => c.column_name)
-        }
-      });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: 'Debug seed failed',
+        steps,
         error: error.message,
-        stack: error.stack?.split('\n').slice(0, 8).join('\n')
+        stack: error.stack?.split('\n').slice(0, 5).join('\n')
       });
     }
   }
