@@ -132,7 +132,7 @@ const progressController = {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
           'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
-          'totalExercises', 'badgesPrimary', 'createdAt'
+          'totalExercises', 'createdAt'
         ],
       });
 
@@ -428,7 +428,7 @@ const progressController = {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
           'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
-          'totalExercises', 'badgesPrimary'
+          'totalExercises'
         ],
         include: includeClause,
         order: orderBy,

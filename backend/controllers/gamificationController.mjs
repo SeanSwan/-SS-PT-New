@@ -1059,15 +1059,6 @@ const gamificationController = {
         transaction
       });
       
-      // Update any users with this badge as primary
-      await User.update(
-        { badgesPrimary: null },
-        { 
-          where: { badgesPrimary: id },
-          transaction
-        }
-      );
-      
       // Delete the achievement
       await achievement.destroy({ transaction });
       
