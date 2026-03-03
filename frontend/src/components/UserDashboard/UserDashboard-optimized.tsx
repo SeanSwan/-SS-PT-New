@@ -278,13 +278,13 @@ const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
 
 const ProfileImageSection = styled.div`
   position: absolute;
-  bottom: -70px;
+  top: 230px;  /* 320px cover height - 90px (half of 180px avatar) = center on cover boundary */
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  
+
   @media (max-width: 768px) {
-    bottom: -60px;
+    top: 150px;  /* 220px cover height - 70px (half of 140px avatar) = center on cover boundary */
   }
 `;
 
