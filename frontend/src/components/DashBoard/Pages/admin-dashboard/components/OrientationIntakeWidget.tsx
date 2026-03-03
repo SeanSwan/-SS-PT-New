@@ -144,6 +144,17 @@ const Empty = styled.div`
   padding: 14px 0;
 `;
 
+const AlertStrip = styled.div`
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  font-size: 0.78rem;
+  font-weight: 600;
+`;
+
 const OrientationIntakeWidget: React.FC = () => {
   const navigate = useNavigate();
   const { authAxios } = useAuth();
@@ -214,6 +225,12 @@ const OrientationIntakeWidget: React.FC = () => {
           </Button>
         </ActionRow>
       </HeaderRow>
+
+      {items.length > 0 && (
+        <AlertStrip>
+          {items.length} pending orientation submission{items.length === 1 ? '' : 's'} awaiting admin review and account linking.
+        </AlertStrip>
+      )}
 
       {items.length === 0 ? (
         <Empty>{loading ? 'Loading orientation queue...' : 'No pending orientation submissions.'}</Empty>

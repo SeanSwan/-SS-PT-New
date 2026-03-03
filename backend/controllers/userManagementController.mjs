@@ -513,6 +513,7 @@ export const updateUser = async (req, res) => {
       email,
       role,
       isActive,
+      photo,
       fitnessGoal,
       trainingExperience,
       availableSessions,
@@ -540,6 +541,7 @@ export const updateUser = async (req, res) => {
     if (email !== undefined) updateData.email = email;
     if (role !== undefined) updateData.role = role;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (photo !== undefined) updateData.photo = photo;
     
     // Add role-specific fields based on the new role
     if (role === 'client' || user.role === 'client') {
