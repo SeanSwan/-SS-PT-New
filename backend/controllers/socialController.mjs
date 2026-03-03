@@ -180,7 +180,7 @@ const socialController = {
           as: 'follower',
           attributes: [
             'id', 'firstName', 'lastName', 'username', 'photo',
-            'points', 'level', 'tier', 'badgesPrimary'
+            'points', 'level', 'tier'
           ],
           include: []
         }],
@@ -235,7 +235,7 @@ const socialController = {
           as: 'followedUser',
           attributes: [
             'id', 'firstName', 'lastName', 'username', 'photo',
-            'points', 'level', 'tier', 'badgesPrimary'
+            'points', 'level', 'tier'
           ],
           include: []
         }],
@@ -500,7 +500,7 @@ const socialController = {
         where: whereClause,
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
-          'points', 'level', 'tier', 'badgesPrimary', 'streakDays',
+          'points', 'level', 'tier', 'streakDays',
           'totalWorkouts', 'createdAt'
         ],
         include: includeClause,
