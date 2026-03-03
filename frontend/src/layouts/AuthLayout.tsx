@@ -16,7 +16,7 @@ const AuthLayoutContainer = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: var(--bg-base);
   overflow: hidden;
   max-height: 100vh;
   position: relative;
