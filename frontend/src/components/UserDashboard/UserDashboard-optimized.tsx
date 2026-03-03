@@ -154,7 +154,7 @@ const ContentWrapper = styled.div`
 const ProfileHeader = styled(motion.div)`
   position: relative;
   border-radius: 24px;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 3rem;
   background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
   backdrop-filter: blur(24px);
@@ -186,8 +186,9 @@ const ProfileHeader = styled(motion.div)`
 const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   height: 320px;
   position: relative;
-  background: ${({ $backgroundImage, theme }) => 
-    $backgroundImage 
+  border-radius: 24px 24px 0 0;
+  background: ${({ $backgroundImage, theme }) =>
+    $backgroundImage
       ? `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%), url(${$backgroundImage})`
       : theme.gradients?.hero || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
   };
