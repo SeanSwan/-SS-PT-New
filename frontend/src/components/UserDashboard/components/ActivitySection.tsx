@@ -210,12 +210,12 @@ const ActivityContent = styled.div`
   margin-left: 60px;
 `;
 
-const ActivityHeader = styled.div`
+const ActivityItemHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 0.25rem;
@@ -505,10 +505,10 @@ const ActivitySection: React.FC = () => {
                   </ActivityIcon>
                   
                   <ActivityContent>
-                    <ActivityHeader>
+                    <ActivityItemHeader>
                       <ActivityItemTitle>{activity.title}</ActivityItemTitle>
                       <ActivityTime>{activity.time}</ActivityTime>
-                    </ActivityHeader>
+                    </ActivityItemHeader>
                     
                     <ActivityDescription>{activity.description}</ActivityDescription>
                     
