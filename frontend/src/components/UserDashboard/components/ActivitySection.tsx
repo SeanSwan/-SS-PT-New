@@ -222,7 +222,7 @@ const ActivityHeader = styled.div`
   }
 `;
 
-const ActivityTitle = styled.h4`
+const ActivityItemTitle = styled.h4`
   color: ${({ theme }) => theme.text?.primary || 'white'};
   font-size: 1rem;
   font-weight: 600;
@@ -506,7 +506,7 @@ const ActivitySection: React.FC = () => {
                   
                   <ActivityContent>
                     <ActivityHeader>
-                      <ActivityTitle>{activity.title}</ActivityTitle>
+                      <ActivityItemTitle>{activity.title}</ActivityItemTitle>
                       <ActivityTime>{activity.time}</ActivityTime>
                     </ActivityHeader>
                     

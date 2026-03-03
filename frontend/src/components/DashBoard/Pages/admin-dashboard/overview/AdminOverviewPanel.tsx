@@ -3,6 +3,7 @@ import { DollarSign, Users, Dumbbell, Monitor, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
 import ContactNotifications from '../components/ContactNotifications';
+import OrientationIntakeWidget from '../components/OrientationIntakeWidget';
 import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
 import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
@@ -161,6 +162,7 @@ const AdminOverviewPanel: React.FC = () => {
   return (
     <div>
       <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
+      <OrientationIntakeWidget />
       <ContactNotifications autoRefresh={true} showActions={true} />
 
       <div

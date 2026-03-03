@@ -2,6 +2,7 @@
 import logger from '../utils/logger.mjs';
 import Orientation from '../models/Orientation.mjs';
 import User from '../models/User.mjs';
+import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import { sendAdminNotification, sendNotification } from '../services/notificationService.mjs';
 import { createAdminNotification } from './notificationController.mjs';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
@@ -268,7 +269,7 @@ const sendOrientationNotifications = async (orientation, formData) => {
     title: 'New Orientation Form Submission',
     message: `${fullName} has submitted an orientation form. Experience level: ${experienceLevel || 'Not specified'}`,
     type: 'orientation',
-    link: `/dashboard/client-orientation`,
+    link: `/dashboard/people/orientations`,
   });
   
   logger.info(`Notifications sent for orientation ${orientation.id}`, {
@@ -332,12 +333,110 @@ export const getAllOrientations = async (req, res) => {
         }
       ]
     });
-    
-    return successResponse(res, orientations, 'All orientation data retrieved successfully');
+
+    // For public submissions (userId=null), surface a potential account match by email.
+    // This allows admins to approve + lock orientation data to the eventual account.
+    const unmatchedEmailKeys = [
+      ...new Set(
+        orientations
+          .filter((orientation) => !orientation.userId && typeof orientation.email === 'string')
+          .map((orientation) => orientation.email.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    ];
+
+    let matchedUsersByEmail = new Map();
+
+    if (unmatchedEmailKeys.length > 0) {
+      const matchedUsers = await User.findAll({
+        where: sqlWhere(fn('lower', col('email')), {
+          [Op.in]: unmatchedEmailKeys
+        }),
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+      });
+
+      matchedUsersByEmail = new Map(
+        matchedUsers.map((user) => [user.email.trim().toLowerCase(), user.toJSON()])
+      );
+    }
+
+    const enrichedOrientations = orientations.map((orientation) => {
+      const row = orientation.toJSON();
+      const emailKey = typeof row.email === 'string' ? row.email.trim().toLowerCase() : '';
+      const matchedUser = row.userId ? row.user || null : matchedUsersByEmail.get(emailKey) || null;
+
+      return {
+        ...row,
+        matchedUser,
+        isLinked: Boolean(row.userId)
+      };
+    });
+
+    return successResponse(res, enrichedOrientations, 'All orientation data retrieved successfully');
     
   } catch (error) {
     logger.error('Error in getAllOrientations:', error.message, { stack: error.stack });
     return errorResponse(res, 'Server error retrieving all orientation data', 500);
+  }
+};
+
+/**
+ * linkOrientationToUser Controller
+ *
+ * Admin-only workflow to approve and lock a prospect orientation submission
+ * to a registered user account.
+ */
+export const linkOrientationToUser = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return errorResponse(res, 'Not authorized to link orientation data', 403);
+    }
+
+    const { id } = req.params;
+    const requestedUserId = req.body?.userId !== undefined ? Number(req.body.userId) : null;
+
+    const orientation = await Orientation.findByPk(id);
+    if (!orientation) {
+      return errorResponse(res, 'Orientation not found', 404);
+    }
+
+    let targetUser = null;
+
+    if (Number.isFinite(requestedUserId) && requestedUserId > 0) {
+      targetUser = await User.findByPk(requestedUserId, {
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+      });
+    } else if (orientation.email) {
+      targetUser = await User.findOne({
+        where: sqlWhere(fn('lower', col('email')), orientation.email.trim().toLowerCase()),
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+      });
+    }
+
+    if (!targetUser) {
+      return errorResponse(res, 'No matching user account found to link', 404);
+    }
+
+    if (orientation.userId && Number(orientation.userId) !== Number(targetUser.id)) {
+      return errorResponse(res, 'Orientation is already linked to a different user', 409);
+    }
+
+    if (!orientation.userId) {
+      orientation.userId = targetUser.id;
+      await orientation.save();
+    }
+
+    return successResponse(
+      res,
+      {
+        orientation: orientation.toJSON(),
+        linkedUser: targetUser.toJSON()
+      },
+      'Orientation linked to user account successfully'
+    );
+  } catch (error) {
+    logger.error('Error in linkOrientationToUser:', error.message, { stack: error.stack });
+    return errorResponse(res, 'Server error linking orientation to user account', 500);
   }
 };
 

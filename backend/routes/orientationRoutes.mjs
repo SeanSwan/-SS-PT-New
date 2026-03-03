@@ -2,7 +2,14 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { orientationSignup, orientationSubmit, getOrientationData, getAllOrientations, updateOrientation } from '../controllers/orientationController.mjs';
+import {
+  orientationSignup,
+  orientationSubmit,
+  getOrientationData,
+  getAllOrientations,
+  updateOrientation,
+  linkOrientationToUser,
+} from '../controllers/orientationController.mjs';
 
 const router = express.Router();
 
@@ -76,6 +83,31 @@ router.get('/user/:userId', protect, getOrientationData);
  * Retrieves all orientation submissions.
  */
 router.get('/all', protect, getAllOrientations);
+
+/**
+ * POST /api/orientation/:id/link-user
+ *
+ * Protected route: Admin-only workflow to link a public orientation submission
+ * to a registered user account (manual approval lock-in).
+ */
+router.post(
+  '/:id/link-user',
+  protect,
+  [
+    body('userId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('userId must be a positive integer'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation errors', errors: errors.array() });
+    }
+
+    return linkOrientationToUser(req, res);
+  }
+);
 
 /**
  * PUT /api/orientation/:id
