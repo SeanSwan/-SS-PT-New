@@ -45,6 +45,54 @@ export const setupMiddleware = async (app) => {
   const uploadsPath = path.join(__dirname, '../../uploads');
   app.use('/uploads', express.static(uploadsPath));
 
+  // ===================== R2 PHOTO PROXY =====================
+  // Serve photos stored in Cloudflare R2 by redirecting to presigned URLs.
+  // Photos are stored with keys like "photos/profiles/57/2026-03/uuid.jpg"
+  // but the DB stores them without a domain, so the frontend requests
+  // them as /photos/... which needs to be proxied to R2.
+  app.get('/photos/*', async (req, res) => {
+    try {
+      const objectKey = req.path.replace(/^\//, ''); // "photos/banners/57/2026-03/uuid.jpg"
+
+      // Validate the key looks like a photo path
+      if (!/^photos\/(profiles|banners|measurements)\/\d+\/\d{4}-\d{2}\/[\w-]+\.\w+$/.test(objectKey)) {
+        return res.status(400).json({ error: 'Invalid photo path' });
+      }
+
+      // Try R2 first
+      const { r2Configured, getR2Client } = await import('../../services/r2StorageService.mjs');
+      if (r2Configured) {
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+        const client = getR2Client();
+
+        const ext = objectKey.split('.').pop().toLowerCase();
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+
+        const command = new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: objectKey,
+          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentDisposition: 'inline',
+        });
+
+        const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+        return res.redirect(302, signedUrl);
+      }
+
+      // Fallback: try serving from local uploads dir
+      const localPath = path.join(uploadsPath, objectKey.replace('photos/', ''));
+      if (existsSync(localPath)) {
+        return res.sendFile(localPath);
+      }
+
+      return res.status(404).json({ error: 'Photo not found' });
+    } catch (err) {
+      logger.error('[PhotoProxy] Error serving photo: %s', err.message);
+      return res.status(500).json({ error: 'Failed to serve photo' });
+    }
+  });
+
   // Serve frontend in production with ROBUST path resolution
   if (isProduction) {
     // Try multiple possible frontend dist paths for different deployment scenarios
