@@ -20,9 +20,10 @@
  * - Swan Lavender #4070C0 — Tertiary / mid-body purple-blue
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { injectThemeVariables } from '../../utils/theme/themeUtils';
+import { swanStudiosTheme } from '../../core/theme';
 
 // === TYPOGRAPHY STACKS ===
 const fonts = {
@@ -390,9 +391,17 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     availableThemes
   };
 
+  // Merge the base swanStudiosTheme with the active Crystalline Swan theme
+  // so components using old property paths (theme.typography, theme.spacing, etc.)
+  // still work, while new theme values (theme.background.primary, etc.) are dynamic
+  const mergedTheme = useMemo(() => ({
+    ...swanStudiosTheme,
+    ...themes[currentTheme],
+  }), [currentTheme]);
+
   return (
     <ThemeContext.Provider value={contextValue}>
-      <StyledThemeProvider theme={themes[currentTheme]}>
+      <StyledThemeProvider theme={mergedTheme}>
         {children}
       </StyledThemeProvider>
     </ThemeContext.Provider>

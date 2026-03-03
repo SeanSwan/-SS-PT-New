@@ -10,7 +10,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider, useSelector, useDispatch } from 'react-redux';
 import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider, StyleSheetManager } from 'styled-components';
+import { StyleSheetManager } from 'styled-components';
 
 // Context providers
 import { AuthProvider } from './context/AuthContext';
@@ -71,7 +71,7 @@ import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
 // Import consolidated SwanStudios theme
-import { swanStudiosTheme } from './core';
+// swanStudiosTheme now merged into UniversalThemeProvider (context/ThemeContext)
 // Cosmic Performance Optimizer
 import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
 
@@ -225,25 +225,23 @@ const App = () => {
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <PerformanceTierProvider>
               <UniversalThemeProvider defaultTheme="crystalline-default">
-                <ThemeProvider theme={swanStudiosTheme}>
-                  <ConfigProvider>
-                    <MenuStateProvider>
-                      <AuthProvider>
-                        <ToastProvider>
-                          <CartProvider>
-                            <SessionProvider>
-                              <TouchGestureProvider>
-                                <DevToolsProvider>
-                                  <AppContent />
-                                </DevToolsProvider>
-                              </TouchGestureProvider>
-                            </SessionProvider>
-                          </CartProvider>
-                        </ToastProvider>
-                      </AuthProvider>
-                    </MenuStateProvider>
-                  </ConfigProvider>
-                </ThemeProvider>
+                <ConfigProvider>
+                  <MenuStateProvider>
+                    <AuthProvider>
+                      <ToastProvider>
+                        <CartProvider>
+                          <SessionProvider>
+                            <TouchGestureProvider>
+                              <DevToolsProvider>
+                                <AppContent />
+                              </DevToolsProvider>
+                            </TouchGestureProvider>
+                          </SessionProvider>
+                        </CartProvider>
+                      </ToastProvider>
+                    </AuthProvider>
+                  </MenuStateProvider>
+                </ConfigProvider>
               </UniversalThemeProvider>
             </PerformanceTierProvider>
           </StyleSheetManager>
