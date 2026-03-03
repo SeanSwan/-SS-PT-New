@@ -64,18 +64,6 @@ export const setupErrorHandling = (app) => {
       errorResponse.error = err.stack;
     }
 
-    // TEMPORARY DEBUG: Expose error details for auth routes to diagnose login 400
-    if (req.url?.startsWith('/api/auth/')) {
-      errorResponse._debug = {
-        error: err.message,
-        name: err.name,
-        status: err.status,
-        statusCode: err.statusCode,
-        type: err.type,
-        stack: err.stack?.split('\n').slice(0, 8)
-      };
-    }
-
     res.status(err.status || 500).json(errorResponse);
   });
 
