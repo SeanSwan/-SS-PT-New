@@ -134,13 +134,6 @@ const progressController = {
           'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
           'totalExercises', 'badgesPrimary', 'createdAt'
         ],
-        include: [
-          {
-            model: Achievement,
-            as: 'primaryBadge',
-            attributes: ['id', 'name', 'icon', 'badgeImageUrl']
-          }
-        ]
       });
 
       if (!user) {
@@ -393,14 +386,7 @@ const progressController = {
           break;
       }
 
-      const includeClause = [
-        {
-          model: Achievement,
-          as: 'primaryBadge',
-          attributes: ['id', 'name', 'icon', 'badgeImageUrl'],
-          required: false
-        }
-      ];
+      const includeClause = [];
 
       if (includeProgressData) {
         // Add date filtering for progress data based on timeframe
