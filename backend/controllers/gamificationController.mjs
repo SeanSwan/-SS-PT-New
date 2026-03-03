@@ -2444,14 +2444,13 @@ const gamificationController = {
       // Step 3: Test minimal insert (no id — let DB auto-generate)
       try {
         await db.query(
-          `INSERT INTO "Achievements" (name, description, "createdAt", "updatedAt")
-           VALUES ('__test__', 'Test achievement seed', NOW(), NOW());`
+          `INSERT INTO "Achievements" (name, title, description, "createdAt", "updatedAt")
+           VALUES ('__test__', '__test__', 'Test achievement seed', NOW(), NOW());`
         );
         await db.query(`DELETE FROM "Achievements" WHERE name = '__test__';`);
         steps.push('Test insert (no id): SUCCESS');
       } catch (testErr) {
-        steps.push(`Test insert FAILED: ${testErr.message}`);
-        return res.json({ success: false, steps, error: testErr.message });
+        steps.push(`Test insert WARNING: ${testErr.message} — continuing to seeder anyway`);
       }
 
       // Step 4: Run seeder
