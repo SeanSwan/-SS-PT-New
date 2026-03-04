@@ -649,14 +649,95 @@ async function main() {
 
   const successCount = results.filter(r => r.status === 'SUCCESS').length;
 
-  console.log('  ════════════════════════════════════════════════════════');
-  console.log(`  Report:  ${reportPath}`);
-  console.log(`  Latest:  ${latestPath}`);
+  // ── Generate handoff prompt for Claude / Gemini subscription terminals ──
+  const handoffPrompt = buildHandoffPrompt(results, files);
+  const handoffPath = join(CONFIG.reportDir, 'HANDOFF-PROMPT.md');
+  writeFileSync(handoffPath, handoffPrompt, 'utf-8');
+
   const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
-  console.log(`  Results: ${successCount}/7 validators passed`);
-  console.log(`  Cost:    $${totalCost.toFixed(4)}`);
-  console.log(`  Time:    ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+
   console.log('  ════════════════════════════════════════════════════════');
+  console.log(`  Report:   ${reportPath}`);
+  console.log(`  Latest:   ${latestPath}`);
+  console.log(`  Handoff:  ${handoffPath}`);
+  console.log(`  Results:  ${successCount}/7 validators passed`);
+  console.log(`  Cost:     $${totalCost.toFixed(4)}`);
+  console.log(`  Time:     ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+  console.log('  ════════════════════════════════════════════════════════');
+  console.log('');
+  console.log('  >> Paste HANDOFF-PROMPT.md into Claude Code or Gemini');
+  console.log('  >> for final analysis using your subscription.');
+  console.log('');
+}
+
+// ─────────────────────────────────────────────
+// Handoff Prompt Builder
+// ─────────────────────────────────────────────
+
+function buildHandoffPrompt(results, files) {
+  const successResults = results.filter(r => r.status === 'SUCCESS');
+  const fileNames = files.map(f => f.path).join(', ');
+
+  // Extract all CRITICAL and HIGH findings
+  const criticals = [];
+  const highs = [];
+  const mediums = [];
+
+  for (const r of successResults) {
+    const lines = r.text.split('\n');
+    for (const line of lines) {
+      const upper = line.toUpperCase();
+      if (upper.includes('CRITICAL') && !line.startsWith('#') && !line.startsWith('|')) {
+        criticals.push(`[${r.name}] ${line.trim()}`);
+      } else if (upper.includes('HIGH') && !line.startsWith('#') && !line.startsWith('|')) {
+        highs.push(`[${r.name}] ${line.trim()}`);
+      } else if (upper.includes('MEDIUM') && !line.startsWith('#') && !line.startsWith('|')) {
+        mediums.push(`[${r.name}] ${line.trim()}`);
+      }
+    }
+  }
+
+  return `# SwanStudios Validation Handoff — Paste This Into Claude Code or Gemini
+
+I just ran 7 parallel AI validators on these files: ${fileNames}
+
+Here is a consolidated summary of all findings from the 7 AI reviewers. Please analyze these findings, prioritize them, create an action plan, and fix the CRITICAL and HIGH issues.
+
+---
+
+## Validator Results Summary
+
+${successResults.map(r => `### ${r.name} (${r.model})
+${r.text.slice(0, 3000)}${r.text.length > 3000 ? '\n\n... (truncated — see full report)' : ''}
+`).join('\n---\n\n')}
+
+---
+
+## Consolidated Priority Findings
+
+### CRITICAL (fix immediately)
+${criticals.length > 0 ? criticals.slice(0, 15).join('\n') : 'None found.'}
+
+### HIGH (fix before next deploy)
+${highs.length > 0 ? highs.slice(0, 15).join('\n') : 'None found.'}
+
+### MEDIUM (fix this sprint)
+${mediums.length > 0 ? mediums.slice(0, 15).join('\n') : 'None found.'}
+
+---
+
+## Your Task
+
+1. Read through all 7 validator reports above
+2. Identify which findings are real issues vs false positives
+3. Prioritize: CRITICAL first, then HIGH, then MEDIUM
+4. For each real issue, provide the exact fix (file, line, code change)
+5. Group related fixes that can be done together
+6. Implement the fixes in order of priority
+
+Files reviewed: ${fileNames}
+Project: SwanStudios (React + TypeScript + styled-components, Galaxy-Swan theme)
+`;
 }
 
 main().catch(err => {
