@@ -11,6 +11,20 @@ import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 import logger from '../utils/logger.mjs';
 
+const shouldUseRedisSessions = () => {
+  if (process.env.USE_REDIS_SESSIONS === 'true') return true;
+  if (process.env.USE_REDIS_SESSIONS === 'false') return false;
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    // In production, require an explicit Redis URL to avoid noisy localhost retries.
+    return Boolean(process.env.REDIS_URL);
+  }
+
+  // In development/test default to in-memory sessions unless explicitly enabled.
+  return false;
+};
+
 /**
  * Create Redis client with production-ready configuration
  */
@@ -49,7 +63,7 @@ const createRedisClient = () => {
  */
 export const initializeSession = async () => {
   const isProduction = process.env.NODE_ENV === 'production';
-  const useRedis = process.env.USE_REDIS_SESSIONS !== 'false'; // Default to true
+  const useRedis = shouldUseRedisSessions();
 
   let store;
   let redisClient;
@@ -57,6 +71,19 @@ export const initializeSession = async () => {
   if (useRedis) {
     try {
       redisClient = createRedisClient();
+
+      // Attach handlers BEFORE connect() so ioredis does not emit unhandled errors.
+      redisClient.on('error', (err) => {
+        logger.error('Redis Client Error:', err);
+      });
+
+      redisClient.on('reconnecting', () => {
+        logger.warn('Redis client reconnecting...');
+      });
+
+      redisClient.on('ready', () => {
+        logger.info('Redis client ready');
+      });
 
       // Connect to Redis
       await redisClient.connect();
@@ -70,22 +97,23 @@ export const initializeSession = async () => {
         ttl: 86400, // 24 hours in seconds
       });
 
-      // Handle Redis errors gracefully
-      redisClient.on('error', (err) => {
-        logger.error('Redis Client Error:', err);
-      });
-
-      redisClient.on('reconnecting', () => {
-        logger.warn('Redis client reconnecting...');
-      });
-
-      redisClient.on('ready', () => {
-        logger.info('Redis client ready');
-      });
-
     } catch (error) {
       logger.error('Failed to connect to Redis, falling back to in-memory sessions:', error);
       logger.warn('⚠️  Using in-memory session store - NOT suitable for multi-instance deployments');
+      // Stop reconnect loops after startup failure.
+      try {
+        if (redisClient) {
+          await redisClient.quit();
+        }
+      } catch {
+        try {
+          redisClient?.disconnect();
+        } catch {
+          // Ignore shutdown errors during fallback.
+        }
+      } finally {
+        redisClient = undefined;
+      }
       store = undefined; // Will use default MemoryStore
     }
   } else {

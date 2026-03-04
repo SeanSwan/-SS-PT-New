@@ -88,10 +88,33 @@ ClientTrainerAssignment.init(
       comment: 'ID of the admin who created this assignment'
     },
     assignedAt: {
+      // Compatibility shim: legacy DBs may not have a physical assignedAt column.
+      // Expose assignedAt from createdAt so reads/writes do not break.
+      type: DataTypes.VIRTUAL(DataTypes.DATE),
+      get() {
+        return this.getDataValue('createdAt') || null;
+      },
+      set(value) {
+        if (value) {
+          this.setDataValue('createdAt', value);
+        }
+      }
+    },
+    lastModifiedBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'last_modified_by',
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      comment: 'ID of the admin who last modified this assignment'
+    },
+    deactivatedAt: {
       type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-      comment: 'Timestamp when the assignment was created'
+      allowNull: true,
+      field: 'deactivated_at',
+      comment: 'Timestamp when assignment was deactivated'
     },
     status: {
       type: DataTypes.ENUM('active', 'inactive', 'pending'),

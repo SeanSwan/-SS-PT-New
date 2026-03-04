@@ -700,7 +700,7 @@ interface TrainerStats {
 
 // === MAIN COMPONENT ===
 const EnhancedTrainerDataManagement: React.FC = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, authAxios } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -735,41 +735,34 @@ const EnhancedTrainerDataManagement: React.FC = () => {
   const fetchTrainers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/trainers', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
+      const response = await authAxios.get('/api/admin/trainers');
+      const data = response.data || {};
+      setTrainers(data.trainers || []);
+
+      // Calculate stats
+      const totalTrainers = data.trainers?.length || 0;
+      const activeTrainers = data.trainers?.filter((t: Trainer) => t.isActive).length || 0;
+      const currentMonth = new Date().getMonth();
+      const newTrainersThisMonth = data.trainers?.filter((t: Trainer) =>
+        new Date(t.createdAt).getMonth() === currentMonth
+      ).length || 0;
+
+      const averageRating = totalTrainers > 0
+        ? data.trainers.reduce((sum: number, t: Trainer) => sum + (t.averageRating || 0), 0) / totalTrainers
+        : 0;
+
+      const totalClients = data.trainers?.reduce((sum: number, t: Trainer) => sum + (t.clientCount || 0), 0) || 0;
+      const monthlyRevenue = data.trainers?.reduce((sum: number, t: Trainer) => sum + (t.monthlyRevenue || 0), 0) || 0;
+
+      setStats({
+        totalTrainers,
+        activeTrainers,
+        newTrainersThisMonth,
+        averageRating,
+        totalClients,
+        monthlyRevenue,
+        certificationExpiringCount: 0 // Calculate from certifications
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTrainers(data.trainers || []);
-
-        // Calculate stats
-        const totalTrainers = data.trainers?.length || 0;
-        const activeTrainers = data.trainers?.filter((t: Trainer) => t.isActive).length || 0;
-        const currentMonth = new Date().getMonth();
-        const newTrainersThisMonth = data.trainers?.filter((t: Trainer) =>
-          new Date(t.createdAt).getMonth() === currentMonth
-        ).length || 0;
-
-        const averageRating = totalTrainers > 0
-          ? data.trainers.reduce((sum: number, t: Trainer) => sum + (t.averageRating || 0), 0) / totalTrainers
-          : 0;
-
-        const totalClients = data.trainers?.reduce((sum: number, t: Trainer) => sum + (t.clientCount || 0), 0) || 0;
-        const monthlyRevenue = data.trainers?.reduce((sum: number, t: Trainer) => sum + (t.monthlyRevenue || 0), 0) || 0;
-
-        setStats({
-          totalTrainers,
-          activeTrainers,
-          newTrainersThisMonth,
-          averageRating,
-          totalClients,
-          monthlyRevenue,
-          certificationExpiringCount: 0 // Calculate from certifications
-        });
-      }
     } catch (error) {
       console.error('Error fetching trainers:', error);
       toast({
@@ -780,7 +773,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [authAxios, toast]);
 
   // Initial data load
   useEffect(() => {
@@ -869,19 +862,12 @@ const EnhancedTrainerDataManagement: React.FC = () => {
 
     const trimmedPhoto = nextPhoto.trim();
     try {
-      const response = await fetch(`/api/admin/users/${trainer.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-        body: JSON.stringify({
-          photo: trimmedPhoto || null,
-        }),
+      const response = await authAxios.put(`/api/admin/users/${trainer.id}`, {
+        photo: trimmedPhoto || null,
       });
 
-      const payload = await response.json();
-      if (!response.ok || !payload?.success) {
+      const payload = response.data;
+      if (!payload?.success) {
         throw new Error(payload?.message || 'Failed to update trainer photo');
       }
 
@@ -1064,6 +1050,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
                 paginatedTrainers.map((trainer) => (
                     <StyledTr
                       key={trainer.id}
+                      data-testid={`trainer-row-${trainer.id}`}
                       $clickable
                       onClick={() => {
                         setSelectedTrainer(trainer);
@@ -1072,7 +1059,10 @@ const EnhancedTrainerDataManagement: React.FC = () => {
                     >
                       <StyledTd>
                         <TrainerCellWrapper>
-                          <AvatarCircle $src={trainer.photo || undefined}>
+                          <AvatarCircle
+                            data-testid={`trainer-avatar-${trainer.id}`}
+                            $src={trainer.photo || undefined}
+                          >
                             {!trainer.photo && trainer.firstName?.[0]?.toUpperCase()}
                           </AvatarCircle>
                           <div>
@@ -1171,6 +1161,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
                             <Pencil size={18} />
                           </IconBtn>
                           <IconBtn
+                            data-testid={`set-trainer-photo-${trainer.id}`}
                             $color="#C6A84B"
                             title="Set Profile Photo"
                             onClick={(e) => {

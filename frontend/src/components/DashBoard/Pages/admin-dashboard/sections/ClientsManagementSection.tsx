@@ -1110,6 +1110,7 @@ const ClientsManagementSection: React.FC = () => {
           {filteredClients.map((client, index) => (
             <ClientCard
               key={client.id}
+              data-testid={`client-card-${client.id}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -1118,7 +1119,11 @@ const ClientsManagementSection: React.FC = () => {
             >
               <ClientHeader>
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <ClientAvatar $status={client.status} $src={client.avatar || undefined}>
+                  <ClientAvatar
+                    data-testid={`client-avatar-${client.id}`}
+                    $status={client.status}
+                    $src={client.avatar || undefined}
+                  >
                     {!client.avatar && getUserInitials(client.name)}
                   </ClientAvatar>
                   <ClientInfo>
@@ -1206,6 +1211,7 @@ const ClientsManagementSection: React.FC = () => {
                       View Revenue
                     </ActionItem>
                     <ActionItem
+                      data-testid={`menu-set-client-photo-${client.id}`}
                       whileHover={{ x: 4 }}
                       onClick={() => handleSetClientPhoto(client)}
                     >

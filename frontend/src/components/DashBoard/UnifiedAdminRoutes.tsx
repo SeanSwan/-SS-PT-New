@@ -8,7 +8,7 @@ import ModernUserManagementSystem from './Pages/user-management/modern-user-mana
 import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import AdminSpecialsManager from './Pages/admin-specials/AdminSpecialsManager';
-import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagementSection';
+import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
 import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
 import MessagingPage from '../../pages/MessagingPage';
 
@@ -170,7 +170,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/people" element={<ClientsWorkspace />}>
       <Route index element={<ClientsManagementSection />} />
       <Route path="users" element={<ModernUserManagementSystem />} />
-      <Route path="trainers" element={<TrainersManagementSection />} />
+      <Route path="trainers" element={<EnhancedTrainerDataManagement />} />
       <Route path="trainers/permissions" element={<TrainerPermissionsManager onPermissionChange={() => {}} />} />
       <Route path="orientations" element={<OrientationList />} />
       <Route path="onboarding" element={
