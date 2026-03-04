@@ -5,7 +5,7 @@
  * Crystalline Swan Theme System for SwanStudios Platform
  *
  * Features:
- * - Three Crystalline Swan variants: Default, Light, Dark
+ * - Four Crystalline Swan variants: Default, Light, Dark, Monochrome
  * - Palette derived from the SwanStudios swan logo
  * - Seamless theme switching with localStorage persistence
  * - WCAG AA accessibility compliance
@@ -308,11 +308,108 @@ const crystallineDark = {
   },
 };
 
+/**
+ * MONOCHROME THEME — "Monochrome"
+ * Minimalist black & white dark mode. Pure black backgrounds, white text,
+ * NO color, NO glow, NO glassmorphism. Clean, editorial, typographic.
+ * Background: #000000 (pure black)
+ * Primary accent: #FFFFFF (pure white)
+ * No color accents — grayscale only
+ */
+const crystallineMono = {
+  id: 'crystalline-mono' as const,
+  name: 'Monochrome',
+  fonts: {
+    heading: '"Cormorant Garamond", Georgia, serif',
+    drama: '"Cormorant Garamond", Georgia, serif',
+    data: '"Source Sans 3", "Source Sans Pro", sans-serif',
+    ui: '"Inter", "Source Sans 3", sans-serif',
+  },
+  effects: {
+    glassmorphism: false,
+    glowIntensity: 'none' as const,
+    cardStyle: 'solid' as const,
+    borderGlow: false,
+  },
+  colors: {
+    deepSpace: '#000000',
+    stardust: '#0a0a0a',
+    void: '#000000',
+
+    primary: '#FFFFFF',
+    primaryBlue: '#CCCCCC',
+    primaryDeep: '#AAAAAA',
+    primaryLight: '#FFFFFF',
+    primaryNeon: '#FFFFFF',
+
+    secondary: '#888888',
+    secondaryLight: '#AAAAAA',
+    secondaryDeep: '#666666',
+
+    accent: '#CCCCCC',
+    accentLight: '#E0E0E0',
+    accentWarm: '#999999',
+
+    white: '#FFFFFF',
+    silver: '#E0E0E0',
+    muted: 'rgba(255, 255, 255, 0.5)',
+    error: '#FF4444',
+    success: '#AAAAAA',
+    warning: '#999999',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #000000, #1a1a1a)',
+    secondary: 'linear-gradient(135deg, #0a0a0a, #141414)',
+    cosmic: 'linear-gradient(135deg, #000000, #111111)',
+    hero: 'linear-gradient(180deg, #000000 0%, #111111 100%)',
+    card: 'linear-gradient(145deg, #0a0a0a, #141414)',
+    accent: 'linear-gradient(135deg, #000000, #333333)',
+    stellar: 'linear-gradient(45deg, #FFFFFF 0%, #888888 100%)',
+    swanCosmic: 'linear-gradient(135deg, #FFFFFF, #666666)',
+    glass: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+  },
+  shadows: {
+    primary: '0 2px 8px rgba(255,255,255,0.06)',
+    secondary: '0 2px 6px rgba(255,255,255,0.04)',
+    cosmic: '0 4px 16px rgba(0,0,0,0.5)',
+    accent: '0 2px 8px rgba(255,255,255,0.08)',
+    elevation: '0 4px 16px rgba(0,0,0,0.5)',
+    glow: 'none',
+    glass: '0 1px 4px rgba(255,255,255,0.04)',
+    button: '0 2px 8px rgba(255,255,255,0.1)',
+  },
+  borders: {
+    subtle: 'rgba(255, 255, 255, 0.08)',
+    elegant: 'rgba(255, 255, 255, 0.15)',
+    prominent: 'rgba(255, 255, 255, 0.25)',
+    glass: '1px solid rgba(255,255,255,0.06)',
+    card: '1px solid rgba(255,255,255,0.1)',
+    focus: '2px solid #FFFFFF',
+  },
+  background: {
+    primary: '#000000',
+    secondary: '#0a0a0a',
+    surface: '#111111',
+    elevated: '#1a1a1a',
+  },
+  text: {
+    primary: '#FFFFFF',
+    secondary: '#AAAAAA',
+    muted: '#666666',
+    heading: '#FFFFFF',
+    subheading: '#CCCCCC',
+    body: '#BBBBBB',
+    label: '#888888',
+    accent: '#FFFFFF',
+  },
+};
+
 // === THEME MAPPING ===
 export const themes = {
   'crystalline-default': crystallineDefault,
   'crystalline-light': crystallineLight,
   'crystalline-dark': crystallineDark,
+  'crystalline-mono': crystallineMono,
 } as const;
 
 export type ThemeId = keyof typeof themes;
@@ -369,9 +466,9 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     }));
   };
 
-  // Cycle through themes: default -> light -> dark -> default
+  // Cycle through themes: default -> light -> dark -> mono -> default
   const toggleTheme = () => {
-    const cycle: ThemeId[] = ['crystalline-default', 'crystalline-light', 'crystalline-dark'];
+    const cycle: ThemeId[] = ['crystalline-default', 'crystalline-light', 'crystalline-dark', 'crystalline-mono'];
     const currentIndex = cycle.indexOf(currentTheme);
     const nextIndex = (currentIndex + 1) % cycle.length;
     setTheme(cycle[nextIndex]);
@@ -429,6 +526,8 @@ export const getGlowButtonVariant = (themeId: ThemeId): string => {
       return 'primary'; // Arctic cyan on frost
     case 'crystalline-dark':
       return 'cosmic'; // Deep ice glow
+    case 'crystalline-mono':
+      return 'ghost'; // Thin white border, no gradient
     default:
       return 'primary';
   }
