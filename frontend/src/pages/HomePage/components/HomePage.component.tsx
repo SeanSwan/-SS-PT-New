@@ -460,14 +460,14 @@ const HomePage: React.FC = () => {
     <HomePageContainer ref={homeRef}>
       <Helmet>
         <title>SwanStudios | Elite Performance Training & Creative Expression</title>
-        <meta name="description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance, dance, and creative wellness training." />
+        <meta name="description" content="Transform your fitness journey with SwanStudios' elite personal training. NCEP-certified coaching using NASM guidelines with over 25 years of experience in performance, dance, and creative wellness training." />
         <meta property="og:title" content="SwanStudios | Elite Performance Training & Creative Expression" />
-        <meta property="og:description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance, dance, and creative wellness training." />
+        <meta property="og:description" content="Transform your fitness journey with SwanStudios' elite personal training. NCEP-certified coaching using NASM guidelines with over 25 years of experience in performance, dance, and creative wellness training." />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/Logo.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
         <meta name="theme-color" content="#0a0a1a" />
-        <meta name="keywords" content="personal training, fitness, dance, creative expression, wellness, performance training, NASM certified" />
+        <meta name="keywords" content="personal training, fitness, dance, creative expression, wellness, performance training, NCEP certified, NASM protocols" />
         <link rel="canonical" href="https://swanstudios.com" />
       </Helmet>
       

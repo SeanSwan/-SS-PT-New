@@ -190,7 +190,7 @@ export const homepageContent: HomepageContent = {
     description:
       'Transform your body and elevate your life with SwanStudios\' elite personal training, performance assessment, nutrition coaching, and comprehensive fitness solutions. Serving Orange County and Los Angeles.',
     keywords:
-      'personal training, fitness coaching, nutrition coaching, performance assessment, online coaching, Orange County fitness, Los Angeles personal trainer, NASM certified, elite training',
+      'personal training, fitness coaching, nutrition coaching, performance assessment, online coaching, Orange County fitness, Los Angeles personal trainer, NCEP certified, NASM protocols, elite training',
     ogTitle: 'SwanStudios - Elite Personal Training',
     ogDescription:
       'Experience the world\'s first Fitness Social Ecosystem with expert trainers and AI-powered tracking.',
@@ -223,7 +223,7 @@ export const homepageContent: HomepageContent = {
   programs: {
     sectionTitle: 'Discover Your Path',
     sectionDescription:
-      'Every transformation begins with understanding your body. Our NASM-certified programs assess your movement patterns and craft a strategy that delivers lasting results. Explore packages and pricing in our store.',
+      'Every transformation begins with understanding your body. Our NCEP-certified coaches use NASM-guided protocols to assess your movement patterns and craft a strategy that delivers lasting results. Explore packages and pricing in our store.',
     cards: [
       {
         title: 'Express Precision',
@@ -245,7 +245,7 @@ export const homepageContent: HomepageContent = {
         badge: 'Most Popular',
         features: [
           '60-minute expert biomechanical coaching',
-          'Full NASM movement analysis (OHSA protocol)',
+          'Full movement analysis using NASM OHSA protocol',
           'Strength + hypertrophy programming',
           'Optional AI performance tracking upgrade',
         ],
@@ -259,7 +259,7 @@ export const homepageContent: HomepageContent = {
         badge: 'Best Value',
         features: [
           'Multi-session commitment packages available',
-          'Comprehensive NASM assessment included',
+          'Comprehensive assessment using NASM guidelines',
           'Priority scheduling + progress tracking',
           'Best value for serious transformation goals',
         ],
@@ -278,7 +278,7 @@ export const homepageContent: HomepageContent = {
       {
         title: 'Elite Personal Training',
         description:
-          'Experience personalized coaching from NASM-certified experts with over 25 years of experience. Our science-based approach is tailored to your unique goals and needs.',
+          'Experience personalized coaching from NCEP-certified experts trained in NASM protocols, with over 25 years of experience. Our science-based approach is tailored to your unique goals and needs.',
         icon: 'Dumbbell',
       },
       {
@@ -394,8 +394,8 @@ export const homepageContent: HomepageContent = {
         name: 'Sean Swan',
         title: 'Head Coach & Founder',
         bio: 'With over 25 years of elite coaching experience, Sean brings unmatched expertise in biomechanics, performance science, and transformative training methodologies. His evidence-based approach has helped hundreds of clients achieve extraordinary results.',
-        certifications: ['NASM-CPT', 'CSCS', 'PES'],
-        specialties: ['Elite Training', 'NASM Protocols', 'Performance Science'],
+        certifications: ['NCEP-CPT', 'CSCS', 'PES'],
+        specialties: ['Elite Training', 'NASM-Guided Protocols', 'Performance Science'],
         rating: 5,
         reviewCount: 234,
         social: [
@@ -409,7 +409,7 @@ export const homepageContent: HomepageContent = {
         name: 'Jasmine Hearon (Swan)',
         title: 'Co-Founder & Elite Performance Coach',
         bio: 'Since 2012, Jasmine has been the cornerstone of SwanStudios\' success. Her extensive background as a former Gold\'s Gym manager brings unparalleled leadership and training expertise to our elite coaching team.',
-        certifications: ['NASM-CPT'],
+        certifications: ['NCEP-CPT'],
         specialties: ['Leadership Training', 'Performance Coaching', 'Program Development'],
         rating: 5,
         reviewCount: 147,

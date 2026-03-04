@@ -234,7 +234,7 @@ const features: Feature[] = [
     id: 1,
     title: "Elite Personal Training",
     description:
-      "Experience personalized coaching from NASM-certified experts with over 25 years of experience. Our science-based approach is tailored to your unique goals and needs.",
+      "Experience personalized coaching from NCEP-certified experts trained in NASM protocols, with over 25 years of experience. Our science-based approach is tailored to your unique goals and needs.",
     icon: <Dumbbell />,
     iconColor: T.primary,
     theme: "primary",

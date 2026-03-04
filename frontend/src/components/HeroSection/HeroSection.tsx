@@ -184,7 +184,7 @@ const HeroSection = () => {
             animate="visible" 
             variants={subtitleVariants}
           >
-            Over 25 Years of Elite Coaching & NASM Certified Methods
+            Over 25 Years of Elite Coaching & NASM-Guided Methods
           </HeroSubtitle>
           
           <HeroDescription 

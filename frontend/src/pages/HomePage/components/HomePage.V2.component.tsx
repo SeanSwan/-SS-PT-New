@@ -187,7 +187,7 @@ const HomePageV2: React.FC = () => {
         />
         <meta
           name="keywords"
-          content="personal training, fitness coaching, nutrition coaching, performance assessment, online coaching, Orange County fitness, Los Angeles personal trainer, NASM certified, elite training"
+          content="personal training, fitness coaching, nutrition coaching, performance assessment, online coaching, Orange County fitness, Los Angeles personal trainer, NCEP certified, NASM protocols, elite training"
         />
         <meta property="og:title" content="SwanStudios - Elite Personal Training" />
         <meta

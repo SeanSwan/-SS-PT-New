@@ -929,7 +929,7 @@ const AboutContent = () => {
     {
       year: 2000,
       title: "Certifications & Physical Therapy",
-      description: "Obtained NASM certification and worked at Kerlan Jobe Health South as a physical therapy aid, gaining invaluable experience in injury prevention and recovery techniques."
+      description: "Completed NASM workshops and protocols training, then worked at Kerlan Jobe Health South as a physical therapy aid, gaining invaluable experience in injury prevention and recovery techniques."
     },
     {
       year: 2010,
@@ -1057,7 +1057,7 @@ const AboutContent = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span>NASM Certified</span>
+                  <span>NCEP Certified</span>
                 </CertificationBadge>
                 <CertificationBadge
                   whileHover={{ scale: 1.05 }}
