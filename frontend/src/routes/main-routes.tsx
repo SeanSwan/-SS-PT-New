@@ -162,10 +162,11 @@ const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About')
 );
 
-// Public Waiver (Phase 5W-G)
+// Public Waiver (Phase 5W-G) — V2 primary, V1 fallback
 const PublicWaiverPage = lazyLoadWithErrorHandling(
-  () => import('../pages/PublicWaiverPage'),
-  'Public Waiver Page'
+  () => import('../pages/PublicWaiverPage.V2'),
+  'Public Waiver Page V2',
+  () => import('../pages/PublicWaiverPage')
 );
 
 // Video Library (public)

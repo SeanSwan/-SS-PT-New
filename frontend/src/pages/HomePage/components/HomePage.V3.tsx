@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import styled, { keyframes, css } from 'styled-components';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
   Dumbbell, Activity, Apple, Heart, Monitor, Users,
-  Target, Building2, Star, ChevronDown, ChevronUp,
-  Sparkles, Clock, Award, TrendingUp,
+  Target, Building2, Star, Sparkles, Clock, Award,
+  TrendingUp, Music, Palette, Gamepad2, Flame, MapPin,
+  Shield, Brain, Zap, Crosshair,
 } from 'lucide-react';
 
 import GlowButton from '../../../components/ui/buttons/GlowButton';
@@ -15,7 +16,51 @@ import ParallaxHero from '../../../components/ui-kit/cinematic/ParallaxHero';
 import ScrollReveal from '../../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../../components/ui-kit/cinematic/TypewriterText';
 import SectionDivider from '../../../components/ui-kit/cinematic/SectionDivider';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import logoImg from '../../../assets/Logo.png';
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATED COUNTER HOOK
+   ═══════════════════════════════════════════════════════ */
+
+const useCountUp = (
+  target: number,
+  isVisible: boolean,
+  duration = 3,
+  delay = 0,
+  prefersReduced = false
+) => {
+  const [value, setValue] = useState(0);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (!isVisible || hasAnimated.current) return;
+    if (prefersReduced) {
+      setValue(target);
+      hasAnimated.current = true;
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      hasAnimated.current = true;
+      let startTime: number;
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = (timestamp - startTime) / (duration * 1000);
+        const pct = Math.min(progress, 1);
+        // ease-out quad
+        const eased = 1 - (1 - pct) * (1 - pct);
+        setValue(Math.floor(eased * target));
+        if (pct < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    }, delay * 1000);
+
+    return () => clearTimeout(timeout);
+  }, [isVisible, target, duration, delay, prefersReduced]);
+
+  return value;
+};
 
 /* ═══════════════════════════════════════════════════════
    DATA
@@ -50,7 +95,7 @@ const features = [
     icon: <Monitor size={28} />,
     title: 'Online Coaching',
     description:
-      'Expert guidance anywhere with customized training programs, nutrition plans, and regular check-ins through our AI-powered coaching platform.',
+      'Expert guidance anywhere with customized training programs, nutrition plans, and regular check-ins through our AI-enhanced coaching platform.',
   },
   {
     icon: <Users size={28} />,
@@ -62,7 +107,7 @@ const features = [
     icon: <Target size={28} />,
     title: 'Sports-Specific Training',
     description:
-      'Specialized programs targeting the specific skills, movements, and energy systems your sport demands. Built on periodization best practices.',
+      'Specialized programs for golfers, athletes, and weekend warriors. Rotational power, core stability, and sport-specific conditioning.',
   },
   {
     icon: <Building2 size={28} />,
@@ -103,47 +148,83 @@ const testimonials = [
     result: 'Lost 42 lbs in 7 months',
   },
   {
-    name: 'Carlos M.',
-    descriptor: 'Semi-Pro Soccer Player',
+    name: 'Robert T.',
+    descriptor: 'Avid Golfer',
     rating: 5,
     quote:
-      'SwanStudios coaching not only accelerated my recovery but also boosted my performance on the field. Their expert guidance and personalized approach made all the difference.',
-    result: 'Sprint time improved 15%',
+      'Sean Swan completely transformed my golf game. Through targeted core stability work, rotational power training, and flexibility protocols, I added serious distance off the tee and my swing mechanics have never been better.',
+    result: 'Added 35 yards to drive, handicap dropped 6 strokes',
   },
   {
-    name: 'David C.',
-    descriptor: 'Tech Entrepreneur',
-    rating: 4.9,
+    name: 'Officer Martinez',
+    descriptor: 'Law Enforcement',
+    rating: 5,
     quote:
-      'The personalized training at SwanStudios truly transformed my lifestyle. I built strength, improved my overall wellness, and gained the confidence to balance my busy schedule.',
-    result: 'Bench press: 95 → 205 lbs',
+      'Training with Sean Swan got me in the best shape of my life. My department fitness test running time improved dramatically, and I feel stronger, faster, and more capable on the job every single day.',
+    result: '1.5 mile run improved by 2:30, top fitness scores',
   },
 ];
 
-const stats = [
-  { value: '25+', label: 'Years Experience', icon: <Award size={24} /> },
-  { value: '500+', label: 'Clients Transformed', icon: <Users size={24} /> },
-  { value: '10,000+', label: 'Sessions Delivered', icon: <TrendingUp size={24} /> },
-  { value: '98%', label: 'Client Satisfaction', icon: <Star size={24} /> },
+const statsData = [
+  { numericValue: 25, suffix: '+', label: 'Years Experience', icon: <Award size={24} />, delay: 0 },
+  { numericValue: 500, suffix: '+', label: 'Clients Transformed', icon: <Users size={24} />, delay: 0.2 },
+  { numericValue: 10000, suffix: '+', label: 'Sessions Delivered', icon: <TrendingUp size={24} />, delay: 0.4 },
+  { numericValue: 312, suffix: '', label: 'Swimmers Taught', icon: <Activity size={24} />, delay: 0.6 },
+  { numericValue: 12450, suffix: '+', label: 'Lbs Lost Collectively', icon: <Flame size={24} />, delay: 0.8 },
+  { numericValue: 98, suffix: '%', label: 'Client Satisfaction', icon: <Star size={24} />, delay: 1.0 },
 ];
 
-const creativeCards = [
+const socialCategories = [
   {
     title: 'Dance & Movement',
-    description: 'Express yourself through rhythm and movement. Build core strength, coordination, and confidence through dance-inspired fitness.',
+    description: 'Post your dance videos, choreography, and freestyle sessions. From hip-hop to contemporary — move your way.',
     icon: <Sparkles size={28} />,
   },
   {
-    title: 'Art & Expression',
-    description: 'Channel your inner artist. Creativity and fitness intersect to build discipline, focus, and a deeper mind-body connection.',
-    icon: <Activity size={28} />,
+    title: 'Music & Singing',
+    description: 'Share vocal performances, covers, instrumentals, and original music. Your stage, your sound.',
+    icon: <Music size={28} />,
   },
   {
-    title: 'Community & Heart',
-    description: 'Join a tribe that celebrates every win. Our community promotes love, unity, and positive motivation on your fitness journey.',
-    icon: <Heart size={28} />,
+    title: 'Art & Expression',
+    description: 'Showcase artwork, digital art, photography, and creative projects. Inspire and get inspired.',
+    icon: <Palette size={28} />,
+  },
+  {
+    title: 'Gaming',
+    description: 'Share your gaming builds, favorite consoles, portable setups, and streams. Gamers get fit too.',
+    icon: <Gamepad2 size={28} />,
+  },
+  {
+    title: 'Fitness Challenges',
+    description: 'Community workout challenges, transformation posts, and accountability groups. Push each other forward.',
+    icon: <Flame size={28} />,
+  },
+  {
+    title: 'Community Meetups',
+    description: 'Local events, group activities, and real-world connections. The digital community, IRL.',
+    icon: <MapPin size={28} />,
   },
 ];
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════ */
+
+const shimmer = keyframes`
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+`;
+
+const subtleFloat = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+`;
+
+const pulseGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 20px rgba(0,255,255,0.1); }
+  50% { box-shadow: 0 0 40px rgba(0,255,255,0.25); }
+`;
 
 /* ═══════════════════════════════════════════════════════
    STYLED COMPONENTS — All theme-aware, zero hardcoded colors
@@ -157,31 +238,34 @@ const PageWrapper = styled.div`
 `;
 
 const HeroLogo = styled.img`
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   object-fit: contain;
   margin-bottom: 1.5rem;
-  filter: drop-shadow(0 0 20px ${({ theme }) =>
+  filter: drop-shadow(0 0 25px ${({ theme }) =>
     theme.effects.glowIntensity !== 'none'
-      ? `${theme.colors.primary}40`
+      ? `${theme.colors.primary}50`
       : 'transparent'});
+  animation: ${subtleFloat} 4s ease-in-out infinite;
 `;
 
 const HeroHeadline = styled.h1`
   font-family: ${({ theme }) => theme.fonts.drama};
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 600;
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 700;
   color: ${({ theme }) => theme.text.heading};
   margin-bottom: 1rem;
-  line-height: 1.2;
+  line-height: 1.15;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.3);
 `;
 
 const HeroSubtitle = styled.p`
   font-family: ${({ theme }) => theme.fonts.ui};
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
   color: ${({ theme }) => theme.text.secondary};
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.2);
 `;
 
 const HeroButtons = styled.div`
@@ -194,6 +278,7 @@ const HeroButtons = styled.div`
 const Section = styled.section<{ $alt?: boolean }>`
   width: 100%;
   padding: 5rem 1.5rem;
+  position: relative;
   background: ${({ theme, $alt }) =>
     $alt ? theme.background.secondary : theme.background.primary};
 
@@ -210,7 +295,7 @@ const SectionInner = styled.div`
 const SectionTitle = styled.h2`
   font-family: ${({ theme }) => theme.fonts.drama};
   font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 600;
+  font-weight: 700;
   color: ${({ theme }) => theme.text.heading};
   text-align: center;
   margin-bottom: 0.75rem;
@@ -221,9 +306,19 @@ const SectionSubtitle = styled.p`
   font-size: clamp(0.95rem, 2vw, 1.1rem);
   color: ${({ theme }) => theme.text.secondary};
   text-align: center;
-  max-width: 700px;
+  max-width: 750px;
   margin: 0 auto 3rem;
-  line-height: 1.6;
+  line-height: 1.7;
+`;
+
+/* Accent line under section titles */
+const AccentLine = styled.div`
+  width: 60px;
+  height: 3px;
+  margin: 0.5rem auto 1.5rem;
+  background: ${({ theme }) =>
+    `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.accent || theme.colors.primary})`};
+  border-radius: 2px;
 `;
 
 /* Features Grid */
@@ -251,14 +346,15 @@ const FeatureCard = styled.div`
   border-radius: 16px;
   padding: 2rem 1.5rem;
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
     box-shadow: ${({ theme }) =>
       theme.effects.glowIntensity !== 'none'
         ? theme.shadows.glow
         : theme.shadows.elevation};
+    border-color: ${({ theme }) => `${theme.colors.primary}60`};
   }
 `;
 
@@ -309,10 +405,14 @@ const ProgramCard = styled.div`
   text-align: center;
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 
   &:hover {
     transform: translateY(-4px);
+    box-shadow: ${({ theme }) =>
+      theme.effects.glowIntensity !== 'none'
+        ? theme.shadows.glow
+        : theme.shadows.elevation};
   }
 `;
 
@@ -355,6 +455,71 @@ const ProgramDesc = styled.p`
   font-size: 0.95rem;
   color: ${({ theme }) => theme.text.secondary};
   line-height: 1.6;
+`;
+
+/* Golf Section */
+const GolfGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GolfFeatureList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const GolfFeatureItem = styled.li`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-family: ${({ theme }) => theme.fonts.ui};
+  font-size: 1rem;
+  color: ${({ theme }) => theme.text.body};
+  line-height: 1.5;
+
+  svg {
+    color: ${({ theme }) => theme.colors.primary};
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+`;
+
+const GolfCard = styled.div`
+  background: ${({ theme }) =>
+    theme.effects.glassmorphism
+      ? `${theme.background.surface}`
+      : theme.background.elevated};
+  backdrop-filter: ${({ theme }) =>
+    theme.effects.glassmorphism ? 'blur(16px)' : 'none'};
+  border: ${({ theme }) => theme.borders.elegant};
+  border-radius: 20px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+
+  h3 {
+    font-family: ${({ theme }) => theme.fonts.drama};
+    font-size: 1.6rem;
+    color: ${({ theme }) => theme.text.heading};
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-family: ${({ theme }) => theme.fonts.ui};
+    font-size: 0.95rem;
+    color: ${({ theme }) => theme.text.secondary};
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 /* About/Bio Section */
@@ -401,6 +566,56 @@ const AboutLogo = styled.img`
       : 'transparent'});
 `;
 
+/* AI Approach highlight */
+const ApproachGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ApproachCard = styled.div`
+  background: ${({ theme }) =>
+    theme.effects.glassmorphism
+      ? `${theme.background.surface}`
+      : theme.background.elevated};
+  backdrop-filter: ${({ theme }) =>
+    theme.effects.glassmorphism ? 'blur(10px)' : 'none'};
+  border: ${({ theme }) => theme.borders.card};
+  border-radius: 14px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+
+  svg {
+    color: ${({ theme }) => theme.colors.accent || theme.colors.primary};
+    margin-bottom: 0.75rem;
+  }
+
+  h4 {
+    font-family: ${({ theme }) => theme.fonts.heading};
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: ${({ theme }) => theme.text.heading};
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    font-family: ${({ theme }) => theme.fonts.ui};
+    font-size: 0.85rem;
+    color: ${({ theme }) => theme.text.muted};
+    line-height: 1.5;
+  }
+`;
+
 /* Testimonials */
 const TestimonialsGrid = styled.div`
   display: grid;
@@ -425,6 +640,15 @@ const TestimonialCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: ${({ theme }) =>
+      theme.effects.glowIntensity !== 'none'
+        ? theme.shadows.glow
+        : theme.shadows.elevation};
+  }
 `;
 
 const StarRating = styled.div`
@@ -469,7 +693,7 @@ const ResultBadge = styled.span`
 /* Stats */
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 
   @media (max-width: 768px) {
@@ -491,6 +715,11 @@ const StatCard = styled.div`
   border-radius: 16px;
   padding: 2rem 1.5rem;
   text-align: center;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
 `;
 
 const StatIcon = styled.div`
@@ -502,10 +731,15 @@ const StatIcon = styled.div`
 
 const StatValue = styled.div`
   font-family: ${({ theme }) => theme.fonts.drama};
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 700;
   color: ${({ theme }) => theme.text.heading};
   margin-bottom: 0.25rem;
+  background: ${({ theme }) =>
+    `linear-gradient(135deg, ${theme.text.heading}, ${theme.colors.primary})`};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const StatLabel = styled.div`
@@ -516,32 +750,80 @@ const StatLabel = styled.div`
   letter-spacing: 1px;
 `;
 
-/* Creative Section */
-const CreativeGrid = styled.div`
+/* Beyond the Gym — Social Section with video bg */
+const BeyondSection = styled.section`
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+`;
+
+const BeyondVideoWrapper = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const BeyondOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: ${({ theme }) => {
+    const base = theme.background.primary;
+    return `linear-gradient(180deg, ${base}E6 0%, ${base}CC 30%, ${base}CC 70%, ${base}E6 100%)`;
+  }};
+`;
+
+const BeyondContent = styled.div`
+  position: relative;
+  z-index: 2;
+  padding: 5rem 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    padding: 3rem 1rem;
+  }
+`;
+
+const SocialGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 430px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const CreativeCard = styled.div`
+const SocialCard = styled.div`
   background: ${({ theme }) =>
     theme.effects.glassmorphism
-      ? `${theme.background.surface}`
+      ? `${theme.background.surface}DD`
       : theme.background.elevated};
   backdrop-filter: ${({ theme }) =>
-    theme.effects.glassmorphism ? 'blur(10px)' : 'none'};
-  border: ${({ theme }) => theme.borders.card};
+    theme.effects.glassmorphism ? 'blur(16px)' : 'none'};
+  border: ${({ theme }) => theme.borders.elegant};
   border-radius: 16px;
   padding: 2rem 1.5rem;
   text-align: center;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 
   &:hover {
-    transform: translateY(-3px);
+    transform: translateY(-6px);
+    box-shadow: ${({ theme }) =>
+      theme.effects.glowIntensity !== 'none'
+        ? theme.shadows.glow
+        : theme.shadows.elevation};
+    border-color: ${({ theme }) => `${theme.colors.primary}60`};
   }
 `;
 
@@ -574,12 +856,44 @@ const CTAButtons = styled.div`
 `;
 
 /* ═══════════════════════════════════════════════════════
+   STAT COUNTER COMPONENT
+   ═══════════════════════════════════════════════════════ */
+
+const AnimatedStatCard: React.FC<{
+  numericValue: number;
+  suffix: string;
+  label: string;
+  icon: React.ReactNode;
+  delay: number;
+  isVisible: boolean;
+  prefersReduced: boolean;
+}> = ({ numericValue, suffix, label, icon, delay, isVisible, prefersReduced }) => {
+  const count = useCountUp(numericValue, isVisible, 3, delay, prefersReduced);
+  const displayValue = numericValue >= 10000
+    ? `${(count).toLocaleString()}`
+    : `${count}`;
+
+  return (
+    <StatCard>
+      <StatIcon>{icon}</StatIcon>
+      <StatValue>{displayValue}{suffix}</StatValue>
+      <StatLabel>{label}</StatLabel>
+    </StatCard>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════
    COMPONENT
    ═══════════════════════════════════════════════════════ */
 
 const HomePageV3: React.FC = () => {
   const navigate = useNavigate();
   const [showOrientation, setShowOrientation] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+
+  // Stats section visibility for counter animation
+  const statsRef = useRef<HTMLDivElement>(null);
+  const statsInView = useInView(statsRef, { once: true, margin: '-100px' });
 
   return (
     <PageWrapper>
@@ -591,12 +905,12 @@ const HomePageV3: React.FC = () => {
         />
         <meta
           name="keywords"
-          content="personal training, fitness, NCEP certified, NASM protocols, dance, creative expression, wellness, performance training, elite coaching"
+          content="personal training, fitness, NCEP certified, NASM protocols, dance, creative expression, wellness, performance training, elite coaching, golf training, sports specific"
         />
         <meta property="og:title" content="SwanStudios | Elite Personal Training" />
         <meta
           property="og:description"
-          content="Experience the world's first Fitness Social Ecosystem with NCEP-certified expert trainers and AI-powered tracking."
+          content="Experience the world's first Fitness Social Ecosystem with NCEP-certified expert trainers and AI-enhanced coaching."
         />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/Logo.png" />
@@ -604,13 +918,13 @@ const HomePageV3: React.FC = () => {
       </Helmet>
 
       {/* ── 1. HERO ──────────────────────────────────── */}
-      <ParallaxHero videoSrc="/Swans.mp4" overlayOpacity={0.6} minHeight="100vh">
+      <ParallaxHero videoSrc="/Swans.mp4" overlayOpacity={0.55} minHeight="100vh">
         <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         <HeroHeadline>
           <TypewriterText text="Where Excellence Meets Precision" as="span" speed={50} />
         </HeroHeadline>
         <HeroSubtitle>
-          NCEP-Certified Personal Training · 25+ Years of Experience · NASM-Guided Protocols
+          NCEP-Certified Personal Training &middot; 25+ Years of Experience &middot; NASM-Guided Protocols
         </HeroSubtitle>
         <HeroButtons>
           <GlowButton
@@ -637,6 +951,7 @@ const HomePageV3: React.FC = () => {
         <SectionInner>
           <ScrollReveal>
             <SectionTitle>Our Services</SectionTitle>
+            <AccentLine />
             <SectionSubtitle>
               Comprehensive fitness solutions built on NASM best practices and over
               25 years of hands-on coaching experience.
@@ -664,6 +979,7 @@ const HomePageV3: React.FC = () => {
         <SectionInner>
           <ScrollReveal>
             <SectionTitle>Discover Your Path</SectionTitle>
+            <AccentLine />
             <SectionSubtitle>
               Every transformation begins with understanding your body. Our NCEP-certified
               coaches use NASM-guided protocols to assess your movement patterns and craft
@@ -687,7 +1003,7 @@ const HomePageV3: React.FC = () => {
           <div style={{ textAlign: 'center' }}>
             <GlowButton
               text="View All Packages"
-              variant="primary"
+              variant="accent"
               size="medium"
               onClick={() => navigate('/shop')}
             />
@@ -697,13 +1013,75 @@ const HomePageV3: React.FC = () => {
 
       <SectionDivider />
 
-      {/* ── 4. ABOUT / BIO ──────────────────────────── */}
+      {/* ── 4. GOLF PERFORMANCE ────────────────────── */}
       <Section>
         <SectionInner>
           <ScrollReveal>
-            <SectionTitle>About Sean Swan</SectionTitle>
+            <SectionTitle>Enhance Your Golf Game</SectionTitle>
+            <AccentLine />
             <SectionSubtitle>
-              A legacy of transforming lives through science-backed fitness.
+              Unlock your full potential on the course with sport-specific training designed
+              for golfers of every level. NASM-guided movement analysis meets golf performance.
+            </SectionSubtitle>
+          </ScrollReveal>
+
+          <GolfGrid>
+            <ScrollReveal direction="left">
+              <GolfFeatureList>
+                <GolfFeatureItem>
+                  <Crosshair size={20} />
+                  <span><strong>Rotational Power Training</strong> — Generate explosive hip and torso rotation for longer drives and more consistent ball striking.</span>
+                </GolfFeatureItem>
+                <GolfFeatureItem>
+                  <Shield size={20} />
+                  <span><strong>Core Stability & Balance</strong> — Build a rock-solid foundation that keeps your swing consistent from the first tee to the 18th green.</span>
+                </GolfFeatureItem>
+                <GolfFeatureItem>
+                  <Activity size={20} />
+                  <span><strong>Flexibility & Mobility</strong> — Increase your range of motion for a fuller backswing and smoother follow-through without strain.</span>
+                </GolfFeatureItem>
+                <GolfFeatureItem>
+                  <Heart size={20} />
+                  <span><strong>Injury Prevention</strong> — Corrective exercise protocols targeting common golf injuries: lower back, shoulders, elbows, and wrists.</span>
+                </GolfFeatureItem>
+                <GolfFeatureItem>
+                  <Brain size={20} />
+                  <span><strong>Movement Analysis</strong> — NASM-guided assessment of your movement patterns to identify limitations affecting your swing mechanics.</span>
+                </GolfFeatureItem>
+              </GolfFeatureList>
+            </ScrollReveal>
+
+            <ScrollReveal direction="right">
+              <GolfCard>
+                <Crosshair size={40} />
+                <h3>Golf Performance Program</h3>
+                <p>
+                  Whether you're a weekend warrior or a competitive amateur, our golf-specific
+                  training addresses the physical demands of the game. Improve your drive distance,
+                  reduce your handicap, and play pain-free.
+                </p>
+                <GlowButton
+                  text="Improve Your Game"
+                  variant="primary"
+                  size="medium"
+                  onClick={() => navigate('/shop')}
+                />
+              </GolfCard>
+            </ScrollReveal>
+          </GolfGrid>
+        </SectionInner>
+      </Section>
+
+      <SectionDivider />
+
+      {/* ── 5. ABOUT / BIO + AI APPROACH ─────────────── */}
+      <Section $alt>
+        <SectionInner>
+          <ScrollReveal>
+            <SectionTitle>About Sean Swan</SectionTitle>
+            <AccentLine />
+            <SectionSubtitle>
+              A legacy of transforming lives through science-backed fitness and AI-enhanced coaching.
             </SectionSubtitle>
           </ScrollReveal>
 
@@ -724,10 +1102,13 @@ const HomePageV3: React.FC = () => {
                   corrective exercise, and rehabilitation — principles he applies daily.
                 </p>
                 <p>
-                  In 2013, Sean and his wife <strong>Jasmine</strong> founded SwanStudios
-                  with a vision to blend elite coaching with technology. In 2018, Sean
-                  completed a full-stack development bootcamp to create AI-assisted programs
-                  that deliver measurable results for every committed client.
+                  At SwanStudios, we blend <strong>elite personal training with AI as a powerful tool</strong> —
+                  not a replacement for the coach. Sean and his team conduct deep research on each
+                  client's goals, athletic background, and physical history to build truly optimized
+                  programs. AI helps analyze data, refine programming, and accelerate injury
+                  rehabilitation — all while keeping your information private through our secure
+                  programming protocol. The result: the fastest, safest progress possible with a
+                  real coach guiding every step.
                 </p>
               </AboutText>
             </ScrollReveal>
@@ -742,6 +1123,31 @@ const HomePageV3: React.FC = () => {
             </ScrollReveal>
           </AboutGrid>
 
+          {/* AI-Enhanced Approach Cards */}
+          <ApproachGrid>
+            <ScrollReveal delay={0}>
+              <ApproachCard>
+                <Brain size={28} />
+                <h4>Deep Client Research</h4>
+                <p>Your trainer studies your goals, movement history, and athletic background to build a program that's truly yours.</p>
+              </ApproachCard>
+            </ScrollReveal>
+            <ScrollReveal delay={0.1}>
+              <ApproachCard>
+                <Zap size={28} />
+                <h4>AI-Optimized Programming</h4>
+                <p>AI helps analyze performance data and refine your training program for faster, safer results — guided by your coach.</p>
+              </ApproachCard>
+            </ScrollReveal>
+            <ScrollReveal delay={0.2}>
+              <ApproachCard>
+                <Shield size={28} />
+                <h4>Privacy & Rehabilitation</h4>
+                <p>Your data stays private through our programming protocol. Injury rehab programs built with precision and care.</p>
+              </ApproachCard>
+            </ScrollReveal>
+          </ApproachGrid>
+
           <div style={{ textAlign: 'center', marginTop: '2rem' }}>
             <GlowButton
               text="Learn More"
@@ -755,13 +1161,14 @@ const HomePageV3: React.FC = () => {
 
       <SectionDivider />
 
-      {/* ── 5. TESTIMONIALS (no photos) ─────────────── */}
-      <Section $alt>
+      {/* ── 6. TESTIMONIALS (no photos) ─────────────── */}
+      <Section>
         <SectionInner>
           <ScrollReveal>
             <SectionTitle>
               <TypewriterText text="Client Success Stories" as="span" speed={40} />
             </SectionTitle>
+            <AccentLine />
             <SectionSubtitle>
               Real results from real people. No shortcuts — just elite-level
               coaching that works.
@@ -800,21 +1207,26 @@ const HomePageV3: React.FC = () => {
 
       <SectionDivider />
 
-      {/* ── 6. STATS ────────────────────────────────── */}
-      <Section>
+      {/* ── 7. STATS (Animated Counters) ──────────── */}
+      <Section $alt ref={statsRef}>
         <SectionInner>
           <ScrollReveal>
             <SectionTitle>By the Numbers</SectionTitle>
+            <AccentLine />
           </ScrollReveal>
 
           <StatsGrid>
-            {stats.map((s, i) => (
+            {statsData.map((s, i) => (
               <ScrollReveal key={s.label} delay={i * 0.1}>
-                <StatCard>
-                  <StatIcon>{s.icon}</StatIcon>
-                  <StatValue>{s.value}</StatValue>
-                  <StatLabel>{s.label}</StatLabel>
-                </StatCard>
+                <AnimatedStatCard
+                  numericValue={s.numericValue}
+                  suffix={s.suffix}
+                  label={s.label}
+                  icon={s.icon}
+                  delay={s.delay}
+                  isVisible={statsInView}
+                  prefersReduced={prefersReducedMotion}
+                />
               </ScrollReveal>
             ))}
           </StatsGrid>
@@ -823,40 +1235,60 @@ const HomePageV3: React.FC = () => {
 
       <SectionDivider />
 
-      {/* ── 7. CREATIVE EXPRESSION ───────────────────── */}
-      <Section $alt>
-        <SectionInner>
+      {/* ── 8. BEYOND THE GYM (Social Platform) ─────── */}
+      <BeyondSection>
+        <BeyondVideoWrapper>
+          <video autoPlay muted loop playsInline>
+            <source src="/smoke.mp4" type="video/mp4" />
+          </video>
+        </BeyondVideoWrapper>
+        <BeyondOverlay />
+        <BeyondContent>
           <ScrollReveal>
             <SectionTitle>Beyond the Gym</SectionTitle>
+            <AccentLine />
             <SectionSubtitle>
-              Fitness is more than reps and sets. We believe in building warriors
-              and artists through holistic wellness, creative expression, and community.
+              SwanStudios isn't just a fitness platform — it's a creative social ecosystem.
+              Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community
+              where fitness meets art, music, gaming, and real human connection.
             </SectionSubtitle>
           </ScrollReveal>
 
-          <CreativeGrid>
-            {creativeCards.map((c, i) => (
+          <SocialGrid>
+            {socialCategories.map((c, i) => (
               <ScrollReveal key={c.title} delay={i * 0.1}>
-                <CreativeCard>
+                <SocialCard>
                   <FeatureIcon>{c.icon}</FeatureIcon>
                   <FeatureTitle>{c.title}</FeatureTitle>
                   <FeatureDesc>{c.description}</FeatureDesc>
-                </CreativeCard>
+                </SocialCard>
               </ScrollReveal>
             ))}
-          </CreativeGrid>
-        </SectionInner>
-      </Section>
+          </SocialGrid>
+
+          <ScrollReveal delay={0.6}>
+            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+              <GlowButton
+                text="Join the Community"
+                variant="accent"
+                size="large"
+                onClick={() => navigate('/social')}
+              />
+            </div>
+          </ScrollReveal>
+        </BeyondContent>
+      </BeyondSection>
 
       <SectionDivider />
 
-      {/* ── 8. FINAL CTA ─────────────────────────────── */}
+      {/* ── 9. FINAL CTA ─────────────────────────────── */}
       <CTASection>
         <CTAInner>
           <ScrollReveal>
             <SectionTitle>
               <TypewriterText text="Ready to Transform?" as="span" speed={45} />
             </SectionTitle>
+            <AccentLine />
             <CTAText>
               Your journey to a stronger, healthier, more confident you starts with
               a single step. Let our NCEP-certified coaches guide you with proven
@@ -865,7 +1297,7 @@ const HomePageV3: React.FC = () => {
             <CTAButtons>
               <GlowButton
                 text="Start Today"
-                variant="primary"
+                variant="accent"
                 size="large"
                 onClick={() => navigate('/shop')}
               />

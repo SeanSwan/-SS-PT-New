@@ -7,6 +7,7 @@ import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
+import logoImg from '../../assets/Logo.png';
 
 /* ================================================================
  * ContactV2 — Cinematic, Theme-Aware Contact Page
@@ -69,6 +70,23 @@ const Section = styled.section`
 `;
 
 // --------------- Hero ---------------
+
+const HeroLogo = styled.img`
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 0 20px ${({ theme }) =>
+    theme.effects.glowIntensity !== 'none'
+      ? `${theme.colors.primary}40`
+      : 'transparent'});
+  animation: heroFloat 4s ease-in-out infinite;
+
+  @keyframes heroFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+`;
 
 const HeroTitle = styled(TypewriterText)`
   font-family: ${({ theme }) => theme.fonts.drama};
@@ -594,6 +612,7 @@ const ContactV2: React.FC = () => {
     <PageWrapper>
       {/* ---- Hero ---- */}
       <ParallaxHero videoSrc="/swan.mp4" overlayOpacity={0.65} minHeight="70vh">
+        <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         <HeroTitle text="Let's Connect" as="h1" speed={60} />
         <HeroSubtitle>
           Whether you have questions about personal training, want to book a session, or just want
@@ -778,7 +797,7 @@ const ContactV2: React.FC = () => {
       <SocialRow>
         <ScrollReveal direction="up" delay={0}>
           <SocialLink
-            href="https://facebook.com/swanstudios"
+            href="https://facebook.com/seanswantech"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Facebook"
@@ -788,7 +807,7 @@ const ContactV2: React.FC = () => {
         </ScrollReveal>
         <ScrollReveal direction="up" delay={0.1}>
           <SocialLink
-            href="https://instagram.com/swanstudios"
+            href="https://www.instagram.com/seanswantech"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram"
@@ -798,7 +817,7 @@ const ContactV2: React.FC = () => {
         </ScrollReveal>
         <ScrollReveal direction="up" delay={0.2}>
           <SocialLink
-            href="https://youtube.com/@swanstudios"
+            href="https://www.youtube.com/@swanstudios2018"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="YouTube"
