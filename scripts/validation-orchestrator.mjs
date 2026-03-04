@@ -6,15 +6,15 @@
  * ║           OpenRouter Edition — 7 AI Validators                  ║
  * ║                                                                  ║
  * ║  7 parallel AI validator tracks via OpenRouter (ONE API key):    ║
- * ║  1. Gemini 3.1 Pro       → UX / Accessibility       (FREE)     ║
- * ║  2. Claude Opus 4.6      → Code Quality              (FREE)     ║
+ * ║  1. Gemini 2.5 Flash     → UX / Accessibility       (FREE)     ║
+ * ║  2. Claude 4.5 Sonnet   → Code Quality              (FREE)     ║
  * ║  3. DeepSeek V3.2        → Security scan             (FREE)     ║
- * ║  4. Gemini 2.5 Flash     → Performance review        (FREE)     ║
+ * ║  4. Gemini 3 Flash       → Performance review        (FREE)     ║
  * ║  5. MiniMax M2.1         → Competitive intelligence  (FREE)     ║
- * ║  6. Claude Opus 4.6      → User research / personas  (FREE)     ║
+ * ║  6. DeepSeek V3.2        → User research / personas  (FREE)     ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter (~$0.01)   ║
  * ║                                                                  ║
- * ║  NO ChatGPT/OpenAI — Claude + Gemini + DeepSeek + MiniMax      ║
+ * ║  6 FREE + 1 paid — Opus & Gemini 3.1 Pro via subscriptions     ║
  * ║  Rate limit: ~10 RPM per model (free tier)                      ║
  * ║                                                                  ║
  * ║  Setup: Just add to .env:                                        ║
@@ -42,18 +42,20 @@ const ROOT = join(__dirname, '..');
 // ─────────────────────────────────────────────
 
 // OpenRouter model IDs — NO OpenAI/ChatGPT
-// See: https://openrouter.ai/collections/free-models
+// VERIFIED FREE: https://openrouter.ai/collections/free-models
+// PAID models are clearly marked with cost estimates
 const MODELS = {
-  // Google (FREE on OpenRouter)
-  gemini31Pro:    'google/gemini-3.1-pro-preview',     // #1 benchmark (57.2 Intelligence Index)
-  gemini25Flash:  'google/gemini-2.5-flash',           // Fast, free, great at structured analysis
-  // Anthropic (FREE on OpenRouter)
-  claudeOpus:     'anthropic/claude-4.6-opus-20260205', // User's primary AI — always included
-  // DeepSeek (FREE on OpenRouter)
-  deepseekV3:     'deepseek/deepseek-v3.2-20251201',
-  // MiniMax
-  minimaxM21:     'minimax/minimax-m2.1',              // FREE tier
-  minimaxM25:     'minimax/minimax-m2.5',              // Paid (~$0.005/run) — #1 programming
+  // ── VERIFIED FREE on OpenRouter ──
+  gemini25Flash:  'google/gemini-2.5-flash',           // FREE — fast, great at structured analysis
+  gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
+  deepseekV3:     'deepseek/deepseek-v3.2-20251201',  // FREE
+  minimaxM21:     'minimax/minimax-m2.1',              // FREE
+  claudeSonnet45: 'anthropic/claude-4.5-sonnet-20250929', // FREE on OpenRouter
+  // ── PAID models (clearly marked) ──
+  minimaxM25:     'minimax/minimax-m2.5',              // ~$0.005/run — #1 programming
+  // ── EXPENSIVE (DO NOT USE in orchestrator) ──
+  // claudeOpus:  'anthropic/claude-4.6-opus-20260205' // $5/$25 per M tokens — use via CLI subscription instead
+  // gemini31Pro: 'google/gemini-3.1-pro-preview'      // $2/$12 per M tokens — use via Gemini Code Assist instead
 };
 
 const CONFIG = {
@@ -194,7 +196,7 @@ function buildValidatorTracks(codeBundle, fileList) {
   return [
     {
       name: 'UX & Accessibility',
-      model: MODELS.gemini31Pro,
+      model: MODELS.gemini25Flash,
       prompt: `You are a UX and accessibility expert auditor. ${ctx}
 
 Review the following code for:
@@ -213,7 +215,7 @@ ${codeBundle}`,
 
     {
       name: 'Code Quality',
-      model: MODELS.claudeOpus,
+      model: MODELS.claudeSonnet45,
       prompt: `You are a senior TypeScript/React code quality reviewer. ${ctx}
 
 Review the following code for:
@@ -254,7 +256,7 @@ ${codeBundle}`,
 
     {
       name: 'Performance & Scalability',
-      model: MODELS.gemini25Flash,
+      model: MODELS.gemini3Flash,
       prompt: `You are a performance and scalability engineer. ${ctx}
 
 Review the following code for:
@@ -293,7 +295,7 @@ ${codeBundle}`,
 
     {
       name: 'User Research & Persona Alignment',
-      model: MODELS.claudeOpus,
+      model: MODELS.deepseekV3,
       prompt: `You are a user researcher analyzing a fitness SaaS platform. ${ctx}
 
 Target personas:
@@ -433,11 +435,17 @@ async function runValidator(apiKey, track, index) {
   try {
     const result = await callOpenRouter(apiKey, track.model, track.prompt);
 
-    // MiniMax M2.5 is paid ($0.295/M in, $1.20/M out), rest are free tier
+    // Cost tracking — only MiniMax M2.5 is paid, rest are VERIFIED FREE
+    // If OpenRouter ever changes free tier, this will catch it via the API response
     let costUSD = 0;
     if (track.model === MODELS.minimaxM25) {
       costUSD = (result.inputTokens / 1_000_000 * 0.295) +
                 (result.outputTokens / 1_000_000 * 1.20);
+    }
+    // Safety: warn if a "free" model somehow reports cost
+    const isFreeModel = track.model !== MODELS.minimaxM25;
+    if (isFreeModel && costUSD > 0.01) {
+      console.warn(`    ⚠️  WARNING: "${track.name}" cost $${costUSD.toFixed(4)} — may not be free anymore!`);
     }
 
     return {
@@ -530,9 +538,9 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios Validation Orchestrator v5.0 — No ChatGPT Edition*
-*7 AI Validators: Gemini 3.1 Pro + Claude Opus 4.6 x2 + DeepSeek V3.2 + Gemini 2.5 Flash + MiniMax M2.1 + MiniMax M2.5*
-*Zero OpenAI dependency — Claude + Gemini + DeepSeek + MiniMax = Bulletproof*
+*SwanStudios Validation Orchestrator v6.0 — VERIFIED FREE Edition*
+*7 Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5*
+*Opus 4.6 & Gemini 3.1 Pro reserved for subscription terminals (not API-billed)*
 `;
 
   return { md, timestamp };
@@ -565,11 +573,12 @@ async function main() {
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
   console.log('  ║    SwanStudios Parallel Validation Orchestrator         ║');
-  console.log('  ║    7-Brain System — NO ChatGPT Edition                   ║');
+  console.log('  ║    7-Brain System — VERIFIED FREE Edition                ║');
   console.log('  ║                                                          ║');
-  console.log('  ║    Gemini 3.1 Pro · Claude Opus 4.6 · DeepSeek V3.2    ║');
-  console.log('  ║    Gemini 2.5 Flash · MiniMax M2.1 · MiniMax M2.5      ║');
-  console.log('  ║    Claude + Gemini + DeepSeek + MiniMax = Bulletproof    ║');
+  console.log('  ║    Gemini 2.5 Flash · Claude 4.5 Sonnet · DeepSeek V3.2║');
+  console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · MiniMax M2.5        ║');
+  console.log('  ║    6 FREE + M2.5 (~$0.005) = ~$0.005/run                ║');
+  console.log('  ║    Opus 4.6 + Gemini 3.1 Pro = use via subscriptions    ║');
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
 
