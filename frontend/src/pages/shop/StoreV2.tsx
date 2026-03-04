@@ -884,7 +884,7 @@ const StoreV2: React.FC = () => {
 
             <ScrollReveal direction="up" delay={0.6} duration={0.8}>
               <HeroSubtitle>
-                25+ Years of Experience &amp; NASM-Approved Protocols
+                25+ Years of Experience &amp; NASM-Guided Protocols
               </HeroSubtitle>
             </ScrollReveal>
 

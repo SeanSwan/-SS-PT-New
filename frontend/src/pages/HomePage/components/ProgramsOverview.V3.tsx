@@ -360,8 +360,8 @@ const ProgramsOverviewV3: React.FC = () => {
         <Header>
           <h2>Discover Your Path</h2>
           <p>
-            Every transformation begins with understanding your body. Our NASM-certified
-            programs assess your movement patterns and craft a strategy that
+            Every transformation begins with understanding your body. Our NCEP-certified
+            coaches use NASM-guided protocols to assess your movement patterns and craft a strategy that
             delivers lasting results. Explore packages and pricing in our store.
           </p>
         </Header>

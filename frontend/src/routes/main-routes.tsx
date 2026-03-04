@@ -128,12 +128,12 @@ const ClientOnboardingWizard = lazyLoadWithErrorHandling(
   'Client Onboarding Wizard'
 );
 
-// v2.0 HOMEPAGE: LivingConstellation + FrostedCard + Parallax (NO pricing on homepage)
+// v3.0 HOMEPAGE: Cinematic theme-aware + GlowButtons + TypewriterText
 const HomePage = lazyLoadWithErrorHandling(
-  () => import('../pages/HomePage/components/HomePage.V2.component'),
-  'Home Page v2.0',
-  // Fallback to v1.0 if v2.0 fails to load
-  () => import('../pages/HomePage/components/HomePage.component')
+  () => import('../pages/HomePage/components/HomePage.V3'),
+  'Home Page V3',
+  // Fallback to v2.0 if v3.0 fails to load
+  () => import('../pages/HomePage/components/HomePage.V2.component')
 );
 const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),

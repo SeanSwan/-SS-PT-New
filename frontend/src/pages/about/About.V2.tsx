@@ -446,7 +446,7 @@ const stats = [
 
 const milestones = [
   { year: '1998', text: 'Began personal training career' },
-  { year: '2005', text: 'Earned advanced NASM certifications' },
+  { year: '2005', text: 'Completed advanced NASM workshops and protocols training' },
   { year: '2010', text: 'Launched specialized programs for athletes' },
   { year: '2015', text: 'Expanded to online training platform' },
   { year: '2020', text: 'Founded SwanStudios' },
@@ -525,7 +525,7 @@ const AboutV2: React.FC = () => {
             <ScrollReveal direction="left">
               <AboutText>
                 <p>
-                  <strong>Sean Swan</strong> is a NASM-certified personal trainer with{' '}
+                  <strong>Sean Swan</strong> is an NCEP-certified personal trainer with{' '}
                   <strong>25+ years of experience</strong> helping clients transform their
                   lives through science-backed fitness protocols. His approach blends
                   biomechanics, nutrition science, and motivational psychology into a
