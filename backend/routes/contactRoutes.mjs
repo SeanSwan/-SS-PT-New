@@ -1,8 +1,21 @@
 import express from "express";
 import Contact from '../models/contact.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import sequelize from '../database.mjs';
 
 const router = express.Router();
+let contactsPriorityColumnPromise = null;
+
+const hasContactsPriorityColumn = async () => {
+  if (!contactsPriorityColumnPromise) {
+    contactsPriorityColumnPromise = sequelize
+      .getQueryInterface()
+      .describeTable('contacts')
+      .then((columns) => Boolean(columns?.priority))
+      .catch(() => false);
+  }
+  return contactsPriorityColumnPromise;
+};
 
 // ADMIN: Get contacts list with pagination
 // Fixed sort: createdAt DESC, id DESC — sortBy/sortOrder params removed (admin-only endpoint)
@@ -15,11 +28,17 @@ router.get("/", protect, adminOnly, async (req, res) => {
     const rawOffset = parseInt(req.query.offset, 10);
     const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
 
+    const includePriority = await hasContactsPriorityColumn();
+    const attributes = ['id', 'name', 'email', 'message', 'createdAt', 'updatedAt'];
+    if (includePriority) {
+      attributes.push('priority');
+    }
+
     const contacts = await Contact.findAll({
       limit,
       offset,
       order: [['createdAt', 'DESC'], ['id', 'DESC']],
-      attributes: ['id', 'name', 'email', 'message', 'priority', 'createdAt', 'updatedAt']
+      attributes
     });
 
     const totalContacts = await Contact.count();
@@ -28,7 +47,12 @@ router.get("/", protect, adminOnly, async (req, res) => {
 
     res.json({
       success: true,
-      contacts,
+      contacts: includePriority
+        ? contacts
+        : contacts.map((contact) => ({
+            ...contact.toJSON(),
+            priority: 'normal',
+          })),
       pagination: {
         total: totalContacts,
         limit,
@@ -66,12 +90,15 @@ router.post("/", async (req, res) => {
     console.log('✅ Validation passed');
 
     // 1. PRIORITY #1: Store the contact info in the DB (THIS MUST ALWAYS WORK)
+    const includePriority = await hasContactsPriorityColumn();
     const contactData = {
       name: name.trim(),
       email: email.trim(),
-      message: message.trim(),
-      priority: priority || 'normal'
+      message: message.trim()
     };
+    if (includePriority) {
+      contactData.priority = priority || 'normal';
+    }
     
     // Add consultation type to message for context
     if (consultationType) {
@@ -104,7 +131,7 @@ router.post("/", async (req, res) => {
         id: newContact.id,
         name: newContact.name,
         email: newContact.email,
-        priority: newContact.priority,
+        priority: includePriority ? newContact.priority : (priority || 'normal'),
         createdAt: newContact.createdAt
       },
       notifications: notificationResults

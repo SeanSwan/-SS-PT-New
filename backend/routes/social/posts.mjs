@@ -1,5 +1,6 @@
 import express from 'express';
 import { SocialPost, SocialComment, SocialLike, Friendship } from '../../models/social/index.mjs';
+import EnhancedSocialPost from '../../models/social/enhanced/EnhancedSocialPost.mjs';
 import { getUser } from '../../models/index.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { Op } from 'sequelize';
@@ -15,6 +16,84 @@ const router = express.Router();
 
 // Apply auth middleware to all routes
 router.use(protect);
+
+function isLegacySocialTableMissingError(error) {
+  const message = String(error?.message || '');
+  const isMissingRelation = error?.original?.code === '42P01' || /relation .* does not exist/i.test(message);
+  if (!isMissingRelation) return false;
+  return /SocialPosts|Friendships|SocialComments|SocialLikes/i.test(message);
+}
+
+async function getEnhancedFallbackFeed(userId, limit, offset) {
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(limit, 100)) : 20;
+  const safeOffset = Number.isFinite(offset) ? Math.max(offset, 0) : 0;
+
+  const where = {
+    status: 'published',
+    moderationStatus: 'approved',
+    [Op.or]: [
+      { visibility: 'public' },
+      { userId: String(userId) }
+    ]
+  };
+
+  const [posts, total] = await Promise.all([
+    EnhancedSocialPost.findAll({
+      where,
+      limit: safeLimit,
+      offset: safeOffset,
+      order: [['publishedAt', 'DESC'], ['createdAt', 'DESC']],
+      raw: true
+    }),
+    EnhancedSocialPost.count({ where })
+  ]);
+
+  const numericUserIds = [...new Set(posts
+    .map((post) => post.userId)
+    .filter((id) => /^\d+$/.test(String(id)))
+    .map((id) => Number(id)))];
+
+  const users = numericUserIds.length > 0
+    ? await getUser().findAll({
+      where: { id: { [Op.in]: numericUserIds } },
+      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+      raw: true
+    })
+    : [];
+
+  const userMap = new Map(users.map((user) => [String(user.id), user]));
+
+  const formattedPosts = posts.map((post) => {
+    const mediaItems = Array.isArray(post.mediaItems) ? post.mediaItems : [];
+    const firstMedia = mediaItems[0];
+
+    return {
+      id: post.id,
+      userId: post.userId,
+      content: post.content,
+      type: post.contentType || 'general',
+      visibility: post.visibility || 'public',
+      mediaUrl: firstMedia?.url || null,
+      likesCount: post.likesCount || 0,
+      commentsCount: post.commentsCount || 0,
+      isLiked: false,
+      createdAt: post.publishedAt || post.createdAt,
+      updatedAt: post.updatedAt,
+      user: userMap.get(String(post.userId)) || null
+    };
+  });
+
+  return {
+    success: true,
+    posts: formattedPosts,
+    pagination: {
+      limit: safeLimit,
+      offset: safeOffset,
+      total
+    },
+    fallback: 'enhanced_social_posts'
+  };
+}
 
 // Social gamification point rules
 const SOCIAL_POINT_RULES = {
@@ -241,6 +320,15 @@ router.get('/feed', async (req, res) => {
       }
     });
   } catch (error) {
+    if (isLegacySocialTableMissingError(error)) {
+      try {
+        const fallback = await getEnhancedFallbackFeed(req.user.id, parseInt(req.query.limit), parseInt(req.query.offset));
+        return res.status(200).json(fallback);
+      } catch (fallbackError) {
+        console.error('Enhanced social fallback failed:', fallbackError);
+      }
+    }
+
     console.error('Error fetching social feed:', error);
     return res.status(500).json({
       success: false,

@@ -16,12 +16,10 @@ class MCPHealthManager {
     const mcpMasterSwitch = this.isProduction
       ? process.env.ENABLE_MCP_SERVICES === 'true'
       : process.env.ENABLE_MCP_SERVICES !== 'false';
-    this.enableHealthChecks = this.isProduction
-      ? (process.env.ENABLE_MCP_HEALTH_CHECKS === 'true' && mcpMasterSwitch)
-      : process.env.ENABLE_MCP_HEALTH_CHECKS !== 'false';
-    this.enableHealthAlerting = this.isProduction
-      ? (process.env.ENABLE_MCP_HEALTH_ALERTS === 'true' && mcpMasterSwitch)
-      : process.env.ENABLE_MCP_HEALTH_ALERTS !== 'false';
+    this.enableHealthChecks =
+      process.env.ENABLE_MCP_HEALTH_CHECKS === 'true' && mcpMasterSwitch;
+    this.enableHealthAlerting =
+      process.env.ENABLE_MCP_HEALTH_ALERTS === 'true' && mcpMasterSwitch;
     
     // Define all MCP servers with their configurations
     this.mcpServers = {

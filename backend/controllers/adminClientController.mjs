@@ -364,6 +364,21 @@ class AdminClientController {
         includeOptions.push({
           model: WorkoutSession,
           as: 'workoutSessions',
+          // Keep this list aligned with actual workout_sessions columns in production/dev.
+          attributes: [
+            'id',
+            'userId',
+            'title',
+            'date',
+            'duration',
+            'status',
+            'sessionType',
+            'startedAt',
+            'completedAt',
+            'trainerId',
+            'avgRPE',
+            'createdAt'
+          ],
           required: false,
           where: { status: 'completed' },
           separate: true,

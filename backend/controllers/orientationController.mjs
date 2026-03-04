@@ -328,6 +328,7 @@ export const getAllOrientations = async (req, res) => {
       include: [
         {
           model: User,
+          as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
           required: false // Left join to include orientations without users
         }

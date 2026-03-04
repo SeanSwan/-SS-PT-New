@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Star } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
+import OrientationForm from "../../../components/OrientationForm/orientationForm";
 import logoImg from "../../../assets/Logo.png";
 import { useReducedMotion } from "../../../hooks/useReducedMotion";
 
@@ -342,6 +343,7 @@ const HeroSectionV2: React.FC = () => {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const prefersReducedMotion = useReducedMotion();
+  const [showOrientation, setShowOrientation] = useState(false);
 
   const orbConfigs = useMemo(
     () => prefersReducedMotion ? [] : (isDesktop ? ORB_CONFIGS_DESKTOP : ORB_CONFIGS_MOBILE),
@@ -349,7 +351,8 @@ const HeroSectionV2: React.FC = () => {
   );
 
   return (
-    <HeroContainer>
+    <>
+      <HeroContainer>
       {/* Background: video on desktop, gradient on mobile */}
       {isDesktop && !prefersReducedMotion ? (
         <VideoBackground>
@@ -440,15 +443,17 @@ const HeroSectionV2: React.FC = () => {
             animateOnRender
           />
           <GlowButton
-            text="Book Free Movement Screen"
+            text="Book Orientation"
             theme="primary"
             size="large"
-            onClick={() => navigate('/contact')}
+            onClick={() => setShowOrientation(true)}
             animateOnRender
           />
         </ButtonGroup>
       </ContentWrapper>
-    </HeroContainer>
+      </HeroContainer>
+      {showOrientation && <OrientationForm onClose={() => setShowOrientation(false)} />}
+    </>
   );
 };
 

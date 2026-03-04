@@ -325,7 +325,7 @@ declare global {
  */
 const DevLoginPanel: React.FC = () => {
   // State management
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [isPanelEnabled, setIsPanelEnabled] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);

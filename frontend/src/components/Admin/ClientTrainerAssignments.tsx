@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import {
@@ -473,6 +473,9 @@ const initials = (firstName: string, lastName: string) => `${firstName?.[0] || '
 
 const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onAssignmentChange }) => {
   const { authAxios } = useAuth();
+  const assignInFlightRef = useRef(false);
+  const draggedClientIdRef = useRef<number | null>(null);
+  const dropTrainerIdRef = useRef<number | null>(null);
 
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [trainers, setTrainers] = useState<TrainerRow[]>([]);
@@ -483,6 +486,16 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
   const [error, setError] = useState<string | null>(null);
   const [draggedClientId, setDraggedClientId] = useState<number | null>(null);
   const [dropTrainerId, setDropTrainerId] = useState<number | null>(null);
+
+  const setDraggedClient = useCallback((clientId: number | null) => {
+    draggedClientIdRef.current = clientId;
+    setDraggedClientId(clientId);
+  }, []);
+
+  const setDropTrainer = useCallback((trainerId: number | null) => {
+    dropTrainerIdRef.current = trainerId;
+    setDropTrainerId(trainerId);
+  }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -589,7 +602,8 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
           trainerId,
           notes: 'Assigned via admin assignment board',
         });
-
+        // Release action lock before refresh so follow-up actions are not blocked.
+        setSaving(false);
         await refreshAssignmentsOnly();
         onAssignmentChange?.();
       } catch (err: any) {
@@ -621,11 +635,26 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
     [authAxios, onAssignmentChange, refreshAssignmentsOnly, saving]
   );
 
-  const onDropToTrainer = async (trainerId: number) => {
-    if (!draggedClientId) return;
-    await handleAssign(draggedClientId, trainerId);
-    setDraggedClientId(null);
-    setDropTrainerId(null);
+  const onDropToTrainer = async (trainerId: number, dropEvent?: React.DragEvent<HTMLDivElement>) => {
+    if (assignInFlightRef.current) return;
+
+    const fallbackClientIdRaw = dropEvent?.dataTransfer?.getData('text/plain');
+    const fallbackClientId = fallbackClientIdRaw ? Number(fallbackClientIdRaw) : null;
+    const resolvedClientId =
+      draggedClientIdRef.current ??
+      draggedClientId ??
+      (Number.isFinite(fallbackClientId) ? fallbackClientId : null);
+
+    if (!resolvedClientId) return;
+
+    assignInFlightRef.current = true;
+    try {
+      await handleAssign(resolvedClientId, trainerId);
+    } finally {
+      assignInFlightRef.current = false;
+      setDraggedClient(null);
+      setDropTrainer(null);
+    }
   };
 
   if (loading) {
@@ -639,7 +668,7 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
   }
 
   return (
-    <Root>
+    <Root data-testid="assignment-board">
       <Header>
         <HeaderTitle>
           <h1>Client-Trainer Assignments</h1>
@@ -699,7 +728,7 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
       </Toolbar>
 
       <Board>
-        <Panel>
+        <Panel data-testid="unassigned-clients-panel">
           <PanelTitle>
             <UserPlus size={16} />
             Unassigned Clients ({filteredUnassignedClients.length})
@@ -712,11 +741,36 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
               filteredUnassignedClients.map((client) => (
                 <Card
                   key={client.id}
+                  data-testid={`unassigned-client-${client.id}`}
                   draggable
-                  onDragStart={() => setDraggedClientId(client.id)}
-                  onDragEnd={() => {
-                    setDraggedClientId(null);
-                    setDropTrainerId(null);
+                  onPointerDown={() => {
+                    setDraggedClient(client.id);
+                  }}
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData('text/plain', String(client.id));
+                    event.dataTransfer.effectAllowed = 'move';
+                    setDraggedClient(client.id);
+                  }}
+                  onDragEnd={(event) => {
+                    let fallbackTrainerId = dropTrainerIdRef.current;
+                    if (fallbackTrainerId === null && event.clientX > 0 && event.clientY > 0) {
+                      const zone = document
+                        .elementFromPoint(event.clientX, event.clientY)
+                        ?.closest('[data-testid^="trainer-zone-"]');
+                      const zoneTestId = zone?.getAttribute('data-testid') || '';
+                      const parsedTrainerId = Number(zoneTestId.replace('trainer-zone-', ''));
+                      if (Number.isFinite(parsedTrainerId)) {
+                        fallbackTrainerId = parsedTrainerId;
+                      }
+                    }
+
+                    // Fallback for environments where drop event isn't emitted reliably.
+                    if (fallbackTrainerId !== null && draggedClientIdRef.current === client.id) {
+                      void onDropToTrainer(fallbackTrainerId);
+                      return;
+                    }
+                    setDraggedClient(null);
+                    setDropTrainer(null);
                   }}
                   $dragging={draggedClientId === client.id}
                   whileHover={{ y: -2 }}
@@ -735,7 +789,7 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
           </List>
         </Panel>
 
-        <Panel>
+        <Panel data-testid="trainer-zones-panel">
           <PanelTitle>
             <Users size={16} />
             Trainers ({stats.totalTrainers})
@@ -753,18 +807,25 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
                 return (
                   <TrainerZone
                     key={trainer.id}
+                    data-testid={`trainer-zone-${trainer.id}`}
                     $activeDrop={dropTrainerId === trainer.id}
                     onDragOver={(event) => {
                       event.preventDefault();
+                      event.dataTransfer.dropEffect = 'move';
                       if (!isFull) {
-                        setDropTrainerId(trainer.id);
+                        setDropTrainer(trainer.id);
                       }
                     }}
-                    onDragLeave={() => setDropTrainerId(null)}
+                    onDragLeave={() => setDropTrainer(null)}
+                    onPointerUp={() => {
+                      if (!isFull && draggedClientIdRef.current !== null) {
+                        void onDropToTrainer(trainer.id);
+                      }
+                    }}
                     onDrop={(event) => {
                       event.preventDefault();
                       if (!isFull) {
-                        onDropToTrainer(trainer.id);
+                        void onDropToTrainer(trainer.id, event);
                       }
                     }}
                   >
@@ -786,10 +847,14 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
                         if (!client) return null;
 
                         return (
-                          <AssignmentItem key={assignment.id}>
+                          <AssignmentItem
+                            key={assignment.id}
+                            data-testid={`assigned-client-${assignment.clientId}`}
+                          >
                             <div className="top">
                               <div className="name">{client.firstName} {client.lastName}</div>
                               <IconButton
+                                data-testid={`remove-assignment-${assignment.id}`}
                                 onClick={() => handleUnassign(assignment.id)}
                                 title="Remove assignment"
                                 disabled={saving}
