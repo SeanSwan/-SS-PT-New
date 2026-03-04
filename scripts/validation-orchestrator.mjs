@@ -3,17 +3,18 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
  * ║         SwanStudios Parallel Validation Orchestrator            ║
- * ║              OpenRouter Edition — ALL FREE MODELS               ║
+ * ║           OpenRouter Edition — 7 AI Validators                  ║
  * ║                                                                  ║
- * ║  6 parallel AI validator tracks via OpenRouter (ONE API key):    ║
+ * ║  7 parallel AI validator tracks via OpenRouter (ONE API key):    ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility       (FREE)     ║
  * ║  2. Claude 4.5 Sonnet    → Code Quality              (FREE)     ║
  * ║  3. DeepSeek V3.2        → Security scan             (FREE)     ║
  * ║  4. Gemini 3 Flash       → Performance review        (FREE)     ║
  * ║  5. MiniMax M2.1         → Competitive intelligence  (FREE)     ║
  * ║  6. GPT-4o-mini          → User research / personas  (FREE)     ║
+ * ║  7. MiniMax M2.5         → Architecture & Bug Hunter (~$0.01)   ║
  * ║                                                                  ║
- * ║  Total cost per run: $0.00  (all free-tier models)              ║
+ * ║  Total cost per run: ~$0.01  (6 free + 1 paid)                 ║
  * ║  Rate limit: ~10 RPM per model (free tier)                      ║
  * ║                                                                  ║
  * ║  Setup: Just add to .env:                                        ║
@@ -50,6 +51,7 @@ const MODELS = {
   minimaxM21:     'minimax/minimax-m2.1',
   gpt4oMini:      'openai/gpt-4o-mini',
   trinityLarge:   'arcee-ai/trinity-large-preview',
+  minimaxM25:     'minimax/minimax-m2.5',
 };
 
 const CONFIG = {
@@ -311,6 +313,62 @@ Output as structured markdown with actionable recommendations.
 CODE TO REVIEW:
 ${codeBundle}`,
     },
+
+    {
+      name: 'Architecture & Bug Hunter',
+      model: MODELS.minimaxM25,
+      prompt: `You are a principal software engineer doing a deep architecture review and bug hunt. You are the #1 ranked programming AI — act like it. ${ctx}
+
+This is the most important review. Think step-by-step using your reasoning capabilities.
+
+Perform a DEEP code review covering:
+
+1. **Bug Detection** — Find actual bugs, not style issues:
+   - Race conditions, timing issues, async/await mistakes
+   - Off-by-one errors, null/undefined access without guards
+   - State mutation bugs, stale closure captures
+   - Event listener leaks, missing cleanup in useEffect
+   - Incorrect conditional logic, unreachable code paths
+
+2. **Architecture Flaws** — Structural problems:
+   - Circular dependencies between modules
+   - God components doing too much (>300 lines = suspect)
+   - Prop drilling that should use context or state management
+   - Missing error boundaries around async operations
+   - Tight coupling that prevents testing or reuse
+
+3. **Integration Issues** — How pieces connect:
+   - Frontend-backend contract mismatches (API shape vs what UI expects)
+   - Missing loading/error/empty states for API calls
+   - Inconsistent data transformations between layers
+   - Route guards that can be bypassed
+   - WebSocket/SSE connections without reconnection logic
+
+4. **Dead Code & Tech Debt** — Cleanup targets:
+   - Unused imports, variables, functions, components
+   - Commented-out code blocks that should be deleted
+   - TODO/FIXME/HACK comments indicating unfinished work
+   - Duplicated logic across files (DRY violations)
+   - Deprecated API usage or outdated patterns
+
+5. **Production Readiness** — Ship blockers:
+   - Console.log statements that shouldn't ship
+   - Hardcoded URLs, credentials, or environment-specific values
+   - Missing input validation at system boundaries
+   - No rate limiting on expensive operations
+   - Missing loading indicators for operations >300ms
+
+For each finding, provide:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **File & Line:** Exact location
+- **What's Wrong:** Clear description
+- **Fix:** Specific code change needed
+
+Output as structured markdown. Be ruthless — this codebase ships to production.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
   ];
 }
 
@@ -372,6 +430,14 @@ async function runValidator(apiKey, track, index) {
   const start = Date.now();
   try {
     const result = await callOpenRouter(apiKey, track.model, track.prompt);
+
+    // MiniMax M2.5 is paid ($0.295/M in, $1.20/M out), rest are free tier
+    let costUSD = 0;
+    if (track.model === MODELS.minimaxM25) {
+      costUSD = (result.inputTokens / 1_000_000 * 0.295) +
+                (result.outputTokens / 1_000_000 * 1.20);
+    }
+
     return {
       name: track.name,
       model: result.model,
@@ -379,7 +445,7 @@ async function runValidator(apiKey, track, index) {
       text: result.text,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
-      costUSD: 0, // Free tier
+      costUSD,
       durationMs: Date.now() - start,
     };
   } catch (err) {
@@ -411,13 +477,14 @@ function generateReport(results, files, startTime) {
 
   const successCount = results.filter(r => r.status === 'SUCCESS').length;
   const errorCount = results.filter(r => r.status === 'ERROR').length;
+  const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
 
   let md = `# SwanStudios Validation Report
 
 > Generated: ${now.toLocaleString()}
 > Files reviewed: ${files.length}
 > Validators: ${successCount} succeeded, ${errorCount} errored
-> Cost: $0.00 (OpenRouter free tier)
+> Cost: $${totalCost.toFixed(4)} (6 free + MiniMax M2.5)
 > Duration: ${(totalDuration / 1000).toFixed(1)}s
 > Gateway: OpenRouter (single API key)
 
@@ -461,9 +528,9 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios Validation Orchestrator v3.0 — OpenRouter Edition*
-*6-Brain Parallel Validation via OpenRouter Free Tier*
-*Models: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 + Gemini 3 Flash + MiniMax M2.1 + GPT-4o-mini*
+*SwanStudios Validation Orchestrator v4.0 — OpenRouter 7-Brain Edition*
+*7 AI Validators: 6 Free + MiniMax M2.5 (Architecture & Bug Hunter)*
+*Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 + Gemini 3 Flash + MiniMax M2.1 + GPT-4o-mini + MiniMax M2.5*
 `;
 
   return { md, timestamp };
@@ -496,11 +563,12 @@ async function main() {
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
   console.log('  ║    SwanStudios Parallel Validation Orchestrator         ║');
-  console.log('  ║    OpenRouter Edition — 6 FREE AI Validators            ║');
+  console.log('  ║    OpenRouter Edition — 7 AI Validators                  ║');
   console.log('  ║                                                          ║');
   console.log('  ║    Gemini 2.5 Flash · Claude 4.5 Sonnet · DeepSeek V3.2 ║');
   console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · GPT-4o-mini          ║');
-  console.log('  ║    All FREE via OpenRouter — $0.00 per run               ║');
+  console.log('  ║    MiniMax M2.5 (Architecture & Bug Hunter)              ║');
+  console.log('  ║    6 FREE + 1 paid (~$0.01/run) via OpenRouter           ║');
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
 
@@ -545,14 +613,14 @@ async function main() {
   const codeBundle = formatCodeBundle(files);
   const tracks = buildValidatorTracks(codeBundle, files);
 
-  console.log('  Launching 6 validators (staggered 2s apart for rate limits)...');
+  console.log('  Launching 7 validators (staggered 2s apart for rate limits)...');
   console.log('');
 
   // Launch all with staggered delays to respect free-tier rate limits
   const results = await Promise.all(tracks.map(async (track, index) => {
     const tag = track.name.padEnd(35);
     const modelShort = track.model.split('/').pop();
-    console.log(`    [${index + 1}/6] ${tag} -> ${modelShort}`);
+    console.log(`    [${index + 1}/7] ${tag} -> ${modelShort}`);
     const result = await runValidator(apiKey, track, index);
     const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
     console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
@@ -574,8 +642,9 @@ async function main() {
   console.log('  ════════════════════════════════════════════════════════');
   console.log(`  Report:  ${reportPath}`);
   console.log(`  Latest:  ${latestPath}`);
-  console.log(`  Results: ${successCount}/6 validators passed`);
-  console.log(`  Cost:    $0.00 (OpenRouter free tier)`);
+  const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
+  console.log(`  Results: ${successCount}/7 validators passed`);
+  console.log(`  Cost:    $${totalCost.toFixed(4)}`);
   console.log(`  Time:    ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
   console.log('  ════════════════════════════════════════════════════════');
 }
