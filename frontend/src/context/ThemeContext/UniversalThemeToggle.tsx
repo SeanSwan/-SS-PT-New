@@ -5,8 +5,8 @@
  * Crystalline Swan Theme Toggle Component
  *
  * Features:
- * - Three-state toggle: Crystalline Swan -> Arctic Dawn -> Void Crystal
- * - Icons: Sparkles (default) -> Sun (light) -> Zap (dark/neon)
+ * - Four-state toggle: Crystalline Swan -> Arctic Dawn -> Void Crystal -> Monochrome
+ * - Icons: Sparkles (default) -> Sun (light) -> Zap (dark/neon) -> Moon (mono)
  * - Per-theme styling: glass glow for dark themes, clean solid for light
  * - Smooth morphing animations between states
  * - Mobile-optimized touch interactions (44px minimum target)
@@ -17,7 +17,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Zap } from 'lucide-react';
+import { Sparkles, Sun, Zap, Moon } from 'lucide-react';
 import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
@@ -62,6 +62,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '2px solid #E2E8F0';
       case 'crystalline-dark':
         return '2px solid rgba(34, 211, 238, 0.4)';
+      case 'crystalline-mono':
+        return '2px solid rgba(255, 255, 255, 0.4)';
       default:
         return '2px solid transparent';
     }
@@ -74,6 +76,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '#FFFFFF';
       case 'crystalline-dark':
         return 'linear-gradient(135deg, #030712, #22D3EE)';
+      case 'crystalline-mono':
+        return '#000000';
       default:
         return 'linear-gradient(135deg, #001545, #60C0F0)';
     }
@@ -94,6 +98,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '#2563EB';
       case 'crystalline-dark':
         return '#22D3EE';
+      case 'crystalline-mono':
+        return '#FFFFFF';
       default:
         return '#E0ECF4';
     }
@@ -108,12 +114,14 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '0 2px 8px rgba(0, 32, 96, 0.1)';
       case 'crystalline-dark':
         return '0 0 25px rgba(34, 211, 238, 0.5), 0 0 50px rgba(167, 139, 250, 0.2)';
+      case 'crystalline-mono':
+        return '0 0 8px rgba(255, 255, 255, 0.15)';
       default:
         return '0 0 20px rgba(96, 192, 240, 0.4)';
     }
   }};
 
-  /* Orbiting particle — only on dark themes */
+  /* Orbiting particle — only on dark themes (not mono) */
   &::before {
     content: '';
     position: absolute;
@@ -127,6 +135,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return 'transparent';
         case 'crystalline-dark':
           return '#F59E0B';
+        case 'crystalline-mono':
+          return 'transparent';
         default:
           return '#C6A84B';
       }
@@ -134,7 +144,7 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
     border-radius: 50%;
     animation: ${orbitingParticles} 3s linear infinite;
     opacity: ${({ $currentTheme }) =>
-      $currentTheme === 'crystalline-light' ? '0' : '0.8'
+      ($currentTheme === 'crystalline-light' || $currentTheme === 'crystalline-mono') ? '0' : '0.8'
     };
   }
 
@@ -152,6 +162,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return 'transparent';
         case 'crystalline-dark':
           return '#A78BFA';
+        case 'crystalline-mono':
+          return 'transparent';
         default:
           return '#60C0F0';
       }
@@ -160,14 +172,14 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
     animation: ${orbitingParticles} 4s linear infinite reverse;
     animation-delay: -1s;
     opacity: ${({ $currentTheme }) =>
-      $currentTheme === 'crystalline-light' ? '0' : '0.6'
+      ($currentTheme === 'crystalline-light' || $currentTheme === 'crystalline-mono') ? '0' : '0.6'
     };
   }
 
   &:hover {
     transform: scale(1.1);
     animation: ${({ $currentTheme }) =>
-      $currentTheme === 'crystalline-light' ? 'none' : stellarPulse
+      ($currentTheme === 'crystalline-light' || $currentTheme === 'crystalline-mono') ? 'none' : stellarPulse
     } 2s ease-in-out infinite;
     box-shadow: ${({ $currentTheme }) => {
       switch ($currentTheme) {
@@ -177,6 +189,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '0 4px 16px rgba(37, 99, 235, 0.2)';
         case 'crystalline-dark':
           return '0 0 35px rgba(34, 211, 238, 0.7), 0 0 70px rgba(167, 139, 250, 0.3)';
+        case 'crystalline-mono':
+          return '0 0 12px rgba(255, 255, 255, 0.25)';
         default:
           return '0 0 30px rgba(96, 192, 240, 0.6)';
       }
@@ -192,6 +206,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '#2563EB';
         case 'crystalline-dark':
           return '#F59E0B';
+        case 'crystalline-mono':
+          return '#FFFFFF';
         default:
           return '#C6A84B';
       }
@@ -229,7 +245,9 @@ const TooltipContainer = styled(motion.div)`
       ? '#FFFFFF'
       : theme.id === 'crystalline-dark'
         ? 'rgba(3, 7, 18, 0.95)'
-        : 'rgba(0, 21, 69, 0.95)'
+        : theme.id === 'crystalline-mono'
+          ? 'rgba(0, 0, 0, 0.95)'
+          : 'rgba(0, 21, 69, 0.95)'
   };
   color: ${({ theme }) =>
     theme.id === 'crystalline-light' ? '#0F172A' : '#F1F5F9'
@@ -246,7 +264,9 @@ const TooltipContainer = styled(motion.div)`
       ? '1px solid #E2E8F0'
       : theme.id === 'crystalline-dark'
         ? '1px solid rgba(34, 211, 238, 0.2)'
-        : '1px solid rgba(96, 192, 240, 0.18)'
+        : theme.id === 'crystalline-mono'
+          ? '1px solid rgba(255, 255, 255, 0.2)'
+          : '1px solid rgba(96, 192, 240, 0.18)'
   };
   backdrop-filter: ${({ theme }) =>
     theme.id === 'crystalline-light' ? 'none' : 'blur(10px)'
@@ -256,7 +276,9 @@ const TooltipContainer = styled(motion.div)`
       ? '0 2px 8px rgba(0, 32, 96, 0.1)'
       : theme.id === 'crystalline-dark'
         ? '0 4px 16px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 211, 238, 0.1)'
-        : '0 4px 16px rgba(0, 0, 0, 0.4)'
+        : theme.id === 'crystalline-mono'
+          ? '0 4px 16px rgba(0, 0, 0, 0.8)'
+          : '0 4px 16px rgba(0, 0, 0, 0.4)'
   };
 
   &::before {
@@ -274,7 +296,9 @@ const TooltipContainer = styled(motion.div)`
         ? '#FFFFFF'
         : theme.id === 'crystalline-dark'
           ? 'rgba(3, 7, 18, 0.95)'
-          : 'rgba(0, 21, 69, 0.95)'
+          : theme.id === 'crystalline-mono'
+            ? 'rgba(0, 0, 0, 0.95)'
+            : 'rgba(0, 21, 69, 0.95)'
     };
   }
 `;
@@ -288,6 +312,8 @@ const getThemeIcon = (themeId: ThemeId, size = 20) => {
       return <Sun size={size} />;
     case 'crystalline-dark':
       return <Zap size={size} />;
+    case 'crystalline-mono':
+      return <Moon size={size} />;
     default:
       return <Sparkles size={size} />;
   }
@@ -301,6 +327,8 @@ const getThemeDescription = (themeId: ThemeId) => {
       return 'Arctic Dawn';
     case 'crystalline-dark':
       return 'Void Crystal';
+    case 'crystalline-mono':
+      return 'Monochrome';
     default:
       return 'Crystalline Swan';
   }

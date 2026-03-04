@@ -119,7 +119,7 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --text-primary: ${theme.text.primary};
     --text-secondary: ${theme.text.secondary};
     --text-muted: ${theme.text.muted};
-    --text-inverse: ${themeId === 'crystalline-light' ? '#E0ECF4' : '#0F172A'};
+    --text-inverse: ${themeId === 'crystalline-light' ? '#E0ECF4' : themeId === 'crystalline-mono' ? '#000000' : '#0F172A'};
     --border-soft: ${theme.borders.subtle};
     --border-strong: ${theme.borders.prominent};
     --accent-primary: ${theme.colors.primary};
@@ -314,6 +314,13 @@ export const getAnimationConfig = (themeId: ThemeId) => {
         intensity: 'enhanced',
         glow: true,
       };
+    case 'crystalline-mono':
+      return {
+        ...baseConfig,
+        duration: '0.3s',
+        intensity: 'minimal',
+        glow: false,
+      };
     default:
       return baseConfig;
   }
@@ -332,6 +339,8 @@ export const getGlowButtonVariant = (themeId: ThemeId): string => {
       return 'primary'; // Arctic cyan on frost
     case 'crystalline-dark':
       return 'cosmic'; // Deep ice glow
+    case 'crystalline-mono':
+      return 'ghost'; // Thin white border, no gradient
     default:
       return 'primary';
   }

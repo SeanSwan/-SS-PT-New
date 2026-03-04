@@ -152,12 +152,14 @@ const SignupModal = lazyLoadWithErrorHandling(
   'Signup Modal'
 );
 const ContactPage = lazyLoadWithErrorHandling(
-  () => import('../pages/contactpage'),
-  'Contact Page'
+  () => import('../pages/contactpage/ContactV2'),
+  'Contact Page V2',
+  () => import('../pages/contactpage')
 );
 const AboutPage = lazyLoadWithErrorHandling(
-  () => import('../pages/about/About'),
-  'About Page'
+  () => import('../pages/about/About.V2'),
+  'About Page V2',
+  () => import('../pages/about/About')
 );
 
 // Public Waiver (Phase 5W-G)
@@ -168,8 +170,9 @@ const PublicWaiverPage = lazyLoadWithErrorHandling(
 
 // Video Library (public)
 const VideoLibrary = lazyLoadWithErrorHandling(
-  () => import('../pages/VideoLibrary'),
-  'Video Library'
+  () => import('../pages/VideoLibraryV2'),
+  'Video Library V2',
+  () => import('../pages/VideoLibrary')
 );
 
 // Video Watch page (public with gated content)
@@ -192,8 +195,9 @@ const MembersVault = lazyLoadWithErrorHandling(
 
 // 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Single production store
 const SwanStudiosStore = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/OptimizedGalaxyStoreFront'),
-  'SwanStudios Store'
+  () => import('../pages/shop/StoreV2'),
+  'SwanStudios Store V2',
+  () => import('../pages/shop/OptimizedGalaxyStoreFront')
 );
 
 // ✨ GENESIS CHECKOUT SYSTEM - New clean checkout flow
