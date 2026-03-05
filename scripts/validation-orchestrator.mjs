@@ -5,18 +5,21 @@
  * ║         SwanStudios Parallel Validation Orchestrator            ║
  * ║           8-Brain System — OpenRouter + Google GenAI              ║
  * ║                                                                  ║
- * ║  Phase 1 — 7 parallel (OpenRouter):                               ║
- * ║  1. Gemini 2.5 Flash     → UX / Accessibility       (FREE)     ║
- * ║  2. Claude 4.5 Sonnet   → Code Quality              (FREE)     ║
- * ║  3. DeepSeek V3.2        → Security scan             (FREE)     ║
- * ║  4. Gemini 3 Flash       → Performance review        (FREE)     ║
- * ║  5. MiniMax M2.1         → Competitive intelligence  (FREE)     ║
- * ║  6. DeepSeek V3.2        → User research / personas  (FREE)     ║
- * ║  7. MiniMax M2.5         → Architecture & Bug Hunter (~$0.01)   ║
+ * ║  Phase 1 — 7 parallel analysts (OpenRouter):                      ║
+ * ║  1. Gemini 2.5 Flash     → UX / Accessibility        (FREE)    ║
+ * ║  2. Claude 4.5 Sonnet   → Code Quality               (FREE)    ║
+ * ║  3. DeepSeek V3.2        → Security scan              (FREE)    ║
+ * ║  4. Gemini 3 Flash       → Performance review         (FREE)    ║
+ * ║  5. MiniMax M2.1         → Competitive intelligence   (FREE)    ║
+ * ║  6. DeepSeek V3.2        → User research / personas   (FREE)    ║
+ * ║  7. MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)  ║
  * ║                                                                  ║
- * ║  Phase 2 — Senior Reviewer (Google GenAI):                       ║
- * ║  8. Gemini 3.1 Pro       → Senior UI/UX Expert       (reviews   ║
- * ║                             Flash's report + own review → FINAL) ║
+ * ║  Phase 2 — CO-ORCHESTRATOR (Google GenAI):                       ║
+ * ║  8. Gemini 3.1 Pro       → Lead Design Authority      (own      ║
+ * ║                             vision — Flash is just extra data)   ║
+ * ║                                                                  ║
+ * ║  Architecture: Gemini 3.1 Pro + Claude = co-orchestrators        ║
+ * ║  Gemini designs, Claude implements. Flash is supplementary.      ║
  * ║                                                                  ║
  * ║  Setup: Add to .env:                                             ║
  * ║    OPENROUTER_API_KEY=sk-or-v1-xxxxx                            ║
@@ -387,97 +390,84 @@ ${codeBundle}`,
     },
   ];
 
-  // ── 8th Brain: Gemini 3.1 Pro (only if GEMINI_API_KEY is set) ──
-  // This track runs AFTER Track 1 (Flash) completes. Flash's report is injected
-  // at runtime by the orchestrator so Gemini 3.1 Pro acts as the senior reviewer
-  // with final say over all UX & Accessibility + UI/UX findings.
+  // ── 8th Brain: Gemini 3.1 Pro — CO-ORCHESTRATOR (independent design authority) ──
+  // Gemini 3.1 Pro is NOT a reviewer of Flash's work. It creates its OWN
+  // independent design vision from scratch. Flash's notes are appended as
+  // supplementary data only — Gemini does NOT adopt Flash's framework or ratings.
+  // Gemini 3.1 Pro operates at orchestrator level alongside Claude.
   if (getGeminiKey()) {
     tracks.push({
       name: 'Frontend UI/UX Expert',
       model: MODELS.gemini31Pro,
       provider: 'gemini-direct',
-      // phase2: true means this track waits for Track 1 (Flash) to finish first
       phase2: true,
       dependsOn: 'UX & Accessibility',
-      // prompt is a FUNCTION — called at runtime with Flash's report injected
-      buildPrompt: (flashReport) => `You are a world-class frontend UI/UX engineer and design systems expert. You specialize in React + TypeScript + styled-components applications with dark cosmic themes. ${ctx}
+      buildPrompt: (flashNotes) => `You are a world-class frontend UI/UX engineer, design systems architect, and CO-ORCHESTRATOR for the SwanStudios platform. You specialize in React + TypeScript + styled-components with dark cosmic themes. ${ctx}
 
-You are the SENIOR REVIEWER in a two-stage review pipeline. A junior analyst (Gemini 2.5 Flash) has already performed an initial UX & Accessibility review. Their findings are included below.
+## YOUR ROLE — CO-ORCHESTRATOR (Lead Design Authority)
 
-YOUR ROLE:
-- Review their findings — confirm, upgrade, downgrade, or reject each one
-- Add any findings they missed (you are more capable and should catch deeper issues)
-- Make the FINAL CALL on severity ratings — your ratings override the junior analyst's
-- Provide the definitive, authoritative UX/Accessibility + UI/UX assessment
+You are the PRIMARY design authority for this platform. You create your OWN independent analysis and design vision FROM SCRATCH. You do NOT refine, iterate on, or adopt any other model's framework.
 
-## Junior Analyst Report (Gemini 2.5 Flash — UX & Accessibility)
+Your output will be used by Claude (the implementation AI) as authoritative design direction. Claude consults you on architectural plans before executing. You are the Lead UI/UX Architect working alongside a Lead Software Engineer (Claude) — equals, collaborating.
 
-${flashReport || '_Junior analyst failed or produced no output._'}
+When you identify issues, provide design solutions that Claude can directly implement. Be prescriptive — give exact CSS values, animation specs, pixel measurements, color codes. Claude will follow your design direction.
+
+## YOUR INDEPENDENT ANALYSIS
+
+Analyze this code with YOUR design vision. Be original. Be opinionated. Design from first principles.
+
+1. **Design Vision & Direction** — What should this look like? What's the design philosophy?
+   - Does the current implementation match a premium fitness SaaS aesthetic?
+   - Galaxy-Swan token usage (#0a0a1a, #00FFFF, #7851A9) — maximized or wasted?
+   - What parallax effects, micro-animations, or visual storytelling would elevate this?
+   - Design inspiration from top-tier apps (Apple Fitness+, Peloton, Nike Training Club)
+
+2. **Component Architecture** — How should components be structured?
+   - Design system integrity — tokens vs hardcoded values
+   - 10-breakpoint responsive matrix (320, 375, 430, 768, 1024, 1280, 1440, 1920, 2560, 3840px)
+   - Component decomposition — monolithic vs properly composed
+   - Animation strategy — CSS transforms, Framer Motion, or CSS keyframes?
+
+3. **Interaction Design** — How should this FEEL to use?
+   - Touch targets (44px min), gesture support, feedback choreography
+   - Loading choreography — skeleton screens, staggered reveals, shimmer effects
+   - Form UX — inline validation, focus management, success celebrations
+   - Navigation flow — minimal friction to revenue-critical actions
+   - Micro-interactions — hover states, transitions, scroll-triggered effects
+
+4. **Accessibility (WCAG 2.1 AA)** — Universal usability
+   - Color contrast (4.5:1 text, 3:1 UI), keyboard nav, screen reader support
+   - Focus indicators, skip links, aria labels, live regions
+   - prefers-reduced-motion, prefers-color-scheme respect
+
+5. **Mobile-First UX** — Phone-first design
+   - Bottom-sheet modals, swipe gestures, sticky action bars
+   - Thumb-zone optimization, input types, viewport handling
+
+6. **Performance UX** — Perceived speed
+   - Optimistic updates, code splitting, lazy loading
+   - Image optimization (WebP, srcset), bundle impact
+
+## Output Format — Design Directives for Claude
+
+For each finding, provide SPECIFIC implementation instructions:
+
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **File & Location:** Exact file and section
+- **Design Problem:** What's wrong visually or architecturally
+- **Design Solution:** Your specific vision — include styled-component code, CSS values, animation specs, exact measurements. Be prescriptive.
+- **Implementation Notes for Claude:** Step-by-step instructions Claude should follow to execute your vision
+
+Be bold. Be specific. This platform charges premium prices — the UI must justify that price.
+
+CODE TO REVIEW:
+${codeBundle}
 
 ---
 
-## Your Senior Review
+_Supplementary: A secondary scanner (Gemini 2.5 Flash) also checked for basic accessibility issues. Raw notes below for awareness only — do not adopt their framework or ratings. Your analysis is independent._
 
-Now perform your own comprehensive review of the code, incorporating and superseding the junior analyst's findings:
-
-1. **Visual Design Quality** — Does the UI avoid "AI slop"? Are gradients, shadows, and animations tasteful or generic?
-   - Color harmony: proper use of Galaxy-Swan tokens (#0a0a1a, #00FFFF, #7851A9)
-   - Typography hierarchy: readable font sizes, proper line-height, contrast ratios
-   - Spacing rhythm: consistent use of 4/8px grid, visual breathing room
-   - Glass/cosmic effects: do they enhance or distract?
-
-2. **Component Architecture** — Are styled-components well-structured?
-   - Theme token usage vs hardcoded values
-   - Responsive breakpoints (must cover: 320, 375, 430, 768, 1024, 1280, 1440, 1920, 2560, 3840)
-   - Component composition: too many props? Should be decomposed?
-   - Animation performance: CSS transforms vs layout-triggering properties
-
-3. **Interaction Design** — Is the UX smooth and intuitive?
-   - Touch targets (must be 44px minimum for mobile)
-   - Loading states, skeleton screens, error boundaries
-   - Form validation: inline errors, focus management, success feedback
-   - Navigation flow: minimal clicks to key actions
-   - Micro-interactions: hover effects, transitions, focus rings
-
-4. **Accessibility (WCAG 2.1 AA)** — Can everyone use this?
-   - Color contrast ratios (4.5:1 text, 3:1 large text/UI)
-   - Keyboard navigation: tab order, focus indicators, skip links
-   - Screen reader support: aria labels, roles, live regions
-   - Motion preferences: prefers-reduced-motion respected
-
-5. **Mobile-First UX** — Does it work beautifully on phones?
-   - Touch gestures: swipe, long-press support where appropriate
-   - Bottom-sheet patterns for mobile modals
-   - Sticky headers/footers for important actions
-   - Input types: numeric keyboards for numbers, email keyboards for email
-
-6. **Performance UX** — Does it feel fast?
-   - Perceived performance: optimistic updates, skeleton screens
-   - Code splitting: are heavy components lazy-loaded?
-   - Image optimization: WebP, srcset, lazy loading
-   - Bundle impact: unnecessary dependencies, tree-shaking blockers
-
-## Output Format
-
-### Junior Analyst Review (Confirmed/Modified Findings)
-For each finding from the junior analyst, state: **CONFIRMED**, **UPGRADED** (more severe), **DOWNGRADED** (less severe), or **REJECTED** (not a real issue), with your reasoning.
-
-### Additional Findings (Missed by Junior Analyst)
-New issues you found that the junior analyst missed.
-
-### Final Verdict
-Your authoritative summary with final severity ratings.
-
-For each finding provide:
-- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
-- **File & Location:** Exact file and section
-- **Issue:** Clear description with visual impact
-- **Fix:** Specific code change with before/after
-
-Be opinionated about design quality. This platform charges premium prices — the UI must look premium.
-
-CODE TO REVIEW:
-${codeBundle}`,
+${flashNotes ? `\`\`\`\n${flashNotes}\n\`\`\`` : '_No supplementary notes._'}`,
     });
   }
 
@@ -746,8 +736,9 @@ async function main() {
   console.log('  ║    Gemini 2.5 Flash · Claude 4.5 Sonnet · DeepSeek V3.2║');
   console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · MiniMax M2.5        ║');
   if (hasGemini31) {
-    console.log('  ║    ────── Phase 2: Senior Reviewer ──────              ║');
-    console.log('  ║    Gemini 3.1 Pro → Reviews Flash report → FINAL SAY  ║');
+    console.log('  ║    ────── Phase 2: Co-Orchestrator ──────              ║');
+    console.log('  ║    Gemini 3.1 Pro → Lead Design Authority (own vision)║');
+    console.log('  ║    Gemini designs · Claude implements · Flash assists  ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
