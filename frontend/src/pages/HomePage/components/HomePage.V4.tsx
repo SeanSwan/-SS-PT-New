@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import GlowButton from '../../../components/ui/buttons/GlowButton';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
+import TypewriterText from '../../../components/ui-kit/cinematic/TypewriterText';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import logoImg from '../../../assets/Logo.png';
 
@@ -168,6 +169,18 @@ const SectionEl = styled.section`
   padding: clamp(4rem, 10vw, 8rem) clamp(1rem, 5vw, 2rem);
   overflow: hidden;
   background-color: ${({ theme }) => theme.colors?.galaxyCore || theme.colors?.deepSpace || '#0a0a1a'};
+
+  @media (max-width: 320px) {
+    padding: 3rem 0.75rem;
+  }
+
+  @media (min-width: 2560px) {
+    padding: 10rem 4rem;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 12rem 6rem;
+  }
 `;
 
 const Container = styled.div`
@@ -176,6 +189,14 @@ const Container = styled.div`
   margin: 0 auto;
   position: relative;
   z-index: 10;
+
+  @media (min-width: 2560px) {
+    max-width: 1920px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 2800px;
+  }
 `;
 
 const SectionHeader = styled(motion.div)`
@@ -184,20 +205,47 @@ const SectionHeader = styled(motion.div)`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(1.5rem, 4vw, 3.5rem);
   color: ${({ theme }) => theme.text?.primary || '#f0f0ff'};
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 16px;
   line-height: 1.1;
+
+  @media (max-width: 320px) {
+    font-size: 1.375rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 4rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 5rem;
+  }
 `;
 
 const SectionSubtitle = styled.p`
-  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-size: clamp(0.875rem, 2vw, 1.25rem);
   color: ${({ theme }) => theme.text?.secondary || 'rgba(240, 240, 255, 0.7)'};
   margin: 0 auto;
   max-width: 680px;
   line-height: 1.6;
+
+  @media (max-width: 320px) {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1.5rem;
+    max-width: 900px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.75rem;
+    max-width: 1200px;
+  }
 `;
 
 const GlassCard = styled(motion.div)`
@@ -217,6 +265,21 @@ const GlassCard = styled(motion.div)`
     border-color: ${({ theme }) => theme.colors?.primary || 'rgba(0, 255, 255, 0.3)'};
     transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 255, 255, 0.08);
+  }
+
+  @media (max-width: 320px) {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  @media (min-width: 2560px) {
+    padding: 40px;
+    border-radius: 32px;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 56px;
+    border-radius: 40px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -288,25 +351,64 @@ const HeroContent = styled(motion.div)`
 `;
 
 const HeroLogo = styled(motion.img)`
-  height: 100px;
-  margin-bottom: 32px;
+  height: 80px;
+  margin-bottom: 24px;
   filter: drop-shadow(0 0 24px rgba(0, 255, 255, 0.3));
+
+  @media (max-width: 320px) {
+    height: 60px;
+    margin-bottom: 16px;
+  }
+
+  @media (min-width: 430px) {
+    height: 100px;
+    margin-bottom: 32px;
+  }
 
   @media (min-width: 768px) {
     height: 140px;
+  }
+
+  @media (min-width: 2560px) {
+    height: 180px;
+    margin-bottom: 48px;
+  }
+
+  @media (min-width: 3840px) {
+    height: 220px;
   }
 `;
 
 const HeroEyebrow = styled(motion.span)`
   color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
-  font-size: 0.875rem;
-  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   font-weight: 600;
+
+  @media (max-width: 320px) {
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  @media (min-width: 430px) {
+    font-size: 0.875rem;
+    margin-bottom: 24px;
+  }
 
   @media (min-width: 768px) {
     font-size: 1rem;
+    letter-spacing: 0.2em;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1.25rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.5rem;
   }
 `;
 
@@ -337,14 +439,23 @@ const HeroSubheadline = styled(motion.p)`
 const ButtonGroup = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   max-width: 560px;
+
+  @media (max-width: 320px) {
+    gap: 10px;
+  }
 
   @media (min-width: 768px) {
     flex-direction: row;
     width: auto;
     gap: 24px;
+  }
+
+  @media (min-width: 2560px) {
+    gap: 32px;
+    max-width: 700px;
   }
 `;
 
@@ -378,11 +489,21 @@ const FeaturesGrid = styled(motion.div)`
   gap: 24px;
   width: 100%;
 
+  @media (max-width: 320px) {
+    gap: 16px;
+  }
+
   @media (min-width: 430px) {
     grid-template-columns: repeat(2, 1fr);
   }
   @media (min-width: 1024px) {
     grid-template-columns: repeat(4, 1fr);
+  }
+  @media (min-width: 2560px) {
+    gap: 32px;
+  }
+  @media (min-width: 3840px) {
+    gap: 48px;
   }
 `;
 
@@ -404,6 +525,18 @@ const FeatureTitle = styled.h3`
   font-weight: 600;
   color: ${({ theme }) => theme.text?.primary || '#f0f0ff'};
   margin: 0 0 12px;
+
+  @media (max-width: 320px) {
+    font-size: 1rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1.375rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const FeatureDesc = styled.p`
@@ -411,6 +544,18 @@ const FeatureDesc = styled.p`
   color: ${({ theme }) => theme.text?.secondary || 'rgba(240, 240, 255, 0.6)'};
   line-height: 1.6;
   margin: 0;
+
+  @media (max-width: 320px) {
+    font-size: 0.8125rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.125rem;
+  }
 `;
 
 // ═══════════════════════════════════════════════════════
@@ -434,7 +579,11 @@ const ProgramsContainer = styled(motion.div)`
 
 const ProgramCard = styled(GlassCard)<{ $isPopular?: boolean }>`
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
+
+  @media (min-width: 2560px) {
+    max-width: 500px;
+  }
   align-items: center;
   text-align: center;
   border-color: ${({ $isPopular, theme }) =>
@@ -502,13 +651,25 @@ const ProgramFeatureItem = styled.li`
 const GolfGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 48px;
+  gap: 32px;
   max-width: 1280px;
   margin: 0 auto;
+
+  @media (max-width: 320px) {
+    gap: 24px;
+  }
+
+  @media (min-width: 430px) {
+    gap: 48px;
+  }
 
   @media (min-width: 1024px) {
     grid-template-columns: 1fr 1fr;
     align-items: center;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1920px;
   }
 `;
 
@@ -564,13 +725,25 @@ const GolfSummaryCard = styled(GlassCard)`
 const AboutGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 48px;
+  gap: 32px;
   max-width: 1200px;
   margin: 0 auto;
+
+  @media (max-width: 320px) {
+    gap: 24px;
+  }
+
+  @media (min-width: 430px) {
+    gap: 48px;
+  }
 
   @media (min-width: 1024px) {
     grid-template-columns: 1.5fr 1fr;
     align-items: center;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1600px;
   }
 `;
 
@@ -652,8 +825,17 @@ const TestimonialGrid = styled(motion.div)`
   max-width: 1280px;
   margin: 0 auto;
 
+  @media (max-width: 320px) {
+    gap: 16px;
+  }
+
   @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1920px;
+    gap: 32px;
   }
 `;
 
@@ -705,15 +887,31 @@ const ResultBadge = styled.span`
 const StatsGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 40px 24px;
+  gap: 32px 16px;
   max-width: 1200px;
   margin: 0 auto;
+
+  @media (max-width: 320px) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 430px) {
+    gap: 40px 24px;
+  }
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
   }
   @media (min-width: 1024px) {
     grid-template-columns: repeat(6, 1fr);
+  }
+  @media (min-width: 2560px) {
+    max-width: 1600px;
+    gap: 48px 32px;
+  }
+  @media (min-width: 3840px) {
+    max-width: 2200px;
   }
 `;
 
@@ -754,6 +952,18 @@ const BeyondSection = styled.section`
   width: 100%;
   padding: clamp(4rem, 10vw, 8rem) clamp(1rem, 5vw, 2rem);
   overflow: hidden;
+
+  @media (max-width: 320px) {
+    padding: 3rem 0.75rem;
+  }
+
+  @media (min-width: 2560px) {
+    padding: 10rem 4rem;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 12rem 6rem;
+  }
 `;
 
 const BeyondImageBg = styled(motion.div)`
@@ -790,11 +1000,23 @@ const SocialGrid = styled(motion.div)`
   max-width: 1280px;
   margin: 0 auto;
 
+  @media (max-width: 320px) {
+    gap: 16px;
+  }
+
   @media (min-width: 430px) {
     grid-template-columns: repeat(2, 1fr);
   }
   @media (min-width: 1024px) {
     grid-template-columns: repeat(3, 1fr);
+  }
+  @media (min-width: 2560px) {
+    max-width: 1920px;
+    gap: 32px;
+  }
+  @media (min-width: 3840px) {
+    max-width: 2800px;
+    gap: 48px;
   }
 `;
 
@@ -807,6 +1029,14 @@ const CTASection = styled.section`
   background: ${({ theme }) => theme.colors?.galaxyCore || '#0a0a1a'};
   display: flex;
   justify-content: center;
+
+  @media (max-width: 320px) {
+    padding: 3rem 0.75rem;
+  }
+
+  @media (min-width: 2560px) {
+    padding: 12rem 4rem;
+  }
 `;
 
 const CTAContainer = styled(motion.div)`
@@ -826,6 +1056,22 @@ const CTAContainer = styled(motion.div)`
   position: relative;
   overflow: hidden;
   box-shadow: 0 0 80px rgba(0, 255, 255, 0.04);
+
+  @media (max-width: 320px) {
+    padding: 2.5rem 16px;
+    border-radius: 20px;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1200px;
+    padding: 6rem 3rem;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 1600px;
+    padding: 8rem 4rem;
+    border-radius: 48px;
+  }
 `;
 
 const CTAButtons = styled.div`
@@ -1011,7 +1257,7 @@ const HomePageV4: React.FC = () => {
             transition={{ duration: 2, ease: 'easeOut' }}
             style={prefersReduced ? undefined : { scale: heroVideoScale }}
           >
-            <source src="/swan.mp4" type="video/mp4" />
+            <source src="/Swans.mp4" type="video/mp4" />
             <track kind="captions" srcLang="en" label="English captions" />
           </VideoEl>
           <HeroParallaxImg
@@ -1035,7 +1281,7 @@ const HomePageV4: React.FC = () => {
               transition={prefersReduced ? undefined : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
             <HeroEyebrow variants={reveal}>
-              Sean Swan &bull; NASM Certified &bull; 25+ Years
+              Sean Swan &bull; NCEP Certified &bull; NASM Protocol &bull; 25+ Years
             </HeroEyebrow>
             <HeroHeadline variants={reveal}>
               Elevate Your
@@ -1100,7 +1346,9 @@ const HomePageV4: React.FC = () => {
               viewport={{ once: true, margin: '-100px' }}
               variants={reveal}
             >
-              <SectionTitle>The Arsenal</SectionTitle>
+              <SectionTitle>
+                <TypewriterText text="The Arsenal" as="span" speed={40} />
+              </SectionTitle>
               <SectionSubtitle>
                 Eight pillars of elite performance, engineered for your transformation.
               </SectionSubtitle>
@@ -1355,7 +1603,9 @@ const HomePageV4: React.FC = () => {
               viewport={{ once: true }}
               variants={reveal}
             >
-              <SectionTitle>The Echoes</SectionTitle>
+              <SectionTitle>
+                <TypewriterText text="Client Success Stories" as="span" speed={35} />
+              </SectionTitle>
               <SectionSubtitle>
                 Real results from real people. No shortcuts — just elite-level coaching that works.
               </SectionSubtitle>
@@ -1394,7 +1644,9 @@ const HomePageV4: React.FC = () => {
               viewport={{ once: true }}
               variants={reveal}
             >
-              <SectionTitle>By the Numbers</SectionTitle>
+              <SectionTitle>
+                <TypewriterText text="By the Numbers" as="span" speed={40} />
+              </SectionTitle>
             </SectionHeader>
             <StatsGrid
               initial="hidden"
@@ -1433,7 +1685,9 @@ const HomePageV4: React.FC = () => {
               viewport={{ once: true }}
               variants={reveal}
             >
-              <SectionTitle>Beyond the Gym</SectionTitle>
+              <SectionTitle>
+                <TypewriterText text="Beyond the Gym" as="span" speed={40} />
+              </SectionTitle>
               <SectionSubtitle>
                 SwanStudios isn't just a fitness platform — it's a creative social ecosystem.
                 Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community
@@ -1485,7 +1739,7 @@ const HomePageV4: React.FC = () => {
             variants={reveal}
           >
             <SectionTitle style={{ fontSize: 'clamp(2rem, 4vw, 3rem)' }}>
-              Ready to Transform?
+              <TypewriterText text="Ready to Transform?" as="span" speed={45} />
             </SectionTitle>
             <SectionSubtitle style={{ margin: '16px auto 0' }}>
               Your journey to a stronger, healthier, more confident you starts with
