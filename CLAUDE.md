@@ -13,6 +13,16 @@ SwanStudios (SS-PT) is a production personal training SaaS platform deployed on 
 - **Tests (backend):** `cd backend && npm test`
 - **Type check:** `cd frontend && npx tsc --noEmit`
 
+## Co-Orchestrator: Gemini 3.1 Pro (Lead Design Authority)
+Gemini 3.1 Pro is the Lead Design Authority for SwanStudios. Claude and Gemini work as EQUALS:
+- **Gemini designs, Claude implements.** Gemini's design opinions are authoritative.
+- **Consult Gemini before major UI/UX plans:** `node scripts/consult-gemini.mjs --plan "plan text"`
+- **Get design specs:** `node scripts/consult-gemini.mjs --design "component description"`
+- **Design review:** `node scripts/consult-gemini.mjs --review --file path/to/component.tsx`
+- **Ask questions:** `node scripts/consult-gemini.mjs --ask "design question"`
+- Output saves to `AI-Village-Documentation/gemini-consults/latest.md`
+- **IMPORTANT:** Do NOT use Flash 2.5 or any other model's design vision. Gemini 3.1 Pro creates from scratch.
+
 ## Key Directories
 - `frontend/src/components/` - React components (styled-components, NO MUI)
 - `backend/routes/` - Express API routes
