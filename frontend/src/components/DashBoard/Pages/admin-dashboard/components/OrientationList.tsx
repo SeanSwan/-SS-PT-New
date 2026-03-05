@@ -500,10 +500,10 @@ const OrientationList: React.FC = () => {
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
 
-  // Get orientation data from Redux store
-  const { orientations, loading, error } = useSelector(
+  // Get orientation data from Redux store (fallback prevents crash if slice not loaded)
+  const { orientations = [], loading = false, error = null } = useSelector(
     (state: RootState) => state.orientation
-  );
+  ) || {};
 
   // Local state for dialog
   const [selectedOrientation, setSelectedOrientation] = useState<OrientationData | null>(null);

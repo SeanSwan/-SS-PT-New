@@ -647,7 +647,7 @@ const ClientsManagementSection: React.FC = () => {
           name: `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unknown User',
           email: client.email || '',
           phone: client.phone || '',
-          avatar: client.photo || '',
+          avatar: client.photo ? (client.photo.startsWith('/') || client.photo.startsWith('http') ? client.photo : `/${client.photo}`) : '',
           status: client.isActive ? 'active' : 'inactive',
           tier: determineTier(client), // Helper function to determine tier
           joinedAt: client.createdAt || new Date().toISOString(),
