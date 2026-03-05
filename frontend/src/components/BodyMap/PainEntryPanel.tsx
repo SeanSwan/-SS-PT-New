@@ -2,8 +2,12 @@
  * PainEntryPanel — Slide-out form for recording pain/injury entries
  * =================================================================
  * Opens when a body region is clicked on the BodyMapSVG.
- * Allows the trainer to record pain level, type, description,
- * aggravating movements, and postural syndrome flags.
+ * Supports two modes:
+ *   - Trainer mode: full form with AI notes, postural syndrome, trainer notes
+ *   - Client mode: simplified form — pain level, type, side, description, movements
+ *
+ * Responsive: bottom-sheet on mobile (≤430px), side panel on larger screens.
+ * Theme-aware with Galaxy-Swan fallbacks.
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
@@ -23,24 +27,56 @@ import type {
   PosturalSyndrome,
   CreatePainEntryPayload,
 } from '../../services/painEntryService';
+import { device } from '../../styles/breakpoints';
 
 // ── Styled Components ───────────────────────────────────────────────────
 
 const Panel = styled.div<{ $isOpen: boolean }>`
   position: fixed;
-  top: 0;
-  right: ${({ $isOpen }) => ($isOpen ? '0' : '-460px')};
-  width: 440px;
-  max-width: 95vw;
-  height: 100vh;
-  background: rgba(10, 10, 26, 0.95);
-  border-left: 1px solid rgba(0, 255, 255, 0.2);
-  backdrop-filter: blur(16px);
   z-index: 1200;
+  background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.95)'};
+  backdrop-filter: blur(16px);
   overflow-y: auto;
-  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 24px;
   box-sizing: border-box;
+  padding: 24px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Mobile: bottom-sheet */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 85vh;
+  max-height: 85vh;
+  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+  border-radius: 20px 20px 0 0;
+  transform: translateY(${({ $isOpen }) => ($isOpen ? '0' : '100%')});
+
+  /* Tablet+: side panel */
+  ${device.sm} {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    height: 100vh;
+    max-height: 100vh;
+    width: min(440px, 95vw);
+    border-top: none;
+    border-left: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+    border-radius: 0;
+    transform: translateX(${({ $isOpen }) => ($isOpen ? '0' : '100%')});
+  }
+`;
+
+const DragHandle = styled.div`
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 0 auto 16px;
+
+  ${device.sm} {
+    display: none;
+  }
 `;
 
 const Overlay = styled.div<{ $isOpen: boolean }>`
@@ -62,7 +98,7 @@ const PanelHeader = styled.div`
 `;
 
 const PanelTitle = styled.h3`
-  color: #00FFFF;
+  color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -70,8 +106,8 @@ const PanelTitle = styled.h3`
 
 const CloseBtn = styled.button`
   background: none;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  color: #00FFFF;
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.3)'};
+  color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
   border-radius: 8px;
   width: 44px;
   height: 44px;
@@ -92,7 +128,7 @@ const FormGroup = styled.div`
 
 const Label = styled.label`
   display: block;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -133,13 +169,13 @@ const Select = styled.select`
   width: 100%;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
   border-radius: 8px;
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
   min-height: 44px;
   &:focus {
-    border-color: #00FFFF;
+    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
     outline: none;
   }
 `;
@@ -148,16 +184,16 @@ const TextArea = styled.textarea`
   width: 100%;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
   border-radius: 8px;
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
   min-height: 80px;
   resize: vertical;
   font-family: inherit;
   box-sizing: border-box;
   &:focus {
-    border-color: #00FFFF;
+    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
     outline: none;
   }
 `;
@@ -166,14 +202,14 @@ const Input = styled.input`
   width: 100%;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
   border-radius: 8px;
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
   min-height: 44px;
   box-sizing: border-box;
   &:focus {
-    border-color: #00FFFF;
+    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
     outline: none;
   }
 `;
@@ -189,14 +225,14 @@ const Chip = styled.button<{ $active: boolean }>`
   border-radius: 16px;
   font-size: 12px;
   cursor: pointer;
-  border: 1px solid ${({ $active }) => ($active ? '#00FFFF' : 'rgba(255,255,255,0.15)')};
+  border: 1px solid ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.15)')};
   background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.15)' : 'rgba(0,0,0,0.3)')};
-  color: ${({ $active }) => ($active ? '#00FFFF' : 'rgba(255,255,255,0.6)')};
+  color: ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.6)')};
   transition: all 0.15s;
   min-height: 36px;
   &:hover {
-    border-color: #00FFFF;
-    color: #00FFFF;
+    border-color: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
+    color: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
   }
 `;
 
@@ -208,7 +244,7 @@ const SyndromeToggle = styled.div`
 
 const SyndromeBtn = styled.button<{ $active: boolean; $color: string }>`
   flex: 1;
-  min-width: 120px;
+  min-width: 100px;
   min-height: 44px;
   padding: 8px 12px;
   border-radius: 10px;
@@ -239,11 +275,12 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'secondary' 
   cursor: pointer;
   transition: all 0.2s;
 
-  ${({ $variant }) => {
+  ${({ $variant, theme }) => {
+    const accent = theme?.colors?.accent || '#00FFFF';
     switch ($variant) {
       case 'primary':
         return `
-          background: linear-gradient(135deg, #00FFFF, #7851A9);
+          background: linear-gradient(135deg, ${accent}, #7851A9);
           border: none;
           color: #0a0a1a;
           &:hover { filter: brightness(1.1); }
@@ -273,8 +310,14 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'secondary' 
 
 const Divider = styled.hr`
   border: none;
-  border-top: 1px solid rgba(0, 255, 255, 0.1);
+  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.1)'};
   margin: 16px 0;
+`;
+
+const HintText = styled.div`
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.4)'};
+  font-size: 11px;
+  margin-top: 4px;
 `;
 
 // ── Component ───────────────────────────────────────────────────────────
@@ -289,6 +332,7 @@ interface PainEntryPanelProps {
   onResolve: (entryId: number) => void;
   onDelete: (entryId: number) => void;
   isAdmin: boolean;
+  isClientMode?: boolean;
 }
 
 const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
@@ -301,6 +345,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   onResolve,
   onDelete,
   isAdmin,
+  isClientMode = false,
 }) => {
   const region = regionId ? getRegionById(regionId) : null;
 
@@ -368,9 +413,12 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       onsetDate: onsetDate || undefined,
       aggravatingMovements: selectedAggravating.length > 0 ? selectedAggravating.join(', ') : undefined,
       relievingFactors: selectedRelieving.length > 0 ? selectedRelieving.join(', ') : undefined,
-      trainerNotes: trainerNotes.trim() || undefined,
-      aiNotes: aiNotes.trim() || undefined,
-      posturalSyndrome,
+      // Only include trainer fields in trainer mode
+      ...(!isClientMode && {
+        trainerNotes: trainerNotes.trim() || undefined,
+        aiNotes: aiNotes.trim() || undefined,
+        posturalSyndrome,
+      }),
     };
     onSave(payload);
   };
@@ -381,6 +429,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
     <>
       <Overlay $isOpen={isOpen} onClick={onClose} />
       <Panel $isOpen={isOpen}>
+        <DragHandle />
         <PanelHeader>
           <PanelTitle>{region?.label || 'Select Region'}</PanelTitle>
           <CloseBtn onClick={onClose} aria-label="Close panel">&#x2715;</CloseBtn>
@@ -402,9 +451,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
             />
             <SliderValue $color={severityColor}>{painLevel}</SliderValue>
           </SliderContainer>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4 }}>
+          <HintText>
             {painLevel >= 7 ? 'Severe — exercises AVOIDED' : painLevel >= 4 ? 'Moderate — exercises MODIFIED' : 'Mild — include with corrective warm-up'}
-          </div>
+          </HintText>
         </FormGroup>
 
         {/* Pain Type */}
@@ -428,13 +477,16 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
           </Select>
         </FormGroup>
 
-        {/* Client Description */}
+        {/* Description */}
         <FormGroup>
-          <Label>Client Description</Label>
+          <Label>{isClientMode ? 'Describe Your Pain' : 'Client Description'}</Label>
           <TextArea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What does the client say about this pain? e.g., 'Sharp pain when pressing overhead...'"
+            placeholder={isClientMode
+              ? "Describe what the pain feels like, e.g., 'Sharp pain when I lift my arm overhead...'"
+              : "What does the client say about this pain? e.g., 'Sharp pain when pressing overhead...'"
+            }
           />
         </FormGroup>
 
@@ -452,7 +504,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Aggravating Movements */}
         <FormGroup>
-          <Label>Aggravating Movements</Label>
+          <Label>{isClientMode ? 'What Makes It Worse?' : 'Aggravating Movements'}</Label>
           <ChipGrid>
             {AGGRAVATING_MOVEMENTS.map((mv) => (
               <Chip
@@ -468,7 +520,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Relieving Factors */}
         <FormGroup>
-          <Label>Relieving Factors</Label>
+          <Label>{isClientMode ? 'What Helps?' : 'Relieving Factors'}</Label>
           <ChipGrid>
             {RELIEVING_FACTORS.map((rf) => (
               <Chip
@@ -482,65 +534,70 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
           </ChipGrid>
         </FormGroup>
 
-        <Divider />
+        {/* Trainer-only fields */}
+        {!isClientMode && (
+          <>
+            <Divider />
 
-        {/* Postural Syndrome */}
-        <FormGroup>
-          <Label>Postural Syndrome</Label>
-          <SyndromeToggle>
-            <SyndromeBtn
-              $active={posturalSyndrome === 'none'}
-              $color="#00FFFF"
-              onClick={() => setPosturalSyndrome('none')}
-            >
-              None
-            </SyndromeBtn>
-            <SyndromeBtn
-              $active={posturalSyndrome === 'upper_crossed'}
-              $color="#FFB833"
-              onClick={() => setPosturalSyndrome('upper_crossed')}
-            >
-              Upper Crossed
-            </SyndromeBtn>
-            <SyndromeBtn
-              $active={posturalSyndrome === 'lower_crossed'}
-              $color="#FF5555"
-              onClick={() => setPosturalSyndrome('lower_crossed')}
-            >
-              Lower Crossed
-            </SyndromeBtn>
-          </SyndromeToggle>
-        </FormGroup>
+            {/* Postural Syndrome */}
+            <FormGroup>
+              <Label>Postural Syndrome</Label>
+              <SyndromeToggle>
+                <SyndromeBtn
+                  $active={posturalSyndrome === 'none'}
+                  $color="#00FFFF"
+                  onClick={() => setPosturalSyndrome('none')}
+                >
+                  None
+                </SyndromeBtn>
+                <SyndromeBtn
+                  $active={posturalSyndrome === 'upper_crossed'}
+                  $color="#FFB833"
+                  onClick={() => setPosturalSyndrome('upper_crossed')}
+                >
+                  Upper Crossed
+                </SyndromeBtn>
+                <SyndromeBtn
+                  $active={posturalSyndrome === 'lower_crossed'}
+                  $color="#FF5555"
+                  onClick={() => setPosturalSyndrome('lower_crossed')}
+                >
+                  Lower Crossed
+                </SyndromeBtn>
+              </SyndromeToggle>
+            </FormGroup>
 
-        {/* AI Notes */}
-        <FormGroup>
-          <Label>AI Guidance Notes</Label>
-          <TextArea
-            value={aiNotes}
-            onChange={(e) => setAiNotes(e.target.value)}
-            placeholder="Guidance for the AI when generating workouts, e.g., 'Focus on thoracic mobility before any pressing...'"
-          />
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 4 }}>
-            This text will be injected into the AI workout generation prompt.
-          </div>
-        </FormGroup>
+            {/* AI Notes */}
+            <FormGroup>
+              <Label>AI Guidance Notes</Label>
+              <TextArea
+                value={aiNotes}
+                onChange={(e) => setAiNotes(e.target.value)}
+                placeholder="Guidance for the AI when generating workouts, e.g., 'Focus on thoracic mobility before any pressing...'"
+              />
+              <HintText>
+                This text will be injected into the AI workout generation prompt.
+              </HintText>
+            </FormGroup>
 
-        {/* Trainer Notes (private) */}
-        <FormGroup>
-          <Label>Trainer Notes (Private)</Label>
-          <TextArea
-            value={trainerNotes}
-            onChange={(e) => setTrainerNotes(e.target.value)}
-            placeholder="Internal notes — not sent to AI..."
-          />
-        </FormGroup>
+            {/* Trainer Notes (private) */}
+            <FormGroup>
+              <Label>Trainer Notes (Private)</Label>
+              <TextArea
+                value={trainerNotes}
+                onChange={(e) => setTrainerNotes(e.target.value)}
+                placeholder="Internal notes — not sent to AI..."
+              />
+            </FormGroup>
+          </>
+        )}
 
         {/* Action Buttons */}
         <ButtonRow>
           <ActionBtn $variant="primary" onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : existingEntry ? 'Update' : 'Save'}
           </ActionBtn>
-          {existingEntry && (
+          {existingEntry && !isClientMode && (
             <ActionBtn $variant="secondary" onClick={() => onResolve(existingEntry.id)} disabled={isSaving}>
               Resolve
             </ActionBtn>

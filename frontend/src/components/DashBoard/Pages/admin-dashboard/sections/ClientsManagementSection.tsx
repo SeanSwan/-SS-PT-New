@@ -34,7 +34,7 @@ import {
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star, DollarSign,
   TrendingUp, Target, Award, CreditCard, MessageSquare,
-  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles, Ruler, Scale, ImagePlus
+  BarChart3, Zap, Heart, Gift, User, ClipboardList, Dumbbell, Sparkles, Ruler, Scale, ImagePlus, HeartPulse
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
@@ -42,6 +42,7 @@ import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModa
 import WorkoutCopilotPanel from '../../admin-clients/components/WorkoutCopilotPanel';
 import ClientMeasurementPanel from '../../admin-clients/components/ClientMeasurementPanel';
 import ClientWeighInPanel from '../../admin-clients/components/ClientWeighInPanel';
+import ClientBodyMapModal from '../../admin-clients/components/ClientBodyMapModal';
 import ClientSessionsModal from '../../admin-clients/components/ClientSessionsModal';
 import ClientWorkoutsModal from '../../admin-clients/components/ClientWorkoutsModal';
 import ClientPostsModal from '../../admin-clients/components/ClientPostsModal';
@@ -597,6 +598,7 @@ const ClientsManagementSection: React.FC = () => {
   const [showCopilot, setShowCopilot] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(false);
   const [showWeighIn, setShowWeighIn] = useState(false);
+  const [showBodyMap, setShowBodyMap] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
   const [showWorkouts, setShowWorkouts] = useState(false);
   const [showPosts, setShowPosts] = useState(false);
@@ -982,6 +984,13 @@ const ClientsManagementSection: React.FC = () => {
     setActiveActionMenu(null);
   };
 
+  // Open body map modal for a client
+  const openBodyMap = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowBodyMap(true);
+    setActiveActionMenu(null);
+  };
+
   const getUserInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -1278,6 +1287,13 @@ const ClientsManagementSection: React.FC = () => {
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
+                      onClick={() => openBodyMap(client)}
+                    >
+                      <HeartPulse size={14} />
+                      Body Map
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
                       onClick={() => openWeighIn(client)}
                     >
                       <Scale size={14} />
@@ -1523,6 +1539,18 @@ const ClientsManagementSection: React.FC = () => {
             setActionClient(null);
           }}
           onUpdate={() => fetchClients()}
+        />
+      )}
+
+      {/* Body Map Modal */}
+      {showBodyMap && actionClient && (
+        <ClientBodyMapModal
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowBodyMap(false);
+            setActionClient(null);
+          }}
         />
       )}
 

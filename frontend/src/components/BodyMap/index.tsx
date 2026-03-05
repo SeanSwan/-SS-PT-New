@@ -4,7 +4,14 @@
  * Main export for the Pain/Injury Body Map system.
  * Manages state, API calls, and coordinates BodyMapSVG + PainEntryPanel.
  *
- * Usage: <BodyMap userId={123} />
+ * Supports two modes:
+ *   - 'trainer': full admin/trainer view with all fields (default for admin/trainer)
+ *   - 'client': simplified client view — clients can self-report pain
+ *
+ * Usage:
+ *   <BodyMap userId={123} />                    // auto-detects mode from user role
+ *   <BodyMap userId={123} mode="client" />      // force client mode
+ *   <BodyMap userId={123} mode="trainer" />     // force trainer mode
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
@@ -19,16 +26,21 @@ import {
   type CreatePainEntryPayload,
 } from '../../services/painEntryService';
 import { useAuth } from '../../context/AuthContext';
+import { device } from '../../styles/breakpoints';
 
 // ── Styled Components ───────────────────────────────────────────────────
 
 const BodyMapSection = styled.div`
-  background: rgba(10, 10, 26, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.4)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.1)'};
   border-radius: 20px;
   backdrop-filter: blur(8px);
-  padding: 24px;
+  padding: 16px;
   margin-bottom: 24px;
+
+  ${device.sm} {
+    padding: 24px;
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -41,7 +53,7 @@ const SectionHeader = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -75,6 +87,7 @@ const ActiveEntryRow = styled.div<{ $color: string }>`
   margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 0.2s;
+  min-height: 44px;
   &:hover {
     border-color: ${({ $color }) => $color};
   }
@@ -90,18 +103,18 @@ const DotIndicator = styled.div<{ $color: string }>`
 `;
 
 const EntryLabel = styled.span`
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
   flex: 1;
 `;
 
 const EntryMeta = styled.span`
-  color: rgba(255, 255, 255, 0.4);
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.4)'};
   font-size: 12px;
 `;
 
-const LoadingText = styled.p`
-  color: rgba(255, 255, 255, 0.4);
+const StatusText = styled.p`
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.4)'};
   font-size: 13px;
   text-align: center;
   padding: 20px 0;
@@ -116,13 +129,23 @@ const ErrorText = styled.p`
   border-radius: 8px;
 `;
 
+const EntriesLabel = styled.div`
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.5)'};
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+`;
+
 // ── Component ───────────────────────────────────────────────────────────
 
 interface BodyMapProps {
   userId: number;
+  mode?: 'trainer' | 'client';
 }
 
-const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
+const BodyMap: React.FC<BodyMapProps> = ({ userId, mode }) => {
   const { user, authAxios } = useAuth() as any;
   const painService = useMemo(
     () => (authAxios ? createPainEntryService(authAxios) : null),
@@ -138,6 +161,14 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
 
   const isAdmin = user?.role === 'admin';
   const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
+
+  // Auto-detect mode from user role if not explicitly provided
+  const effectiveMode = mode || (isTrainerOrAdmin ? 'trainer' : 'client');
+  const isClientMode = effectiveMode === 'client';
+
+  // Determine if user can write: trainers/admins always, clients only for own data
+  const isOwnData = user?.id === userId;
+  const canWrite = isTrainerOrAdmin || (isClientMode && isOwnData);
 
   // Fetch entries on mount
   const fetchEntries = useCallback(async () => {
@@ -162,9 +193,11 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
   const handleRegionClick = useCallback(
     (regionId: string) => {
       setSelectedRegion(regionId);
-      setPanelOpen(true);
+      if (canWrite) {
+        setPanelOpen(true);
+      }
     },
-    [],
+    [canWrite],
   );
 
   // Get existing entry for selected region
@@ -176,7 +209,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
   // Save handler
   const handleSave = useCallback(
     async (payload: CreatePainEntryPayload) => {
-      if (!painService || !isTrainerOrAdmin) return;
+      if (!painService || !canWrite) return;
       setIsSaving(true);
       try {
         if (existingEntry) {
@@ -193,13 +226,13 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
         setIsSaving(false);
       }
     },
-    [painService, userId, existingEntry, isTrainerOrAdmin, fetchEntries],
+    [painService, userId, existingEntry, canWrite, fetchEntries],
   );
 
   // Resolve handler
   const handleResolve = useCallback(
     async (entryId: number) => {
-      if (!painService || !isTrainerOrAdmin) return;
+      if (!painService || !canWrite) return;
       setIsSaving(true);
       try {
         await painService.resolve(userId, entryId);
@@ -212,7 +245,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
         setIsSaving(false);
       }
     },
-    [painService, userId, isTrainerOrAdmin, fetchEntries],
+    [painService, userId, canWrite, fetchEntries],
   );
 
   // Delete handler
@@ -267,7 +300,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
         )}
       </SectionHeader>
 
-      {loading && <LoadingText>Loading pain entries...</LoadingText>}
+      {loading && <StatusText>Loading pain entries...</StatusText>}
       {error && <ErrorText>{error}</ErrorText>}
 
       {!loading && (
@@ -280,7 +313,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
 
           {entries.length > 0 && (
             <ActiveEntriesList>
-              <Label style={{ marginBottom: 8, fontSize: 11 }}>Active Pain Entries</Label>
+              <EntriesLabel>Active Pain Entries</EntriesLabel>
               {entries.map((entry) => {
                 const color = getSeverityColor(entry.painLevel);
                 return (
@@ -303,14 +336,16 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
           )}
 
           {entries.length === 0 && !loading && (
-            <LoadingText>
-              No active pain entries. Click a body region to add one.
-            </LoadingText>
+            <StatusText>
+              {isClientMode
+                ? 'Tap any area where you feel pain or discomfort to log it. Your trainer will see this when planning your workouts.'
+                : 'No active pain entries. Click a body region to add one.'}
+            </StatusText>
           )}
         </>
       )}
 
-      {isTrainerOrAdmin && (
+      {canWrite && (
         <PainEntryPanel
           regionId={selectedRegion}
           existingEntry={existingEntry}
@@ -324,18 +359,11 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId }) => {
           onResolve={handleResolve}
           onDelete={handleDelete}
           isAdmin={isAdmin}
+          isClientMode={isClientMode}
         />
       )}
     </BodyMapSection>
   );
 };
-
-// Need to use a Label-like styled component for the active entries list header
-const Label = styled.div`
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-`;
 
 export default BodyMap;

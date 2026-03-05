@@ -29,6 +29,7 @@ import {
   AccountGalaxy
 } from './GalaxySections';
 import StellarSidebar from './StellarSidebar';
+import HealthGalaxy from './sections/HealthGalaxy';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -269,6 +270,7 @@ const sectionComponents: Record<string, React.FC> = {
   schedule: TimeWarp,
   workouts: WorkoutUniverse,
   progress: ProgressConstellation,
+  health: HealthGalaxy,
   gamification: AchievementNebula,
   messages: MessagesGalaxy,
   account: AccountGalaxy,
@@ -280,6 +282,7 @@ const sectionTitles: Record<string, string> = {
   schedule: 'Time Warp Chamber',
   workouts: 'Training Universe',
   progress: 'Progress Constellation',
+  health: 'Health & Body Map',
   gamification: 'Achievement Nebula',
   messages: 'Stellar Messages',
   account: 'My Account',
@@ -291,6 +294,7 @@ const sectionDescriptions: Record<string, string> = {
   schedule: 'Navigate your training appointments through time',
   workouts: 'Explore training programs and exercise galaxies',
   progress: 'Track your transformation through the cosmos',
+  health: 'Report pain, track injuries, and keep your trainer informed',
   gamification: 'Celebrate your stellar accomplishments',
   messages: 'Connect with your trainer and team',
   account: 'Session credits, profile, and account settings',

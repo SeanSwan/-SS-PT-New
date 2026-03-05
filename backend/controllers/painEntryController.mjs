@@ -4,7 +4,7 @@
  * CRUD operations for client pain/injury tracking.
  * Follows NASM CES + Squat University protocols.
  *
- * RBAC: Admin → full access; Trainer → assigned clients; Client → read own.
+ * RBAC: Admin → full access; Trainer → assigned clients; Client → read/write own.
  */
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
@@ -114,7 +114,7 @@ export const getActivePainEntries = async (req, res) => {
 
 /**
  * POST /api/pain-entries/:userId
- * Creates a new pain entry. Admin/trainer only.
+ * Creates a new pain entry. Admin/trainer or own client.
  */
 export const createPainEntry = async (req, res) => {
   try {
@@ -125,6 +125,11 @@ export const createPainEntry = async (req, res) => {
 
     if (!ClientPainEntry) {
       return res.status(503).json({ success: false, message: 'Pain tracking not yet initialized' });
+    }
+
+    // Clients can only create entries for themselves
+    if (requester.role === 'client' && requester.id !== Number(userId)) {
+      return res.status(403).json({ success: false, message: 'Clients can only create pain entries for themselves' });
     }
 
     const {
@@ -147,6 +152,9 @@ export const createPainEntry = async (req, res) => {
       return res.status(400).json({ success: false, message: 'painLevel must be between 1 and 10' });
     }
 
+    // Clients cannot set trainer-only fields
+    const isClient = requester.role === 'client';
+
     const entry = await ClientPainEntry.create({
       userId: Number(userId),
       createdById: requester.id,
@@ -158,10 +166,10 @@ export const createPainEntry = async (req, res) => {
       onsetDate: onsetDate || null,
       aggravatingMovements: aggravatingMovements || null,
       relievingFactors: relievingFactors || null,
-      trainerNotes: trainerNotes || null,
-      aiNotes: aiNotes || null,
-      posturalSyndrome: posturalSyndrome || 'none',
-      assessmentFindings: assessmentFindings || null,
+      trainerNotes: isClient ? null : (trainerNotes || null),
+      aiNotes: isClient ? null : (aiNotes || null),
+      posturalSyndrome: isClient ? 'none' : (posturalSyndrome || 'none'),
+      assessmentFindings: isClient ? null : (assessmentFindings || null),
       isActive: true,
     });
 
@@ -179,16 +187,22 @@ export const createPainEntry = async (req, res) => {
 
 /**
  * PUT /api/pain-entries/:userId/:entryId
- * Updates an existing pain entry. Admin/trainer only.
+ * Updates an existing pain entry. Admin/trainer or own client.
  */
 export const updatePainEntry = async (req, res) => {
   try {
     const { userId, entryId } = req.params;
+    const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
 
     if (!ClientPainEntry) {
       return res.status(503).json({ success: false, message: 'Pain tracking not yet initialized' });
+    }
+
+    // Clients can only update their own entries
+    if (requester.role === 'client' && requester.id !== Number(userId)) {
+      return res.status(403).json({ success: false, message: 'Clients can only update their own pain entries' });
     }
 
     const entry = await ClientPainEntry.findOne({
@@ -199,11 +213,11 @@ export const updatePainEntry = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Pain entry not found' });
     }
 
-    const allowedFields = [
-      'painLevel', 'painType', 'description', 'onsetDate',
-      'aggravatingMovements', 'relievingFactors', 'trainerNotes',
-      'aiNotes', 'posturalSyndrome', 'assessmentFindings', 'side',
-    ];
+    // Clients cannot update trainer-only fields
+    const isClient = requester.role === 'client';
+    const allowedFields = isClient
+      ? ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'side']
+      : ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'trainerNotes', 'aiNotes', 'posturalSyndrome', 'assessmentFindings', 'side'];
 
     const updates = {};
     for (const field of allowedFields) {
@@ -232,16 +246,22 @@ export const updatePainEntry = async (req, res) => {
 
 /**
  * PUT /api/pain-entries/:userId/:entryId/resolve
- * Marks a pain entry as resolved. Admin/trainer only.
+ * Marks a pain entry as resolved. Admin/trainer or own client.
  */
 export const resolvePainEntry = async (req, res) => {
   try {
     const { userId, entryId } = req.params;
+    const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
 
     if (!ClientPainEntry) {
       return res.status(503).json({ success: false, message: 'Pain tracking not yet initialized' });
+    }
+
+    // Clients can only resolve their own entries
+    if (requester.role === 'client' && requester.id !== Number(userId)) {
+      return res.status(403).json({ success: false, message: 'Clients can only resolve their own pain entries' });
     }
 
     const entry = await ClientPainEntry.findOne({

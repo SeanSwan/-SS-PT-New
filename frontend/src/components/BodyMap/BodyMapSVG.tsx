@@ -5,7 +5,8 @@
  * Each region is an SVG ellipse that highlights on hover and shows
  * severity-colored markers for active pain entries.
  *
- * Galaxy-Swan theme: #0a0a1a background, #00FFFF outlines, glass panel wrapper
+ * Ultra-responsive: scales from 320px phones to 4K ultrawide.
+ * Theme-aware with Galaxy-Swan fallbacks.
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
@@ -18,6 +19,7 @@ import {
   type BodyRegion,
 } from './bodyRegions';
 import type { PainEntry } from '../../services/painEntryService';
+import { device } from '../../styles/breakpoints';
 
 // ── Animations ──────────────────────────────────────────────────────────
 
@@ -30,33 +32,68 @@ const pulse = keyframes`
 
 const MapContainer = styled.div`
   display: flex;
-  gap: 24px;
+  gap: 16px;
   justify-content: center;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  flex-direction: column;
 
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
+  ${device.md} {
+    flex-direction: row;
+    gap: 24px;
+  }
+
+  ${device.xxxl} {
+    gap: 32px;
   }
 `;
 
 const ViewPanel = styled.div`
-  background: rgba(10, 10, 26, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.6)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.15)'};
   border-radius: 16px;
   backdrop-filter: blur(12px);
-  padding: 16px;
+  padding: 10px;
   text-align: center;
+  width: 100%;
+  max-width: 85vw;
+  margin: 0 auto;
+  touch-action: manipulation;
+
+  ${device.sm} {
+    max-width: 300px;
+    padding: 14px;
+  }
+
+  ${device.md} {
+    flex: 1;
+    max-width: 320px;
+  }
+
+  ${device.xxxl} {
+    max-width: 400px;
+    padding: 20px;
+  }
 `;
 
 const ViewLabel = styled.h4`
-  color: rgba(0, 255, 255, 0.8);
+  color: ${({ theme }) => theme.colors?.accent || 'rgba(0, 255, 255, 0.8)'};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin: 0 0 8px 0;
+`;
+
+const ResponsiveSVG = styled.svg`
+  width: 100%;
+  height: auto;
+  max-width: 280px;
+  display: block;
+  margin: 0 auto;
+
+  ${device.xxxl} {
+    max-width: 360px;
+  }
 `;
 
 interface RegionEllipseProps {
@@ -68,9 +105,9 @@ interface RegionEllipseProps {
 const RegionEllipse = styled.ellipse<RegionEllipseProps>`
   fill: ${({ $isActive, $severityColor }) =>
     $isActive && $severityColor ? `${$severityColor}33` : 'rgba(0, 255, 255, 0.03)'};
-  stroke: ${({ $isActive, $isSelected, $severityColor }) =>
+  stroke: ${({ $isActive, $isSelected, $severityColor, theme }) =>
     $isSelected
-      ? '#00FFFF'
+      ? (theme?.colors?.accent || '#00FFFF')
       : $isActive && $severityColor
         ? $severityColor
         : 'rgba(0, 255, 255, 0.12)'};
@@ -86,7 +123,7 @@ const RegionEllipse = styled.ellipse<RegionEllipseProps>`
 
   &:hover {
     fill: rgba(0, 255, 255, 0.15);
-    stroke: #00FFFF;
+    stroke: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
     stroke-width: 2;
   }
 `;
@@ -194,18 +231,18 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
     <MapContainer>
       <ViewPanel>
         <ViewLabel>Front View</ViewLabel>
-        <svg viewBox="0 0 200 310" width="200" height="310" style={{ overflow: 'visible' }}>
+        <ResponsiveSVG viewBox="0 0 200 310" style={{ overflow: 'visible' }}>
           <BodyOutlineFront />
           {renderRegions(FRONT_VIEW_REGIONS)}
-        </svg>
+        </ResponsiveSVG>
       </ViewPanel>
 
       <ViewPanel>
         <ViewLabel>Back View</ViewLabel>
-        <svg viewBox="0 0 200 310" width="200" height="310" style={{ overflow: 'visible' }}>
+        <ResponsiveSVG viewBox="0 0 200 310" style={{ overflow: 'visible' }}>
           <BodyOutlineBack />
           {renderRegions(BACK_VIEW_REGIONS)}
-        </svg>
+        </ResponsiveSVG>
       </ViewPanel>
     </MapContainer>
   );
