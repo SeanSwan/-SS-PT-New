@@ -256,11 +256,22 @@
 
 // backend/routes/adminClientRoutes.mjs
 import express from 'express';
+import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import adminClientController from '../controllers/adminClientController.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import { getUser } from '../models/index.mjs';
+import { uploadPhoto } from '../services/photoStorageService.mjs';
 import logger from '../utils/logger.mjs';
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) return cb(null, true);
+    cb(new Error('Only JPG, PNG, and WebP images are allowed'));
+  },
+});
 
 const router = express.Router();
 
@@ -274,6 +285,37 @@ router.get('/clients/:clientId', adminClientController.getClientDetails);
 router.post('/clients', adminClientController.createClient);
 router.put('/clients/:clientId', adminClientController.updateClient);
 router.delete('/clients/:clientId', adminClientController.deleteClient);
+
+// Client photo upload
+router.post('/clients/:clientId/upload-photo', photoUpload.single('photo'), async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No photo file provided' });
+    }
+
+    const User = getUser();
+    const client = await User.findByPk(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const result = await uploadPhoto(req.file.buffer, {
+      userId: clientId,
+      category: 'profiles',
+      originalFilename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
+    await client.update({ photo: result.url });
+
+    logger.info(`Admin ${req.user.id} uploaded profile photo for client ${clientId}`);
+    return res.json({ success: true, data: { url: result.url } });
+  } catch (error) {
+    logger.error('Error uploading client photo:', error);
+    return res.status(500).json({ success: false, message: 'Failed to upload photo' });
+  }
+});
 
 // Client-specific actions
 router.post('/clients/:clientId/reset-password', adminClientController.resetClientPassword);

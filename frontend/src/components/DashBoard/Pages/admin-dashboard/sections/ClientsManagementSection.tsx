@@ -593,6 +593,8 @@ const ClientsManagementSection: React.FC = () => {
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const actionBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoUploadClientId, setPhotoUploadClientId] = useState<string | null>(null);
 
   // Phase 1C: Onboarding + Workout Logger state
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -885,44 +887,52 @@ const ClientsManagementSection: React.FC = () => {
     }
   };
 
-  const handleSetClientPhoto = async (client: Client) => {
-    const nextPhoto = window.prompt(
-      `Set profile photo URL for ${client.name}. Leave empty to clear the photo.`,
-      client.avatar || ''
-    );
-
-    if (nextPhoto === null) {
-      return;
+  const handleSetClientPhoto = (client: Client) => {
+    setPhotoUploadClientId(client.id);
+    setActiveActionMenu(null);
+    // Trigger hidden file input
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+      photoInputRef.current.click();
     }
+  };
 
-    const trimmedPhoto = nextPhoto.trim();
+  const handlePhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !photoUploadClientId) return;
 
     try {
       setLoading(prev => ({ ...prev, operations: true }));
       setErrors(prev => ({ ...prev, operations: null }));
 
-      const response = await authAxios.put(`/api/admin/clients/${client.id}`, {
-        photo: trimmedPhoto || null,
-      });
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      const response = await authAxios.post(
+        `/api/admin/clients/${photoUploadClientId}/upload-photo`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
 
       if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to update client photo');
+        throw new Error(response.data.message || 'Failed to upload photo');
       }
 
+      const newUrl = response.data.data.url;
       setClients(prev =>
         prev.map(row =>
-          row.id === client.id
-            ? { ...row, avatar: trimmedPhoto }
+          row.id === photoUploadClientId
+            ? { ...row, avatar: newUrl }
             : row
         )
       );
-      setActiveActionMenu(null);
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to update client photo';
+      const errorMessage = error.response?.data?.message || 'Failed to upload photo';
       setErrors(prev => ({ ...prev, operations: errorMessage }));
-      console.error('❌ Error updating client photo:', errorMessage);
+      console.error('Error uploading client photo:', errorMessage);
     } finally {
       setLoading(prev => ({ ...prev, operations: false }));
+      setPhotoUploadClientId(null);
     }
   };
 
@@ -1034,6 +1044,14 @@ const ClientsManagementSection: React.FC = () => {
 
   return (
     <ManagementContainer>
+      {/* Hidden file input for photo upload */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        style={{ display: 'none' }}
+        onChange={handlePhotoFileSelected}
+      />
       {/* Error States */}
       {hasError('clients') && (
         <ErrorMessage 
