@@ -392,7 +392,7 @@ const EnhancedFooter: React.FC = () => {
           </ContactItem>
           <ContactItem>
             <Phone />
-            <span>(714) 947-3221</span>
+            <span>(714) 485-3950</span>
           </ContactItem>
           <ContactItem>
             <Mail />

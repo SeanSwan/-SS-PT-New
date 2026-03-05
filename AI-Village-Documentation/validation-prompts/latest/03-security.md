@@ -1,210 +1,197 @@
 # Security — Validation Report
 
-> **Status:** PASS | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 26.6s
-> **Files:** frontend/src/components/DashBoard/Pages/admin-dashboard/sections/ClientsManagementSection.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/AdminDashboardCards.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverview.styles.ts
-> **Generated:** 3/4/2026, 7:39:11 PM
+> **Status:** PASS | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 36.2s
+> **Files:** backend/migrations/20260301000200-reconcile-achievement-schema.cjs, backend/utils/startupMigrations.mjs, backend/core/middleware/index.mjs, frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx
+> **Generated:** 3/4/2026, 9:54:02 PM
 
 ---
 
-# Security Audit Report: SwanStudios Admin Dashboard Components
+# Security Audit Report: SwanStudios Web Application
 
 ## Executive Summary
-The reviewed React components demonstrate good frontend architecture but reveal several **HIGH** and **MEDIUM** security concerns, primarily around input validation, data exposure, and potential authorization bypasses. No critical vulnerabilities were found in the provided code, but several patterns could lead to security issues if not addressed.
+This security audit examines four critical files from the SwanStudios personal training SaaS platform. The review focuses on OWASP Top 10 vulnerabilities, client-side security, input validation, authentication/authorization, and data exposure risks. Several **HIGH** and **MEDIUM** severity issues were identified, primarily related to SQL injection risks, insufficient input validation, and potential data exposure.
 
 ---
 
-## Detailed Findings
+## Critical Findings
 
-### 1. **OWASP Top 10 Vulnerabilities**
-
-#### **MEDIUM: A03:2021 - Injection**
-- **Location**: `ClientsManagementSection.tsx` lines 615-617
-- **Issue**: `window.prompt()` used for user input without validation/sanitization
-- **Risk**: User-supplied URLs for profile photos could contain malicious content
-- **Impact**: Potential for XSS if URL is rendered unsafely elsewhere
-- **Recommendation**: 
-  ```typescript
-  // Add URL validation
-  const isValidUrl = (url: string) => {
-    try {
-      new URL(url);
-      return url.startsWith('https://');
-    } catch {
-      return false;
-    }
-  };
-  ```
-
-#### **LOW: A01:2021 - Broken Access Control**
-- **Location**: `ClientsManagementSection.tsx` line 478
-- **Issue**: Client-to-trainer promotion endpoint (`/api/admin/clients/${clientId}`) may not validate admin permissions server-side
-- **Risk**: If backend doesn't verify admin role, privilege escalation possible
-- **Recommendation**: Ensure backend implements proper RBAC checks
-
-### 2. **Client-Side Security**
-
-#### **HIGH: Sensitive Data in Console Logs**
-- **Location**: Multiple locations in `ClientsManagementSection.tsx`
-- **Issues**:
-  - Line 324: `console.log('✅ Real client data loaded successfully')`
-  - Line 328: `console.error('❌ Failed to load real client data:', errorMessage)`
-  - Line 478: `console.log('✅ Client promoted to trainer successfully')`
-- **Risk**: Production logs may expose PII, API errors, and business logic
-- **Impact**: Information disclosure to browser console
-- **Recommendation**: Remove or gate console statements with environment check:
-  ```typescript
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...);
+### 1. **SQL Injection in Migration Files** - **HIGH**
+**Location:** `backend/migrations/20260301000200-reconcile-achievement-schema.cjs`
+**Lines:** 32-35, 40-43
+**Issue:** Direct string interpolation in SQL queries without parameterization
+```javascript
+// VULNERABLE CODE:
+const [tables] = await queryInterface.sequelize.query(
+  `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = '${table}';`,
+  { transaction }
+);
+```
+**Impact:** Potential SQL injection if `table` variable contains user-controlled input
+**Fix:** Use parameterized queries or Sequelize's built-in methods
+```javascript
+// FIXED CODE:
+const [tables] = await queryInterface.sequelize.query(
+  `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = :tableName;`,
+  { 
+    transaction,
+    replacements: { tableName: table }
   }
-  ```
+);
+```
 
-#### **MEDIUM: Insecure Input Handling**
-- **Location**: `ClientsManagementSection.tsx` lines 615-640
-- **Issue**: `window.prompt()` returns raw user input used in API call
-- **Risk**: No validation of URL format, length, or content
-- **Recommendation**: Implement strict URL validation and sanitization
-
-### 3. **Input Validation**
-
-#### **HIGH: Missing Input Sanitization**
-- **Location**: `ClientsManagementSection.tsx` lines 254-255
-- **Issue**: Search input directly used in filter without sanitization
-- **Code**: 
-  ```typescript
-  const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       client.email.toLowerCase().includes(searchTerm.toLowerCase());
-  ```
-- **Risk**: Client-side filtering only; backend may receive unsanitized search terms
-- **Impact**: Potential for NoSQL/command injection if search passed to backend
-- **Recommendation**: Implement Zod schema validation for all API inputs
-
-#### **MEDIUM: Missing Type Validation**
-- **Location**: `ClientsManagementSection.tsx` lines 179-246
-- **Issue**: API response data transformation assumes specific structure
-- **Risk**: Type coercion errors or unexpected data shapes
-- **Recommendation**: Add runtime type guards:
-  ```typescript
-  const isClientResponse = (data: any): data is ClientResponse => {
-    return data && typeof data.id === 'string';
-  };
-  ```
-
-### 4. **CORS & CSP**
-
-#### **LOW: No CSP Headers Visible**
-- **Location**: All components
-- **Issue**: No Content Security Policy implementation visible in frontend code
-- **Risk**: XSS vulnerabilities more exploitable without CSP
-- **Recommendation**: Implement CSP headers server-side and consider `react-helmet` for meta tags
-
-### 5. **Authentication**
-
-#### **MEDIUM: JWT Handling Assumptions**
-- **Location**: `ClientsManagementSection.tsx` line 120
-- **Issue**: Relies on `useAuth()` context without visible token validation
-- **Risk**: Assumes `authAxios` properly handles token refresh/expiry
-- **Recommendation**: Verify token validation and refresh logic exists in auth context
-
-### 6. **Authorization**
-
-#### **HIGH: Missing Client-Side Authorization Checks**
-- **Location**: `ClientsManagementSection.tsx` action handlers (lines 450-550)
-- **Issue**: No visibility checks before displaying admin-only actions
-- **Risk**: UI may show admin actions to non-admin users if component misused
-- **Impact**: Confusion and potential authorization bypass attempts
-- **Recommendation**: Add role-based UI checks:
-  ```typescript
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-  // Conditionally render admin actions
-  ```
-
-#### **MEDIUM: Privilege Escalation Vector**
-- **Location**: `ClientsManagementSection.tsx` line 450
-- **Issue**: `handlePromoteToTrainer` doesn't confirm action or check prerequisites
-- **Risk**: Accidental promotion of clients
-- **Recommendation**: Add confirmation dialog and validation checks
-
-### 7. **Data Exposure**
-
-#### **HIGH: PII in Console and Network**
-- **Location**: Multiple locations
-- **Issues**:
-  1. Full client objects logged to console (line 324)
-  2. Client email/name exposed in DOM without masking
-  3. Revenue data visible to anyone with DOM access
-- **Impact**: PII exposure in browser dev tools
-- **Recommendation**: 
-  - Mask sensitive data in UI for non-essential views
-  - Implement data classification and handling policies
-  - Use `data-testid` instead of exposing real data in attributes
-
-#### **MEDIUM: Client-Side Data Processing**
-- **Location**: `ClientsManagementSection.tsx` lines 279-316
-- **Issue**: Business logic (tier calculation, engagement scoring) exposed in client code
-- **Risk**: Reverse engineering of business rules
-- **Recommendation**: Move sensitive calculations to backend where possible
+### 2. **SQL Injection in Startup Migrations** - **HIGH**
+**Location:** `backend/utils/startupMigrations.mjs`
+**Lines:** 67-70, 85-88, 119-122 (multiple instances)
+**Issue:** Dynamic table/column names concatenated directly into SQL strings
+```javascript
+// VULNERABLE PATTERN:
+const [cols] = await sequelize.query(
+  `SELECT column_name FROM information_schema.columns
+   WHERE table_name = '${table}' AND column_name = '${column}';`
+);
+```
+**Impact:** SQL injection if table/column names are derived from user input
+**Fix:** Use parameterized queries with replacements
 
 ---
 
-## Security Rating Summary
+## High Severity Findings
 
-| Category | Rating | Count |
-|----------|--------|-------|
-| CRITICAL | 0 | 0 |
-| HIGH | 4 | 4 |
-| MEDIUM | 5 | 5 |
-| LOW | 2 | 2 |
+### 3. **Insufficient Input Validation in Photo Proxy** - **HIGH**
+**Location:** `backend/core/middleware/index.mjs`
+**Lines:** 106-114
+**Issue:** Regex validation for photo paths is insufficient and could allow path traversal
+```javascript
+// CURRENT VALIDATION (WEAK):
+if (!/^photos\/(profiles|banners|measurements)\/\d+\/\d{4}-\d{2}\/[\w-]+\.\w+$/.test(objectKey)) {
+  return res.status(400).json({ error: 'Invalid photo path' });
+}
+```
+**Impact:** Potential path traversal attacks (`../../../etc/passwd`)
+**Fix:** Use stricter validation and path normalization
+```javascript
+// IMPROVED VALIDATION:
+const normalizedPath = path.normalize(objectKey).replace(/\\/g, '/');
+if (!normalizedPath.match(/^photos\/(profiles|banners|measurements)\/\d+\/\d{4}-\d{2}\/[a-f0-9-]+\.(jpg|jpeg|png|gif|webp)$/i)) {
+  return res.status(400).json({ error: 'Invalid photo path' });
+}
+```
 
-## Priority Recommendations
-
-1. **Immediate (HIGH)**:
-   - Remove or secure console.log statements exposing PII
-   - Implement input validation for `window.prompt()` URL input
-   - Add client-side authorization checks before rendering admin actions
-
-2. **Short-term (MEDIUM)**:
-   - Implement Zod schemas for all API inputs/outputs
-   - Add confirmation dialogs for destructive actions
-   - Move business logic calculations to backend
-
-3. **Long-term (LOW)**:
-   - Implement comprehensive CSP headers
-   - Add audit logging for admin actions
-   - Conduct penetration testing on admin endpoints
-
-## Positive Findings
-
-- Uses TypeScript interfaces for type safety
-- Proper error handling patterns
-- Accessible UI components with focus management
-- No visible `eval()` or `innerHTML` usage
-- No localStorage secrets or exposed API keys in provided code
-- Uses HTTPS-compatible URL handling in avatar display
-
-## Testing Recommendations
-
-1. **Manual Testing**:
-   - Attempt XSS via profile photo URL field
-   - Test authorization bypass by modifying JWT claims
-   - Verify console doesn't leak PII in production
-
-2. **Automated Testing**:
-   - Implement Jest tests with mocked auth contexts
-   - Add ESLint rules to catch console.log in production code
-   - Use OWASP ZAP or Burp Suite to test admin endpoints
-
-3. **Code Review**:
-   - Review backend implementations of `/api/admin/*` endpoints
-   - Verify auth middleware validates admin role
-   - Check database queries for injection vulnerabilities
+### 4. **Missing Authentication/Authorization in Admin Routes** - **HIGH**
+**Location:** `frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx`
+**Lines:** 393-396
+**Issue:** No visible authorization check for admin-only endpoints
+```javascript
+const response = await authAxios.get('/api/admin/trainers');
+```
+**Impact:** Potential privilege escalation if frontend routes aren't properly protected
+**Fix:** Implement server-side role-based access control (RBAC) and verify on both client and server
 
 ---
 
-**Report Generated**: Frontend component security audit  
-**Scope**: Admin dashboard React components  
-**Auditor**: Security Auditor Assistant  
-**Date**: Current assessment
+## Medium Severity Findings
+
+### 5. **Insecure Direct Object References (IDOR) Risk** - **MEDIUM**
+**Location:** `backend/core/middleware/index.mjs`
+**Lines:** 106-114 (Photo proxy)
+**Issue:** Photo URLs expose user IDs and potentially allow access to other users' photos
+```javascript
+// PATTERN: /photos/profiles/57/2026-03/uuid.jpg
+```
+**Impact:** Users might guess other user IDs to access unauthorized photos
+**Fix:** Implement proper authorization checks before serving photos
+
+### 6. **Insufficient Logging of Security Events** - **MEDIUM**
+**Location:** `backend/core/middleware/index.mjs`
+**Lines:** 48-58
+**Issue:** Request logging doesn't capture authentication failures, authorization attempts, or security-relevant events
+```javascript
+logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip || 'unknown'}`);
+```
+**Impact:** Difficulty detecting brute force attacks or unauthorized access attempts
+**Fix:** Log authentication attempts, failures, and admin actions
+
+### 7. **JSON Parsing Without Validation** - **MEDIUM**
+**Location:** `frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx`
+**Lines:** 408-415
+**Issue:** JSON.parse() without proper error handling or schema validation
+```javascript
+specialties: Array.isArray(t.specialties)
+  ? t.specialties
+  : typeof t.specialties === 'string'
+    ? (() => { try { return JSON.parse(t.specialties); } catch { return []; } })()
+    : [],
+```
+**Impact:** Potential prototype pollution or DoS via malformed JSON
+**Fix:** Use a safe JSON parser or implement schema validation with Zod
+
+### 8. **Missing Rate Limiting** - **MEDIUM**
+**Location:** `backend/core/middleware/index.mjs`
+**Issue:** No rate limiting middleware implemented
+**Impact:** Potential brute force attacks on authentication endpoints or API abuse
+**Fix:** Implement rate limiting for all endpoints, especially authentication and admin routes
+
+---
+
+## Low Severity Findings
+
+### 9. **CORS Configuration Not Visible** - **LOW**
+**Location:** `backend/core/middleware/index.mjs`
+**Issue:** No CORS middleware configuration shown in provided code
+**Impact:** Potential misconfiguration could allow unauthorized cross-origin requests
+**Fix:** Implement strict CORS policies with allowed origins list
+
+### 10. **Missing Content Security Policy (CSP)** - **LOW**
+**Location:** `backend/core/middleware/index.mjs`
+**Issue:** No CSP headers configured
+**Impact:** Increased risk of XSS attacks
+**Fix:** Implement CSP headers with strict directives
+
+### 11. **Insecure Defaults in Database Migrations** - **LOW**
+**Location:** `backend/migrations/20260301000200-reconcile-achievement-schema.cjs`
+**Issue:** JSONB columns with default empty arrays/objects (`defaultValue: []`, `defaultValue: {}`)
+**Impact:** Potential type confusion or unexpected behavior
+**Fix:** Use NULL as default and handle empty cases in application logic
+
+---
+
+## Recommendations
+
+### Immediate Actions (1-2 days):
+1. **Fix SQL injection vulnerabilities** in migration files using parameterized queries
+2. **Implement proper input validation** for photo proxy paths
+3. **Add server-side authorization checks** for all admin endpoints
+
+### Short-term Actions (1 week):
+1. **Implement rate limiting** for all API endpoints
+2. **Add comprehensive logging** for security events
+3. **Configure CORS and CSP headers**
+4. **Implement Zod schema validation** for all API inputs
+
+### Long-term Actions (1 month):
+1. **Conduct penetration testing** on the complete application
+2. **Implement Web Application Firewall (WAF)**
+3. **Set up security monitoring and alerting**
+4. **Regular security training** for development team
+
+---
+
+## Risk Assessment Summary
+
+| Severity | Count | Status |
+|----------|-------|--------|
+| CRITICAL | 0 | ✅ |
+| HIGH | 4 | ⚠️ Needs immediate attention |
+| MEDIUM | 4 | 📅 Schedule for next sprint |
+| LOW | 3 | 📋 Add to backlog |
+
+**Overall Risk Level:** **MEDIUM-HIGH**
+
+The application shows good architectural patterns but contains several high-risk vulnerabilities that require immediate remediation. The most critical issues are SQL injection vulnerabilities in migration scripts and insufficient input validation in the photo proxy endpoint.
+
+---
+
+*Note: This audit is based on the provided code snippets only. A comprehensive security assessment would require review of the complete codebase, including authentication flows, session management, and all API endpoints.*
 
 ---
 

@@ -25,12 +25,19 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Helper: add column with try/catch for idempotency
+    // Helper: add column with SAVEPOINT for idempotency.
+    // PostgreSQL aborts the entire transaction on ANY error, even if JS catches it.
+    // Using SAVEPOINT lets us roll back just the failed statement and continue.
     const safeAddColumn = async (table, column, definition, transaction) => {
+      const savepointName = `sp_${column}`;
       try {
+        await queryInterface.sequelize.query(`SAVEPOINT ${savepointName};`, { transaction });
         await queryInterface.addColumn(table, column, definition, { transaction });
+        await queryInterface.sequelize.query(`RELEASE SAVEPOINT ${savepointName};`, { transaction });
         console.log(`  + Added column ${table}.${column}`);
       } catch (error) {
+        // Roll back to savepoint so the transaction stays healthy
+        await queryInterface.sequelize.query(`ROLLBACK TO SAVEPOINT ${savepointName};`, { transaction });
         if (error.message && error.message.includes('already exists')) {
           console.log(`  ~ Column ${table}.${column} already exists, skipping`);
         } else {
@@ -73,15 +80,23 @@ module.exports = {
       }, transaction);
 
       // --- Classification ---
-      // Create category ENUM type first
-      await queryInterface.sequelize.query(
-        `DO $$ BEGIN
-          CREATE TYPE "enum_Achievements_category" AS ENUM('fitness', 'social', 'streak', 'milestone', 'special');
-        EXCEPTION
-          WHEN duplicate_object THEN NULL;
-        END $$;`,
-        { transaction }
-      );
+      // Create category ENUM type first (already uses DO/EXCEPTION block for idempotency,
+      // but still wrap in SAVEPOINT to protect the transaction state)
+      try {
+        await queryInterface.sequelize.query(`SAVEPOINT sp_enum_category;`, { transaction });
+        await queryInterface.sequelize.query(
+          `DO $$ BEGIN
+            CREATE TYPE "enum_Achievements_category" AS ENUM('fitness', 'social', 'streak', 'milestone', 'special');
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+          END $$;`,
+          { transaction }
+        );
+        await queryInterface.sequelize.query(`RELEASE SAVEPOINT sp_enum_category;`, { transaction });
+      } catch (e) {
+        await queryInterface.sequelize.query(`ROLLBACK TO SAVEPOINT sp_enum_category;`, { transaction });
+        console.log(`  ~ ENUM enum_Achievements_category already handled`);
+      }
       await safeAddColumn(table, 'category', {
         type: Sequelize.ENUM('fitness', 'social', 'streak', 'milestone', 'special'),
         allowNull: true,
@@ -89,14 +104,21 @@ module.exports = {
       }, transaction);
 
       // Create rarity ENUM type
-      await queryInterface.sequelize.query(
-        `DO $$ BEGIN
-          CREATE TYPE "enum_Achievements_rarity" AS ENUM('common', 'rare', 'epic', 'legendary');
-        EXCEPTION
-          WHEN duplicate_object THEN NULL;
-        END $$;`,
-        { transaction }
-      );
+      try {
+        await queryInterface.sequelize.query(`SAVEPOINT sp_enum_rarity;`, { transaction });
+        await queryInterface.sequelize.query(
+          `DO $$ BEGIN
+            CREATE TYPE "enum_Achievements_rarity" AS ENUM('common', 'rare', 'epic', 'legendary');
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+          END $$;`,
+          { transaction }
+        );
+        await queryInterface.sequelize.query(`RELEASE SAVEPOINT sp_enum_rarity;`, { transaction });
+      } catch (e) {
+        await queryInterface.sequelize.query(`ROLLBACK TO SAVEPOINT sp_enum_rarity;`, { transaction });
+        console.log(`  ~ ENUM enum_Achievements_rarity already handled`);
+      }
       await safeAddColumn(table, 'rarity', {
         type: Sequelize.ENUM('common', 'rare', 'epic', 'legendary'),
         allowNull: true,

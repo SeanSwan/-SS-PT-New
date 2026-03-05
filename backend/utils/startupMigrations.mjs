@@ -7,6 +7,7 @@
  * Called from: core/startup.mjs → initializeDatabases()
  */
 
+import { QueryTypes } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from './logger.mjs';
 

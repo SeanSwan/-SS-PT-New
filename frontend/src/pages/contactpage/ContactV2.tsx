@@ -532,7 +532,7 @@ const faqData = [
   },
   {
     q: 'How quickly do you respond?',
-    a: 'We typically respond within 24 hours. For urgent matters, we recommend giving us a call directly at (714) 947-3221.',
+    a: 'We typically respond within 24 hours. For urgent matters, we recommend giving us a call directly at (714) 485-3950.',
   },
 ];
 
@@ -729,7 +729,7 @@ const ContactV2: React.FC = () => {
                 <InfoContent>
                   <InfoLabel>Phone</InfoLabel>
                   <InfoValue>
-                    <a href="tel:+17149473221">(714) 947-3221</a>
+                    <a href="tel:+17144853950">(714) 485-3950</a>
                   </InfoValue>
                 </InfoContent>
               </InfoCard>

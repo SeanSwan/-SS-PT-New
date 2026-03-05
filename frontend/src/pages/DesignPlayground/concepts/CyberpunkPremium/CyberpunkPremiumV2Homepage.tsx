@@ -609,7 +609,7 @@ const CyberpunkPremiumV2Homepage: React.FC = () => {
           <FooterCol>
             <h4>Contact</h4>
             <ContactItem><MapPin size={14} /> Anaheim Hills, CA</ContactItem>
-            <ContactItem><Phone size={14} /> (714) 947-3221</ContactItem>
+            <ContactItem><Phone size={14} /> (714) 485-3950</ContactItem>
             <ContactItem><Mail size={14} /> loveswanstudios@protonmail.com</ContactItem>
           </FooterCol>
         </FooterInner>

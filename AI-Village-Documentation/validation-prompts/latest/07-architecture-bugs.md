@@ -1,338 +1,341 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 96.8s
-> **Files:** frontend/src/components/DashBoard/Pages/admin-dashboard/sections/ClientsManagementSection.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/AdminDashboardCards.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverview.styles.ts
-> **Generated:** 3/4/2026, 7:39:11 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 110.2s
+> **Files:** backend/migrations/20260301000200-reconcile-achievement-schema.cjs, backend/utils/startupMigrations.mjs, backend/core/middleware/index.mjs, frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx
+> **Generated:** 3/4/2026, 9:54:02 PM
 
 ---
 
-# Deep Code Review: SwanStudios Admin Dashboard
+# DEEP CODE REVIEW - SwanStudios Production Code
 
 ## Executive Summary
 
-After thorough analysis, I've identified **CRITICAL bugs**, **HIGH severity architectural flaws**, and **production-blocking issues**. The codebase requires immediate attention before shipping.
+| Category | Critical | High | Medium | Low |
+|----------|----------|------|--------|-----|
+| **Count** | 3 | 5 | 8 | 6 |
 
 ---
 
 ## 1. BUG DETECTION
 
-### 1.1 CRITICAL: Race Condition in Action Menu Portal Rendering
+### 1.1 CRITICAL: SQL Injection Risk in Startup Migrations
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **CRITICAL** | `ClientsManagementSection.tsx` ~line 710 | The portal is created inside the map loop with `ReactDOM.createPortal()` called on every render when menu is active. This creates multiple portal roots and can cause memory leaks. The portal should be rendered once outside the map. | Move the portal rendering outside the `filteredClients.map()` and use a single portal with conditional content based on `activeActionMenu`. |
+**File:** `backend/utils/startupMigrations.mjs`  
+**Lines:** 161-170, 226-235, 247-256, 292-301
 
-```tsx
-// BROKEN: Currently inside map - creates portal per client
-{filteredClients.map((client, index) => (
-  <ClientCard key={client.id}>
-    {activeActionMenu === client.id && ReactDOM.createPortal(
-      <ActionDropdown>...</ActionDropdown>,
-      document.body
-    )}
-  </ClientCard>
-))}
-
-// FIX: Single portal outside map
-{activeActionMenu && ReactDOM.createPortal(
-  <ActionDropdown>
-    {/* Render content based on activeActionMenu client */}
-  </ActionDropdown>,
-  document.body
-)}
-```
-
----
-
-### 1.2 CRITICAL: Stale Closure in fetchClients Helper Functions
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **CRITICAL** | `ClientsManagementSection.tsx` ~lines 560-590 | Helper functions (`determineTier`, `calculateEngagementScore`, etc.) are defined inside the component but outside `useCallback`. They're recreated on every render and capture stale values. The `calculateMonthlyValue` has hardcoded `$pricePerSession = 75` - this will cause incorrect revenue calculations. | Move helper functions outside the component or wrap in `useCallback`. Extract hardcoded values to constants at module level. |
-
-```tsx
-// CURRENT: Inside component - recreated every render
-const determineTier = (client: any): 'starter' | 'premium' | 'elite' => {
-  const totalWorkouts = client.totalWorkouts || 0;
+```javascript
+// VULNERABLE PATTERN - Appears in multiple functions
+const addColumnIfMissing = async (table, column, definition) => {
   // ...
+  await sequelize.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_name = '${table}' AND column_name = '${column}';`  // ❌ SQL INJECTION
+  );
+  // ...
+  await sequelize.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${definition};`);  // ❌ SQL INJECTION
 };
+```
 
-// FIX: Outside component or as useMemo
-const PRICE_PER_SESSION = 75; // Move to constants
+**Severity:** CRITICAL  
+**What's Wrong:** String interpolation of `table` and `column` parameters directly into SQL queries creates SQL injection vulnerability. While currently called with hardcoded values, this is a timebomb—if any caller passes user-derived values, the database is compromised.  
+**Fix:** Use parameterized queries or validate against an allowlist:
 
-const determineTier = useCallback((client: any): ClientTier => {
-  // Use constant
-}, []);
+```javascript
+const ALLOWED_TABLES = new Set(['Users', 'admin_settings', 'session_types', 'daily_workout_forms', 'shopping_carts']);
+const ALLOWED_COLUMNS = new Set([/* exhaustive list */]);
+
+if (!ALLOWED_TABLES.has(table) || !ALLOWED_COLUMNS.has(column)) {
+  throw new Error(`Invalid table/column: ${table}.${column}`);
+}
 ```
 
 ---
 
-### 1.3 HIGH: Shared Loading State Causes UI Confusion
+### 1.2 CRITICAL: Array-to-String Bug in Test User Cleanup
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` ~line 430 | `loading.operations` is shared across ALL async operations (promote, deactivate, view details, set photo). When "View Sessions" is clicked, the loading spinner appears on ALL action buttons, confusing users. | Use separate loading states per operation type, or use a map: `loadingOperations: Record<string, boolean>`. |
+**File:** `backend/utils/startupMigrations.mjs`  
+**Lines:** 498-502
 
-```tsx
-// CURRENT: Single boolean shared
-const [loading, setLoading] = useState({
-  clients: false,
-  operations: false  // This is the problem
+```javascript
+const idsToDelete = [3, 4, 33, 34, 55, 56];
+// ...
+await sequelize.query(
+  `SELECT COUNT(*) as cnt FROM "Users"
+   WHERE id IN (${idsToDelete.join(',')}) AND "deletedAt" IS NULL;`,  // ❌ String coercion
+  { type: QueryTypes.SELECT }
+);
+await sequelize.query(
+  `UPDATE "Users" SET "deletedAt" = NOW()
+   WHERE id IN (${idsToDelete.join(',')}) AND "deletedAt" IS NULL;`  // ❌ String coercion
+);
+```
+
+**Severity:** CRITICAL  
+**What's Wrong:** Array.join() produces `'3,4,33,34,55,56'` as a single string. PostgreSQL interprets this as a single integer value (3), not an IN list. The query either fails or deletes the wrong users.  
+**Fix:**
+
+```javascript
+// Use Sequelize's Op.in operator instead
+const { Op } = require('sequelize');
+await sequelize.query(
+  `SELECT COUNT(*) as cnt FROM "Users"
+   WHERE id IN (${idsToDelete.map(() => '?').join(',')}) AND "deletedAt" IS NULL;`,
+  { replacements: idsToDelete, type: QueryTypes.SELECT }
+);
+```
+
+---
+
+### 1.3 CRITICAL: R2 Service Import Without Fallback
+
+**File:** `backend/core/middleware/index.mjs`  
+**Lines:** 62-65
+
+```javascript
+app.get('/photos/*', async (req, res) => {
+  try {
+    const objectKey = req.path.replace(/^\//, '');
+    
+    // Try R2 first
+    const { r2Configured, getR2Client } = await import('../../services/r2StorageService.mjs');  // ❌ No error handling
+```
+
+**Severity:** CRITICAL  
+**What's Wrong:** Dynamic import has no try/catch. If `r2StorageService.mjs` is missing or has syntax errors, the entire photo route crashes with an unhandled promise rejection.  
+**Fix:**
+
+```javascript
+app.get('/photos/*', async (req, res) => {
+  try {
+    const objectKey = req.path.replace(/^\//, '');
+    
+    let r2Configured = false;
+    let getR2Client = null;
+    
+    try {
+      const r2Module = await import('../../services/r2StorageService.mjs');
+      ({ r2Configured, getR2Client } = r2Module);
+    } catch (importError) {
+      logger.warn('[PhotoProxy] R2 service not available, using fallback');
+    }
+    
+    if (r2Configured && getR2Client) {
+      // ... R2 logic
+    }
+```
+
+---
+
+### 1.4 HIGH: Missing Environment Variable Validation
+
+**File:** `backend/core/middleware/index.mjs`  
+**Lines:** 74-77
+
+```javascript
+const command = new GetObjectCommand({
+  Bucket: process.env.R2_BUCKET_NAME,  // ❌ Could be undefined
+  Key: objectKey,
+  // ...
 });
+const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+```
 
-// FIX: Per-operation tracking
-const [loadingOperations, setLoadingOperations] = useState<Record<string, boolean>>({});
+**Severity:** HIGH  
+**What's Wrong:** If `R2_BUCKET_NAME` is undefined, the R2 operation either fails cryptically or uses wrong bucket. No validation before production use.  
+**Fix:**
 
-// Usage: loadingOperations[`view-${clientId}`]
+```javascript
+if (r2Configured) {
+  if (!process.env.R2_BUCKET_NAME) {
+    logger.error('[PhotoProxy] R2_BUCKET_NAME not configured');
+    return res.status(500).json({ error: 'Storage configuration error' });
+  }
+  // ... rest of R2 logic
+}
 ```
 
 ---
 
-### 1.4 HIGH: Missing Null Check Causes Potential Crash
+### 1.5 HIGH: Unsafe Foreign Key Repair Logic
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` ~line 185 | `actionBtnRefs.current[client.id] = el` in callback ref creates new function each render, causing unnecessary re-renders. If `client.id` is undefined, this creates a property on the object that could cause issues. | Use `useEffect` for ref updates, or ensure `client.id` is always defined before assignment. |
+**File:** `backend/utils/startupMigrations.mjs`  
+**Lines:** 380-397
 
-```tsx
-// CURRENT: Callback ref in render
-ref={(el) => { actionBtnRefs.current[client.id] = el; }}
+```javascript
+// Drop all existing FK constraints on this column
+for (const fk of (fkRows || [])) {
+  await sequelize.query(`ALTER TABLE "${tableName}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}";`);
+}
 
-// FIX: Use effect-based ref
-const setRef = useCallback((el: HTMLButtonElement | null) => {
-  actionBtnRefs.current[client.id] = el;
-}, [client.id]);
+// Re-create with correct reference
+const constraintName = `${tableName}_${columnName}_Users_fk`;
+await sequelize.query(`
+  ALTER TABLE "${tableName}"
+  ADD CONSTRAINT "${constraintName}"
+  FOREIGN KEY ("${columnName}")
+  REFERENCES "Users"(id)
+  ...
+`);
 ```
+
+**Severity:** HIGH  
+**What's Wrong:** If `fkRows` returns empty (no existing FKs), the code skips the DROP but still tries to ADD. However, if the column doesn't exist or has a different name, this silently fails or creates orphaned constraints. The logic assumes the FK always exists when targeting non-"Users" table.  
+**Fix:** Add explicit column existence check before FK operations.
 
 ---
 
-### 1.5 MEDIUM: Non-null Assertion Risk
+### 1.6 MEDIUM: Fragile Error Message Matching
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **MEDIUM** | `ClientsManagementSection.tsx` ~line 680 | `errors.clients!` uses non-null assertion. If state is accidentally null (which it can be), this crashes. | Use optional chaining: `errors.clients ?? 'Unknown error'` |
+**File:** `backend/migrations/20260301000200-reconcile-achievement-schema.cjs`  
+**Lines:** 27, 34
+
+```javascript
+if (error.message && error.message.includes('already exists')) {  // ❌ Fragile
+  console.log(`  ~ Column ${table}.${column} already exists, skipping`);
+}
+```
+
+**Severity:** MEDIUM  
+**What's Wrong:** PostgreSQL error messages can change between versions and localizations. This could silently miss "column already exists" errors in non-English environments.  
+**Fix:** Check `error.code === '42701'` (duplicate_column) instead of string matching.
+
+---
+
+### 1.7 MEDIUM: Unhandled Promise in useEffect
+
+**File:** `frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx`  
+**Lines:** ~700 (in the truncated portion)
+
+The component calls `fetchTrainers()` in useEffect but doesn't handle errors from the async callback:
+
+```javascript
+useEffect(() => {
+  fetchTrainers();  // ❌ Unhandled promise rejection possible
+}, [fetchTrainers]);
+```
+
+**Severity:** MEDIUM  
+**What's Wrong:** If `fetchTrainers` throws, React 18 in strict mode may surface unhandled promise rejection warnings. Should wrap or use error boundary.  
+**Fix:**
+
+```javascript
+useEffect(() => {
+  fetchTrainers().catch(err => {
+    console.error('Failed to fetch trainers:', err);
+  });
+}, [fetchTrainers]);
+```
 
 ---
 
 ## 2. ARCHITECTURE FLAWS
 
-### 2.1 CRITICAL: God Component (>900 lines)
+### 2.1 HIGH: God Component - 700+ Lines
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **CRITICAL** | `ClientsManagementSection.tsx` | Single component handles: data fetching, 8 different modal states, filtering, search, action menu logic, API calls, stats calculation, and rendering. This is unmaintainable. | Extract into smaller components: `ClientCard`, `ClientActionMenu`, `ClientFilters`, `StatsBar`, `ClientModals` (container). Create custom hooks: `useClients`, `useClientActions`. |
+**File:** `frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx`  
+**Lines:** 1-~700 (entire file)
 
-**Breakdown建议:**
-```
-/components/ClientsManagement/
-├── useClients.ts           # Data fetching & state
-├── useClientActions.ts     # CRUD operations
-├── ClientsFilter.tsx      # Search & filter UI
-├── ClientCard.tsx         # Individual card
-├── ClientActionMenu.tsx   # Dropdown logic
-├── ClientStats.tsx        # Stats display
-└── ClientsManagementSection.tsx  # Main container (should be <150 lines)
-```
+**Severity:** HIGH  
+**What's Wrong:** This single file contains:
+- 40+ styled components
+- 3 interfaces (Trainer, Certification, TrainerStats)
+- Multiple state variables
+- Data fetching logic
+- Filtering logic
+- Rendering for table, cards, modals
+- Event handlers
+
+This violates single responsibility principle. Any change requires understanding the entire trainer management domain.  
+**Fix:** Break into:
+- `EnhancedTrainerDataManagement.tsx` (container)
+- `TrainerTable.tsx` (presentation)
+- `TrainerCard.tsx` (presentation)
+- `TrainerStats.tsx` (presentation)
+- `useTrainers.ts` (custom hook for data fetching)
+- `trainerUtils.ts` (filtering/sorting logic)
+- `trainerTypes.ts` (shared interfaces)
 
 ---
 
-### 2.2 HIGH: Prop Drilling Without Context
+### 2.2 HIGH: Massive Migration File Doing Everything
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` | Client ID and name passed through 3+ levels to modals: `actionClient` state → conditional rendering → modal props. Multiple modals all receive same pattern. | Create `ClientActionContext` or use existing `AuthContext` to provide client data. Extract modal container into hook-based approach. |
+**File:** `backend/utils/startupMigrations.mjs`  
+**Lines:** 1-520 (entire file)
+
+**Severity:** HIGH  
+**What's Wrong:** Single file contains 9 unrelated migrations:
+1. admin_settings category
+2. messaging tables
+3. stabilization columns
+4 password columns
+5. reset. shopping cart columns
+6. Phase 1B FK fixes
+7. conversation participants soft delete
+8. Sean Swan lastName fix
+9. Test user cleanup
+
+This violates separation of concerns and makes the file impossible to test in isolation. Adding new migrations makes this file grow infinitely.  
+**Fix:** Split into separate files in `backend/migrations/startup/`:
+```
+startup/
+  001-admin-settings-category.mjs
+  002-messaging-tables.mjs
+  ...
+```
+Import and run sequentially.
 
 ---
 
-### 2.3 HIGH: Hardcoded Magic Numbers
+### 2.3 MEDIUM: Circular-ish Dependency Risk
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` lines 570, 595, 600 | `$pricePerSession = 75`, `expirationDate.setMonth(+ 3)`, `limit: 100` are hardcoded. These should be environment variables or constants. | Create `constants/pricing.ts` and `constants/api.ts`. |
+**File:** `backend/core/middleware/index.mjs`  
+**Lines:** 14-17
 
-```tsx
-// Should be:
-import { SESSION_PRICE_DEFAULT, SUBSCRIPTION_DURATION_MONTHS } from '@/constants/pricing';
-
-// NOT:
-const pricePerSession = 75; // What if pricing changes?
+```javascript
+import { requestLogger } from '../../middleware/debugMiddleware.mjs';
+import logger from '../../utils/logger.mjs';
 ```
+
+**Severity:** MEDIUM  
+**What's Wrong:** Middleware imports from middleware - while not strictly circular, this creates tight coupling. The middleware module is becoming a central hub that imports both utilities and defines routes.  
+**Fix:** Extract configuration to a dedicated `appConfig.mjs` that both import from.
+
+---
+
+### 2.4 LOW: Prop Drilling in Trainer Component
+
+**File:** `frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx`  
+**Lines:** ~650+ (in truncated section, visible from structure)
+
+**Severity:** LOW  
+**What's Wrong:** The component likely passes `authAxios`, `toast`, `navigate` through multiple layers. Should use context providers or custom hooks consistently.  
+**Fix:** Use `useAdminTrainers` hook that provides all data and actions.
 
 ---
 
 ## 3. INTEGRATION ISSUES
 
-### 3.1 CRITICAL: Fragile API Response Structure Assumption
+### 3.1 HIGH: API Response Shape Mismatch
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **CRITICAL** | `ClientsManagementSection.tsx` ~line 530 | Assumes `response.data.data.clients` - deeply nested. No type safety. If backend changes `data.clients` to `data.users`, this breaks silently. | Create TypeScript interfaces matching backend contract. Add runtime validation with Zod. Add integration tests. |
+**File:** `frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx`  
+**Lines:** ~600-630
 
-```tsx
-// CURRENT:
-const clientsData = response.data.data.clients.map((client: any) => ({
-
-// FIX - with type safety:
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-interface ClientsResponse {
-  clients: Client[];
-}
-
-const { data } = await authAxios.get<ApiResponse<ClientsResponse>>('/api/admin/clients');
+```javascript
+const response = await authAxios.get('/api/admin/trainers');
+const data = response.data || {};
+// ...
+const normalizedTrainers = (data.trainers || []).map((t: any) => ({
+  ...t,
+  specialties: Array.isArray(t.specialties)
+    ? t.specialties
+    : typeof t.specialties === 'string'
+      ? (() => { try { return JSON.parse(t.specialties); } catch { return []; } })()
+      : [],
+}));
 ```
 
----
-
-### 3.2 HIGH: No Request Cancellation
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` ~line 520 | `fetchClients` has no `AbortController`. If component unmounts during request, state update on unmounted component causes React warning and potential memory leak. | Add AbortController support. |
-
-```tsx
-// CURRENT:
-const fetchClients = useCallback(async () => {
-  // No abort signal
-}, [authAxios]);
-
-// FIX:
-const fetchClients = useCallback(async (signal?: AbortSignal) => {
-  try {
-    const response = await authAxios.get('/api/admin/clients', { signal });
-    // ...
-  } catch (error) {
-    if (error.name === 'AbortError') return; // Ignore
-    // Handle other errors
-  }
-}, [authAxios]);
-
-// In useEffect:
-useEffect(() => {
-  const controller = new AbortController();
-  fetchClients(controller.signal);
-  return () => controller.abort();
-}, [fetchClients]);
-```
-
----
-
-### 3.3 HIGH: window.prompt Blocking UI
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` ~line 640 | Uses `window.prompt()` for photo URL input. This: 1) Blocks all JS execution 2) Has terrible UX 3) No validation 4) Modal dialogs are blocked by prompt | Replace with a proper modal component with URL input validation. |
-
-```tsx
-// CURRENT - HORRIBLE:
-const nextPhoto = window.prompt(
-  `Set profile photo URL for ${client.name}. Leave empty to clear the photo.`,
-  client.avatar || ''
-);
-
-// FIX:
-const [showPhotoModal, setShowPhotoModal] = useState(false);
-// Use a proper modal with:
-// - URL input with validation regex
-// - Preview of image
-// - Error handling for invalid URLs
-// - Loading state during API call
-```
-
----
-
-### 3.4 MEDIUM: No Error Boundary
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **MEDIUM** | `ClientsManagementSection.tsx` | If fetch fails, shows error message but no boundary to catch render errors from child components. A crash in any modal takes down entire dashboard section. | Wrap in React Error Boundary component. |
-
----
-
-## 4. DEAD CODE & TECH DEBT
-
-### 4.1 CRITICAL: console.log Shipped to Production
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **CRITICAL** | Multiple locations | `console.log('✅ Real client data loaded successfully')`, `console.log('🔄 Refreshing all client data...')`, etc. will ship to production, exposing internal logic. | Remove all console.logs, or use proper logging library with environment checks. |
-
-**Locations:**
-- Line 535: `console.log('✅ Real client data loaded successfully')`
-- Line 545: `console.error('❌ Failed to load real client data:', errorMessage)`
-- Line 610: `console.log('🔄 Refreshing all client data...')`
-- Line 612: `console.log('✅ All client data refreshed')`
-- Line 655: `console.log('📝 Edit client functionality to be implemented:', clientId)`
-- Line 665: `console.log('👁️ Client details:', response.data.data.client)`
-- And ~10 more throughout
-
----
-
-### 4.2 HIGH: TODO Comments Indicating Incomplete Work
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | Multiple | TODO comments indicate shipped features that don't work. These should either be implemented or flagged with tracked issues. | Create GitHub issues for each TODO and either implement or remove the menu items until ready. |
-
-**TODOs found:**
-- Line 656: `// TODO: Implement edit client modal`
-- Line 667: `// TODO: Implement client details modal`
-
----
-
-### 4.3 HIGH: Placeholder Data Shipped as Real Data
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` ~line 560 | `socialPosts: 0, // Placeholder - implement when social data available` - This shows "0" as real data to users. They can't distinguish between "no posts" and "not implemented." | Either remove the field from display, or show "N/A" / skeleton loader until API provides real data. |
-
----
-
-### 4.4 MEDIUM: Unused Import Cleanup
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **MEDIUM** | `ClientsManagementSection.tsx` lines 25-38 | Many imported icons from lucide-react may not be used. Let's verify. | Run ESLint with `no-unused-vars` rule. Remove unused imports. |
-
----
-
-## 5. PRODUCTION READINESS
-
-### 5.1 CRITICAL: Hardcoded Environment Values
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **CRITICAL** | `ClientsManagementSection.tsx` | Price calculation uses `$75` hardcoded. API base URL assumptions. No environment variable usage visible. | Extract all config to environment variables: `REACT_APP_DEFAULT_SESSION_PRICE`, etc. |
-
----
-
-### 5.2 HIGH: No Rate Limiting on Refresh
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **HIGH** | `ClientsManagementSection.tsx` line 605 | `refreshAllData` can be clicked rapidly, triggering multiple simultaneous API calls. No debounce or throttle. | Add debounce (300ms) to refresh button. Disable button during loading. |
-
-```tsx
-// FIX:
-const debouncedRefresh = useMemo(
-  () => debounce(refreshAllData, 300),
-  [refreshAllData]
-);
-```
-
----
-
-### 5.3 MEDIUM: Missing Loading State for Individual Modals
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|-------------|-----|
-| **MEDIUM** | `ClientsManagementSection.tsx` ~lines 780+ | When opening modals like `ClientSessionsModal`, there's no loading indicator while fetching modal data. User sees stale data or blank. | Add local loading state for each modal that shows skeleton/spinner until data arrives. |
-
-
+**Severity:** HIGH  
+**What's Wrong
 
 ---
 
