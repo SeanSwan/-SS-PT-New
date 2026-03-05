@@ -202,7 +202,7 @@ function buildValidatorTracks(codeBundle, fileList) {
   const fileNames = fileList.map(f => f.path).join(', ');
   const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Galaxy-Swan dark cosmic theme. Production: sswanstudios.com. Files: ${fileNames}`;
 
-  return [
+  const tracks = [
     {
       name: 'UX & Accessibility',
       model: MODELS.gemini25Flash,
@@ -694,10 +694,13 @@ function extractFindings(results, severity) {
 // ─────────────────────────────────────────────
 
 async function main() {
-  console.log('');
+  const startTime = Date.now();
+  loadEnv();
+
   const hasGemini31 = !!getGeminiKey();
   const brainCount = hasGemini31 ? 8 : 7;
 
+  console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
   console.log('  ║    SwanStudios Parallel Validation Orchestrator         ║');
   const subtitle = hasGemini31
@@ -712,9 +715,6 @@ async function main() {
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
-
-  const startTime = Date.now();
-  loadEnv();
 
   const apiKey = getOpenRouterKey();
   if (!apiKey) {
