@@ -52,6 +52,8 @@ import OrientationList from './Pages/admin-dashboard/components/OrientationList'
 import ParamRedirect from './ParamRedirect';
 
 const HomepageDesignLab = React.lazy(() => import('./Pages/admin-design/HomepageDesignLab'));
+const MovementAnalysisListPage = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisListPage'));
+const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisWizard'));
 
 // Workspace containers
 import DashboardWorkspace from './workspaces/DashboardWorkspace';
@@ -107,6 +109,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/social-management" element={<Navigate to="/dashboard/people/social" replace />} />
     <Route path="/messages" element={<Navigate to="/dashboard/people/messages" replace />} />
     <Route path="/client-orientation" element={<Navigate to="/dashboard/people/orientations" replace />} />
+    <Route path="/movement-screen" element={<Navigate to="/dashboard/people/movement-screen" replace />} />
 
     {/* Scheduling workspace redirects */}
     <Route path="/admin/master-schedule" element={<Navigate to="/dashboard/scheduling" replace />} />
@@ -189,6 +192,26 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
       <Route path="social" element={<AdminSocialManagementView />} />
       <Route path="waivers" element={<AdminWaiversManager />} />
+      <Route path="movement-screen" element={
+        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+          <MovementAnalysisListPage />
+        </React.Suspense>
+      } />
+      <Route path="movement-screen/new" element={
+        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+          <MovementAnalysisWizard />
+        </React.Suspense>
+      } />
+      <Route path="movement-screen/new/:clientId" element={
+        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+          <MovementAnalysisWizard />
+        </React.Suspense>
+      } />
+      <Route path="movement-screen/:id" element={
+        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+          <MovementAnalysisWizard />
+        </React.Suspense>
+      } />
       <Route path="measurements/:clientId?" element={
         <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
           <MeasurementEntry />

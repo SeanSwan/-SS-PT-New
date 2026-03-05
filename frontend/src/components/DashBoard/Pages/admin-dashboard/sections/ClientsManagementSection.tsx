@@ -26,6 +26,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
@@ -565,6 +566,7 @@ export interface ClientStats {
 
 // === MAIN COMPONENT ===
 const ClientsManagementSection: React.FC = () => {
+  const navigate = useNavigate();
   const { authAxios } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [stats, setStats] = useState<ClientStats>({
@@ -1291,6 +1293,16 @@ const ClientsManagementSection: React.FC = () => {
                     >
                       <HeartPulse size={14} />
                       Body Map
+                    </ActionItem>
+                    <ActionItem
+                      whileHover={{ x: 4 }}
+                      onClick={() => {
+                        setActiveActionMenu(null);
+                        navigate(`/dashboard/people/movement-screen/new/${client.id}`);
+                      }}
+                    >
+                      <Activity size={14} />
+                      Movement Screen
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}

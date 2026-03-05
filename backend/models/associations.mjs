@@ -120,6 +120,10 @@ const setupAssociations = async () => {
     const PendingWaiverMatchModule = await import('./PendingWaiverMatch.mjs');
     const AiConsentLogModule = await import('./AiConsentLog.mjs');
 
+    // Movement Analysis Models (Phase 13)
+    const MovementAnalysisModule = await import('./MovementAnalysis.mjs');
+    const PendingMovementAnalysisMatchModule = await import('./PendingMovementAnalysisMatch.mjs');
+
     // Video Catalog Models (Sequelize)
     const VideoCatalogModule = await import('./VideoCatalog.mjs');
     const VideoCollectionModule = await import('./VideoCollection.mjs');
@@ -243,6 +247,10 @@ const setupAssociations = async () => {
     const PendingWaiverMatch = PendingWaiverMatchModule.default;
     const AiConsentLog = AiConsentLogModule.default;
 
+    // Movement Analysis Models (Phase 13)
+    const MovementAnalysis = MovementAnalysisModule.default;
+    const PendingMovementAnalysisMatch = PendingMovementAnalysisMatchModule.default;
+
     // Video Catalog Models
     const VideoCatalog = VideoCatalogModule.default;
     const VideoCollection = VideoCollectionModule.default;
@@ -331,7 +339,9 @@ const setupAssociations = async () => {
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
         // Body Measurement & Milestone Models (Phase 11)
-        BodyMeasurement, MeasurementMilestone
+        BodyMeasurement, MeasurementMilestone,
+        // Movement Analysis Models (Phase 13)
+        MovementAnalysis, PendingMovementAnalysisMatch
       };
     }
 
@@ -854,6 +864,17 @@ const setupAssociations = async () => {
     ClientPainEntry.belongsTo(User, { foreignKey: 'createdById', as: 'createdBy' });
     console.log('✅ Pain/Injury Tracking models integrated');
 
+    // Movement Analysis Associations (Phase 13)
+    User.hasMany(MovementAnalysis, { foreignKey: 'userId', as: 'movementAnalyses' });
+    User.hasMany(MovementAnalysis, { foreignKey: 'conductedBy', as: 'conductedAnalyses' });
+    MovementAnalysis.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    MovementAnalysis.belongsTo(User, { foreignKey: 'conductedBy', as: 'conductor' });
+    MovementAnalysis.hasMany(PendingMovementAnalysisMatch, { foreignKey: 'movementAnalysisId', as: 'pendingMatches' });
+    PendingMovementAnalysisMatch.belongsTo(MovementAnalysis, { foreignKey: 'movementAnalysisId', as: 'movementAnalysis' });
+    PendingMovementAnalysisMatch.belongsTo(User, { foreignKey: 'candidateUserId', as: 'candidateUser' });
+    PendingMovementAnalysisMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
+    console.log('✅ Movement Analysis models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -987,7 +1008,11 @@ const setupAssociations = async () => {
       MeasurementMilestone,
 
       // Pain/Injury Tracking
-      ClientPainEntry
+      ClientPainEntry,
+
+      // Movement Analysis Models (Phase 13)
+      MovementAnalysis,
+      PendingMovementAnalysisMatch
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
