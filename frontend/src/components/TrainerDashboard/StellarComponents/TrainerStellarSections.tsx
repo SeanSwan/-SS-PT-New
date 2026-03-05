@@ -26,11 +26,13 @@ import { motion } from 'framer-motion';
 import {
   Users, Calendar, TrendingUp, Target, Video, MessageSquare,
   Plus, MoreVertical, User, Clock, Upload, Camera, Star,
-  Award, Zap, Bell, Settings, BarChart3, FileText, Search
+  Award, Zap, Bell, Settings, BarChart3, FileText, Search,
+  Sparkles
 } from 'lucide-react';
 import { useUniversalTheme } from '../../../context/ThemeContext';
 import GlowButton from '../../ui/buttons/GlowButton';
 import { useAuth } from '../../../context/AuthContext';
+import WorkoutCopilotPanel from '../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel';
 import axios from 'axios';
 
 // === KEYFRAME ANIMATIONS ===
@@ -352,7 +354,99 @@ const getAuthToken = (): string | null => {
   return localStorage.getItem('token') || localStorage.getItem('userToken') || null;
 };
 
+// === QUICK ACTIONS STYLES ===
+
+const QuickActionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const QuickClientRow = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 255, 255, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.06);
+    border-color: rgba(0, 255, 255, 0.3);
+  }
+`;
+
+const QAClientAvatar = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00FFFF, #7851A9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #0a0a1a;
+  flex-shrink: 0;
+`;
+
+const QAClientInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ClientNameText = styled.div`
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ClientMeta = styled.div`
+  color: #64748b;
+  font-size: 0.75rem;
+`;
+
+const QuickGenButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 44px;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #00FFFF;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(120, 81, 169, 0.25));
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+  }
+`;
+
 // === SECTION COMPONENTS ===
+
+interface QuickClient {
+  id: number;
+  name: string;
+  sessions: number;
+}
 
 // Training Overview Section
 const TrainingOverview: React.FC = () => {
@@ -365,6 +459,8 @@ const TrainingOverview: React.FC = () => {
     goalsAchieved: 0
   });
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<QuickClient[]>([]);
+  const [copilotClient, setCopilotClient] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     const fetchTrainerStats = async () => {
@@ -400,6 +496,17 @@ const TrainingOverview: React.FC = () => {
           clientRetention: retention,
           goalsAchieved
         });
+
+        // Map active clients for quick actions
+        const activeAssignments = assignments
+          .filter((a: any) => a.status === 'active' && a.client)
+          .slice(0, 6) // Show top 6 on dashboard
+          .map((a: any) => ({
+            id: Number(a.client.id),
+            name: `${a.client.firstName} ${a.client.lastName}`,
+            sessions: a.client.availableSessions || 0,
+          }));
+        setClients(activeAssignments);
       } catch (err) {
         console.error('Failed to fetch trainer stats:', err);
       } finally {
@@ -411,6 +518,7 @@ const TrainingOverview: React.FC = () => {
   }, [user]);
 
   return (
+    <>
     <StellarSection
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -465,6 +573,67 @@ const TrainingOverview: React.FC = () => {
         </StatCard>
       </StatsGrid>
     </StellarSection>
+
+    {/* Quick Generate Section — 1-tap workout generation per client */}
+    {clients.length > 0 && (
+      <StellarSection
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.15 }}
+      >
+        <StellarSectionHeader>
+          <StellarSectionTitle>
+            <Sparkles size={28} />
+            Quick Generate Workout
+          </StellarSectionTitle>
+        </StellarSectionHeader>
+
+        <QuickActionsGrid>
+          {clients.map((client) => {
+            const initials = client.name
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+
+            return (
+              <QuickClientRow
+                key={client.id}
+                whileHover={{ scale: 1.01 }}
+              >
+                <QAClientAvatar>{initials}</QAClientAvatar>
+                <QAClientInfo>
+                  <ClientNameText>{client.name}</ClientNameText>
+                  <ClientMeta>{client.sessions} sessions remaining</ClientMeta>
+                </QAClientInfo>
+                <QuickGenButton
+                  onClick={() => setCopilotClient({ id: client.id, name: client.name })}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title={`Generate AI workout for ${client.name}`}
+                >
+                  <Sparkles size={14} />
+                  Generate
+                </QuickGenButton>
+              </QuickClientRow>
+            );
+          })}
+        </QuickActionsGrid>
+      </StellarSection>
+    )}
+
+    {/* Copilot Panel — auto-generates on open */}
+    {copilotClient && (
+      <WorkoutCopilotPanel
+        open={!!copilotClient}
+        onClose={() => setCopilotClient(null)}
+        clientId={copilotClient.id}
+        clientName={copilotClient.name}
+        autoGenerate
+      />
+    )}
+    </>
   );
 };
 

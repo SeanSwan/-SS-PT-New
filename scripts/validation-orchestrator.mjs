@@ -28,7 +28,7 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
 import { join, extname } from 'path';
 import { fileURLToPath } from 'url';
@@ -60,10 +60,15 @@ const MODELS = {
 
 const CONFIG = {
   maxCodeChars: 60_000,
-  reportDir: join(ROOT, 'docs', 'ai-workflow', 'validation-reports'),
+  // Primary output: AI Village folder (where you already look for things)
+  promptDir: join(ROOT, 'AI-Village-Documentation', 'validation-prompts'),
+  // Legacy mirror (kept for backwards compat)
+  legacyReportDir: join(ROOT, 'docs', 'ai-workflow', 'validation-reports'),
   timeout: 180_000,  // 3 min — free models can be slower
   // Stagger delay (ms) between launches to respect rate limits
   staggerMs: 2000,
+  // Max archived validation runs before oldest gets deleted
+  maxArchiveRuns: 20,
 };
 
 // ─────────────────────────────────────────────
@@ -538,7 +543,7 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios Validation Orchestrator v6.0 — VERIFIED FREE Edition*
+*SwanStudios Validation Orchestrator v7.0 — AI Village Edition*
 *7 Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5*
 *Opus 4.6 & Gemini 3.1 Pro reserved for subscription terminals (not API-billed)*
 `;
@@ -640,38 +645,185 @@ async function main() {
   console.log('');
 
   const { md, timestamp } = generateReport(results, files, startTime);
-
-  mkdirSync(CONFIG.reportDir, { recursive: true });
-  const reportPath = join(CONFIG.reportDir, `validation-${timestamp}.md`);
-  writeFileSync(reportPath, md, 'utf-8');
-  const latestPath = join(CONFIG.reportDir, 'LATEST.md');
-  writeFileSync(latestPath, md, 'utf-8');
-
   const successCount = results.filter(r => r.status === 'SUCCESS').length;
-
-  // ── Generate handoff prompt for Claude / Gemini subscription terminals ──
-  const handoffPrompt = buildHandoffPrompt(results, files);
-  const handoffPath = join(CONFIG.reportDir, 'HANDOFF-PROMPT.md');
-  writeFileSync(handoffPath, handoffPrompt, 'utf-8');
-
   const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
 
+  // ── Write section-specific files to AI Village ──
+  const outputPaths = writeSplitOutput(results, files, md, timestamp);
+
+  // ── Legacy mirror (backwards compat) ──
+  mkdirSync(CONFIG.legacyReportDir, { recursive: true });
+  writeFileSync(join(CONFIG.legacyReportDir, 'LATEST.md'), md, 'utf-8');
+
   console.log('  ════════════════════════════════════════════════════════');
-  console.log(`  Report:   ${reportPath}`);
-  console.log(`  Latest:   ${latestPath}`);
-  console.log(`  Handoff:  ${handoffPath}`);
+  console.log(`  AI Village Output:`);
+  console.log(`    Latest:     ${outputPaths.latestDir}/`);
+  console.log(`    Summary:    ${outputPaths.summary}`);
+  console.log(`    Archive:    ${outputPaths.archiveDir}/`);
   console.log(`  Results:  ${successCount}/7 validators passed`);
   console.log(`  Cost:     $${totalCost.toFixed(4)}`);
   console.log(`  Time:     ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
   console.log('  ════════════════════════════════════════════════════════');
   console.log('');
-  console.log('  >> Paste HANDOFF-PROMPT.md into Claude Code or Gemini');
-  console.log('  >> for final analysis using your subscription.');
+  console.log('  >> Section-specific prompts are in:');
+  console.log('  >>   AI-Village-Documentation/validation-prompts/latest/');
+  console.log('  >>');
+  console.log('  >> Paste the ONBOARDING.md into Claude Code or Gemini');
+  console.log('  >> and the AI will know where to find everything.');
   console.log('');
 }
 
 // ─────────────────────────────────────────────
-// Handoff Prompt Builder
+// Split Output Writer (AI Village)
+// ─────────────────────────────────────────────
+
+// Track name → clean filename mapping
+const TRACK_SLUGS = {
+  'UX & Accessibility': '01-ux-accessibility',
+  'Code Quality': '02-code-quality',
+  'Security': '03-security',
+  'Performance & Scalability': '04-performance',
+  'Competitive Intelligence': '05-competitive-intel',
+  'User Research & Persona Alignment': '06-user-research',
+  'Architecture & Bug Hunter': '07-architecture-bugs',
+};
+
+function writeSplitOutput(results, files, fullReport, timestamp) {
+  const latestDir = join(CONFIG.promptDir, 'latest');
+  const archiveDir = join(CONFIG.promptDir, 'archive', timestamp);
+
+  mkdirSync(latestDir, { recursive: true });
+  mkdirSync(archiveDir, { recursive: true });
+
+  const fileNames = files.map(f => f.path).join(', ');
+  const now = new Date().toLocaleString();
+
+  // ── Write individual track files to latest/ ──
+  for (const r of results) {
+    const slug = TRACK_SLUGS[r.name] || r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const badge = r.status === 'SUCCESS' ? 'PASS' : 'FAIL';
+    const content = `# ${r.name} — Validation Report
+
+> **Status:** ${badge} | **Model:** ${r.model} | **Duration:** ${(r.durationMs / 1000).toFixed(1)}s
+> **Files:** ${fileNames}
+> **Generated:** ${now}
+
+---
+
+${r.text}
+
+---
+
+*Part of SwanStudios 7-Brain Validation System*
+`;
+    writeFileSync(join(latestDir, `${slug}.md`), content, 'utf-8');
+    writeFileSync(join(archiveDir, `${slug}.md`), content, 'utf-8');
+  }
+
+  // ── Write summary.md (quick aggregate) to latest/ ──
+  const summary = buildSummaryPrompt(results, files);
+  writeFileSync(join(latestDir, 'summary.md'), summary, 'utf-8');
+  writeFileSync(join(archiveDir, 'summary.md'), summary, 'utf-8');
+
+  // ── Write full report to archive ──
+  writeFileSync(join(archiveDir, 'full-report.md'), fullReport, 'utf-8');
+
+  // ── Rotate archive: keep max 20 runs ──
+  rotateArchive();
+
+  return {
+    latestDir,
+    archiveDir,
+    summary: join(latestDir, 'summary.md'),
+  };
+}
+
+function buildSummaryPrompt(results, files) {
+  const fileNames = files.map(f => f.path).join(', ');
+  const now = new Date().toLocaleString();
+  const successCount = results.filter(r => r.status === 'SUCCESS').length;
+  const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
+
+  // Extract findings by severity
+  const criticals = [];
+  const highs = [];
+  const mediums = [];
+
+  for (const r of results) {
+    if (r.status !== 'SUCCESS') continue;
+    for (const line of r.text.split('\n')) {
+      const upper = line.toUpperCase();
+      if (line.startsWith('#') || line.startsWith('|')) continue;
+      if (upper.includes('CRITICAL')) criticals.push(`[${r.name}] ${line.trim()}`);
+      else if (upper.includes('HIGH')) highs.push(`[${r.name}] ${line.trim()}`);
+      else if (upper.includes('MEDIUM')) mediums.push(`[${r.name}] ${line.trim()}`);
+    }
+  }
+
+  return `# Validation Summary — ${now}
+
+> **Files:** ${fileNames}
+> **Validators:** ${successCount}/7 passed | **Cost:** $${totalCost.toFixed(4)}
+
+## Quick Status
+
+| # | Track | Status | Time |
+|---|-------|--------|------|
+${results.map((r, i) => `| ${i + 1} | ${r.name} | ${r.status === 'SUCCESS' ? 'PASS' : 'FAIL'} | ${(r.durationMs / 1000).toFixed(1)}s |`).join('\n')}
+
+## CRITICAL Findings (fix now)
+${criticals.length > 0 ? criticals.slice(0, 10).join('\n') : '_None._'}
+
+## HIGH Findings (fix before deploy)
+${highs.length > 0 ? highs.slice(0, 10).join('\n') : '_None._'}
+
+## MEDIUM Findings (fix this sprint)
+${mediums.length > 0 ? mediums.slice(0, 10).join('\n') : '_None._'}
+
+---
+
+## Individual Reports
+
+Each track has its own file — read only the ones relevant to your task:
+
+| File | When to Read |
+|------|-------------|
+| \`01-ux-accessibility.md\` | UI/UX changes, styling, responsive design |
+| \`02-code-quality.md\` | TypeScript, React patterns, code structure |
+| \`03-security.md\` | Auth, API security, input validation |
+| \`04-performance.md\` | Bundle size, rendering, database queries |
+| \`05-competitive-intel.md\` | Feature gaps, market positioning |
+| \`06-user-research.md\` | User flows, persona alignment, onboarding |
+| \`07-architecture-bugs.md\` | Bugs, architecture issues, tech debt |
+
+*SwanStudios 7-Brain Validation System v7.0*
+`;
+}
+
+function rotateArchive() {
+  const archiveRoot = join(CONFIG.promptDir, 'archive');
+  if (!existsSync(archiveRoot)) return;
+
+  try {
+    const runs = readdirSync(archiveRoot, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name)
+      .sort(); // ISO timestamps sort chronologically
+
+    if (runs.length > CONFIG.maxArchiveRuns) {
+      const toDelete = runs.slice(0, runs.length - CONFIG.maxArchiveRuns);
+      for (const dir of toDelete) {
+        rmSync(join(archiveRoot, dir), { recursive: true, force: true });
+        console.log(`    [ROTATE] Deleted old archive: ${dir}`);
+      }
+    }
+  } catch {
+    // Archive rotation is non-critical — don't fail the whole run
+  }
+}
+
+// ─────────────────────────────────────────────
+// Handoff Prompt Builder (legacy — kept for backwards compat)
 // ─────────────────────────────────────────────
 
 function buildHandoffPrompt(results, files) {

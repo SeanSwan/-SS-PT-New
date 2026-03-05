@@ -511,6 +511,28 @@ const ActionButton = styled(motion.button)<{ variant: 'primary' | 'secondary' | 
   }
 `;
 
+const NeedsPlanWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const NeedsPlanDot = styled.span`
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  border: 2px solid #1a1a2e;
+  animation: needsPlanPulse 2s ease-in-out infinite;
+
+  @keyframes needsPlanPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+`;
+
 const EmptyState = styled(motion.div)`
   display: flex;
   flex-direction: column;
@@ -1030,21 +1052,26 @@ const MyClientsView: React.FC = () => {
                     >
                       <BarChart3 size={16} />
                     </ActionButton>
-                    <ActionButton
-                      variant="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCopilotClient({
-                          id: Number(client.id),
-                          name: `${client.firstName} ${client.lastName}`,
-                        });
-                      }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="AI Workout Copilot"
-                    >
-                      <Sparkles size={16} />
-                    </ActionButton>
+                    <NeedsPlanWrapper>
+                      <ActionButton
+                        variant="primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCopilotClient({
+                            id: Number(client.id),
+                            name: `${client.firstName} ${client.lastName}`,
+                          });
+                        }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        title={client.totalSessionsCompleted === 0
+                          ? 'Generate first AI workout plan'
+                          : 'AI Workout Copilot'}
+                      >
+                        <Sparkles size={16} />
+                      </ActionButton>
+                      {client.totalSessionsCompleted === 0 && <NeedsPlanDot />}
+                    </NeedsPlanWrapper>
                   </ClientActions>
                 </ClientCard>
               );
@@ -1084,6 +1111,7 @@ const MyClientsView: React.FC = () => {
           clientId={copilotClient.id}
           clientName={copilotClient.name}
           onSuccess={() => loadClients()}
+          autoGenerate
         />
       )}
     </ClientsContainer>

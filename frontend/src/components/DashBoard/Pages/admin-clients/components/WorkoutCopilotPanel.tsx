@@ -14,7 +14,7 @@
  * into sub-modules to reduce monolith size (~1150 lines).
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import {
   X, Sparkles, Save, AlertTriangle, ChevronDown, ChevronRight,
@@ -39,6 +39,7 @@ import {
   type TemplateSuggestion,
   type TemplateEntry,
 } from '../../../../../services/aiWorkoutService';
+import { createPainEntryService, type PainEntry } from '../../../../../services/painEntryService';
 import LongHorizonContent from './LongHorizonContent';
 import {
   SWAN_CYAN,
@@ -82,6 +83,7 @@ import {
 
 type CopilotState =
   | 'idle'
+  | 'pain_check'
   | 'generating'
   | 'draft_review'
   | 'degraded'
@@ -128,6 +130,8 @@ interface WorkoutCopilotPanelProps {
   clientId: number;
   clientName: string;
   onSuccess?: () => void;
+  /** When true, auto-starts generation on open (skips idle screen). */
+  autoGenerate?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -138,11 +142,13 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   clientId,
   clientName,
   onSuccess,
+  autoGenerate = false,
 }) => {
   const { authAxios, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const { toast } = useToast();
   const service = createAiWorkoutService(authAxios);
+  const painService = createPainEntryService(authAxios);
 
   // ── State Machine ───────────────────────────────────────────
   const [state, setState] = useState<CopilotState>('idle');
@@ -180,6 +186,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const [templates, setTemplates] = useState<TemplateEntry[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
 
+  // ── Pain safety check ──────────────────────────────────────
+  const [activePainEntries, setActivePainEntries] = useState<PainEntry[]>([]);
+  const [painCheckLoading, setPainCheckLoading] = useState(false);
+  const [painAcknowledged, setPainAcknowledged] = useState(false);
+
   // ── Double-submit guard ─────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'single' | 'long-horizon'>('single');
@@ -207,6 +218,9 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setErrorMessage('');
       setErrorCode('');
       setApproveErrors([]);
+      setActivePainEntries([]);
+      setPainCheckLoading(false);
+      setPainAcknowledged(false);
       setExpandedDays(new Set());
       setIsSubmitting(false);
       setActiveTab('single');
@@ -220,10 +234,55 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     }
   }, [open]);
 
+  // ── Auto-generate on open (skip idle screen) ──────────────
+  const autoGenerateTriggered = useRef(false);
+
+  useEffect(() => {
+    if (!open) {
+      autoGenerateTriggered.current = false;
+      return;
+    }
+    if (autoGenerate && !autoGenerateTriggered.current && state === 'idle' && !isSubmitting) {
+      autoGenerateTriggered.current = true;
+      const timer = setTimeout(() => {
+        checkPainEntries();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open, autoGenerate, state, isSubmitting]);
+
+  // ── Pain safety check ──────────────────────────────────────
+
+  const checkPainEntries = useCallback(async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setPainCheckLoading(true);
+
+    try {
+      const resp = await painService.getActive(clientId);
+      const entries = resp.entries || [];
+
+      if (entries.length > 0 && !painAcknowledged) {
+        setActivePainEntries(entries);
+        setState('pain_check');
+      } else {
+        // No active pain entries (or already acknowledged) — proceed directly
+        await doGenerate();
+        return; // doGenerate manages isSubmitting
+      }
+    } catch {
+      // If pain check fails, proceed with generation (fail-open for UX)
+      await doGenerate();
+      return;
+    }
+
+    setIsSubmitting(false);
+    setPainCheckLoading(false);
+  }, [clientId, isSubmitting, painAcknowledged]);
+
   // ── Generate draft ──────────────────────────────────────────
 
-  const handleGenerate = useCallback(async () => {
-    if (isSubmitting) return;
+  const doGenerate = useCallback(async () => {
     setIsSubmitting(true);
     setState('generating');
     setErrorMessage('');
@@ -244,7 +303,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         setMissingInputs(resp.missingInputs);
         setGenerationMode(resp.generationMode);
         setAuditLogId(resp.auditLogId);
-        // Auto-expand first day
         if (resp.plan.days.length > 0) {
           setExpandedDays(new Set([0]));
         }
@@ -269,7 +327,17 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [clientId, isSubmitting, overrideReason, overrideReasonRequired, service]);
+  }, [clientId, overrideReason, overrideReasonRequired, service]);
+
+  const handleGenerate = useCallback(async () => {
+    if (isSubmitting) return;
+    await checkPainEntries();
+  }, [isSubmitting, checkPainEntries]);
+
+  const handlePainAcknowledgeAndGenerate = useCallback(() => {
+    setPainAcknowledged(true);
+    doGenerate();
+  }, [doGenerate]);
 
   // ── Approve draft ───────────────────────────────────────────
 
@@ -483,6 +551,71 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                   </p>
                 </>
               )}
+            </CenterContent>
+          )}
+
+          {/* ── PAIN SAFETY CHECK state ────────────────────── */}
+          {state === 'pain_check' && (
+            <CenterContent>
+              <AlertTriangle size={48} color="#ffaa00" />
+              <h3 style={{ color: '#ffaa00', margin: 0 }}>
+                Active Pain Entries Detected
+              </h3>
+              <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>
+                {clientName} has {activePainEntries.length} active pain/injury{activePainEntries.length > 1 ? ' entries' : ' entry'}.
+                Review before generating to ensure the AI applies appropriate restrictions.
+              </p>
+
+              <div style={{ width: '100%', maxWidth: 600, margin: '12px 0' }}>
+                {activePainEntries.map((entry) => {
+                  const severityColor =
+                    entry.painLevel >= 7 ? '#FF3333' :
+                    entry.painLevel >= 4 ? '#FFB833' : '#33CC66';
+                  const severityLabel =
+                    entry.painLevel >= 7 ? 'SEVERE' :
+                    entry.painLevel >= 4 ? 'MODERATE' : 'MILD';
+                  const regionLabel = entry.bodyRegion.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+                  return (
+                    <InfoPanel key={entry.id} style={{ marginBottom: 8, borderLeftColor: severityColor, borderLeftWidth: 3, borderLeftStyle: 'solid' }}>
+                      <InfoContent style={{ padding: '10px 14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                            {regionLabel} ({entry.side})
+                          </span>
+                          <Badge $color={severityColor}>
+                            {severityLabel} — {entry.painLevel}/10
+                          </Badge>
+                        </div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 4 }}>
+                          Type: {entry.painType}
+                          {entry.description && <> — {entry.description}</>}
+                        </div>
+                        {entry.aggravatingMovements && (
+                          <div style={{ color: '#ff9999', fontSize: '0.8rem', marginTop: 4 }}>
+                            Aggravates: {entry.aggravatingMovements}
+                          </div>
+                        )}
+                      </InfoContent>
+                    </InfoPanel>
+                  );
+                })}
+              </div>
+
+              <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, maxWidth: 500 }}>
+                The AI will automatically apply NASM CES restrictions based on these entries.
+                Severe entries (7-10) will hard-restrict exercises. Moderate entries (4-6) will modify loads.
+              </p>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                <SecondaryButton onClick={() => setState('idle')}>
+                  Cancel
+                </SecondaryButton>
+                <PrimaryButton onClick={handlePainAcknowledgeAndGenerate} disabled={isSubmitting}>
+                  <Shield size={16} />
+                  Acknowledge &amp; Generate
+                </PrimaryButton>
+              </div>
             </CenterContent>
           )}
 
