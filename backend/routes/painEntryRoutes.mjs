@@ -24,10 +24,10 @@ router.use(protect);
 router.get('/:userId', getClientPainEntries);
 router.get('/:userId/active', getActivePainEntries);
 
-// Write routes (admin/trainer only)
-router.post('/:userId', authorize(['admin', 'trainer']), createPainEntry);
-router.put('/:userId/:entryId', authorize(['admin', 'trainer']), updatePainEntry);
-router.put('/:userId/:entryId/resolve', authorize(['admin', 'trainer']), resolvePainEntry);
+// Write routes (admin, trainer, or own client — controller enforces ownership)
+router.post('/:userId', authorize(['admin', 'trainer', 'client']), createPainEntry);
+router.put('/:userId/:entryId', authorize(['admin', 'trainer', 'client']), updatePainEntry);
+router.put('/:userId/:entryId/resolve', authorize(['admin', 'trainer', 'client']), resolvePainEntry);
 
 // Delete (admin only)
 router.delete('/:userId/:entryId', authorize(['admin']), deletePainEntry);
