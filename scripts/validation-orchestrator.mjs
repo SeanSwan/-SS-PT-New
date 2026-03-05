@@ -5,7 +5,7 @@
  * ║         SwanStudios Parallel Validation Orchestrator            ║
  * ║           8-Brain System — OpenRouter + Google GenAI              ║
  * ║                                                                  ║
- * ║  7 via OpenRouter + 1 via Google GenAI:                          ║
+ * ║  Phase 1 — 7 parallel (OpenRouter):                               ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility       (FREE)     ║
  * ║  2. Claude 4.5 Sonnet   → Code Quality              (FREE)     ║
  * ║  3. DeepSeek V3.2        → Security scan             (FREE)     ║
@@ -13,7 +13,10 @@
  * ║  5. MiniMax M2.1         → Competitive intelligence  (FREE)     ║
  * ║  6. DeepSeek V3.2        → User research / personas  (FREE)     ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter (~$0.01)   ║
- * ║  8. Gemini 3.1 Pro       → Frontend UI/UX Expert  (Google API)  ║
+ * ║                                                                  ║
+ * ║  Phase 2 — Senior Reviewer (Google GenAI):                       ║
+ * ║  8. Gemini 3.1 Pro       → Senior UI/UX Expert       (reviews   ║
+ * ║                             Flash's report + own review → FINAL) ║
  * ║                                                                  ║
  * ║  Setup: Add to .env:                                             ║
  * ║    OPENROUTER_API_KEY=sk-or-v1-xxxxx                            ║
@@ -385,16 +388,37 @@ ${codeBundle}`,
   ];
 
   // ── 8th Brain: Gemini 3.1 Pro (only if GEMINI_API_KEY is set) ──
+  // This track runs AFTER Track 1 (Flash) completes. Flash's report is injected
+  // at runtime by the orchestrator so Gemini 3.1 Pro acts as the senior reviewer
+  // with final say over all UX & Accessibility + UI/UX findings.
   if (getGeminiKey()) {
     tracks.push({
       name: 'Frontend UI/UX Expert',
       model: MODELS.gemini31Pro,
       provider: 'gemini-direct',
-      prompt: `You are a world-class frontend UI/UX engineer and design systems expert. You specialize in React + TypeScript + styled-components applications with dark cosmic themes. ${ctx}
+      // phase2: true means this track waits for Track 1 (Flash) to finish first
+      phase2: true,
+      dependsOn: 'UX & Accessibility',
+      // prompt is a FUNCTION — called at runtime with Flash's report injected
+      buildPrompt: (flashReport) => `You are a world-class frontend UI/UX engineer and design systems expert. You specialize in React + TypeScript + styled-components applications with dark cosmic themes. ${ctx}
 
-You are the most capable model in this review pipeline. Use your advanced reasoning to provide the deepest, most actionable frontend review possible.
+You are the SENIOR REVIEWER in a two-stage review pipeline. A junior analyst (Gemini 2.5 Flash) has already performed an initial UX & Accessibility review. Their findings are included below.
 
-Review the following code for:
+YOUR ROLE:
+- Review their findings — confirm, upgrade, downgrade, or reject each one
+- Add any findings they missed (you are more capable and should catch deeper issues)
+- Make the FINAL CALL on severity ratings — your ratings override the junior analyst's
+- Provide the definitive, authoritative UX/Accessibility + UI/UX assessment
+
+## Junior Analyst Report (Gemini 2.5 Flash — UX & Accessibility)
+
+${flashReport || '_Junior analyst failed or produced no output._'}
+
+---
+
+## Your Senior Review
+
+Now perform your own comprehensive review of the code, incorporating and superseding the junior analyst's findings:
 
 1. **Visual Design Quality** — Does the UI avoid "AI slop"? Are gradients, shadows, and animations tasteful or generic?
    - Color harmony: proper use of Galaxy-Swan tokens (#0a0a1a, #00FFFF, #7851A9)
@@ -432,6 +456,17 @@ Review the following code for:
    - Code splitting: are heavy components lazy-loaded?
    - Image optimization: WebP, srcset, lazy loading
    - Bundle impact: unnecessary dependencies, tree-shaking blockers
+
+## Output Format
+
+### Junior Analyst Review (Confirmed/Modified Findings)
+For each finding from the junior analyst, state: **CONFIRMED**, **UPGRADED** (more severe), **DOWNGRADED** (less severe), or **REJECTED** (not a real issue), with your reasoning.
+
+### Additional Findings (Missed by Junior Analyst)
+New issues you found that the junior analyst missed.
+
+### Final Verdict
+Your authoritative summary with final severity ratings.
 
 For each finding provide:
 - **Severity:** CRITICAL / HIGH / MEDIUM / LOW
@@ -711,7 +746,8 @@ async function main() {
   console.log('  ║    Gemini 2.5 Flash · Claude 4.5 Sonnet · DeepSeek V3.2║');
   console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · MiniMax M2.5        ║');
   if (hasGemini31) {
-    console.log('  ║    Gemini 3.1 Pro → Frontend UI/UX Expert (Google API)  ║');
+    console.log('  ║    ────── Phase 2: Senior Reviewer ──────              ║');
+    console.log('  ║    Gemini 3.1 Pro → Reviews Flash report → FINAL SAY  ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
@@ -754,11 +790,18 @@ async function main() {
   const codeBundle = formatCodeBundle(files);
   const tracks = buildValidatorTracks(codeBundle, files);
 
-  console.log(`  Launching ${tracks.length} validators (staggered 2s apart for rate limits)...`);
+  // Split tracks into Phase 1 (parallel) and Phase 2 (depends on Phase 1 results)
+  const phase1Tracks = tracks.filter(t => !t.phase2);
+  const phase2Tracks = tracks.filter(t => t.phase2);
+
+  console.log(`  Launching ${phase1Tracks.length} validators — Phase 1 (staggered 2s apart)...`);
+  if (phase2Tracks.length > 0) {
+    console.log(`  Then ${phase2Tracks.length} senior reviewer(s) — Phase 2 (receives Phase 1 reports)...`);
+  }
   console.log('');
 
-  // Launch all with staggered delays to respect free-tier rate limits
-  const results = await Promise.all(tracks.map(async (track, index) => {
+  // ── Phase 1: Run all standard tracks in parallel ──
+  const phase1Results = await Promise.all(phase1Tracks.map(async (track, index) => {
     const tag = track.name.padEnd(35);
     const modelShort = track.model.split('/').pop();
     console.log(`    [${index + 1}/${tracks.length}] ${tag} -> ${modelShort}`);
@@ -767,6 +810,32 @@ async function main() {
     console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
     return result;
   }));
+
+  // ── Phase 2: Senior reviewers that consume Phase 1 output ──
+  const phase2Results = [];
+  for (const track of phase2Tracks) {
+    // Find the dependency's output
+    const depResult = phase1Results.find(r => r.name === track.dependsOn);
+    const depReport = depResult?.status === 'SUCCESS' ? depResult.text : null;
+
+    // Build the prompt with the dependency's report injected
+    if (track.buildPrompt) {
+      track.prompt = track.buildPrompt(depReport);
+    }
+
+    const idx = phase1Tracks.length + phase2Results.length;
+    const tag = track.name.padEnd(35);
+    const modelShort = track.model.split('/').pop();
+    const depStatus = depReport ? `(reviewing ${track.dependsOn} report)` : `(${track.dependsOn} failed — independent review)`;
+    console.log(`    [${idx + 1}/${tracks.length}] ${tag} -> ${modelShort} ${depStatus}`);
+
+    const result = await runValidator(apiKey, track, 0); // no stagger needed — single track
+    const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
+    console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
+    phase2Results.push(result);
+  }
+
+  const results = [...phase1Results, ...phase2Results];
 
   console.log('');
 
