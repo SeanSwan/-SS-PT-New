@@ -224,7 +224,7 @@ const App = () => {
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <PerformanceTierProvider>
-              <UniversalThemeProvider defaultTheme="crystalline-default">
+              <UniversalThemeProvider defaultTheme="crystalline-dark">
                 <ConfigProvider>
                   <MenuStateProvider>
                     <AuthProvider>

@@ -152,6 +152,17 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     isNew: true,
   },
   {
+    key: 'movement-screen',
+    label: 'Movement Screen',
+    icon: 'Activity',
+    order: 7.5,
+    status: 'new' as TabStatus,
+    section: 'management',
+    route: '/dashboard/people/movement-screen',
+    description: 'NASM + Squat University guided movement analysis',
+    isNew: true,
+  },
+  {
     key: 'sessions',
     label: 'Session Scheduling',
     icon: 'Calendar',

@@ -120,6 +120,7 @@ import adminDataVerificationRoutes from '../routes/adminDataVerificationRoutes.m
 
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
+import movementAnalysisRoutes from '../routes/movementAnalysisRoutes.mjs';
 import onboardingRoutes from '../routes/onboardingRoutes.mjs';
 import clientOnboardingRoutes from '../routes/clientOnboardingRoutes.mjs';
 import clientDataRoutes from '../routes/clientDataRoutes.mjs';
@@ -265,6 +266,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/availability', availabilityRoutes);
   app.use('/api/orientation', orientationRoutes);
+  app.use('/api/movement-analysis', movementAnalysisRoutes);
   app.use('/api/recommendations', recommendationRoutes);
   app.use('/api/food-scanner', foodScannerRoutes);
   app.use('/api/measurements', bodyMeasurementRoutes);
