@@ -3,9 +3,9 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
  * ║         SwanStudios Parallel Validation Orchestrator            ║
- * ║           OpenRouter Edition — 7 AI Validators                  ║
+ * ║           8-Brain System — OpenRouter + Google GenAI              ║
  * ║                                                                  ║
- * ║  7 parallel AI validator tracks via OpenRouter (ONE API key):    ║
+ * ║  7 via OpenRouter + 1 via Google GenAI:                          ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility       (FREE)     ║
  * ║  2. Claude 4.5 Sonnet   → Code Quality              (FREE)     ║
  * ║  3. DeepSeek V3.2        → Security scan             (FREE)     ║
@@ -13,12 +13,11 @@
  * ║  5. MiniMax M2.1         → Competitive intelligence  (FREE)     ║
  * ║  6. DeepSeek V3.2        → User research / personas  (FREE)     ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter (~$0.01)   ║
+ * ║  8. Gemini 3.1 Pro       → Frontend UI/UX Expert  (Google API)  ║
  * ║                                                                  ║
- * ║  6 FREE + 1 paid — Opus & Gemini 3.1 Pro via subscriptions     ║
- * ║  Rate limit: ~10 RPM per model (free tier)                      ║
- * ║                                                                  ║
- * ║  Setup: Just add to .env:                                        ║
+ * ║  Setup: Add to .env:                                             ║
  * ║    OPENROUTER_API_KEY=sk-or-v1-xxxxx                            ║
+ * ║    GEMINI_API_KEY=AIzaSy... (optional — enables 8th brain)      ║
  * ║                                                                  ║
  * ║  Usage:                                                          ║
  * ║    node scripts/validation-orchestrator.mjs                      ║
@@ -53,9 +52,10 @@ const MODELS = {
   claudeSonnet45: 'anthropic/claude-4.5-sonnet-20250929', // FREE on OpenRouter
   // ── PAID models (clearly marked) ──
   minimaxM25:     'minimax/minimax-m2.5',              // ~$0.005/run — #1 programming
+  // ── Google GenAI (direct API, not via OpenRouter) ──
+  gemini31Pro:    'gemini-3.1-pro-preview',            // Direct Google API — best for UI/UX frontend review
   // ── EXPENSIVE (DO NOT USE in orchestrator) ──
   // claudeOpus:  'anthropic/claude-4.6-opus-20260205' // $5/$25 per M tokens — use via CLI subscription instead
-  // gemini31Pro: 'google/gemini-3.1-pro-preview'      // $2/$12 per M tokens — use via Gemini Code Assist instead
 };
 
 const CONFIG = {
@@ -94,6 +94,10 @@ function loadEnv() {
 
 function getOpenRouterKey() {
   return process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_API_KEY || null;
+}
+
+function getGeminiKey() {
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || null;
 }
 
 // ─────────────────────────────────────────────
@@ -379,6 +383,70 @@ CODE TO REVIEW:
 ${codeBundle}`,
     },
   ];
+
+  // ── 8th Brain: Gemini 3.1 Pro (only if GEMINI_API_KEY is set) ──
+  if (getGeminiKey()) {
+    tracks.push({
+      name: 'Frontend UI/UX Expert',
+      model: MODELS.gemini31Pro,
+      provider: 'gemini-direct',
+      prompt: `You are a world-class frontend UI/UX engineer and design systems expert. You specialize in React + TypeScript + styled-components applications with dark cosmic themes. ${ctx}
+
+You are the most capable model in this review pipeline. Use your advanced reasoning to provide the deepest, most actionable frontend review possible.
+
+Review the following code for:
+
+1. **Visual Design Quality** — Does the UI avoid "AI slop"? Are gradients, shadows, and animations tasteful or generic?
+   - Color harmony: proper use of Galaxy-Swan tokens (#0a0a1a, #00FFFF, #7851A9)
+   - Typography hierarchy: readable font sizes, proper line-height, contrast ratios
+   - Spacing rhythm: consistent use of 4/8px grid, visual breathing room
+   - Glass/cosmic effects: do they enhance or distract?
+
+2. **Component Architecture** — Are styled-components well-structured?
+   - Theme token usage vs hardcoded values
+   - Responsive breakpoints (must cover: 320, 375, 430, 768, 1024, 1280, 1440, 1920, 2560, 3840)
+   - Component composition: too many props? Should be decomposed?
+   - Animation performance: CSS transforms vs layout-triggering properties
+
+3. **Interaction Design** — Is the UX smooth and intuitive?
+   - Touch targets (must be 44px minimum for mobile)
+   - Loading states, skeleton screens, error boundaries
+   - Form validation: inline errors, focus management, success feedback
+   - Navigation flow: minimal clicks to key actions
+   - Micro-interactions: hover effects, transitions, focus rings
+
+4. **Accessibility (WCAG 2.1 AA)** — Can everyone use this?
+   - Color contrast ratios (4.5:1 text, 3:1 large text/UI)
+   - Keyboard navigation: tab order, focus indicators, skip links
+   - Screen reader support: aria labels, roles, live regions
+   - Motion preferences: prefers-reduced-motion respected
+
+5. **Mobile-First UX** — Does it work beautifully on phones?
+   - Touch gestures: swipe, long-press support where appropriate
+   - Bottom-sheet patterns for mobile modals
+   - Sticky headers/footers for important actions
+   - Input types: numeric keyboards for numbers, email keyboards for email
+
+6. **Performance UX** — Does it feel fast?
+   - Perceived performance: optimistic updates, skeleton screens
+   - Code splitting: are heavy components lazy-loaded?
+   - Image optimization: WebP, srcset, lazy loading
+   - Bundle impact: unnecessary dependencies, tree-shaking blockers
+
+For each finding provide:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **File & Location:** Exact file and section
+- **Issue:** Clear description with visual impact
+- **Fix:** Specific code change with before/after
+
+Be opinionated about design quality. This platform charges premium prices — the UI must look premium.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    });
+  }
+
+  return tracks;
 }
 
 // ─────────────────────────────────────────────
@@ -427,6 +495,48 @@ function estimateTokens(text) {
 }
 
 // ─────────────────────────────────────────────
+// Google GenAI API Caller (direct, for Gemini 3.1 Pro)
+// ─────────────────────────────────────────────
+
+async function callGeminiDirect(apiKey, model, prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 8192,
+      },
+    }),
+    signal: AbortSignal.timeout(CONFIG.timeout),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`Google GenAI ${res.status}: ${errBody.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+
+  if (data.error) {
+    throw new Error(`Google GenAI error: ${data.error.message || JSON.stringify(data.error)}`);
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '(no response)';
+  const usage = data.usageMetadata || {};
+
+  return {
+    text,
+    inputTokens: usage.promptTokenCount || estimateTokens(prompt),
+    outputTokens: usage.candidatesTokenCount || estimateTokens(text),
+    model: `google/${model}`,
+  };
+}
+
+// ─────────────────────────────────────────────
 // Validator Runner
 // ─────────────────────────────────────────────
 
@@ -438,18 +548,28 @@ async function runValidator(apiKey, track, index) {
 
   const start = Date.now();
   try {
-    const result = await callOpenRouter(apiKey, track.model, track.prompt);
+    // Route to correct API based on provider
+    let result;
+    if (track.provider === 'gemini-direct') {
+      const geminiKey = getGeminiKey();
+      result = await callGeminiDirect(geminiKey, track.model, track.prompt);
+    } else {
+      result = await callOpenRouter(apiKey, track.model, track.prompt);
+    }
 
-    // Cost tracking — only MiniMax M2.5 is paid, rest are VERIFIED FREE
-    // If OpenRouter ever changes free tier, this will catch it via the API response
+    // Cost tracking
     let costUSD = 0;
     if (track.model === MODELS.minimaxM25) {
       costUSD = (result.inputTokens / 1_000_000 * 0.295) +
                 (result.outputTokens / 1_000_000 * 1.20);
+    } else if (track.model === MODELS.gemini31Pro) {
+      // Gemini 3.1 Pro: $2/M input, $12/M output (estimate)
+      costUSD = (result.inputTokens / 1_000_000 * 2.0) +
+                (result.outputTokens / 1_000_000 * 12.0);
     }
     // Safety: warn if a "free" model somehow reports cost
-    const isFreeModel = track.model !== MODELS.minimaxM25;
-    if (isFreeModel && costUSD > 0.01) {
+    const isPaidModel = track.model === MODELS.minimaxM25 || track.model === MODELS.gemini31Pro;
+    if (!isPaidModel && costUSD > 0.01) {
       console.warn(`    ⚠️  WARNING: "${track.name}" cost $${costUSD.toFixed(4)} — may not be free anymore!`);
     }
 
@@ -499,7 +619,7 @@ function generateReport(results, files, startTime) {
 > Generated: ${now.toLocaleString()}
 > Files reviewed: ${files.length}
 > Validators: ${successCount} succeeded, ${errorCount} errored
-> Cost: $${totalCost.toFixed(4)} (6 free + MiniMax M2.5)
+> Cost: $${totalCost.toFixed(4)}
 > Duration: ${(totalDuration / 1000).toFixed(1)}s
 > Gateway: OpenRouter (single API key)
 
@@ -543,9 +663,8 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios Validation Orchestrator v7.0 — AI Village Edition*
-*7 Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5*
-*Opus 4.6 & Gemini 3.1 Pro reserved for subscription terminals (not API-billed)*
+*SwanStudios Validation Orchestrator v8.0 — AI Village Edition*
+*${successCount} Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5${getGeminiKey() ? ' + Gemini 3.1 Pro' : ''}*
 `;
 
   return { md, timestamp };
@@ -576,14 +695,21 @@ function extractFindings(results, severity) {
 
 async function main() {
   console.log('');
+  const hasGemini31 = !!getGeminiKey();
+  const brainCount = hasGemini31 ? 8 : 7;
+
   console.log('  ╔══════════════════════════════════════════════════════════╗');
   console.log('  ║    SwanStudios Parallel Validation Orchestrator         ║');
-  console.log('  ║    7-Brain System — VERIFIED FREE Edition                ║');
+  const subtitle = hasGemini31
+    ? `${brainCount}-Brain System — Gemini 3.1 Pro ENABLED`
+    : `${brainCount}-Brain System — VERIFIED FREE Edition`;
+  console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
   console.log('  ║    Gemini 2.5 Flash · Claude 4.5 Sonnet · DeepSeek V3.2║');
   console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · MiniMax M2.5        ║');
-  console.log('  ║    6 FREE + M2.5 (~$0.005) = ~$0.005/run                ║');
-  console.log('  ║    Opus 4.6 + Gemini 3.1 Pro = use via subscriptions    ║');
+  if (hasGemini31) {
+    console.log('  ║    Gemini 3.1 Pro → Frontend UI/UX Expert (Google API)  ║');
+  }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
 
@@ -628,14 +754,14 @@ async function main() {
   const codeBundle = formatCodeBundle(files);
   const tracks = buildValidatorTracks(codeBundle, files);
 
-  console.log('  Launching 7 validators (staggered 2s apart for rate limits)...');
+  console.log(`  Launching ${tracks.length} validators (staggered 2s apart for rate limits)...`);
   console.log('');
 
   // Launch all with staggered delays to respect free-tier rate limits
   const results = await Promise.all(tracks.map(async (track, index) => {
     const tag = track.name.padEnd(35);
     const modelShort = track.model.split('/').pop();
-    console.log(`    [${index + 1}/7] ${tag} -> ${modelShort}`);
+    console.log(`    [${index + 1}/${tracks.length}] ${tag} -> ${modelShort}`);
     const result = await runValidator(apiKey, track, index);
     const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
     console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
@@ -660,7 +786,7 @@ async function main() {
   console.log(`    Latest:     ${outputPaths.latestDir}/`);
   console.log(`    Summary:    ${outputPaths.summary}`);
   console.log(`    Archive:    ${outputPaths.archiveDir}/`);
-  console.log(`  Results:  ${successCount}/7 validators passed`);
+  console.log(`  Results:  ${successCount}/${tracks.length} validators passed`);
   console.log(`  Cost:     $${totalCost.toFixed(4)}`);
   console.log(`  Time:     ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
   console.log('  ════════════════════════════════════════════════════════');
@@ -686,6 +812,7 @@ const TRACK_SLUGS = {
   'Competitive Intelligence': '05-competitive-intel',
   'User Research & Persona Alignment': '06-user-research',
   'Architecture & Bug Hunter': '07-architecture-bugs',
+  'Frontend UI/UX Expert': '08-frontend-uiux',
 };
 
 function writeSplitOutput(results, files, fullReport, timestamp) {
@@ -795,8 +922,9 @@ Each track has its own file — read only the ones relevant to your task:
 | \`05-competitive-intel.md\` | Feature gaps, market positioning |
 | \`06-user-research.md\` | User flows, persona alignment, onboarding |
 | \`07-architecture-bugs.md\` | Bugs, architecture issues, tech debt |
+| \`08-frontend-uiux.md\` | UI design, components, interactions (Gemini 3.1 Pro) |
 
-*SwanStudios 7-Brain Validation System v7.0*
+*SwanStudios 8-Brain Validation System v8.0*
 `;
 }
 
