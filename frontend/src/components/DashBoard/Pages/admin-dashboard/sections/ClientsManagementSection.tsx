@@ -42,6 +42,9 @@ import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModa
 import WorkoutCopilotPanel from '../../admin-clients/components/WorkoutCopilotPanel';
 import ClientMeasurementPanel from '../../admin-clients/components/ClientMeasurementPanel';
 import ClientWeighInPanel from '../../admin-clients/components/ClientWeighInPanel';
+import ClientSessionsModal from '../../admin-clients/components/ClientSessionsModal';
+import ClientWorkoutsModal from '../../admin-clients/components/ClientWorkoutsModal';
+import ClientPostsModal from '../../admin-clients/components/ClientPostsModal';
 import GlowButton from '../../../../ui/buttons/GlowButton';
 
 // === STYLED COMPONENTS ===
@@ -57,8 +60,8 @@ const SpinnerWrapper = styled.div`
 const Spinner = styled.div`
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(14, 165, 233, 0.2);
-  border-top-color: #0ea5e9;
+  border: 3px solid ${({ theme }) => theme.colors?.primary ? `${theme.colors.primary}33` : 'rgba(14, 165, 233, 0.2)'};
+  border-top-color: ${({ theme }) => theme.colors?.primary || '#0ea5e9'};
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 
@@ -76,7 +79,7 @@ const MiniSpinner = styled(Spinner)`
 const SpinnerMessage = styled.p`
   margin: 0;
   font-size: 0.875rem;
-  color: rgba(226, 232, 240, 0.6);
+  color: ${({ theme }) => theme.text?.muted || 'rgba(226, 232, 240, 0.6)'};
 `;
 
 const AlertBox = styled.div`
@@ -86,10 +89,10 @@ const AlertBox = styled.div`
   gap: 1rem;
   margin-bottom: 1rem;
   padding: 0.875rem 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: ${({ theme }) => theme.colors?.error ? `${theme.colors.error}1a` : 'rgba(239, 68, 68, 0.1)'};
+  border: 1px solid ${({ theme }) => theme.colors?.error ? `${theme.colors.error}4d` : 'rgba(239, 68, 68, 0.3)'};
   border-radius: 8px;
-  color: #fca5a5;
+  color: ${({ theme }) => theme.colors?.error || '#fca5a5'};
   font-size: 0.875rem;
 `;
 
@@ -100,9 +103,9 @@ const RetryButton = styled.button`
   min-height: 44px;
   padding: 0.5rem 1rem;
   background: transparent;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  border: 1px solid ${({ theme }) => theme.colors?.error ? `${theme.colors.error}66` : 'rgba(239, 68, 68, 0.4)'};
   border-radius: 6px;
-  color: #fca5a5;
+  color: ${({ theme }) => theme.colors?.error || '#fca5a5'};
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
@@ -110,11 +113,11 @@ const RetryButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(239, 68, 68, 0.15);
+    background: ${({ theme }) => theme.colors?.error ? `${theme.colors.error}26` : 'rgba(239, 68, 68, 0.15)'};
   }
 
   &:focus {
-    outline: 2px solid #ef4444;
+    outline: 2px solid ${({ theme }) => theme.colors?.error || '#ef4444'};
     outline-offset: 2px;
   }
 `;
@@ -130,10 +133,10 @@ const ActionBar = styled(motion.div)`
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: rgba(30, 58, 138, 0.2);
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(30, 58, 138, 0.2)'};
   border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  
+  border: ${({ theme }) => theme.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)'};
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
@@ -158,20 +161,20 @@ const SearchInput = styled.input`
   min-height: 44px;
   padding: 0.75rem 1rem;
   padding-left: 2.5rem;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: ${({ theme }) => theme.interactive?.hover || 'rgba(59, 130, 246, 0.1)'};
+  border: ${({ theme }) => theme.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)'};
   border-radius: 8px;
-  color: #ffffff;
+  color: ${({ theme }) => theme.text?.primary || '#ffffff'};
   font-size: 0.875rem;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.6)'};
   }
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    border-color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors?.accent ? `${theme.colors.accent}33` : 'rgba(0, 255, 255, 0.2)'};
   }
 `;
 
@@ -180,27 +183,27 @@ const SearchIcon = styled.div`
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.6);
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.6)'};
 `;
 
 const FilterSelect = styled.select`
   min-height: 44px;
   padding: 0.75rem 1rem;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: ${({ theme }) => theme.interactive?.hover || 'rgba(59, 130, 246, 0.1)'};
+  border: ${({ theme }) => theme.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)'};
   border-radius: 8px;
-  color: #ffffff;
+  color: ${({ theme }) => theme.text?.primary || '#ffffff'};
   font-size: 0.875rem;
   min-width: 150px;
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
   }
 
   option {
-    background: #1e3a8a;
-    color: #ffffff;
+    background: ${({ theme }) => theme.background?.card || '#1e3a8a'};
+    color: ${({ theme }) => theme.text?.primary || '#ffffff'};
   }
 `;
 
@@ -216,17 +219,17 @@ const ClientsGrid = styled.div`
 `;
 
 const ClientCard = styled(motion.div)`
-  background: rgba(30, 58, 138, 0.2);
+  background: ${({ theme }) => theme.background?.card || 'rgba(30, 58, 138, 0.2)'};
   backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: ${({ theme }) => theme.borders?.elegant || '1px solid rgba(59, 130, 246, 0.3)'};
   padding: 1.5rem;
   transition: all 0.3s ease;
-  
+
   &:hover {
-    background: rgba(30, 58, 138, 0.3);
+    background: ${({ theme }) => theme.background?.elevated || 'rgba(30, 58, 138, 0.3)'};
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+    box-shadow: ${({ theme }) => theme.shadows?.primary || '0 12px 40px rgba(59, 130, 246, 0.2)'};
   }
 `;
 
@@ -241,16 +244,16 @@ const ClientAvatar = styled.div<{ $status?: string; $src?: string }>`
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: ${({ $src }) =>
+  background: ${({ $src, theme }) =>
     $src
       ? `url(${$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #3b82f6 0%, #00ffff 100%)'};
+      : theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6 0%, #00ffff 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0a0a0f;
+  color: ${({ theme }) => theme.background?.primary || '#0a0a0f'};
   margin-right: 1rem;
   position: relative;
 
@@ -262,9 +265,10 @@ const ClientAvatar = styled.div<{ $status?: string; $src?: string }>`
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: ${props => props.$status === 'active' ? '#10b981' :
-                           props.$status === 'inactive' ? '#6b7280' : '#f59e0b'};
-    border: 2px solid #0a0a0f;
+    background: ${({ $status, theme }) =>
+      $status === 'active' ? (theme.colors?.success || '#10b981') :
+      $status === 'inactive' ? '#6b7280' : (theme.colors?.warning || '#f59e0b')};
+    border: 2px solid ${({ theme }) => theme.background?.primary || '#0a0a0f'};
   }
 `;
 
@@ -276,13 +280,13 @@ const ClientName = styled.h3`
   margin: 0 0 0.25rem 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: ${({ theme }) => theme.text?.primary || '#ffffff'};
 `;
 
 const ClientEmail = styled.p`
   margin: 0 0 0.5rem 0;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
 `;
 
 const ClientTags = styled.div`
@@ -319,9 +323,9 @@ const ClientTag = styled.span<{ $status?: string; $variant?: 'status' | 'tier' }
   `}
 
   ${props => props.$variant === 'tier' && `
-    background: rgba(0, 255, 255, 0.2);
-    color: #00ffff;
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}33` : 'rgba(0, 255, 255, 0.2)'};
+    color: ${props.theme.colors?.accent || '#00ffff'};
+    border: 1px solid ${props.theme.colors?.accent ? `${props.theme.colors.accent}4d` : 'rgba(0, 255, 255, 0.3)'};
   `}
 `;
 
@@ -331,23 +335,37 @@ const ClientMetrics = styled.div`
   gap: 1rem;
   margin: 1rem 0;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: ${({ theme }) => theme.borders?.subtle || '1px solid rgba(255, 255, 255, 0.1)'};
 `;
 
-const MetricItem = styled.div`
+const MetricItem = styled.div<{ $clickable?: boolean }>`
   text-align: center;
+  ${props => props.$clickable && `
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 0.5rem 0.25rem;
+    transition: all 0.2s ease;
+    &:hover {
+      background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}14` : 'rgba(0, 255, 255, 0.08)'};
+      transform: translateY(-2px);
+    }
+    &:focus-visible {
+      outline: 2px solid ${props.theme.colors?.primary || '#0ea5e9'};
+      outline-offset: 2px;
+    }
+  `}
 `;
 
 const MetricValue = styled.div`
   font-size: 1.1rem;
   font-weight: 700;
-  color: #00ffff;
+  color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
   margin-bottom: 0.25rem;
 `;
 
 const MetricLabel = styled.div`
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.6)'};
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
@@ -358,8 +376,8 @@ const RevenueSection = styled.div`
   align-items: center;
   margin: 1rem 0;
   padding: 1rem;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: ${({ theme }) => theme.colors?.success ? `${theme.colors.success}1a` : 'rgba(16, 185, 129, 0.1)'};
+  border: 1px solid ${({ theme }) => theme.colors?.success ? `${theme.colors.success}33` : 'rgba(16, 185, 129, 0.2)'};
   border-radius: 8px;
 `;
 
@@ -372,18 +390,18 @@ const RevenueInfo = styled.div`
 const RevenueAmount = styled.div`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #10b981;
+  color: ${({ theme }) => theme.colors?.success || '#10b981'};
 `;
 
 const RevenueLabel = styled.div`
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
 `;
 
 const EngagementBar = styled.div`
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(255, 255, 255, 0.1)'};
   border-radius: 3px;
   overflow: hidden;
   margin: 1rem 0;
@@ -391,7 +409,7 @@ const EngagementBar = styled.div`
 
 const EngagementFill = styled.div`
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #00ffff);
+  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(90deg, #10b981, #00ffff)'};
   border-radius: 3px;
   transition: width 0.3s ease;
 `;
@@ -404,9 +422,9 @@ const ActionButton = styled(motion.button)`
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+  background: ${({ theme }) => theme.interactive?.hover || 'rgba(59, 130, 246, 0.1)'};
+  border: ${({ theme }) => theme.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)'};
+  color: ${({ theme }) => theme.colors?.primary || '#3b82f6'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,12 +432,12 @@ const ActionButton = styled(motion.button)`
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.6);
+    background: ${({ theme }) => theme.interactive?.active || 'rgba(59, 130, 246, 0.2)'};
+    border-color: ${({ theme }) => theme.colors?.primary || 'rgba(59, 130, 246, 0.6)'};
   }
 
   &:focus {
-    outline: 2px solid #0ea5e9;
+    outline: 2px solid ${({ theme }) => theme.colors?.primary || '#0ea5e9'};
     outline-offset: 2px;
   }
 `;
@@ -428,24 +446,32 @@ const ActionDropdown = styled(motion.div)<{ $top?: number; $left?: number }>`
   position: fixed;
   top: ${props => props.$top ?? 0}px;
   left: ${props => props.$left ?? 0}px;
-  background: rgba(10, 10, 15, 0.98);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: ${({ theme }) => theme.background?.primary || 'rgba(10, 10, 15, 0.98)'};
+  border: ${({ theme }) => theme.borders?.elegant || '1px solid rgba(59, 130, 246, 0.3)'};
   border-radius: 8px;
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
   min-width: 200px;
+  max-height: 360px;
+  overflow-y: auto;
   z-index: 99999;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: ${({ theme }) => theme.shadows?.elevated || '0 8px 32px rgba(0, 0, 0, 0.6)'};
+`;
+
+const MenuDivider = styled.div`
+  height: 1px;
+  background: ${({ theme }) => theme.colors?.primary ? `${theme.colors.primary}26` : 'rgba(59, 130, 246, 0.15)'};
+  margin: 0.25rem 0;
 `;
 
 const ActionItem = styled(motion.button)<{ $danger?: boolean }>`
   width: 100%;
-  min-height: 44px;
-  padding: 0.75rem 1rem;
+  min-height: 36px;
+  padding: 0.4rem 0.75rem;
   text-align: left;
   background: none;
   border: none;
-  color: ${props => props.$danger ? '#ef4444' : '#ffffff'};
-  font-size: 0.875rem;
+  color: ${({ $danger, theme }) => $danger ? (theme.colors?.error || '#ef4444') : (theme.text?.primary || '#ffffff')};
+  font-size: 0.8125rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -453,11 +479,13 @@ const ActionItem = styled(motion.button)<{ $danger?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => props.$danger ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)'};
+    background: ${({ $danger, theme }) => $danger
+      ? (theme.colors?.error ? `${theme.colors.error}1a` : 'rgba(239, 68, 68, 0.1)')
+      : (theme.interactive?.hover || 'rgba(59, 130, 246, 0.1)')};
   }
 
   &:focus {
-    outline: 2px solid #0ea5e9;
+    outline: 2px solid ${({ theme }) => theme.colors?.primary || '#0ea5e9'};
     outline-offset: -2px;
   }
 `;
@@ -470,10 +498,10 @@ const StatsBar = styled(motion.div)`
 `;
 
 const StatCard = styled(motion.div)`
-  background: rgba(30, 58, 138, 0.2);
+  background: ${({ theme }) => theme.background?.card || 'rgba(30, 58, 138, 0.2)'};
   backdrop-filter: blur(20px);
   border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: ${({ theme }) => theme.borders?.elegant || '1px solid rgba(59, 130, 246, 0.3)'};
   padding: 1.5rem;
   text-align: center;
 `;
@@ -481,13 +509,13 @@ const StatCard = styled(motion.div)`
 const StatNumber = styled.div`
   font-size: 2rem;
   font-weight: 700;
-  color: #00ffff;
+  color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
   margin-bottom: 0.5rem;
 `;
 
 const StatTitle = styled.div`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
@@ -569,6 +597,9 @@ const ClientsManagementSection: React.FC = () => {
   const [showCopilot, setShowCopilot] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(false);
   const [showWeighIn, setShowWeighIn] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+  const [showWorkouts, setShowWorkouts] = useState(false);
+  const [showPosts, setShowPosts] = useState(false);
   const [actionClient, setActionClient] = useState<{ id: number; name: string } | null>(null);
 
   // Helper function to check if data is loading
@@ -891,28 +922,29 @@ const ClientsManagementSection: React.FC = () => {
     }
   };
 
-  const handleViewSessions = async (clientId: string) => {
-    try {
-      setLoading(prev => ({ ...prev, operations: true }));
-      
-      const response = await authAxios.get(`/api/admin/clients/${clientId}/workout-stats`);
-      
-      if (response.data.success) {
-        console.log('📊 Client session stats:', response.data.data);
-        // TODO: Implement sessions view modal
-      }
-    } catch (error: any) {
-      console.error('❌ Error fetching client sessions:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, operations: false }));
-      setActiveActionMenu(null);
-    }
+  const handleViewSessions = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowSessions(true);
+    setActiveActionMenu(null);
   };
 
-  const handleViewRevenue = (clientId: string) => {
-    console.log('Revenue details for client:', clientId);
+  const handleViewRevenue = (client: Client) => {
+    // Revenue is shown in sessions modal context
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowSessions(true);
     setActiveActionMenu(null);
-    // TODO: Implement revenue details modal
+  };
+
+  const openWorkoutsModal = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowWorkouts(true);
+    setActiveActionMenu(null);
+  };
+
+  const openPostsModal = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowPosts(true);
+    setActiveActionMenu(null);
   };
 
   // Phase 1C: Open onboarding panel for a client
@@ -1152,7 +1184,7 @@ const ClientsManagementSection: React.FC = () => {
                         const btn = actionBtnRefs.current[client.id];
                         if (btn) {
                           const rect = btn.getBoundingClientRect();
-                          const menuHeight = 400; // approximate dropdown height
+                          const menuHeight = 360; // approximate dropdown height
                           const spaceBelow = window.innerHeight - rect.bottom;
                           const openAbove = spaceBelow < menuHeight && rect.top > menuHeight;
                           setMenuPos({
@@ -1186,44 +1218,47 @@ const ClientsManagementSection: React.FC = () => {
                       whileHover={{ x: 4 }}
                       onClick={() => handleViewClient(client.id)}
                     >
-                      <Eye size={16} />
+                      <Eye size={14} />
                       View Details
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
                       onClick={() => handleEditClient(client.id)}
                     >
-                      <Edit3 size={16} />
+                      <Edit3 size={14} />
                       Edit Client
                     </ActionItem>
+                    <MenuDivider />
                     <ActionItem
                       whileHover={{ x: 4 }}
-                      onClick={() => handleViewSessions(client.id)}
+                      onClick={() => handleViewSessions(client)}
                     >
-                      <Calendar size={16} />
+                      <Calendar size={14} />
                       View Sessions
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
-                      onClick={() => handleViewRevenue(client.id)}
+                      onClick={() => handleViewRevenue(client)}
                     >
-                      <DollarSign size={16} />
+                      <DollarSign size={14} />
                       View Revenue
                     </ActionItem>
+                    <MenuDivider />
                     <ActionItem
                       data-testid={`menu-set-client-photo-${client.id}`}
                       whileHover={{ x: 4 }}
                       onClick={() => handleSetClientPhoto(client)}
                     >
-                      <ImagePlus size={16} />
+                      <ImagePlus size={14} />
                       Set Profile Photo
                     </ActionItem>
+                    <MenuDivider />
                     <ActionItem
                       data-testid="menu-start-onboarding"
                       whileHover={{ x: 4 }}
                       onClick={() => openOnboarding(client)}
                     >
-                      <ClipboardList size={16} />
+                      <ClipboardList size={14} />
                       Start Onboarding
                     </ActionItem>
                     <ActionItem
@@ -1231,35 +1266,36 @@ const ClientsManagementSection: React.FC = () => {
                       whileHover={{ x: 4 }}
                       onClick={() => openWorkoutLogger(client)}
                     >
-                      <Dumbbell size={16} />
+                      <Dumbbell size={14} />
                       Log Workout
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
                       onClick={() => openMeasurements(client)}
                     >
-                      <Ruler size={16} />
+                      <Ruler size={14} />
                       Measurements
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
                       onClick={() => openWeighIn(client)}
                     >
-                      <Scale size={16} />
+                      <Scale size={14} />
                       Weigh-In
                     </ActionItem>
                     <ActionItem
                       whileHover={{ x: 4 }}
                       onClick={() => openCopilot(client)}
                     >
-                      <Sparkles size={16} />
+                      <Sparkles size={14} />
                       AI Workout Copilot
                     </ActionItem>
+                    <MenuDivider />
                     <ActionItem
                       whileHover={{ x: 4 }}
                       onClick={() => handlePromoteToTrainer(client.id)}
                     >
-                      <UserCheck size={16} />
+                      <UserCheck size={14} />
                       Promote to Trainer
                     </ActionItem>
                     <ActionItem
@@ -1347,15 +1383,36 @@ const ClientsManagementSection: React.FC = () => {
               
               {/* Client Metrics */}
               <ClientMetrics>
-                <MetricItem>
+                <MetricItem
+                  $clickable
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleViewSessions(client)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleViewSessions(client)}
+                  title="View sessions"
+                >
                   <MetricValue>{client.stats.totalSessions}</MetricValue>
                   <MetricLabel>Sessions</MetricLabel>
                 </MetricItem>
-                <MetricItem>
+                <MetricItem
+                  $clickable
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openWorkoutsModal(client)}
+                  onKeyDown={(e) => e.key === 'Enter' && openWorkoutsModal(client)}
+                  title="View workouts"
+                >
                   <MetricValue>{client.stats.completedWorkouts}</MetricValue>
                   <MetricLabel>Workouts</MetricLabel>
                 </MetricItem>
-                <MetricItem>
+                <MetricItem
+                  $clickable
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openPostsModal(client)}
+                  onKeyDown={(e) => e.key === 'Enter' && openPostsModal(client)}
+                  title="View posts"
+                >
                   <MetricValue>{client.stats.socialPosts}</MetricValue>
                   <MetricLabel>Posts</MetricLabel>
                 </MetricItem>
@@ -1466,6 +1523,43 @@ const ClientsManagementSection: React.FC = () => {
             setActionClient(null);
           }}
           onUpdate={() => fetchClients()}
+        />
+      )}
+
+      {/* Clickable Stats Modals */}
+      {showSessions && actionClient && (
+        <ClientSessionsModal
+          open={showSessions}
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowSessions(false);
+            setActionClient(null);
+          }}
+        />
+      )}
+
+      {showWorkouts && actionClient && (
+        <ClientWorkoutsModal
+          open={showWorkouts}
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowWorkouts(false);
+            setActionClient(null);
+          }}
+        />
+      )}
+
+      {showPosts && actionClient && (
+        <ClientPostsModal
+          open={showPosts}
+          clientId={actionClient.id}
+          clientName={actionClient.name}
+          onClose={() => {
+            setShowPosts(false);
+            setActionClient(null);
+          }}
         />
       )}
     </ManagementContainer>

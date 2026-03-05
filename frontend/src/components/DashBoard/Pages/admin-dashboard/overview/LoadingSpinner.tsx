@@ -42,14 +42,14 @@ const spin = keyframes`
 const Spinner = styled.div`
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top: 4px solid #3b82f6;
+  border: 4px solid ${({ theme }) => theme.background?.elevated || 'rgba(255, 255, 255, 0.1)'};
+  border-top: 4px solid ${({ theme }) => theme.colors?.primary || '#3b82f6'};
   border-radius: 50%;
   animation: ${spin} 1s linear infinite;
 `;
 
 const Message = styled.p`
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
   font-size: 14px;
   font-weight: 500;
 `;

@@ -44,14 +44,14 @@ const IconWrapper = styled.div`
 `;
 
 const Title = styled.h3`
-  color: rgba(255, 255, 255, 0.9);
+  color: ${({ theme }) => theme.text?.primary || 'rgba(255, 255, 255, 0.9)'};
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 `;
 
 const Message = styled.p`
-  color: rgba(255, 255, 255, 0.6);
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.6)'};
   font-size: 14px;
   line-height: 1.5;
   max-width: 400px;

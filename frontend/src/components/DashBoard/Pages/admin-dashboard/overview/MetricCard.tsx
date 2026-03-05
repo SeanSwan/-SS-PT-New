@@ -110,16 +110,16 @@ export default MetricCard;
 
 // Styled Components
 const Card = styled(motion.div)`
-  background: rgba(255, 255, 255, 0.05);
+  background: ${({ theme }) => theme.background?.card || 'rgba(255, 255, 255, 0.05)'};
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: ${({ theme }) => theme.borders?.subtle || '1px solid rgba(255, 255, 255, 0.1)'};
   border-radius: 12px;
   padding: 24px;
   transition: all 0.3s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: ${({ theme }) => theme.background?.elevated || 'rgba(255, 255, 255, 0.08)'};
+    border-color: ${({ theme }) => theme.colors?.primary ? `${theme.colors.primary}33` : 'rgba(255, 255, 255, 0.2)'};
     transform: translateY(-4px);
   }
 `;
@@ -149,7 +149,7 @@ const IconWrapper = styled.div<{ color: string }>`
 `;
 
 const Title = styled.h3`
-  color: rgba(255, 255, 255, 0.8);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.8)'};
   font-size: 14px;
   font-weight: 500;
   margin: 0;
@@ -169,7 +169,7 @@ const ChangeText = styled.span`
 `;
 
 const Value = styled.div`
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 32px;
   font-weight: 700;
   margin-bottom: 8px;
@@ -183,7 +183,7 @@ const ProgressSection = styled.div`
 const ProgressBar = styled.div`
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(255, 255, 255, 0.1)'};
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -198,7 +198,7 @@ const ProgressFill = styled.div<{ percent: number; color: string }>`
 `;
 
 const ProgressText = styled.p`
-  color: rgba(255, 255, 255, 0.6);
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255, 255, 255, 0.6)'};
   font-size: 12px;
   margin: 0;
 `;

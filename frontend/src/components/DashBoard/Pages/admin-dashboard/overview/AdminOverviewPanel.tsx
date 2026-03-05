@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DollarSign, Users, Dumbbell, Monitor, ShieldCheck } from 'lucide-react';
+import { useTheme } from 'styled-components';
 import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
 import ContactNotifications from '../components/ContactNotifications';
@@ -14,6 +15,7 @@ import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './Ad
 
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
+  const theme = useTheme() as any;
   const [timeRange, setTimeRange] = useState('24h');
   const [metrics, setMetrics] = useState<AdminDashboardMetric[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealthMetric[]>([]);
@@ -174,9 +176,9 @@ const AdminOverviewPanel: React.FC = () => {
           alignItems: 'center',
           marginBottom: '2rem',
           padding: '1rem',
-          background: 'rgba(30, 58, 138, 0.2)',
+          background: theme?.background?.elevated || 'rgba(30, 58, 138, 0.2)',
           borderRadius: '12px',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
+          border: theme?.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)',
         }}
       >
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -184,10 +186,10 @@ const AdminOverviewPanel: React.FC = () => {
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
             style={{
-              background: 'rgba(59, 130, 246, 0.1)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
+              background: theme?.interactive?.hover || 'rgba(59, 130, 246, 0.1)',
+              border: theme?.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)',
               borderRadius: '8px',
-              color: '#ffffff',
+              color: theme?.text?.primary || '#ffffff',
               padding: '0.5rem 1rem',
               fontSize: '0.875rem',
             }}
@@ -197,8 +199,8 @@ const AdminOverviewPanel: React.FC = () => {
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
           </select>
-          {isLoading && <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Loading...</span>}
-          {error && <span style={{ color: '#ef4444' }}>{error}</span>}
+          {isLoading && <span style={{ color: theme?.text?.secondary || 'rgba(255, 255, 255, 0.7)' }}>Loading...</span>}
+          {error && <span style={{ color: theme?.colors?.error || '#ef4444' }}>{error}</span>}
         </div>
       </div>
 

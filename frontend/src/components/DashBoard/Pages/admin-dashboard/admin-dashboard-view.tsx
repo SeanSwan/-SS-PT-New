@@ -5,39 +5,37 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ThemeProvider } from 'styled-components';
 
-import { adminGalaxyTheme } from './admin-dashboard-theme';
 import { CommandHeader } from './overview/AdminOverview.styles';
 import AdminOverviewPanel from './overview/AdminOverviewPanel';
 
 // === MAIN ADMIN DASHBOARD COMPONENT ===
+// NOTE: Uses universal theme from UniversalThemeContext (provided by parent)
+// Removed standalone ThemeProvider/adminGalaxyTheme to connect to site-wide theme system
 const RevolutionaryAdminDashboard: React.FC = () => (
-  <ThemeProvider theme={adminGalaxyTheme}>
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, ease: 'easeOut' }}
+    style={{ width: '100%', minHeight: '100%' }}
+  >
+    <CommandHeader
+      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      style={{ width: '100%', minHeight: '100%' }}
+      transition={{ duration: 0.4, delay: 0.1 }}
     >
-      <CommandHeader
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <h1>Command Center Overview</h1>
-        <p>Your administrative command center for platform oversight</p>
-      </CommandHeader>
+      <h1>Command Center Overview</h1>
+      <p>Your administrative command center for platform oversight</p>
+    </CommandHeader>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <AdminOverviewPanel />
-      </motion.div>
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+    >
+      <AdminOverviewPanel />
     </motion.div>
-  </ThemeProvider>
+  </motion.div>
 );
 
 export { RevolutionaryAdminDashboard };
