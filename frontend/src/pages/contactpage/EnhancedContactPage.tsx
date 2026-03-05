@@ -1172,7 +1172,7 @@ const EnhancedContactPage = () => {
                 <Phone className="icon" size={24} />
                 <div className="text">
                   <strong>Phone</strong><br />
-                  <a href="tel:+17149473221">(714) 947-3221</a>
+                  <a href="tel:+17144853950">(714) 485-3950</a>
                 </div>
               </InfoItem>
             </InfoCard>

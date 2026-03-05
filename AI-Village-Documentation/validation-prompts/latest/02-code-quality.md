@@ -1,536 +1,417 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 60.1s
-> **Files:** frontend/src/components/DashBoard/Pages/admin-dashboard/sections/ClientsManagementSection.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/AdminDashboardCards.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx, frontend/src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverview.styles.ts
-> **Generated:** 3/4/2026, 7:39:11 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 72.5s
+> **Files:** backend/migrations/20260301000200-reconcile-achievement-schema.cjs, backend/utils/startupMigrations.mjs, backend/core/middleware/index.mjs, frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx
+> **Generated:** 3/4/2026, 9:54:02 PM
 
 ---
 
-# Code Quality Review: SwanStudios Admin Dashboard
+# Code Review: SwanStudios Platform
 
-## CRITICAL Issues
+## 1. backend/migrations/20260301000200-reconcile-achievement-schema.cjs
 
-### 1. **Missing Error Boundaries**
-**File:** `ClientsManagementSection.tsx`  
-**Severity:** CRITICAL
+### CRITICAL Issues
 
-```tsx
-// No error boundary wrapping the component
-const ClientsManagementSection: React.FC = () => {
-  // Complex async operations with no error boundary protection
+**C1: SQL Injection Vulnerability in Table Name**
+```javascript
+const [tables] = await queryInterface.sequelize.query(
+  `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = '${table}';`,
+  { transaction }
+);
+```
+- **Issue**: Direct string interpolation of `table` variable into SQL query
+- **Risk**: If `table` variable is ever sourced from user input, this enables SQL injection
+- **Fix**: Use parameterized queries or Sequelize's built-in methods
+```javascript
+const [tables] = await queryInterface.sequelize.query(
+  `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;`,
+  { bind: [table], transaction }
+);
 ```
 
-**Issue:** Component performs complex async operations, renders portals, and manages multiple modals without error boundary protection. A single unhandled error will crash the entire admin dashboard.
+### HIGH Issues
 
-**Fix:**
-```tsx
-// Wrap component with error boundary
-import { ErrorBoundary } from 'react-error-boundary';
-
-export default function ClientsManagementSectionWithBoundary() {
-  return (
-    <ErrorBoundary 
-      FallbackComponent={ErrorFallback}
-      onReset={() => window.location.reload()}
-    >
-      <ClientsManagementSection />
-    </ErrorBoundary>
-  );
+**H1: Inconsistent Error Handling in SAVEPOINT Logic**
+```javascript
+try {
+  await queryInterface.sequelize.query(`SAVEPOINT sp_enum_category;`, { transaction });
+  // ... enum creation ...
+  await queryInterface.sequelize.query(`RELEASE SAVEPOINT sp_enum_category;`, { transaction });
+} catch (e) {
+  await queryInterface.sequelize.query(`ROLLBACK TO SAVEPOINT sp_enum_category;`, { transaction });
+  console.log(`  ~ ENUM enum_Achievements_category already handled`);
 }
 ```
+- **Issue**: Catches all errors but only logs generic message; doesn't re-throw non-duplicate errors
+- **Risk**: Silently swallows critical errors (connection failures, permission issues)
+- **Fix**: Check error type and re-throw unexpected errors
 
----
+**H2: Missing TypeScript Types**
+- **Issue**: File is `.cjs` but has no JSDoc type annotations
+- **Risk**: No IDE autocomplete, runtime type errors
+- **Fix**: Add JSDoc or convert to TypeScript migration
 
-### 2. **Unsafe Type Assertions in Data Transformation**
-**File:** `ClientsManagementSection.tsx` (lines 450-500)  
-**Severity:** CRITICAL
+### MEDIUM Issues
 
-```tsx
-const clientsData = response.data.data.clients.map((client: any) => ({
-  id: client.id?.toString() || '', // Unsafe - could be undefined
-  name: `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unknown User',
-  // ... accessing deeply nested properties without validation
-  assignedTrainer: extractTrainerInfo(client), // No null checks
+**M1: Hardcoded Console Logging**
+```javascript
+console.log(`  + Added column ${table}.${column}`);
 ```
+- **Issue**: Should use proper logger (like `logger.mjs` used elsewhere)
+- **Risk**: Inconsistent logging, harder to filter/search logs in production
+- **Fix**: Import and use logger utility
 
-**Issues:**
-- Using `any` type defeats TypeScript safety
-- No runtime validation of API response shape
-- Deeply nested property access without guards
-- Silent failures with fallback values mask data issues
-
-**Fix:**
-```tsx
-// Define proper API response types
-interface ApiClient {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  isActive: boolean;
-  // ... complete type definition
-}
-
-interface ApiResponse {
-  success: boolean;
-  data: {
-    clients: ApiClient[];
-  };
-}
-
-// Add runtime validation
-const validateClient = (client: unknown): client is ApiClient => {
-  return (
-    typeof client === 'object' &&
-    client !== null &&
-    'id' in client &&
-    'email' in client
-  );
-};
-
-// Use in mapping
-const clientsData = response.data.data.clients
-  .filter(validateClient)
-  .map((client) => ({
-    id: client.id.toString(),
-    name: `${client.firstName} ${client.lastName}`.trim(),
-    // ... with proper types
-  }));
-```
-
----
-
-### 3. **Portal Memory Leak**
-**File:** `ClientsManagementSection.tsx` (lines 900-950)  
-**Severity:** CRITICAL
-
-```tsx
-{activeActionMenu === client.id && ReactDOM.createPortal(
-  <ActionDropdown
-    data-action-menu
-    $top={menuPos.top}
-    $left={menuPos.left}
-    // ... no cleanup on unmount
-  >
-```
-
-**Issue:** Portal created without cleanup. If component unmounts while portal is open, the portal element remains in DOM causing memory leak.
-
-**Fix:**
-```tsx
-// Use ref to track portal container
-const portalRef = useRef<HTMLDivElement | null>(null);
-
-useEffect(() => {
-  if (activeActionMenu) {
-    portalRef.current = document.createElement('div');
-    document.body.appendChild(portalRef.current);
+**M2: DRY Violation - Repeated ENUM Creation Pattern**
+- **Issue**: ENUM creation logic duplicated for `category` and `rarity`
+- **Fix**: Extract to helper function:
+```javascript
+const safeCreateEnum = async (enumName, values, transaction) => {
+  const savepointName = `sp_enum_${enumName}`;
+  try {
+    await queryInterface.sequelize.query(`SAVEPOINT ${savepointName};`, { transaction });
+    await queryInterface.sequelize.query(
+      `DO $$ BEGIN
+        CREATE TYPE "${enumName}" AS ENUM(${values.map(v => `'${v}'`).join(', ')});
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END $$;`,
+      { transaction }
+    );
+    await queryInterface.sequelize.query(`RELEASE SAVEPOINT ${savepointName};`, { transaction });
+  } catch (e) {
+    await queryInterface.sequelize.query(`ROLLBACK TO SAVEPOINT ${savepointName};`, { transaction });
   }
-  
-  return () => {
-    if (portalRef.current) {
-      document.body.removeChild(portalRef.current);
-      portalRef.current = null;
-    }
-  };
-}, [activeActionMenu]);
-
-// Then use portalRef.current as portal target
+};
 ```
 
 ---
 
-## HIGH Issues
+## 2. backend/utils/startupMigrations.mjs
 
-### 4. **Stale Closure in Event Handlers**
-**File:** `ClientsManagementSection.tsx` (lines 700-750)  
-**Severity:** HIGH
+### CRITICAL Issues
 
-```tsx
-useEffect(() => {
-  if (!activeActionMenu) return;
-  const handleClickOutside = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest('[data-action-menu]')) {
-      setActiveActionMenu(null); // Captures stale activeActionMenu
-    }
-  };
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => document.removeEventListener('mousedown', handleClickOutside);
-}, [activeActionMenu]); // Re-runs on every menu change
+**C2: SQL Injection in Multiple Functions**
+```javascript
+const [cols] = await sequelize.query(
+  `SELECT column_name FROM information_schema.columns
+   WHERE table_name = '${table}' AND column_name = '${column}';`
+);
+```
+- **Issue**: Direct interpolation of `table` and `column` variables
+- **Risk**: SQL injection if variables ever come from external sources
+- **Fix**: Use parameterized queries consistently
+
+**C3: Hardcoded User IDs in Data Migration**
+```javascript
+async function migrateSeanSwanLastName() {
+  const [row] = await sequelize.query(
+    `SELECT id, "firstName", "lastName" FROM "Users" WHERE id = 2;`,
+    { type: QueryTypes.SELECT }
+  );
+  // ...
+  await sequelize.query(`UPDATE "Users" SET "lastName" = 'Swan' WHERE id = 2;`);
+}
+```
+- **Issue**: Business logic hardcoded to specific user ID
+- **Risk**: Breaks in different environments (dev/staging/prod), not portable
+- **Fix**: Use environment-specific config or remove data-specific migrations
+
+### HIGH Issues
+
+**H3: Silent Error Swallowing**
+```javascript
+} catch (error) {
+  logger.warn(`[Migration] admin_settings category fix failed (non-critical): ${error.message}`);
+}
+```
+- **Issue**: All migration errors marked as "non-critical" and swallowed
+- **Risk**: Critical schema issues go unnoticed, app fails later with cryptic errors
+- **Fix**: Categorize errors; fail fast on critical issues (table creation, FK constraints)
+
+**H4: Missing Transaction Rollback**
+```javascript
+async function migrateAdminSettingsCategory() {
+  try {
+    // Multiple queries without transaction
+    await sequelize.query(`ALTER TABLE admin_settings ADD COLUMN category VARCHAR(255);`);
+    await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_settings_category ON admin_settings(category);`);
+  } catch (error) {
+    logger.warn(`[Migration] admin_settings category fix failed (non-critical): ${error.message}`);
+  }
+}
+```
+- **Issue**: No transaction wrapping; partial application possible
+- **Risk**: Database left in inconsistent state
+- **Fix**: Wrap each migration in transaction
+
+### MEDIUM Issues
+
+**M3: DRY Violation - Column Addition Logic**
+- **Issue**: `addColumnIfMissing` helper duplicated across multiple functions
+- **Fix**: Extract to shared utility at module level
+
+**M4: Inconsistent Naming Conventions**
+```javascript
+// Some use camelCase
+await addColumnIfMissing('Users', 'forcePasswordChange', 'BOOLEAN DEFAULT false');
+// Some use snake_case
+await addColumnIfMissing('session_types', 'creditsRequired', 'INTEGER DEFAULT 1');
+```
+- **Issue**: Mixing column naming conventions
+- **Risk**: Confusion, harder to maintain
+- **Fix**: Document convention or normalize
+
+**M5: Missing Error Context**
+```javascript
+logger.warn(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
+```
+- **Issue**: Only logs error message, not stack trace or error code
+- **Fix**: Log full error object in development
+
+---
+
+## 3. backend/core/middleware/index.mjs
+
+### HIGH Issues
+
+**H5: Regex Injection Vulnerability**
+```javascript
+if (!/^photos\/(profiles|banners|measurements)\/\d+\/\d{4}-\d{2}\/[\w-]+\.\w+$/.test(objectKey)) {
+  return res.status(400).json({ error: 'Invalid photo path' });
+}
+```
+- **Issue**: `\w` matches Unicode word characters in some regex engines; `[\w-]+` allows unlimited length
+- **Risk**: ReDoS (Regular Expression Denial of Service) or bypass
+- **Fix**: Use stricter pattern with length limits:
+```javascript
+if (!/^photos\/(profiles|banners|measurements)\/\d{1,10}\/\d{4}-\d{2}\/[a-zA-Z0-9_-]{1,100}\.[a-z]{2,5}$/.test(objectKey)) {
 ```
 
-**Issues:**
-- Effect re-runs on every `activeActionMenu` change, adding/removing listeners repeatedly
-- Potential race conditions with rapid menu toggling
+**H6: Missing Error Handling in Photo Proxy**
+```javascript
+const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+return res.redirect(302, signedUrl);
+```
+- **Issue**: No validation that `signedUrl` is valid before redirecting
+- **Risk**: Open redirect vulnerability if R2 returns malicious URL
+- **Fix**: Validate URL before redirect
 
-**Fix:**
-```tsx
-const activeMenuRef = useRef<string | null>(null);
+**H7: Path Traversal Risk**
+```javascript
+const localPath = path.join(uploadsPath, objectKey.replace('photos/', ''));
+if (existsSync(localPath)) {
+  return res.sendFile(localPath);
+}
+```
+- **Issue**: `objectKey` could contain `../` sequences to escape `uploadsPath`
+- **Risk**: Arbitrary file read
+- **Fix**: Use `path.resolve` and verify result is within `uploadsPath`:
+```javascript
+const localPath = path.resolve(uploadsPath, objectKey.replace('photos/', ''));
+if (!localPath.startsWith(uploadsPath)) {
+  return res.status(400).json({ error: 'Invalid path' });
+}
+```
 
-useEffect(() => {
-  activeMenuRef.current = activeActionMenu;
-}, [activeActionMenu]);
+### MEDIUM Issues
 
-useEffect(() => {
-  const handleClickOutside = (e: MouseEvent) => {
-    if (!activeMenuRef.current) return;
-    const target = e.target as HTMLElement;
-    if (!target.closest('[data-action-menu]')) {
-      setActiveActionMenu(null);
-    }
-  };
-  
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => document.removeEventListener('mousedown', handleClickOutside);
-}, []); // Only run once
+**M6: Hardcoded Paths Array**
+```javascript
+const possibleFrontendPaths = [
+  path.join(__dirname, '../../../frontend/dist'),
+  path.join(process.cwd(), '../frontend/dist'),
+  // ... 6 more paths
+];
+```
+- **Issue**: Brittle; breaks if directory structure changes
+- **Fix**: Use environment variable `FRONTEND_DIST_PATH` with fallback
+
+**M7: Global Variable Pollution**
+```javascript
+global.FRONTEND_DIST_PATH = frontendDistPath;
+global.FRONTEND_INDEX_PATH = indexPath;
+```
+- **Issue**: Pollutes global namespace; no TypeScript typing
+- **Fix**: Export from module or use app.locals:
+```javascript
+app.locals.frontendDistPath = frontendDistPath;
 ```
 
 ---
 
-### 5. **Missing Memoization for Expensive Computations**
-**File:** `ClientsManagementSection.tsx` (lines 680-695)  
-**Severity:** HIGH
+## 4. frontend/src/components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx
 
+### CRITICAL Issues
+
+**C4: Incomplete Component - Truncated Code**
 ```tsx
-// Runs on every render
-const filteredClients = clients.filter(client => {
-  const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       client.email.toLowerCase().includes(searchTerm.toLowerCase());
-  const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-  const matchesTier = tierFilter === 'all' || client.tier === tierFilter;
-  
-  return matchesSearch && matchesStatus && matchesTier;
-});
+const filteredTrainers = useMemo(() => {
+  return trainers.filter(trainer => {
+    // ... code truncated ...
+```
+- **Issue**: Component code is incomplete
+- **Risk**: Cannot assess full component logic, likely has compilation errors
+- **Fix**: Provide complete file
+
+### HIGH Issues
+
+**H8: Missing Error Boundaries**
+- **Issue**: No error boundary wrapping component
+- **Risk**: Entire admin dashboard crashes on any error
+- **Fix**: Wrap in ErrorBoundary component
+
+**H9: Unsafe Type Coercion**
+```tsx
+const normalizedTrainers = (data.trainers || []).map((t: any) => ({
+  ...t,
+  specialties: Array.isArray(t.specialties)
+    ? t.specialties
+    : typeof t.specialties === 'string'
+      ? (() => { try { return JSON.parse(t.specialties); } catch { return []; } })()
+      : [],
+}));
+```
+- **Issue**: Uses `any` type; silent JSON.parse failure
+- **Risk**: Type safety lost, errors hidden
+- **Fix**: Define proper types and log parse errors:
+```tsx
+const parseSpecialties = (raw: unknown): string[] => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Failed to parse specialties:', error);
+      return [];
+    }
+  }
+  return [];
+};
 ```
 
-**Issue:** Filtering runs on every render, even when dependencies haven't changed. With 100+ clients, this causes unnecessary re-computation.
-
-**Fix:**
+**H10: Missing Loading States**
 ```tsx
-const filteredClients = useMemo(() => {
-  return clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-    const matchesTier = tierFilter === 'all' || client.tier === tierFilter;
-    
-    return matchesSearch && matchesStatus && matchesTier;
+const fetchTrainers = useCallback(async () => {
+  try {
+    setLoading(true);
+    const response = await authAxios.get('/api/admin/trainers');
+    // ... no error UI shown to user ...
+  } catch (error) {
+    console.error('Error fetching trainers:', error);
+    toast({ /* ... */ });
+  } finally {
+    setLoading(false);
+  }
+}, [authAxios, toast]);
+```
+- **Issue**: Error toast shown but table still shows old/empty data
+- **Fix**: Add error state and show error UI
+
+### MEDIUM Issues
+
+**M8: Inline Object Creation in Render**
+```tsx
+<StyledTr $clickable={true}>
+```
+- **Issue**: Creates new boolean object on every render
+- **Fix**: Use constant or remove (true is default)
+
+**M9: Missing Memoization**
+```tsx
+const filteredTrainers = useMemo(() => {
+  return trainers.filter(trainer => {
+    const matchesSearch = /* ... complex logic ... */;
+    // ... more filters ...
   });
-}, [clients, searchTerm, statusFilter, tierFilter]);
+}, [trainers, searchTerm, filterSpecialty, filterStatus]); // Missing dependencies?
 ```
+- **Issue**: Dependency array incomplete (code truncated)
+- **Fix**: Ensure all used variables are in deps array
 
----
-
-### 6. **Inline Function Creation in Render**
-**File:** `ClientsManagementSection.tsx` (lines 1050-1080)  
-**Severity:** HIGH
-
+**M10: Hardcoded Colors**
 ```tsx
-<MetricItem
-  $clickable
-  role="button"
-  tabIndex={0}
-  onClick={() => handleViewSessions(client)} // New function every render
-  onKeyDown={(e) => e.key === 'Enter' && handleViewSessions(client)} // New function every render
-```
-
-**Issue:** Creates new function instances on every render for every client card, causing child components to re-render unnecessarily.
-
-**Fix:**
-```tsx
-// Create stable handlers
-const createMetricHandler = useCallback((handler: (client: Client) => void, client: Client) => {
-  return () => handler(client);
-}, []);
-
-const createKeyHandler = useCallback((handler: (client: Client) => void, client: Client) => {
-  return (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handler(client);
-  };
-}, []);
-
-// Use in render
-<MetricItem
-  onClick={createMetricHandler(handleViewSessions, client)}
-  onKeyDown={createKeyHandler(handleViewSessions, client)}
-/>
-```
-
----
-
-### 7. **No Try-Catch in Async Callbacks**
-**File:** `ClientsManagementSection.tsx` (lines 800-850)  
-**Severity:** HIGH
-
-```tsx
-const handlePromoteToTrainer = async (clientId: string) => {
-  try {
-    setLoading(prev => ({ ...prev, operations: true }));
-    setErrors(prev => ({ ...prev, operations: null }));
-    
-    const response = await authAxios.put(`/api/admin/clients/${clientId}`, {
-      role: 'trainer'
-    });
-    
-    if (response.data.success) {
-      await refreshAllData(); // No try-catch - can throw
-      setActiveActionMenu(null);
-```
-
-**Issue:** `refreshAllData()` is async and can throw, but isn't wrapped in try-catch. Errors will be unhandled.
-
-**Fix:**
-```tsx
-const handlePromoteToTrainer = async (clientId: string) => {
-  try {
-    setLoading(prev => ({ ...prev, operations: true }));
-    setErrors(prev => ({ ...prev, operations: null }));
-    
-    const response = await authAxios.put(`/api/admin/clients/${clientId}`, {
-      role: 'trainer'
-    });
-    
-    if (response.data.success) {
-      try {
-        await refreshAllData();
-      } catch (refreshError) {
-        console.error('Failed to refresh data after promotion:', refreshError);
-        // Still show success since promotion worked
-      }
-      setActiveActionMenu(null);
-    }
-  } catch (error: any) {
-    // ... existing error handling
-  }
-};
-```
-
----
-
-## MEDIUM Issues
-
-### 8. **Hardcoded Theme Values**
-**File:** `ClientsManagementSection.tsx` (lines 50-150)  
-**Severity:** MEDIUM
-
-```tsx
-const Spinner = styled.div`
-  border: 3px solid ${({ theme }) => theme.colors?.primary ? `${theme.colors.primary}33` : 'rgba(14, 165, 233, 0.2)'}; // Hardcoded fallback
-  border-top-color: ${({ theme }) => theme.colors?.primary || '#0ea5e9'}; // Hardcoded color
-```
-
-**Issue:** Multiple hardcoded color values as fallbacks violate theme token usage. Should use theme exclusively.
-
-**Fix:**
-```tsx
-// Define theme defaults in theme file
-const defaultTheme = {
-  colors: {
-    primary: '#0ea5e9',
-    // ...
-  }
-};
-
-// Use theme without fallbacks
-const Spinner = styled.div`
-  border: 3px solid ${({ theme }) => `${theme.colors.primary}33`};
-  border-top-color: ${({ theme }) => theme.colors.primary};
+const StatCard = styled(motion.div)`
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  // ... more hardcoded colors ...
 `;
 ```
-
----
-
-### 9. **Duplicate Loading State Logic**
-**File:** `ClientsManagementSection.tsx`  
-**Severity:** MEDIUM
-
+- **Issue**: Colors hardcoded instead of using theme tokens
+- **Risk**: Inconsistent theming, hard to maintain
+- **Fix**: Use theme:
 ```tsx
-// Pattern repeated 5+ times
-try {
-  setLoading(prev => ({ ...prev, operations: true }));
-  setErrors(prev => ({ ...prev, operations: null }));
-  // ... operation
-} catch (error: any) {
-  const errorMessage = error.response?.data?.message || 'Failed to...';
-  setErrors(prev => ({ ...prev, operations: errorMessage }));
-} finally {
-  setLoading(prev => ({ ...prev, operations: false }));
-}
+background: ${({ theme }) => theme.colors.primary.alpha10};
+border: 1px solid ${({ theme }) => theme.colors.primary.alpha30};
 ```
 
-**Issue:** DRY violation - same loading/error pattern repeated across multiple handlers.
+**M11: DRY Violation - Repeated Styled Components**
+- **Issue**: `StyledSelect`, `PaginationSelect` have duplicate styles
+- **Fix**: Create shared `BaseSelect` component
 
-**Fix:**
+**M12: Missing Keys in Lists**
+- **Issue**: Cannot verify without complete code, but likely missing in specialty chips
+- **Fix**: Ensure all `.map()` calls have unique `key` prop
+
+### LOW Issues
+
+**L1: Console.log in Production Code**
 ```tsx
-// Extract to custom hook
-const useAsyncOperation = (operationType: keyof typeof loading) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const execute = useCallback(async <T,>(
-    operation: () => Promise<T>,
-    errorMessage: string = 'Operation failed'
-  ): Promise<T | null> => {
-    try {
-      setLoading(true);
-      setError(null);
-      return await operation();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || errorMessage;
-      setError(msg);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  
-  return { loading, error, execute };
-};
+console.error('Error fetching trainers:', error);
+```
+- **Issue**: Should use proper error tracking service
+- **Fix**: Use Sentry/LogRocket or remove
 
-// Usage
-const { execute: executeOperation } = useAsyncOperation('operations');
+**L2: Magic Numbers**
+```tsx
+const [rowsPerPage, setRowsPerPage] = useState(10);
+```
+- **Fix**: Extract to constants:
+```tsx
+const DEFAULT_ROWS_PER_PAGE = 10;
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+```
 
-const handlePromoteToTrainer = async (clientId: string) => {
-  const result = await executeOperation(
-    () => authAxios.put(`/api/admin/clients/${clientId}`, { role: 'trainer' }),
-    'Failed to promote client'
-  );
-  
-  if (result?.data.success) {
-    await refreshAllData();
-  }
-};
+**L3: Accessibility Issues**
+```tsx
+<IconBtn $color="#ffffff">
+  <Pencil size={18} />
+</IconBtn>
+```
+- **Issue**: No aria-label for icon-only buttons
+- **Fix**: Add aria-label:
+```tsx
+<IconBtn $color="#ffffff" aria-label="Edit trainer">
 ```
 
 ---
 
-### 10. **Missing Keys in Animated Lists**
-**File:** `ClientsManagementSection.tsx` (line 1200)  
-**Severity:** MEDIUM
+## Summary of Findings
 
-```tsx
-<StatsBar
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5 }}
->
-  <StatCard whileHover={{ scale: 1.02 }}>
-    {/* No key prop */}
-```
+| Severity | Count | Files Affected |
+|----------|-------|----------------|
+| CRITICAL | 4 | All |
+| HIGH | 10 | All |
+| MEDIUM | 12 | All |
+| LOW | 3 | Frontend |
 
-**Issue:** StatCards in grid don't have keys. While not a list, if stats become dynamic, this will cause issues.
+### Top Priority Fixes
 
-**Fix:**
-```tsx
-const statsConfig = [
-  { key: 'total', value: stats.totalClients, label: 'Total Clients' },
-  { key: 'active', value: stats.activeClients, label: 'Active Clients' },
-  // ...
-];
+1. **SQL Injection** (C1, C2): Parameterize all queries
+2. **Path Traversal** (H7): Validate file paths in photo proxy
+3. **Error Handling** (H3, H8): Implement proper error boundaries and fail-fast logic
+4. **Type Safety** (H9): Remove `any` types, add proper interfaces
+5. **Theme Tokens** (M10): Replace hardcoded colors with theme variables
+6. **DRY Violations** (M2, M3, M11): Extract repeated logic to utilities
 
-<StatsBar>
-  {statsConfig.map(stat => (
-    <StatCard key={stat.key} whileHover={{ scale: 1.02 }}>
-      <StatNumber>{stat.value}</StatNumber>
-      <StatTitle>{stat.label}</StatTitle>
-    </StatCard>
-  ))}
-</StatsBar>
-```
+### Recommended Next Steps
 
----
-
-### 11. **Incomplete TypeScript Coverage**
-**File:** `AdminOverview.styles.ts` (line 95)  
-**Severity:** MEDIUM
-
-```ts
-export const MetricGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  marg
-
-// ... truncated ...
-```
-
-**Issue:** File appears truncated with incomplete CSS property. This will cause runtime errors.
-
-**Fix:** Complete the file and add proper type definitions.
-
----
-
-## LOW Issues
-
-### 12. **Magic Numbers**
-**File:** `ClientsManagementSection.tsx`  
-**Severity:** LOW
-
-```tsx
-const menuHeight = 360; // Magic number
-const spaceBelow = window.innerHeight - rect.bottom;
-const openAbove = spaceBelow < menuHeight && rect.top > menuHeight;
-```
-
-**Fix:**
-```tsx
-const MENU_CONFIG = {
-  HEIGHT: 360,
-  PADDING: 8,
-  MIN_VIEWPORT_MARGIN: 8
-} as const;
-```
-
----
-
-### 13. **Console Logs in Production Code**
-**File:** `ClientsManagementSection.tsx`  
-**Severity:** LOW
-
-```tsx
-console.log('✅ Real client data loaded successfully');
-console.error('❌ Failed to load real client data:', errorMessage);
-```
-
-**Fix:**
-```tsx
-// Use proper logging utility
-import { logger } from '@/utils/logger';
-
-logger.info('Client data loaded', { count: clientsData.length });
-logger.error('Failed to load clients', { error: errorMessage });
-```
-
----
-
-### 14. **Accessibility: Missing ARIA Labels**
-**File:** `ClientsManagementSection.tsx`  
-**Severity:** LOW
-
-```tsx
-<ActionButton
-  onClick={() => setActiveActionMenu(client.id)}
-  disabled={isLoadingData('operations')}
->
-  {/* No aria-label */}
-  <MoreVertical size={16} />
-</ActionButton>
-```
-
-**Fix:**
-```tsx
-<ActionButton
-  aria-label={`Actions for ${client.name}`}
-  aria-expanded={activeActionMenu === client.id}
-  aria-haspopup="menu"
-  onClick={() => setActiveActionMenu(client.id)}
->
-```
-
----
-
-##
+1. Add ESLint rules for SQL injection detection
+2. Implement TypeScript strict mode
+3. Add integration tests for migrations
+4. Set up error tracking (Sentry)
+5. Audit all file upload/download endpoints for security
+6. Create shared component library for styled-components
 
 ---
 

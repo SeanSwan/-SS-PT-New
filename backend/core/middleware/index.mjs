@@ -97,17 +97,20 @@ export const setupMiddleware = async (app) => {
   if (isProduction) {
     // Try multiple possible frontend dist paths for different deployment scenarios
     const possibleFrontendPaths = [
-      path.join(__dirname, '../../../frontend/dist'),           // Local development structure
+      path.join(__dirname, '../../../frontend/dist'),           // From backend/core/middleware → project root
+      path.join(process.cwd(), '../frontend/dist'),             // If cwd is backend/ (Render: cd backend && npm start)
+      path.join(process.cwd(), 'frontend/dist'),                // If cwd is project root
       path.join(__dirname, '../../frontend/dist'),              // Alternative structure
-      path.join(process.cwd(), 'frontend/dist'),                // From project root
       path.join(process.cwd(), 'dist'),                         // Build output in root
-      '/app/frontend/dist',                                     // Render.com structure
-      '/app/dist'                                               // Alternative Render structure
+      '/opt/render/project/src/frontend/dist',                  // Render.com explicit path
+      '/app/frontend/dist',                                     // Docker/container structure
+      '/app/dist'                                               // Alternative container structure
     ];
     
     let frontendDistPath = null;
     let indexPath = null;
-    
+
+    logger.info(`🔍 Frontend path resolution: cwd=${process.cwd()}, __dirname=${__dirname}`);
     // Find the correct frontend path
     for (const testPath of possibleFrontendPaths) {
       const testIndexPath = path.join(testPath, 'index.html');

@@ -554,7 +554,7 @@ export const homepageContent: HomepageContent = {
     ],
     contactInfo: {
       location: 'Anaheim Hills',
-      phone: '(714) 947-3221',
+      phone: '(714) 485-3950',
       email: 'loveswanstudios@protonmail.com',
       hours: 'Monday-Sunday: By Appointment Only',
     },

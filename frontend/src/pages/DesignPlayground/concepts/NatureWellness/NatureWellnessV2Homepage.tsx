@@ -605,7 +605,7 @@ const NatureWellnessV2Homepage: React.FC = () => {
               <MapPin size={14} /> Anaheim Hills, CA
             </ContactItem>
             <ContactItem>
-              <Phone size={14} /> (714) 947-3221
+              <Phone size={14} /> (714) 485-3950
             </ContactItem>
             <ContactItem>
               <Mail size={14} /> loveswanstudios@protonmail.com

@@ -3,7 +3,7 @@
   "datasetVersion": "2.0.0",
   "promptVersion": "1.0.0",
   "ruleEngineVersion": "1.0.0",
-  "timestamp": "2026-03-01T01:17:47.167Z",
+  "timestamp": "2026-03-03T15:15:03.804Z",
   "summary": {
     "total": 53,
     "gated": 49,
@@ -12,7 +12,7 @@
     "correctnessFailures": 0,
     "knownGaps": 4,
     "passRate": 1,
-    "durationMs": 12,
+    "durationMs": 9,
     "categories": {
       "schema_valid": {
         "total": 8,
@@ -919,10 +919,5 @@
         "warnings": 0
       }
     }
-  ],
-  "drift": {
-    "drifted": false,
-    "changes": [],
-    "warnings": []
-  }
+  ]
 }

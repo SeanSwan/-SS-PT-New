@@ -737,7 +737,16 @@ const EnhancedTrainerDataManagement: React.FC = () => {
       setLoading(true);
       const response = await authAxios.get('/api/admin/trainers');
       const data = response.data || {};
-      setTrainers(data.trainers || []);
+      // Normalize specialties: API may return JSON string instead of array
+      const normalizedTrainers = (data.trainers || []).map((t: any) => ({
+        ...t,
+        specialties: Array.isArray(t.specialties)
+          ? t.specialties
+          : typeof t.specialties === 'string'
+            ? (() => { try { return JSON.parse(t.specialties); } catch { return []; } })()
+            : [],
+      }));
+      setTrainers(normalizedTrainers);
 
       // Calculate stats
       const totalTrainers = data.trainers?.length || 0;
