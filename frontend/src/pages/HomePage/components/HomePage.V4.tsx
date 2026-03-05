@@ -414,7 +414,7 @@ const FeatureDesc = styled.p`
 `;
 
 // ═══════════════════════════════════════════════════════
-// SECTION 3: PROGRAMS — "Ascension Protocols"
+// SECTION 3: PROGRAMS — "Your Training Programs"
 // ═══════════════════════════════════════════════════════
 
 const ProgramsContainer = styled(motion.div)`
@@ -756,17 +756,18 @@ const BeyondSection = styled.section`
   overflow: hidden;
 `;
 
-const BeyondVideoBg = styled.div`
+const BeyondImageBg = styled(motion.div)`
   position: absolute;
-  inset: 0;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 120%;
+  background-image: url('/images/parallax/beyond-the-gym-bg.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.45;
   z-index: 0;
-
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.3;
-  }
+  pointer-events: none;
 `;
 
 const BeyondOverlay = styled.div`
@@ -974,6 +975,7 @@ const HomePageV4: React.FC = () => {
   const featuresParallax = useParallax(['-15%', '15%']);
   const golfParallax = useParallax(['-20%', '20%']);
   const testimonialsParallax = useParallax(['-15%', '15%']);
+  const beyondParallax = useParallax(['-10%', '10%']);
 
   useEffect(() => {
     const handleScroll = () => setShowScroll(window.scrollY <= 200);
@@ -1133,7 +1135,7 @@ const HomePageV4: React.FC = () => {
               viewport={{ once: true }}
               variants={reveal}
             >
-              <SectionTitle>Ascension Protocols</SectionTitle>
+              <SectionTitle>Your Training Programs</SectionTitle>
               <SectionSubtitle>
                 Choose your protocol. Every tier includes AI-driven programming and NASM-certified coaching.
               </SectionSubtitle>
@@ -1418,12 +1420,11 @@ const HomePageV4: React.FC = () => {
         <CinematicDivider />
 
         {/* ─── 8. SOCIAL — "Beyond the Gym" ─── */}
-        <BeyondSection>
-          <BeyondVideoBg aria-hidden="true">
-            <video autoPlay muted loop playsInline disablePictureInPicture>
-              <source src="/smoke.mp4" type="video/mp4" />
-            </video>
-          </BeyondVideoBg>
+        <BeyondSection ref={beyondParallax.ref as React.Ref<HTMLElement>}>
+          <BeyondImageBg
+            style={prefersReduced ? undefined : { y: beyondParallax.y }}
+            aria-hidden="true"
+          />
           <BeyondOverlay />
           <Container>
             <SectionHeader
@@ -1484,7 +1485,7 @@ const HomePageV4: React.FC = () => {
             variants={reveal}
           >
             <SectionTitle style={{ fontSize: 'clamp(2rem, 4vw, 3rem)' }}>
-              Ready to Ascend?
+              Ready to Transform?
             </SectionTitle>
             <SectionSubtitle style={{ margin: '16px auto 0' }}>
               Your journey to a stronger, healthier, more confident you starts with
