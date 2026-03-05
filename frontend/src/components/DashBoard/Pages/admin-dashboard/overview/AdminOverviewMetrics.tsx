@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { useTheme } from 'styled-components';
 import { AdminDashboardMetric } from './AdminOverview.types';
 import { MetricCommandCard, MetricGrid, ChartContainer } from './AdminOverview.styles';
 
@@ -8,12 +9,13 @@ interface AdminOverviewMetricsProps {
 }
 
 const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) => {
+  const theme = useTheme() as any;
   const renderMetricCard = (metric: AdminDashboardMetric) => (
     <MetricCommandCard key={metric.id} accentColor={metric.color} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
       <div style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+            <div style={{ color: theme?.text?.secondary || 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
               {metric.title}
             </div>
             <div
@@ -33,9 +35,9 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {metric.changeType === 'increase' ? (
-                <TrendingUp size={16} color="#10b981" />
+                <TrendingUp size={16} color={theme?.colors?.success || '#10b981'} />
               ) : metric.changeType === 'decrease' ? (
-                <TrendingDown size={16} color="#ef4444" />
+                <TrendingDown size={16} color={theme?.colors?.error || '#ef4444'} />
               ) : (
                 <Activity size={16} color="#6b7280" />
               )}
@@ -44,9 +46,9 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
                   fontSize: '0.875rem',
                   color:
                     metric.changeType === 'increase'
-                      ? '#10b981'
+                      ? (theme?.colors?.success || '#10b981')
                       : metric.changeType === 'decrease'
-                        ? '#ef4444'
+                        ? (theme?.colors?.error || '#ef4444')
                         : '#6b7280',
                 }}
               >
@@ -68,7 +70,7 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
               {metric.icon}
             </div>
             {metric.target && (
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: theme?.text?.muted || 'rgba(255, 255, 255, 0.6)', textAlign: 'center' as const }}>
                 Target: {metric.target}
                 {metric.format === 'percentage' ? '%' : ''}
               </div>
@@ -76,24 +78,24 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '1rem 0' }} />
+        <div style={{ height: '1px', background: theme?.background?.elevated || 'rgba(255, 255, 255, 0.1)', margin: '1rem 0' }} />
 
-        <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+        <div style={{ color: theme?.text?.secondary || 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', marginBottom: '1rem' }}>
           {metric.description}
         </div>
 
         {metric.target && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>Progress to Target</span>
-              <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              <span style={{ fontSize: '0.75rem', color: theme?.text?.muted || 'rgba(255, 255, 255, 0.6)' }}>Progress to Target</span>
+              <span style={{ fontSize: '0.75rem', color: theme?.text?.muted || 'rgba(255, 255, 255, 0.6)' }}>
                 {((Number(metric.value) / metric.target) * 100).toFixed(1)}%
               </span>
             </div>
             <div
               style={{
                 height: '6px',
-                background: 'rgba(255, 255, 255, 0.1)',
+                background: theme?.background?.elevated || 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '3px',
                 overflow: 'hidden',
               }}

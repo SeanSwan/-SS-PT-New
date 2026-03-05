@@ -43,14 +43,14 @@ const IconWrapper = styled.div`
 `;
 
 const Title = styled.h3`
-  color: #fff;
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 8px 0;
 `;
 
 const Message = styled.p`
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
   font-size: 14px;
   line-height: 1.5;
   max-width: 400px;
@@ -58,8 +58,8 @@ const Message = styled.p`
 `;
 
 const RetryButton = styled.button`
-  background: #3b82f6;
-  color: #fff;
+  background: ${({ theme }) => theme.colors?.primary || '#3b82f6'};
+  color: ${({ theme }) => theme.text?.primary || '#fff'};
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
@@ -69,7 +69,7 @@ const RetryButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #2563eb;
+    background: ${({ theme }) => theme.colors?.primaryDark || '#2563eb'};
     transform: translateY(-2px);
   }
 
