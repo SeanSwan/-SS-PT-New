@@ -79,7 +79,7 @@ module.exports = {
 
     // ── Seed Challenges (idempotent) ─────────────────────────────────
     const [existingChallenges] = await queryInterface.sequelize.query(
-      `SELECT COUNT(*) AS cnt FROM "Challenges" WHERE "description" LIKE '%[seed]%';`
+      `SELECT COUNT(*) AS cnt FROM "challenges" WHERE "description" LIKE '%[seed]%';`
     );
     if (parseInt(existingChallenges[0].cnt) === 0) {
       const now = new Date();
@@ -87,52 +87,58 @@ module.exports = {
       const monthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const nowISO = now.toISOString();
 
-      await queryInterface.bulkInsert('Challenges', [
+      const { v4: uuidv4 } = require('uuid');
+      await queryInterface.bulkInsert('challenges', [
         {
+          id: uuidv4(),
           title: '7-Day Fitness Streak',
           description: 'Complete a workout every day for 7 days straight. Any workout counts! [seed]',
-          category: 'fitness', type: 'weekly', difficulty: 2,
-          xpReward: 200, badgeReward: '7-Day Warrior',
+          category: 'fitness', challengeType: 'weekly', difficulty: 2,
+          xpReward: 200,
           startDate: nowISO, endDate: weekFromNow,
           status: 'active', isPublic: true, isFeatured: true,
           maxParticipants: 500, currentParticipants: 0,
           createdBy: adminId, createdAt: nowISO, updatedAt: nowISO,
         },
         {
+          id: uuidv4(),
           title: 'Post Your Best Dance Move',
           description: 'Share a video or photo of your best dance move. Any style — hip-hop, salsa, freestyle, you name it! [seed]',
-          category: 'dance', type: 'weekly', difficulty: 1,
-          xpReward: 150, badgeReward: 'Dance Star',
+          category: 'dance', challengeType: 'weekly', difficulty: 1,
+          xpReward: 150,
           startDate: nowISO, endDate: weekFromNow,
           status: 'active', isPublic: true, isFeatured: true,
           maxParticipants: 500, currentParticipants: 0,
           createdBy: adminId, createdAt: nowISO, updatedAt: nowISO,
         },
         {
+          id: uuidv4(),
           title: 'Share Your Workout Playlist',
           description: 'Drop your top 5 workout songs in a post. Bonus points for songs nobody else picks! [seed]',
-          category: 'music', type: 'weekly', difficulty: 1,
-          xpReward: 100, badgeReward: 'DJ Gains',
+          category: 'music', challengeType: 'weekly', difficulty: 1,
+          xpReward: 100,
           startDate: nowISO, endDate: weekFromNow,
           status: 'active', isPublic: true, isFeatured: false,
           maxParticipants: 500, currentParticipants: 0,
           createdBy: adminId, createdAt: nowISO, updatedAt: nowISO,
         },
         {
+          id: uuidv4(),
           title: 'Create Fan Art Friday',
           description: 'Create and share fitness-inspired art, digital or physical. Photography, drawings, edits — all welcome! [seed]',
-          category: 'art', type: 'weekly', difficulty: 2,
-          xpReward: 200, badgeReward: 'Creative Soul',
+          category: 'art', challengeType: 'weekly', difficulty: 2,
+          xpReward: 200,
           startDate: nowISO, endDate: weekFromNow,
           status: 'active', isPublic: true, isFeatured: false,
           maxParticipants: 500, currentParticipants: 0,
           createdBy: adminId, createdAt: nowISO, updatedAt: nowISO,
         },
         {
+          id: uuidv4(),
           title: '30-Min Gaming + 30-Min Workout',
           description: 'Balance your screen time! Log 30 minutes of gaming AND 30 minutes of exercise in the same day. [seed]',
-          category: 'gaming', type: 'monthly', difficulty: 3,
-          xpReward: 300, badgeReward: 'Balance Master',
+          category: 'gaming', challengeType: 'monthly', difficulty: 3,
+          xpReward: 300,
           startDate: nowISO, endDate: monthFromNow,
           status: 'active', isPublic: true, isFeatured: true,
           maxParticipants: 500, currentParticipants: 0,
@@ -150,7 +156,7 @@ module.exports = {
       `DELETE FROM "SocialPosts" WHERE "moderationNotes" = 'seed-content';`
     );
     await queryInterface.sequelize.query(
-      `DELETE FROM "Challenges" WHERE "description" LIKE '%[seed]%';`
+      `DELETE FROM "challenges" WHERE "description" LIKE '%[seed]%';`
     );
   },
 };

@@ -35,7 +35,7 @@ async function createWeeklyChallenge() {
     // Check if there's already an active weekly challenge ending after today
     const existing = await Challenge.findOne({
       where: {
-        type: 'weekly',
+        challengeType: 'weekly',
         status: 'active',
         endDate: { [Op.gt]: now },
       },
@@ -66,7 +66,7 @@ async function createWeeklyChallenge() {
 
     await Challenge.create({
       ...template,
-      type: 'weekly',
+      challengeType: 'weekly',
       startDate,
       endDate,
       status: 'active',
