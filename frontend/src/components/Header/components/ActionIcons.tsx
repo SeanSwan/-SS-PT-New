@@ -31,7 +31,7 @@ const ActionsContainer = styled(motion.div)`
   }
 
   @media (max-width: 480px) {
-    gap: 6px;
+    gap: 4px;
   }
 `;
 
@@ -76,6 +76,12 @@ const ProfileIconButton = styled(IconButton)<{ $hasImage?: boolean }>`
   &:focus-visible {
     outline: 3px solid var(--accent-secondary, #ff4081);
     outline-offset: 2px;
+  }
+
+  @media (max-width: 480px) {
+    width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
   }
 `;
 

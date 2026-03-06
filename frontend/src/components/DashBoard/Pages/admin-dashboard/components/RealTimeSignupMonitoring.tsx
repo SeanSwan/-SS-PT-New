@@ -151,6 +151,10 @@ const RecentSignupsList = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-height: 400px;
   overflow-y: auto;
+
+  @media (max-width: 768px) {
+    max-height: 260px;
+  }
   
   .signup-header {
     padding: 1rem;

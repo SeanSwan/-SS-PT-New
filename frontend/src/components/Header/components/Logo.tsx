@@ -47,6 +47,10 @@ const LogoContainer = styled(motion.div)`
   @media (max-width: 768px) {
     margin-right: 16px;
   }
+
+  @media (max-width: 430px) {
+    margin-right: 8px;
+  }
 `;
 
 const LogoElement = styled.div`
@@ -120,6 +124,15 @@ const LogoElement = styled.div`
       height: 28px;
       width: 28px;
       margin-right: 8px;
+    }
+  }
+
+  @media (max-width: 430px) {
+    .logo-text {
+      display: none;
+    }
+    img {
+      margin-right: 0;
     }
   }
 `;

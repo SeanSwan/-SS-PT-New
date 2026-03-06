@@ -76,6 +76,15 @@ const SystemHealthContainer = styled(motion.div)`
   backdrop-filter: blur(25px);
   position: relative;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 430px) {
+    padding: 1rem;
+  }
   
   &::before {
     content: '';
@@ -333,6 +342,11 @@ const ServiceMetrics = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
+
+  @media (max-width: 430px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
 `;
 
 const ServiceMetric = styled.div`

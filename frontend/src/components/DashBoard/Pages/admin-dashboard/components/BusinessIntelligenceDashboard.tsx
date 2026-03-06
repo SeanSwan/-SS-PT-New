@@ -81,6 +81,15 @@ const BusinessIntelligenceContainer = styled(motion.div)`
   backdrop-filter: blur(25px);
   position: relative;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 430px) {
+    padding: 1rem;
+  }
   
   &::before {
     content: '';
@@ -186,6 +195,12 @@ const ExecutiveKPIGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
   margin-bottom: 3rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const KPICard = styled(motion.div)<{ tier: 'platinum' | 'gold' | 'silver' | 'bronze' }>`
@@ -326,6 +341,11 @@ const ExecutiveSummary = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 `;
 
 const SummaryCard = styled(motion.div)`
