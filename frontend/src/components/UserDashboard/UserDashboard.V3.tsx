@@ -46,7 +46,8 @@ import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeCont
 import { useProfile } from '../../hooks/profile/useProfile';
 
 // Lazy load components for better performance
-const CommunityFeed = lazy(() => import('./components/CommunityFeed'));
+// CommunityFeed deprecated — using unified SocialFeed with compact variant
+const SocialFeed = lazy(() => import('../Social/Feed/SocialFeed'));
 const CreativeGallery = lazy(() => import('./components/CreativeGallery'));
 const PhotoGallery = lazy(() => import('./components/PhotoGallery'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
@@ -1809,7 +1810,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
 
                 {/* Tab Content with Suspense */}
                 <Suspense fallback={<LoadingContainer><LoadingSpinner /></LoadingContainer>}>
-                  {activeTab === 'feed' && <CommunityFeed />}
+                  {activeTab === 'feed' && <SocialFeed variant="compact" />}
                   {activeTab === 'creative' && <CreativeGallery />}
                   {activeTab === 'photos' && <PhotoGallery />}
                   {activeTab === 'about' && <AboutSection />}

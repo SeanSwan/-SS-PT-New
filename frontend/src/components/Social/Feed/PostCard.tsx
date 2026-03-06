@@ -19,7 +19,11 @@ import {
   Flame,
   Weight,
   Play,
-  X
+  X,
+  Music2,
+  Mic2,
+  Palette,
+  Gamepad2
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
@@ -418,6 +422,10 @@ const PostTypeIndicator = styled.div<{ $postType: string }>`
     props.$postType === 'transformation' ? 'linear-gradient(135deg, #e91e63, #f06292)' :
     props.$postType === 'achievement' ? 'linear-gradient(135deg, #ff9800, #ffb74d)' :
     props.$postType === 'challenge' ? 'linear-gradient(135deg, #9c27b0, #ba68c8)' :
+    props.$postType === 'dance' ? 'linear-gradient(135deg, #ec4899, #f472b6)' :
+    props.$postType === 'music' ? 'linear-gradient(135deg, #a855f7, #c084fc)' :
+    props.$postType === 'art' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' :
+    props.$postType === 'gaming' ? 'linear-gradient(135deg, #22c55e, #4ade80)' :
     'linear-gradient(135deg, #757575, #9e9e9e)'
   };
   color: white;
@@ -643,21 +651,31 @@ const ToastCloseBtn = styled.button`
 
 // ─── Post type icons mapped to their components ─────────────────
 
-const postTypeIcons = {
+const postTypeIcons: Record<string, React.ElementType> = {
   general: User,
   workout: Dumbbell,
   achievement: Award,
   challenge: Trophy,
-  transformation: Camera
+  transformation: Camera,
+  dance: Music2,
+  music: Mic2,
+  art: Palette,
+  gaming: Gamepad2,
+  creative: Star,
 };
 
 // Post type labels
-const postTypeLabels = {
+const postTypeLabels: Record<string, string> = {
   general: 'Post',
   workout: 'Workout',
   achievement: 'Achievement',
   challenge: 'Challenge',
-  transformation: 'Transformation'
+  transformation: 'Transformation',
+  dance: 'Dance',
+  music: 'Music',
+  art: 'Art',
+  gaming: 'Gaming',
+  creative: 'Creative',
 };
 
 // Post type colors
@@ -666,7 +684,12 @@ const postTypeColors: Record<string, string> = {
   workout: 'primary',
   achievement: 'success',
   challenge: 'warning',
-  transformation: 'secondary'
+  transformation: 'secondary',
+  dance: 'secondary',
+  music: 'secondary',
+  art: 'warning',
+  gaming: 'success',
+  creative: 'primary',
 };
 
 // ─── Interfaces ─────────────────────────────────────────────────

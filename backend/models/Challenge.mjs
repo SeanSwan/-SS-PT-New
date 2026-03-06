@@ -52,7 +52,7 @@ const Challenge = db.define('Challenge', {
   },
   
   category: {
-    type: DataTypes.ENUM('fitness', 'nutrition', 'mindfulness', 'social', 'streak'),
+    type: DataTypes.ENUM('fitness', 'nutrition', 'mindfulness', 'social', 'streak', 'dance', 'music', 'art', 'gaming', 'community_meetup'),
     allowNull: false,
     defaultValue: 'fitness'
   },

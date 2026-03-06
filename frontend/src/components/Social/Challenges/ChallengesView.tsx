@@ -20,7 +20,11 @@ import {
   CheckCircle2,
   Lock,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Music2,
+  Mic2,
+  Palette,
+  Gamepad2
 } from 'lucide-react';
 
 /* ─── Mock Data (fallback when API unavailable) ────── */
@@ -82,6 +86,11 @@ const CATEGORY_COLORS: Record<ChallengeCategory, string> = {
   cardio: '#ef4444',
   consistency: '#8b5cf6',
   social: '#06b6d4',
+  dance: '#ec4899',
+  music: '#a855f7',
+  art: '#f59e0b',
+  gaming: '#22c55e',
+  community: '#3b82f6',
 };
 
 const CATEGORY_ICONS: Record<ChallengeCategory, React.ElementType> = {
@@ -89,7 +98,25 @@ const CATEGORY_ICONS: Record<ChallengeCategory, React.ElementType> = {
   cardio: Flame,
   consistency: Target,
   social: Users,
+  dance: Music2,
+  music: Mic2,
+  art: Palette,
+  gaming: Gamepad2,
+  community: Users,
 };
+
+const ALL_CATEGORIES: { key: ChallengeCategory | 'all'; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'strength', label: 'Fitness' },
+  { key: 'cardio', label: 'Cardio' },
+  { key: 'consistency', label: 'Consistency' },
+  { key: 'social', label: 'Social' },
+  { key: 'dance', label: 'Dance' },
+  { key: 'music', label: 'Music' },
+  { key: 'art', label: 'Art' },
+  { key: 'gaming', label: 'Gaming' },
+  { key: 'community', label: 'Community' },
+];
 
 /* ─── Styled Components ────────────────────────────── */
 
@@ -97,6 +124,33 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 24px;
+`;
+
+const CategoryFilterRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const CategoryPill = styled.button<{ $active: boolean; $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  min-height: 36px;
+  border-radius: 20px;
+  border: 1px solid ${({ $active, $color }) => $active ? $color : 'rgba(148, 163, 184, 0.2)'};
+  background: ${({ $active, $color }) => $active ? `${$color}22` : 'transparent'};
+  color: ${({ $active, $color }) => $active ? $color : 'rgba(255, 255, 255, 0.6)'};
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: ${({ $color }) => $color};
+    color: ${({ $color }) => $color};
+  }
 `;
 
 const TabBar = styled.div`
@@ -336,13 +390,16 @@ const TABS: { key: ChallengeStatus; label: string; icon: React.ElementType }[] =
 
 const ChallengesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ChallengeStatus>('active');
+  const [selectedCategory, setSelectedCategory] = useState<ChallengeCategory | 'all'>('all');
   const prefersReducedMotion = useReducedMotion();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { challenges, loading, isDemoData, joinChallenge } = useChallenges();
 
   // Use API data when available, mock data as fallback
   const displayData = isDemoData ? MOCK_CHALLENGES : challenges;
-  const filtered = displayData.filter((c) => c.status === activeTab);
+  const filtered = displayData.filter((c) =>
+    c.status === activeTab && (selectedCategory === 'all' || c.category === selectedCategory)
+  );
 
   const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
     const currentIdx = TABS.findIndex((t) => t.key === activeTab);
@@ -415,6 +472,24 @@ const ChallengesView: React.FC = () => {
           </TabButton>
         ))}
       </TabBar>
+
+      <CategoryFilterRow>
+        {ALL_CATEGORIES.map(({ key, label }) => {
+          const color = key === 'all' ? '#00FFFF' : CATEGORY_COLORS[key];
+          const Icon = key === 'all' ? null : CATEGORY_ICONS[key];
+          return (
+            <CategoryPill
+              key={key}
+              $active={selectedCategory === key}
+              $color={color}
+              onClick={() => setSelectedCategory(key)}
+            >
+              {Icon && <Icon size={14} />}
+              {label}
+            </CategoryPill>
+          );
+        })}
+      </CategoryFilterRow>
 
       <div
         role="tabpanel"

@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 /* ─── Types matching ChallengesView ────────────────── */
 
 export type ChallengeStatus = 'active' | 'upcoming' | 'completed';
-export type ChallengeCategory = 'strength' | 'cardio' | 'consistency' | 'social';
+export type ChallengeCategory = 'strength' | 'cardio' | 'consistency' | 'social' | 'dance' | 'music' | 'art' | 'gaming' | 'community';
 
 export interface Challenge {
   id: string;
@@ -47,6 +47,11 @@ const CATEGORY_MAP: Record<string, ChallengeCategory> = {
   mindfulness: 'consistency',
   social: 'social',
   streak: 'consistency',
+  dance: 'dance',
+  music: 'music',
+  art: 'art',
+  gaming: 'gaming',
+  community_meetup: 'community',
 };
 
 /* ─── Helpers ──────────────────────────────────────── */

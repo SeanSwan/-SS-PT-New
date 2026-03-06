@@ -102,6 +102,11 @@ const SOCIAL_POINT_RULES = {
   post_create_transformation: 50,
   post_create_achievement: 30,
   post_create_challenge: 20,
+  post_create_creative: 20,
+  post_create_dance: 20,
+  post_create_music: 20,
+  post_create_art: 20,
+  post_create_gaming: 15,
   post_like_received: 2,
   post_like_given: 1,
   comment_created: 5,
@@ -474,7 +479,10 @@ router.get('/user/:userId', async (req, res) => {
  */
 router.post('/', upload.single('media'), async (req, res) => {
   try {
-    const { content, type = 'general', visibility = 'friends' } = req.body;
+    const { content, type = 'general' } = req.body;
+    // Admin/trainer posts default to public so all users see them; regular users default to friends
+    const isStaff = req.user.role === 'admin' || req.user.role === 'trainer';
+    const visibility = req.body.visibility || (isStaff ? 'public' : 'friends');
     
     // Validate required fields
     if (!content || content.trim() === '') {
