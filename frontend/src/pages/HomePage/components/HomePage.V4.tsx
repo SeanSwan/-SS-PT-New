@@ -25,6 +25,7 @@ import {
 import GlowButton from '../../../components/ui/buttons/GlowButton';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
 import TypewriterText from '../../../components/ui-kit/cinematic/TypewriterText';
+import SectionDivider from '../../../components/ui-kit/cinematic/SectionDivider';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import logoImg from '../../../assets/Logo.png';
 
@@ -1317,7 +1318,7 @@ const HomePageV4: React.FC = () => {
           )}
         </HeroSection>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 2. FEATURES — "The Arsenal" ─── */}
         <SectionEl id="features" ref={featuresParallax.ref as React.Ref<HTMLElement>}>
@@ -1360,7 +1361,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </SectionEl>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 3. PROGRAMS — "Ascension Protocols" ─── */}
         <SectionEl>
@@ -1411,7 +1412,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </SectionEl>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 4. GOLF — "The Fairway" ─── */}
         <SectionEl ref={golfParallax.ref as React.Ref<HTMLElement>}>
@@ -1479,7 +1480,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </SectionEl>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 5. ABOUT — "The Architect" ─── */}
         <SectionEl>
@@ -1574,7 +1575,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </SectionEl>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 6. TESTIMONIALS — "The Echoes" ─── */}
         <SectionEl ref={testimonialsParallax.ref as React.Ref<HTMLElement>}>
@@ -1621,7 +1622,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </SectionEl>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 7. STATISTICS — "The Proof" ─── */}
         <SectionEl style={{ borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -1657,7 +1658,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </SectionEl>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 8. SOCIAL — "Beyond the Gym" ─── */}
         <BeyondSection ref={beyondParallax.ref as React.Ref<HTMLElement>}>
@@ -1716,7 +1717,7 @@ const HomePageV4: React.FC = () => {
           </Container>
         </BeyondSection>
 
-        <CinematicDivider />
+        <SectionDivider />
 
         {/* ─── 9. FINAL CTA — "The Singularity" ─── */}
         <CTASection>
