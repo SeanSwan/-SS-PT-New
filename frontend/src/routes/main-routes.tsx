@@ -152,28 +152,28 @@ const SignupModal = lazyLoadWithErrorHandling(
   'Signup Modal'
 );
 const ContactPage = lazyLoadWithErrorHandling(
-  () => import('../pages/contactpage/ContactV2'),
-  'Contact Page V2',
-  () => import('../pages/contactpage')
+  () => import('../pages/contactpage/ContactV3'),
+  'Contact Page V3',
+  () => import('../pages/contactpage/ContactV2')
 );
 const AboutPage = lazyLoadWithErrorHandling(
-  () => import('../pages/about/About.V2'),
-  'About Page V2',
-  () => import('../pages/about/About')
+  () => import('../pages/about/About.V3'),
+  'About Page V3',
+  () => import('../pages/about/About.V2')
 );
 
-// Public Waiver (Phase 5W-G) — V2 primary, V1 fallback
+// Public Waiver (Phase 5W-G) — V3 primary, V2 fallback
 const PublicWaiverPage = lazyLoadWithErrorHandling(
-  () => import('../pages/PublicWaiverPage.V2'),
-  'Public Waiver Page V2',
-  () => import('../pages/PublicWaiverPage')
+  () => import('../pages/PublicWaiverPage.V3'),
+  'Public Waiver Page V3',
+  () => import('../pages/PublicWaiverPage.V2')
 );
 
-// Video Library (public)
+// Video Library (public) — V3 primary, V2 fallback
 const VideoLibrary = lazyLoadWithErrorHandling(
-  () => import('../pages/VideoLibraryV2'),
-  'Video Library V2',
-  () => import('../pages/VideoLibrary')
+  () => import('../pages/VideoLibraryV3'),
+  'Video Library V3',
+  () => import('../pages/VideoLibraryV2')
 );
 
 // Video Watch page (public with gated content)
@@ -194,11 +194,11 @@ const MembersVault = lazyLoadWithErrorHandling(
   'Members Vault'
 );
 
-// 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Single production store
+// 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE — V3 primary, V2 fallback
 const SwanStudiosStore = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/StoreV2'),
-  'SwanStudios Store V2',
-  () => import('../pages/shop/OptimizedGalaxyStoreFront')
+  () => import('../pages/shop/StoreV3'),
+  'SwanStudios Store V3',
+  () => import('../pages/shop/StoreV2')
 );
 
 // ✨ GENESIS CHECKOUT SYSTEM - New clean checkout flow
@@ -283,8 +283,9 @@ const TrainerDashboard = lazyLoadWithErrorHandling(
   'Trainer Dashboard'
 );
 const UserDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/UserDashboard'),
-  'User Dashboard'
+  () => import('../components/UserDashboard/UserDashboard.V3'),
+  'User Dashboard V3',
+  () => import('../components/UserDashboard')
 );
 const AdvancedGamificationPage = lazyLoadWithErrorHandling(
   () => import('../pages/AdvancedGamificationPage'),
@@ -295,8 +296,9 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   'User Profile Page'
 );
 const SocialPage = lazyLoadWithErrorHandling(
-  () => import('../pages/Social/SocialPage'),
-  'Social Hub'
+  () => import('../pages/Social/SocialPage.V3'),
+  'Social Hub V3',
+  () => import('../pages/Social/SocialPage')
 );
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
