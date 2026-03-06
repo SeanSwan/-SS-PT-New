@@ -9,7 +9,7 @@ module.exports = {
     const newValues = ['dance', 'music', 'art', 'gaming', 'community_meetup'];
     for (const val of newValues) {
       await queryInterface.sequelize.query(
-        `ALTER TYPE "enum_Challenges_category" ADD VALUE IF NOT EXISTS '${val}';`
+        `ALTER TYPE "enum_challenges_category" ADD VALUE IF NOT EXISTS '${val}';`
       );
     }
   },
