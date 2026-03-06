@@ -263,23 +263,30 @@ const GlobalStyles = createGlobalStyle`
     top: 0;
   }
   
-  /* Scrollbar styles */
+  /* Scrollbar styles - subtle and refined */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
-    border-radius: 4px;
+    background: rgba(0, 200, 255, 0.25);
+    border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 255, 0.5);
+    background: rgba(0, 200, 255, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 3px;
+    }
   }
 `;
 

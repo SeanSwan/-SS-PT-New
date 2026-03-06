@@ -38,8 +38,22 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({
   const [isComplete, setIsComplete] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
+  const isInView = useInView(ref, { once: true, amount: 0.1 });
   const prefersReducedMotion = useReducedMotion();
+
+  // Fallback: if useInView never triggers (e.g. element inside transformed
+  // parallax container), show the text after 2 seconds to avoid empty headings
+  useEffect(() => {
+    if (isComplete || hasStarted) return;
+    const fallback = setTimeout(() => {
+      if (!hasStarted) {
+        setDisplayedText(text);
+        setIsComplete(true);
+        onComplete?.();
+      }
+    }, 2000);
+    return () => clearTimeout(fallback);
+  }, [isComplete, hasStarted, text, onComplete]);
 
   useEffect(() => {
     if (!isInView || hasStarted) return;

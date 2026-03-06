@@ -644,23 +644,33 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
   
   /* === LUXURY SCROLLBAR === */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, var(--cosmic-primary), var(--cosmic-secondary));
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 200, 255, 0.25);
+    border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, var(--cosmic-accent), var(--cosmic-primary));
+    background: rgba(0, 200, 255, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 3px;
+    }
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 200, 255, 0.25) rgba(255, 255, 255, 0.03);
   }
   
   /* === PRINT OPTIMIZATION === */
