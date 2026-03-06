@@ -97,7 +97,7 @@ const challengeController = {
         },
         filters: {
           types: ['daily', 'weekly', 'monthly', 'community', 'custom'],
-          categories: ['fitness', 'nutrition', 'mindfulness', 'social', 'streak'],
+          categories: ['fitness', 'nutrition', 'mindfulness', 'social', 'streak', 'dance', 'music', 'art', 'gaming', 'community_meetup'],
           difficulties: [1, 2, 3, 4, 5]
         }
       });

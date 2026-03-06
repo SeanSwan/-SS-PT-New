@@ -62,7 +62,7 @@ interface Post {
 
 interface CreatePostParams {
   content: string;
-  type?: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation';
+  type?: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation' | 'creative' | 'dance' | 'music' | 'art' | 'gaming';
   visibility?: 'public' | 'friends' | 'private';
   media?: File | null;
   workoutSessionId?: string;

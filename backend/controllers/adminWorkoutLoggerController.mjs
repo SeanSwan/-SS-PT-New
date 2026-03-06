@@ -183,6 +183,23 @@ export const logWorkout = async (req, res) => {
         );
       }
       await xpTx.commit();
+
+      // --- Best-effort auto-post to social feed ---
+      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+        try {
+          const { createWorkoutAutoPost, createStreakAutoPost } = await import('../services/socialAutoPost.mjs');
+          await createWorkoutAutoPost(clientId, {
+            duration: parsedDuration,
+            exercisesCompleted: exercises.length,
+            pointsAwarded: xpResult.pointsAwarded,
+          });
+          if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
+            await createStreakAutoPost(clientId, xpResult.streakDays);
+          }
+        } catch (autoPostErr) {
+          logger.warn(`Auto-post failed for workout ${session.id}: ${autoPostErr.message}`);
+        }
+      }
     } catch (xpErr) {
       try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
       logger.warn(`XP award failed for workout ${session.id}: ${xpErr.message}`);

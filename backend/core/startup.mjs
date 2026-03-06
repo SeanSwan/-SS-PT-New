@@ -374,6 +374,14 @@ export const initializeServer = async (app) => {
         logger.info('🌱 Seeding initial data...');
         await seedInitialData();
         
+        // Start weekly challenge auto-creation scheduler
+        try {
+          const { startWeeklyChallengeScheduler } = await import('../services/weeklyChallengeCron.mjs');
+          startWeeklyChallengeScheduler();
+        } catch (schedErr) {
+          logger.warn(`Weekly challenge scheduler failed to start: ${schedErr.message}`);
+        }
+
         logger.info('✅ Background initialization completed successfully!');
       } catch (backgroundError) {
         logger.error(`⚠️  Background initialization failed: ${backgroundError.message}`);

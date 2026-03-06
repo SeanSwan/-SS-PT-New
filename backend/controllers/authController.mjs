@@ -528,6 +528,31 @@ export const register = async (req, res) => {
 
     logger.info(`New user registered successfully: ${username}`);
 
+    // --- Best-effort: auto-follow admin so new users see content ---
+    try {
+      const User = getUser();
+      const Friendship = sequelize.models.Friendship;
+      if (Friendship) {
+        const adminUser = await User.findOne({ where: { role: 'admin' } });
+        if (adminUser && adminUser.id !== user.id) {
+          await Friendship.findOrCreate({
+            where: {
+              requesterId: adminUser.id,
+              recipientId: user.id,
+            },
+            defaults: {
+              requesterId: adminUser.id,
+              recipientId: user.id,
+              status: 'accepted',
+            },
+          });
+          logger.info(`Auto-follow: new user ${user.id} now follows admin ${adminUser.id}`);
+        }
+      }
+    } catch (autoFollowErr) {
+      logger.warn(`Auto-follow failed for new user ${user.id}: ${autoFollowErr.message}`);
+    }
+
     // Return user data and token
     res.status(201).json({
       success: true,

@@ -84,6 +84,27 @@ const EmptyFeedMessage = styled.div`
   background-color: rgba(29, 31, 43, 0.8);
 `;
 
+const WelcomeCard = styled.div`
+  padding: 32px 24px;
+  text-align: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(120, 81, 169, 0.15), rgba(0, 255, 255, 0.08));
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+`;
+
+const WelcomeTip = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+`;
+
 const GamificationHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -280,11 +301,16 @@ const ButtonGroup = styled.div`
 
 const GamificationHeaderLeft = styled.div``;
 
+interface SocialFeedProps {
+  /** "full" = gamification header + stats (Social Hub), "compact" = feed only (Dashboard) */
+  variant?: 'full' | 'compact';
+}
+
 /**
  * Social Feed Component
  * Displays posts from friends and allows creating new posts
  */
-const SocialFeed: React.FC = () => {
+const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
@@ -359,8 +385,8 @@ const SocialFeed: React.FC = () => {
 
   return (
     <FeedContainer>
-      {/* Gamification Header */}
-      {profile.data && (
+      {/* Gamification Header — full variant only */}
+      {variant === 'full' && profile.data && (
         <GamificationHeader>
           <GamificationHeaderLeft>
             <Heading6 $fontWeight={600} $mb={0.5}>
@@ -399,8 +425,8 @@ const SocialFeed: React.FC = () => {
         </ActivityIndicator>
       )}
 
-      {/* Feed Statistics */}
-      {posts.length > 0 && (
+      {/* Feed Statistics — full variant only */}
+      {variant === 'full' && posts.length > 0 && (
         <FeedStats>
           <StatCard>
             <Heading6 $color="#00FFFF" $fontWeight={600}>
@@ -466,28 +492,34 @@ const SocialFeed: React.FC = () => {
           )}
         </>
       ) : (
-        <EmptyFeedMessage>
-          <Heading6 $gutterBottom>
-            Your feed is empty
+        <WelcomeCard>
+          <Heading6 $gutterBottom $fontWeight={700}>
+            Welcome to SwanStudios!
           </Heading6>
-          <BodyText2 $color="rgba(255,255,255,0.7)" $paragraph>
-            Connect with friends or join challenges to see their activity here!
+          <BodyText2 $color="rgba(255,255,255,0.85)" $paragraph>
+            Introduce yourself to the community — share a post and earn your first points!
           </BodyText2>
           <ButtonGroup>
             <ContainedButton
               $color="primary"
-              onClick={() => navigate('/social/friends')}
+              onClick={() => navigate('/social/challenges')}
             >
-              Find Friends
+              <Trophy size={16} style={{ marginRight: 6 }} />
+              Browse Challenges
             </ContainedButton>
             <OutlinedButton
               $color="primary"
-              onClick={() => navigate('/social/challenges')}
+              onClick={() => navigate('/social/friends')}
             >
-              Browse Challenges
+              <Users size={16} style={{ marginRight: 6 }} />
+              Find Friends
             </OutlinedButton>
           </ButtonGroup>
-        </EmptyFeedMessage>
+          <WelcomeTip>
+            <Zap size={14} />
+            Tip: Post publicly so everyone can see your journey
+          </WelcomeTip>
+        </WelcomeCard>
       )}
     </FeedContainer>
   );

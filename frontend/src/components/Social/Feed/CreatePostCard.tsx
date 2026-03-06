@@ -11,7 +11,12 @@ import {
   Camera,
   Trophy,
   Target,
-  Star
+  Star,
+  Music2,
+  Mic2,
+  Palette,
+  Gamepad2,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
@@ -441,7 +446,7 @@ const CreatePostCard: React.FC = () => {
   const [media, setMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('friends');
-  const [postType, setPostType] = useState<'general' | 'workout' | 'transformation' | 'achievement' | 'challenge'>('general');
+  const [postType, setPostType] = useState<'general' | 'workout' | 'transformation' | 'achievement' | 'challenge' | 'dance' | 'music' | 'art' | 'gaming'>('general');
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [beforeImage, setBeforeImage] = useState<File | null>(null);
   const [afterImage, setAfterImage] = useState<File | null>(null);
@@ -500,6 +505,34 @@ const CreatePostCard: React.FC = () => {
       icon: <Target size={16} />,
       points: 20,
       description: 'Create or complete a challenge'
+    },
+    {
+      value: 'dance',
+      label: 'Dance',
+      icon: <Music2 size={16} />,
+      points: 20,
+      description: 'Share a dance or movement video'
+    },
+    {
+      value: 'music',
+      label: 'Music',
+      icon: <Mic2 size={16} />,
+      points: 20,
+      description: 'Share your workout playlist or songs'
+    },
+    {
+      value: 'art',
+      label: 'Art',
+      icon: <Palette size={16} />,
+      points: 20,
+      description: 'Share fitness-inspired art or photography'
+    },
+    {
+      value: 'gaming',
+      label: 'Gaming',
+      icon: <Gamepad2 size={16} />,
+      points: 15,
+      description: 'Gaming + fitness crossover content'
     }
   ];
 
