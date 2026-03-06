@@ -33,12 +33,16 @@ const WorkspaceWrapper = styled.div`
   color: rgba(255, 255, 255, 0.9);
 
   @media (max-width: 768px) {
-    padding: 12px;
+    padding: 8px;
   }
 `;
 
 const PageHeader = styled.div`
   margin-bottom: 24px;
+
+  @media (max-width: 768px) {
+    margin-bottom: 12px;
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -113,13 +117,14 @@ const TabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 768px) {
-    padding: 10px 14px;
-    font-size: 13px;
-    gap: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 4px;
+    border-radius: 8px;
 
     svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
     }
   }
 `;

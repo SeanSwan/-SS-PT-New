@@ -38,6 +38,28 @@ export const CommandHeader = styled(motion.div)`
     color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
     font-size: 1.1rem;
   }
+
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    p {
+      font-size: 0.875rem;
+    }
+  }
+
+  @media (max-width: 430px) {
+    padding: 1rem;
+
+    h1 {
+      font-size: 1.25rem;
+    }
+  }
 `;
 
 export const CommandGrid = styled.div`
@@ -48,6 +70,8 @@ export const CommandGrid = styled.div`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
   }
 `;
 
@@ -120,6 +144,7 @@ export const MetricGrid = styled.div`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
   }
 `;
