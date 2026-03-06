@@ -1258,7 +1258,6 @@ const HomePageV4: React.FC = () => {
             <source src="/Swans.mp4" type="video/mp4" />
             <track kind="captions" srcLang="en" label="English captions" />
           </VideoEl>
-          <HeroOverlay />
 
           <HeroContent
             variants={staggerContainer}
