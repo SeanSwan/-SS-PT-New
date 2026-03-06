@@ -128,12 +128,12 @@ const ClientOnboardingWizard = lazyLoadWithErrorHandling(
   'Client Onboarding Wizard'
 );
 
-// v3.0 HOMEPAGE: Claude cinematic design — parallax, weighted motion, glassmorphism
-// Falls back to V4 (Gemini version) if V3 fails to load
+// v4.0 HOMEPAGE: Gemini 3.1 Pro cinematic redesign — parallax, weighted motion, glassmorphism
+// Falls back to V3 (Claude's version) if V4 fails to load
 const HomePage = lazyLoadWithErrorHandling(
-  () => import('../pages/HomePage/components/HomePage.V3'),
-  'Home Page V3',
-  () => import('../pages/HomePage/components/HomePage.V4')
+  () => import('../pages/HomePage/components/HomePage.V4'),
+  'Home Page V4',
+  () => import('../pages/HomePage/components/HomePage.V3')
 );
 const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),

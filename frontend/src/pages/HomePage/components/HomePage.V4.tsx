@@ -1280,31 +1280,26 @@ const HomePageV4: React.FC = () => {
               animate={prefersReduced ? undefined : { y: [0, -10, 0] }}
               transition={prefersReduced ? undefined : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
-            <HeroEyebrow variants={reveal}>
-              Sean Swan &bull; NCEP Certified &bull; NASM Protocol &bull; 25+ Years
-            </HeroEyebrow>
             <HeroHeadline variants={reveal}>
-              Elevate Your
-              <br />
-              Existence
+              <TypewriterText text="Where Excellence Meets Precision" as="span" speed={50} />
             </HeroHeadline>
             <HeroSubheadline variants={reveal}>
-              This is not another fitness app. This is your personal universe of transformation, powered by elite coaching and AI precision.
+              NCEP-Certified Personal Training &middot; 25+ Years of Experience &middot; NASM-Guided Protocols
             </HeroSubheadline>
             <ButtonGroup variants={reveal}>
               <GlowButton
-                text="START MY JOURNEY"
+                text="Start My Fitness Journey"
                 theme="primary"
                 size="large"
-                onClick={() => setShowOrientation(true)}
+                onClick={() => navigate('/store')}
                 aria-label="Start your personalized fitness journey"
               />
               <GlowButton
-                text="EXPLORE PROGRAMS"
+                text="Book Free Consultation"
                 theme="cosmic"
                 size="large"
-                onClick={() => navigate('/store')}
-                aria-label="Explore training programs"
+                onClick={() => setShowOrientation(true)}
+                aria-label="Book a free consultation"
               />
             </ButtonGroup>
           </HeroContent>
