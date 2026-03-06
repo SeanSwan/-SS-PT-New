@@ -413,27 +413,25 @@ const HeroEyebrow = styled(motion.span)`
 `;
 
 const HeroHeadline = styled(motion.h1)`
-  color: ${({ theme }) => theme.text?.primary || '#f0f0ff'};
-  font-size: clamp(2.5rem, 6vw, 5.5rem);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin-bottom: 24px;
-  text-transform: uppercase;
-  background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.7) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: none;
+  font-family: ${({ theme }) => theme.fonts?.drama || '"Cormorant Garamond", Georgia, serif'};
+  color: ${({ theme }) => theme.text?.heading || '#E0ECF4'};
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
 `;
 
 const HeroSubheadline = styled(motion.p)`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(240, 240, 255, 0.7)'};
-  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-family: ${({ theme }) => theme.fonts?.ui || '"Sora", sans-serif'};
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(224, 236, 244, 0.85)'};
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
   font-weight: 400;
   max-width: 600px;
-  margin-bottom: 48px;
+  margin-bottom: 2.5rem;
   line-height: 1.5;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
 `;
 
 const ButtonGroup = styled(motion.div)`
@@ -1260,10 +1258,6 @@ const HomePageV4: React.FC = () => {
             <source src="/Swans.mp4" type="video/mp4" />
             <track kind="captions" srcLang="en" label="English captions" />
           </VideoEl>
-          <HeroParallaxImg
-            style={prefersReduced ? undefined : { y: heroParallaxY }}
-            aria-hidden="true"
-          />
           <HeroOverlay />
 
           <HeroContent
