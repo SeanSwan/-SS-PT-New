@@ -77,27 +77,33 @@ export const ExecutiveGlobalStyles = createGlobalStyle`
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.3);
-    border-radius: 4px;
+    background: rgba(10, 10, 15, 0.2);
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: ${props => props.theme.gradients.commandCenter};
-    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 3px;
 
     &:hover {
-      background: ${props => props.theme.colors.stellarAuthority};
+      background: rgba(59, 130, 246, 0.5);
     }
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: ${props => props.theme.colors.stellarAuthority} rgba(10, 10, 15, 0.3);
+    scrollbar-color: rgba(59, 130, 246, 0.3) rgba(10, 10, 15, 0.2);
+  }
+
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 3px;
+    }
   }
 
   *:focus {

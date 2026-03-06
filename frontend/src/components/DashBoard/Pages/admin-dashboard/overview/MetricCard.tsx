@@ -122,6 +122,14 @@ const Card = styled(motion.div)`
     border-color: ${({ theme }) => theme.colors?.primary ? `${theme.colors.primary}33` : 'rgba(255, 255, 255, 0.2)'};
     transform: translateY(-4px);
   }
+
+  @media (max-width: 768px) {
+    padding: 16px;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
 `;
 
 const Header = styled.div`
@@ -174,6 +182,10 @@ const Value = styled.div`
   font-weight: 700;
   margin-bottom: 8px;
   line-height: 1;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+  }
 `;
 
 const ProgressSection = styled.div`

@@ -50,7 +50,11 @@ export const ExecutiveMainContent = styled(motion.main)`
 
   @media (max-width: 768px) {
     margin-left: 0;
-    padding: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.sm};
+  }
+
+  @media (max-width: 430px) {
+    padding: 0.25rem;
   }
 `;
 
