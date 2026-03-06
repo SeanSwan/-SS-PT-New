@@ -12,11 +12,11 @@ import logger from '../utils/logger.mjs';
 const STREAK_MILESTONES = [7, 14, 30, 60, 90, 180, 365];
 
 const WORKOUT_MESSAGES = [
-  'Just crushed a workout! 💪',
-  'Another workout in the books! 🔥',
-  'Putting in the work! 💯',
-  'Grinding! No days off! 🏋️',
-  'Showing up and getting it done! ⚡',
+  'Just crushed a workout!',
+  'Another workout in the books!',
+  'Putting in the work!',
+  'Grinding! No days off!',
+  'Showing up and getting it done!',
 ];
 
 /**
@@ -30,8 +30,8 @@ export async function createWorkoutAutoPost(userId, workoutData) {
     const msg = WORKOUT_MESSAGES[Math.floor(Math.random() * WORKOUT_MESSAGES.length)];
 
     const parts = [msg];
-    if (duration) parts.push(`⏱️ ${duration} min`);
-    if (exercisesCompleted) parts.push(`🎯 ${exercisesCompleted} exercises`);
+    if (duration) parts.push(`${duration} min`);
+    if (exercisesCompleted) parts.push(`${exercisesCompleted} exercises`);
     if (pointsAwarded) parts.push(`+${pointsAwarded} XP`);
 
     const content = parts.join(' | ');
@@ -60,8 +60,7 @@ export async function createStreakAutoPost(userId, streakDays) {
   try {
     if (!STREAK_MILESTONES.includes(streakDays)) return;
 
-    const emoji = streakDays >= 90 ? '👑' : streakDays >= 30 ? '🔥' : '⚡';
-    const content = `${emoji} ${streakDays}-day workout streak! Consistency is key! 🏆`;
+    const content = `${streakDays}-day workout streak! Consistency is key!`;
 
     await SocialPost.create({
       userId,
@@ -85,7 +84,7 @@ export async function createStreakAutoPost(userId, streakDays) {
  */
 export async function createAchievementAutoPost(userId, achievement) {
   try {
-    const content = `🏅 Achievement Unlocked: ${achievement.name}! ${achievement.description || ''}`.trim();
+    const content = `Achievement Unlocked: ${achievement.name}! ${achievement.description || ''}`.trim();
 
     await SocialPost.create({
       userId,
@@ -96,7 +95,7 @@ export async function createAchievementAutoPost(userId, achievement) {
       moderationNotes: 'auto-generated',
     });
 
-    logger.info(`Auto-post: achievement post created for user ${userId} — ${achievement.name}`);
+    logger.info(`Auto-post: achievement post created for user ${userId} -- ${achievement.name}`);
   } catch (err) {
     logger.error(`Auto-post: failed to create achievement post for user ${userId}: ${err.message}`);
   }
