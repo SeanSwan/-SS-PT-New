@@ -727,9 +727,11 @@ const AboutGrid = styled.div`
   gap: 32px;
   max-width: 1200px;
   margin: 0 auto;
+  text-align: center;
 
   @media (max-width: 320px) {
     gap: 24px;
+    padding: 0 0.5rem;
   }
 
   @media (min-width: 430px) {
@@ -739,14 +741,37 @@ const AboutGrid = styled.div`
   @media (min-width: 1024px) {
     grid-template-columns: 1.5fr 1fr;
     align-items: center;
+    text-align: left;
   }
 
   @media (min-width: 2560px) {
     max-width: 1600px;
+    gap: 64px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 2200px;
+    gap: 80px;
   }
 `;
 
 const AboutText = styled(motion.div)`
+  max-width: 700px;
+  margin: 0 auto;
+
+  @media (min-width: 1024px) {
+    margin: 0;
+    max-width: none;
+  }
+
+  @media (min-width: 2560px) {
+    p { font-size: 1.15rem; }
+  }
+
+  @media (min-width: 3840px) {
+    p { font-size: 1.3rem; }
+  }
+
   p {
     font-size: 1rem;
     color: ${({ theme }) => theme.text?.secondary || 'rgba(240, 240, 255, 0.7)'};
@@ -768,12 +793,28 @@ const AboutLogoWrapper = styled(motion.div)`
 `;
 
 const AboutLogo = styled.img`
-  width: 200px;
+  width: 180px;
   height: auto;
   filter: drop-shadow(0 0 40px rgba(0, 255, 255, 0.2));
 
+  @media (max-width: 320px) {
+    width: 140px;
+  }
+
   @media (min-width: 768px) {
+    width: 220px;
+  }
+
+  @media (min-width: 1024px) {
     width: 260px;
+  }
+
+  @media (min-width: 2560px) {
+    width: 320px;
+  }
+
+  @media (min-width: 3840px) {
+    width: 400px;
   }
 `;
 
@@ -781,11 +822,26 @@ const ApproachGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
-  margin-top: 48px;
+  margin: 48px auto 0;
   max-width: 1200px;
+
+  @media (max-width: 320px) {
+    gap: 16px;
+    margin-top: 32px;
+  }
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1600px;
+    gap: 32px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 2200px;
+    gap: 40px;
   }
 `;
 
