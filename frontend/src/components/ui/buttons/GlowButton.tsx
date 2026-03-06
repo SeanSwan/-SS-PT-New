@@ -25,6 +25,7 @@ export type GlowButtonColorScheme =
   | 'success'
   | 'danger'
   | 'ghost'
+  | 'cosmicGradient'
   // Legacy aliases — kept in the union so existing typed call-sites compile
   | 'neonBlue'
   | 'purple'
@@ -51,6 +52,10 @@ export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
   children?: React.ReactNode;
   fullWidth?: boolean;
   glowIntensity?: 'low' | 'medium' | 'high';
+  /** Subtle breathing animation for CTA buttons */
+  pulse?: boolean;
+  /** Subtle scale bounce on click (enhanced mobile feel) */
+  haptic?: boolean;
 }
 
 interface ButtonTheme {
@@ -73,7 +78,7 @@ interface ButtonSize {
 
 // ─── Backward-compatibility map ────────────────────────────────────────────────
 // Maps legacy variant names to their Crystalline Swan equivalents.
-type CanonicalVariant = 'primary' | 'accent' | 'gilded' | 'success' | 'danger' | 'ghost';
+type CanonicalVariant = 'primary' | 'accent' | 'gilded' | 'success' | 'danger' | 'ghost' | 'cosmicGradient';
 
 const LEGACY_VARIANT_MAP: Record<string, CanonicalVariant> = {
   neonBlue: 'accent',
@@ -152,6 +157,16 @@ const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
     glowStart: "#4070C0",                    // Swan Lavender
     glowEnd: "#60C0F0",                      // Ice Wing
   },
+  // COSMIC GRADIENT — Animated cyan→purple gradient border, deep space base
+  cosmicGradient: {
+    background: "#0a0a1a",
+    color: "#E0ECF4",
+    shadow: "rgba(0, 255, 255, 0.15)",
+    shineLeft: "rgba(0, 255, 255, 0.5)",     // Cyan
+    shineRight: "rgba(120, 81, 169, 0.65)",  // Cosmic Purple
+    glowStart: "#00FFFF",                    // Swan Cyan
+    glowEnd: "#7851A9",                      // Cosmic Purple
+  },
 };
 
 // ─── Light-theme overrides ─────────────────────────────────────────────────────
@@ -201,6 +216,13 @@ const LIGHT_THEME_OVERRIDES: Record<CanonicalVariant, Partial<ButtonTheme>> = {
     shineLeft: "rgba(64, 112, 192, 0.15)",
     shineRight: "rgba(64, 112, 192, 0.25)",
   },
+  cosmicGradient: {
+    background: "linear-gradient(135deg, #00BFFF, #7851A9)",
+    color: "#FFFFFF",
+    shadow: "rgba(0, 191, 255, 0.18)",
+    shineLeft: "rgba(0, 191, 255, 0.3)",
+    shineRight: "rgba(120, 81, 169, 0.4)",
+  },
 };
 
 // Button sizes
@@ -247,6 +269,11 @@ const ripple = keyframes`
   100% { transform: scale(2.5); opacity: 0; }
 `;
 
+const breathe = keyframes`
+  0%, 100% { box-shadow: 0 0 16px var(--button-glow-start); }
+  50% { box-shadow: 0 0 28px var(--button-glow-start), 0 0 48px var(--button-glow-end); }
+`;
+
 // Convert button variables to CSS vars
 const generateButtonVars = (
   theme: ButtonTheme,
@@ -279,14 +306,20 @@ const generateButtonVars = (
 `;
 
 // Main button container
-const ButtonContainer = styled.div<{ fullWidth?: boolean }>`
+const ButtonContainer = styled.div<{ fullWidth?: boolean; $haptic?: boolean }>`
   display: inline-block;
   position: relative;
   transition: transform 0.2s ease;
   width: ${props => props.fullWidth ? '100%' : 'auto'};
 
   &:active {
-    transform: translateY(2px) scale(0.98);
+    transform: ${({ $haptic }) =>
+      $haptic
+        ? 'translateY(1px) scale(0.93)'
+        : 'translateY(2px) scale(0.98)'};
+    ${({ $haptic }) => $haptic && css`
+      transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+    `}
   }
 `;
 
@@ -297,6 +330,8 @@ interface StyledButtonProps {
   $glowIntensity?: string;
   $isLightTheme?: boolean;
   $isGhost?: boolean;
+  $pulse?: boolean;
+  $haptic?: boolean;
 }
 
 // StyledGlowButton with proper prop filtering
@@ -305,10 +340,11 @@ const StyledGlowButton = styled.button.withConfig({
     // These are props we don't want to pass to the HTML button element
     const nonDOMProps = [
       '$theme', '$size', '$fullWidth', '$glowIntensity', '$isLightTheme', '$isGhost',
+      '$pulse', '$haptic',
       'isAnimating', 'variant',
       'startIcon', 'endIcon', 'leftIcon', 'rightIcon', // Icon props
       'animateOnRender', 'isLoading', // State props
-      'text', 'glowIntensity', 'theme' // Content prop + alias
+      'text', 'glowIntensity', 'theme', 'pulse', 'haptic' // Content prop + alias
     ];
     return !nonDOMProps.includes(prop);
   }
@@ -341,6 +377,14 @@ const StyledGlowButton = styled.button.withConfig({
   width: var(--button-width);
   height: var(--button-height);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  ${({ $pulse }) => $pulse && css`
+    animation: ${breathe} 2.5s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  `}
 
   &:hover {
     --button-glow-opacity: ${({ $isLightTheme }) => $isLightTheme ? '0.5' : '1'};
@@ -517,6 +561,8 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   onClick,
   fullWidth = false,
   glowIntensity = 'medium',
+  pulse: pulseProp = false,
+  haptic = false,
   ...props
 }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -605,7 +651,7 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   const displayContent = children || text;
 
   return (
-    <ButtonContainer fullWidth={fullWidth}>
+    <ButtonContainer fullWidth={fullWidth} $haptic={haptic}>
       <motion.div
         initial={animateOnRender ? { y: 20, opacity: 0 } : false}
         animate={animateOnRender ? { y: 0, opacity: 1 } : false}
@@ -622,6 +668,8 @@ const GlowButton: React.FC<GlowButtonProps> = ({
           $glowIntensity={glowIntensity}
           $isLightTheme={isLightTheme}
           $isGhost={canonicalVariant === 'ghost'}
+          $pulse={pulseProp}
+          $haptic={haptic}
           {...props}
           aria-busy={isLoading}
           aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}
