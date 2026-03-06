@@ -725,7 +725,7 @@ const VideoLibraryV3: React.FC = () => {
         overlayOpacity={0.75}
         minHeight="50vh"
       >
-        <HeroTitle text="Video Library" as="h1" speed={55} />
+        <HeroTitle text="Video Library" forwardedAs="h1" speed={55} />
         <HeroSubtitle>Explore our training content</HeroSubtitle>
       </ParallaxHero>
 

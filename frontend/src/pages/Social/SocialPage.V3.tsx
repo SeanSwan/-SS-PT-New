@@ -555,7 +555,7 @@ const SocialPageV3: React.FC = () => {
         <HeroOverlay />
         <HeroContent>
           <ScrollReveal direction="up" delay={0.1}>
-            <HeroTitle text="Social Hub" as="h1" speed={50} />
+            <HeroTitle text="Social Hub" forwardedAs="h1" speed={50} />
             <HeroSubtitle>
               Connect, compete, and celebrate with the SwanStudios community
             </HeroSubtitle>

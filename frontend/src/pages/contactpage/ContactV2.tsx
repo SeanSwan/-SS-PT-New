@@ -613,7 +613,7 @@ const ContactV2: React.FC = () => {
       {/* ---- Hero ---- */}
       <ParallaxHero videoSrc="/swan.mp4" overlayOpacity={0.65} minHeight="70vh">
         <HeroLogo src={logoImg} alt="SwanStudios Logo" />
-        <HeroTitle text="Let's Connect" as="h1" speed={60} />
+        <HeroTitle text="Let's Connect" forwardedAs="h1" speed={60} />
         <HeroSubtitle>
           Whether you have questions about personal training, want to book a session, or just want
           to say hello — we would love to hear from you.
