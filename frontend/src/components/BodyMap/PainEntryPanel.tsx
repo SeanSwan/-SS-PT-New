@@ -19,6 +19,7 @@ import {
   PAIN_TYPE_OPTIONS,
   AGGRAVATING_MOVEMENTS,
   RELIEVING_FACTORS,
+  ALL_BODY_REGIONS,
 } from './bodyRegions';
 import type {
   PainEntry,
@@ -335,6 +336,29 @@ interface PainEntryPanelProps {
   isClientMode?: boolean;
 }
 
+/**
+ * Find the matching region on the opposite side.
+ * e.g., right_shoulder + 'left' → left_shoulder
+ */
+function findRegionForSide(currentId: string, newSide: PainSide): string {
+  const current = getRegionById(currentId);
+  if (!current || current.side === 'center' || newSide === 'center' || newSide === 'bilateral') {
+    return currentId;
+  }
+  // Build the expected ID by swapping the side prefix
+  const oppositePrefix = current.side === 'left' ? 'left_' : 'right_';
+  const newPrefix = newSide === 'left' ? 'left_' : 'right_';
+  if (currentId.startsWith(oppositePrefix)) {
+    const swappedId = newPrefix + currentId.slice(oppositePrefix.length);
+    if (getRegionById(swappedId)) return swappedId;
+  }
+  // Fallback: find a region with the same muscleGroup, view, and desired side
+  const match = ALL_BODY_REGIONS.find(
+    (r) => r.muscleGroup === current.muscleGroup && r.view === current.view && r.side === newSide,
+  );
+  return match?.id || currentId;
+}
+
 const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   regionId,
   existingEntry,
@@ -347,7 +371,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   isAdmin,
   isClientMode = false,
 }) => {
-  const region = regionId ? getRegionById(regionId) : null;
+  // Track effective region — may differ from regionId if user swaps sides
+  const [effectiveRegionId, setEffectiveRegionId] = useState<string | null>(regionId);
+  const region = effectiveRegionId ? getRegionById(effectiveRegionId) : null;
 
   const [painLevel, setPainLevel] = useState(5);
   const [painType, setPainType] = useState<PainType>('aching');
@@ -359,6 +385,11 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   const [trainerNotes, setTrainerNotes] = useState('');
   const [aiNotes, setAiNotes] = useState('');
   const [posturalSyndrome, setPosturalSyndrome] = useState<PosturalSyndrome>('none');
+
+  // Sync effectiveRegionId when parent regionId changes
+  useEffect(() => {
+    setEffectiveRegionId(regionId);
+  }, [regionId]);
 
   // Reset form when region changes or existing entry loads
   useEffect(() => {
@@ -382,9 +413,10 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       setAiNotes(existingEntry.aiNotes || '');
       setPosturalSyndrome(existingEntry.posturalSyndrome || 'none');
     } else {
+      const currentRegion = effectiveRegionId ? getRegionById(effectiveRegionId) : null;
       setPainLevel(5);
       setPainType('aching');
-      setSide(region?.side || 'center');
+      setSide(currentRegion?.side || 'center');
       setDescription('');
       setOnsetDate('');
       setSelectedAggravating([]);
@@ -393,7 +425,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       setAiNotes('');
       setPosturalSyndrome('none');
     }
-  }, [regionId, existingEntry, region?.side]);
+  }, [effectiveRegionId, existingEntry]);
 
   const toggleChip = useCallback(
     (value: string, list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
@@ -403,9 +435,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   );
 
   const handleSave = () => {
-    if (!regionId) return;
+    if (!effectiveRegionId) return;
     const payload: CreatePainEntryPayload = {
-      bodyRegion: regionId,
+      bodyRegion: effectiveRegionId,
       side,
       painLevel,
       painType,
@@ -469,7 +501,17 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
         {/* Side */}
         <FormGroup>
           <Label>Side</Label>
-          <Select value={side} onChange={(e) => setSide(e.target.value as PainSide)}>
+          <Select value={side} onChange={(e) => {
+            const newSide = e.target.value as PainSide;
+            setSide(newSide);
+            // Swap to matching region when side changes (e.g., right_shoulder → left_shoulder)
+            if (effectiveRegionId && (newSide === 'left' || newSide === 'right')) {
+              const swapped = findRegionForSide(effectiveRegionId, newSide);
+              if (swapped !== effectiveRegionId) {
+                setEffectiveRegionId(swapped);
+              }
+            }
+          }}>
             <option value="left">Left</option>
             <option value="right">Right</option>
             <option value="center">Center</option>
