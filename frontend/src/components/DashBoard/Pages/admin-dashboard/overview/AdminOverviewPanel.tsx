@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import styled from 'styled-components';
 import { DollarSign, Users, Dumbbell, Monitor, ShieldCheck } from 'lucide-react';
-import { useTheme } from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
 import ContactNotifications from '../components/ContactNotifications';
 import OrientationIntakeWidget from '../components/OrientationIntakeWidget';
 import SocialOverviewWidget from '../components/SocialOverviewWidget';
+import ModerationWidget from '../components/ModerationWidget';
 import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
 import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
@@ -15,7 +17,7 @@ import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './Ad
 
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
-  const theme = useTheme() as any;
+  const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState('24h');
   const [metrics, setMetrics] = useState<AdminDashboardMetric[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealthMetric[]>([]);
@@ -29,31 +31,31 @@ const AdminOverviewPanel: React.FC = () => {
         title: 'Revenue Analytics',
         description: 'Detailed revenue analysis',
         icon: <DollarSign size={20} />,
-        action: () => {},
+        action: () => navigate('/dashboard/analytics/revenue'),
       },
       {
         id: 'view-users',
         title: 'User Management',
         description: 'Manage platform users',
         icon: <Users size={20} />,
-        action: () => {},
+        action: () => navigate('/dashboard/people'),
       },
       {
         id: 'view-security',
         title: 'Security Dashboard',
         description: 'Security monitoring',
         icon: <ShieldCheck size={20} />,
-        action: () => {},
+        action: () => navigate('/dashboard/system/security'),
       },
       {
         id: 'view-system',
         title: 'System Health',
         description: 'Infrastructure monitoring',
         icon: <Monitor size={20} />,
-        action: () => {},
+        action: () => navigate('/dashboard/system/health'),
       },
     ],
-    []
+    [navigate]
   );
 
   const mapChangeType = (value: number): AdminDashboardMetric['changeType'] => {
@@ -168,41 +170,24 @@ const AdminOverviewPanel: React.FC = () => {
       <OrientationIntakeWidget />
       <ContactNotifications autoRefresh={true} showActions={true} />
       <SocialOverviewWidget />
+      <ModerationWidget />
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '2rem',
-          padding: '1rem',
-          background: theme?.background?.elevated || 'rgba(30, 58, 138, 0.2)',
-          borderRadius: '12px',
-          border: theme?.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select
+      <ControlsHeader>
+        <ControlsInner>
+          <CosmicSelect
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            style={{
-              background: theme?.interactive?.hover || 'rgba(59, 130, 246, 0.1)',
-              border: theme?.borders?.subtle || '1px solid rgba(59, 130, 246, 0.3)',
-              borderRadius: '8px',
-              color: theme?.text?.primary || '#ffffff',
-              padding: '0.5rem 1rem',
-              fontSize: '0.875rem',
-            }}
+            aria-label="Select time range"
           >
             <option value="24h">Last 24 hours</option>
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
-          </select>
-          {isLoading && <span style={{ color: theme?.text?.secondary || 'rgba(255, 255, 255, 0.7)' }}>Loading...</span>}
-          {error && <span style={{ color: theme?.colors?.error || '#ef4444' }}>{error}</span>}
-        </div>
-      </div>
+          </CosmicSelect>
+          {isLoading && <StatusText>Loading...</StatusText>}
+          {error && <ErrorText>{error}</ErrorText>}
+        </ControlsInner>
+      </ControlsHeader>
 
       <AdminOverviewMetrics metrics={metrics} />
 
@@ -217,5 +202,63 @@ const AdminOverviewPanel: React.FC = () => {
     </div>
   );
 };
+
+// === Styled Components ===
+
+const ControlsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 16px 24px;
+  background: rgba(10, 10, 26, 0.4);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(120, 81, 169, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+`;
+
+const ControlsInner = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+`;
+
+const CosmicSelect = styled.select`
+  appearance: none;
+  background: rgba(255, 255, 255, 0.03) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2300FFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 10px;
+  color: #ffffff;
+  padding: 10px 40px 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  min-height: 44px;
+  transition: all 0.2s ease;
+
+  &:hover, &:focus {
+    background-color: rgba(0, 255, 255, 0.05);
+    border-color: #00FFFF;
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+  }
+
+  option {
+    background: #0a0a1a;
+    color: #ffffff;
+    padding: 12px;
+  }
+`;
+
+const StatusText = styled.span`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+`;
+
+const ErrorText = styled.span`
+  color: #ef4444;
+  font-size: 0.875rem;
+`;
 
 export default AdminOverviewPanel;

@@ -221,20 +221,15 @@ export const useSocialFriends = () => {
     }
   }, [authAxios, user, toast]);
   
-  // Search for users
+  // Search for users via backend API
   const searchUsers = useCallback(async (query: string) => {
     if (!user || !query.trim()) return [];
-    
+
     try {
-      // For now, just return friend suggestions as search results
-      // In a real implementation, this would make an API call to search for users
-      return friendSuggestions.filter(user => {
-        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-        const username = user.username.toLowerCase();
-        const searchQuery = query.toLowerCase();
-        
-        return fullName.includes(searchQuery) || username.includes(searchQuery);
+      const response = await authAxios.get('/api/social/friendships/search', {
+        params: { q: query.trim() }
       });
+      return response.data.results || [];
     } catch (err) {
       console.error('Error searching users:', err);
       toast({
@@ -242,10 +237,10 @@ export const useSocialFriends = () => {
         description: 'Unable to search for users. Please try again later.',
         variant: 'destructive'
       });
-      
+
       return [];
     }
-  }, [authAxios, user, toast, friendSuggestions]);
+  }, [authAxios, user, toast]);
   
   // Initial data fetch
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Image,
   Send,
@@ -16,7 +16,10 @@ import {
   Mic2,
   Palette,
   Gamepad2,
-  Sparkles
+  Sparkles,
+  History,
+  ChevronDown,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
@@ -352,6 +355,74 @@ const TransformationImageBox = styled.div`
   }
 `;
 
+const WorkoutHistoryBtnRow = styled.div`
+  display: flex;
+  margin-top: 12px;
+`;
+
+const WorkoutHistoryBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 255, 255, 0.05);
+  color: #00ffff;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  min-height: 40px;
+  transition: all 0.2s ease;
+  &:hover:not(:disabled) { background: rgba(0, 255, 255, 0.12); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const WorkoutHistoryList = styled.div`
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+`;
+
+const WorkoutHistoryItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+  &:hover { background: rgba(0, 255, 255, 0.08); }
+  &:last-child { border-bottom: none; }
+`;
+
+const WorkoutHistoryInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const WorkoutHistoryName = styled.div`
+  font-size: 0.8125rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const WorkoutHistoryDate = styled.div`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+`;
+
+const WorkoutHistoryEmpty = styled.div`
+  padding: 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8125rem;
+`;
+
 const WorkoutStatsContainer = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -448,6 +519,7 @@ const CreatePostCard: React.FC = () => {
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('friends');
   const [postType, setPostType] = useState<'general' | 'workout' | 'transformation' | 'achievement' | 'challenge' | 'dance' | 'music' | 'art' | 'gaming'>('general');
   const [showCreateOptions, setShowCreateOptions] = useState(false);
+  const createCardRef = useRef<HTMLDivElement>(null);
   const [beforeImage, setBeforeImage] = useState<File | null>(null);
   const [afterImage, setAfterImage] = useState<File | null>(null);
   const [beforePreview, setBeforePreview] = useState<string | null>(null);
@@ -461,6 +533,51 @@ const CreatePostCard: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const beforeImageRef = useRef<HTMLInputElement>(null);
   const afterImageRef = useRef<HTMLInputElement>(null);
+
+  // Workout history state
+  const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
+  const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const { authAxios } = useAuth();
+
+  const fetchWorkoutHistory = useCallback(async () => {
+    if (workoutHistory.length > 0) { setShowWorkoutHistory(true); return; }
+    setIsLoadingHistory(true);
+    try {
+      const res = await authAxios.get('/api/sessions', { params: { limit: 20, status: 'completed' } });
+      const sessions = res.data?.sessions || res.data?.data || res.data || [];
+      setWorkoutHistory(Array.isArray(sessions) ? sessions : []);
+      setShowWorkoutHistory(true);
+    } catch (err) {
+      console.error('Failed to fetch workout history:', err);
+      // Try alternate endpoint
+      try {
+        const res2 = await authAxios.get('/api/workout-sessions', { params: { limit: 20 } });
+        const sessions2 = res2.data?.sessions || res2.data?.data || res2.data || [];
+        setWorkoutHistory(Array.isArray(sessions2) ? sessions2 : []);
+        setShowWorkoutHistory(true);
+      } catch { setWorkoutHistory([]); setShowWorkoutHistory(true); }
+    } finally { setIsLoadingHistory(false); }
+  }, [authAxios, workoutHistory.length]);
+
+  const selectWorkoutFromHistory = (workout: any) => {
+    const dur = workout.duration || workout.durationMinutes || '';
+    const exercises = workout.exerciseCount || workout.exercises?.length || '';
+    const weight = workout.totalWeight || workout.volumeLoad || '';
+    const calories = workout.caloriesBurned || workout.calories || '';
+    setWorkoutStats({
+      duration: String(dur),
+      exerciseCount: String(exercises),
+      totalWeight: String(weight),
+      caloriesBurned: String(calories)
+    });
+    const date = workout.date || workout.sessionDate || workout.createdAt;
+    const dateStr = date ? new Date(date).toLocaleDateString() : '';
+    const workoutName = workout.name || workout.workoutName || workout.title || 'Workout';
+    setPostContent(`Just completed: ${workoutName}${dateStr ? ` on ${dateStr}` : ''}! ${dur ? `${dur} min` : ''} ${exercises ? `| ${exercises} exercises` : ''} ${weight ? `| ${weight} lbs lifted` : ''}`);
+    setShowWorkoutHistory(false);
+  };
 
   // Visibility options with icons
   const visibilityOptions = [
@@ -702,7 +819,7 @@ const CreatePostCard: React.FC = () => {
 
   return (
     <>
-      <CreatePostCardWrapper>
+      <CreatePostCardWrapper ref={createCardRef}>
         <CardBody>
           <CardHeader>
             <Heading6>
@@ -763,44 +880,80 @@ const CreatePostCard: React.FC = () => {
 
               {/* Workout Stats Section */}
               {showCreateOptions && postType === 'workout' && (
-                <WorkoutStatsContainer>
-                  <StyledInputGroup>
-                    <InputLabel>Duration (min)</InputLabel>
-                    <StyledInput
-                      value={workoutStats.duration}
-                      onChange={(e) => handleWorkoutStatsChange('duration', e.target.value)}
-                      type="number"
-                      placeholder="0"
-                    />
-                  </StyledInputGroup>
-                  <StyledInputGroup>
-                    <InputLabel>Exercises</InputLabel>
-                    <StyledInput
-                      value={workoutStats.exerciseCount}
-                      onChange={(e) => handleWorkoutStatsChange('exerciseCount', e.target.value)}
-                      type="number"
-                      placeholder="0"
-                    />
-                  </StyledInputGroup>
-                  <StyledInputGroup>
-                    <InputLabel>Total Weight (lbs)</InputLabel>
-                    <StyledInput
-                      value={workoutStats.totalWeight}
-                      onChange={(e) => handleWorkoutStatsChange('totalWeight', e.target.value)}
-                      type="number"
-                      placeholder="0"
-                    />
-                  </StyledInputGroup>
-                  <StyledInputGroup>
-                    <InputLabel>Calories Burned</InputLabel>
-                    <StyledInput
-                      value={workoutStats.caloriesBurned}
-                      onChange={(e) => handleWorkoutStatsChange('caloriesBurned', e.target.value)}
-                      type="number"
-                      placeholder="0"
-                    />
-                  </StyledInputGroup>
-                </WorkoutStatsContainer>
+                <>
+                  <WorkoutHistoryBtnRow>
+                    <WorkoutHistoryBtn
+                      onClick={fetchWorkoutHistory}
+                      disabled={isLoadingHistory}
+                    >
+                      <History size={16} />
+                      {isLoadingHistory ? 'Loading...' : 'Pull from Workout History'}
+                    </WorkoutHistoryBtn>
+                  </WorkoutHistoryBtnRow>
+
+                  {showWorkoutHistory && (
+                    <WorkoutHistoryList>
+                      {workoutHistory.length === 0 ? (
+                        <WorkoutHistoryEmpty>No completed workouts found</WorkoutHistoryEmpty>
+                      ) : (
+                        workoutHistory.slice(0, 10).map((w: any, i: number) => {
+                          const name = w.name || w.workoutName || w.title || 'Workout Session';
+                          const date = w.date || w.sessionDate || w.createdAt;
+                          const dateStr = date ? new Date(date).toLocaleDateString() : '';
+                          return (
+                            <WorkoutHistoryItem key={w.id || i} onClick={() => selectWorkoutFromHistory(w)}>
+                              <Dumbbell size={16} style={{ flexShrink: 0, color: '#00ffff' }} />
+                              <WorkoutHistoryInfo>
+                                <WorkoutHistoryName>{name}</WorkoutHistoryName>
+                                {dateStr && <WorkoutHistoryDate>{dateStr}</WorkoutHistoryDate>}
+                              </WorkoutHistoryInfo>
+                              <ChevronDown size={14} style={{ transform: 'rotate(-90deg)', color: 'rgba(255,255,255,0.3)' }} />
+                            </WorkoutHistoryItem>
+                          );
+                        })
+                      )}
+                    </WorkoutHistoryList>
+                  )}
+
+                  <WorkoutStatsContainer>
+                    <StyledInputGroup>
+                      <InputLabel>Duration (min)</InputLabel>
+                      <StyledInput
+                        value={workoutStats.duration}
+                        onChange={(e) => handleWorkoutStatsChange('duration', e.target.value)}
+                        type="number"
+                        placeholder="0"
+                      />
+                    </StyledInputGroup>
+                    <StyledInputGroup>
+                      <InputLabel>Exercises</InputLabel>
+                      <StyledInput
+                        value={workoutStats.exerciseCount}
+                        onChange={(e) => handleWorkoutStatsChange('exerciseCount', e.target.value)}
+                        type="number"
+                        placeholder="0"
+                      />
+                    </StyledInputGroup>
+                    <StyledInputGroup>
+                      <InputLabel>Total Weight (lbs)</InputLabel>
+                      <StyledInput
+                        value={workoutStats.totalWeight}
+                        onChange={(e) => handleWorkoutStatsChange('totalWeight', e.target.value)}
+                        type="number"
+                        placeholder="0"
+                      />
+                    </StyledInputGroup>
+                    <StyledInputGroup>
+                      <InputLabel>Calories Burned</InputLabel>
+                      <StyledInput
+                        value={workoutStats.caloriesBurned}
+                        onChange={(e) => handleWorkoutStatsChange('caloriesBurned', e.target.value)}
+                        type="number"
+                        placeholder="0"
+                      />
+                    </StyledInputGroup>
+                  </WorkoutStatsContainer>
+                </>
               )}
 
               {/* Transformation Images Section */}
@@ -937,7 +1090,12 @@ const CreatePostCard: React.FC = () => {
       {/* Floating Create Button */}
       {!showCreateOptions && (
         <FloatingCreateButton
-          onClick={() => setShowCreateOptions(true)}
+          onClick={() => {
+            setShowCreateOptions(true);
+            setTimeout(() => {
+              createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+          }}
           disabled={isCreatingPost}
           title="Create an enhanced post with more options"
         >

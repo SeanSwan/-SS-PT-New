@@ -292,26 +292,36 @@ const FriendSuggestions: React.FC<FriendSuggestionsProps> = ({ open, onClose }) 
     setSentRequests([...sentRequests, userId]);
   };
 
-  const renderUserItem = (user: any) => (
-    <SuggestionItem key={user.id}>
-      <Avatar $src={user.photo || undefined}>
-        {!user.photo && `${user.firstName[0]}${user.lastName[0]}`}
-      </Avatar>
-      <UserInfo>
-        <UserName>{user.firstName} {user.lastName}</UserName>
-        <Username>@{user.username}</Username>
-      </UserInfo>
-      {sentRequests.includes(user.id) ? (
-        <SentBadge>
-          <CheckCircle size={16} /> Request Sent
-        </SentBadge>
-      ) : (
+  const renderUserItem = (user: any) => {
+    const alreadySent = sentRequests.includes(user.id);
+    const status = user.friendshipStatus;
+
+    let actionEl;
+    if (alreadySent || status === 'pending') {
+      actionEl = <SentBadge><CheckCircle size={16} /> {status === 'pending' && !user.isRequester ? 'Wants to connect' : 'Request Sent'}</SentBadge>;
+    } else if (status === 'accepted') {
+      actionEl = <SentBadge><CheckCircle size={16} /> Friends</SentBadge>;
+    } else {
+      actionEl = (
         <OutlineBtn onClick={() => handleSendRequest(user.id)}>
           <UserPlus size={16} /> Add Friend
         </OutlineBtn>
-      )}
-    </SuggestionItem>
-  );
+      );
+    }
+
+    return (
+      <SuggestionItem key={user.id}>
+        <Avatar $src={user.photo || undefined}>
+          {!user.photo && `${(user.firstName || '?')[0]}${(user.lastName || '?')[0]}`}
+        </Avatar>
+        <UserInfo>
+          <UserName>{user.firstName} {user.lastName}</UserName>
+          <Username>@{user.username}</Username>
+        </UserInfo>
+        {actionEl}
+      </SuggestionItem>
+    );
+  };
 
   return (
     <CustomModal isOpen={open} onClose={onClose} title="" size="medium">

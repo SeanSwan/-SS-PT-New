@@ -728,7 +728,7 @@ const MobileOverlay = styled(motion.div)`
 // New: Mobile Menu Button for external triggering
 const MobileMenuButton = styled(motion.button)`
   position: fixed;
-  top: 1rem;
+  top: 70px;
   left: 1rem;
   width: 48px;
   height: 48px;
