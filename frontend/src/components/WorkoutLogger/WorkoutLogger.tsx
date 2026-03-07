@@ -677,7 +677,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     setIsLoadingExercises(true);
     try {
       const api = new ApiService();
-      const response = await api.get(`/exercises/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+      const response = await api.get(`/api/exercises/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
       
       if (response.success && response.exercises) {
         setAvailableExercises(response.exercises);
@@ -698,7 +698,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     try {
       const api = new ApiService();
       // Load some basic/popular exercises
-      const response = await api.get('/exercises/search?q=squat&limit=5');
+      const response = await api.get('/api/exercises/search?q=squat&limit=5');
       
       if (response.success && response.exercises) {
         setPopularExercises(response.exercises);
@@ -728,7 +728,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const loadClientData = async () => {
     try {
       const api = new ApiService();
-      const response = await api.get(`/workout-forms/client/${clientId}/info`);
+      const response = await api.get(`/api/workout-forms/client/${clientId}/info`);
       
       if (response.success && response.client) {
         setClient({

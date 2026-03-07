@@ -45,11 +45,12 @@ const WorkoutOutletWrapper: React.FC<Props> = ({ component }) => {
     );
   }
 
-  // Planner — WorkoutPlanBuilder doesn't take clientId as prop,
-  // it has its own internal client selection. Render as-is for now.
   return (
     <React.Suspense fallback={null}>
-      <WorkoutPlanBuilder />
+      <WorkoutPlanBuilder
+          clientId={String(context.clientId)}
+          clientName={`${context.client.firstName} ${context.client.lastName}`}
+        />
     </React.Suspense>
   );
 };

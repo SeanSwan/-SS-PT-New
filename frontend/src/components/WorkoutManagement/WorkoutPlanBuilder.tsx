@@ -616,6 +616,7 @@ const ChipSelectedRow = styled.div`
 
 interface WorkoutPlanBuilderProps {
   clientId?: string;
+  clientName?: string;
   onPlanCreated?: (plan: WorkoutPlan) => void;
   existingPlan?: WorkoutPlan;
   mode?: 'create' | 'edit';
@@ -623,6 +624,7 @@ interface WorkoutPlanBuilderProps {
 
 const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
   clientId,
+  clientName,
   onPlanCreated,
   existingPlan,
   mode = 'create'
@@ -1300,7 +1302,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
                   <StatIcon><User size={36} /></StatIcon>
                   <SubTitle>Client</SubTitle>
                   <SmallText $muted>
-                    {mockClients.find(c => c.id === plan.clientId)?.name || 'Not assigned'}
+                    {clientName || (plan.clientId ? `Client #${plan.clientId}` : 'Not assigned')}
                   </SmallText>
                 </StatCard>
               </FormGrid>
