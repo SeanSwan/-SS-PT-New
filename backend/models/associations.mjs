@@ -140,6 +140,21 @@ const setupAssociations = async () => {
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntryModule = await import('./ClientPainEntry.mjs');
 
+    // Form Analysis Models (Phase 2 - AI Form Analysis)
+    const FormAnalysisModule = await import('./FormAnalysis.mjs');
+    const MovementProfileModule = await import('./MovementProfile.mjs');
+
+    // Custom Exercise Builder (Phase 6 - Biomechanics Studio)
+    const CustomExerciseModule = await import('./CustomExercise.mjs');
+
+    // Equipment Profile Manager (Phase 7)
+    const EquipmentProfileModule = await import('./EquipmentProfile.mjs');
+    const EquipmentItemModule = await import('./EquipmentItem.mjs');
+    const EquipmentExerciseMapModule = await import('./EquipmentExerciseMap.mjs');
+
+    // Workout Variation Engine (Phase 8)
+    const VariationLogModule = await import('./VariationLog.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -267,6 +282,21 @@ const setupAssociations = async () => {
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntry = ClientPainEntryModule.default;
 
+    // Form Analysis Models (Phase 2 - AI Form Analysis)
+    const FormAnalysis = FormAnalysisModule.default;
+    const MovementProfile = MovementProfileModule.default;
+
+    // Custom Exercise Builder (Phase 6 - Biomechanics Studio)
+    const CustomExercise = CustomExerciseModule.default;
+
+    // Equipment Profile Manager (Phase 7)
+    const EquipmentProfile = EquipmentProfileModule.default;
+    const EquipmentItem = EquipmentItemModule.default;
+    const EquipmentExerciseMap = EquipmentExerciseMapModule.default;
+
+    // Workout Variation Engine (Phase 8)
+    const VariationLog = VariationLogModule.default;
+
     console.log('Setting up Sequelize associations only...');
     
     // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
@@ -341,7 +371,15 @@ const setupAssociations = async () => {
         // Body Measurement & Milestone Models (Phase 11)
         BodyMeasurement, MeasurementMilestone,
         // Movement Analysis Models (Phase 13)
-        MovementAnalysis, PendingMovementAnalysisMatch
+        MovementAnalysis, PendingMovementAnalysisMatch,
+        // Form Analysis Models (Phase 2 - AI Form Analysis)
+        FormAnalysis, MovementProfile,
+        // Custom Exercise Builder (Phase 6 - Biomechanics Studio)
+        CustomExercise,
+        // Equipment Profile Manager (Phase 7)
+        EquipmentProfile, EquipmentItem, EquipmentExerciseMap,
+        // Workout Variation Engine (Phase 8)
+        VariationLog
       };
     }
 
@@ -875,6 +913,39 @@ const setupAssociations = async () => {
     PendingMovementAnalysisMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
     console.log('✅ Movement Analysis models integrated');
 
+    // Form Analysis Associations (Phase 2 - AI Form Analysis)
+    User.hasMany(FormAnalysis, { foreignKey: 'userId', as: 'formAnalyses' });
+    FormAnalysis.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    FormAnalysis.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    User.hasOne(MovementProfile, { foreignKey: 'userId', as: 'movementProfile' });
+    MovementProfile.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    console.log('✅ Form Analysis models integrated');
+
+    // Custom Exercise Builder Associations (Phase 6 - Biomechanics Studio)
+    User.hasMany(CustomExercise, { foreignKey: 'trainerId', as: 'customExercises' });
+    CustomExercise.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    CustomExercise.belongsTo(CustomExercise, { foreignKey: 'parentVersionId', as: 'parentVersion' });
+    CustomExercise.hasMany(CustomExercise, { foreignKey: 'parentVersionId', as: 'childVersions' });
+    console.log('✅ Custom Exercise Builder models integrated');
+
+    // Equipment Profile Manager Associations (Phase 7)
+    User.hasMany(EquipmentProfile, { foreignKey: 'trainerId', as: 'equipmentProfiles' });
+    EquipmentProfile.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    EquipmentProfile.hasMany(EquipmentItem, { foreignKey: 'profileId', as: 'items' });
+    EquipmentItem.belongsTo(EquipmentProfile, { foreignKey: 'profileId', as: 'profile' });
+    EquipmentItem.hasMany(EquipmentExerciseMap, { foreignKey: 'equipmentItemId', as: 'exerciseMappings' });
+    EquipmentExerciseMap.belongsTo(EquipmentItem, { foreignKey: 'equipmentItemId', as: 'equipmentItem' });
+    EquipmentExerciseMap.belongsTo(CustomExercise, { foreignKey: 'customExerciseId', as: 'customExercise' });
+    console.log('✅ Equipment Profile Manager models integrated');
+
+    // Workout Variation Engine Associations (Phase 8)
+    User.hasMany(VariationLog, { foreignKey: 'clientId', as: 'variationLogsAsClient' });
+    User.hasMany(VariationLog, { foreignKey: 'trainerId', as: 'variationLogsAsTrainer' });
+    VariationLog.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
+    VariationLog.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    VariationLog.belongsTo(EquipmentProfile, { foreignKey: 'equipmentProfileId', as: 'equipmentProfile' });
+    console.log('✅ Workout Variation Engine models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -1012,7 +1083,22 @@ const setupAssociations = async () => {
 
       // Movement Analysis Models (Phase 13)
       MovementAnalysis,
-      PendingMovementAnalysisMatch
+      PendingMovementAnalysisMatch,
+
+      // Form Analysis Models (Phase 2 - AI Form Analysis)
+      FormAnalysis,
+      MovementProfile,
+
+      // Custom Exercise Builder (Phase 6 - Biomechanics Studio)
+      CustomExercise,
+
+      // Equipment Profile Manager (Phase 7)
+      EquipmentProfile,
+      EquipmentItem,
+      EquipmentExerciseMap,
+
+      // Workout Variation Engine (Phase 8)
+      VariationLog
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

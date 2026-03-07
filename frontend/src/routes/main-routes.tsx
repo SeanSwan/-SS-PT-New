@@ -224,6 +224,36 @@ const FoodScannerPage = lazyLoadWithErrorHandling(
   'Food Scanner'
 );
 
+// AI Form Analysis — real-time + upload-based exercise form checking
+const FormAnalysisPage = lazyLoadWithErrorHandling(
+  () => import('../components/FormAnalysis/FormAnalysisPage'),
+  'Form Analysis'
+);
+
+// Biomechanics Studio — Custom Exercise Builder (trainer/admin)
+const BiomechanicsStudio = lazyLoadWithErrorHandling(
+  () => import('../components/FormAnalysis/BiomechanicsStudioPage'),
+  'Biomechanics Studio'
+);
+
+// Equipment Manager — Location-based equipment profiles (trainer/admin)
+const EquipmentManager = lazyLoadWithErrorHandling(
+  () => import('../components/EquipmentManager/EquipmentManagerPage'),
+  'Equipment Manager'
+);
+
+// Variation Engine — BUILD/SWITCH workout rotation (trainer/admin)
+const VariationEngine = lazyLoadWithErrorHandling(
+  () => import('../components/VariationEngine/VariationEnginePage'),
+  'Variation Engine'
+);
+
+// Intelligent Workout Builder — AI-powered workout generation (trainer/admin)
+const WorkoutBuilder = lazyLoadWithErrorHandling(
+  () => import('../components/WorkoutBuilder/WorkoutBuilderPage'),
+  'Workout Builder'
+);
+
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -516,6 +546,67 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
+
+    // AI Form Analysis — Upload, Live Camera, History
+    {
+      path: 'form-analysis',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <FormAnalysisPage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Biomechanics Studio — Custom Exercise Builder (trainer/admin)
+    {
+      path: 'biomechanics-studio',
+      element: (
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <BiomechanicsStudio />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Equipment Manager — Location-based equipment profiles (trainer/admin)
+    {
+      path: 'equipment-manager',
+      element: (
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <EquipmentManager />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Variation Engine — BUILD/SWITCH workout rotation (trainer/admin)
+    {
+      path: 'variation-engine',
+      element: (
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <VariationEngine />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Intelligent Workout Builder — AI-powered workout generation (trainer/admin)
+    {
+      path: 'workout-builder',
+      element: (
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <WorkoutBuilder />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
     {
       path: 'unauthorized',
       element: (

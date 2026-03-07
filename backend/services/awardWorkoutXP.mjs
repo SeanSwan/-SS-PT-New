@@ -25,6 +25,7 @@ import UserMilestone from '../models/UserMilestone.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
+import eventBus from './eventBus.mjs';
 
 /**
  * Award XP for a workout completion.
@@ -362,6 +363,15 @@ export async function awardWorkoutXP({
       );
     }
   }
+
+  // ── Emit cross-component event ─────────────────────────────────────
+  eventBus.safeEmit('workout:completed', {
+    userId,
+    workoutId,
+    duration,
+    exercisesCompleted,
+    trainerId: awardedBy,
+  });
 
   // ── Return result ──────────────────────────────────────────────────
   const totalPoints = pointsToAward + totalMilestoneBonus;

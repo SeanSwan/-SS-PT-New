@@ -55,6 +55,12 @@ import workoutPlanRoutes from '../routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 import bodyMeasurementRoutes from '../routes/bodyMeasurementRoutes.mjs';
 import painEntryRoutes from '../routes/painEntryRoutes.mjs';
+import formAnalysisRoutes from '../routes/formAnalysisRoutes.mjs';
+import customExerciseRoutes from '../routes/customExerciseRoutes.mjs';
+import equipmentRoutes from '../routes/equipmentRoutes.mjs';
+import variationRoutes from '../routes/variationRoutes.mjs';
+import clientIntelligenceRoutes from '../routes/clientIntelligenceRoutes.mjs';
+import workoutBuilderRoutes from '../routes/workoutBuilderRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
@@ -271,6 +277,12 @@ export const setupRoutes = async (app) => {
   app.use('/api/food-scanner', foodScannerRoutes);
   app.use('/api/measurements', bodyMeasurementRoutes);
   app.use('/api/pain-entries', painEntryRoutes);
+  app.use('/api/form-analysis', formAnalysisRoutes);
+  app.use('/api/custom-exercises', customExerciseRoutes);
+  app.use('/api/equipment-profiles', equipmentRoutes);
+  app.use('/api/variation', variationRoutes);
+  app.use('/api/client-intelligence', clientIntelligenceRoutes);
+  app.use('/api/workout-builder', workoutBuilderRoutes);
 
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
   // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)
