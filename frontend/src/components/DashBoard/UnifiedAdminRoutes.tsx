@@ -238,6 +238,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/workouts" element={<WorkoutsWorkspace />}>
       <Route index element={<WorkoutOutletWrapper component="planner" />} />
       <Route path="logger" element={<WorkoutOutletWrapper component="logger" />} />
+      <Route path="ai" element={<WorkoutOutletWrapper component="ai" />} />
       <Route path="movement" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisListPage />

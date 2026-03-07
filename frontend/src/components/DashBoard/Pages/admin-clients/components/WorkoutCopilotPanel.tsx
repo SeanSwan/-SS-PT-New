@@ -79,6 +79,8 @@ import {
   ExplainCard,
   ExplainLabel,
   ExplainValue,
+  InlineWrapper,
+  InlinePanel,
 } from './copilot-shared-styles';
 
 type CopilotState =
@@ -132,6 +134,8 @@ interface WorkoutCopilotPanelProps {
   onSuccess?: () => void;
   /** When true, auto-starts generation on open (skips idle screen). */
   autoGenerate?: boolean;
+  /** When true, renders inline (no modal overlay) for workspace embedding. */
+  inline?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -143,6 +147,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   clientName,
   onSuccess,
   autoGenerate = false,
+  inline = false,
 }) => {
   const { authAxios, user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -461,15 +466,18 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   if (!open) return null;
 
+  const Wrapper = inline ? InlineWrapper : ModalOverlay;
+  const Panel = inline ? InlinePanel : ModalPanel;
+
   return (
-    <ModalOverlay onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <ModalPanel onClick={(e) => e.stopPropagation()}>
+    <Wrapper onClick={inline ? undefined : (e: React.MouseEvent) => e.target === e.currentTarget && onClose()}>
+      <Panel onClick={inline ? undefined : (e: React.MouseEvent) => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>
             <Sparkles size={20} />
-            AI Workout Copilot - {clientName}
+            AI Workout Copilot {inline ? '' : `- ${clientName}`}
           </ModalTitle>
-          <CloseButton onClick={onClose}><X size={20} /></CloseButton>
+          {!inline && <CloseButton onClick={onClose}><X size={20} /></CloseButton>}
         </ModalHeader>
 
         <TabBar>
@@ -1076,8 +1084,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         {activeTab === 'long-horizon' && lhFooterContent && (
           <ModalFooter>{lhFooterContent}</ModalFooter>
         )}
-      </ModalPanel>
-    </ModalOverlay>
+      </Panel>
+    </Wrapper>
   );
 };
 
