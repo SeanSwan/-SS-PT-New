@@ -754,6 +754,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       }
     } catch (error: any) {
       console.error('Failed to load client data:', error);
+      // Fallback: set minimal client so UI renders instead of infinite spinner
+      setClient({
+        id: clientId,
+        firstName: 'Client',
+        lastName: `#${clientId}`,
+        email: '',
+        availableSessions: 0,
+        phone: ''
+      });
       toast.error(error.message || 'Failed to load client information');
     }
   };

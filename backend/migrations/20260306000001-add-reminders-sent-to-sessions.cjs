@@ -3,9 +3,9 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    const tableInfo = await queryInterface.describeTable('Sessions');
+    const tableInfo = await queryInterface.describeTable('sessions');
     if (!tableInfo.remindersSent) {
-      await queryInterface.addColumn('Sessions', 'remindersSent', {
+      await queryInterface.addColumn('sessions', 'remindersSent', {
         type: Sequelize.JSONB,
         allowNull: true,
         defaultValue: null,
@@ -15,6 +15,6 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.removeColumn('Sessions', 'remindersSent');
+    await queryInterface.removeColumn('sessions', 'remindersSent');
   },
 };
