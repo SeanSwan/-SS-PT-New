@@ -1,6 +1,6 @@
 /**
  * WorkoutOutletWrapper — Bridges Outlet context to workout components.
- * Passes clientId from workspace-level state to WorkoutLogger / WorkoutPlanBuilder.
+ * Passes clientId from workspace-level state to WorkoutLogger / WorkoutPlanBuilder / AI Copilot.
  */
 
 import React from 'react';
@@ -18,7 +18,7 @@ interface WorkoutOutletContext {
 }
 
 interface Props {
-  component: 'logger' | 'planner';
+  component: 'logger' | 'planner' | 'ai';
 }
 
 const WorkoutLogger = React.lazy(
@@ -26,6 +26,9 @@ const WorkoutLogger = React.lazy(
 );
 const WorkoutPlanBuilder = React.lazy(
   () => import('../../WorkoutManagement/WorkoutPlanBuilder')
+);
+const WorkoutCopilotPanel = React.lazy(
+  () => import('../Pages/admin-clients/components/WorkoutCopilotPanel')
 );
 
 const WorkoutOutletWrapper: React.FC<Props> = ({ component }) => {
@@ -40,6 +43,21 @@ const WorkoutOutletWrapper: React.FC<Props> = ({ component }) => {
           clientId={context.clientId}
           onComplete={() => {}}
           onCancel={() => {}}
+        />
+      </React.Suspense>
+    );
+  }
+
+  if (component === 'ai') {
+    return (
+      <React.Suspense fallback={null}>
+        <WorkoutCopilotPanel
+          open={true}
+          onClose={() => {}}
+          clientId={context.clientId}
+          clientName={`${context.client.firstName} ${context.client.lastName}`}
+          autoGenerate
+          inline
         />
       </React.Suspense>
     );

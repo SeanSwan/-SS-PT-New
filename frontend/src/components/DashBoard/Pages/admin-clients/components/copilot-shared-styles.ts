@@ -38,6 +38,21 @@ export const ModalPanel = styled.div`
   backdrop-filter: blur(12px);
 `;
 
+export const InlineWrapper = styled.div`
+  width: 100%;
+`;
+
+export const InlinePanel = styled.div`
+  background: rgba(29, 31, 43, 0.85);
+  border-radius: 12px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  min-height: 400px;
+`;
+
 export const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
