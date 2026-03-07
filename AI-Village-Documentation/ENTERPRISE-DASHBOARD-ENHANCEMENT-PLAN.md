@@ -476,6 +476,14 @@ WHERE moderation_status = 'approved'
 | P0 | C (Form Analysis UI) | 1-2 days | Uses existing backend service |
 | P1 | D (Enterprise Data) | 3-4 days | Professional-grade dashboards |
 | P1 | E (AI Workflow Integration) | 2-3 days | Seamless AI-assisted workflows |
+| P1 | F (Admin Mock Data Kill) | 2-3 days | Replace 12 hardcoded values with real SQL |
+| P1 | G (Food Intelligence Backend) | 2-3 days | Barcode scanner + ingredient analysis + safety scoring |
+| P1 | H (Food Intelligence Frontend) | 3-4 days | Scanner UI, farm finder, fast food analyzer, education hub |
+| P2 | I (Supplements & AG1) | 1-2 days | Supplement store tab + AG1 affiliate |
+| P2 | Social Media Unsplash | 0.5 day | Rotating fitness/lifestyle backgrounds |
+
+> **Full blueprint:** See `AI-Village-Documentation/FOOD-INTELLIGENCE-BLUEPRINT.md` for Phases G-I details
+> **API research:** See `AI-Village-Documentation/FREE-API-INTEGRATIONS-RESEARCH.md` for all free + paid API recommendations
 
 ---
 
