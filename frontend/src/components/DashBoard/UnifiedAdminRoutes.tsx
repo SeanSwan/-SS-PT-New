@@ -64,6 +64,7 @@ import StoreWorkspace from './workspaces/StoreWorkspace';
 import ContentWorkspace from './workspaces/ContentWorkspace';
 import GamificationWorkspace from './workspaces/GamificationWorkspace';
 import WorkoutsWorkspace from './workspaces/WorkoutsWorkspace';
+import WorkoutOutletWrapper from './workspaces/WorkoutOutletWrapper';
 import AnalyticsWorkspace from './workspaces/AnalyticsWorkspace';
 import SystemWorkspace from './workspaces/SystemWorkspace';
 // Design Playground — lazy-loaded only when VITE_DESIGN_PLAYGROUND=true (not shipped to prod bundle)
@@ -235,8 +236,8 @@ const UnifiedAdminRoutes: React.FC = () => (
     </Route>
 
     <Route path="/workouts" element={<WorkoutsWorkspace />}>
-      <Route index element={<WorkoutPlanBuilder />} />
-      <Route path="logger" element={<WorkoutPlanBuilder />} />
+      <Route index element={<WorkoutOutletWrapper component="planner" />} />
+      <Route path="logger" element={<WorkoutOutletWrapper component="logger" />} />
       <Route path="movement" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisListPage />
