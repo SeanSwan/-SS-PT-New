@@ -146,9 +146,10 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/mcp-overview" element={<Navigate to="/dashboard/system/mcp" replace />} />
     <Route path="/settings" element={<Navigate to="/dashboard/system/settings" replace />} />
     <Route path="/admin/pricing-sheet" element={<Navigate to="/dashboard/system/settings/pricing" replace />} />
-    <Route path="/admin/sales-scripts" element={<Navigate to="/dashboard/system/settings/scripts" replace />} />
-    <Route path="/admin/launch-checklist" element={<Navigate to="/dashboard/system/settings/launch" replace />} />
-    <Route path="/style-guide" element={<Navigate to="/dashboard/system/settings/style-guide" replace />} />
+    {/* Phase 1 consolidation: removed tabs redirect to settings */}
+    <Route path="/admin/sales-scripts" element={<Navigate to="/dashboard/system/settings" replace />} />
+    <Route path="/admin/launch-checklist" element={<Navigate to="/dashboard/system/settings" replace />} />
+    <Route path="/style-guide" element={<Navigate to="/dashboard/system/settings" replace />} />
 
     {/* Dashboard workspace redirects */}
     <Route path="/notifications" element={<Navigate to="/dashboard/home/notifications" replace />} />
@@ -277,11 +278,8 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="exercises" element={<AdminExerciseCommandCenter />} />
       {/* Legacy route - gamification moved to its own workspace */}
       <Route path="gamification" element={<Navigate to="/dashboard/gamification" replace />} />
-      <Route path="design" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader text="Loading Design Lab" />}>
-          <HomepageDesignLab />
-        </React.Suspense>
-      } />
+      {/* Design tab removed (Phase 1 consolidation) - redirect to content root */}
+      <Route path="design" element={<Navigate to="/dashboard/content/video-studio" replace />} />
     </Route>
 
     <Route path="/analytics" element={<AnalyticsWorkspace />}>
@@ -312,9 +310,10 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="mcp" element={<MCPServersSection />} />
       <Route path="settings" element={<AdminSettingsSection />} />
       <Route path="settings/pricing" element={<PricingSheetViewer />} />
-      <Route path="settings/scripts" element={<SalesScriptViewer />} />
-      <Route path="settings/launch" element={<LaunchChecklist />} />
-      <Route path="settings/style-guide" element={<TheAestheticCodex />} />
+      {/* Phase 1 consolidation: Sales Scripts, Launch Checklist, Style Guide removed - redirect to settings */}
+      <Route path="settings/scripts" element={<Navigate to="/dashboard/system/settings" replace />} />
+      <Route path="settings/launch" element={<Navigate to="/dashboard/system/settings" replace />} />
+      <Route path="settings/style-guide" element={<Navigate to="/dashboard/system/settings" replace />} />
     </Route>
 
     {/* Fallback Route */}
