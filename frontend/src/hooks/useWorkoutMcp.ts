@@ -161,7 +161,8 @@ export const useWorkoutMcp = () => {
       setError(null);
 
       if (!MCP_ENABLED) {
-        throw new Error('MCP server not available in production');
+        // Silently fall back to mock data — not a real error
+        throw new Error('MCP_DISABLED');
       }
 
       const response = await fetch(`${MCP_WORKOUT_API_URL}/tools/${toolName}`, {
@@ -180,8 +181,11 @@ export const useWorkoutMcp = () => {
       return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown MCP API error';
-      setError(errorMessage);
-      console.error(`MCP Tool ${toolName} error:`, err);
+      // Don't set error state when MCP is intentionally disabled
+      if (errorMessage !== 'MCP_DISABLED') {
+        setError(errorMessage);
+        console.error(`MCP Tool ${toolName} error:`, err);
+      }
       throw err;
     } finally {
       setLoading(false);
