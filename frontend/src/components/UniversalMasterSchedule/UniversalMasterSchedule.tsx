@@ -19,6 +19,8 @@ import ScheduleHeader from './components/ScheduleHeader';
 import ScheduleStats from './components/ScheduleStats';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
+import ClientTimeline from './components/ClientTimeline';
+import BookingDrawer from './components/BookingDrawer';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import SessionTypeManager from './Config/SessionTypeManager';
 
@@ -75,8 +77,6 @@ const BREAKPOINTS = {
   QHD: '2560px',
   UHD: '3840px'
 };
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   mode: modeProp,
@@ -230,6 +230,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showSessionTypeManager, setShowSessionTypeManager] = useState(false);
   const [showClientRecurringDialog, setShowClientRecurringDialog] = useState(false);
   const [isSlotSelected, setIsSlotSelected] = useState(false);
+  const [showQuickBookDrawer, setShowQuickBookDrawer] = useState(false);
+  const [quickBookSlot, setQuickBookSlot] = useState<{ date: Date; duration: number; location: string; trainerId?: string | number; trainerName?: string } | null>(null);
 
   const [formData, setFormData] = useState({
     sessionDate: '',
@@ -376,12 +378,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   // Handlers
   const handleCreateSession = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        warning('Please log in to create sessions.');
-        return;
-      }
-
       if (!formData.sessionDate) {
         warning('Please select a date and time.');
         return;
@@ -512,13 +508,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setBookingError(null);
     setBookingLoading(true);
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setBookingError('Please log in to book sessions.');
-      setBookingLoading(false);
-      return;
-    }
-
     try {
       const result = await universalMasterScheduleService.bookSession(bookingTarget.id.toString());
 
@@ -548,57 +537,25 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     newHour: number,
     trainerId?: string | number
   ) => {
-    const token = localStorage.getItem('token');
-    if (!token) return { conflicts: [], alternatives: [] };
-
     const session = sessions.find((item) => String(item.id) === String(sessionId));
     const duration = session?.duration ?? 60;
     const startTime = new Date(newDate);
     startTime.setHours(newHour, 0, 0, 0);
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
-    try {
-      // Note: universalMasterScheduleService doesn't have checkConflicts yet,
-      // but we can use the api instance from it or keep fetch for now if it's a custom endpoint.
-      // Given the goal is production readiness, I'll keep the fetch but use the token from service if possible.
-      const response = await fetch(`${API_BASE_URL}/api/sessions/check-conflicts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          trainerId: trainerId ?? session?.trainerId ?? null,
-          clientId: session?.userId ?? null,
-          excludeSessionId: sessionId
-        })
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) return { conflicts: [], alternatives: [] };
-
-      return {
-        conflicts: result?.conflicts || [],
-        alternatives: (result?.alternatives || []).map((alt: any) => ({
-          ...alt,
-          date: new Date(alt.date)
-        }))
-      };
-    } catch (error) {
-      console.error('Conflict check failed:', error);
-      return { conflicts: [], alternatives: [] };
-    }
+    return universalMasterScheduleService.checkConflicts({
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      trainerId: trainerId ?? session?.trainerId ?? null,
+      clientId: session?.userId ?? null,
+      excludeSessionId: sessionId
+    });
   }, [sessions]);
 
   const handleReschedule = useCallback(async (
     drop: DragDropResult,
     options: { conflictOverride?: boolean } = {}
   ) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     const session = sessions.find((item) => String(item.id) === String(drop.sessionId));
     const duration = session?.duration ?? 60;
     const startTime = new Date(drop.newDate);
@@ -606,37 +563,23 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     try {
-      // Note: universalMasterScheduleService doesn't have reschedule yet,
-      // keeping fetch for now but ensuring it's consistent.
-      const response = await fetch(`${API_BASE_URL}/api/sessions/${drop.sessionId}/reschedule`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          newStartTime: startTime.toISOString(),
-          newEndTime: endTime.toISOString(),
-          trainerId: drop.trainerId ?? session?.trainerId ?? null,
-          notifyClient: session?.notifyClient ?? true,
-          conflictOverride: options.conflictOverride === true
-        })
+      const result = await universalMasterScheduleService.rescheduleSession(drop.sessionId, {
+        newStartTime: startTime.toISOString(),
+        newEndTime: endTime.toISOString(),
+        trainerId: drop.trainerId ?? session?.trainerId ?? null,
+        notifyClient: session?.notifyClient ?? true,
+        conflictOverride: options.conflictOverride === true
       });
 
-      const result = await response.json().catch(() => ({}));
-
-      if (response.status === 409) {
-        setConflicts(result?.conflicts || []);
-        setAlternatives((result?.alternatives || []).map((alt: any) => ({
-          ...alt,
-          date: new Date(alt.date)
-        })));
+      if (result.status === 409) {
+        setConflicts(result.conflicts || []);
+        setAlternatives(result.alternatives || []);
         setPendingReschedule(drop);
         setConflictModalOpen(true);
         return;
       }
 
-      if (response.ok) {
+      if (result.success) {
         refreshData(true);
       }
     } catch (error) {
@@ -679,6 +622,39 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setBookingError(null);
     setShowBookingDialog(true);
   }, []);
+
+  // "Swan Glide" Quick-Book: admin/trainer clicks slot -> drawer opens -> pick client -> confirm
+  const handleQuickBookSlot = useCallback(
+    ({ date, hour, trainerId }: { date?: Date; hour: number; trainerId?: string | number }) => {
+      if (!canCreateSessions) return;
+      const slotDate = new Date(date ?? currentDate);
+      slotDate.setHours(hour, 0, 0, 0);
+      const trainer = trainers.find((t: any) => String(t.id) === String(trainerId));
+      const trainerName = trainer ? `${trainer.firstName} ${trainer.lastName}` : undefined;
+      setQuickBookSlot({ date: slotDate, duration: 60, location: 'Main Studio', trainerId, trainerName });
+      setShowQuickBookDrawer(true);
+    },
+    [canCreateSessions, currentDate, trainers]
+  );
+
+  const handleQuickBookConfirm = useCallback(async (clientId: string | number) => {
+    if (!quickBookSlot) return;
+    const slotDate = quickBookSlot.date;
+    const endDate = new Date(slotDate.getTime() + quickBookSlot.duration * 60000);
+    await universalMasterScheduleService.createAvailableSessions([{
+      start: slotDate.toISOString(),
+      duration: quickBookSlot.duration,
+      trainerId: quickBookSlot.trainerId?.toString(),
+      userId: clientId.toString(),
+      location: quickBookSlot.location,
+      notifyClient: true,
+    }]);
+    success('Session booked!');
+    setShowQuickBookDrawer(false);
+    setQuickBookSlot(null);
+    refreshData(true);
+    if (mode === 'client') refetchCredits();
+  }, [quickBookSlot, refreshData, mode, refetchCredits]);
 
   const handleOpenConflictPanel = useCallback((
     nextConflicts: Conflict[],
@@ -724,6 +700,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   return (
     <ErrorBoundary>
     <ScheduleContainer role="application" aria-label="Universal Master Schedule">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}
+      >
       <ScheduleHeader
         mode={mode}
         activeView={activeView}
@@ -785,26 +767,45 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onStatusFilterChange={handleStatusFilterChange}
       />
 
-      <ScheduleCalendar
-        activeView={activeView}
-        currentDate={currentDate}
-        sessions={displaySessions}
-        trainers={trainers}
-        canReschedule={canReschedule}
-        canQuickBook={canQuickBook}
-        isAdmin={mode === 'admin'}
-        onDrillDown={drillDownToDay}
-        onSelectSession={handleSelectSession}
-        onSelectSlot={handleSelectSlot}
-        onBookingDialog={handleBookingDialog}
-        checkConflicts={checkConflicts}
-        handleReschedule={handleReschedule}
-        openConflictPanel={handleOpenConflictPanel}
-        // Stacked view props
-        layoutMode={layoutMode}
-        density={density}
-        expandedTrainerIds={expandedTrainerIds}
-        onToggleTrainerExpand={handleToggleTrainerExpand}
+      {mode === 'client' ? (
+        <ClientTimeline
+          sessions={displaySessions}
+          onBook={handleBookingDialog}
+          onSelect={handleSelectSession}
+          creditsDisplay={creditsDisplay}
+        />
+      ) : (
+        <ScheduleCalendar
+          activeView={activeView}
+          currentDate={currentDate}
+          sessions={displaySessions}
+          trainers={trainers}
+          canReschedule={canReschedule}
+          canQuickBook={canQuickBook}
+          isAdmin={mode === 'admin'}
+          onDrillDown={drillDownToDay}
+          onSelectSession={handleSelectSession}
+          onSelectSlot={handleQuickBookSlot}
+          onBookingDialog={handleBookingDialog}
+          checkConflicts={checkConflicts}
+          handleReschedule={handleReschedule}
+          openConflictPanel={handleOpenConflictPanel}
+          layoutMode={layoutMode}
+          density={density}
+          expandedTrainerIds={expandedTrainerIds}
+          onToggleTrainerExpand={handleToggleTrainerExpand}
+        />
+      )}
+
+      <BookingDrawer
+        isOpen={showQuickBookDrawer}
+        onClose={() => { setShowQuickBookDrawer(false); setQuickBookSlot(null); }}
+        onConfirm={handleQuickBookConfirm}
+        slotDate={quickBookSlot?.date ?? null}
+        slotDuration={quickBookSlot?.duration ?? 60}
+        slotLocation={quickBookSlot?.location ?? 'Main Studio'}
+        trainerName={quickBookSlot?.trainerName}
+        clients={clients}
       />
 
       <ScheduleModals
@@ -887,6 +888,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           <SessionTypeManager />
         </Modal>
       )}
+      </motion.div>
     </ScheduleContainer>
     </ErrorBoundary>
   );
@@ -895,52 +897,59 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 export default UniversalMasterSchedule;
 
 const ScheduleContainer = styled.div`
-  /*
-   * Viewport-relative height -- bypasses the broken minHeight chain in MainLayout.
-   * The parent Content Box uses flex:1 + overflow:hidden but its own parent has
-   * minHeight (not height), so height:100% never resolved to a definite value.
-   * --shell-chrome is the combined height of AppBar + any breadcrumbs/padding
-   * above this container. Adjust it here if the layout shell changes.
-   */
   --shell-chrome: 80px;
   height: calc(100dvh - var(--shell-chrome));
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  color: white;
-  /* Primary vertical scroll container for the entire schedule */
+
+  /* Cosmic Depth Background — Gemini 3.1 Pro directive */
+  background-color: #0a0a1a;
+  background-image:
+    radial-gradient(circle at 85% 15%, rgba(120, 81, 169, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 15% 85%, rgba(0, 255, 255, 0.08) 0%, transparent 40%);
+  background-attachment: fixed;
+  color: #f0f0ff;
+
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Prevent scroll chaining to parent -- stops "gummy" over-scroll on mobile */
   overscroll-behavior: contain;
-  /* GPU hint for smooth scrolling (replaces transform:translateZ(0) which can
-     break native scroll input on some Chromium builds) */
   will-change: scroll-position;
 
-  @media (max-width: ${BREAKPOINTS.TABLET}) {
-    --shell-chrome: 72px;
-    background: #0f172a;
+  /* Premium Custom Scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(10, 10, 15, 0.8);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(30, 40, 70, 0.8);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 200, 255, 0.5);
   }
 
+  /* 10-Point Responsive Shell Chrome */
+  @media (max-width: ${BREAKPOINTS.TABLET}) {
+    --shell-chrome: 72px;
+  }
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
     --shell-chrome: 64px;
   }
-
   @media (max-width: ${BREAKPOINTS.LARGE_PHONE}) {
     --shell-chrome: 60px;
   }
-
   @media (max-width: ${BREAKPOINTS.SMALL_PHONE}) {
     --shell-chrome: 56px;
   }
-
-  /* Large-screen scaling: use max-width to center content rather than
-     excessive percentage padding which wastes space on ultrawide displays */
   @media (min-width: ${BREAKPOINTS.QHD}) {
     font-size: 1.1rem;
   }
-
   @media (min-width: ${BREAKPOINTS.UHD}) {
     font-size: 1.25rem;
   }
