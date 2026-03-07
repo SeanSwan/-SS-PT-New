@@ -254,6 +254,12 @@ const WorkoutBuilder = lazyLoadWithErrorHandling(
   'Workout Builder'
 );
 
+// Boot Camp Class Builder — AI-powered group fitness class generation (trainer/admin)
+const BootcampBuilder = lazyLoadWithErrorHandling(
+  () => import('../components/BootcampBuilder/BootcampBuilderPage'),
+  'Bootcamp Builder'
+);
+
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -602,6 +608,18 @@ const MainRoutes: RouteObject = {
         <ProtectedRoute allowedRoles={['trainer', 'admin']}>
           <Suspense fallback={<PageLoader />}>
             <WorkoutBuilder />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Boot Camp Class Builder — AI-powered group fitness (trainer/admin)
+    {
+      path: 'bootcamp-builder',
+      element: (
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <BootcampBuilder />
           </Suspense>
         </ProtectedRoute>
       )

@@ -103,6 +103,11 @@ export function registerEventListeners() {
     }
   }));
 
+  // When a boot camp class is logged, track for freshness engine
+  eventBus.on('bootcamp:classLogged', safeListener('bootcamp-freshness', async (data) => {
+    logger.info(`[EventBus] Bootcamp class logged: trainer ${data.trainerId}, dayType "${data.dayType}", ${data.exerciseCount} exercises`);
+  }));
+
   logger.info('[EventBus] Cross-component event listeners registered');
 }
 
