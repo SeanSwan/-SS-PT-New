@@ -83,7 +83,7 @@
 - Integrates with existing AI consent check
 - Rate limited per role (client: 50/day, trainer: 200/day, admin: unlimited)
 
-#### A4. Daily Macro Log Model & Endpoints
+#### A4. Daily Macro Log Model & Endpoints (Powered by USDA + CalorieNinjas)
 **New file:** `backend/models/DailyMacroLog.mjs`
 ```javascript
 {
@@ -99,7 +99,8 @@
       fat: number,
       fiber: number,
       quantity: string,
-      source: 'manual' | 'ai_parsed' | 'barcode'
+      source: 'manual' | 'ai_parsed' | 'barcode' | 'usda' | 'calorie_ninjas',
+      usdaFdcId: number,  // USDA FoodData Central ID for detailed lookup
     }]
   }],
   totals: { calories, protein, carbs, fat, fiber, water_oz },
@@ -288,11 +289,13 @@
 ### Phase E: AI Integration into Existing Workflows
 > Wire AI assistant into workout logging, form checks, and scheduling
 
-#### E1. AI-Assisted Macro Logging
+#### E1. AI-Assisted Macro Logging (CalorieNinjas + USDA)
 - Client types or dictates: "I had 2 eggs, toast with butter, and a protein shake for breakfast"
-- AI parses into structured macro data: calories, protein, carbs, fat
-- User confirms/edits, then saves to DailyMacroLog
+- **CalorieNinjas API** parses natural language → returns structured macro data per item
+- **USDA FoodData Central** provides authoritative micronutrient details on tap
+- User confirms/edits parsed data, then saves to DailyMacroLog
 - Integrated into AI chat AND standalone macro logging view
+- Future: Open Food Facts barcode scanning for packaged foods
 
 #### E2. AI-Assisted Workout Logging
 - Client can tell AI: "I did 3 sets of 10 squats at 135lbs"
