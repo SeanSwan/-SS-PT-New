@@ -208,6 +208,15 @@ export const getEquipmentExerciseMap = () => getModel('EquipmentExerciseMap');
 // Workout Variation Engine (Phase 8)
 export const getVariationLog = () => getModel('VariationLog');
 
+// Boot Camp Class Builder (Phase 10)
+export const getBootcampTemplate = () => getModel('BootcampTemplate');
+export const getBootcampStation = () => getModel('BootcampStation');
+export const getBootcampExercise = () => getModel('BootcampExercise');
+export const getBootcampOverflowPlan = () => getModel('BootcampOverflowPlan');
+export const getBootcampClassLog = () => getModel('BootcampClassLog');
+export const getBootcampSpaceProfile = () => getModel('BootcampSpaceProfile');
+export const getExerciseTrend = () => getModel('ExerciseTrend');
+
 // Export Sequelize operators for routes
 export { Op };
 

@@ -155,6 +155,15 @@ const setupAssociations = async () => {
     // Workout Variation Engine (Phase 8)
     const VariationLogModule = await import('./VariationLog.mjs');
 
+    // Boot Camp Class Builder (Phase 10)
+    const BootcampTemplateModule = await import('./BootcampTemplate.mjs');
+    const BootcampStationModule = await import('./BootcampStation.mjs');
+    const BootcampExerciseModule = await import('./BootcampExercise.mjs');
+    const BootcampOverflowPlanModule = await import('./BootcampOverflowPlan.mjs');
+    const BootcampClassLogModule = await import('./BootcampClassLog.mjs');
+    const BootcampSpaceProfileModule = await import('./BootcampSpaceProfile.mjs');
+    const ExerciseTrendModule = await import('./ExerciseTrend.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -297,6 +306,15 @@ const setupAssociations = async () => {
     // Workout Variation Engine (Phase 8)
     const VariationLog = VariationLogModule.default;
 
+    // Boot Camp Class Builder (Phase 10)
+    const BootcampTemplate = BootcampTemplateModule.default;
+    const BootcampStation = BootcampStationModule.default;
+    const BootcampExercise = BootcampExerciseModule.default;
+    const BootcampOverflowPlan = BootcampOverflowPlanModule.default;
+    const BootcampClassLog = BootcampClassLogModule.default;
+    const BootcampSpaceProfile = BootcampSpaceProfileModule.default;
+    const ExerciseTrend = ExerciseTrendModule.default;
+
     console.log('Setting up Sequelize associations only...');
     
     // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
@@ -379,7 +397,11 @@ const setupAssociations = async () => {
         // Equipment Profile Manager (Phase 7)
         EquipmentProfile, EquipmentItem, EquipmentExerciseMap,
         // Workout Variation Engine (Phase 8)
-        VariationLog
+        VariationLog,
+        // Boot Camp Class Builder (Phase 10)
+        BootcampTemplate, BootcampStation, BootcampExercise,
+        BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
+        ExerciseTrend
       };
     }
 
@@ -946,6 +968,35 @@ const setupAssociations = async () => {
     VariationLog.belongsTo(EquipmentProfile, { foreignKey: 'equipmentProfileId', as: 'equipmentProfile' });
     console.log('✅ Workout Variation Engine models integrated');
 
+    // Boot Camp Class Builder Associations (Phase 10)
+    User.hasMany(BootcampTemplate, { foreignKey: 'trainerId', as: 'bootcampTemplates' });
+    BootcampTemplate.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    BootcampTemplate.belongsTo(EquipmentProfile, { foreignKey: 'equipmentProfileId', as: 'equipmentProfile' });
+    BootcampTemplate.belongsTo(BootcampSpaceProfile, { foreignKey: 'spaceProfileId', as: 'spaceProfile' });
+    BootcampTemplate.hasMany(BootcampStation, { foreignKey: 'templateId', as: 'stations', onDelete: 'CASCADE' });
+    BootcampTemplate.hasMany(BootcampExercise, { foreignKey: 'templateId', as: 'exercises', onDelete: 'CASCADE' });
+    BootcampTemplate.hasMany(BootcampOverflowPlan, { foreignKey: 'templateId', as: 'overflowPlans', onDelete: 'CASCADE' });
+    BootcampTemplate.hasMany(BootcampClassLog, { foreignKey: 'templateId', as: 'classLogs' });
+
+    BootcampStation.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template' });
+    BootcampStation.hasMany(BootcampExercise, { foreignKey: 'stationId', as: 'exercises', onDelete: 'CASCADE' });
+
+    BootcampExercise.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template' });
+    BootcampExercise.belongsTo(BootcampStation, { foreignKey: 'stationId', as: 'station' });
+
+    BootcampOverflowPlan.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template' });
+
+    User.hasMany(BootcampClassLog, { foreignKey: 'trainerId', as: 'bootcampClassLogs' });
+    BootcampClassLog.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    BootcampClassLog.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template' });
+
+    User.hasMany(BootcampSpaceProfile, { foreignKey: 'trainerId', as: 'bootcampSpaces' });
+    BootcampSpaceProfile.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+    User.hasMany(ExerciseTrend, { foreignKey: 'approvedBy', as: 'approvedTrends' });
+    ExerciseTrend.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
+    console.log('✅ Boot Camp Class Builder models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -1098,7 +1149,11 @@ const setupAssociations = async () => {
       EquipmentExerciseMap,
 
       // Workout Variation Engine (Phase 8)
-      VariationLog
+      VariationLog,
+      // Boot Camp Class Builder (Phase 10)
+      BootcampTemplate, BootcampStation, BootcampExercise,
+      BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
+      ExerciseTrend
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
