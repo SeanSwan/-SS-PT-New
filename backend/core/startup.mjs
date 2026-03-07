@@ -382,6 +382,14 @@ export const initializeServer = async (app) => {
           logger.warn(`Weekly challenge scheduler failed to start: ${schedErr.message}`);
         }
 
+        // Register cross-component event listeners
+        try {
+          const { registerEventListeners } = await import('../services/eventBus.mjs');
+          registerEventListeners();
+        } catch (eventErr) {
+          logger.warn(`Event bus registration failed: ${eventErr.message}`);
+        }
+
         logger.info('✅ Background initialization completed successfully!');
       } catch (backgroundError) {
         logger.error(`⚠️  Background initialization failed: ${backgroundError.message}`);

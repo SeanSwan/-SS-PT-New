@@ -193,6 +193,21 @@ export const getVideoAccessGrant = () => getModel('VideoAccessGrant');
 export const getVideoOutboundClick = () => getModel('VideoOutboundClick');
 export const getVideoJobLog = () => getModel('VideoJobLog');
 
+// Form Analysis Models (Phase 2 - AI Form Analysis)
+export const getFormAnalysis = () => getModel('FormAnalysis');
+export const getMovementProfile = () => getModel('MovementProfile');
+
+// Custom Exercise Builder (Phase 6 - Biomechanics Studio)
+export const getCustomExercise = () => getModel('CustomExercise');
+
+// Equipment Profile Manager (Phase 7)
+export const getEquipmentProfile = () => getModel('EquipmentProfile');
+export const getEquipmentItem = () => getModel('EquipmentItem');
+export const getEquipmentExerciseMap = () => getModel('EquipmentExerciseMap');
+
+// Workout Variation Engine (Phase 8)
+export const getVariationLog = () => getModel('VariationLog');
+
 // Export Sequelize operators for routes
 export { Op };
 
