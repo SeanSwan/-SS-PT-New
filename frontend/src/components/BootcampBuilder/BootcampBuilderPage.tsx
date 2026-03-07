@@ -273,7 +273,7 @@ const BootcampBuilderPage: React.FC = () => {
   // Config
   const [classFormat, setClassFormat] = useState<ClassFormat>('stations_4x');
   const [dayType, setDayType] = useState<DayType>('full_body');
-  const [targetDuration, setTargetDuration] = useState('45');
+  const [targetDuration, setTargetDuration] = useState('50');
   const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
 
