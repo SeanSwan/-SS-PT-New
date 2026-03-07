@@ -13,6 +13,8 @@ type LoginCache = {
   user: any;
 };
 
+// TODO: Replace hardcoded credentials with env-only auth before production/CI.
+// These are temporary dev/test fallbacks to unblock local Playwright runs.
 const credentialCandidates: CredentialCandidate[] = [
   {
     username: process.env.E2E_ADMIN_EMAIL || '',
@@ -27,8 +29,8 @@ const credentialCandidates: CredentialCandidate[] = [
     password: process.env.TEST_PASSWORD || '',
   },
   { username: 'admin@swanstudios.com', password: 'admin123' },
-  { username: 'admin@sswanstudios.com', password: 'testpassword' },
-  { username: 'admin@test.com', password: 'TestAdmin123!' },
+  { username: 'ogpswan@yahoo.com', password: 'KlackKlack80' },
+  { username: 'admin@swanstudios.com', password: 'KlackKlack80' },
 ].filter((candidate) => candidate.username.trim() && candidate.password.trim());
 
 let loginCache: LoginCache | null = null;

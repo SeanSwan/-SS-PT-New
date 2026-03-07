@@ -22,21 +22,49 @@ import { test, expect, type Page } from '@playwright/test';
 
 // Adjust if your dev server runs on a different port
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:10000';
+
+// TODO: Replace hardcoded credentials with env-only auth before production/CI.
+// Order: env vars, local seed, production.
+const credentialCandidates = [
+  { username: process.env.TEST_EMAIL || '', password: process.env.TEST_PASSWORD || '' },
+  { username: 'admin@swanstudios.com', password: 'admin123' },
+  { username: 'ogpswan@yahoo.com', password: 'KlackKlack80' },
+  { username: 'admin@swanstudios.com', password: 'KlackKlack80' },
+].filter(c => c.username.trim() && c.password.trim());
+
+let cachedToken: { token: string; user: any } | null = null;
+
+async function loginViaApi(page: Page) {
+  if (cachedToken) return cachedToken;
+  for (const cred of credentialCandidates) {
+    const res = await page.request.post(`${API_BASE_URL}/api/auth/login`, {
+      data: { username: cred.username, password: cred.password },
+    });
+    if (res.ok()) {
+      const body = await res.json();
+      if (body?.token) {
+        cachedToken = { token: body.token, user: body.user };
+        return cachedToken;
+      }
+    }
+  }
+  throw new Error('Unable to login as admin — all credential candidates failed');
+}
 
 // Helper: log in and navigate to /schedule
 async function loginAndNavigateToSchedule(page: Page) {
-  await page.goto(`${BASE_URL}/login`);
-
-  // Fill login form — adjust selectors to match your login page
-  const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first();
-  const passwordInput = page.locator('input[type="password"]').first();
-
-  if (await emailInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await emailInput.fill(process.env.TEST_EMAIL || 'admin@sswanstudios.com');
-    await passwordInput.fill(process.env.TEST_PASSWORD || 'testpassword');
-    await page.locator('button[type="submit"]').first().click();
-    await page.waitForURL('**/dashboard**', { timeout: 15000 }).catch(() => {});
-  }
+  const session = await loginViaApi(page);
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(
+    ({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
+      localStorage.setItem('tokenTimestamp', Date.now().toString());
+      localStorage.setItem('user', JSON.stringify(user || {}));
+    },
+    session,
+  );
 
   // Route is /schedule (root-level, not nested under /dashboard)
   await page.goto(`${BASE_URL}/schedule`);

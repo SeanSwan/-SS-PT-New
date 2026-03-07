@@ -13,9 +13,15 @@ import { test as base, expect, APIRequestContext } from '@playwright/test';
 
 const BACKEND_URL = 'http://localhost:10000';
 
-// Credentials from seed-test-accounts.mjs (seeded in dev DB)
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || 'admin@swanstudios.com';
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || 'admin123';
+// TODO: Replace hardcoded credentials with env-only auth before production/CI.
+// Order: env vars, local seed, production.
+const ADMIN_CANDIDATES = [
+  { email: process.env.E2E_ADMIN_EMAIL || '', password: process.env.E2E_ADMIN_PASSWORD || '' },
+  { email: 'admin@swanstudios.com', password: 'admin123' },
+  { email: 'ogpswan@yahoo.com', password: 'KlackKlack80' },
+  { email: 'admin@swanstudios.com', password: 'KlackKlack80' },
+].filter(c => c.email.trim() && c.password.trim());
+
 const CLIENT_EMAIL = process.env.E2E_CLIENT_EMAIL || 'client@test.com';
 const CLIENT_PASSWORD = process.env.E2E_CLIENT_PASSWORD || 'client123';
 
@@ -49,14 +55,23 @@ async function loginAndCreateContext(
   return { ctx, loginCtx };
 }
 
+async function loginAdminWithCandidates(
+  playwright: typeof import('@playwright/test')['default']['prototype']['playwright'],
+): Promise<{ ctx: APIRequestContext; loginCtx: APIRequestContext }> {
+  for (const cand of ADMIN_CANDIDATES) {
+    try {
+      return await loginAndCreateContext(playwright, cand.email, cand.password);
+    } catch {
+      continue;
+    }
+  }
+  throw new Error('Unable to login as admin — all credential candidates failed');
+}
+
 export const test = base.extend<AuthFixtures>({
   adminApi: [
     async ({ playwright }, use) => {
-      const { ctx, loginCtx } = await loginAndCreateContext(
-        playwright,
-        ADMIN_EMAIL,
-        ADMIN_PASSWORD,
-      );
+      const { ctx, loginCtx } = await loginAdminWithCandidates(playwright);
       await use(ctx);
       await ctx.dispose();
       await loginCtx.dispose();
