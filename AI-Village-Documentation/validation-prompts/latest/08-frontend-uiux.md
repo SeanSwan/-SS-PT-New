@@ -1,222 +1,279 @@
 # Frontend UI/UX Expert — Validation Report
 
 > **Status:** PASS | **Model:** google/gemini-3.1-pro-preview | **Duration:** 43.2s
-> **Files:** backend/services/workoutBuilderService.mjs
-> **Generated:** 3/6/2026, 6:17:05 PM
+> **Files:** frontend/src/components/BodyMap/PainEntryPanel.tsx, frontend/src/components/WorkoutLogger/VoiceMemoUpload.tsx, backend/routes/workoutLogUploadRoutes.mjs, backend/services/workoutLogParserService.mjs, backend/services/voiceTranscriptionService.mjs
+> **Generated:** 3/6/2026, 8:43:19 PM
 
 ---
 
-As the Lead Design Authority and CO-ORCHESTRATOR for SwanStudios, I have analyzed the `workoutBuilderService.mjs` backend logic. 
+As the Lead Design Authority and Co-Orchestrator for SwanStudios, I have conducted an independent, first-principles analysis of the provided components. 
 
-While this is a backend file, the data structures it yields—`explanations`, `OPT_PHASE_PARAMS`, `warmup` arrays with CES strategies, and `swapSuggestions`—dictate the exact architectural requirements for the frontend UI. 
+The current implementation has strong functional bones but lacks the visceral, premium "Galaxy-Swan" aesthetic required for a high-ticket SaaS platform. We are building a tool that sits at the intersection of elite fitness and futuristic tech. The UI must feel tactile, responsive, and slightly "magical"—especially when interacting with AI features or logging pain.
 
-If we simply dump this data into standard lists, we fail the premium SaaS mandate. This data represents **Intelligent Personal Training**. The UI must feel like a high-end, AI-driven cosmic dashboard. We will use the Galaxy-Swan theme (`#0a0a1a` base, `#00FFFF` action, `#7851A9` intelligence) to visualize the algorithm's "thinking."
-
-Here are my authoritative design directives for Claude to implement on the frontend.
+Here are my authoritative design directives. Claude, you are to implement these exact specifications.
 
 ---
 
-### 1. The "Swan Intelligence" Explanations Engine
+### 1. The Pain Severity Slider — Visual & Tactile Overhaul
 **Severity:** CRITICAL
-**Triggered By:** The `explanations` array returned by `generateWorkout()`
-**Design Problem:** The backend generates brilliant, context-aware reasoning (e.g., "3 muscle groups auto-excluded due to pain"). If rendered as standard text, the user misses the value of the intelligent engine. It needs to feel like an AI coach is speaking to them.
-**Design Solution:** Create a `SwanIntelligencePanel` component. This should sit at the top of the generated workout, utilizing the `#7851A9` (Cosmic Purple) token to denote "System Intelligence."
+**File & Location:** `frontend/src/components/BodyMap/PainEntryPanel.tsx` (SliderContainer, Slider, SliderValue)
+**Design Problem:** The native `<input type="range">` with a hardcoded linear gradient background looks cheap, lacks accessibility contrast, and breaks the immersive dark cosmic theme. It feels like a web form, not a premium health diagnostic tool.
+**Design Solution:** We will create a custom, glowing track with a thumb that acts as an "energy orb," changing color and casting a neon shadow based on the severity level.
 
 **Implementation Notes for Claude:**
-1. Create a glassmorphic card with a subtle purple glowing border.
-2. Implement a staggered Framer Motion reveal for each explanation item.
-3. Use the following exact styled-components specs:
+1. Replace the inline style gradient on the `Slider` with a dynamic CSS variable approach that fills the track up to the thumb.
+2. Implement the following exact styled-components:
 
-```typescript
-const IntelligenceWrapper = styled(motion.div)`
-  background: linear-gradient(145deg, rgba(120, 81, 169, 0.1) 0%, rgba(10, 10, 26, 0.8) 100%);
-  border: 1px solid rgba(120, 81, 169, 0.3);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 30px rgba(120, 81, 169, 0.15);
-  backdrop-filter: blur(12px);
+```tsx
+const SliderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+`;
+
+const Slider = styled.input<{ $painColor: string }>`
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  outline: none;
   position: relative;
+
+  /* Dynamic track fill using a pseudo-element or background gradient */
+  background: linear-gradient(
+    to right,
+    ${({ $painColor }) => $painColor} 0%,
+    ${({ $painColor }) => $painColor} ${({ value, max }) => (Number(value) / Number(max)) * 100}%,
+    rgba(255, 255, 255, 0.05) ${({ value, max }) => (Number(value) / Number(max)) * 100}%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0a0a1a;
+    border: 3px solid ${({ $painColor }) => $painColor};
+    box-shadow: 0 0 12px ${({ $painColor }) => `${$painColor}80`}, inset 0 0 4px ${({ $painColor }) => $painColor};
+    cursor: pointer;
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  }
+
+  &::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 20px ${({ $painColor }) => `${$painColor}AA`}, inset 0 0 6px ${({ $painColor }) => $painColor};
+  }
+  
+  &:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid #00FFFF;
+    outline-offset: 4px;
+  }
+`;
+
+const SliderValue = styled.div<{ $color: string }>`
+  color: ${({ $color }) => $color};
+  font-size: 24px;
+  font-weight: 800;
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $color }) => `${$color}15`};
+  border: 1px solid ${({ $color }) => `${$color}40`};
+  border-radius: 12px;
+  text-shadow: 0 0 10px ${({ $color }) => `${$color}60`};
+`;
+```
+*Note: Pass `severityColor` to the `$painColor` prop on the Slider.*
+
+---
+
+### 2. Mobile Bottom Sheet Physics & Gestures
+**Severity:** HIGH
+**File & Location:** `frontend/src/components/BodyMap/PainEntryPanel.tsx` (Panel, DragHandle)
+**Design Problem:** The current `transform: translateY` transition is rigid. A premium mobile-first app requires fluid, interruptible spring physics and swipe-to-close gestures for bottom sheets.
+**Design Solution:** Integrate `framer-motion` for the panel architecture.
+
+**Implementation Notes for Claude:**
+1. Convert `Panel` and `Overlay` to `motion.div`.
+2. Implement `drag="y"` and `dragConstraints={{ top: 0 }}` on the Panel for mobile breakpoints.
+3. Use this exact spring configuration: `transition={{ type: "spring", damping: 25, stiffness: 200 }}`.
+4. Update the `DragHandle` to be a tactile pill:
+```tsx
+const DragHandle = styled.div`
+  width: 48px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 auto 24px;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  ${device.sm} {
+    display: none;
+  }
+`;
+```
+
+---
+
+### 3. AI Voice Memo "Magic" Loading Choreography
+**Severity:** HIGH
+**File & Location:** `frontend/src/components/WorkoutLogger/VoiceMemoUpload.tsx` (uploading state)
+**Design Problem:** A standard spinning loader does not convey the "magic" of AI transcribing and parsing a voice memo. It feels like a standard file upload, not an intelligent extraction process.
+**Design Solution:** Implement an animated audio waveform and a cosmic shimmer effect to indicate AI processing.
+
+**Implementation Notes for Claude:**
+1. Remove the generic `Loader` spinner during the `uploading` state.
+2. Create an `AudioWave` component using CSS keyframes:
+```tsx
+const waveAnimation = keyframes`
+  0%, 100% { height: 8px; }
+  50% { height: 32px; }
+`;
+
+const WaveContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  margin-bottom: 16px;
+`;
+
+const WaveBar = styled.div<{ $delay: string }>`
+  width: 4px;
+  background: ${SWAN_CYAN};
+  border-radius: 2px;
+  animation: ${waveAnimation} 1.2s ease-in-out infinite;
+  animation-delay: ${(p) => p.$delay};
+  box-shadow: 0 0 8px ${SWAN_CYAN};
+`;
+
+// Usage inside the uploading state:
+<WaveContainer>
+  <WaveBar $delay="0.0s" />
+  <WaveBar $delay="0.2s" />
+  <WaveBar $delay="0.4s" />
+  <WaveBar $delay="0.2s" />
+  <WaveBar $delay="0.0s" />
+</WaveContainer>
+```
+3. Add a shimmer overlay to the `Container` when `uploading` is true:
+```tsx
+const shimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+// Add to Container when uploading:
+// background: linear-gradient(90deg, rgba(0,255,255,0.02) 25%, rgba(0,255,255,0.08) 50%, rgba(0,255,255,0.02) 75%);
+// background-size: 200% 100%;
+// animation: ${shimmer} 2s infinite linear;
+```
+
+---
+
+### 4. Form UX & Micro-Interactions
+**Severity:** MEDIUM
+**File & Location:** `frontend/src/components/BodyMap/PainEntryPanel.tsx` (Inputs, TextAreas, Chips, ActionBtns)
+**Design Problem:** Inputs lack depth, and interactive elements lack tactile feedback (scale on press). The UI feels flat.
+**Design Solution:** Introduce glassmorphic inner shadows for inputs and scale transforms for buttons.
+
+**Implementation Notes for Claude:**
+1. Update `Input`, `TextArea`, and `Select` with:
+```css
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(0, 255, 255, 0.2);
+  }
+```
+2. Add tactile feedback to `Chip`, `SyndromeBtn`, and `ActionBtn`:
+```css
+  &:active {
+    transform: scale(0.96);
+  }
+```
+3. Ensure all interactive elements have a minimum height of `44px` (Chips are currently `36px` — increase padding to achieve `44px` min-height for WCAG touch target compliance).
+
+---
+
+### 5. Transcript & Data Visualization Polish
+**Severity:** MEDIUM
+**File & Location:** `frontend/src/components/WorkoutLogger/VoiceMemoUpload.tsx` (TranscriptBox, StatusBar)
+**Design Problem:** Hardcoded Tailwind grays (`#94a3b8`, `#64748b`) clash with the Galaxy-Swan theme. The `<details>` element for the transcript is unstyled and clunky.
+**Design Solution:** Replace Tailwind grays with Galaxy-Swan text tokens. Style the transcript as a frosted glass terminal.
+
+**Implementation Notes for Claude:**
+1. Replace `#94a3b8` and `#64748b` with `rgba(255, 255, 255, 0.7)` and `rgba(255, 255, 255, 0.5)` respectively to maintain the cool, dark cosmic tone.
+2. Overhaul `TranscriptBox`:
+```tsx
+const TranscriptBox = styled.details`
+  margin-top: 16px;
+  background: rgba(10, 10, 26, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 12px;
   overflow: hidden;
 
-  /* Shimmer effect overlay */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(to right, transparent, rgba(120, 81, 169, 0.1), transparent);
-    animation: shimmer 3s infinite;
-  }
-
-  @keyframes shimmer {
-    100% { left: 200%; }
-  }
-`;
-
-const InsightItem = styled(motion.div)`
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-  color: rgba(255, 255, 255, 0.87);
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-
-  &::before {
-    content: '✦';
-    color: #00FFFF; /* Cyan accent for the bullet */
-    font-size: 16px;
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-  }
-`;
-```
-
-### 2. Exercise Card Architecture & Parameter Typography
-**Severity:** HIGH
-**Triggered By:** `workoutExercises` array and `applyOPTParams()` output.
-**Design Problem:** The backend sends dense parameters (`sets`, `reps`, `tempo`, `rest`, `intensity`). Standard text rendering will cause cognitive overload mid-workout.
-**Design Solution:** A highly structured `ExerciseCard` component. We must separate the *identity* of the exercise from its *execution metrics*. Execution metrics must use a monospaced font for quick scanning while under physical fatigue.
-
-**Implementation Notes for Claude:**
-1. Build a card with a `#121224` background (slightly elevated from the `#0a0a1a` base).
-2. Create a 4-column CSS Grid for the metrics at the bottom of the card.
-3. Use `JetBrains Mono` or `SF Mono` for the numbers.
-
-```typescript
-const ExerciseCard = styled.article`
-  background: #121224;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 20px;
-  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: rgba(0, 255, 255, 0.3);
-  }
-`;
-
-const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-`;
-
-const MetricBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  
-  .label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 4px;
-  }
-  
-  .value {
-    font-family: 'SF Mono', 'JetBrains Mono', monospace;
-    font-size: 16px;
+  summary {
+    cursor: pointer;
+    color: ${SWAN_CYAN};
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #00FFFF; /* Cyan for actionable metrics */
+    padding: 12px 16px;
+    user-select: none;
+    background: rgba(0, 255, 255, 0.05);
+    transition: background 0.2s;
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.1);
+    }
+  }
+
+  pre {
+    margin: 0;
+    padding: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 250px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(0, 255, 255, 0.1);
+    
+    /* Custom Scrollbar for the terminal feel */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 255, 0.3);
+      border-radius: 3px;
+    }
   }
 `;
 ```
 
-### 3. The "Switch Session" Swap Interaction
-**Severity:** HIGH
-**Triggered By:** `sessionType === 'switch'` and `swapSuggestions` object.
-**Design Problem:** When the backend suggests swaps, navigating away to a new page breaks the user's context. 
-**Design Solution:** A mobile-first Bottom Sheet Modal. When a user taps "Swap Exercise", the screen dims, and a bottom sheet slides up containing the `swapSuggestions`.
-
-**Implementation Notes for Claude:**
-1. Implement Framer Motion for the bottom sheet (`y: "100%"` to `y: 0`).
-2. The backdrop must be a heavy blur to maintain focus on the sheet.
-3. Touch targets for the suggested exercises must be a minimum of `56px` tall for thumb-friendly tapping.
-
-```typescript
-const BottomSheet = styled(motion.div)`
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  max-height: 85vh;
-  background: #0a0a1a;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  border-top: 1px solid rgba(0, 255, 255, 0.2);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
-  padding: 24px 16px;
-  overflow-y: auto;
-  z-index: 1000;
-`;
-
-const DragHandle = styled.div`
-  width: 40px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  margin: 0 auto 24px auto;
-`;
-```
-
-### 4. Compensation & Pain Awareness Badges
-**Severity:** MEDIUM
-**Triggered By:** Warmup items with a `reason` (e.g., `reason: 'Addressing underactive glutes'`).
-**Design Problem:** The backend injects specific CES (Corrective Exercise Specialist) movements into the warmup based on user compensations. The user needs to know *why* they are doing this specific stretch, but it shouldn't look like an error or a medical alert.
-**Design Solution:** Subtle, inline "Target" badges attached to the warmup exercise cards.
-
-**Implementation Notes for Claude:**
-1. Do NOT use red or amber (implies danger/error). Use a muted variant of the Cosmic Purple or a soft teal.
-2. Render this as a pill-shaped badge next to or below the exercise name.
-
-```typescript
-const CESBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  background: rgba(120, 81, 169, 0.15);
-  border: 1px solid rgba(120, 81, 169, 0.4);
-  border-radius: 100px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #D8B4FE; /* Lightened purple for contrast */
-  margin-top: 8px;
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #7851A9;
-    margin-right: 6px;
-  }
-`;
-```
-
-### 5. Long-Term Plan: Mesocycle Cosmic Roadmap
-**Severity:** MEDIUM
-**Triggered By:** `generatePlan()` returning `mesocycles`.
-**Design Problem:** A 12-week plan displayed as a standard table is boring and uninspiring. 
-**Design Solution:** A vertical "Cosmic Roadmap". Each mesocycle (4-week block) is a node on a timeline. The active phase glows.
-
-**Implementation Notes for Claude:**
-1. Create a vertical timeline using a 2px wide line colored `rgba(255,255,255,0.1)`.
-2. Nodes (representing `nasmPhase`) should be circles. If it's Phase 1, 1 ring. Phase 4, 4 concentric rings.
-3. Use `#00FFFF` for the active/current mesocycle node, with a `box-shadow: 0 0 15px rgba(0,255,255,0.4)`.
-
----
-
-### Execution Mandate for Claude
-Claude, when you build the React components that consume `workoutBuilderService.mjs`:
-1. **Do not use standard UI libraries** (like Material UI or Bootstrap) for these specific components. Build them from scratch using `styled-components` and `framer-motion` as specified above.
-2. **Strictly adhere to the color tokens:** `#0a0a1a` (Background), `#121224` (Surface), `#00FFFF` (Action/Metrics), `#7851A9` (Intelligence/AI).
-3. **Typography:** Ensure the `MetricsGrid` uses a monospace font. This is non-negotiable for the premium fitness aesthetic.
+### Execution Mandate
+Claude, implement these exact styled-components and logic updates. Do not dilute the CSS values or animation specs. The goal is to make the UI feel expensive, responsive, and deeply integrated into the Galaxy-Swan aesthetic. Proceed with the implementation plan.
 
 ---
 

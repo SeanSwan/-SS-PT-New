@@ -1,239 +1,59 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 29.7s
-> **Files:** backend/services/workoutBuilderService.mjs
-> **Generated:** 3/6/2026, 6:17:05 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 12.4s
+> **Files:** frontend/src/components/BodyMap/PainEntryPanel.tsx, frontend/src/components/WorkoutLogger/VoiceMemoUpload.tsx, backend/routes/workoutLogUploadRoutes.mjs, backend/services/workoutLogParserService.mjs, backend/services/voiceTranscriptionService.mjs
+> **Generated:** 3/6/2026, 8:43:19 PM
 
 ---
 
-# Deep Code Review: workoutBuilderService.mjs
+# Deep Architecture Review & Bug Hunt — SwanStudios
 
 ## Executive Summary
 
-This service contains **3 CRITICAL bugs** that will cause runtime failures, **2 HIGH severity issues** affecting data integrity, and several medium/low issues. The most severe is an undefined constant reference that will crash production.
+This review identifies **4 CRITICAL issues**, **7 HIGH severity issues**, and multiple MEDIUM/LOW concerns across the codebase. The most critical problems are: memory leak in rate limiter, missing API timeouts, insecure error message exposure, and PDF text extraction that will fail in production.
 
 ---
 
-## CRITICAL Findings
+## 1. Bug Detection
 
-### 1. Undefined Constant Reference (Runtime Crash)
+### CRITICAL
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **CRITICAL** | `generateWorkout()` function, lines ~285-290 | The constant `PAIN_AUTO_EXCLUDE_SEVERITY` is referenced inside the explanations but is defined **after** the function returns. This causes `ReferenceError: PAIN_AUTO_EXCLUDE_SEVERITY is not defined` at runtime. | Move `const PAIN_AUTO_EXCLUDE_SEVERITY = 7;` to the top of the file, before the `generateWorkout` function. |
+| **CRITICAL** | `workoutLogUploadRoutes.mjs:18-31` | **Memory leak in rate limiter**: The `uploadCounts` Map grows unbounded. Timestamps are filtered but the Map entries for users who stop uploading are never cleaned up. Over time, this will exhaust server memory. | Add periodic cleanup or use LRU cache with TTL:<br><br>`// Add after line 31`<br>`// Cleanup entries older than window every 5 minutes`<br>`setInterval(() => {`<br>`  const cutoff = Date.now() - window;`<br>`  for (const [key, times] of uploadCounts) {`<br>`    const filtered = times.filter(t => t > cutoff);`<br>`    if (filtered.length === 0) uploadCounts.delete(key);`<br>`    else uploadCounts.set(key, filtered);`<br>`  }`<br>`}, 5 * 60 * 1000);` |
+| **CRITICAL** | `workoutLogParserService.mjs:89-98` | **No timeout on OpenAI fetch**: The `fetch()` call to OpenAI has no timeout. If the API hangs, the request will hang indefinitely, potentially exhausting server connections. | Add timeout AbortController:<br><br>`const controller = new AbortController();`<br>`const timeout = setTimeout(() => controller.abort(), 30000);`<br>`const response = await fetch('https://api.openai.com/v1/chat/completions', {`<br>`  ...options,`<br>`  signal: controller.signal,`<br>`});`<br>`clearTimeout(timeout);` |
+| **CRITICAL** | `voiceTranscriptionService.mjs:27-45` | **No timeout on Whisper API**: Same issue — fetch to OpenAI has no timeout. | Apply same timeout pattern as above. |
+| **CRITICAL** | `voiceTranscriptionService.mjs:66-79` | **Broken PDF text extraction**: The regex `/\(([^)]+)\)/g` only captures text in parentheses and will fail on most real PDFs. Most PDF text isn't stored as simple parentheses. This will return empty/invalid text for actual PDF uploads. | Use a proper PDF library:<br><br>`import pdf from 'pdf-parse';`<br>`// In extractText function:`<br>`if (mimetype === 'application/pdf') {`<br>`  try {`<br>`    const data = await pdf(buffer);`<br>`    return data.text.trim();`<br>`  } catch {`<br>`    return buffer.toString('utf-8').replace(/[^\x20-\x7E\n]/g, ' ').trim();`<br>`  }`<br>`}` |
 
-**Evidence:**
-```javascript
-// Line ~285: References constant that doesn't exist yet
-explanations.push({
-  type: 'pain_exclusion',
-  message: `${context.pain.exclusions.length} muscle group(s) auto-excluded due to pain severity >= ${PAIN_AUTO_EXCLUDE_SEVERITY}/10 within 72h`,
-  // ...
-});
+### HIGH
 
-// Line ~380: Defined AFTER the function that uses it
-const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
-```
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `PainEntryPanel.tsx:298-305` | **Race condition in side-swapping**: When user changes side, `setEffectiveRegionId(swapped)` is called which triggers the reset `useEffect` (lines 262-280). This effect depends on `effectiveRegionId`, causing the form to reset while the user is still interacting. The side change and form reset happen in same render cycle creating confusing UX. | Add a flag to prevent reset during side swap, or separate the side-change handler:<br><br>`const [isSideSwapping, setIsSideSwapping] = useState(false);`<br><br>`// In side change handler:`<br>`setIsSideSwapping(true);`<br>`setEffectiveRegionId(swapped);`<br>`setTimeout(() => setIsSideSwapping(false), 0);`<br><br>`// In reset useEffect:`<br>`useEffect(() => {`<br>`  if (isSideSwapping) return;`<br>`  // existing logic`<br>`}, [effectiveRegionId, existingEntry, isSideSwapping]);` |
+| **HIGH** | `workoutLogUploadRoutes.mjs:84-86` | **Error message exposure**: Internal error messages are exposed directly to clients (`err.message`). This could leak sensitive information like file paths, API keys (if in message), or internal logic. | Sanitize all error responses:<br><br>`res.status(500).json({ error: 'Failed to process upload. Please try again.' });`<br><br>Log the detailed error server-side only. |
+| **HIGH** | `workoutLogParserService.mjs:23-26` | **No input validation**: `clientId` and `trainerId` are passed directly to `getClientContext()` without validation. Malicious input could cause unexpected behavior. | Add validation at function start:<br><br>`if (!Number.isInteger(clientId) || clientId <= 0) {`<br>`  throw new Error('Invalid clientId');`<br>`}`<br>`if (!Number.isInteger(trainerId) || trainerId <= 0) {`<br>`  throw new Error('Invalid trainerId');`<br>`}` |
+| **HIGH** | `VoiceMemoUpload.tsx:147-149` | **No file size validation on client**: The component accepts files up to 50MB (per backend) but doesn't validate before upload. User gets generic error after waiting for upload. | Add client-side validation:<br><br>`const MAX_SIZE = 50 * 1024 * 1024;`<br>`if (file.size > MAX_SIZE) {`<br>`  setError('File exceeds 50MB limit');`<br>`  return;`<br>`}` |
+| **HIGH** | `workoutLogUploadRoutes.mjs:67` | **Insecure rate limiter**: The rate limiter runs AFTER authentication (`router.use(protect)`), but an unauthenticated attacker could still hit the endpoint and get a 401 before hitting rate limit. This makes DDoS easier. Rate limiting should be first. | Move `rateLimiter` before `protect`:<br><br>`router.post('/upload', rateLimiter, protect, authorize(...), ...)` |
+| **HIGH** | `PainEntryPanel.tsx:330-335` | **No form validation before save**: `handleSave` only checks `if (!effectiveRegionId) return;` but doesn't validate required fields like `painType` or `painLevel`. User can save invalid/incomplete entries. | Add validation:<br><br>`const handleSave = () => {`<br>`  if (!effectiveRegionId) return;`<br>`  if (!painType) {`<br>`    alert('Please select a pain type');`<br>`    return;`<br>`  }`<br>`  // existing logic`<br>`};` |
+| **HIGH** | `VoiceMemoUpload.tsx:125-145` | **Error handling swallows details**: The catch block uses `err.response?.data?.error || err.message` but doesn't handle network errors differently from API errors. A network failure shows unhelpful "Upload failed" message. | Differentiate error types:<br><br>`} catch (err: any) {`<br>`  if (err.code === 'ECONNABORTED') {`<br>`    setError('Request timed out. File may be too large.');`<br>`  } else if (!err.response) {`<br>`    setError('Network error. Check your connection.');`<br>`  } else {`<br>`    setError(err.response?.data?.error || 'Upload failed');`<br>`  }`<br>`}` |
+
+### MEDIUM
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `PainEntryPanel.tsx:262-280` | **Complex useEffect with multiple responsibilities**: This effect handles both "sync from parent" and "reset form on region change" and "load existing entry". These three concerns should be separate effects for clarity and to avoid interaction bugs. | Split into separate effects:<br><br>`// Effect 1: Sync from parent`<br>`useEffect(() => { setEffectiveRegionId(regionId); }, [regionId]);`<br><br>`// Effect 2: Load existing entry`<br>`useEffect(() => {`<br>`  if (existingEntry) { /* load logic */ }`<br>`}, [existingEntry]);`<br><br>`// Effect 3: Reset form for new entry`<br>`useEffect(() => {`<br>`  if (!existingEntry && effectiveRegionId) { /* reset logic */ }`<br>`}, [effectiveRegionId, existingEntry]);` |
+| **MEDIUM** | `VoiceMemoUpload.tsx:152-157` | **onDrop handler doesn't validate file count**: Users can drop multiple files but only the first is processed silently. Should either handle multiple files or explicitly reject. | Add validation:<br><br>`const onDrop = useCallback((e: React.DragEvent) => {`<br>`  e.preventDefault();`<br>`  setDragOver(false);`<br>`  if (e.dataTransfer.files.length > 1) {`<br>`    setError('Please upload one file at a time');`<br>`    return;`<br>`  }`<br>`  const file = e.dataTransfer.files[0];`<br>`  if (file) handleFile(file);`<br>`}, [handleFile]);` |
+| **MEDIUM** | `workoutLogParserService.mjs:108-115` | **Confidence calculation is misleading**: The confidence score is based on heuristics (transcript length, number of exercises) that don't actually measure parsing accuracy. A long transcript with garbled audio could show high confidence. | Rename to reflect what it actually measures:<br><br>`const parsingCompleteness = calculateCompleteness(transcript, parsed);`<br><br>Or remove confidence entirely if it can't be accurately measured. |
+| **MEDIUM** | `voiceTranscriptionService.mjs:81-88` | **getMimeType fallback is wrong**: Returns `'audio/mp4'` as fallback, but if the file is actually a different format, Whisper will fail with a confusing error. | Throw error instead of guessing:<br><br>`function getMimeType(filename) {`<br>`  const ext = filename.split('.').pop()?.toLowerCase();`<br>`  const mimeMap = { /* existing */ };`<br>`  if (!mimeMap[ext]) {`<br>`    throw new Error(`Unsupported audio format: ${ext}`);`<br>`  }`<br>`  return mimeMap[ext];`<br>`}` |
 
 ---
 
-### 2. Incorrect Conditional Logic in Category Mapping
+## 2. Architecture Flaws
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **CRITICAL** | Lines 248-254 | The ternary chain for mapping categories to movement types is broken. `category === 'chest' || category === 'shoulders' ? 'push'` is evaluated as `(category === 'shoulders' ? 'push' : (category === 'chest'))`. This means `chest` maps to `'chest'` (truthy), not `'push'`. | Fix the parentheses: `category === 'chest' || category === 'shouldarms' ? 'push' : category === 'back' ? 'pull' : ...` or use a lookup map. |
-
-**Current broken code:**
-```javascript
-const movementCategories = category === 'full_body'
-  ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
-  : [category === 'chest' || category === 'shoulders' ? 'push'  // BROKEN
-      : category === 'back' ? 'pull'
-      : category === 'legs' ? 'squat'
-      : category === 'arms' ? 'push'
-      : 'core'];
-```
-
-**Correct logic:**
-```javascript
-const movementCategories = category === 'full_body'
-  ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
-  : [
-      category === 'chest' || category === 'shoulders' ? 'push'
-      : category === 'back' ? 'pull'
-      : category === 'legs' ? 'squat'
-      : category === 'arms' ? 'push'
-      : 'core'
-    ];
-```
-
----
-
-### 3. Missing Null Guard on Equipment Items
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | Lines 232-237 | When `equipmentProfileId` is provided but `context.equipment` is empty or the profile isn't found, `equipmentItems` becomes `[]`. The filter logic then allows ALL exercises (because `availableCategories.size > 0` is false when no equipment found). This bypasses equipment filtering silently. | Add explicit null check and throw error or return empty exercises when equipment profile not found. |
-
-```javascript
-// Current (buggy):
-let equipmentItems = [];
-if (equipmentProfileId) {
-  const profile = context.equipment.find(p => p.id === equipmentProfileId);
-  if (profile) equipmentItems = profile.items;
-}
-
-// Should be:
-let equipmentItems = [];
-if (equipmentProfileId) {
-  const profile = context.equipment?.find(p => p.id === equipmentProfileId);
-  if (!profile) {
-    logger.warn(`Equipment profile ${equipmentProfileId} not found for client ${clientId}`);
-    // Option 1: Throw error
-    // throw new Error(`Equipment profile ${equipmentProfileId} not found`);
-    // Option 2: Return empty (safer)
-    return { error: 'Equipment profile not found', ... };
-  }
-  equipmentItems = profile.items;
-}
-```
-
----
-
-## HIGH Severity Findings
-
-### 4. Unused Import
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | Line 17 | `getNextSessionType` is imported from `variationEngine.mjs` but never used. This indicates dead code or incomplete implementation. | Remove the unused import or implement the missing functionality. |
-
-```javascript
-// Current:
-import { getExerciseRegistry, getNextSessionType, generateSwapSuggestions } from './variationEngine.mjs';
-
-// Fix:
-import { getExerciseRegistry, generateSwapSuggestions } from './variationEngine.mjs';
-```
-
----
-
-### 5. No Input Validation on Public API Functions
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `generateWorkout()` and `generatePlan()` | No validation on `clientId`, `trainerId`, or other parameters. Missing required fields will cause downstream errors. | Add input validation at function entry. |
-
-```javascript
-// Add at start of generateWorkout:
-if (!clientId || typeof clientId !== 'number') {
-  throw new Error('clientId is required and must be a number');
-}
-if (!trainerId || typeof trainerId !== 'number') {
-  throw new Error('trainerId is required and must be a number');
-}
-if (!['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body'].includes(category)) {
-  throw new Error('Invalid category');
-}
-```
-
----
-
-## MEDIUM Severity Findings
-
-### 6. Potential Stale Closure in Swap Suggestions
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | Lines 269-277 | `generateSwapSuggestions()` is called with `selectedExercises.map(e => e.key)` but the result is assigned to `swapSuggestions` which is returned directly. If `generateSwapSuggestions` is async or returns a promise, it's not being awaited. | Verify if `generateSwapSuggestions` returns a Promise. If so, add `await`. |
-
-```javascript
-// Current:
-let swapSuggestions = null;
-if (sessionType === 'switch' && selectedExercises.length > 0) {
-  swapSuggestions = generateSwapSuggestions(/* ... */);  // Could be async
-}
-
-// If async:
-if (sessionType === 'switch' && selectedExercises.length > 0) {
-  swapSuggestions = await generateSwapSuggestions(/* ... */);
-}
-```
-
----
-
-### 7. Hardcoded Rotation Pool
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | Lines 356-357 | `rotationPool` is hardcoded. This should come from client context or configuration. | Move to configuration or derive from `context.variation`. |
-
-```javascript
-// Current:
-const rotationPool = ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
-
-// Should be:
-const rotationPool = context.variation.rotationPool || ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
-```
-
----
-
-### 8. Deload Week Logic Bug
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | Lines 337-340 | The deload week logic is confusing: `weekEnd === (i + 1) * 4 ? weekEnd : null`. This always evaluates to `true` for complete mesocycles, but the logic seems wrong. | Clarify intent: should deload be every 4th week or only on the final mesocycle? |
-
-```javascript
-// Current (unclear intent):
-deloadWeek: weekEnd === (i + 1) * 4 ? weekEnd : null,
-
-// If intent is "every 4th week":
-deloadWeek: weekEnd % 4 === 0 ? weekEnd : null,
-
-// If intent is "last week of mesocycle":
-deloadWeek: weekEnd,
-```
-
----
-
-### 9. No Error Handling for getClientContext
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | Lines 224, 323 | `getClientContext()` is called without try/catch. If the service fails, the entire workout generation fails with no graceful handling. | Wrap in try/catch with proper error logging. |
-
-```javascript
-// Current:
-const context = await getClientContext(clientId, trainerId);
-
-// Should be:
-let context;
-try {
-  context = await getClientContext(clientId, trainerId);
-} catch (err) {
-  logger.error('Failed to get client context', { clientId, trainerId, error: err.message });
-  throw new Error('Unable to generate workout: client context unavailable');
-}
-```
-
----
-
-## LOW Severity Findings
-
-### 10. Unused Logger Import
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **LOW** | Line 18 | `logger` is imported but never used. | Remove unused import or add logging statements. |
-
----
-
-### 11. Magic Numbers
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-
+| **HIGH** | `PainEntryPanel.tsx` (entire file) | **God component (~450 lines)**: This component handles form state, side-swapping logic, region lookup, theming, responsive layout, and rendering. Should be split into smaller, focused components. | Extract:<br>`- PainLevelSlider` (lines 116-140)<br>`- ChipSelector` (for aggravating/relieving factors)<br>`- SyndromeSelector` (postural syndrome buttons)<br>`- PainEntryForm` (main form logic) |
+| **HIGH** | `workoutLogUploadRoutes.mjs:52-102` | **Route handler does too much**: The route handles file upload, transcription, parsing, and response. This violates single responsibility and makes testing difficult. | Extract to controller/service:<br><br>`// routes/workoutLogUploadRoutes.mjs`<br>`router.post('/upload', rateLimiter, protect, authorize('admin', 'trainer'), upload.single('file'), handleUpload);`<br><br>`// controllers/workoutLogUploadController.mjs`<br>`async function handleUpload(req, res) {`<br>`  const result = await processWorkoutUpload(req.file, req.body);`<br>`  res
 
 ---
 

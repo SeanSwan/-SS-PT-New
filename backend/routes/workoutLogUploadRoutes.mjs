@@ -17,16 +17,27 @@ const router = express.Router();
 
 // Rate limiter: 10 uploads per 15 min per user
 const uploadCounts = new Map();
+const RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+// Cleanup stale entries every 5 minutes to prevent memory leak
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW;
+  for (const [key, times] of uploadCounts) {
+    const filtered = times.filter(t => t > cutoff);
+    if (filtered.length === 0) uploadCounts.delete(key);
+    else uploadCounts.set(key, filtered);
+  }
+}, 5 * 60 * 1000).unref();
+
 function rateLimiter(req, res, next) {
   const userId = req.user?.id;
   if (!userId) return next();
 
   const key = `${userId}`;
   const now = Date.now();
-  const window = 15 * 60 * 1000; // 15 minutes
 
   if (!uploadCounts.has(key)) uploadCounts.set(key, []);
-  const timestamps = uploadCounts.get(key).filter(t => now - t < window);
+  const timestamps = uploadCounts.get(key).filter(t => now - t < RATE_WINDOW);
 
   if (timestamps.length >= 10) {
     return res.status(429).json({ error: 'Upload rate limit exceeded. Max 10 uploads per 15 minutes.' });
@@ -94,7 +105,7 @@ router.post('/upload', authorize('admin', 'trainer'), rateLimiter, upload.single
     if (isAudioFile(file.mimetype)) {
       transcript = await transcribeAudio(file.buffer, file.originalname);
     } else {
-      transcript = extractText(file.buffer, file.mimetype);
+      transcript = await extractText(file.buffer, file.mimetype);
     }
 
     if (!transcript || transcript.trim().length < 5) {
@@ -133,7 +144,7 @@ router.post('/upload', authorize('admin', 'trainer'), rateLimiter, upload.single
       return res.status(429).json({ error: err.message });
     }
 
-    res.status(500).json({ error: 'Failed to process upload: ' + err.message });
+    res.status(500).json({ error: 'Failed to process upload. Please try again.' });
   }
 });
 
