@@ -40,10 +40,10 @@ const STATION_TRANSITION_SEC = 30;
 // ── Muscle Group Distributions by Day Type ────────────────────────────
 
 const DAY_TYPE_MUSCLES = {
-  lower_body: ['quadriceps', 'hamstrings', 'gluteus_maximus', 'calves', 'hip_flexors', 'core'],
-  upper_body: ['chest', 'upper_back', 'shoulders', 'biceps', 'triceps', 'core'],
-  cardio: ['full_body', 'core', 'quadriceps', 'gluteus_maximus', 'shoulders', 'chest'],
-  full_body: ['quadriceps', 'chest', 'upper_back', 'shoulders', 'gluteus_maximus', 'core'],
+  lower_body: ['quads', 'hamstrings', 'glutes', 'calves', 'hip_flexors', 'core'],
+  upper_body: ['chest', 'lats', 'anterior_deltoid', 'biceps', 'triceps', 'core'],
+  cardio: ['core', 'quads', 'glutes', 'chest', 'anterior_deltoid', 'hamstrings'],
+  full_body: ['quads', 'chest', 'lats', 'anterior_deltoid', 'glutes', 'core'],
 };
 
 // ── Cardio Finishers (bodyweight, no equipment) ───────────────────────
@@ -205,60 +205,59 @@ export async function generateBootcampClass(options) {
 
       stations.push({
         stationNumber: s + 1,
-        stationName: `Station ${s + 1}: ${stationMuscles[0]?.replace(/_/g, ' ') ?? 'Mixed'}`,
-        equipmentNeeded: stationExercises.map(e => e.equipment).filter(Boolean).join(', '),
+        stationName: `Station ${s + 1}: ${formatExerciseName(stationMuscles[0] ?? 'mixed')}`,
+        equipmentNeeded: stationExercises
+          .flatMap(e => Array.isArray(e.equipment) ? e.equipment : (e.equipment ? [e.equipment] : []))
+          .filter((v, i, a) => v && a.indexOf(v) === i)
+          .map(eq => formatExerciseName(eq))
+          .join(', ') || 'Bodyweight',
         setupTimeSec: 0,
         sortOrder: s + 1,
       });
 
+      // Add all selected exercises for this station
       for (let e = 0; e < stationExercises.length; e++) {
         const ex = stationExercises[e];
-        const isLast = e === stationExercises.length - 1;
-
-        // Add a cardio finisher as the last exercise
-        if (isLast) {
-          const finisher = CARDIO_FINISHERS[s % CARDIO_FINISHERS.length];
-          allExercises.push({
-            stationIndex: s,
-            exerciseName: finisher.name,
-            durationSec: format.durationSec,
-            restSec: 0,
-            sortOrder: e + 1,
-            isCardioFinisher: true,
-            muscleTargets: finisher.muscles,
-            easyVariation: finisher.easy ?? null,
-            mediumVariation: finisher.name,
-            hardVariation: finisher.hard ?? null,
-            kneeMod: finisher.kneeMod ?? null,
-            shoulderMod: finisher.shoulderMod ?? null,
-            ankleMod: finisher.ankleMod ?? null,
-            wristMod: finisher.wristMod ?? null,
-            backMod: finisher.backMod ?? null,
-          });
-        } else {
-          allExercises.push({
-            stationIndex: s,
-            exerciseName: ex.name ?? formatExerciseName(ex.key),
-            durationSec: format.durationSec,
-            restSec: TRANSITION_TIME_SEC,
-            sortOrder: e + 1,
-            isCardioFinisher: false,
-            muscleTargets: (ex.muscles ?? []).join(','),
-            easyVariation: ex.easy ?? null,
-            mediumVariation: ex.name ?? formatExerciseName(ex.key),
-            hardVariation: ex.hard ?? null,
-            kneeMod: ex.kneeMod ?? null,
-            shoulderMod: ex.shoulderMod ?? null,
-            ankleMod: ex.ankleMod ?? null,
-            wristMod: ex.wristMod ?? null,
-            backMod: ex.backMod ?? null,
-            equipmentRequired: ex.equipment ?? null,
-          });
-        }
-
-        // Mark as used
+        allExercises.push({
+          stationIndex: s,
+          exerciseName: ex.name ?? formatExerciseName(ex.key),
+          durationSec: format.durationSec,
+          restSec: TRANSITION_TIME_SEC,
+          sortOrder: e + 1,
+          isCardioFinisher: false,
+          muscleTargets: (ex.muscles ?? []).join(','),
+          easyVariation: ex.easy ?? null,
+          mediumVariation: ex.name ?? formatExerciseName(ex.key),
+          hardVariation: ex.hard ?? null,
+          kneeMod: ex.kneeMod ?? null,
+          shoulderMod: ex.shoulderMod ?? null,
+          ankleMod: ex.ankleMod ?? null,
+          wristMod: ex.wristMod ?? null,
+          backMod: ex.backMod ?? null,
+          equipmentRequired: Array.isArray(ex.equipment) ? ex.equipment.join(', ') : (ex.equipment ?? null),
+        });
         recentExerciseNames.add(ex.key);
       }
+
+      // Append cardio finisher as the last exercise in the station
+      const finisher = CARDIO_FINISHERS[s % CARDIO_FINISHERS.length];
+      allExercises.push({
+        stationIndex: s,
+        exerciseName: finisher.name,
+        durationSec: format.durationSec,
+        restSec: 0,
+        sortOrder: stationExercises.length + 1,
+        isCardioFinisher: true,
+        muscleTargets: finisher.muscles,
+        easyVariation: finisher.easy ?? null,
+        mediumVariation: finisher.name,
+        hardVariation: finisher.hard ?? null,
+        kneeMod: finisher.kneeMod ?? null,
+        shoulderMod: finisher.shoulderMod ?? null,
+        ankleMod: finisher.ankleMod ?? null,
+        wristMod: finisher.wristMod ?? null,
+        backMod: finisher.backMod ?? null,
+      });
     }
 
     explanations.push({
@@ -332,37 +331,43 @@ export async function saveBootcampTemplate(generatedClass, trainerId) {
     metadata: { explanations: generatedClass.explanations },
   });
 
-  // Create stations
-  const stationMap = {};
-  for (const s of generatedClass.stations) {
-    const station = await Station.create({
-      templateId: template.id,
-      ...s,
-    });
-    stationMap[s.stationNumber - 1] = station.id;
-  }
+  // Create stations in bulk
+  const stationRecords = generatedClass.stations.map(s => ({
+    templateId: template.id,
+    ...s,
+  }));
+  const createdStations = stationRecords.length > 0
+    ? await Station.bulkCreate(stationRecords, { returning: true })
+    : [];
 
-  // Create exercises
-  for (const ex of generatedClass.exercises) {
-    await Exercise.create({
-      templateId: template.id,
-      stationId: ex.stationIndex != null ? stationMap[ex.stationIndex] : null,
-      exerciseName: ex.exerciseName,
-      durationSec: ex.durationSec,
-      restSec: ex.restSec,
-      sortOrder: ex.sortOrder,
-      isCardioFinisher: ex.isCardioFinisher,
-      muscleTargets: ex.muscleTargets,
-      easyVariation: ex.easyVariation,
-      mediumVariation: ex.mediumVariation,
-      hardVariation: ex.hardVariation,
-      kneeMod: ex.kneeMod,
-      shoulderMod: ex.shoulderMod,
-      ankleMod: ex.ankleMod,
-      wristMod: ex.wristMod,
-      backMod: ex.backMod,
-      equipmentRequired: ex.equipmentRequired,
-    });
+  // Map stationIndex to created station IDs
+  const stationMap = {};
+  createdStations.forEach((station, idx) => {
+    stationMap[idx] = station.id;
+  });
+
+  // Create exercises in bulk
+  const exerciseRecords = generatedClass.exercises.map(ex => ({
+    templateId: template.id,
+    stationId: ex.stationIndex != null ? stationMap[ex.stationIndex] : null,
+    exerciseName: ex.exerciseName,
+    durationSec: ex.durationSec,
+    restSec: ex.restSec,
+    sortOrder: ex.sortOrder,
+    isCardioFinisher: ex.isCardioFinisher,
+    muscleTargets: ex.muscleTargets,
+    easyVariation: ex.easyVariation,
+    mediumVariation: ex.mediumVariation,
+    hardVariation: ex.hardVariation,
+    kneeMod: ex.kneeMod,
+    shoulderMod: ex.shoulderMod,
+    ankleMod: ex.ankleMod,
+    wristMod: ex.wristMod,
+    backMod: ex.backMod,
+    equipmentRequired: ex.equipmentRequired,
+  }));
+  if (exerciseRecords.length > 0) {
+    await Exercise.bulkCreate(exerciseRecords);
   }
 
   // Create overflow plan
@@ -476,6 +481,7 @@ function distributeMuscleGroups(muscles, stationCount) {
 }
 
 function selectStationExercises(available, stationMuscles, count, usedNames) {
+  // Find exercises matching this station's muscle groups that haven't been used
   const matching = available
     .filter(ex => {
       const exMuscles = ex.muscles ?? [];
@@ -483,15 +489,30 @@ function selectStationExercises(available, stationMuscles, count, usedNames) {
     })
     .filter(ex => !usedNames.has(ex.key));
 
-  // Sort by muscle overlap (more overlap = better fit)
+  // Sort by muscle overlap (more overlap = better fit for the primary muscle)
   matching.sort((a, b) => {
     const aMatch = (a.muscles ?? []).filter(m => stationMuscles.includes(m)).length;
     const bMatch = (b.muscles ?? []).filter(m => stationMuscles.includes(m)).length;
     return bMatch - aMatch;
   });
 
-  // Take count-1 (save last slot for cardio finisher)
-  return matching.slice(0, count - 1);
+  const needed = Math.max(1, count - 1); // Leave 1 slot for cardio finisher
+
+  if (matching.length >= needed) {
+    return matching.slice(0, needed);
+  }
+
+  // Fallback: if not enough muscle-matched exercises, pull from the full pool
+  const selected = [...matching];
+  const remainingPool = available
+    .filter(ex => !usedNames.has(ex.key) && !selected.some(s => s.key === ex.key));
+
+  for (const ex of remainingPool) {
+    if (selected.length >= needed) break;
+    selected.push(ex);
+  }
+
+  return selected;
 }
 
 function selectFullGroupExercises(available, targetMuscles) {
