@@ -112,7 +112,12 @@ function getHeaders(): Record<string, string> {
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...options, headers: { ...getHeaders(), ...options?.headers } });
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Server returned invalid response (${res.status})`);
+  }
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 }

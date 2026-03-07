@@ -243,6 +243,12 @@ const ModChip = styled.span`
   color: rgba(224, 236, 244, 0.7);
 `;
 
+// ── Helpers ───────────────────────────────────────────────────────────
+
+function formatMuscle(name: string): string {
+  return name.trim().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ── Constants ─────────────────────────────────────────────────────────
 
 const CLASS_FORMATS: Array<{ value: ClassFormat; label: string }> = [
@@ -277,6 +283,7 @@ const BootcampBuilderPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [floorMode, setFloorMode] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<BootcampExercise | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -301,14 +308,17 @@ const BootcampBuilderPage: React.FC = () => {
   }, [api, classFormat, dayType, targetDuration, expectedParticipants, className]);
 
   const handleSave = useCallback(async () => {
-    if (!bootcamp) return;
+    if (!bootcamp || saving) return;
+    setSaving(true);
     try {
       await api.saveTemplate(bootcamp);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
     }
-  }, [api, bootcamp]);
+  }, [api, bootcamp, saving]);
 
   // Group exercises by station
   const stationExercises = bootcamp?.exercises.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
@@ -454,8 +464,8 @@ const BootcampBuilderPage: React.FC = () => {
                 )}
 
                 <div style={{ marginTop: 12 }}>
-                  <PrimaryButton $floorMode={floorMode} onClick={handleSave}>
-                    Save as Template
+                  <PrimaryButton $floorMode={floorMode} onClick={handleSave} disabled={saving}>
+                    {saving ? 'Saving...' : 'Save as Template'}
                   </PrimaryButton>
                 </div>
               </motion.div>
@@ -493,19 +503,25 @@ const BootcampBuilderPage: React.FC = () => {
               </div>
 
               <SectionDivider>Pain Modifications</SectionDivider>
-              <ModGrid>
-                {selectedExercise.kneeMod && <ModChip>Knee: {selectedExercise.kneeMod}</ModChip>}
-                {selectedExercise.shoulderMod && <ModChip>Shoulder: {selectedExercise.shoulderMod}</ModChip>}
-                {selectedExercise.ankleMod && <ModChip>Ankle: {selectedExercise.ankleMod}</ModChip>}
-                {selectedExercise.wristMod && <ModChip>Wrist: {selectedExercise.wristMod}</ModChip>}
-                {selectedExercise.backMod && <ModChip>Back: {selectedExercise.backMod}</ModChip>}
-              </ModGrid>
+              {(selectedExercise.kneeMod || selectedExercise.shoulderMod || selectedExercise.ankleMod || selectedExercise.wristMod || selectedExercise.backMod) ? (
+                <ModGrid>
+                  {selectedExercise.kneeMod && <ModChip>Knee: {selectedExercise.kneeMod}</ModChip>}
+                  {selectedExercise.shoulderMod && <ModChip>Shoulder: {selectedExercise.shoulderMod}</ModChip>}
+                  {selectedExercise.ankleMod && <ModChip>Ankle: {selectedExercise.ankleMod}</ModChip>}
+                  {selectedExercise.wristMod && <ModChip>Wrist: {selectedExercise.wristMod}</ModChip>}
+                  {selectedExercise.backMod && <ModChip>Back: {selectedExercise.backMod}</ModChip>}
+                </ModGrid>
+              ) : (
+                <div style={{ fontSize: 12, opacity: 0.5 }}>No modifications available for this exercise</div>
+              )}
 
               {selectedExercise.muscleTargets && (
                 <>
                   <SectionDivider>Muscle Targets</SectionDivider>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {selectedExercise.muscleTargets.split(',').join(', ')}
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {selectedExercise.muscleTargets.split(',').map((m, i) => (
+                      <ModChip key={i}>{formatMuscle(m)}</ModChip>
+                    ))}
                   </div>
                 </>
               )}
