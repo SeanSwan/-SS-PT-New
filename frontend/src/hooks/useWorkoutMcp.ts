@@ -141,8 +141,9 @@ export interface WorkoutPlan {
   days?: WorkoutPlanDay[];
 }
 
-// MCP API base URL
-const MCP_WORKOUT_API_URL = 'http://localhost:8000';
+// MCP API base URL — uses env var in dev, disabled in production (no MCP server deployed)
+const MCP_WORKOUT_API_URL = import.meta.env.VITE_WORKOUT_MCP_URL || 'http://localhost:8000';
+const MCP_ENABLED = !!import.meta.env.VITE_WORKOUT_MCP_URL || import.meta.env.DEV;
 
 /**
  * Enhanced hook for Workout MCP integration
@@ -158,6 +159,10 @@ export const useWorkoutMcp = () => {
     try {
       setLoading(true);
       setError(null);
+
+      if (!MCP_ENABLED) {
+        throw new Error('MCP server not available in production');
+      }
 
       const response = await fetch(`${MCP_WORKOUT_API_URL}/tools/${toolName}`, {
         method: 'POST',
