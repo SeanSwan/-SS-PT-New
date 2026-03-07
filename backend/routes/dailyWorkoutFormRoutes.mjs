@@ -54,11 +54,10 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
     const User = getUser();
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
-    // Get client information
+    // Get client information (allow any role — admin may test with own account)
     const client = await User.findOne({
       where: {
-        id: parseInt(clientId),
-        role: 'client'
+        id: parseInt(clientId)
       },
       attributes: [
         'id',

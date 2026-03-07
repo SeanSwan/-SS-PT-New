@@ -500,6 +500,90 @@ async function migrateCleanupTestUsers() {
 }
 
 /**
+ * Add remindersSent JSONB column to sessions table.
+ * Fixes: "column Session.remindersSent does not exist" 500 error.
+ */
+async function migrateSessionRemindersSent() {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'sessions' AND column_name = 'remindersSent';
+    `);
+    if (results.length > 0) return;
+
+    await sequelize.query(`
+      ALTER TABLE "sessions"
+      ADD COLUMN "remindersSent" JSONB DEFAULT NULL;
+    `);
+    logger.info('[Migration] Added remindersSent column to sessions table');
+  } catch (error) {
+    logger.warn(`[Migration] remindersSent migration failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
+ * Create Exercises table if it doesn't exist.
+ * Fixes: exercise search 500 error (table never created by CLI migration).
+ */
+async function migrateExercisesTable() {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_name = 'Exercises';
+    `);
+    if (results.length > 0) return;
+
+    // Create ENUM type
+    await sequelize.query(`
+      DO $$ BEGIN
+        CREATE TYPE "enum_Exercises_exerciseType" AS ENUM (
+          'core', 'balance', 'stability', 'flexibility', 'calisthenics',
+          'isolation', 'stabilizers', 'injury_prevention', 'injury_recovery', 'compound'
+        );
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await sequelize.query(`
+      CREATE TABLE "Exercises" (
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "name" VARCHAR(255) NOT NULL UNIQUE,
+        "description" TEXT NOT NULL,
+        "instructions" TEXT NOT NULL,
+        "videoUrl" VARCHAR(255),
+        "imageUrl" VARCHAR(255),
+        "exerciseType" "enum_Exercises_exerciseType" NOT NULL,
+        "primaryMuscles" TEXT NOT NULL,
+        "secondaryMuscles" TEXT,
+        "difficulty" INTEGER NOT NULL DEFAULT 0,
+        "progressionPath" TEXT,
+        "prerequisites" TEXT,
+        "equipmentNeeded" TEXT,
+        "canBePerformedAtHome" BOOLEAN NOT NULL DEFAULT false,
+        "coachingCues" JSON,
+        "contraindicationNotes" TEXT,
+        "safetyTips" TEXT,
+        "recommendedSets" INTEGER,
+        "recommendedReps" INTEGER,
+        "recommendedDuration" INTEGER,
+        "restInterval" INTEGER,
+        "scientificReferences" TEXT,
+        "unlockLevel" INTEGER NOT NULL DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "isPopular" BOOLEAN NOT NULL DEFAULT false,
+        "experiencePointsEarned" INTEGER NOT NULL DEFAULT 10,
+        "targetProgressionRate" FLOAT,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    logger.info('[Migration] Created Exercises table');
+  } catch (error) {
+    logger.warn(`[Migration] Exercises table migration failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -516,6 +600,8 @@ export async function runStartupMigrations() {
     await migrateConversationParticipantsDeletedAt();
     await migrateSeanSwanLastName();
     await migrateCleanupTestUsers();
+    await migrateSessionRemindersSent();
+    await migrateExercisesTable();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;
