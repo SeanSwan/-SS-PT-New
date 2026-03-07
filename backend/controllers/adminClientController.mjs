@@ -961,9 +961,15 @@ class AdminClientController {
         dateFilter.date = { [Op.lte]: endDate };
       }
 
-      const [totalWorkouts, totalForms] = await Promise.all([
+      const [totalWorkouts, totalForms, recentWorkouts] = await Promise.all([
         WorkoutSession.count({ where: { userId: clientId, status: 'completed', ...dateFilter } }),
-        DailyWorkoutForm.count({ where: { clientId, ...dateFilter } })
+        DailyWorkoutForm.count({ where: { clientId, ...dateFilter } }),
+        WorkoutSession.findAll({
+          where: { userId: clientId, status: 'completed', ...dateFilter },
+          order: [['date', 'DESC']],
+          limit: 20,
+          attributes: ['id', 'title', 'date', 'duration', 'intensity', 'totalSets', 'totalReps', 'notes'],
+        }),
       ]);
 
       return res.status(200).json({
@@ -971,6 +977,15 @@ class AdminClientController {
         data: {
           totalWorkouts,
           totalForms,
+          recentWorkouts: recentWorkouts.map(w => ({
+            id: w.id,
+            title: w.title || 'Workout',
+            date: w.date,
+            duration: w.duration || 0,
+            exercises: w.totalSets || 0,
+            intensity: w.intensity || 0,
+            notes: w.notes || null,
+          })),
           dateRange: { startDate: startDate || null, endDate: endDate || null }
         }
       });
