@@ -1,20 +1,12 @@
 import React from 'react';
-import { Trophy, Gift, Settings, BarChart3 } from 'lucide-react';
-import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
+import AdminGamificationView from '../Pages/admin-gamification/admin-gamification-view';
 
-const tabs: WorkspaceTab[] = [
-  { id: 'achievements', label: 'Achievements', icon: <Trophy size={18} />, path: '/dashboard/gamification' },
-  { id: 'rewards', label: 'Rewards', icon: <Gift size={18} />, path: '/dashboard/gamification/rewards' },
-  { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: '/dashboard/gamification/settings' },
-  { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} />, path: '/dashboard/gamification/analytics' },
-];
-
-const GamificationWorkspace: React.FC = () => (
-  <WorkspaceContainer
-    title="Gamification Engine"
-    subtitle="Achievements, badges, rewards, and engagement systems"
-    tabs={tabs}
-  />
-);
+/**
+ * GamificationWorkspace
+ * Phase 3 consolidation: AdminGamificationView manages its own internal tabs
+ * (Achievements, Rewards, Settings, Analytics), so the outer WorkspaceContainer
+ * tabs were redundant duplicates. Now renders the view directly.
+ */
+const GamificationWorkspace: React.FC = () => <AdminGamificationView />;
 
 export default GamificationWorkspace;

@@ -9,7 +9,6 @@ import AdminClientProgressView from './Pages/admin-client-progress/admin-client-
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import AdminSpecialsManager from './Pages/admin-specials/AdminSpecialsManager';
 import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
-import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
 import MessagingPage from '../../pages/MessagingPage';
 
 import UniversalSchedule from '../Schedule/UniversalSchedule';
@@ -263,12 +262,12 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="ai" element={<NASMCompliancePanel />} />
     </Route>
 
-    <Route path="/gamification" element={<GamificationWorkspace />}>
-      <Route index element={<AdminGamificationView />} />
-      <Route path="rewards" element={<AdminGamificationView />} />
-      <Route path="settings" element={<AdminGamificationView />} />
-      <Route path="analytics" element={<AdminGamificationView />} />
-    </Route>
+    {/* Phase 3 consolidation: AdminGamificationView manages its own internal tabs,
+        so the 4 redundant outer workspace tabs were removed. Sub-routes redirect to index. */}
+    <Route path="/gamification" element={<GamificationWorkspace />} />
+    <Route path="/gamification/rewards" element={<Navigate to="/dashboard/gamification" replace />} />
+    <Route path="/gamification/settings" element={<Navigate to="/dashboard/gamification" replace />} />
+    <Route path="/gamification/analytics" element={<Navigate to="/dashboard/gamification" replace />} />
 
     <Route path="/content" element={<ContentWorkspace />}>
       <Route index element={<Navigate to="/dashboard/content/video-studio" replace />} />
