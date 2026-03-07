@@ -11,7 +11,7 @@
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import {
   getRegionById,
@@ -140,30 +140,56 @@ const Label = styled.label`
 const SliderContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding: 12px 0;
 `;
 
-const Slider = styled.input`
+const Slider = styled.input<{ $painColor: string }>`
   flex: 1;
   -webkit-appearance: none;
-  height: 6px;
-  border-radius: 3px;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
   outline: none;
+  background: rgba(255, 255, 255, 0.05);
+
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 22px;
-    height: 22px;
+    appearance: none;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
+    background: #0a0a1a;
+    border: 3px solid ${({ $painColor }) => $painColor};
+    box-shadow: 0 0 12px ${({ $painColor }) => `${$painColor}80`}, inset 0 0 4px ${({ $painColor }) => $painColor};
     cursor: pointer;
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  }
+
+  &::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 20px ${({ $painColor }) => `${$painColor}AA`}, inset 0 0 6px ${({ $painColor }) => $painColor};
+  }
+
+  &:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid #00FFFF;
+    outline-offset: 4px;
   }
 `;
 
-const SliderValue = styled.span<{ $color: string }>`
+const SliderValue = styled.div<{ $color: string }>`
   color: ${({ $color }) => $color};
-  font-size: 20px;
-  font-weight: 700;
-  min-width: 32px;
-  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $color }) => `${$color}15`};
+  border: 1px solid ${({ $color }) => `${$color}40`};
+  border-radius: 12px;
+  text-shadow: 0 0 10px ${({ $color }) => `${$color}60`};
 `;
 
 const Select = styled.select`
@@ -222,7 +248,7 @@ const ChipGrid = styled.div`
 `;
 
 const Chip = styled.button<{ $active: boolean }>`
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 16px;
   font-size: 12px;
   cursor: pointer;
@@ -230,10 +256,13 @@ const Chip = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.15)' : 'rgba(0,0,0,0.3)')};
   color: ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.6)')};
   transition: all 0.15s;
-  min-height: 36px;
+  min-height: 44px;
   &:hover {
     border-color: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
     color: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
+  }
+  &:active {
+    transform: scale(0.96);
   }
 `;
 
@@ -374,6 +403,8 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   // Track effective region — may differ from regionId if user swaps sides
   const [effectiveRegionId, setEffectiveRegionId] = useState<string | null>(regionId);
   const region = effectiveRegionId ? getRegionById(effectiveRegionId) : null;
+  // Ref to prevent form reset when side-swap changes effectiveRegionId
+  const isSideSwapRef = useRef(false);
 
   const [painLevel, setPainLevel] = useState(5);
   const [painType, setPainType] = useState<PainType>('aching');
@@ -392,7 +423,12 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   }, [regionId]);
 
   // Reset form when region changes or existing entry loads
+  // Skip reset when the change came from a side-swap (user is actively editing)
   useEffect(() => {
+    if (isSideSwapRef.current) {
+      isSideSwapRef.current = false;
+      return;
+    }
     if (existingEntry) {
       setPainLevel(existingEntry.painLevel);
       setPainType(existingEntry.painType);
@@ -477,9 +513,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
               max={10}
               value={painLevel}
               onChange={(e) => setPainLevel(Number(e.target.value))}
-              style={{
-                background: `linear-gradient(to right, #33CC66, #FFB833, #FF3333)`,
-              }}
+              $painColor={severityColor}
             />
             <SliderValue $color={severityColor}>{painLevel}</SliderValue>
           </SliderContainer>
@@ -508,6 +542,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
             if (effectiveRegionId && (newSide === 'left' || newSide === 'right')) {
               const swapped = findRegionForSide(effectiveRegionId, newSide);
               if (swapped !== effectiveRegionId) {
+                isSideSwapRef.current = true; // prevent form reset
                 setEffectiveRegionId(swapped);
               }
             }

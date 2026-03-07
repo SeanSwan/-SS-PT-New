@@ -27,13 +27,22 @@ export async function transcribeAudio(buffer, filename) {
   formData.append('language', 'en');
   formData.append('response_format', 'text');
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s for large audio
+
+  let response;
+  try {
+    response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const errText = await response.text().catch(() => 'Unknown error');
@@ -52,13 +61,20 @@ export async function transcribeAudio(buffer, filename) {
  * @param {string} mimetype - MIME type
  * @returns {string} Extracted text
  */
-export function extractText(buffer, mimetype) {
+export async function extractText(buffer, mimetype) {
   if (mimetype === 'text/plain' || mimetype === 'text/csv') {
     return buffer.toString('utf-8').trim();
   }
-  // For PDF, return raw text extraction (basic)
+  // For PDF, use pdf-parse if available, fallback to regex
   if (mimetype === 'application/pdf') {
-    // Simple PDF text extraction — look for text between BT/ET blocks
+    try {
+      const pdfParse = (await import('pdf-parse')).default;
+      const data = await pdfParse(buffer);
+      if (data.text?.trim().length > 5) return data.text.trim();
+    } catch {
+      logger.warn('[VoiceTranscription] pdf-parse unavailable or failed, using fallback');
+    }
+    // Fallback: basic regex extraction
     const raw = buffer.toString('latin1');
     const textChunks = [];
     const regex = /\(([^)]+)\)/g;
@@ -92,5 +108,8 @@ function getMimeType(filename) {
     mp4: 'audio/mp4',
     flac: 'audio/flac',
   };
-  return mimeMap[ext] || 'audio/mp4';
+  if (!mimeMap[ext]) {
+    throw new Error(`Unsupported audio format: .${ext}`);
+  }
+  return mimeMap[ext];
 }

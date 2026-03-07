@@ -1,505 +1,471 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 69.0s
-> **Files:** backend/services/workoutBuilderService.mjs
-> **Generated:** 3/6/2026, 6:17:05 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 69.8s
+> **Files:** frontend/src/components/BodyMap/PainEntryPanel.tsx, frontend/src/components/WorkoutLogger/VoiceMemoUpload.tsx, backend/routes/workoutLogUploadRoutes.mjs, backend/services/workoutLogParserService.mjs, backend/services/voiceTranscriptionService.mjs
+> **Generated:** 3/6/2026, 8:43:19 PM
 
 ---
 
-# Code Review: `workoutBuilderService.mjs`
+# Code Review: SwanStudios Workout & Pain Tracking Components
 
-## Overview
-This is a **backend service file** (`.mjs`), not TypeScript/React code. The review criteria requested (TypeScript types, React hooks, styled-components) **do not apply** to this Node.js ES module. I'll review it against **applicable backend best practices** instead.
+## Executive Summary
+Overall code quality is **GOOD** with strong TypeScript practices and consistent theme usage. Main concerns: missing error boundaries, performance anti-patterns in event handlers, and some DRY violations in form state management.
 
 ---
 
-## ❌ CRITICAL Issues
+## 1. TypeScript Best Practices
 
-### 1. **No Input Validation**
-**Severity:** CRITICAL  
-**Location:** `generateWorkout()`, `generatePlan()`
+### ✅ STRENGTHS
+- Excellent use of discriminated unions (`PainType`, `PainSide`, `PosturalSyndrome`)
+- Proper typing of component props with interfaces
+- Good use of `React.FC<T>` pattern
 
-```mjs
-export async function generateWorkout(options) {
-  const {
-    clientId,
-    trainerId,
-    category = 'full_body',
-    // ...
-  } = options;
+### ⚠️ FINDINGS
+
+#### **MEDIUM** — Missing null safety in `findRegionForSide`
+**File:** `PainEntryPanel.tsx:129`
+```tsx
+const swappedId = newPrefix + currentId.slice(oppositePrefix.length);
 ```
-
-**Problem:**
-- No validation that `clientId`/`trainerId` are positive integers
-- No validation that `category` is a valid enum value
-- No validation that `exerciseCount` is within reasonable bounds
-- Malicious/malformed input could cause database errors or infinite loops
+**Issue:** No guarantee `currentId.startsWith(oppositePrefix)` is true before slicing.
 
 **Fix:**
-```mjs
-import Joi from 'joi';
-
-const workoutSchema = Joi.object({
-  clientId: Joi.number().integer().positive().required(),
-  trainerId: Joi.number().integer().positive().required(),
-  category: Joi.string().valid('chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body').default('full_body'),
-  equipmentProfileId: Joi.number().integer().positive().allow(null).default(null),
-  exerciseCount: Joi.number().integer().min(1).max(20).default(6),
-  rotationPattern: Joi.string().valid('standard', 'aggressive', 'conservative').default('standard'),
-});
-
-export async function generateWorkout(options) {
-  const validated = await workoutSchema.validateAsync(options);
-  // ... use validated instead of options
-}
-```
-
----
-
-### 2. **Missing Error Handling**
-**Severity:** CRITICAL  
-**Location:** Both exported functions
-
-```mjs
-export async function generateWorkout(options) {
-  const context = await getClientContext(clientId, trainerId); // Can throw
-  const registry = getExerciseRegistry(); // Can throw
-  // ... no try/catch
-}
-```
-
-**Problem:**
-- If `getClientContext()` throws (DB error, client not found), the entire service crashes
-- No graceful degradation or user-facing error messages
-- Caller has no way to distinguish error types
-
-**Fix:**
-```mjs
-export async function generateWorkout(options) {
-  try {
-    const context = await getClientContext(clientId, trainerId);
-    
-    if (!context) {
-      throw new Error(`Client ${clientId} not found or inaccessible to trainer ${trainerId}`);
-    }
-
-    const registry = getExerciseRegistry();
-    if (Object.keys(registry).length === 0) {
-      throw new Error('Exercise registry is empty - cannot generate workout');
-    }
-
-    // ... rest of logic
-  } catch (error) {
-    logger.error('Workout generation failed', {
-      clientId,
-      trainerId,
-      error: error.message,
-      stack: error.stack,
-    });
-
-    // Re-throw with user-friendly message
-    if (error.message.includes('not found')) {
-      throw new Error('Unable to generate workout: client data not accessible');
-    }
-    throw new Error('Workout generation failed. Please try again or contact support.');
+```tsx
+function findRegionForSide(currentId: string, newSide: PainSide): string {
+  const current = getRegionById(currentId);
+  if (!current || current.side === 'center' || newSide === 'center' || newSide === 'bilateral') {
+    return currentId;
   }
-}
-```
-
----
-
-### 3. **Unsafe Array Access**
-**Severity:** CRITICAL  
-**Location:** `applyOPTParams()`, warmup generation
-
-```mjs
-function applyOPTParams(exercise, phase) {
-  const params = OPT_PHASE_PARAMS[phase] || OPT_PHASE_PARAMS[2];
-  return {
-    sets: params.sets[0], // ❌ Assumes sets is array with [0]
-    reps: `${params.reps[0]}-${params.reps[1]}`, // ❌ Assumes reps has [0] and [1]
-    rest: `${params.rest[0]}-${params.rest[1]}s`, // ❌ Assumes rest has [0] and [1]
-  };
-}
-```
-
-**Problem:**
-- If `OPT_PHASE_PARAMS` structure changes or is corrupted, this crashes
-- No defensive checks
-
-**Fix:**
-```mjs
-function applyOPTParams(exercise, phase) {
-  const params = OPT_PHASE_PARAMS[phase] || OPT_PHASE_PARAMS[2];
   
-  if (!params || !Array.isArray(params.sets) || !Array.isArray(params.reps) || !Array.isArray(params.rest)) {
-    logger.error('Invalid OPT_PHASE_PARAMS structure', { phase, params });
-    throw new Error('Invalid training phase configuration');
+  const currentPrefix = current.side === 'left' ? 'left_' : 'right_';
+  const newPrefix = newSide === 'left' ? 'left_' : 'right_';
+  
+  // Only swap if currentId actually starts with the expected prefix
+  if (currentId.startsWith(currentPrefix)) {
+    const baseName = currentId.slice(currentPrefix.length);
+    const swappedId = newPrefix + baseName;
+    if (getRegionById(swappedId)) return swappedId;
   }
+  
+  // ... rest of fallback logic
+}
+```
 
-  return {
-    sets: params.sets[0],
-    reps: `${params.reps[0]}-${params.reps[1]}`,
-    rest: `${params.rest[0]}-${params.rest[1]}s`,
-    // ...
+#### **LOW** — Loose typing in backend services
+**File:** `workoutLogParserService.mjs:15-20`
+```mjs
+export async function parseWorkoutTranscript({ transcript, clientId, trainerId, date }) {
+```
+**Issue:** No JSDoc type annotations for parameters/return in `.mjs` files.
+
+**Fix:** Add comprehensive JSDoc (already present, but could be stricter):
+```mjs
+/**
+ * @param {Object} params
+ * @param {string} params.transcript - Raw text (min 10 chars)
+ * @param {number} params.clientId - Must be valid client ID
+ * @param {number} params.trainerId - Must be valid trainer ID
+ * @param {string} [params.date] - ISO date string (YYYY-MM-DD)
+ * @returns {Promise<{exercises: Array, confidence: number, date: string, painFlags?: Array}>}
+ * @throws {Error} If transcript too short or API fails
+ */
+```
+
+---
+
+## 2. React Patterns
+
+### ✅ STRENGTHS
+- Proper use of `useCallback` for event handlers
+- Controlled components with local state
+- Good separation of concerns (presentation vs. logic)
+
+### ⚠️ FINDINGS
+
+#### **HIGH** — Inline function creation in render causing re-renders
+**File:** `PainEntryPanel.tsx:333-339`
+```tsx
+<Chip
+  key={mv}
+  $active={selectedAggravating.includes(mv)}
+  onClick={() => toggleChip(mv, selectedAggravating, setSelectedAggravating)}
+>
+```
+**Issue:** New arrow function created on every render for each chip (potentially 20+ chips).
+
+**Fix:** Use a memoized handler factory:
+```tsx
+const createChipHandler = useCallback((value: string, list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  return () => toggleChip(value, list, setter);
+}, [toggleChip]);
+
+// In render:
+<Chip onClick={createChipHandler(mv, selectedAggravating, setSelectedAggravating)}>
+```
+
+**Better fix:** Refactor `toggleChip` to use event delegation:
+```tsx
+const handleAggravatingClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+  const value = e.currentTarget.dataset.value;
+  if (value) {
+    setSelectedAggravating(prev => 
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  }
+}, []);
+
+// In render:
+<Chip data-value={mv} onClick={handleAggravatingClick}>
+```
+
+#### **MEDIUM** — Missing cleanup for rate limiter Map
+**File:** `workoutLogUploadRoutes.mjs:19-32`
+```mjs
+const uploadCounts = new Map();
+function rateLimiter(req, res, next) {
+  const timestamps = uploadCounts.get(key).filter(t => now - t < window);
+  // ...
+  uploadCounts.set(key, timestamps);
+}
+```
+**Issue:** Map grows indefinitely; old entries never removed.
+
+**Fix:**
+```mjs
+// Add periodic cleanup
+setInterval(() => {
+  const now = Date.now();
+  const window = 15 * 60 * 1000;
+  for (const [key, timestamps] of uploadCounts.entries()) {
+    const valid = timestamps.filter(t => now - t < window);
+    if (valid.length === 0) {
+      uploadCounts.delete(key);
+    } else {
+      uploadCounts.set(key, valid);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
+```
+
+#### **LOW** — Stale closure risk in `handleSave`
+**File:** `PainEntryPanel.tsx:246-261`
+```tsx
+const handleSave = () => {
+  if (!effectiveRegionId) return;
+  const payload: CreatePainEntryPayload = {
+    bodyRegion: effectiveRegionId,
+    side,
+    painLevel,
+    // ... uses multiple state variables
   };
+  onSave(payload);
+};
+```
+**Issue:** Not wrapped in `useCallback`, but depends on many state variables. If passed to memoized children, could cause issues.
+
+**Fix:**
+```tsx
+const handleSave = useCallback(() => {
+  if (!effectiveRegionId) return;
+  // ... rest of logic
+}, [effectiveRegionId, side, painLevel, painType, description, onsetDate, 
+    selectedAggravating, selectedRelieving, trainerNotes, aiNotes, 
+    posturalSyndrome, isClientMode, onSave]);
+```
+
+---
+
+## 3. Styled-Components
+
+### ✅ STRENGTHS
+- Excellent theme token usage with fallbacks
+- Consistent use of transient props (`$isOpen`, `$variant`)
+- Proper responsive breakpoints via `device.sm`
+
+### ⚠️ FINDINGS
+
+#### **LOW** — Hardcoded color in `Slider` component
+**File:** `PainEntryPanel.tsx:293-298`
+```tsx
+<Slider
+  style={{
+    background: `linear-gradient(to right, #33CC66, #FFB833, #FF3333)`,
+  }}
+/>
+```
+**Issue:** Inline style with hardcoded gradient; should use theme tokens.
+
+**Fix:**
+```tsx
+const SliderTrack = styled.div`
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    ${({ theme }) => theme.colors?.success || '#33CC66'},
+    ${({ theme }) => theme.colors?.warning || '#FFB833'},
+    ${({ theme }) => theme.colors?.danger || '#FF3333'}
+  );
+  position: relative;
+`;
+
+const Slider = styled.input`
+  position: absolute;
+  width: 100%;
+  -webkit-appearance: none;
+  background: transparent;
+  // ...
+`;
+```
+
+#### **LOW** — Duplicate color definitions
+**File:** `VoiceMemoUpload.tsx:18-19`
+```tsx
+const SWAN_CYAN = '#00FFFF';
+const GALAXY_CORE = '#0a0a1a';
+```
+**Issue:** These should come from theme, not be redefined per component.
+
+**Fix:**
+```tsx
+// Remove constants, use theme directly:
+background: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+color: ${({ theme }) => theme.background?.primary || '#0a0a1a'};
+```
+
+---
+
+## 4. DRY Violations
+
+#### **MEDIUM** — Duplicated form state management pattern
+**Files:** `PainEntryPanel.tsx:169-196` and similar patterns across codebase
+
+**Issue:** Same pattern of state initialization from `existingEntry` repeated for 10+ fields.
+
+**Fix:** Extract to custom hook:
+```tsx
+function usePainEntryForm(existingEntry: PainEntry | null, regionId: string | null) {
+  const [formData, setFormData] = useState({
+    painLevel: 5,
+    painType: 'aching' as PainType,
+    side: 'center' as PainSide,
+    description: '',
+    onsetDate: '',
+    selectedAggravating: [] as string[],
+    selectedRelieving: [] as string[],
+    trainerNotes: '',
+    aiNotes: '',
+    posturalSyndrome: 'none' as PosturalSyndrome,
+  });
+
+  useEffect(() => {
+    if (existingEntry) {
+      setFormData({
+        painLevel: existingEntry.painLevel,
+        painType: existingEntry.painType,
+        // ... map all fields
+      });
+    } else {
+      const region = regionId ? getRegionById(regionId) : null;
+      setFormData({
+        painLevel: 5,
+        painType: 'aching',
+        side: region?.side || 'center',
+        // ... reset all fields
+      });
+    }
+  }, [existingEntry, regionId]);
+
+  return [formData, setFormData] as const;
 }
 ```
 
----
+#### **MEDIUM** — Duplicated confidence calculation logic
+**File:** `VoiceMemoUpload.tsx:161-165` and `workoutLogParserService.mjs:136-154`
 
-## 🔴 HIGH Issues
+**Issue:** Confidence level thresholds defined in two places.
 
-### 4. **Unused Function Parameters**
-**Severity:** HIGH  
-**Location:** `generateWorkout()`
+**Fix:** Create shared constant:
+```tsx
+// shared/constants.ts
+export const CONFIDENCE_THRESHOLDS = {
+  HIGH: 0.8,
+  MEDIUM: 0.6,
+} as const;
 
-```mjs
-export async function generateWorkout(options) {
-  const {
-    rotationPattern = 'standard', // ❌ Never used
-  } = options;
-```
-
-**Problem:**
-- `rotationPattern` is destructured but never referenced
-- Dead code that misleads API consumers
-
-**Fix:**
-Remove from destructuring or implement rotation logic:
-```mjs
-// Option 1: Remove if not needed
-const {
-  clientId,
-  trainerId,
-  category = 'full_body',
-  equipmentProfileId = null,
-  exerciseCount = 6,
-  // rotationPattern removed
-} = options;
-
-// Option 2: Use it
-const sessionType = getNextSessionType(
-  context.variation.lastSessionType,
-  rotationPattern // Pass to variation engine
-);
-```
-
----
-
-### 5. **Magic Numbers**
-**Severity:** HIGH  
-**Location:** Multiple locations
-
-```mjs
-const targetLevel = nasmPhase || 2; // Why 2?
-const exercisesPerCategory = Math.ceil(exerciseCount / movementCategories.length);
-for (const comp of context.movement.compensations.slice(0, 3)) { // Why 3?
-```
-
-**Problem:**
-- Hardcoded values without explanation
-- Difficult to maintain and tune
-
-**Fix:**
-```mjs
-const DEFAULT_NASM_PHASE = 2; // Strength Endurance - most common starting point
-const MAX_COMPENSATION_WARMUPS = 3; // Limit warmup duration
-const PAIN_AUTO_EXCLUDE_SEVERITY = 7; // Already defined but not used consistently
-
-const targetLevel = nasmPhase || DEFAULT_NASM_PHASE;
-for (const comp of context.movement.compensations.slice(0, MAX_COMPENSATION_WARMUPS)) {
-```
-
----
-
-### 6. **Inconsistent Data Structures**
-**Severity:** HIGH  
-**Location:** Return objects
-
-```mjs
-// generateWorkout returns:
-{
-  warmup, // Array of objects with mixed shapes
-  exercises, // Array of objects
-  swapSuggestions, // Can be null or object
-  cooldown, // Array of objects
+export function getConfidenceLevel(score: number): 'high' | 'medium' | 'low' {
+  if (score >= CONFIDENCE_THRESHOLDS.HIGH) return 'high';
+  if (score >= CONFIDENCE_THRESHOLDS.MEDIUM) return 'medium';
+  return 'low';
 }
-
-// Warmup items have inconsistent structure:
-{ name: 'Foam Roll', duration: '30s', type: 'inhibit' }
-{ name: 'Glute Bridge', sets: 1, reps: 15, type: 'activate' }
-{ name: 'Activate X', sets: 1, reps: 12, type: 'activate', reason: '...' }
 ```
 
-**Problem:**
-- Frontend must handle 3+ different object shapes in same array
-- Optional `reason` field appears conditionally
-- `duration` vs `sets/reps` inconsistency
-
-**Fix:**
+#### **LOW** — Repeated error message patterns
+**Files:** Multiple backend services
 ```mjs
-// Normalize to single structure
-const warmupItem = {
-  name: string,
-  type: 'inhibit' | 'lengthen' | 'activate',
-  duration: string | null,
-  sets: number | null,
-  reps: number | null,
-  reason: string | null,
-};
-
-// Update templates:
-const WARMUP_TEMPLATES = {
-  general: [
-    { name: 'Foam Roll IT Band', duration: '30s each side', sets: null, reps: null, type: 'inhibit', reason: null },
-    { name: 'Glute Bridge', duration: null, sets: 1, reps: 15, type: 'activate', reason: null },
-  ],
-};
-```
-
----
-
-## 🟡 MEDIUM Issues
-
-### 7. **DRY Violation: Repeated Formatting Logic**
-**Severity:** MEDIUM  
-**Location:** Multiple locations
-
-```mjs
-// Repeated pattern:
-`${params.sets[0]}-${params.sets[1]}`
-`${params.reps[0]}-${params.reps[1]}`
-`${params.rest[0]}-${params.rest[1]}s`
+throw new Error('OPENAI_API_KEY not configured — cannot transcribe audio');
+throw new Error('OPENAI_API_KEY not configured — cannot parse workout');
 ```
 
 **Fix:**
 ```mjs
-function formatRange(arr, suffix = '') {
-  return `${arr[0]}-${arr[1]}${suffix}`;
+// utils/errors.mjs
+export class ConfigurationError extends Error {
+  constructor(service, missingKey) {
+    super(`${missingKey} not configured — ${service} unavailable`);
+    this.name = 'ConfigurationError';
+  }
 }
 
 // Usage:
-sets: formatRange(params.sets),
-reps: formatRange(params.reps),
-rest: formatRange(params.rest, 's'),
-```
-
----
-
-### 8. **Inefficient Filtering**
-**Severity:** MEDIUM  
-**Location:** `selectExercises()`
-
-```mjs
-const categoryExercises = Object.entries(registry)
-  .filter(([, ex]) => ex.category === category || category === 'full_body')
-  .map(([key, ex]) => ({ key, ...ex }));
-
-const available = filterExercises(categoryExercises, constraints, equipmentItems);
-```
-
-**Problem:**
-- Iterates entire registry for each category
-- For `full_body` with 6 categories, this runs 6 times over the same data
-
-**Fix:**
-```mjs
-// Cache filtered registry at function start
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase) {
-  const allExercises = Object.entries(registry).map(([key, ex]) => ({ key, ...ex }));
-  const constrainedExercises = filterExercises(allExercises, constraints, equipmentItems);
-  
-  const categoryExercises = category === 'full_body'
-    ? constrainedExercises
-    : constrainedExercises.filter(ex => ex.category === category);
-  
-  // ... rest of logic
+if (!OPENAI_API_KEY) {
+  throw new ConfigurationError('voice transcription', 'OPENAI_API_KEY');
 }
 ```
 
 ---
 
-### 9. **Unclear Variable Names**
-**Severity:** MEDIUM  
-**Location:** Multiple
+## 5. Error Handling
 
-```mjs
-const moveCat = 'push'; // What's "move cat"?
-const ex = exercise; // Unnecessary abbreviation
-const c = compensation; // Single letter in map
-```
+### ⚠️ FINDINGS
+
+#### **CRITICAL** — No error boundary for VoiceMemoUpload
+**File:** `VoiceMemoUpload.tsx`
+
+**Issue:** Component can throw during render (e.g., if `authAxios` is undefined), but no error boundary wraps it.
 
 **Fix:**
-```mjs
-const movementCategory = 'push';
-const exercise = selectedExercise;
-context.movement.compensations.map(compensation => ({
-  type: compensation.type,
-  trend: compensation.trend,
-}))
+```tsx
+// Create ErrorBoundary wrapper
+class VoiceMemoErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <StatusBar $variant="error">
+          <AlertTriangle size={16} />
+          Upload component failed: {this.state.error?.message}
+        </StatusBar>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrap component in parent:
+<VoiceMemoErrorBoundary>
+  <VoiceMemoUpload {...props} />
+</VoiceMemoErrorBoundary>
 ```
 
----
+#### **HIGH** — Unhandled promise rejection in file upload
+**File:** `VoiceMemoUpload.tsx:92-106`
+```tsx
+const handleFile = useCallback(async (file: File) => {
+  // ... no try/catch around authAxios.post
+  const response = await authAxios.post('/api/workout-logs/upload', formData, {
+```
+**Issue:** Already wrapped in try/catch (line 96), but error state isn't cleared on retry.
 
-### 10. **Missing JSDoc for Complex Logic**
-**Severity:** MEDIUM  
-**Location:** `filterExercises()`, `selectExercises()`
+**Fix:**
+```tsx
+const handleFile = useCallback(async (file: File) => {
+  setError(null); // ✅ Already present
+  setResult(null); // ✅ Already present
+  setUploading(true);
 
+  try {
+    // ... existing logic
+  } catch (err: any) {
+    const msg = err.response?.data?.error || err.message || 'Upload failed';
+    setError(msg);
+    logger.error('[VoiceMemoUpload] Upload failed', { error: msg }); // ⚠️ Add logging
+  } finally {
+    setUploading(false);
+  }
+}, [authAxios, clientId]);
+```
+
+#### **MEDIUM** — Missing validation for parsed AI response
+**File:** `workoutLogParserService.mjs:103-108`
 ```mjs
-function filterExercises(exercises, constraints, equipmentItems) {
-  // No documentation of what constraints object contains
-  // No explanation of filtering logic
+if (!parsed.exercises || !Array.isArray(parsed.exercises)) {
+  throw new Error('Parsed workout missing exercises array');
 }
 ```
+**Issue:** Only validates `exercises` array exists, not structure of individual exercises.
 
 **Fix:**
 ```mjs
-/**
- * Filter exercises based on client constraints and available equipment.
- * 
- * @param {Array<Object>} exercises - Exercise objects with muscles, equipment arrays
- * @param {Object} constraints - Client constraints
- * @param {string[]} constraints.excludedMuscles - Muscles to avoid (pain-related)
- * @param {string[]} constraints.compensationTypes - Active compensation patterns
- * @param {string[]} constraints.recentlyUsedExercises - Exercise keys used in last 2 weeks
- * @param {Array<Object>} equipmentItems - Available equipment items
- * @param {string} equipmentItems[].category - Equipment category (barbell, dumbbell, etc)
- * @returns {Array<Object>} Filtered exercises
- */
-function filterExercises(exercises, constraints, equipmentItems) {
+function validateParsedWorkout(parsed) {
+  if (!parsed.exercises || !Array.isArray(parsed.exercises)) {
+    throw new Error('Parsed workout missing exercises array');
+  }
+  
+  for (const ex of parsed.exercises) {
+    if (!ex.exerciseName || typeof ex.exerciseName !== 'string') {
+      throw new Error('Exercise missing name');
+    }
+    if (!Array.isArray(ex.sets) || ex.sets.length === 0) {
+      throw new Error(`Exercise "${ex.exerciseName}" has no sets`);
+    }
+    for (const set of ex.sets) {
+      if (typeof set.reps !== 'number' || set.reps < 1) {
+        throw new Error(`Invalid reps in "${ex.exerciseName}"`);
+      }
+    }
+  }
+  
+  return true;
+}
+
+// After parsing:
+validateParsedWorkout(parsed);
 ```
 
----
-
-## 🔵 LOW Issues
-
-### 11. **Inconsistent String Formatting**
-**Severity:** LOW  
-**Location:** Multiple
-
+#### **LOW** — Generic error messages to user
+**File:** `workoutLogUploadRoutes.mjs:97`
 ```mjs
-'Child\'s Pose' // Escaped quote
-"back + biceps" // Template literal would be cleaner
-`${sessionType.toUpperCase()} session` // Inconsistent with above
+res.status(500).json({ error: 'Failed to process upload: ' + err.message });
 ```
+**Issue:** Exposes internal error messages (could leak stack traces).
 
 **Fix:**
 ```mjs
-// Use template literals consistently
-`Child's Pose`
-`back + biceps`
+const userMessage = err.message?.includes('API') 
+  ? 'AI service temporarily unavailable. Please try again.'
+  : 'Failed to process upload. Please check file format and try again.';
+
+res.status(500).json({ 
+  error: userMessage,
+  ...(process.env.NODE_ENV === 'development' && { debug: err.message })
+});
 ```
 
 ---
 
-### 12. **Hardcoded Business Logic in Service**
-**Severity:** LOW  
-**Location:** `generatePlan()`
+## 6. Performance Anti-Patterns
 
-```mjs
-const mesocycleCount = Math.ceil(durationWeeks / 4); // 4-week blocks hardcoded
-const phase = Math.min(5, startingPhase + Math.floor(i / 2)); // Phase progression hardcoded
+### ⚠️ FINDINGS
+
+#### **HIGH** — Inline object creation in styled component props
+**File:** `PainEntryPanel.tsx:293`
+```tsx
+<Slider
+  style={{
+    background: `linear-gradient(to right, #33CC66, #FFB833, #FF3333)`,
+  }}
+/>
 ```
+**Issue:** New object created every render.
 
-**Problem:**
-- Business rules embedded in code
-- Should be configurable or in constants
-
-**Fix:**
-```mjs
-const MESOCYCLE_DURATION_WEEKS = 4;
-const PHASE_PROGRESSION_MESOCYCLES = 2; // Advance phase every 2 mesocycles
-const MAX_NASM_PHASE = 5;
-
-const mesocycleCount = Math.ceil(durationWeeks / MESOCYCLE_DURATION_WEEKS);
-const phase = Math.min(MAX_NASM_PHASE, startingPhase + Math.floor(i / PHASE_PROGRESSION_MESOCYCLES));
-```
-
----
-
-### 13. **Potential Memory Leak**
-**Severity:** LOW  
-**Location:** `filterExercises()`
-
-```mjs
-const excludedSet = new Set(excludedMuscles);
-const recentSet = new Set(recentlyUsedExercises);
-const availableCategories = new Set();
-```
-
-**Problem:**
-- Creates new Sets on every call
-- For high-volume usage, could be optimized
-
-**Fix:**
-Not critical, but could memoize if called frequently:
-```mjs
-import memoize from 'lodash/memoize';
-
-const createExclusionSet = memoize((muscles) => new Set(muscles));
-```
-
----
-
-### 14. **Inconsistent Null Handling**
-**Severity:** LOW  
-**Location:** Return objects
-
-```mjs
-swapSuggestions: null, // Sometimes null
-equipmentProfileId: null, // Sometimes null
-deloadWeek: weekEnd === (i + 1) * 4 ? weekEnd : null, // Sometimes null
-```
-
-**Problem:**
-- Frontend must check for null in multiple places
-- Could use empty arrays/objects for consistency
-
-**Fix:**
-```mjs
-swapSuggestions: swapSuggestions || [], // Always array
-equipmentProfileId: equipmentProfileId || undefined, // Omit if not set
-```
-
----
-
-## 📊 Summary
-
-| Severity | Count | Must Fix Before Production |
-|----------|-------|---------------------------|
-| CRITICAL | 3 | ✅ Yes |
-| HIGH | 6 | ✅ Yes |
-| MEDIUM | 4 | ⚠️ Recommended |
-| LOW | 4 | 💡 Nice to have |
-
----
-
-## 🎯 Priority Fixes (Before Production)
-
-1. **Add input validation** (Joi/Zod schema)
-2. **Wrap in try/catch** with proper error logging
-3. **Add defensive checks** for array access
-4. **Remove unused `rotationPattern`** parameter
-5. **Document complex functions** with JSDoc
-6. **Extract magic numbers** to named constants
-
----
-
-## ✅ What's Done Well
-
-- ✅ Clear separation of concerns (warmup/exercises/cooldown)
-- ✅ Comprehensive NASM OPT phase modeling
-- ✅ Good use of constants for templates
-- ✅ Detailed explanations in return object
-- ✅ Logger integration (assumed from import)
-- ✅ Excellent inline comments explaining algorithm steps
-
----
-
-## 📝 Note on Review Scope
-
-This
+**Fix:** Move to styled component (see Section 3).
 
 ---
 

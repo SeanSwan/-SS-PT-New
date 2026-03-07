@@ -1,493 +1,107 @@
 # Competitive Intelligence — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.1 | **Duration:** 37.5s
-> **Files:** backend/services/workoutBuilderService.mjs
-> **Generated:** 3/6/2026, 6:17:05 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.1 | **Duration:** 80.1s
+> **Files:** frontend/src/components/BodyMap/PainEntryPanel.tsx, frontend/src/components/WorkoutLogger/VoiceMemoUpload.tsx, backend/routes/workoutLogUploadRoutes.mjs, backend/services/workoutLogParserService.mjs, backend/services/voiceTranscriptionService.mjs
+> **Generated:** 3/6/2026, 8:43:19 PM
 
 ---
 
-# SwanStudios Product Strategy Analysis
+Based on the code provided for **SwanStudios**, here is a comprehensive product strategy analysis.
 
-## Executive Summary
-
-SwanStudios represents a sophisticated evolution in personal training SaaS platforms, distinguished by its scientific foundation in NASM methodologies and its pain-aware training intelligence. The codebase reveals a technically advanced system that bridges the gap between generic workout generators and professional-grade training platforms. However, scaling from current traction to 10,000+ users requires strategic feature additions, UX refinements, and monetization optimizations.
-
----
-
-## 1. Feature Gap Analysis
-
-### 1.1 Critical Missing Features
-
-| Feature Category | Competitor Capability | SwanStudios Status | Priority |
-|------------------|----------------------|-------------------|----------|
-| **Client App (Mobile)** | Trainerize, TrueCoach, Future all offer native iOS/Android apps | Web-only responsive design | Critical |
-| **Video Content Library** | Trainerize has 500+ exercise videos; Caliber integrates YouTube | No native video support | Critical |
-| **Nutrition Tracking** | My PT Hub, Trainerize offer meal logging, macro tracking | Not present in codebase | High |
-| **Progress Analytics** | Caliber, Future provide comprehensive charts, body composition | Basic session data only | High |
-| **Payment Processing** | All major competitors have integrated Stripe/payments | Not visible in service layer | High |
-| **Client Messaging** | TrueCoach, Trainerize have in-app messaging | No communication features | Medium |
-| **Assessment Templates** | TrueCoach, Caliber have FMS, PAR-Q, body composition | Limited assessment integration | Medium |
-
-### 1.2 Detailed Gap Assessment
-
-**Mobile Experience Gap:**
-The absence of a native mobile application represents the most significant competitive disadvantage. Personal training inherently happens in gyms, studios, and outdoor settings where trainers and clients need offline-capable mobile access. The current web-only architecture limits:
-- Offline workout access during poor connectivity
-- Push notifications for reminders and schedule changes
-- Native device integration (Apple Watch, Fitbit, heart rate monitors)
-- Camera-based form feedback and exercise logging
-- QR code scanning for equipment check-in at partner facilities
-
-**Video Integration Gap:**
-Modern fitness SaaS platforms recognize that static exercise descriptions are insufficient for most users. Competitors offer:
-- Exercise demonstration videos with proper cueing
-- Trainer-customized video libraries
-- AI-powered form analysis through video upload
-- Integration with YouTube or dedicated content delivery networks
-
-The current codebase relies on text-based exercise descriptions (`formatExerciseName` function), which assumes users already know proper exercise execution.
-
-**Nutrition & Supplementation:**
-The complete absence of nutrition features creates a substantial revenue leak. Competitors like My PT Hub and Trainerize have:
-- Macro and calorie tracking
-- Meal plan generation
-- Supplement recommendations
-- Food diary with photo logging
-- Integration with MyFitnessPal and other tracking apps
-
-**Progress Tracking Limitations:**
-The codebase shows basic session tracking (`context.workouts.sessionsLast2Weeks`, `context.workouts.avgFormRating`) but lacks:
-- Body composition tracking (weight, measurements, photos)
-- Performance metrics over time (1RM estimates, VO2 max trends)
-- Pain/injury tracking over time
-- Goal milestone visualization
-- Comparative analytics (week over week, month over month)
-
-### 1.3 Feature Priority Matrix
-
-```
-                    High Impact
-                        │
-    ┌───────────────────┼───────────────────┐
-    │                   │                   │
-    │   Mobile App      │   Video Library   │
-    │   Payments        │   Nutrition       │
-    │                   │                   │
-Low ├───────────────────┼───────────────────┤ High
-Feasibility            │                   │ Feasibility
-    │                   │                   │
-    │   Wearable        │   AI Form         │
-    │   Integration     │   Analysis        │
-    │                   │                   │
-    └───────────────────┼───────────────────┘
-                        │
-                    Low Impact
-```
+### Executive Summary
+SwanStudios is positioning itself as a **tech-forward, AI-augmented personal training platform** with a specific focus on **corrective exercise and pain management** (NASM-aligned). While the tech stack is modern and the "Pain-to-Workout" loop is unique, significant gaps in business infrastructure and scalability constraints must be addressed to compete with industry leaders.
 
 ---
 
-## 2. Differentiation Strengths
+### 1. Feature Gap Analysis
 
-### 2.1 Unique Value Propositions
+Compared to established players like **Trainerize, TrueCoach, My PT Hub, Future, and Caliber**, SwanStudios is currently missing core "business-in-a-box" features, though it excels in specific advanced capabilities.
 
-**NASM Scientific Foundation:**
-The codebase demonstrates a rigorous commitment to evidence-based training methodology through the NASM OPT (Optimum Performance Training) model. This represents a significant competitive moat:
-
-```
-NASM OPT Phase Implementation in Codebase:
-├── Phase 1: Stabilization Endurance (1-3 sets, 12-20 reps, 50-70% intensity)
-├── Phase 2: Strength Endurance (2-4 sets, 8-12 reps, 70-80% intensity)
-├── Phase 3: Muscular Development (3-5 sets, 6-12 reps, 75-85% intensity)
-├── Phase 4: Maximal Strength (4-6 sets, 1-5 reps, 85-100% intensity)
-└── Phase 5: Power (3-5 sets, 1-5 reps, explosive tempo)
-```
-
-Competitors like Trainerize and TrueCoach offer workout creation but lack systematic progression models. SwanStudios' automatic phase progression based on assessment scores creates a compelling "set and forget" value proposition for trainers managing multiple clients.
-
-**Pain-Aware Training Intelligence:**
-The `filterExercises` function and pain exclusion system represent a genuinely differentiated capability:
-
-```javascript
-// Pain exclusion logic visible in codebase
-const hasPainConflict = ex.muscles.some(m => excludedSet.has(m));
-if (hasPainConflict) return false;
-```
-
-This addresses a critical market gap:
-- 71% of adults experience pain that affects exercise participation
-- Trainers lack tools to systematically track and adapt to client pain
-- No competitor offers automatic exercise substitution based on pain data
-- The system generates explanations for exclusions, building client trust
-
-**Compensation Pattern Awareness (CES Integration):**
-The warmup template system incorporates CES (Corrective Exercise Strategy) protocols:
-
-```javascript
-// CES warmup integration
-for (const comp of context.movement.compensations.slice(0, 3)) {
-  if (comp.cesStrategy) {
-    const inhibit = comp.cesStrategy.inhibit?.[0];
-    const activate = comp.cesStrategy.activate?.[0];
-    // Add compensation-specific warmup exercises
-  }
-}
-```
-
-This positions SwanStudios uniquely for:
-- Post-rehabilitation clients transitioning back to training
-- Older adults with established movement compensations
-- Athletes recovering from minor injuries
-- Trainers without formal corrective exercise certification
-
-**Variation Engine (BUILD/SWITCH):**
-The session type system prevents both monotony and overvariation:
-
-```javascript
-const sessionType = context.variation.lastSessionType
-  ? (context.variation.lastSessionType === 'build' ? 'switch' : 'build')
-  : 'build';
-```
-
-This systematic approach to exercise variation addresses a common pain point: clients who either do the same workout forever (plateau) or change workouts too frequently (no adaptation).
-
-### 2.2 Technical Differentiation
-
-**Equipment-Aware Programming:**
-The system filters exercises based on available equipment:
-
-```javascript
-if (availableCategories.size > 0 && ex.equipment && ex.equipment.length > 0) {
-  const hasEquipment = ex.equipment.some(eq => availableCategories.has(eq));
-  if (!hasEquipment) return false;
-}
-```
-
-This enables:
-- Home workout programming with minimal equipment
-- Hotel gym programming (limited equipment awareness)
-- Commercial gym programming (full equipment access)
-- Outdoor programming (bodyweight focus)
-
-**Automated Periodization:**
-The `generatePlan` function implements systematic mesocycle planning:
-
-```javascript
-for (let i = 0; i < mesocycleCount; i++) {
-  const phase = Math.min(5, startingPhase + Math.floor(i / 2));
-  // Automatic phase progression every 2 mesocycles
-}
-```
-
-This removes the burden of periodization planning from trainers while ensuring progressive overload.
-
-### 2.3 UX/UI Differentiation
-
-**Galaxy-Swan Cosmic Theme:**
-The dark cosmic theme represents a distinctive brand identity in a market dominated by generic blue/white fitness app aesthetics. This differentiation:
-- Creates strong brand recall
-- Appeals to the "space for fitness" mental model
-- Differentiates from clinical-looking medical/fitness apps
-- Enables premium positioning
-
-**Explanatory AI:**
-The system generates explanations for every decision:
-
-```javascript
-explanations.push({
-  type: 'pain_exclusion',
-  message: `${context.pain.exclusions.length} muscle group(s) auto-excluded...`,
-  details: context.pain.exclusions.map(e => `${e.bodyRegion} (${e.painLevel}/10)`),
-});
-```
-
-This transparency:
-- Builds trust with skeptical clients
-- Educates users about training principles
-- Demonstrates value of the "AI" component
-- Reduces trainer communication overhead
+| Feature Category | Competitors (Standard) | SwanStudios (Current) | Gap Priority |
+| :--- | :--- | :--- | :--- |
+| **Business Ops** | Stripe/PayPal Integration, Invoicing, Package Management, Booking Calendar. | **Missing.** No payment or booking logic visible. | **Critical** |
+| **Client Engagement** | Dedicated Client App (iOS/Android), Push Notifications, In-app Messaging, Progress Photos. | **Missing.** The code suggests a Trainer Dashboard. is no evidence There of a client-facing app to view the "Pain Entry" or "Workout Logs." | **High** |
+| **Exercise Library** | Searchable, tagged database of 2,000+ exercises with video demos. | **Lacks Database.** The backend parses *spoken* exercises into JSON but does not reference a canonical library for planning. The AI "invents" or recalls exercises based on the transcript. | **Medium** |
+| **Wearable Integration** | Apple Health, Whoop, Garmin sync (Caliber, Future). | **Missing.** No API integrations for automatic objective data. | **Medium** |
+| **Programming** | Drag-and-drop workout builders, templates, periodization tools. | **Missing.** Relies entirely on Voice-to-AI for workout generation. No manual templating tools. | **Medium** |
 
 ---
 
-## 3. Monetization Opportunities
+### 2. Differentiation Strengths
 
-### 3.1 Current Pricing Model Assessment
+Despite the gaps, the codebase reveals powerful differentiators that are difficult for competitors to replicate quickly.
 
-The codebase does not reveal pricing implementation, but based on market analysis, SwanStudios likely operates on a tiered subscription model typical of fitness SaaS platforms:
+1.  **The "Pain-Aware" Loop (NASM Integration)**
+    *   **Unique Value:** The `PainEntryPanel` explicitly asks for "Postural Syndromes" (Upper/Lower Crossed) and "Aggravating Movements." This data is injected into the `workoutLogParserService` to contextually inform the AI.
+    *   **Why it wins:** Competitors treat pain as a static input. SwanStudios treats it as a dynamic variable that **actively modifies the AI's workout generation**. This is a massive selling point for corrective exercise specialists.
 
-| Tier | Trainerize | TrueCoach | My PT Hub | SwanStudios (Est.) |
-|------|------------|-----------|-----------|-------------------|
-| Starter | $9/mo | $12/mo | £8/mo | Unknown |
-| Pro | $19/mo | $29/mo | £25/mo | Unknown |
-| Premium | $49/mo | $79/mo | £45/mo | Unknown |
-| Enterprise | $129/mo | Custom | £99/mo | Unknown |
+2.  **Voice-First Workflow**
+    *   **Unique Value:** The `VoiceMemoUpload` component handles the entire ingestion chain (Transcribe -> Parse -> Review -> Apply).
+    *   **Why it wins:** It saves trainers 10-15 minutes per client per session. This is a "sticky" feature that increases trainer efficiency significantly.
 
-### 3.2 Recommended Pricing Strategy
-
-**Value-Based Pricing Tiers:**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    SWANSTUDIOS PRICING                          │
-├─────────────────────────────────────────────────────────────────┤
-│  STARTER ($19/mo)                                               │
-│  • Up to 5 clients                                              │
-│  • Basic workout generation                                     │
-│  • Pain-aware programming                                       │
-│  • Email support                                                │
-├─────────────────────────────────────────────────────────────────┤
-│  PRO ($49/mo)                                                   │
-│  • Up to 25 clients                                             │
-│  • Full periodization planning                                  │
-│  • CES integration                                               │
-│  • Custom branding                                              │
-│  • Priority support                                             │
-├─────────────────────────────────────────────────────────────────┤
-│  PREMIUM ($129/mo)                                              │
-│  • Unlimited clients                                            │
-│  • Video content library                                        │
-│  • Nutrition module                                             │
-│  • White-label options                                          │
-│  • API access                                                   │
-│  • Dedicated account manager                                    │
-├─────────────────────────────────────────────────────────────────┤
-│  ENTERPRISE (Custom)                                            │
-│  • Multi-trainer facilities                                     │
-│  • Custom integrations                                          │
-│  • Dedicated infrastructure                                     │
-│  • Revenue share options                                        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 3.3 Upsell Vectors
-
-**1. Pain Recovery Upsell:**
-Target clients with pain history for premium upsell:
-
-```
-Pain Recovery Package ($29/mo add-on)
-├── Advanced pain tracking dashboard
-├── Physician collaboration tools
-├── Post-rehab transition protocols
-├── Liability documentation
-└── Specialized assessment templates
-```
-
-**2. Nutrition Integration:**
-Monetize the complete training solution:
-
-```
-Nutrition Module ($15/mo add-on)
-├── Macro meal planning
-├── Supplement recommendations
-├── Food diary with photo logging
-├── Client grocery lists
-└── Progress nutrition reports
-```
-
-**3. Content Creator Package:**
-Target high-volume trainers who need content:
-
-```
-Content Creator ($25/mo add-on)
-├── Video exercise library (500+ videos)
-├── Custom video upload
-├── Client video assignment system
-├── Form feedback tools
-└── Content scheduling
-```
-
-**4. Certification Pathway:**
-Create recurring revenue through education:
-
-```
-Trainer Certification ($199 one-time)
-├── NASM methodology deep dive
-├── Pain awareness certification
-├── CES specialization
-├── SwanStudios mastery
-└── Certified partner badge
-```
-
-### 3.4 Conversion Optimization
-
-**Free Trial Strategy:**
-Implement a tiered trial system to improve conversion:
-
-| Trial Type | Duration | Conversion Goal | Target Segment |
-|------------|----------|-----------------|----------------|
-| Standard | 14 days | 15% conversion | Individual trainers |
-| Extended | 30 days | 10% conversion | Small studios |
-| Demo + Trial | 7 days + call | 25% conversion | Medium studios |
-
-**Feature Gating for Conversion:**
-
-```
-Non-Paying Users See:
-├── Basic workout generation (5 workouts/mo)
-├── Pain exclusions (limited to 2 areas)
-├── Standard templates only
-└── Watermarked outputs
-
-Premium Features Hidden Behind Paywall:
-├── Unlimited workouts
-├── Full pain mapping
-├── CES integration
-├── Periodization planning
-├── Custom branding
-└── API access
-```
-
-**Annual Discount Strategy:**
-Offer 20% discount for annual payment to improve cash flow and reduce churn:
-
-```
-Monthly: $49/mo × 12 = $588/year
-Annual: $470/year (20% savings)
-Revenue Impact: +18% annual upfront, -15% churn
-```
+3.  **Galaxy-Swan UX**
+    *   **Unique Value:** The dark-mode, high-contrast "cosmic" theme (seen in styled-components) is distinct from the clinical white/blue of Trainerize or the bright gradients of TrueCoach. It appeals to a "high-performance" aesthetic.
 
 ---
 
-## 4. Market Positioning
+### 3. Monetization Opportunities
 
-### 4.1 Competitive Landscape Analysis
+The current architecture relies on OpenAI (Whisper + GPT-4), which incurs a per-request cost. The pricing model must offset this while capturing value.
 
-```
-Market Positioning Matrix:
-
-                    Scientific/Rigorous
-                          │
-    ┌─────────────────────┼─────────────────────┐
-    │                     │                     │
-    │   SWANSTUDIOS       │   CALIBER           │
-    │   (Position Here)   │   (High-touch,     │
-    │                     │    expensive)       │
-    │                     │                     │
-Simple/Generic            │                     │ Complex/Enterprise
-    │                     │                     │
-    ├─────────────────────┼─────────────────────┤
-    │                     │                     │
-    │   TRAINERIZE        │   FUTURE            │
-    │   (Mass market,    │   (Premium brand,   │
-    │    feature-rich)   │    AI-focused)      │
-    │                     │                     │
-    └─────────────────────┼─────────────────────┘
-                          │
-                    Practical/Accessible
-```
-
-### 4.2 Positioning Statement
-
-**For Trainers Who Want Scientific Rigor Without Complexity:**
-
-> "SwanStudios applies the same NASM OPT methodology used by elite training facilities, automatically adapting workouts based on client pain, movement quality, and equipment availability—so trainers can focus on coaching, not programming."
-
-### 4.3 Target Market Segments
-
-**Primary Target: Boutique Fitness Studios (50-200 clients)**
-
-| Segment | Characteristics | Pain Points | Solution Fit |
-|---------|----------------|-------------|--------------|
-| Boutique Studios | 2-10 trainers, 50-200 clients | Time constraints, programming consistency | Automated periodization, CES integration |
-| Corrective Exercise Specialists | 1-3 trainers, focus on rehab-transition | Documentation, liability, specialized programming | Pain tracking, compensation awareness |
-| Online Trainers | Solo trainers, 20-100 remote clients | Client self-management, adherence | Explanatory AI, equipment filtering |
-| Senior Fitness Specialists | Focus on 55+ population | Safety concerns, modifications | NASM phase-based progression, pain awareness |
-
-**Secondary Target: Corporate Wellness Programs**
-
-- Companies increasingly offer fitness benefits
-- Need for low-risk, adaptable programming
-- Pain-aware training reduces workplace injury liability
-- Equipment-agnostic programming suits home/office settings
-
-### 4.4 Tech Stack Comparison
-
-| Aspect | SwanStudios | Trainerize | Caliber | Future |
-|--------|-------------|------------|---------|--------|
-| Frontend | React + TypeScript + styled-components | React Native | React | React |
-| Backend | Node.js + Express + Sequelize | Node.js | Python/Django | Node.js |
-| Database | PostgreSQL | PostgreSQL | PostgreSQL | PostgreSQL |
-| API | REST | REST + GraphQL | REST | REST |
-| Mobile | Web-only | Native iOS/Android | Native iOS/Android | Native iOS/Android |
-| AI | NASM-based rules engine | Basic recommendations | Advanced ML | Advanced ML |
-
-**Assessment:** SwanStudios' tech stack is modern and scalable but lacks mobile applications. The PostgreSQL + Sequelize combination supports 10K+ users easily, but performance optimization will be needed at 50K+ concurrent users.
-
-### 4.5 Differentiation vs. Major Competitors
-
-| Competitor | SwanStudios Advantage | SwanStudios Disadvantage |
-|------------|----------------------|-------------------------|
-| **Trainerize** | Scientific rigor, pain awareness, CES integration | Fewer integrations, no mobile app, smaller content library |
-| **TrueCoach** | Better periodization, pain-aware training | Less brand recognition, fewer payment options |
-| **Caliber** | More accessible pricing, equipment awareness | Less sophisticated AI, no nutrition |
-| **Future** | Better value proposition, pain awareness | Much smaller brand, fewer resources |
-| **My PT Hub** | Better UX, NASM methodology | UK-focused, less sophisticated backend |
+*   **Usage-Based Pricing (The "AI Credits" Model)**
+    *   *Problem:* The pipeline `Audio -> Whisper ($0.006/min) -> GPT-4o-mini` costs approx $0.01–$0.05 per session log.
+    *   *Solution:* Do not offer "unlimited" logs. Offer tiers:
+        *   **Tier 1 (Entry):** 50 AI Voice Logs/mo.
+        *   **Tier 2 (Pro):** Unlimited Voice Logs + "Pain Optimization" (where the AI actively suggests substitutions based on pain flags).
+*   **Upsell: The "Injury Reversal" Package**
+    *   Use the pain data collected in `PainEntryPanel` to generate a "Rehab Report."
+    *   *Monetization:* Sell a PDF/Video course or a specific 4-week "Corrective Phase" program generated by the AI, separate from the training subscription.
+*   **Marketplace**
+    *   Since there is no exercise library, allow top trainers to sell their "AI Prompt Templates" or "Corrective Protocols."
 
 ---
 
-## 5. Growth Blockers
+### 4. Market Positioning
 
-### 5.1 Technical Blockers
+**Current Position:** A high-end, AI-driven tool for personal trainers specializing in Corrective Exercise.
 
-**1. Mobile Application Absence (Critical)**
+*   **Tech Stack Advantage:** React + TypeScript + Node is a standard modern stack, but the implementation (styled-components, responsive design) is solid.
+*   **AI Positioning:** SwanStudios is "The AI Trainer that listens to your body." Competitors like Caliber are "The AI Coach that optimizes your data." This is a slight shift in focus (subjective pain vs. objective HR/Weight data).
+*   **Comparison to Industry Leaders:**
+    *   *Vs. Trainerize:* SwanStudios is easier to use for *programming* (just talk) but harder to use for *business* (no payments).
+    *   *Vs. Future:* SwanStudios is more customizable (via Pain entry) but less "prescriptive" (Future tells you what to do; SwanStudios helps the trainer decide).
 
-The web-only architecture creates multiple scaling limitations:
+---
 
-```
-Blocker: No Native Mobile App
-├── Impact: High
-├── User Experience: Clients cannot access workouts offline
-├── Trainer Experience: Cannot coach during sessions
-├── Market Fit: 78% of fitness app usage is mobile
-├── Revenue Loss: Cannot capture mobile-first trainers
-└── Solution: React Native or Flutter development (6-9 months)
-```
+### 5. Growth Blockers (Technical & UX)
 
-**2. Performance at Scale**
+To scale to 10k+ users, these issues must be resolved immediately.
 
-The current architecture may face challenges at 10K+ users:
+1.  **Scalability & Cost (Critical)**
+    *   **Issue:** The backend uses **in-memory** storage (`multer.memoryStorage()`) and **local Map objects** for rate limiting (`uploadCounts`).
+    *   **Blocker:** This cannot scale horizontally (e.g., on AWS ECS or Kubernetes). If you add 5 servers, the rate limiter resets on each server, and large file buffers will crash the server memory.
+    *   **Fix:** Move to **AWS S3** for file storage and **Redis** for rate limiting and session management.
 
-| Component | Current State | Scaling Issue | Solution |
-|-----------|--------------|---------------|----------|
-| Database queries | Sequential context fetching | N+1 query patterns | Batch loading, caching |
-| Exercise registry | In-memory loading | Memory growth with exercise additions | Database storage, CDN |
-| Workout generation | Single-threaded processing | Latency during peak usage | Queue system, worker threads |
-| Real-time features | None implemented | Cannot support live features | WebSocket implementation |
+2.  **Client-Side "Black Hole"**
+    *   **Issue:** The provided code focuses entirely on the Trainer (Voice logging pain, saving logs). There is no client-facing code.
+    *   **Blocker:** If clients cannot *see* their pain history or the resulting workout plan, they have no reason to engage with the app. You will churn trainers because their clients won't see value.
+    *   **Fix:** Build a "Client Portal" to view the `ParsedWorkout` and `PainEntry` history.
 
-**3. No Offline Capability**
+3.  **AI Confidence vs. Liability**
+    *   **Issue:** The code displays a "Confidence Badge" (Low/Med/High) to the trainer.
+    *   **Blocker:** If the AI hallucinates an exercise or misses a pain flag, and the client gets injured, there is a massive legal liability.
+    *   **Fix:** Add a "Trainer Override" workflow in the UI. Ensure the UI forces the trainer to review the AI's JSON *before* saving, rather than just "Applying" blindly. (The code currently implies this review flow exists, but ensure it's mandatory, not optional).
 
-```
-Blocker: Offline Workout Access
-├── Impact: Medium-High
-├── Scenario: Trainer in basement gym, no signal
-├── Current State: Workout generation requires API call
-├── User Action: Cannot generate or view workouts
-├── Competitor Advantage: Trainerize, TrueCoach offer offline
-└── Solution: PWA implementation, local storage
-```
+4.  **Lack of "Hard" Business Logic**
+    *   **Blocker:** You cannot scale a SaaS without handling money. Currently, there is no Stripe/Payment logic.
+    *   **Fix:** Implement Stripe Connect immediately to allow trainers to charge clients.
 
-**4. Limited Integrations**
+### Actionable Recommendations
 
-Missing integrations that competitors offer:
-
-| Integration Type | Competitors | SwanStudios | Business Impact |
-|------------------|-------------|-------------|-----------------|
-| Payment Processing | All | Not visible | Cannot monetize directly |
-| Calendar Sync | Most | Not visible | Scheduling friction |
-| Wearables | Many | Not visible | Data gap, engagement loss |
-| Video Platforms | Many | Not visible | Content limitation |
-| Accounting | Some | Not visible | Operational overhead |
-
-### 5.2 UX/Product Blockers
-
-**1. Onboarding Complexity**
-
-The sophisticated NASM-based system creates a steep learning curve:
-
-```
-Blocker: Training Required to Use Effectively
-├── Impact: Medium
-├── Sympt
+1.  **Immediate (MVP):** Add Stripe integration and a "Client View" for the workout logs.
+2.  **Short Term:** Refactor backend to use S3 (storage) and Redis (caching/rate-limiting).
+3.  **Medium Term:** Develop the "Pain Report" feature—visualizing pain trends over time to justify the "Corrective" upsell.
+4.  **Long Term:** Move from "AI Assistant" to "AI Analyst" by integrating Wearable data (Whoop/Apple Health) to correlate subjective pain reports with objective physiological data (HRV, Sleep).
 
 ---
 
