@@ -101,4 +101,44 @@ export async function createAchievementAutoPost(userId, achievement) {
   }
 }
 
-export default { createWorkoutAutoPost, createStreakAutoPost, createAchievementAutoPost };
+/**
+ * Create a user-initiated post sharing wearable data highlights.
+ * @param {number} userId
+ * @param {{ category: string, metrics: Array<{label: string, value: string}>, summary?: string }} shareData
+ */
+export async function createWearableSharePost(userId, shareData) {
+  try {
+    const { category, metrics, summary } = shareData;
+
+    const lines = [];
+    if (summary) {
+      lines.push(summary);
+    } else {
+      const catLabel = category.charAt(0).toUpperCase() + category.slice(1);
+      lines.push(`My ${catLabel} Stats:`);
+    }
+
+    for (const m of metrics.slice(0, 6)) {
+      lines.push(`${m.label}: ${m.value}`);
+    }
+
+    const content = lines.join('\n');
+
+    const post = await SocialPost.create({
+      userId,
+      content,
+      type: 'workout',
+      visibility: 'public',
+      moderationStatus: 'approved',
+      moderationNotes: 'wearable-share',
+    });
+
+    logger.info(`Auto-post: wearable share post created for user ${userId} (${category})`);
+    return post;
+  } catch (err) {
+    logger.error(`Auto-post: failed to create wearable share for user ${userId}: ${err.message}`);
+    throw err;
+  }
+}
+
+export default { createWorkoutAutoPost, createStreakAutoPost, createAchievementAutoPost, createWearableSharePost };

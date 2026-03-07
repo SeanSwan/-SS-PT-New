@@ -54,6 +54,7 @@ import workoutRoutes from '../routes/workoutRoutes.mjs';
 import workoutPlanRoutes from '../routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 import bodyMeasurementRoutes from '../routes/bodyMeasurementRoutes.mjs';
+import wearableDataRoutes from '../routes/wearableDataRoutes.mjs';
 import painEntryRoutes from '../routes/painEntryRoutes.mjs';
 import formAnalysisRoutes from '../routes/formAnalysisRoutes.mjs';
 import customExerciseRoutes from '../routes/customExerciseRoutes.mjs';
@@ -278,6 +279,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/recommendations', recommendationRoutes);
   app.use('/api/food-scanner', foodScannerRoutes);
   app.use('/api/measurements', bodyMeasurementRoutes);
+  app.use('/api/wearable-data', wearableDataRoutes);
   app.use('/api/pain-entries', painEntryRoutes);
   app.use('/api/form-analysis', formAnalysisRoutes);
   app.use('/api/custom-exercises', customExerciseRoutes);
