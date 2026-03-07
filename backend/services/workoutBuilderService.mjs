@@ -20,8 +20,21 @@
  */
 
 import { getClientContext } from './clientIntelligenceService.mjs';
-import { getExerciseRegistry, getNextSessionType, generateSwapSuggestions } from './variationEngine.mjs';
+import { getExerciseRegistry, generateSwapSuggestions } from './variationEngine.mjs';
 import logger from '../utils/logger.mjs';
+
+// Pain severity threshold: auto-exclude muscles at or above this level
+const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
+
+// Category → movement type mapping
+const CATEGORY_MOVEMENT_MAP = {
+  chest: 'push',
+  shoulders: 'push',
+  arms: 'push',
+  back: 'pull',
+  legs: 'squat',
+  core: 'core',
+};
 
 // ── NASM OPT Phase Parameter Tables ──────────────────────────────────
 
@@ -235,8 +248,17 @@ export async function generateWorkout(options) {
     rotationPattern = 'standard',
   } = options;
 
+  if (!clientId) throw new Error('clientId is required');
+  if (!trainerId) throw new Error('trainerId is required');
+
   // Step 1: Get client context (parallel subsystem queries)
-  const context = await getClientContext(clientId, trainerId);
+  let context;
+  try {
+    context = await getClientContext(clientId, trainerId);
+  } catch (err) {
+    logger.error('Failed to get client context', { clientId, trainerId, error: err.message });
+    throw new Error('Unable to generate workout: client context unavailable');
+  }
 
   // Step 2: Determine rotation (BUILD or SWITCH)
   const sessionType = context.variation.lastSessionType
@@ -250,18 +272,18 @@ export async function generateWorkout(options) {
   // Get equipment for selected location
   let equipmentItems = [];
   if (equipmentProfileId) {
-    const profile = context.equipment.find(p => p.id === equipmentProfileId);
-    if (profile) equipmentItems = profile.items;
+    const profile = context.equipment?.find(p => p.id === equipmentProfileId);
+    if (!profile) {
+      logger.warn(`Equipment profile ${equipmentProfileId} not found for client ${clientId}, proceeding without equipment filter`);
+    } else {
+      equipmentItems = profile.items;
+    }
   }
 
   // Step 4: Select exercises
   const movementCategories = category === 'full_body'
     ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
-    : [category === 'chest' || category === 'shoulders' ? 'push'
-      : category === 'back' ? 'pull'
-      : category === 'legs' ? 'squat'
-      : category === 'arms' ? 'push'
-      : 'core'];
+    : [CATEGORY_MOVEMENT_MAP[category] || 'core'];
 
   const exercisesPerCategory = Math.ceil(exerciseCount / movementCategories.length);
   let selectedExercises = [];
@@ -406,9 +428,6 @@ export async function generateWorkout(options) {
     },
   };
 }
-
-// Pain threshold constant used in explanations
-const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
 
 // ── Generate Long-Term Plan ──────────────────────────────────────────
 

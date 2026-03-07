@@ -1,8 +1,8 @@
 # Security — Validation Report
 
 > **Status:** FAIL | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 180.0s
-> **Files:** backend/services/bootcampService.mjs, frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx, frontend/src/hooks/useBootcampAPI.ts, backend/routes/bootcampRoutes.mjs
-> **Generated:** 3/6/2026, 5:43:34 PM
+> **Files:** backend/services/workoutBuilderService.mjs
+> **Generated:** 3/6/2026, 6:17:05 PM
 
 ---
 

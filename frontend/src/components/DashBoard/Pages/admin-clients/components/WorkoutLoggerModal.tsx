@@ -9,12 +9,14 @@
  * Touch targets: 44px minimum on all interactive elements
  */
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { X, Plus, Trash2, Dumbbell, Save } from 'lucide-react';
+import { X, Plus, Trash2, Dumbbell, Save, Mic } from 'lucide-react';
 import { createAdminClientService } from '../../../../../services/adminClientService';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
+
+const VoiceMemoUpload = lazy(() => import('../../../../WorkoutLogger/VoiceMemoUpload'));
 
 /* ─────────────────────── Theme Tokens ─────────────────────── */
 
@@ -335,6 +337,32 @@ const ErrorText = styled.p`
   margin: 4px 0 0;
 `;
 
+const ModeToggle = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  min-height: 44px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid ${(p) => p.$active ? SWAN_CYAN : 'rgba(255, 255, 255, 0.12)'};
+  background: ${(p) => p.$active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)'};
+  color: ${(p) => p.$active ? SWAN_CYAN : '#94a3b8'};
+
+  &:hover {
+    border-color: ${SWAN_CYAN};
+  }
+`;
+
 /* ─────────────────────── Types ─────────────────────── */
 
 interface WorkoutSet {
@@ -381,6 +409,7 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [mode, setMode] = useState<'manual' | 'voice'>('manual');
 
   if (!open) return null;
 
@@ -542,6 +571,45 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
         </ModalHeader>
 
         <ModalBody>
+          <ModeToggle>
+            <ModeButton $active={mode === 'manual'} onClick={() => setMode('manual')}>
+              <Dumbbell size={16} />
+              Manual Entry
+            </ModeButton>
+            <ModeButton $active={mode === 'voice'} onClick={() => setMode('voice')}>
+              <Mic size={16} />
+              Voice Memo / File
+            </ModeButton>
+          </ModeToggle>
+
+          {mode === 'voice' ? (
+            <Suspense fallback={<p style={{ color: '#94a3b8' }}>Loading...</p>}>
+              <VoiceMemoUpload
+                clientId={clientId}
+                clientName={clientName}
+                onParsed={(parsed, _transcript) => {
+                  // Apply parsed data to manual form
+                  if (parsed.exercises?.length) {
+                    setExercises(parsed.exercises.map((ex) => ({
+                      name: ex.exerciseName,
+                      sets: ex.sets.map((s) => ({
+                        setNumber: s.setNumber,
+                        reps: s.reps != null ? String(s.reps) : '',
+                        weight: s.weight != null ? String(s.weight) : '',
+                      })),
+                    })));
+                  }
+                  if (parsed.sessionNotes) setNotes(parsed.sessionNotes);
+                  if (parsed.overallIntensity) setIntensity(String(parsed.overallIntensity));
+                  if (!title) setTitle('Voice Memo Workout');
+                  if (!duration) setDuration('50');
+                  setMode('manual'); // Switch back to review
+                }}
+                onCancel={() => setMode('manual')}
+              />
+            </Suspense>
+          ) : (
+          <>
           <FormGrid>
             <FormGroup $fullWidth>
               <Label htmlFor="workout-title">Title *</Label>
@@ -691,6 +759,8 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
               </AddButton>
             </ExerciseCard>
           ))}
+          </>
+          )}
         </ModalBody>
 
         <ModalFooter>

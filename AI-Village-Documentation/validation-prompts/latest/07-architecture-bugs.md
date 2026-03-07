@@ -1,218 +1,239 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 68.2s
-> **Files:** backend/services/bootcampService.mjs, frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx, frontend/src/hooks/useBootcampAPI.ts, backend/routes/bootcampRoutes.mjs
-> **Generated:** 3/6/2026, 5:43:34 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 29.7s
+> **Files:** backend/services/workoutBuilderService.mjs
+> **Generated:** 3/6/2026, 6:17:05 PM
 
 ---
 
-# Deep Code Review: SwanStudios Bootcamp Builder
+# Deep Code Review: workoutBuilderService.mjs
 
 ## Executive Summary
-This review identifies **3 CRITICAL bugs**, **2 HIGH severity architectural flaws**, and several production readiness issues that must be addressed before shipping to `sswanstudios.com`. The core logic for class generation is functional but suffers from data integrity risks and performance bottlenecks.
+
+This service contains **3 CRITICAL bugs** that will cause runtime failures, **2 HIGH severity issues** affecting data integrity, and several medium/low issues. The most severe is an undefined constant reference that will crash production.
 
 ---
 
-## 1. Bug Detection
+## CRITICAL Findings
 
-### CRITICAL: Data Integrity Failure in Station Generation
-**File:** `backend/services/bootcampService.mjs` (Lines 195-215, 240-260)
+### 1. Undefined Constant Reference (Runtime Crash)
 
-**What's Wrong:**
-The `selectStationExercises` function can return an empty array if the pool of available exercises is exhausted or filtered too aggressively. The code assumes `stationExercises` always has at least `exercisesPerStation - 1` items. If it returns fewer (or zero), the loop logic for adding cardio finishers fails or adds them incorrectly, resulting in stations with **zero exercises** being saved to the database.
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | `generateWorkout()` function, lines ~285-290 | The constant `PAIN_AUTO_EXCLUDE_SEVERITY` is referenced inside the explanations but is defined **after** the function returns. This causes `ReferenceError: PAIN_AUTO_EXCLUDE_SEVERITY is not defined` at runtime. | Move `const PAIN_AUTO_EXCLUDE_SEVERITY = 7;` to the top of the file, before the `generateWorkout` function. |
 
+**Evidence:**
 ```javascript
-// Line 195: Assumes count-1 exercises
-return matching.slice(0, count - 1);
-
-// Line 240: Logic assumes loop runs at least once
-for (let e = 0; e < stationExercises.length; e++) {
-    const ex = stationExercises[e];
-    const isLast = e === stationExercises.length - 1;
-    // If length is 0, loop never runs. Station has no exercises.
-}
-```
-
-**Fix:**
-Add a validation check after selection to ensure minimum exercise count, or fallback to a default set if the pool is empty.
-```javascript
-// In generateBootcampClass, after selectStationExercises
-if (stationExercises.length < format.exercisesPerStation - 1) {
-  logger.warn(`Insufficient exercises for station ${s}, falling back to defaults`);
-  // Implement fallback logic or throw error
-}
-```
-
----
-
-### CRITICAL: N+1 Database Writes on Save
-**File:** `backend/services/bootcampService.mjs` (Lines 280-315)
-
-**What's Wrong:**
-The `saveBootcampTemplate` function creates database records inside `for` loops. For a class with 10 stations and 4 exercises each, this results in ~40+ sequential `await` calls. This is a severe performance anti-pattern that will lock the event loop and cause timeouts under load.
-
-**Fix:**
-Use Sequelize `bulkCreate` for stations and exercises.
-```javascript
-const stationRecords = generatedClass.stations.map(s => ({ ... }));
-const createdStations = await Station.bulkCreate(stationRecords);
-// Map IDs and proceed
-```
-
----
-
-### CRITICAL: Unhandled Non-JSON API Responses
-**File:** `frontend/src/hooks/useBootcampAPI.ts` (Lines 48-52)
-
-**What's Wrong:**
-If the backend returns a 502 Bad Gateway (HTML error page) or any non-JSON response, `res.json()` throws an unhandled promise rejection. This crashes the React application entirely rather than gracefully handling the error.
-
-```javascript
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...options, headers: { ... } });
-  const data = await res.json(); // CRASH HERE if body isn't JSON
+// Line ~285: References constant that doesn't exist yet
+explanations.push({
+  type: 'pain_exclusion',
+  message: `${context.pain.exclusions.length} muscle group(s) auto-excluded due to pain severity >= ${PAIN_AUTO_EXCLUDE_SEVERITY}/10 within 72h`,
   // ...
+});
+
+// Line ~380: Defined AFTER the function that uses it
+const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
+```
+
+---
+
+### 2. Incorrect Conditional Logic in Category Mapping
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | Lines 248-254 | The ternary chain for mapping categories to movement types is broken. `category === 'chest' || category === 'shoulders' ? 'push'` is evaluated as `(category === 'shoulders' ? 'push' : (category === 'chest'))`. This means `chest` maps to `'chest'` (truthy), not `'push'`. | Fix the parentheses: `category === 'chest' || category === 'shouldarms' ? 'push' : category === 'back' ? 'pull' : ...` or use a lookup map. |
+
+**Current broken code:**
+```javascript
+const movementCategories = category === 'full_body'
+  ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
+  : [category === 'chest' || category === 'shoulders' ? 'push'  // BROKEN
+      : category === 'back' ? 'pull'
+      : category === 'legs' ? 'squat'
+      : category === 'arms' ? 'push'
+      : 'core'];
+```
+
+**Correct logic:**
+```javascript
+const movementCategories = category === 'full_body'
+  ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
+  : [
+      category === 'chest' || category === 'shoulders' ? 'push'
+      : category === 'back' ? 'pull'
+      : category === 'legs' ? 'squat'
+      : category === 'arms' ? 'push'
+      : 'core'
+    ];
+```
+
+---
+
+### 3. Missing Null Guard on Equipment Items
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | Lines 232-237 | When `equipmentProfileId` is provided but `context.equipment` is empty or the profile isn't found, `equipmentItems` becomes `[]`. The filter logic then allows ALL exercises (because `availableCategories.size > 0` is false when no equipment found). This bypasses equipment filtering silently. | Add explicit null check and throw error or return empty exercises when equipment profile not found. |
+
+```javascript
+// Current (buggy):
+let equipmentItems = [];
+if (equipmentProfileId) {
+  const profile = context.equipment.find(p => p.id === equipmentProfileId);
+  if (profile) equipmentItems = profile.items;
+}
+
+// Should be:
+let equipmentItems = [];
+if (equipmentProfileId) {
+  const profile = context.equipment?.find(p => p.id === equipmentProfileId);
+  if (!profile) {
+    logger.warn(`Equipment profile ${equipmentProfileId} not found for client ${clientId}`);
+    // Option 1: Throw error
+    // throw new Error(`Equipment profile ${equipmentProfileId} not found`);
+    // Option 2: Return empty (safer)
+    return { error: 'Equipment profile not found', ... };
+  }
+  equipmentItems = profile.items;
 }
 ```
 
-**Fix:**
-Wrap `res.json()` in try/catch.
+---
+
+## HIGH Severity Findings
+
+### 4. Unused Import
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | Line 17 | `getNextSessionType` is imported from `variationEngine.mjs` but never used. This indicates dead code or incomplete implementation. | Remove the unused import or implement the missing functionality. |
+
 ```javascript
-let data;
+// Current:
+import { getExerciseRegistry, getNextSessionType, generateSwapSuggestions } from './variationEngine.mjs';
+
+// Fix:
+import { getExerciseRegistry, generateSwapSuggestions } from './variationEngine.mjs';
+```
+
+---
+
+### 5. No Input Validation on Public API Functions
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `generateWorkout()` and `generatePlan()` | No validation on `clientId`, `trainerId`, or other parameters. Missing required fields will cause downstream errors. | Add input validation at function entry. |
+
+```javascript
+// Add at start of generateWorkout:
+if (!clientId || typeof clientId !== 'number') {
+  throw new Error('clientId is required and must be a number');
+}
+if (!trainerId || typeof trainerId !== 'number') {
+  throw new Error('trainerId is required and must be a number');
+}
+if (!['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body'].includes(category)) {
+  throw new Error('Invalid category');
+}
+```
+
+---
+
+## MEDIUM Severity Findings
+
+### 6. Potential Stale Closure in Swap Suggestions
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | Lines 269-277 | `generateSwapSuggestions()` is called with `selectedExercises.map(e => e.key)` but the result is assigned to `swapSuggestions` which is returned directly. If `generateSwapSuggestions` is async or returns a promise, it's not being awaited. | Verify if `generateSwapSuggestions` returns a Promise. If so, add `await`. |
+
+```javascript
+// Current:
+let swapSuggestions = null;
+if (sessionType === 'switch' && selectedExercises.length > 0) {
+  swapSuggestions = generateSwapSuggestions(/* ... */);  // Could be async
+}
+
+// If async:
+if (sessionType === 'switch' && selectedExercises.length > 0) {
+  swapSuggestions = await generateSwapSuggestions(/* ... */);
+}
+```
+
+---
+
+### 7. Hardcoded Rotation Pool
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | Lines 356-357 | `rotationPool` is hardcoded. This should come from client context or configuration. | Move to configuration or derive from `context.variation`. |
+
+```javascript
+// Current:
+const rotationPool = ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
+
+// Should be:
+const rotationPool = context.variation.rotationPool || ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
+```
+
+---
+
+### 8. Deload Week Logic Bug
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | Lines 337-340 | The deload week logic is confusing: `weekEnd === (i + 1) * 4 ? weekEnd : null`. This always evaluates to `true` for complete mesocycles, but the logic seems wrong. | Clarify intent: should deload be every 4th week or only on the final mesocycle? |
+
+```javascript
+// Current (unclear intent):
+deloadWeek: weekEnd === (i + 1) * 4 ? weekEnd : null,
+
+// If intent is "every 4th week":
+deloadWeek: weekEnd % 4 === 0 ? weekEnd : null,
+
+// If intent is "last week of mesocycle":
+deloadWeek: weekEnd,
+```
+
+---
+
+### 9. No Error Handling for getClientContext
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | Lines 224, 323 | `getClientContext()` is called without try/catch. If the service fails, the entire workout generation fails with no graceful handling. | Wrap in try/catch with proper error logging. |
+
+```javascript
+// Current:
+const context = await getClientContext(clientId, trainerId);
+
+// Should be:
+let context;
 try {
-  data = await res.json();
-} catch (e) {
-  throw new Error(`Invalid server response: ${res.status}`);
+  context = await getClientContext(clientId, trainerId);
+} catch (err) {
+  logger.error('Failed to get client context', { clientId, trainerId, error: err.message });
+  throw new Error('Unable to generate workout: client context unavailable');
 }
 ```
 
 ---
 
-## 2. Architecture Flaws
+## LOW Severity Findings
 
-### HIGH: Frontend/Backend Contract Mismatch (Format)
-**Files:** 
-- `frontend/src/hooks/useBootcampAPI.ts` (Line 12)
-- `backend/routes/bootcampRoutes.mjs` (Line 27)
+### 10. Unused Logger Import
 
-**What's Wrong:**
-The frontend TypeScript type `ClassFormat` includes `'custom'`, but the backend `FORMAT_CONFIG` does not support it. When a user selects "Custom", the backend silently defaults to `'stations_4x'` (Line 28 of routes). The user sees "Custom" in the UI but gets a standard class, leading to confusion.
-
-**Fix:**
-Remove `'custom'` from the frontend `ClassFormat` type definition, or implement the logic in the backend service.
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **LOW** | Line 18 | `logger` is imported but never used. | Remove unused import or add logging statements. |
 
 ---
 
-### HIGH: Missing Rate Limiting on Expensive Operation
-**File:** `backend/routes/bootcampRoutes.mjs`
+### 11. Magic Numbers
 
-**What's Wrong:**
-The `/api/bootcamp/generate` endpoint performs complex logic (exercise selection, timing calculations, DB lookups). It has no rate limiting. A malicious user or a buggy client loop could easily DoS the server by spamming generation requests.
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
 
-**Fix:**
-Apply a rate limiter middleware (e.g., `express-rate-limit`) to this specific route.
-```javascript
-import rateLimit from 'express-rate-limit';
-const generateLimiter = rateLimit({ windowMs: 15*60*1000, max: 10 });
-router.post('/generate', generateLimiter, async (req, res) => { ... });
-```
-
----
-
-## 3. Integration Issues
-
-### MEDIUM: Type Safety Leak in Template Fetching
-**File:** `frontend/src/hooks/useBootcampAPI.ts` (Line 94)
-
-**What's Wrong:**
-`getTemplates` returns `unknown[]`. The frontend casts this implicitly when using it. If the backend schema changes, the UI will break silently or crash at runtime with cryptic errors.
-
-**Fix:**
-Define a `BootcampTemplate` interface and return `BootcampTemplate[]`.
-
----
-
-### MEDIUM: Inconsistent Data Handling (Full Group vs Stations)
-**Files:** 
-- `backend/services/bootcampService.mjs` (Lines 165-190)
-- `frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx` (Lines 280-310)
-
-**What's Wrong:**
-For station-based classes, the frontend groups exercises by `stationIndex`. For `full_group`, it iterates the flat list directly. This logic divergence makes the component harder to maintain and suggests the backend data model (`stationIndex` being optional) isn't strictly enforced.
-
-**Fix:**
-Always populate `stationIndex` in the backend (e.g., -1 for full group) and handle grouping consistently in the frontend.
-
----
-
-## 4. Dead Code & Tech Debt
-
-### LOW: Unused Variables in Service
-**File:** `backend/services/bootcampService.mjs` (Line 68)
-
-**What's Wrong:**
-`equipmentProfileId` is destructured from options but never used in the function body.
-
-```javascript
-const {
-  // ...
-  equipmentProfileId, // <--- Unused
-  // ...
-} = options;
-```
-
-**Fix:** Remove the variable or implement the equipment filtering logic.
-
----
-
-### LOW: Hardcoded Magic Numbers
-**File:** `backend/services/bootcampService.mjs` (Lines 66, 67)
-
-**What's Wrong:**
-`demoDuration: 5` and `clearDuration: 5` are hardcoded. These should likely be configurable or derived from the class size/format.
-
-**Fix:** Move to configuration or constants.
-
----
-
-## 5. Production Readiness
-
-### MEDIUM: Insufficient Error Logging
-**File:** `backend/routes/bootcampRoutes.mjs` (Multiple locations)
-
-**What's Wrong:**
-Errors are logged with `err.message`, but production debugging requires the stack trace (`err.stack`).
-
-**Fix:**
-```javascript
-logger.error('[Bootcamp] Generate failed:', err.message, err.stack);
-```
-
----
-
-### LOW: Missing Loading State for "Save"
-**File:** `frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx` (Lines 260-270)
-
-**What's Wrong:**
-The "Save as Template" button does not disable or show a spinner while the async `api.saveTemplate` is pending. Users can double-click and trigger duplicate saves.
-
-**Fix:**
-Add a `saving` state and disable the button.
-
----
-
-## Summary Table
-
-| Severity | File | Issue | Impact |
-| :--- | :--- | :--- | :--- |
-| **CRITICAL** | `bootcampService.mjs` | Empty station exercises | Data corruption/Blank UI |
-| **CRITICAL** | `bootcampService.mjs` | N+1 DB inserts | Server timeouts |
-| **CRITICAL** | `useBootcampAPI.ts` | Non-JSON crash | App-wide crash |
-| **HIGH** | `bootcampRoutes.mjs` | No rate limiting | DoS vulnerability |
-| **HIGH** | Types vs Routes | Format mismatch ('custom') | User confusion |
-| **MEDIUM** | `bootcampRoutes.mjs` | Missing stack traces | Debugging difficulty |
-| **MEDIUM** | `useBootcampAPI.ts` | `unknown[]` return type | Runtime fragility |
-| **LOW** | `bootcampService.mjs` | Unused variables | Code clutter |
 
 ---
 

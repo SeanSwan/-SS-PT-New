@@ -62,6 +62,7 @@ import variationRoutes from '../routes/variationRoutes.mjs';
 import clientIntelligenceRoutes from '../routes/clientIntelligenceRoutes.mjs';
 import workoutBuilderRoutes from '../routes/workoutBuilderRoutes.mjs';
 import bootcampRoutes from '../routes/bootcampRoutes.mjs';
+import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
@@ -285,6 +286,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/client-intelligence', clientIntelligenceRoutes);
   app.use('/api/workout-builder', workoutBuilderRoutes);
   app.use('/api/bootcamp', bootcampRoutes);
+  app.use('/api/workout-logs', workoutLogUploadRoutes);
 
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
   // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)
