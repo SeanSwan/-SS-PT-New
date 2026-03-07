@@ -13,6 +13,7 @@ import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  PieChart, Pie, Cell,
 } from 'recharts';
 import {
   Watch, Heart, Moon, Footprints, Flame, Activity,
@@ -357,6 +358,41 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
   const hasCycleData = records.some(r => r.cyclingDistanceMeters);
   const hasRunData = records.some(r => r.runDistanceMeters);
 
+  // Week-over-week comparison from weeklyAverages
+  const weeklyAvgs = summary?.weeklyAverages || [];
+  const thisWeek = weeklyAvgs[0];
+  const lastWeek = weeklyAvgs[1];
+
+  const wowChange = (current: number | undefined, previous: number | undefined): { pct: number; positive: boolean } | null => {
+    if (!current || !previous || previous === 0) return null;
+    const pct = ((current - previous) / previous) * 100;
+    return { pct: Math.round(pct), positive: pct >= 0 };
+  };
+
+  const stepsChange = wowChange(thisWeek?.avg_steps, lastWeek?.avg_steps);
+  const hrChange = wowChange(thisWeek?.avg_resting_hr, lastWeek?.avg_resting_hr);
+  const sleepChange = wowChange(thisWeek?.avg_sleep_min, lastWeek?.avg_sleep_min);
+  const caloriesChange = wowChange(thisWeek?.avg_calories, lastWeek?.avg_calories);
+
+  // Radar chart data — normalize key metrics to 0-100 scale
+  const radarData = latest ? [
+    { metric: 'Steps', value: Math.min(100, ((latest.steps || 0) / 10000) * 100), fullMark: 100 },
+    { metric: 'Active Min', value: Math.min(100, ((latest.activeMinutes || 0) / 60) * 100), fullMark: 100 },
+    { metric: 'Sleep', value: Math.min(100, ((latest.sleepDurationMinutes || 0) / 480) * 100), fullMark: 100 },
+    { metric: 'Heart', value: Math.min(100, latest.restingHeartRate ? (80 / latest.restingHeartRate) * 100 : 0), fullMark: 100 },
+    { metric: 'Recovery', value: Math.min(100, latest.bodyBatteryOrRecovery || 0), fullMark: 100 },
+    { metric: 'Calories', value: Math.min(100, ((latest.caloriesBurned || 0) / 2500) * 100), fullMark: 100 },
+  ] : [];
+
+  // Weekly averages chart data
+  const weeklyChartData = [...weeklyAvgs].reverse().map(w => ({
+    week: formatDate(w.week_start),
+    steps: Math.round(w.avg_steps),
+    sleep: Math.round(w.avg_sleep_min),
+    calories: Math.round(w.avg_calories),
+    activeMin: Math.round(w.avg_active_min),
+  }));
+
   if (loading) {
     return (
       <DashboardContainer>
@@ -434,27 +470,54 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
         >
           {activeTab === 'overview' && (
             <>
-              {/* Quick Stats */}
+              {/* Quick Stats with WoW indicators */}
               <CardGrid columns={4}>
                 <GlassCard $accent={C.successGreen}>
                   <MetricLabel>Steps Today</MetricLabel>
-                  <MetricValue $color={C.successGreen}>{latest?.steps?.toLocaleString() || '--'}</MetricValue>
+                  <MetricValue $color={C.successGreen}>
+                    {latest?.steps?.toLocaleString() || '--'}
+                    {stepsChange && <MetricChange $positive={stepsChange.positive}>{stepsChange.positive ? '+' : ''}{stepsChange.pct}% WoW</MetricChange>}
+                  </MetricValue>
                 </GlassCard>
                 <GlassCard $accent={C.dangerRed}>
                   <MetricLabel>Resting HR</MetricLabel>
-                  <MetricValue $color={C.dangerRed}>{latest?.restingHeartRate || '--'} <span style={{ fontSize: 14, color: C.mutedText }}>bpm</span></MetricValue>
+                  <MetricValue $color={C.dangerRed}>
+                    {latest?.restingHeartRate || '--'} <span style={{ fontSize: 14, color: C.mutedText }}>bpm</span>
+                    {hrChange && <MetricChange $positive={!hrChange.positive}>{hrChange.positive ? '+' : ''}{hrChange.pct}%</MetricChange>}
+                  </MetricValue>
                 </GlassCard>
                 <GlassCard $accent={C.cosmicPurple}>
                   <MetricLabel>Sleep</MetricLabel>
-                  <MetricValue $color={C.cosmicPurple}>{latest?.sleepDurationMinutes ? minsToHrMin(latest.sleepDurationMinutes) : '--'}</MetricValue>
+                  <MetricValue $color={C.cosmicPurple}>
+                    {latest?.sleepDurationMinutes ? minsToHrMin(latest.sleepDurationMinutes) : '--'}
+                    {sleepChange && <MetricChange $positive={sleepChange.positive}>{sleepChange.positive ? '+' : ''}{sleepChange.pct}%</MetricChange>}
+                  </MetricValue>
                 </GlassCard>
                 <GlassCard $accent={C.warningAmber}>
                   <MetricLabel>Calories</MetricLabel>
-                  <MetricValue $color={C.warningAmber}>{latest?.caloriesBurned?.toLocaleString() || '--'}</MetricValue>
+                  <MetricValue $color={C.warningAmber}>
+                    {latest?.caloriesBurned?.toLocaleString() || '--'}
+                    {caloriesChange && <MetricChange $positive={caloriesChange.positive}>{caloriesChange.positive ? '+' : ''}{caloriesChange.pct}%</MetricChange>}
+                  </MetricValue>
                 </GlassCard>
               </CardGrid>
 
-              {/* Trend Chart */}
+              {/* Fitness Radar */}
+              {radarData.length > 0 && (
+                <ChartContainer style={{ marginTop: 16 }}>
+                  <SectionTitle><TrendingUp size={16} color={C.swanCyan} /> Fitness Overview</SectionTitle>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                      <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                      <PolarAngleAxis dataKey="metric" tick={{ fill: C.mutedText, fontSize: 12 }} />
+                      <PolarRadiusAxis tick={false} domain={[0, 100]} axisLine={false} />
+                      <Radar name="Today" dataKey="value" stroke={C.swanCyan} fill={C.swanCyan} fillOpacity={0.2} strokeWidth={2} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
+
+              {/* 30-Day Trend Chart */}
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle>30-Day Trends</SectionTitle>
                 <ResponsiveContainer width="100%" height={240}>
@@ -473,6 +536,24 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartContainer>
+
+              {/* Weekly Averages Comparison */}
+              {weeklyChartData.length > 1 && (
+                <ChartContainer style={{ marginTop: 16 }}>
+                  <SectionTitle>Weekly Averages</SectionTitle>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={weeklyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="week" tick={{ fill: C.mutedText, fontSize: 11 }} />
+                      <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar dataKey="steps" fill={C.successGreen} name="Avg Steps" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="activeMin" fill={C.cyberBlue} name="Avg Active Min" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
             </>
           )}
 
@@ -529,6 +610,35 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
                   <MetricValue $color={C.cyberBlue}>{latest?.spo2 ? `${latest.spo2.toFixed(0)}%` : '--'}</MetricValue>
                 </GlassCard>
               </CardGrid>
+              {/* Heart Rate Zones */}
+              {latest?.heartRateZones && (latest.heartRateZones.fatBurn || latest.heartRateZones.cardio || latest.heartRateZones.peak) && (
+                <ChartContainer style={{ marginTop: 16 }}>
+                  <SectionTitle><Flame size={16} color={C.warningAmber} /> Heart Rate Zones</SectionTitle>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart
+                      data={[
+                        { zone: 'Out of Range', minutes: latest.heartRateZones.outOfRange || 0 },
+                        { zone: 'Fat Burn', minutes: latest.heartRateZones.fatBurn || 0 },
+                        { zone: 'Cardio', minutes: latest.heartRateZones.cardio || 0 },
+                        { zone: 'Peak', minutes: latest.heartRateZones.peak || 0 },
+                      ]}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis type="number" tick={{ fill: C.mutedText, fontSize: 11 }} />
+                      <YAxis dataKey="zone" type="category" tick={{ fill: C.mutedText, fontSize: 11 }} width={90} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="minutes" name="Minutes" radius={[0, 4, 4, 0]}>
+                        <Cell fill={C.mutedText} />
+                        <Cell fill={C.warningAmber} />
+                        <Cell fill={C.dangerRed} />
+                        <Cell fill={C.cosmicPurple} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
+
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><Heart size={16} color={C.dangerRed} /> Heart Rate Trends</SectionTitle>
                 <ResponsiveContainer width="100%" height={240}>
@@ -563,6 +673,40 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
                   <MetricValue $color={C.successGreen}>{latest?.bodyBatteryOrRecovery || '--'}</MetricValue>
                 </GlassCard>
               </CardGrid>
+
+              {/* Sleep Stages Breakdown */}
+              {latest?.sleepStages && (latest.sleepStages.deep || latest.sleepStages.light || latest.sleepStages.rem) && (
+                <ChartContainer style={{ marginTop: 16 }}>
+                  <SectionTitle><Moon size={16} color={C.cosmicPurple} /> Sleep Stages</SectionTitle>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Deep', value: latest.sleepStages.deep || 0 },
+                          { name: 'Light', value: latest.sleepStages.light || 0 },
+                          { name: 'REM', value: latest.sleepStages.rem || 0 },
+                          { name: 'Awake', value: latest.sleepStages.awake || 0 },
+                        ].filter(d => d.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={3}
+                        dataKey="value"
+                        label={({ name, value }) => `${name}: ${value}m`}
+                      >
+                        <Cell fill={C.cosmicPurple} />
+                        <Cell fill={C.cyberBlue} />
+                        <Cell fill={C.swanCyan} />
+                        <Cell fill={C.mutedText} />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
+
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><Moon size={16} color={C.cosmicPurple} /> Sleep Trends</SectionTitle>
                 <ResponsiveContainer width="100%" height={240}>
