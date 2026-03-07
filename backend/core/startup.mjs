@@ -382,6 +382,14 @@ export const initializeServer = async (app) => {
           logger.warn(`Weekly challenge scheduler failed to start: ${schedErr.message}`);
         }
 
+        // Start session reminder scheduler (24h + 1h before sessions)
+        try {
+          const { startSessionReminderScheduler } = await import('../services/sessionReminderCron.mjs');
+          startSessionReminderScheduler();
+        } catch (reminderErr) {
+          logger.warn(`Session reminder scheduler failed to start: ${reminderErr.message}`);
+        }
+
         // Register cross-component event listeners
         try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');

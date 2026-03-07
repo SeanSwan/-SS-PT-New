@@ -137,6 +137,9 @@ const setupAssociations = async () => {
     const BodyMeasurementModule = await import('./BodyMeasurement.mjs');
     const MeasurementMilestoneModule = await import('./MeasurementMilestone.mjs');
 
+    // Wearable Data Integration
+    const WearableDataModule = await import('./WearableData.mjs');
+
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntryModule = await import('./ClientPainEntry.mjs');
 
@@ -918,6 +921,12 @@ const setupAssociations = async () => {
     MeasurementMilestone.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     console.log('✅ Body Measurement & Milestone models integrated');
 
+    // Wearable Data Associations
+    const WearableData = WearableDataModule.default;
+    User.hasMany(WearableData, { foreignKey: 'userId', as: 'wearableData' });
+    WearableData.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    console.log('✅ Wearable Data model integrated');
+
     // Pain/Injury Tracking Associations (NASM CES + Squat University)
     User.hasMany(ClientPainEntry, { foreignKey: 'userId', as: 'painEntries' });
     ClientPainEntry.belongsTo(User, { foreignKey: 'userId', as: 'client' });
@@ -1128,6 +1137,9 @@ const setupAssociations = async () => {
       // Body Measurement & Milestone Models (Phase 11)
       BodyMeasurement,
       MeasurementMilestone,
+
+      // Wearable Data
+      WearableData,
 
       // Pain/Injury Tracking
       ClientPainEntry,

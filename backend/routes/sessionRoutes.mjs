@@ -17,6 +17,14 @@ import {
   sendEmailNotification,
   sendSmsNotification, // Correct case matches the export in notification.mjs
 } from "../utils/notification.mjs";
+import {
+  sessionBookedEmail,
+  sessionCancelledEmail,
+  sessionRescheduledEmail,
+  recurringBookedEmail,
+  trainerSessionNotificationEmail,
+  SMS,
+} from '../utils/emailTemplates.mjs';
 import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import trainerAssignmentService from '../services/TrainerAssignmentService.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
@@ -960,68 +968,70 @@ router.post("/book/:userId", protect, async (req, res) => {
     // Notify the user via email/SMS/push (respect notifyClient + preferences)
     if (user) {
       const notifyClient = session.notifyClient !== false;
-      // Format the session date for notifications
       const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
-        'en-US', 
-        { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }
+        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
       );
 
-      // Send email notification
+      // Resolve trainer name for templates
+      let trainerName = null;
+      if (session.trainerId) {
+        const trainer = await User.findByPk(session.trainerId);
+        if (trainer) trainerName = `${trainer.firstName} ${trainer.lastName}`;
+      }
+
+      // Send Galaxy-Swan themed email
       if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
         await sendEmailNotification({
           to: user.email,
-          subject: "Session Booked Successfully",
+          subject: 'Session Confirmed - SwanStudios',
           text: `Your session has been booked for ${sessionDateFormatted}`,
-          html: `<p>Your session has been booked for <strong>${sessionDateFormatted}</strong>.</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>
-                 <p>Please arrive 10 minutes before your session.</p>`
+          html: sessionBookedEmail({
+            clientName: user.firstName,
+            trainerName,
+            sessionDate: sessionDateFormatted,
+            duration: session.duration,
+            location: session.location,
+          }),
         });
       }
-      
-      // Send SMS notification if the user has a phone number and SMS notifications enabled
+
+      // Send SMS
       if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
         await sendSmsNotification({
           to: user.phone,
-          body: `Swan Studios: Your session has been booked for ${sessionDateFormatted}. Please arrive 10 minutes early.`
+          body: SMS.booked({ trainerName, sessionDate: sessionDateFormatted }),
         });
       }
 
       if (shouldNotifyClient({ user, channel: 'push', notifyClient })) {
         logger.info(`Push notification queued for user ${user.id}: session booked`);
       }
-    }
 
-    // Notify trainer if one is assigned
-    if (session.trainerId) {
-      const trainer = await User.findByPk(session.trainerId);
-      if (trainer && trainer.email) {
-        const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
-          'en-US', 
-          { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+      // Notify trainer if one is assigned
+      if (session.trainerId && trainerName) {
+        const trainer = await User.findByPk(session.trainerId);
+        if (trainer && trainer.email) {
+          await sendEmailNotification({
+            to: trainer.email,
+            subject: 'New Session Assigned - SwanStudios',
+            text: `A new session has been booked with you for ${sessionDateFormatted}`,
+            html: trainerSessionNotificationEmail({
+              trainerName: trainer.firstName,
+              clientName: `${user.firstName} ${user.lastName}`,
+              sessionDate: sessionDateFormatted,
+              duration: session.duration,
+              location: session.location,
+              eventType: 'booked',
+            }),
+          });
+
+          if (trainer.phone && trainer.smsNotifications !== false) {
+            await sendSmsNotification({
+              to: trainer.phone,
+              body: SMS.trainerBooked({ clientName: `${user.firstName} ${user.lastName}`, sessionDate: sessionDateFormatted }),
+            });
           }
-        );
-
-        await sendEmailNotification({
-          to: trainer.email,
-          subject: "New Session Booked",
-          text: `A new session has been booked with you for ${sessionDateFormatted}`,
-          html: `<p>A new session has been booked with you for <strong>${sessionDateFormatted}</strong>.</p>
-                 <p>Client: ${user.firstName} ${user.lastName}</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>`
-        });
+        }
       }
     }
 
@@ -1123,52 +1133,61 @@ router.post("/:sessionId/book", protect, async (req, res) => {
     }
 
     // Notify the user via email/SMS (respect notifyClient + preferences)
-    const notifyClient = session.notifyClient !== false;
-    const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
-      'en-US',
-      {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+    try {
+      const notifyClient = session.notifyClient !== false;
+      const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
+        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+      );
+
+      // Resolve trainer name
+      let trainerName = null;
+      let trainerObj = null;
+      if (session.trainerId) {
+        trainerObj = await User.findByPk(session.trainerId);
+        if (trainerObj) trainerName = `${trainerObj.firstName} ${trainerObj.lastName}`;
       }
-    );
 
-    // Send email notification
-    if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
-      await sendEmailNotification({
-        to: user.email,
-        subject: "Session Booked Successfully",
-        text: `Your session has been booked for ${sessionDateFormatted}`,
-        html: `<p>Your session has been booked for <strong>${sessionDateFormatted}</strong>.</p>
-               <p>Location: ${session.location || 'Main Studio'}</p>
-               <p>Please arrive 10 minutes before your session.</p>`
-      });
-    }
-
-    // Send SMS notification
-    if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
-      await sendSmsNotification({
-        to: user.phone,
-        body: `Swan Studios: Your session has been booked for ${sessionDateFormatted}. Please arrive 10 minutes early.`
-      });
-    }
-
-    // Notify trainer if one is assigned
-    if (session.trainerId) {
-      const trainer = await User.findByPk(session.trainerId);
-      if (trainer && trainer.email) {
+      // Galaxy-Swan themed email
+      if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
         await sendEmailNotification({
-          to: trainer.email,
-          subject: "New Session Booked",
-          text: `A new session has been booked with you for ${sessionDateFormatted}`,
-          html: `<p>A new session has been booked with you for <strong>${sessionDateFormatted}</strong>.</p>
-                 <p>Client: ${user.firstName} ${user.lastName}</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>`
+          to: user.email,
+          subject: 'Session Confirmed - SwanStudios',
+          text: `Your session has been booked for ${sessionDateFormatted}`,
+          html: sessionBookedEmail({
+            clientName: user.firstName,
+            trainerName,
+            sessionDate: sessionDateFormatted,
+            duration: session.duration,
+            location: session.location,
+          }),
         });
       }
+
+      if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
+        await sendSmsNotification({
+          to: user.phone,
+          body: SMS.booked({ trainerName, sessionDate: sessionDateFormatted }),
+        });
+      }
+
+      // Notify trainer if one is assigned
+      if (trainerObj && trainerObj.email) {
+        await sendEmailNotification({
+          to: trainerObj.email,
+          subject: 'New Session Assigned - SwanStudios',
+          text: `A new session has been booked with you for ${sessionDateFormatted}`,
+          html: trainerSessionNotificationEmail({
+            trainerName: trainerObj.firstName,
+            clientName: `${user.firstName} ${user.lastName}`,
+            sessionDate: sessionDateFormatted,
+            duration: session.duration,
+            location: session.location,
+            eventType: 'booked',
+          }),
+        });
+      }
+    } catch (notifyErr) {
+      logger.warn(`[Sessions] Notification failed for session ${session.id}: ${notifyErr.message}`);
     }
 
     // Fetch updated session with associations
@@ -1383,35 +1402,50 @@ router.post("/book-recurring", protect, async (req, res) => {
       })
     );
 
+    // Resolve trainer name for recurring booking
+    let recurTrainerName = null;
+    if (bookedSessions[0]?.trainerId) {
+      const trainer = await User.findByPk(bookedSessions[0].trainerId);
+      if (trainer) recurTrainerName = `${trainer.firstName} ${trainer.lastName}`;
+    }
+
     if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient: true })) {
       await sendEmailNotification({
         to: user.email,
-        subject: `${sessionsNeeded} Recurring Sessions Booked`,
+        subject: `${sessionsNeeded} Recurring Sessions Confirmed - SwanStudios`,
         text: `Your recurring sessions have been booked:\n\n${sessionDates.join('\n')}`,
-        html: `<p>Your recurring sessions have been booked:</p>
-               <ul>${sessionDates.map(d => `<li>${d}</li>`).join('')}</ul>
-               <p>Location: ${bookedSessions[0]?.location || 'Main Studio'}</p>
-               <p>Please arrive 10 minutes before each session.</p>`
+        html: recurringBookedEmail({
+          clientName: user.firstName,
+          trainerName: recurTrainerName,
+          sessionDates,
+          count: sessionsNeeded,
+          location: bookedSessions[0]?.location,
+        }),
       });
     }
 
     if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient: true })) {
       await sendSmsNotification({
         to: user.phone,
-        body: `Swan Studios: ${sessionsNeeded} recurring sessions booked. First session: ${sessionDates[0]}`
+        body: `SwanStudios: ${sessionsNeeded} recurring sessions booked. First: ${sessionDates[0]}. View: sswanstudios.com/schedule`,
       });
     }
 
     // Notify trainer about recurring booking
-    if (bookedSessions[0]?.trainerId) {
+    if (bookedSessions[0]?.trainerId && recurTrainerName) {
       const trainer = await User.findByPk(bookedSessions[0].trainerId);
       if (trainer?.email) {
         await sendEmailNotification({
           to: trainer.email,
-          subject: `New Recurring Sessions Booked - ${sessionsNeeded} sessions`,
+          subject: `${sessionsNeeded} Recurring Sessions Assigned - SwanStudios`,
           text: `${user.firstName} ${user.lastName} has booked ${sessionsNeeded} recurring sessions with you.`,
-          html: `<p><strong>${user.firstName} ${user.lastName}</strong> has booked ${sessionsNeeded} recurring sessions with you:</p>
-                 <ul>${sessionDates.map(d => `<li>${d}</li>`).join('')}</ul>`
+          html: recurringBookedEmail({
+            clientName: `${user.firstName} ${user.lastName}`,
+            trainerName: recurTrainerName,
+            sessionDates,
+            count: sessionsNeeded,
+            location: bookedSessions[0]?.location,
+          }),
         });
       }
     }
@@ -1692,42 +1726,36 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
 
     // Notify relevant parties
     const user = await User.findByPk(session.userId);
-    
+
     if (user) {
       const notifyClient = req.body.notifyClient !== undefined ? req.body.notifyClient : session.notifyClient !== false;
-      const sessionDateFormatted = new Date(newSessionDate).toLocaleString(
-        'en-US', 
-        { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }
+      const newDateFormatted = new Date(newSessionDate).toLocaleString(
+        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+      );
+      const oldDateFormatted = oldDate.toDate().toLocaleString(
+        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
       );
 
-      // Send email notification
+      // Galaxy-Swan themed email
       if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
         await sendEmailNotification({
           to: user.email,
-          subject: "Session Rescheduled", 
-          text: `Your session has been rescheduled to ${sessionDateFormatted}. ${
-            sessionDeducted ? "A session was deducted due to late rescheduling." : ""
-          }`,
-          html: `<p>Your session has been rescheduled to <strong>${sessionDateFormatted}</strong>.</p>
-                 ${sessionDeducted ? "<p>A session was deducted due to late rescheduling.</p>" : ""}
-                 <p>Location: ${session.location || 'Main Studio'}</p>`
+          subject: 'Session Rescheduled - SwanStudios',
+          text: `Your session has been rescheduled to ${newDateFormatted}.${sessionDeducted ? ' A session was deducted due to late rescheduling.' : ''}`,
+          html: sessionRescheduledEmail({
+            clientName: user.firstName,
+            oldDate: oldDateFormatted,
+            newDate: newDateFormatted,
+            location: session.location,
+            sessionDeducted,
+          }),
         });
       }
-      
-      // Send SMS if enabled
+
       if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
         await sendSmsNotification({
           to: user.phone,
-          body: `Swan Studios: Your session has been rescheduled to ${sessionDateFormatted}. ${
-            sessionDeducted ? "A session was deducted." : ""
-          }`
+          body: SMS.rescheduled({ newDate: newDateFormatted }),
         });
       }
 
@@ -1739,28 +1767,30 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
     // Notify trainer if assigned
     if (session.trainerId) {
       const trainer = await User.findByPk(session.trainerId);
-      
       if (trainer && trainer.email) {
-        const sessionDateFormatted = new Date(newSessionDate).toLocaleString(
-          'en-US', 
-          { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }
+        const newDateFormatted = new Date(newSessionDate).toLocaleString(
+          'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
         );
-
         await sendEmailNotification({
           to: trainer.email,
-          subject: "Session Rescheduled", 
-          text: `A session has been rescheduled to ${sessionDateFormatted}.`,
-          html: `<p>A session has been rescheduled to <strong>${sessionDateFormatted}</strong>.</p>
-                 <p>Client: ${user ? `${user.firstName} ${user.lastName}` : 'Unknown'}</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>`
+          subject: 'Session Rescheduled - SwanStudios',
+          text: `A session has been rescheduled to ${newDateFormatted}.`,
+          html: trainerSessionNotificationEmail({
+            trainerName: trainer.firstName,
+            clientName: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
+            sessionDate: newDateFormatted,
+            duration: session.duration,
+            location: session.location,
+            eventType: 'rescheduled',
+          }),
         });
+
+        if (trainer.phone && trainer.smsNotifications !== false) {
+          await sendSmsNotification({
+            to: trainer.phone,
+            body: `SwanStudios: Session with ${user ? `${user.firstName} ${user.lastName}` : 'a client'} rescheduled to ${newDateFormatted}.`,
+          });
+        }
       }
     }
 
@@ -1933,33 +1963,28 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     const shouldSuppressNotifications = req.user.role === 'admin' && suppressNotifications === true;
     const forceNotifyClient = isUrgentCancellation && !shouldSuppressNotifications;
     
-    if (user && user.email && user.id !== req.user.id) {
+    if (user && user.id !== req.user.id) {
       const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
-        'en-US', 
-        { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }
+        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
       );
 
-      if (shouldNotifyClient({ user, channel: 'email', notifyClient: resolvedNotifyClient, force: forceNotifyClient })) {
+      if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient: resolvedNotifyClient, force: forceNotifyClient })) {
         await sendEmailNotification({
           to: user.email,
-          subject: "Session Cancelled",
-          text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.`,
-          html: `<p>Your session scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
-                 <p>Reason: ${session.cancellationReason}</p>`
+          subject: 'Session Cancelled - SwanStudios',
+          text: `Your session scheduled for ${sessionDateFormatted} has been cancelled. Reason: ${session.cancellationReason}`,
+          html: sessionCancelledEmail({
+            clientName: user.firstName,
+            sessionDate: sessionDateFormatted,
+            reason: session.cancellationReason,
+          }),
         });
       }
-      
+
       if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient: resolvedNotifyClient, force: forceNotifyClient })) {
         await sendSmsNotification({
           to: user.phone,
-          body: `Swan Studios: Your session on ${sessionDateFormatted} has been cancelled.`
+          body: SMS.cancelled({ sessionDate: sessionDateFormatted }),
         });
       }
 
@@ -1971,27 +1996,30 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     // Notify trainer if assigned
     if (session.trainerId) {
       const trainer = await User.findByPk(session.trainerId);
-      
       if (trainer && trainer.email && trainer.id !== req.user.id) {
         const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
-          'en-US', 
-          { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }
+          'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
         );
-
         await sendEmailNotification({
           to: trainer.email,
-          subject: "Session Cancelled",
+          subject: 'Session Cancelled - SwanStudios',
           text: `A session scheduled for ${sessionDateFormatted} has been cancelled.`,
-          html: `<p>A session scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
-                 <p>Reason: ${session.cancellationReason}</p>`
+          html: trainerSessionNotificationEmail({
+            trainerName: trainer.firstName,
+            clientName: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
+            sessionDate: sessionDateFormatted,
+            duration: session.duration,
+            location: session.location,
+            eventType: 'cancelled',
+          }),
         });
+
+        if (trainer.phone && trainer.smsNotifications !== false) {
+          await sendSmsNotification({
+            to: trainer.phone,
+            body: SMS.trainerCancelled({ clientName: user ? `${user.firstName} ${user.lastName}` : 'a client', sessionDate: sessionDateFormatted }),
+          });
+        }
       }
     }
 
@@ -2166,32 +2194,16 @@ Your session credit has been restored to your account.`;
     if (shouldSendNotifications && notifyClient && session.client && session.client.email && session.client.id !== req.user.id) {
       await sendEmailNotification({
         to: session.client.email,
-        subject: chargeType !== 'none' ? "Session Cancelled - Charge Applied" : "Session Cancelled",
-        text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.
-
-Reason: ${session.cancellationReason}${chargeMessage}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: ${chargeType !== 'none' ? '#dc2626' : '#2563eb'};">Session Cancelled</h2>
-            <p>Your session scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
-            <p><strong>Reason:</strong> ${session.cancellationReason}</p>
-            ${chargeType !== 'none' && actualChargeAmount > 0 ? `
-              <div style="background: #fef2f2; border: 1px solid #dc2626; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <p style="color: #dc2626; font-weight: bold; margin: 0;">Charge Applied</p>
-                <p style="margin: 8px 0 0 0;">
-                  ${chargeType === 'full' ? 'Full session charge' : chargeType === 'late_fee' ? 'Late cancellation fee' : 'Partial charge'}:
-                  <strong>$${actualChargeAmount.toFixed(2)}</strong>
-                </p>
-              </div>
-            ` : creditRestored ? `
-              <div style="background: #f0fdf4; border: 1px solid #16a34a; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <p style="color: #16a34a; font-weight: bold; margin: 0;">Credit Restored</p>
-                <p style="margin: 8px 0 0 0;">Your session credit has been restored to your account.</p>
-              </div>
-            ` : ''}
-            <p style="color: #6b7280; font-size: 14px;">If you have any questions, please contact Swan Studios.</p>
-          </div>
-        `
+        subject: chargeType !== 'none' ? 'Session Cancelled - Charge Applied' : 'Session Cancelled - SwanStudios',
+        text: `Your session scheduled for ${sessionDateFormatted} has been cancelled. Reason: ${session.cancellationReason}${chargeMessage}`,
+        html: sessionCancelledEmail({
+          clientName: session.client.firstName,
+          sessionDate: sessionDateFormatted,
+          reason: session.cancellationReason,
+          chargeType,
+          chargeAmount: actualChargeAmount,
+          creditRestored,
+        }),
       });
 
       // Send SMS if client has phone (unless silent mode)
@@ -2199,10 +2211,9 @@ Reason: ${session.cancellationReason}${chargeMessage}`,
         const smsChargeMsg = chargeType !== 'none' && actualChargeAmount > 0
           ? ` Charge: $${actualChargeAmount.toFixed(2)}`
           : creditRestored ? ' Credit restored.' : '';
-
         await sendSmsNotification({
           to: session.client.phone,
-          body: `Swan Studios: Your session on ${sessionDateFormatted} has been cancelled.${smsChargeMsg}`
+          body: `SwanStudios: Your session on ${sessionDateFormatted} has been cancelled.${smsChargeMsg}`,
         });
       }
     }
@@ -2210,21 +2221,18 @@ Reason: ${session.cancellationReason}${chargeMessage}`,
     // Send trainer notification (unless silent mode)
     if (shouldSendNotifications && notifyTrainer && session.trainer && session.trainer.email && session.trainer.id !== req.user.id) {
       const clientName = session.client ? `${session.client.firstName} ${session.client.lastName}` : 'Unknown Client';
-
       await sendEmailNotification({
         to: session.trainer.email,
-        subject: "Session Cancelled",
-        text: `A session with ${clientName} scheduled for ${sessionDateFormatted} has been cancelled.
-
-Reason: ${session.cancellationReason}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Session Cancelled</h2>
-            <p>A session with <strong>${clientName}</strong> scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
-            <p><strong>Reason:</strong> ${session.cancellationReason}</p>
-            ${isLateCancellation ? '<p style="color: #dc2626;"><strong>Note:</strong> This was a late cancellation (less than 24 hours notice).</p>' : ''}
-          </div>
-        `
+        subject: 'Session Cancelled - SwanStudios',
+        text: `A session with ${clientName} scheduled for ${sessionDateFormatted} has been cancelled. Reason: ${session.cancellationReason}`,
+        html: trainerSessionNotificationEmail({
+          trainerName: session.trainer.firstName,
+          clientName,
+          sessionDate: sessionDateFormatted,
+          duration: session.duration,
+          location: session.location,
+          eventType: 'cancelled',
+        }),
       });
     }
 

@@ -163,6 +163,12 @@ Session.init({
     allowNull: true,
     comment: 'When the session was booked'
   },
+  remindersSent: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Tracks which reminders have been sent (e.g. {"24h":"...","1h":"..."})'
+  },
   sessionDeducted: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
