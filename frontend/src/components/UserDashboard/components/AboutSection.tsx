@@ -394,8 +394,16 @@ const AboutSection: React.FC = () => {
   // Get achievements grouped by skill tree
   const achievementList = useMemo(() => {
     const raw = achievements?.data ?? [];
-    // Map to a display-friendly shape — take first 12
-    return (Array.isArray(raw) ? raw : []).slice(0, 12).map((a: any) => ({
+    const arr = Array.isArray(raw) ? raw : [];
+    // Deduplicate by id (or by name if id is missing), then take first 12
+    const seen = new Set<string>();
+    const unique = arr.filter((a: any) => {
+      const key = String(a.id || a.name || a.title);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return unique.slice(0, 12).map((a: any) => ({
       id: a.id,
       title: a.title || a.name || 'Achievement',
       description: a.description || '',

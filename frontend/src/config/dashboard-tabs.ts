@@ -493,7 +493,9 @@ export interface WorkspaceConfig {
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/home', description: 'Executive command center' },
   { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
+  { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/workouts', description: 'Workout logger, plans & AI protocols' },
   { id: 'scheduling', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/scheduling', description: 'Session scheduling' },
+  { id: 'gamification', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/gamification', description: 'Achievements, badges & rewards' },
   { id: 'store', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/store', description: 'Orders and packages' },
   { id: 'content', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/content', description: 'Video and content management' },
   { id: 'analytics', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/analytics', description: 'Data analytics and insights' },

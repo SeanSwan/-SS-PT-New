@@ -522,6 +522,67 @@ class UniversalMasterScheduleService {
     }
   }
 
+  // ==================== CONFLICT CHECK & RESCHEDULE ====================
+
+  /**
+   * Check for scheduling conflicts before rescheduling
+   */
+  async checkConflicts(data: {
+    startTime: string;
+    endTime: string;
+    trainerId?: string | number | null;
+    clientId?: string | number | null;
+    excludeSessionId?: string | number;
+  }): Promise<{ conflicts: any[]; alternatives: any[] }> {
+    try {
+      const response = await this.api.post('/api/sessions/check-conflicts', data);
+      const result = response.data;
+      return {
+        conflicts: result?.conflicts || [],
+        alternatives: (result?.alternatives || []).map((alt: any) => ({
+          ...alt,
+          date: new Date(alt.date)
+        }))
+      };
+    } catch (error) {
+      console.error('Conflict check failed:', error);
+      return { conflicts: [], alternatives: [] };
+    }
+  }
+
+  /**
+   * Reschedule a session to a new time
+   */
+  async rescheduleSession(
+    sessionId: string | number,
+    data: {
+      newStartTime: string;
+      newEndTime: string;
+      trainerId?: string | number | null;
+      notifyClient?: boolean;
+      conflictOverride?: boolean;
+    }
+  ): Promise<{ success: boolean; status: number; conflicts?: any[]; alternatives?: any[]; data?: any }> {
+    try {
+      const response = await this.api.put(`/api/sessions/${sessionId}/reschedule`, data);
+      return { success: true, status: response.status, data: response.data };
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        const result = error.response.data;
+        return {
+          success: false,
+          status: 409,
+          conflicts: result?.conflicts || [],
+          alternatives: (result?.alternatives || []).map((alt: any) => ({
+            ...alt,
+            date: new Date(alt.date)
+          }))
+        };
+      }
+      throw error;
+    }
+  }
+
   // ==================== SERVICE HEALTH & MONITORING ====================
 
   /**

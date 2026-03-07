@@ -142,27 +142,31 @@ const CoverOverlay = styled.div`
 
 const CoverUploadButton = styled.button`
   position: absolute;
-  top: 16px;
-  right: 16px;
+  bottom: 12px;
+  left: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 10px 18px;
-  border: 1px solid rgba(224, 236, 244, 0.3);
-  border-radius: 14px;
-  background: rgba(0, 32, 96, 0.6);
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 2px solid rgba(224, 236, 244, 0.4);
+  border-radius: 50%;
+  background: rgba(0, 32, 96, 0.7);
   backdrop-filter: blur(12px);
   color: ${T.frostWhite};
-  font-size: 0.85rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: all 0.3s ease;
   z-index: 2;
+  opacity: 0.7;
 
   &:hover {
-    background: rgba(0, 48, 128, 0.8);
+    opacity: 1;
+    background: rgba(0, 48, 128, 0.9);
     border-color: ${T.iceWing};
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(96, 192, 240, 0.4);
   }
 `;
 
@@ -1210,9 +1214,8 @@ const UserDashboard: React.FC = () => {
       {/* ═══════ Cover Photo ═══════ */}
       <CoverPhotoSection $src={backgroundImage}>
         <CoverOverlay />
-        <CoverUploadButton onClick={() => backgroundInputRef.current?.click()}>
+        <CoverUploadButton onClick={() => backgroundInputRef.current?.click()} title={backgroundImage ? 'Change cover photo' : 'Add cover photo'}>
           <Camera size={16} />
-          {backgroundImage ? 'Change Cover' : 'Add Cover Photo'}
         </CoverUploadButton>
       </CoverPhotoSection>
 

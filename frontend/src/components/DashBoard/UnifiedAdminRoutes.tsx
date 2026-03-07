@@ -48,6 +48,7 @@ import AdminExerciseCommandCenter from './Pages/admin-exercises';
 import VideoStudioManager from './Pages/admin-video-studio/VideoStudioManager';
 import VideoDetailView from './Pages/admin-video-studio/VideoDetailView';
 import { TheAestheticCodex } from '../../core';
+import CosmicSuspenseLoader from '../Shared/CosmicSuspenseLoader';
 import OrientationList from './Pages/admin-dashboard/components/OrientationList';
 import ParamRedirect from './ParamRedirect';
 
@@ -61,6 +62,8 @@ import ClientsWorkspace from './workspaces/ClientsWorkspace';
 import SchedulingWorkspace from './workspaces/SchedulingWorkspace';
 import StoreWorkspace from './workspaces/StoreWorkspace';
 import ContentWorkspace from './workspaces/ContentWorkspace';
+import GamificationWorkspace from './workspaces/GamificationWorkspace';
+import WorkoutsWorkspace from './workspaces/WorkoutsWorkspace';
 import AnalyticsWorkspace from './workspaces/AnalyticsWorkspace';
 import SystemWorkspace from './workspaces/SystemWorkspace';
 // Design Playground — lazy-loaded only when VITE_DESIGN_PLAYGROUND=true (not shipped to prod bundle)
@@ -125,7 +128,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/video-studio" element={<Navigate to="/dashboard/content/video-studio" replace />} />
     <Route path="/video-studio/:id" element={<ParamRedirect base="/dashboard/content/video-studio" />} />
     <Route path="/exercise-management" element={<Navigate to="/dashboard/content/exercises" replace />} />
-    <Route path="/gamification" element={<Navigate to="/dashboard/content/gamification" replace />} />
+    <Route path="/gamification" element={<Navigate to="/dashboard/gamification" replace />} />
 
     {/* Analytics workspace redirects */}
     <Route path="/analytics" element={<Navigate to="/dashboard/analytics" replace />} />
@@ -155,7 +158,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     {/* Design Playground - Admin concept viewer (build-time gated per CLAUDE.md) */}
     {DesignPlayground && (
       <Route path="/design-playground" element={wrap(
-        <React.Suspense fallback={<div>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <DesignPlayground />
         </React.Suspense>
       )} />
@@ -177,7 +180,7 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="trainers/permissions" element={<TrainerPermissionsManager onPermissionChange={() => {}} />} />
       <Route path="orientations" element={<OrientationList />} />
       <Route path="onboarding" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <ClientOnboardingWizard />
         </React.Suspense>
       } />
@@ -193,27 +196,27 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="social" element={<AdminSocialManagementView />} />
       <Route path="waivers" element={<AdminWaiversManager />} />
       <Route path="movement-screen" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisListPage />
         </React.Suspense>
       } />
       <Route path="movement-screen/new" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisWizard />
         </React.Suspense>
       } />
       <Route path="movement-screen/new/:clientId" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisWizard />
         </React.Suspense>
       } />
       <Route path="movement-screen/:id" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisWizard />
         </React.Suspense>
       } />
       <Route path="measurements/:clientId?" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MeasurementEntry />
         </React.Suspense>
       } />
@@ -231,15 +234,49 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="specials" element={<AdminSpecialsManager />} />
     </Route>
 
+    <Route path="/workouts" element={<WorkoutsWorkspace />}>
+      <Route index element={<WorkoutPlanBuilder />} />
+      <Route path="logger" element={<WorkoutPlanBuilder />} />
+      <Route path="movement" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <MovementAnalysisListPage />
+        </React.Suspense>
+      } />
+      <Route path="movement/new" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <MovementAnalysisWizard />
+        </React.Suspense>
+      } />
+      <Route path="movement/new/:clientId" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <MovementAnalysisWizard />
+        </React.Suspense>
+      } />
+      <Route path="movement/:id" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <MovementAnalysisWizard />
+        </React.Suspense>
+      } />
+      <Route path="ai" element={<NASMCompliancePanel />} />
+    </Route>
+
+    <Route path="/gamification" element={<GamificationWorkspace />}>
+      <Route index element={<AdminGamificationView />} />
+      <Route path="rewards" element={<AdminGamificationView />} />
+      <Route path="settings" element={<AdminGamificationView />} />
+      <Route path="analytics" element={<AdminGamificationView />} />
+    </Route>
+
     <Route path="/content" element={<ContentWorkspace />}>
       <Route index element={<Navigate to="/dashboard/content/video-studio" replace />} />
       <Route path="video-studio" element={<VideoStudioManager />} />
       <Route path="video-studio/:id" element={<VideoDetailView />} />
       <Route path="moderation" element={<ContentModerationSection />} />
       <Route path="exercises" element={<AdminExerciseCommandCenter />} />
-      <Route path="gamification" element={<AdminGamificationView />} />
+      {/* Legacy route - gamification moved to its own workspace */}
+      <Route path="gamification" element={<Navigate to="/dashboard/gamification" replace />} />
       <Route path="design" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading Design Lab...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader text="Loading Design Lab" />}>
           <HomepageDesignLab />
         </React.Suspense>
       } />
@@ -252,12 +289,12 @@ const UnifiedAdminRoutes: React.FC = () => (
         import.meta.env.DEV ? <PerformanceReportsPanel /> : <Navigate to="/dashboard/analytics" replace />
       } />
       <Route path="bi" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <EnterpriseBusinessIntelligenceSuite />
         </React.Suspense>
       } />
       <Route path="social" element={
-        <React.Suspense fallback={<div style={{ color: '#fff', padding: 32 }}>Loading...</div>}>
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <SocialMediaCommandCenter />
         </React.Suspense>
       } />

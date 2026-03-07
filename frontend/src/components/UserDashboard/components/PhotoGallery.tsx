@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useProfile } from '../../../hooks/profile/useProfile';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+import profileService from '../../../services/profileService';
 
 // Professional styled components
 const GalleryContainer = styled(motion.div)`
@@ -417,9 +418,10 @@ const PhotoGallery: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { posts } = useProfile();
-  const { createPost } = useSocialFeed();
+  const { posts, refreshProfile } = useProfile();
+  const { createPost, refreshPosts } = useSocialFeed();
 
   const photos = React.useMemo(() => {
     if (!posts || posts.length === 0) return [];
@@ -445,18 +447,26 @@ const PhotoGallery: React.FC = () => {
   };
 
   const handlePhotoUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
+    if (file.size > 10 * 1024 * 1024) { alert('File must be under 10MB'); return; }
+    setIsUploading(true);
     try {
-      await createPost({ content: 'Shared a photo', type: 'general' });
+      const imageUrl = await profileService.uploadImage(file, 'post');
+      await createPost({ content: 'Shared a photo', type: 'general', mediaUrl: imageUrl });
+      refreshPosts?.();
+      refreshProfile?.();
     } catch (err) {
       console.error('Error uploading photo:', err);
+      alert('Failed to upload photo. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      handlePhotoUpload(file);
-    }
+    if (file) handlePhotoUpload(file);
+    event.target.value = '';
   };
 
   const handlePhotoClick = (photo: PhotoItem) => {
@@ -494,9 +504,10 @@ const PhotoGallery: React.FC = () => {
             onClick={handleUpload}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            disabled={isUploading}
           >
             <Upload size={18} />
-            Upload Photo
+            {isUploading ? 'Uploading...' : 'Upload Photo'}
           </UploadButton>
         </GalleryHeader>
 

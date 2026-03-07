@@ -126,8 +126,12 @@ router.post('/request/:recipientId', async (req, res) => {
       });
     }
     
-    // Check if recipient is the current user
-    if (recipientId === req.user.id) {
+    // Check if recipient is the current user (params are strings, user.id is number)
+    const recipientIdNum = parseInt(recipientId, 10);
+    if (isNaN(recipientIdNum)) {
+      return res.status(400).json({ success: false, message: 'Invalid recipient ID' });
+    }
+    if (recipientIdNum === req.user.id) {
       return res.status(400).json({
         success: false,
         message: 'You cannot send a friend request to yourself'
@@ -138,12 +142,12 @@ router.post('/request/:recipientId', async (req, res) => {
     const existingFriendship = await Friendship.findOne({
       where: {
         [req.db.Sequelize.Op.or]: [
-          { requesterId: req.user.id, recipientId },
-          { requesterId: recipientId, recipientId: req.user.id }
+          { requesterId: req.user.id, recipientId: recipientIdNum },
+          { requesterId: recipientIdNum, recipientId: req.user.id }
         ]
       }
     });
-    
+
     if (existingFriendship) {
       // Return different messages based on the status
       if (existingFriendship.status === 'accepted') {
@@ -152,7 +156,7 @@ router.post('/request/:recipientId', async (req, res) => {
           message: 'You are already friends with this user'
         });
       } else if (existingFriendship.status === 'pending') {
-        if (existingFriendship.requesterId === req.user.id) {
+        if (Number(existingFriendship.requesterId) === req.user.id) {
           return res.status(400).json({
             success: false,
             message: 'You have already sent a friend request to this user'
@@ -184,7 +188,7 @@ router.post('/request/:recipientId', async (req, res) => {
     // Create a new friendship request
     const friendship = await Friendship.create({
       requesterId: req.user.id,
-      recipientId,
+      recipientId: recipientIdNum,
       status: 'pending'
     });
     
@@ -221,7 +225,7 @@ router.post('/accept/:friendshipId', async (req, res) => {
     }
     
     // Check if the current user is the recipient of this request
-    if (friendship.recipientId !== req.user.id) {
+    if (Number(friendship.recipientId) !== Number(req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to accept this friend request'
@@ -279,7 +283,7 @@ router.post('/decline/:friendshipId', async (req, res) => {
     }
     
     // Check if the current user is the recipient of this request
-    if (friendship.recipientId !== req.user.id) {
+    if (Number(friendship.recipientId) !== Number(req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to decline this friend request'
@@ -379,7 +383,8 @@ router.post('/block/:userId', async (req, res) => {
     }
     
     // Check if user is trying to block themselves
-    if (userId === req.user.id) {
+    const userIdNum = parseInt(userId, 10);
+    if (userIdNum === req.user.id) {
       return res.status(400).json({
         success: false,
         message: 'You cannot block yourself'
@@ -390,17 +395,17 @@ router.post('/block/:userId', async (req, res) => {
     let friendship = await Friendship.findOne({
       where: {
         [req.db.Sequelize.Op.or]: [
-          { requesterId: req.user.id, recipientId: userId },
-          { requesterId: userId, recipientId: req.user.id }
+          { requesterId: req.user.id, recipientId: userIdNum },
+          { requesterId: userIdNum, recipientId: req.user.id }
         ]
       }
     });
-    
+
     if (friendship) {
       // Update friendship to blocked status
       friendship.status = 'blocked';
       // Make sure current user is the blocker (requester)
-      if (friendship.recipientId === req.user.id) {
+      if (Number(friendship.recipientId) === req.user.id) {
         // Swap requester and recipient so current user is the blocker
         const temp = friendship.requesterId;
         friendship.requesterId = friendship.recipientId;
@@ -411,7 +416,7 @@ router.post('/block/:userId', async (req, res) => {
       // Create a new blocked relationship
       friendship = await Friendship.create({
         requesterId: req.user.id,
-        recipientId: userId,
+        recipientId: userIdNum,
         status: 'blocked'
       });
     }
@@ -437,11 +442,12 @@ router.post('/unblock/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Find the blocked relationship
+    // Find the blocked relationship (current user must be the blocker — requesterId after block swap)
+    const userIdNum = parseInt(userId, 10);
     const friendship = await Friendship.findOne({
       where: {
         requesterId: req.user.id,
-        recipientId: userId,
+        recipientId: userIdNum,
         status: 'blocked'
       }
     });
@@ -465,6 +471,106 @@ router.post('/unblock/:userId', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to unblock user',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Search for users by name or username
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 50);
+
+    if (!q || String(q).trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query must be at least 2 characters'
+      });
+    }
+
+    const searchTerm = `%${String(q).trim()}%`;
+    const Op = req.db.Sequelize.Op;
+
+    // Get blocked user IDs to exclude them
+    const blocks = await Friendship.findAll({
+      where: {
+        [Op.or]: [
+          { requesterId: req.user.id, status: 'blocked' },
+          { recipientId: req.user.id, status: 'blocked' }
+        ]
+      }
+    });
+    const blockedIds = blocks.map(b =>
+      b.requesterId === req.user.id ? b.recipientId : b.requesterId
+    );
+
+    const excludeIds = [...blockedIds, req.user.id];
+
+    // Search users by firstName, lastName, or username
+    const users = await User.findAll({
+      where: {
+        id: { [Op.notIn]: excludeIds },
+        [Op.or]: [
+          { firstName: { [Op.iLike]: searchTerm } },
+          { lastName: { [Op.iLike]: searchTerm } },
+          { username: { [Op.iLike]: searchTerm } },
+          req.db.Sequelize.where(
+            req.db.Sequelize.fn('concat', req.db.Sequelize.col('firstName'), ' ', req.db.Sequelize.col('lastName')),
+            { [Op.iLike]: searchTerm }
+          )
+        ]
+      },
+      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+      limit,
+      order: [['firstName', 'ASC']]
+    });
+
+    // Get existing friendship statuses for these users
+    const userIds = users.map(u => u.id);
+    const existingFriendships = userIds.length > 0 ? await Friendship.findAll({
+      where: {
+        [Op.or]: [
+          { requesterId: req.user.id, recipientId: { [Op.in]: userIds } },
+          { requesterId: { [Op.in]: userIds }, recipientId: req.user.id }
+        ]
+      }
+    }) : [];
+
+    // Build a map of userId -> friendship status
+    const friendshipMap = {};
+    existingFriendships.forEach(f => {
+      const otherId = f.requesterId === req.user.id ? f.recipientId : f.requesterId;
+      friendshipMap[otherId] = {
+        status: f.status,
+        friendshipId: f.id,
+        isRequester: f.requesterId === req.user.id
+      };
+    });
+
+    const results = users.map(u => ({
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      username: u.username,
+      photo: u.photo,
+      role: u.role,
+      friendshipStatus: friendshipMap[u.id]?.status || null,
+      friendshipId: friendshipMap[u.id]?.friendshipId || null,
+      isRequester: friendshipMap[u.id]?.isRequester || false
+    }));
+
+    return res.status(200).json({
+      success: true,
+      results
+    });
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to search users',
       error: error.message
     });
   }
