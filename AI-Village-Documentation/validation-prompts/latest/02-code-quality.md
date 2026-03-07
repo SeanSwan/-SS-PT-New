@@ -1,218 +1,146 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 67.0s
-> **Files:** backend/services/bootcampService.mjs, frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx, frontend/src/hooks/useBootcampAPI.ts, backend/routes/bootcampRoutes.mjs
-> **Generated:** 3/6/2026, 5:43:34 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 69.0s
+> **Files:** backend/services/workoutBuilderService.mjs
+> **Generated:** 3/6/2026, 6:17:05 PM
 
 ---
 
-# Code Review: Boot Camp Class Builder (Phase 10)
+# Code Review: `workoutBuilderService.mjs`
 
-## CRITICAL Issues
+## Overview
+This is a **backend service file** (`.mjs`), not TypeScript/React code. The review criteria requested (TypeScript types, React hooks, styled-components) **do not apply** to this Node.js ES module. I'll review it against **applicable backend best practices** instead.
 
-### 1. **Missing Error Boundaries for Async Operations**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 282-295, 297-305  
-**Severity:** CRITICAL
+---
 
-```tsx
-const handleGenerate = useCallback(async () => {
-  // ... no try/catch around api.generateClass
-  const result = await api.generateClass({...}); // ❌ Unhandled promise rejection
+## ❌ CRITICAL Issues
+
+### 1. **No Input Validation**
+**Severity:** CRITICAL  
+**Location:** `generateWorkout()`, `generatePlan()`
+
+```mjs
+export async function generateWorkout(options) {
+  const {
+    clientId,
+    trainerId,
+    category = 'full_body',
+    // ...
+  } = options;
 ```
 
-**Issue:** While there's a try/catch, the error handling doesn't account for network failures, timeouts, or malformed responses. The error boundary won't catch async errors in event handlers.
+**Problem:**
+- No validation that `clientId`/`trainerId` are positive integers
+- No validation that `category` is a valid enum value
+- No validation that `exerciseCount` is within reasonable bounds
+- Malicious/malformed input could cause database errors or infinite loops
 
 **Fix:**
-```tsx
-try {
-  const result = await api.generateClass({...});
-  setBootcamp(result);
-} catch (err) {
-  const message = err instanceof Error ? err.message : 'Unknown error occurred';
-  logger.error('Class generation failed:', err);
-  setError(message);
-  // Optional: Show toast notification
+```mjs
+import Joi from 'joi';
+
+const workoutSchema = Joi.object({
+  clientId: Joi.number().integer().positive().required(),
+  trainerId: Joi.number().integer().positive().required(),
+  category: Joi.string().valid('chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body').default('full_body'),
+  equipmentProfileId: Joi.number().integer().positive().allow(null).default(null),
+  exerciseCount: Joi.number().integer().min(1).max(20).default(6),
+  rotationPattern: Joi.string().valid('standard', 'aggressive', 'conservative').default('standard'),
+});
+
+export async function generateWorkout(options) {
+  const validated = await workoutSchema.validateAsync(options);
+  // ... use validated instead of options
 }
 ```
 
 ---
 
-### 2. **Type Safety Violation: `any` Equivalent with `unknown`**
-**File:** `useBootcampAPI.ts`  
-**Lines:** 71, 73, 147, 149  
-**Severity:** CRITICAL
+### 2. **Missing Error Handling**
+**Severity:** CRITICAL  
+**Location:** Both exported functions
 
-```ts
-exercisesUsed: unknown;  // ❌ Type erasure - defeats TypeScript's purpose
-modificationsMade?: unknown;
-```
-
-**Issue:** Using `unknown` without type guards is equivalent to `any` - you lose all type safety. This will cause runtime errors when accessing properties.
-
-**Fix:**
-```ts
-export interface ExerciseUsed {
-  exerciseName: string;
-  duration: number;
-  modifications?: string[];
-}
-
-export interface ClassLogEntry {
-  exercisesUsed: ExerciseUsed[];
-  modificationsMade?: Record<string, string>;
+```mjs
+export async function generateWorkout(options) {
+  const context = await getClientContext(clientId, trainerId); // Can throw
+  const registry = getExerciseRegistry(); // Can throw
+  // ... no try/catch
 }
 ```
 
----
-
-### 3. **SQL Injection Risk via Unvalidated Input**
-**File:** `bootcampRoutes.mjs`  
-**Lines:** 51-52  
-**Severity:** CRITICAL
-
-```js
-name: typeof name === 'string' ? name.slice(0, 200) : undefined,
-```
-
-**Issue:** While length is limited, there's no sanitization for SQL special characters. Sequelize should handle this, but explicit validation is missing.
+**Problem:**
+- If `getClientContext()` throws (DB error, client not found), the entire service crashes
+- No graceful degradation or user-facing error messages
+- Caller has no way to distinguish error types
 
 **Fix:**
-```js
-import validator from 'validator';
+```mjs
+export async function generateWorkout(options) {
+  try {
+    const context = await getClientContext(clientId, trainerId);
+    
+    if (!context) {
+      throw new Error(`Client ${clientId} not found or inaccessible to trainer ${trainerId}`);
+    }
 
-const sanitizedName = typeof name === 'string' 
-  ? validator.escape(name.slice(0, 200)) 
-  : undefined;
-```
+    const registry = getExerciseRegistry();
+    if (Object.keys(registry).length === 0) {
+      throw new Error('Exercise registry is empty - cannot generate workout');
+    }
 
----
+    // ... rest of logic
+  } catch (error) {
+    logger.error('Workout generation failed', {
+      clientId,
+      trainerId,
+      error: error.message,
+      stack: error.stack,
+    });
 
-## HIGH Priority Issues
-
-### 4. **Performance: Inline Function Creation in Render**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 355, 364, 369, 374, 379  
-**Severity:** HIGH
-
-```tsx
-onChange={e => setClassFormat(e.target.value as ClassFormat)}
-onChange={e => setDayType(e.target.value as DayType)}
-onChange={e => setTargetDuration(e.target.value)}
-```
-
-**Issue:** Creates new function instances on every render, causing child re-renders and breaking memoization.
-
-**Fix:**
-```tsx
-const handleFormatChange = useCallback(
-  (e: React.ChangeEvent<HTMLSelectElement>) => 
-    setClassFormat(e.target.value as ClassFormat),
-  []
-);
-
-<Select value={classFormat} onChange={handleFormatChange}>
-```
-
----
-
-### 5. **Missing Dependency in useCallback**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 282-295  
-**Severity:** HIGH
-
-```tsx
-const handleGenerate = useCallback(async () => {
-  // Uses: api, classFormat, dayType, targetDuration, expectedParticipants, className
-}, [api, classFormat, dayType, targetDuration, expectedParticipants, className]);
-```
-
-**Issue:** While dependencies are listed, `api` object is recreated on every render (see issue #8), causing stale closures.
-
-**Fix:** Ensure `api` is stable (see #8 fix), or destructure methods:
-```tsx
-const { generateClass } = useBootcampAPI();
-const handleGenerate = useCallback(async () => {
-  // ...
-}, [generateClass, classFormat, dayType, targetDuration, expectedParticipants, className]);
-```
-
----
-
-### 6. **DRY Violation: Repeated Validation Logic**
-**File:** `bootcampRoutes.mjs`  
-**Lines:** 42-45, 67-70, 98-100, 117-119  
-**Severity:** HIGH
-
-```js
-// Repeated 4 times:
-const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : 'stations_4x';
-const safeDayType = VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
-```
-
-**Fix:**
-```js
-// utils/validators.mjs
-export function validateClassFormat(format) {
-  return VALID_FORMATS.includes(format) ? format : 'stations_4x';
-}
-
-export function validateDayType(dayType) {
-  return VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
-}
-
-export function validateDuration(duration) {
-  return Math.min(Math.max(parseInt(duration, 10) || 45, 20), 90);
+    // Re-throw with user-friendly message
+    if (error.message.includes('not found')) {
+      throw new Error('Unable to generate workout: client data not accessible');
+    }
+    throw new Error('Workout generation failed. Please try again or contact support.');
+  }
 }
 ```
 
 ---
 
-### 7. **Missing Keys in Mapped Elements**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 457-459  
-**Severity:** HIGH
+### 3. **Unsafe Array Access**
+**Severity:** CRITICAL  
+**Location:** `applyOPTParams()`, warmup generation
 
-```tsx
-{bootcamp.overflowPlan.lapExercises.map((lap, i) => (
-  <span key={i} style={{ marginRight: 8 }}>  // ❌ Index as key
-```
-
-**Issue:** Using array index as key causes React reconciliation bugs when list order changes.
-
-**Fix:**
-```tsx
-{bootcamp.overflowPlan.lapExercises.map((lap) => (
-  <span key={lap.name} style={{ marginRight: 8 }}>
-```
-
----
-
-### 8. **Performance: useMemo Returns New Object Every Render**
-**File:** `useBootcampAPI.ts`  
-**Lines:** 160-171  
-**Severity:** HIGH
-
-```ts
-return useMemo(() => ({
-  generateClass,
-  saveTemplate,
-  // ... 9 methods
-}), [generateClass, saveTemplate, ...]); // ❌ All deps change every render
-```
-
-**Issue:** Every callback is recreated on render, so the memoized object is always new. This defeats the purpose of `useMemo`.
-
-**Fix:**
-```ts
-// Remove useMemo entirely - it's not helping
-export function useBootcampAPI() {
-  const generateClass = useCallback(async (params) => {...}, []);
-  const saveTemplate = useCallback(async (generatedClass) => {...}, []);
-  
+```mjs
+function applyOPTParams(exercise, phase) {
+  const params = OPT_PHASE_PARAMS[phase] || OPT_PHASE_PARAMS[2];
   return {
-    generateClass,
-    saveTemplate,
+    sets: params.sets[0], // ❌ Assumes sets is array with [0]
+    reps: `${params.reps[0]}-${params.reps[1]}`, // ❌ Assumes reps has [0] and [1]
+    rest: `${params.rest[0]}-${params.rest[1]}s`, // ❌ Assumes rest has [0] and [1]
+  };
+}
+```
+
+**Problem:**
+- If `OPT_PHASE_PARAMS` structure changes or is corrupted, this crashes
+- No defensive checks
+
+**Fix:**
+```mjs
+function applyOPTParams(exercise, phase) {
+  const params = OPT_PHASE_PARAMS[phase] || OPT_PHASE_PARAMS[2];
+  
+  if (!params || !Array.isArray(params.sets) || !Array.isArray(params.reps) || !Array.isArray(params.rest)) {
+    logger.error('Invalid OPT_PHASE_PARAMS structure', { phase, params });
+    throw new Error('Invalid training phase configuration');
+  }
+
+  return {
+    sets: params.sets[0],
+    reps: `${params.reps[0]}-${params.reps[1]}`,
+    rest: `${params.rest[0]}-${params.rest[1]}s`,
     // ...
   };
 }
@@ -220,286 +148,358 @@ export function useBootcampAPI() {
 
 ---
 
-## MEDIUM Priority Issues
+## 🔴 HIGH Issues
 
-### 9. **Hardcoded Theme Values**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 36-37, 41, 48, 52, 56, 60, etc.  
-**Severity:** MEDIUM
+### 4. **Unused Function Parameters**
+**Severity:** HIGH  
+**Location:** `generateWorkout()`
 
-```tsx
-background: linear-gradient(180deg, #002060 0%, #001040 100%);
-color: #e0ecf4;
-border: 1px solid rgba(96, 192, 240, 0.15);
+```mjs
+export async function generateWorkout(options) {
+  const {
+    rotationPattern = 'standard', // ❌ Never used
+  } = options;
 ```
 
-**Issue:** Violates styled-components best practice - should use theme tokens.
+**Problem:**
+- `rotationPattern` is destructured but never referenced
+- Dead code that misleads API consumers
 
 **Fix:**
-```tsx
-const PageWrapper = styled.div<{ $floorMode?: boolean }>`
-  background: ${({ theme, $floorMode }) => 
-    $floorMode ? theme.colors.black : theme.gradients.cosmicDark
-  };
-  color: ${({ theme }) => theme.colors.textPrimary};
-`;
+Remove from destructuring or implement rotation logic:
+```mjs
+// Option 1: Remove if not needed
+const {
+  clientId,
+  trainerId,
+  category = 'full_body',
+  equipmentProfileId = null,
+  exerciseCount = 6,
+  // rotationPattern removed
+} = options;
 
-const Panel = styled.div`
-  background: ${({ theme }) => theme.colors.panelBg};
-  border: 1px solid ${({ theme }) => theme.colors.borderSubtle};
-`;
+// Option 2: Use it
+const sessionType = getNextSessionType(
+  context.variation.lastSessionType,
+  rotationPattern // Pass to variation engine
+);
 ```
 
 ---
 
-### 10. **Missing Loading States**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 297-305  
-**Severity:** MEDIUM
+### 5. **Magic Numbers**
+**Severity:** HIGH  
+**Location:** Multiple locations
 
-```tsx
-const handleSave = useCallback(async () => {
-  if (!bootcamp) return;
-  try {
-    await api.saveTemplate(bootcamp);  // ❌ No loading indicator
+```mjs
+const targetLevel = nasmPhase || 2; // Why 2?
+const exercisesPerCategory = Math.ceil(exerciseCount / movementCategories.length);
+for (const comp of context.movement.compensations.slice(0, 3)) { // Why 3?
 ```
 
-**Issue:** No visual feedback during save operation. User might click multiple times.
+**Problem:**
+- Hardcoded values without explanation
+- Difficult to maintain and tune
 
 **Fix:**
-```tsx
-const [saving, setSaving] = useState(false);
+```mjs
+const DEFAULT_NASM_PHASE = 2; // Strength Endurance - most common starting point
+const MAX_COMPENSATION_WARMUPS = 3; // Limit warmup duration
+const PAIN_AUTO_EXCLUDE_SEVERITY = 7; // Already defined but not used consistently
 
-const handleSave = useCallback(async () => {
-  if (!bootcamp || saving) return;
-  setSaving(true);
-  try {
-    await api.saveTemplate(bootcamp);
-    // Show success toast
-  } finally {
-    setSaving(false);
-  }
-}, [api, bootcamp, saving]);
-
-<PrimaryButton disabled={saving}>
-  {saving ? 'Saving...' : 'Save as Template'}
-</PrimaryButton>
+const targetLevel = nasmPhase || DEFAULT_NASM_PHASE;
+for (const comp of context.movement.compensations.slice(0, MAX_COMPENSATION_WARMUPS)) {
 ```
 
 ---
 
-### 11. **Inconsistent Error Handling**
-**File:** `bootcampService.mjs`  
-**Lines:** 103-106  
-**Severity:** MEDIUM
+### 6. **Inconsistent Data Structures**
+**Severity:** HIGH  
+**Location:** Return objects
 
-```js
-const recentLogs = await ClassLog.findAll({...})
-  .catch(() => []); // ❌ Silently swallows errors
+```mjs
+// generateWorkout returns:
+{
+  warmup, // Array of objects with mixed shapes
+  exercises, // Array of objects
+  swapSuggestions, // Can be null or object
+  cooldown, // Array of objects
+}
+
+// Warmup items have inconsistent structure:
+{ name: 'Foam Roll', duration: '30s', type: 'inhibit' }
+{ name: 'Glute Bridge', sets: 1, reps: 15, type: 'activate' }
+{ name: 'Activate X', sets: 1, reps: 12, type: 'activate', reason: '...' }
 ```
 
-**Issue:** Database errors are hidden. This could mask serious issues like connection failures.
+**Problem:**
+- Frontend must handle 3+ different object shapes in same array
+- Optional `reason` field appears conditionally
+- `duration` vs `sets/reps` inconsistency
 
 **Fix:**
-```js
-let recentLogs = [];
-try {
-  recentLogs = await ClassLog.findAll({...});
-} catch (err) {
-  logger.warn('[Bootcamp] Failed to fetch recent logs:', err.message);
-  // Continue with empty array - freshness check is optional
+```mjs
+// Normalize to single structure
+const warmupItem = {
+  name: string,
+  type: 'inhibit' | 'lengthen' | 'activate',
+  duration: string | null,
+  sets: number | null,
+  reps: number | null,
+  reason: string | null,
+};
+
+// Update templates:
+const WARMUP_TEMPLATES = {
+  general: [
+    { name: 'Foam Roll IT Band', duration: '30s each side', sets: null, reps: null, type: 'inhibit', reason: null },
+    { name: 'Glute Bridge', duration: null, sets: 1, reps: 15, type: 'activate', reason: null },
+  ],
+};
+```
+
+---
+
+## 🟡 MEDIUM Issues
+
+### 7. **DRY Violation: Repeated Formatting Logic**
+**Severity:** MEDIUM  
+**Location:** Multiple locations
+
+```mjs
+// Repeated pattern:
+`${params.sets[0]}-${params.sets[1]}`
+`${params.reps[0]}-${params.reps[1]}`
+`${params.rest[0]}-${params.rest[1]}s`
+```
+
+**Fix:**
+```mjs
+function formatRange(arr, suffix = '') {
+  return `${arr[0]}-${arr[1]}${suffix}`;
+}
+
+// Usage:
+sets: formatRange(params.sets),
+reps: formatRange(params.reps),
+rest: formatRange(params.rest, 's'),
+```
+
+---
+
+### 8. **Inefficient Filtering**
+**Severity:** MEDIUM  
+**Location:** `selectExercises()`
+
+```mjs
+const categoryExercises = Object.entries(registry)
+  .filter(([, ex]) => ex.category === category || category === 'full_body')
+  .map(([key, ex]) => ({ key, ...ex }));
+
+const available = filterExercises(categoryExercises, constraints, equipmentItems);
+```
+
+**Problem:**
+- Iterates entire registry for each category
+- For `full_body` with 6 categories, this runs 6 times over the same data
+
+**Fix:**
+```mjs
+// Cache filtered registry at function start
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase) {
+  const allExercises = Object.entries(registry).map(([key, ex]) => ({ key, ...ex }));
+  const constrainedExercises = filterExercises(allExercises, constraints, equipmentItems);
+  
+  const categoryExercises = category === 'full_body'
+    ? constrainedExercises
+    : constrainedExercises.filter(ex => ex.category === category);
+  
+  // ... rest of logic
 }
 ```
 
 ---
 
-### 12. **Magic Numbers**
-**File:** `bootcampService.mjs`  
-**Lines:** 29-30, 100-101, 315  
-**Severity:** MEDIUM
+### 9. **Unclear Variable Names**
+**Severity:** MEDIUM  
+**Location:** Multiple
 
-```js
-const TRANSITION_TIME_SEC = 15;
-const STATION_TRANSITION_SEC = 30;
-twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14); // ❌ Magic number
+```mjs
+const moveCat = 'push'; // What's "move cat"?
+const ex = exercise; // Unnecessary abbreviation
+const c = compensation; // Single letter in map
 ```
 
 **Fix:**
-```js
-const FRESHNESS_WINDOW_DAYS = 14;
-const EXERCISE_HISTORY_LIMIT = 10;
-
-const freshnessDate = new Date();
-freshnessDate.setDate(freshnessDate.getDate() - FRESHNESS_WINDOW_DAYS);
+```mjs
+const movementCategory = 'push';
+const exercise = selectedExercise;
+context.movement.compensations.map(compensation => ({
+  type: compensation.type,
+  trend: compensation.trend,
+}))
 ```
 
 ---
 
-### 13. **Potential Memory Leak: Set Not Cleared**
-**File:** `bootcampService.mjs`  
-**Lines:** 107-113, 235  
-**Severity:** MEDIUM
+### 10. **Missing JSDoc for Complex Logic**
+**Severity:** MEDIUM  
+**Location:** `filterExercises()`, `selectExercises()`
 
-```js
-const recentExerciseNames = new Set();
-for (const log of recentLogs) {
-  // ... adds to set
-}
-// Set is passed around and mutated in selectStationExercises
-```
-
-**Issue:** The `Set` is mutated in helper functions, making it hard to track state.
-
-**Fix:**
-```js
-function selectStationExercises(available, stationMuscles, count, usedNames) {
-  // Don't mutate usedNames - return new exercises instead
-  const selected = matching.slice(0, count - 1);
-  return selected;
-}
-
-// In main function:
-for (const ex of stationExercises) {
-  recentExerciseNames.add(ex.key); // Mutate only in one place
+```mjs
+function filterExercises(exercises, constraints, equipmentItems) {
+  // No documentation of what constraints object contains
+  // No explanation of filtering logic
 }
 ```
 
+**Fix:**
+```mjs
+/**
+ * Filter exercises based on client constraints and available equipment.
+ * 
+ * @param {Array<Object>} exercises - Exercise objects with muscles, equipment arrays
+ * @param {Object} constraints - Client constraints
+ * @param {string[]} constraints.excludedMuscles - Muscles to avoid (pain-related)
+ * @param {string[]} constraints.compensationTypes - Active compensation patterns
+ * @param {string[]} constraints.recentlyUsedExercises - Exercise keys used in last 2 weeks
+ * @param {Array<Object>} equipmentItems - Available equipment items
+ * @param {string} equipmentItems[].category - Equipment category (barbell, dumbbell, etc)
+ * @returns {Array<Object>} Filtered exercises
+ */
+function filterExercises(exercises, constraints, equipmentItems) {
+```
+
 ---
 
-## LOW Priority Issues
+## 🔵 LOW Issues
 
-### 14. **Accessibility: Missing ARIA Labels**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 350-380  
-**Severity:** LOW
+### 11. **Inconsistent String Formatting**
+**Severity:** LOW  
+**Location:** Multiple
 
-```tsx
-<Select value={classFormat} onChange={...}>
-  // ❌ No aria-label or aria-describedby
+```mjs
+'Child\'s Pose' // Escaped quote
+"back + biceps" // Template literal would be cleaner
+`${sessionType.toUpperCase()} session` // Inconsistent with above
 ```
 
 **Fix:**
-```tsx
-<Label htmlFor="classFormat">Class Format</Label>
-<Select 
-  id="classFormat"
-  value={classFormat} 
-  onChange={handleFormatChange}
-  aria-describedby="classFormat-help"
->
+```mjs
+// Use template literals consistently
+`Child's Pose`
+`back + biceps`
 ```
 
 ---
 
-### 15. **Console Pollution**
-**File:** `bootcampService.mjs`  
-**Lines:** Multiple locations  
-**Severity:** LOW
+### 12. **Hardcoded Business Logic in Service**
+**Severity:** LOW  
+**Location:** `generatePlan()`
 
-**Issue:** No debug logging for development. Only errors are logged.
+```mjs
+const mesocycleCount = Math.ceil(durationWeeks / 4); // 4-week blocks hardcoded
+const phase = Math.min(5, startingPhase + Math.floor(i / 2)); // Phase progression hardcoded
+```
+
+**Problem:**
+- Business rules embedded in code
+- Should be configurable or in constants
 
 **Fix:**
-```js
-logger.debug('[Bootcamp] Generating class:', { classFormat, dayType, stationCount });
-logger.debug('[Bootcamp] Selected exercises:', allExercises.length);
+```mjs
+const MESOCYCLE_DURATION_WEEKS = 4;
+const PHASE_PROGRESSION_MESOCYCLES = 2; // Advance phase every 2 mesocycles
+const MAX_NASM_PHASE = 5;
+
+const mesocycleCount = Math.ceil(durationWeeks / MESOCYCLE_DURATION_WEEKS);
+const phase = Math.min(MAX_NASM_PHASE, startingPhase + Math.floor(i / PHASE_PROGRESSION_MESOCYCLES));
 ```
 
 ---
 
-### 16. **Inconsistent Naming Convention**
-**File:** `bootcampService.mjs`  
-**Lines:** 319, 325, 331  
-**Severity:** LOW
+### 13. **Potential Memory Leak**
+**Severity:** LOW  
+**Location:** `filterExercises()`
 
-```js
-function formatExerciseName(key) {...}  // camelCase
-function distributeMuscleGroups(muscles, stationCount) {...}  // camelCase
-function selectStationExercises(available, stationMuscles, count, usedNames) {...}
+```mjs
+const excludedSet = new Set(excludedMuscles);
+const recentSet = new Set(recentlyUsedExercises);
+const availableCategories = new Set();
 ```
 
-**Issue:** Inconsistent with module exports (which use camelCase). This is actually fine, but parameter names could be more descriptive.
+**Problem:**
+- Creates new Sets on every call
+- For high-volume usage, could be optimized
 
 **Fix:**
-```js
-function selectStationExercises(
-  availableExercises,
-  targetMuscles,
-  exerciseCount,
-  usedExerciseNames
-) {...}
+Not critical, but could memoize if called frequently:
+```mjs
+import memoize from 'lodash/memoize';
+
+const createExclusionSet = memoize((muscles) => new Set(muscles));
 ```
 
 ---
 
-### 17. **Missing Input Validation**
-**File:** `BootcampBuilderPage.tsx`  
-**Lines:** 369, 374  
-**Severity:** LOW
+### 14. **Inconsistent Null Handling**
+**Severity:** LOW  
+**Location:** Return objects
 
-```tsx
-<Input type="number" value={targetDuration} onChange={e => setTargetDuration(e.target.value)} />
+```mjs
+swapSuggestions: null, // Sometimes null
+equipmentProfileId: null, // Sometimes null
+deloadWeek: weekEnd === (i + 1) * 4 ? weekEnd : null, // Sometimes null
 ```
 
-**Issue:** No min/max constraints on inputs. User can enter negative numbers or huge values.
+**Problem:**
+- Frontend must check for null in multiple places
+- Could use empty arrays/objects for consistency
 
 **Fix:**
-```tsx
-<Input 
-  type="number" 
-  min="20" 
-  max="90" 
-  step="5"
-  value={targetDuration} 
-  onChange={e => setTargetDuration(e.target.value)} 
-/>
+```mjs
+swapSuggestions: swapSuggestions || [], // Always array
+equipmentProfileId: equipmentProfileId || undefined, // Omit if not set
 ```
 
 ---
 
-### 18. **Unused Import**
-**File:** `bootcampRoutes.mjs`  
-**Line:** 17  
-**Severity:** LOW
+## 📊 Summary
 
-```js
-import eventBus from '../services/eventBus.mjs';
-```
-
-**Issue:** Only used once in `/log` route. Could be lazy-loaded.
+| Severity | Count | Must Fix Before Production |
+|----------|-------|---------------------------|
+| CRITICAL | 3 | ✅ Yes |
+| HIGH | 6 | ✅ Yes |
+| MEDIUM | 4 | ⚠️ Recommended |
+| LOW | 4 | 💡 Nice to have |
 
 ---
 
-## Summary Statistics
+## 🎯 Priority Fixes (Before Production)
 
-| Severity | Count | Files Affected |
-|----------|-------|----------------|
-| CRITICAL | 3 | 2 |
-| HIGH | 5 | 2 |
-| MEDIUM | 7 | 2 |
-| LOW | 6 | 2 |
-| **TOTAL** | **21** | **4** |
-
----
-
-## Recommended Priority Order
-
-1. **Fix #2 (Type Safety)** - Prevents runtime crashes
-2. **Fix #1 (Error Boundaries)** - Improves UX during failures
-3. **Fix #4 (Inline Functions)** - Major performance win
-4. **Fix #6 (DRY Violations)** - Reduces maintenance burden
-5. **Fix #9 (Theme Tokens)** - Ensures design consistency
-6. **Fix #10 (Loading States)** - Better UX
-7. Address remaining MEDIUM/LOW issues incrementally
+1. **Add input validation** (Joi/Zod schema)
+2. **Wrap in try/catch** with proper error logging
+3. **Add defensive checks** for array access
+4. **Remove unused `rotationPattern`** parameter
+5. **Document complex functions** with JSDoc
+6. **Extract magic numbers** to named constants
 
 ---
 
-## Positive Observations ✅
+## ✅ What's Done Well
 
-- **Excellent documentation** - Clear comments explaining business logic
-- **Good separation of concerns** - Service layer properly isolated
-- **Comprehensive feature set** - Handles edge cases like overflow planning
-- **Type definitions** - Strong TypeScript interfaces (except `unknown` issue)
-- **Error boundary implementation** - Good fallback UI pattern
+- ✅ Clear separation of concerns (warmup/exercises/cooldown)
+- ✅ Comprehensive NASM OPT phase modeling
+- ✅ Good use of constants for templates
+- ✅ Detailed explanations in return object
+- ✅ Logger integration (assumed from import)
+- ✅ Excellent inline comments explaining algorithm steps
+
+---
+
+## 📝 Note on Review Scope
+
+This
 
 ---
 
