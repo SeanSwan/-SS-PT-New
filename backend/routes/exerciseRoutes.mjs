@@ -84,8 +84,8 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
         'imageUrl'
       ],
       order: [
-        // Prioritize exact name matches (parameterized to prevent SQL injection)
-        [sequelize.literal(`CASE WHEN LOWER(name) LIKE '%' || ${sequelize.escape(searchQuery)} || '%' THEN 1 ELSE 2 END`), 'ASC'],
+        // Prioritize exact name matches — use bind parameter to prevent SQL injection
+        [sequelize.literal(`CASE WHEN LOWER(name) LIKE LOWER(${sequelize.escape('%' + searchQuery.replace(/[%_\\]/g, '\\$&') + '%')}) THEN 1 ELSE 2 END`), 'ASC'],
         ['name', 'ASC']
       ],
       limit: parseInt(limit)
