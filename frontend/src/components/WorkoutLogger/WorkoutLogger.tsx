@@ -728,7 +728,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const loadClientData = async () => {
     try {
       const api = new ApiService();
-      const response = await api.get(`/api/workout-forms/client/${clientId}/info`);
+      // Use /my/info when client is logging their own workout
+      const isSelf = user?.id === clientId;
+      const infoUrl = isSelf && user?.role === 'client'
+        ? '/api/workout-forms/my/info'
+        : `/api/workout-forms/client/${clientId}/info`;
+      const response = await api.get(infoUrl);
       
       if (response.success && response.client) {
         setClient({

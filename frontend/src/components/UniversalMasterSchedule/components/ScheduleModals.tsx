@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import styled from 'styled-components';
-import { Save, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
+import { Save, Trash2, Lock, ShoppingCart } from 'lucide-react';
 import RecurringSessionModal from '../RecurringSessionModal';
 import BlockedTimeModal from '../BlockedTimeModal';
 import NotificationPreferencesModal from '../NotificationPreferencesModal';
@@ -176,7 +177,9 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   fetchSessions,
   openSeriesDialog
 }) => {
+  const navigate = useNavigate();
   const [preselectedPaymentClientId, setPreselectedPaymentClientId] = useState<number | null>(null);
+  const hasNoCredits = typeof sessionsRemaining === 'number' && sessionsRemaining <= 0;
 
   const locationOptions = [
     { value: 'Main Studio', label: 'Main Studio' },
@@ -572,58 +575,93 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         <Modal
           isOpen={showBookingDialog}
           onClose={() => setShowBookingDialog(false)}
-          title="Confirm Booking"
+          title={hasNoCredits && mode === 'client' ? 'Session Locked' : 'Confirm Booking'}
           size="sm"
           footer={
-            <>
-              <OutlinedButton onClick={() => setShowBookingDialog(false)} disabled={bookingLoading}>
-                Cancel
+            hasNoCredits && mode === 'client' ? (
+              <OutlinedButton onClick={() => setShowBookingDialog(false)}>
+                Close
               </OutlinedButton>
-              <GlowButton
-                variant="emerald"
-                size="medium"
-                onClick={handleBookSession}
-                disabled={bookingLoading}
-                isLoading={bookingLoading}
-              >
-                {bookingLoading ? 'Booking...' : 'Confirm Booking'}
-              </GlowButton>
-            </>
+            ) : (
+              <>
+                <OutlinedButton onClick={() => setShowBookingDialog(false)} disabled={bookingLoading}>
+                  Cancel
+                </OutlinedButton>
+                <GlowButton
+                  variant="emerald"
+                  size="medium"
+                  onClick={handleBookSession}
+                  disabled={bookingLoading}
+                  isLoading={bookingLoading}
+                >
+                  {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+                </GlowButton>
+              </>
+            )
           }
         >
           <FlexBox direction="column" gap="1rem">
-            <BodyText>
-              You are booking the session below. One credit will be deducted on confirmation.
-            </BodyText>
-            <BookingCard>
-              <BookingRow>
-                <SmallText secondary>Date</SmallText>
-                <BodyText>{new Date(bookingTarget.sessionDate).toLocaleDateString()}</BodyText>
-              </BookingRow>
-              <BookingRow>
-                <SmallText secondary>Time</SmallText>
-                <BodyText>{new Date(bookingTarget.sessionDate).toLocaleTimeString()}</BodyText>
-              </BookingRow>
-              <BookingRow>
-                <SmallText secondary>Duration</SmallText>
-                <BodyText>{bookingTarget.duration} min</BodyText>
-              </BookingRow>
-              <BookingRow>
-                <SmallText secondary>Location</SmallText>
-                <BodyText>{bookingTarget.location || 'Main Studio'}</BodyText>
-              </BookingRow>
-            </BookingCard>
-            <CreditCard>
-              <SmallText secondary>Credits Remaining</SmallText>
-              <PrimaryHeading style={{ fontSize: '1.75rem' }}>
-                {creditsDisplay}
-              </PrimaryHeading>
-              {typeof sessionsRemaining === 'number' && (
-                <HelperText>
-                  After booking: {Math.max(0, sessionsRemaining - 1)}
-                </HelperText>
-              )}
-            </CreditCard>
+            {hasNoCredits && mode === 'client' ? (
+              /* Premium Lock State — Gemini 3.1 Pro Design Spec */
+              <PremiumLockOverlay>
+                <LockIconWrapper>
+                  <Lock size={28} color="#00FFFF" />
+                </LockIconWrapper>
+                <LockTitle>Unlock Sessions</LockTitle>
+                <LockDescription>
+                  You have no session credits remaining. Purchase a package to book this session.
+                </LockDescription>
+                <BookingCard>
+                  <BookingRow>
+                    <SmallText secondary>Date</SmallText>
+                    <BodyText>{new Date(bookingTarget.sessionDate).toLocaleDateString()}</BodyText>
+                  </BookingRow>
+                  <BookingRow>
+                    <SmallText secondary>Time</SmallText>
+                    <BodyText>{new Date(bookingTarget.sessionDate).toLocaleTimeString()}</BodyText>
+                  </BookingRow>
+                </BookingCard>
+                <PurchaseButton onClick={() => { setShowBookingDialog(false); navigate('/shop'); }}>
+                  <ShoppingCart size={18} />
+                  Secure Your Session
+                </PurchaseButton>
+              </PremiumLockOverlay>
+            ) : (
+              <>
+                <BodyText>
+                  You are booking the session below. One credit will be deducted on confirmation.
+                </BodyText>
+                <BookingCard>
+                  <BookingRow>
+                    <SmallText secondary>Date</SmallText>
+                    <BodyText>{new Date(bookingTarget.sessionDate).toLocaleDateString()}</BodyText>
+                  </BookingRow>
+                  <BookingRow>
+                    <SmallText secondary>Time</SmallText>
+                    <BodyText>{new Date(bookingTarget.sessionDate).toLocaleTimeString()}</BodyText>
+                  </BookingRow>
+                  <BookingRow>
+                    <SmallText secondary>Duration</SmallText>
+                    <BodyText>{bookingTarget.duration} min</BodyText>
+                  </BookingRow>
+                  <BookingRow>
+                    <SmallText secondary>Location</SmallText>
+                    <BodyText>{bookingTarget.location || 'Main Studio'}</BodyText>
+                  </BookingRow>
+                </BookingCard>
+                <CreditCard>
+                  <SmallText secondary>Credits Remaining</SmallText>
+                  <PrimaryHeading style={{ fontSize: '1.75rem' }}>
+                    {creditsDisplay}
+                  </PrimaryHeading>
+                  {typeof sessionsRemaining === 'number' && (
+                    <HelperText>
+                      After booking: {Math.max(0, sessionsRemaining - 1)}
+                    </HelperText>
+                  )}
+                </CreditCard>
+              </>
+            )}
             {bookingError && <ErrorText>{bookingError}</ErrorText>}
           </FlexBox>
         </Modal>
@@ -733,6 +771,78 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
 };
 
 export default ScheduleModals;
+
+// ── Premium Lock Styles (Gemini 3.1 Pro Design Spec) ──────────────────
+const lockPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 255, 0.2); }
+  50% { box-shadow: 0 0 24px rgba(0, 255, 255, 0.45); }
+`;
+
+const PremiumLockOverlay = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1.5rem;
+  background: rgba(10, 10, 26, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  text-align: center;
+`;
+
+const LockIconWrapper = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ${lockPulse} 2.5s ease-in-out infinite;
+`;
+
+const LockTitle = styled.div`
+  color: #00FFFF;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 12px;
+`;
+
+const LockDescription = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  max-width: 280px;
+`;
+
+const PurchaseButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  min-height: 44px;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  border-radius: 10px;
+  color: #00FFFF;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3));
+    border-color: rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 16px rgba(0, 255, 255, 0.2);
+  }
+`;
 
 const BookingCard = styled.div`
   background: rgba(255, 255, 255, 0.04);

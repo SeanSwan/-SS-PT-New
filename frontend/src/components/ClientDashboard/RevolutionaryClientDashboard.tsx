@@ -30,10 +30,19 @@ import {
 } from './GalaxySections';
 import StellarSidebar from './StellarSidebar';
 import HealthGalaxy from './sections/HealthGalaxy';
+import ClientWorkoutLoggerSection from './sections/ClientWorkoutLoggerSection';
+import AIAssistantFAB from '../AIAssistant/AIAssistantFAB';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
+const LazyFormAnalysisGalaxy = lazy(() => import('./sections/FormAnalysisGalaxy'));
+
+const FormCheckGalaxy: React.FC = () => (
+  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading form analysis...</div>}>
+    <LazyFormAnalysisGalaxy />
+  </Suspense>
+);
 
 const MessagesGalaxy: React.FC = () => (
   <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
@@ -269,6 +278,8 @@ const sectionComponents: Record<string, React.FC> = {
   onboarding: OnboardingGalaxy,
   schedule: TimeWarp,
   workouts: WorkoutUniverse,
+  logger: ClientWorkoutLoggerSection,
+  'form-check': FormCheckGalaxy,
   progress: ProgressConstellation,
   health: HealthGalaxy,
   gamification: AchievementNebula,
@@ -281,6 +292,8 @@ const sectionTitles: Record<string, string> = {
   onboarding: 'Your Fitness Profile',
   schedule: 'Time Warp Chamber',
   workouts: 'Training Universe',
+  logger: 'Workout Logger',
+  'form-check': 'Form Analysis Hub',
   progress: 'Progress Constellation',
   health: 'Health & Body Map',
   gamification: 'Achievement Nebula',
@@ -293,6 +306,7 @@ const sectionDescriptions: Record<string, string> = {
   onboarding: 'Complete your profile to unlock personalized training',
   schedule: 'Navigate your training appointments through time',
   workouts: 'Explore training programs and exercise galaxies',
+  'form-check': 'Upload videos or use your camera — AI analyzes your exercise form',
   progress: 'Track your transformation through the cosmos',
   health: 'Report pain, track injuries, and keep your trainer informed',
   gamification: 'Celebrate your stellar accomplishments',
@@ -456,6 +470,9 @@ const RevolutionaryClientDashboard: React.FC = () => {
             </>
           )}
         </MainContent>
+
+        {/* AI Assistant Floating Button + Drawer */}
+        <AIAssistantFAB userRole="client" />
       </GalaxyContainer>
     </ThemeProvider>
   );

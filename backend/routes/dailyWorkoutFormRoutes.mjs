@@ -33,6 +33,62 @@ import { Op } from 'sequelize';
 const router = express.Router();
 
 /**
+ * @route   GET /api/workout-forms/my/info
+ * @desc    Get own information for self-service workout logging (client)
+ * @access  Any authenticated user
+ */
+router.get('/my/info', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const User = getUser();
+    const DailyWorkoutForm = getDailyWorkoutForm();
+
+    const client = await User.findOne({
+      where: { id: userId },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'createdAt']
+    });
+
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    let recentWorkoutCount = 0;
+    let todayWorkout = null;
+    const today = new Date().toISOString().split('T')[0];
+
+    if (DailyWorkoutForm) {
+      try {
+        recentWorkoutCount = await DailyWorkoutForm.count({
+          where: { clientId: userId, date: { [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
+        });
+        todayWorkout = await DailyWorkoutForm.findOne({ where: { clientId: userId, date: today } });
+      } catch (formErr) {
+        logger.warn('DailyWorkoutForm query failed:', formErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      client: {
+        id: client.id,
+        firstName: client.firstName,
+        lastName: client.lastName,
+        email: client.email,
+        phone: client.phone,
+        availableSessions: client.availableSessions || 0,
+        memberSince: client.createdAt,
+        recentWorkoutCount,
+        hasWorkoutToday: !!todayWorkout,
+        todayWorkoutId: todayWorkout?.id || null
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching own info for workout logging:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/**
  * @route   GET /api/workout-forms/client/:clientId/info
  * @desc    Get client information for workout logging
  * @access  Trainer (with edit_workouts permission) or Admin
@@ -317,12 +373,12 @@ const processMCPIntegration = async (formId, formData) => {
 /**
  * @route   POST /api/workout-forms
  * @desc    Submit a daily workout form
- * @access  Trainer (with edit_workouts permission) or Admin
+ * @access  Trainer (with edit_workouts permission), Admin, or Client (self only)
  * @body    { clientId, date, exercises, sessionNotes?, overallIntensity? }
  */
-router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
+router.post('/', protect, async (req, res) => {
   const transaction = await sequelize.transaction();
-  
+
   try {
     const { clientId, date, exercises, sessionNotes, overallIntensity } = req.body;
     const trainerId = req.user.id;
@@ -337,7 +393,16 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
-    // Check trainer permissions (skip for admins)
+    // Client can only submit for themselves
+    if (userRole === 'client' && parseInt(clientId) !== req.user.id) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'Clients can only log their own workouts'
+      });
+    }
+
+    // Check trainer permissions (skip for admins and clients logging their own)
     if (userRole === 'trainer') {
       const hasPermission = await checkTrainerPermission(trainerId, PERMISSION_TYPES.EDIT_WORKOUTS);
       if (!hasPermission) {

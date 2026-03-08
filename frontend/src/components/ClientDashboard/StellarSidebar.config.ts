@@ -14,6 +14,8 @@ import {
   Star,
   MessageSquare,
   HeartPulse,
+  Video,
+  Dumbbell,
 } from 'lucide-react';
 
 export type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
@@ -47,6 +49,8 @@ export const navigationItems: NavItemData[] = [
 
   // Core Features
   { id: 'workouts', label: 'Workouts', icon: Activity, section: 'core', status: 'real' },
+  { id: 'logger', label: 'Log Workout', icon: Dumbbell, section: 'core', status: 'new' },
+  { id: 'form-check', label: 'Form Check', icon: Video, section: 'core', status: 'new' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, section: 'core', status: 'real' },
   { id: 'health', label: 'Body Map', icon: HeartPulse, section: 'core', status: 'real' },
   { id: 'gamification', label: 'Gamification', icon: Trophy, section: 'core', status: 'real' },
