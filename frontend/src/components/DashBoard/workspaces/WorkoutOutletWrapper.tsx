@@ -18,7 +18,7 @@ interface WorkoutOutletContext {
 }
 
 interface Props {
-  component: 'logger' | 'planner' | 'ai';
+  component: 'logger' | 'planner' | 'ai' | 'body-map';
 }
 
 const WorkoutLogger = React.lazy(
@@ -29,6 +29,9 @@ const WorkoutPlanBuilder = React.lazy(
 );
 const WorkoutCopilotPanel = React.lazy(
   () => import('../Pages/admin-clients/components/WorkoutCopilotPanel')
+);
+const BodyMap = React.lazy(
+  () => import('../../BodyMap')
 );
 
 const WorkoutOutletWrapper: React.FC<Props> = ({ component }) => {
@@ -43,6 +46,17 @@ const WorkoutOutletWrapper: React.FC<Props> = ({ component }) => {
           clientId={context.clientId}
           onComplete={() => {}}
           onCancel={() => {}}
+        />
+      </React.Suspense>
+    );
+  }
+
+  if (component === 'body-map') {
+    return (
+      <React.Suspense fallback={null}>
+        <BodyMap
+          userId={context.clientId}
+          mode="trainer"
         />
       </React.Suspense>
     );

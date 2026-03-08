@@ -14,6 +14,8 @@ import {
   Wrench,
   Star,
   XCircle,
+  HeartPulse,
+  Video,
 } from 'lucide-react';
 
 export type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
@@ -51,7 +53,8 @@ export const trainerNavigationItems: TrainerNavItemData[] = [
 
   // Client Training
   { id: 'clients', label: 'My Clients', icon: Users, section: 'training', status: 'real' },
-  { id: 'assessments', label: 'Form Assessments', icon: UserCheck, section: 'training', status: 'partial' },
+  { id: 'form-analysis', label: 'Form Analysis', icon: Video, section: 'training', status: 'real' },
+  { id: 'body-map', label: 'Body Map', icon: HeartPulse, section: 'training', status: 'real' },
 
   // Performance
   { id: 'analytics', label: 'Training Analytics', icon: BarChart3, section: 'analytics', status: 'partial' },

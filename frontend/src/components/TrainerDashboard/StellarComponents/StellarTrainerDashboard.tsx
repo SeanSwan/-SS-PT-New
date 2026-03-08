@@ -35,6 +35,84 @@ import UnifiedSchedule from '../../Unified/UnifiedSchedule';
 import MessagingPage from '../../../pages/MessagingPage';
 import EnhancedWorkoutLogger from '../WorkoutLogging/EnhancedWorkoutLogger';
 
+const FormAnalysisPage = React.lazy(() => import('../../FormAnalysis/FormAnalysisPage'));
+const BodyMap = React.lazy(() => import('../../BodyMap'));
+
+const BodyMapWrapper: React.FC = () => {
+  const { user, authAxios } = useAuth() as any;
+  const [clients, setClients] = React.useState<any[]>([]);
+  const [selectedClientId, setSelectedClientId] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!authAxios) return;
+    authAxios.get('/api/admin/clients')
+      .then((res: any) => {
+        const list = res.data?.clients || res.data || [];
+        setClients(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setClients([]));
+  }, [authAxios]);
+
+  if (!selectedClientId) {
+    return (
+      <div style={{ padding: '1rem' }}>
+        <h3 style={{ color: '#00FFFF', marginBottom: '1rem' }}>Select a Client</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+          {clients.map((c: any) => (
+            <button
+              key={c.id}
+              onClick={() => setSelectedClientId(c.id)}
+              style={{
+                padding: '1rem',
+                background: 'rgba(0,255,255,0.05)',
+                border: '1px solid rgba(0,255,255,0.2)',
+                borderRadius: '12px',
+                color: '#fff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                minHeight: '44px',
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>{c.firstName} {c.lastName}</div>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>{c.email}</div>
+            </button>
+          ))}
+          {clients.length === 0 && <p style={{ color: 'rgba(255,255,255,0.5)' }}>No clients found</p>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setSelectedClientId(null)}
+        style={{
+          marginBottom: '1rem',
+          padding: '8px 16px',
+          background: 'rgba(0,255,255,0.1)',
+          border: '1px solid rgba(0,255,255,0.3)',
+          borderRadius: '8px',
+          color: '#00FFFF',
+          cursor: 'pointer',
+          minHeight: '44px',
+        }}
+      >
+        &larr; Change Client
+      </button>
+      <React.Suspense fallback={<div style={{ padding: '2rem', color: '#00FFFF' }}>Loading Body Map...</div>}>
+        <BodyMap userId={selectedClientId} mode="trainer" />
+      </React.Suspense>
+    </div>
+  );
+};
+
+const FormAnalysisWrapper: React.FC = () => (
+  <React.Suspense fallback={<div style={{ padding: '2rem', color: '#00FFFF' }}>Loading Form Analysis...</div>}>
+    <FormAnalysisPage />
+  </React.Suspense>
+);
+
 // === KEYFRAME ANIMATIONS ===
 const nebulaSpin = keyframes`
   0% { transform: rotate(0deg); }
@@ -245,6 +323,8 @@ const trainerSectionComponents = {
   'assigned-sessions': AssignedSessions,
   clients: ClientManagement,
   'log-workout': EnhancedWorkoutLogger,
+  'form-analysis': FormAnalysisWrapper,
+  'body-map': BodyMapWrapper,
   'form-checks': ContentStudio,
   'content-library': ContentStudio,
   videos: ContentStudio,
@@ -267,6 +347,8 @@ const trainerSectionTitles = {
   'assigned-sessions': 'Assigned Client Sessions',
   clients: 'Client Universe',
   'log-workout': 'Workout Logger',
+  'form-analysis': 'Form Analysis Galaxy',
+  'body-map': 'Body Map Command',
   'form-checks': 'Form Analysis Galaxy',
   'content-library': 'Content Nebula',
   videos: 'Training Video Cosmos',
@@ -289,6 +371,8 @@ const trainerSectionDescriptions = {
   'assigned-sessions': 'View and manage your assigned client sessions and training relationships',
   clients: 'Manage and monitor your client galaxy',
   'log-workout': 'Log client workouts with NASM-compliant tracking',
+  'form-analysis': 'AI-powered form analysis and movement assessment',
+  'body-map': 'Interactive client pain tracking and body assessment',
   'form-checks': 'AI-powered form analysis and feedback center',
   'content-library': 'Your stellar training content repository',
   videos: 'Training video library and demonstration hub',

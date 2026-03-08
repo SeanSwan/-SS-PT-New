@@ -15,7 +15,8 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import AiConversation from '../models/AiConversation.mjs';
-import { getSystemPrompt, buildPromptMessages, sendChatMessage } from '../services/aiChatService.mjs';
+import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData } from '../services/aiChatService.mjs';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -27,7 +28,7 @@ router.use(protect);
 const ROLE_CONTEXTS = {
   client: ['general', 'macro_logging', 'form_tips', 'workout_suggestions'],
   trainer: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review'],
-  admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review'],
+  admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'],
 };
 
 /**
@@ -171,8 +172,14 @@ router.post('/conversations/:id/messages', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Active conversation not found' });
     }
 
-    // Build system prompt based on role + context
-    const systemPrompt = getSystemPrompt(conversation.role, conversation.context);
+    // Build system prompt based on role + context, enriched with user data
+    let systemPrompt = getSystemPrompt(conversation.role, conversation.context);
+    const userDataContext = await enrichWithUserData(
+      req.user.id, conversation.role, conversation.context, sequelize
+    );
+    if (userDataContext) {
+      systemPrompt += userDataContext;
+    }
     const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, message.trim());
 
     // Send to AI provider

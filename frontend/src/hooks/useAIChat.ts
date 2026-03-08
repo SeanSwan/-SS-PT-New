@@ -45,7 +45,7 @@ interface ConversationSummary {
   createdAt: string;
 }
 
-type AIContext = 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review';
+type AIContext = 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management';
 
 function getHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');

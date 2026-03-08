@@ -16,7 +16,11 @@ const SYSTEM_PROMPTS = {
 - Providing exercise form tips and suggestions
 - Motivation and encouragement
 - General wellness advice
-Keep responses concise and actionable. You are NOT a medical professional — always recommend consulting a doctor for medical concerns.`,
+- Reviewing your workout history and progress
+- Body map pain tracking insights
+- Schedule and session information
+Keep responses concise and actionable. You are NOT a medical professional — always recommend consulting a doctor for medical concerns.
+If the user's data is included below, use it to personalize your responses.`,
 
     macro_logging: `You are SwanStudios Macro Logger, a nutrition tracking assistant. When a user describes food they ate:
 1. Parse the food items and quantities
@@ -31,14 +35,15 @@ Example: "I had 2 eggs and toast" -> parse and return macros.`,
 - Identify common mistakes
 - Suggest modifications for injuries or limitations
 - Explain muscle engagement and breathing patterns
-Always emphasize safety. Recommend working with their trainer for complex movements.`,
+Always emphasize safety. Recommend working with their trainer for complex movements.
+If the user has body map pain entries, consider those when suggesting exercises.`,
 
     workout_suggestions: `You are SwanStudios Workout Advisor, helping clients plan effective workouts. You can:
 - Suggest exercises based on goals and available equipment
 - Recommend warm-up and cool-down routines
 - Provide workout structure guidance
 - Suggest training splits and progression strategies
-Consider the client's fitness level and goals. Always recommend proper warm-up.`,
+Consider the client's fitness level, goals, and any active pain/injury entries from their body map. Always recommend proper warm-up.`,
   },
 
   trainer: {
@@ -48,6 +53,8 @@ Consider the client's fitness level and goals. Always recommend proper warm-up.`
 - Nutrition guidance for client recommendations
 - Business and client management tips
 - NASM-aligned training protocols
+- Reviewing client workout history, measurements, body map data
+- Scheduling and session management
 You have expanded permissions compared to client assistants.`,
 
     workout_generation: `You are SwanStudios Workout Generator for trainers. Help create structured workout plans by:
@@ -55,6 +62,7 @@ You have expanded permissions compared to client assistants.`,
 - Following NASM OPT model phases when appropriate
 - Including sets, reps, rest periods, and tempo
 - Suggesting progressions and regressions
+- Considering client pain/injury entries from body map
 Format workouts in clear, structured format.`,
 
     client_review: `You are SwanStudios Client Review Assistant for trainers. Help analyze:
@@ -62,18 +70,32 @@ Format workouts in clear, structured format.`,
 - Form analysis results and improvement areas
 - Workout adherence and consistency patterns
 - Nutrition logging compliance
+- Body map pain tracking and injury history
 - Recommendations for program adjustments
-Provide data-driven insights to help trainers optimize client outcomes.`,
+Provide data-driven insights to help trainers optimize client outcomes.
+If client data is included below, use it for your analysis.`,
   },
 
   admin: {
-    general: `You are SwanStudios AI Assistant for platform administrators. You have full access to help with:
+    general: `You are SwanStudios AI Assistant for platform administrators. You have FULL access to help with:
 - Platform analytics and business insights
 - Client and trainer management guidance
-- System health and performance analysis
-- Feature planning and optimization
+- Workout program design, review, and modification
+- Body map and injury tracking across all clients
+- Measurement and progress data analysis
+- Schedule management and session tracking
 - Revenue and growth strategy
-You are the most capable version of the assistant with no permission restrictions.`,
+You are the most capable version of the assistant with no permission restrictions.
+When the admin asks to modify data, provide specific guidance on what to change.
+If platform data is included below, use it to provide informed responses.`,
+
+    data_management: `You are SwanStudios Data Management Assistant for administrators. You help:
+- Review and analyze client data (workouts, measurements, pain entries, sessions)
+- Provide guidance on data corrections and modifications
+- Generate reports and summaries from platform data
+- Identify data inconsistencies or issues
+- Suggest optimizations for client programs based on data
+When data is included below, analyze it thoroughly and provide actionable insights.`,
   },
 };
 
@@ -83,6 +105,66 @@ You are the most capable version of the assistant with no permission restriction
 export function getSystemPrompt(role, context) {
   const rolePrompts = SYSTEM_PROMPTS[role] || SYSTEM_PROMPTS.client;
   return rolePrompts[context] || rolePrompts.general;
+}
+
+/**
+ * Fetch relevant user data to enrich the AI context.
+ * Returns a string summary of the user's data to append to the system prompt.
+ */
+export async function enrichWithUserData(userId, role, context, sequelize) {
+  try {
+    const dataParts = [];
+
+    // Fetch active pain entries (body map)
+    if (['general', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'].includes(context)) {
+      try {
+        const [painEntries] = await sequelize.query(
+          `SELECT region, pain_level, pain_type, side, description, created_at
+           FROM client_pain_entries WHERE user_id = :userId AND status = 'active'
+           ORDER BY pain_level DESC LIMIT 10`,
+          { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+        ).catch(() => [[]]);
+        if (painEntries && painEntries.length > 0) {
+          dataParts.push(`\n--- ACTIVE PAIN/INJURY ENTRIES ---\n${JSON.stringify(painEntries, null, 1)}`);
+        }
+      } catch { /* best-effort */ }
+    }
+
+    // Fetch recent workout sessions
+    if (['general', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'].includes(context)) {
+      try {
+        const [sessions] = await sequelize.query(
+          `SELECT s."sessionDate", s.status, s.notes, s.duration
+           FROM sessions s WHERE s."userId" = :userId
+           ORDER BY s."sessionDate" DESC LIMIT 5`,
+          { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+        ).catch(() => [[]]);
+        if (sessions && sessions.length > 0) {
+          dataParts.push(`\n--- RECENT SESSIONS ---\n${JSON.stringify(sessions, null, 1)}`);
+        }
+      } catch { /* best-effort */ }
+    }
+
+    // Fetch user profile summary
+    if (['general', 'client_review', 'data_management'].includes(context)) {
+      try {
+        const [users] = await sequelize.query(
+          `SELECT "firstName", "lastName", role, "createdAt", email
+           FROM "Users" WHERE id = :userId LIMIT 1`,
+          { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+        ).catch(() => [[]]);
+        if (users && users.length > 0) {
+          dataParts.push(`\n--- USER PROFILE ---\n${JSON.stringify(users[0], null, 1)}`);
+        }
+      } catch { /* best-effort */ }
+    }
+
+    if (dataParts.length === 0) return '';
+    return '\n\n=== RELEVANT USER DATA ===\n' + dataParts.join('\n') + '\n=== END USER DATA ===';
+  } catch (err) {
+    logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
+    return '';
+  }
 }
 
 /**

@@ -55,6 +55,9 @@ import ParamRedirect from './ParamRedirect';
 const HomepageDesignLab = React.lazy(() => import('./Pages/admin-design/HomepageDesignLab'));
 const MovementAnalysisListPage = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisListPage'));
 const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisWizard'));
+const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
+const BodyMap = React.lazy(() => import('../BodyMap'));
+
 
 // Workspace containers
 import DashboardWorkspace from './workspaces/DashboardWorkspace';
@@ -266,6 +269,12 @@ const UnifiedAdminRoutes: React.FC = () => (
         </React.Suspense>
       } />
       <Route path="ai" element={<NASMCompliancePanel />} />
+      <Route path="form-analysis" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <FormAnalysisPage />
+        </React.Suspense>
+      } />
+      <Route path="body-map" element={<WorkoutOutletWrapper component="body-map" />} />
     </Route>
 
     {/* Phase 3 consolidation: AdminGamificationView manages its own internal tabs,

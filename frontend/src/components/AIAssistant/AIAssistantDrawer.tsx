@@ -13,7 +13,7 @@ import styled, { keyframes } from 'styled-components';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   X, Send, Plus, Sparkles, MessageSquare, Utensils,
-  Dumbbell, Brain, ChevronLeft, Trash2, Loader2,
+  Dumbbell, Brain, ChevronLeft, Trash2, Loader2, Database,
 } from 'lucide-react';
 import { useAIChat, type AIContext } from '../../hooks/useAIChat';
 import DictationOrb from './DictationOrb';
@@ -359,6 +359,7 @@ const CONTEXTS: Record<AIContext, ContextConfig> = {
   workout_suggestions: { label: 'Workouts', icon: Sparkles, description: 'Get workout ideas and suggestions', roles: ['client', 'trainer', 'admin'] },
   workout_generation: { label: 'Generate Plans', icon: Brain, description: 'Create structured workout plans', roles: ['trainer', 'admin'] },
   client_review: { label: 'Client Review', icon: Brain, description: 'Analyze client progress and data', roles: ['trainer', 'admin'] },
+  data_management: { label: 'Data Manager', icon: Database, description: 'Review, analyze, and manage platform data', roles: ['admin'] },
 };
 
 // ── Component ──

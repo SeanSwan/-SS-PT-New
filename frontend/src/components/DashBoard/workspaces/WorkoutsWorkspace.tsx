@@ -15,6 +15,8 @@ import {
   User,
   ChevronDown,
   Zap,
+  Video,
+  HeartPulse,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import WorkoutClientDrawer from './WorkoutClientDrawer';
@@ -38,6 +40,8 @@ const TABS = [
   { id: 'logger', label: 'Logger', icon: <ClipboardList size={16} />, path: '/dashboard/workouts/logger' },
   { id: 'movement', label: 'Movement', icon: <Activity size={16} />, path: '/dashboard/workouts/movement' },
   { id: 'ai', label: 'AI Protocols', icon: <Brain size={16} />, path: '/dashboard/workouts/ai' },
+  { id: 'form-analysis', label: 'Form Analysis', icon: <Video size={16} />, path: '/dashboard/workouts/form-analysis' },
+  { id: 'body-map', label: 'Body Map', icon: <HeartPulse size={16} />, path: '/dashboard/workouts/body-map' },
 ];
 
 // ---- Component ----
