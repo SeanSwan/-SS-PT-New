@@ -76,9 +76,10 @@ const useCountUp = (
 
 const certifications = [
   { name: 'NCEP Certified', full: 'National College of Exercise Professionals' },
-  { name: 'ACE Professional', full: 'American Council on Exercise' },
-  { name: 'Precision Nutrition', full: 'PN Level 1 Certification' },
-  { name: 'TRX Certified', full: 'Suspension Training Specialist' },
+  { name: 'NASM Workshop', full: 'National Academy of Sports Medicine' },
+  { name: 'Pro Results Certified', full: 'LA Fitness Personal Training' },
+  { name: 'GGFI Certified', full: 'Gold\'s Gym Fitness Institute' },
+  { name: '24 Hour Fitness', full: 'Master Trainer' },
 ];
 
 const statsData = [

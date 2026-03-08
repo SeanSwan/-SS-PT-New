@@ -1063,19 +1063,25 @@ const AboutContent = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span>ACE Professional</span>
+                  <span>NASM Workshop</span>
                 </CertificationBadge>
                 <CertificationBadge
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span>Precision Nutrition</span>
+                  <span>Pro Results Certified</span>
                 </CertificationBadge>
                 <CertificationBadge
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span>TRX Certified</span>
+                  <span>GGFI Certified</span>
+                </CertificationBadge>
+                <CertificationBadge
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <span>24 Hour Fitness</span>
                 </CertificationBadge>
               </CertificationBadges>
             </CertificationsContainer>
