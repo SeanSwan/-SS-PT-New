@@ -34,6 +34,7 @@ export const MODEL_COSTS = {
 
   // Google
   'gemini-2.0-flash':   { inputPer1k: 0.0001,  outputPer1k: 0.0004 },
+  'gemini-2.5-flash':   { inputPer1k: 0.00015, outputPer1k: 0.0006 },
   'gemini-1.5-pro':     { inputPer1k: 0.00125, outputPer1k: 0.005 },
 
   // Venice (OpenAI-compatible, Llama models)

@@ -21,7 +21,7 @@ import {
   requireNonEmptyText,
 } from './adapterUtils.mjs';
 
-const DEFAULT_MODEL = process.env.AI_GEMINI_MODEL || 'gemini-2.0-flash';
+const DEFAULT_MODEL = process.env.AI_GEMINI_MODEL || 'gemini-2.5-flash';
 
 /**
  * Normalize Gemini SDK/runtime errors into AiProviderError.
