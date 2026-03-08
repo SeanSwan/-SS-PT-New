@@ -153,6 +153,7 @@ import aiMonitoringRoutes from '../routes/aiMonitoringRoutes.mjs';
 import aiRoutes from '../routes/aiRoutes.mjs';
 import aiChatRoutes from '../routes/aiChatRoutes.mjs';
 import dailyMacroRoutes from '../routes/dailyMacroRoutes.mjs';
+import freeApiRoutes from '../routes/freeApiRoutes.mjs';
 import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
 import customPackageRoutes from '../routes/customPackageRoutes.mjs';
 
@@ -429,6 +430,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/ai', aiRoutes);
   app.use('/api/ai-chat', aiChatRoutes);
   app.use('/api/macros', dailyMacroRoutes);
+  app.use('/api/free', freeApiRoutes);
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
   app.use('/api/master-prompt', masterPromptRoutes);

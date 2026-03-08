@@ -43,13 +43,20 @@ export const THEME_CONFIG = {
     long: 500,
   },
   
-  // Common z-index values
+  // Common z-index values (Gemini 3.1 Pro design authority scale)
   zIndex: {
+    base: 1,
+    glassPanel: 10,
+    stickyNav: 100,
     appBar: 1100,
     drawer: 1200,
+    fab: 1250,
     modal: 1300,
-    snackbar: 1400,
+    overlay: 1350,
+    aiCommandCenter: 1400,
+    snackbar: 1450,
     tooltip: 1500,
+    toast: 1600,
   },
 };
 

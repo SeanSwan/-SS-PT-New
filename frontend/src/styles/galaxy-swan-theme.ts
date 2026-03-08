@@ -236,6 +236,41 @@ export const galaxySwanTheme = {
     mid: 0.10,
     thick: 0.14,
     opaque: 0.95,
+    // Gemini 3.1 Pro glassmorphism specs
+    panel: {
+      background: 'rgba(10, 10, 26, 0.4)',
+      backdropFilter: 'blur(16px)',
+      border: '1px solid rgba(0, 255, 255, 0.15)',
+      borderRadius: '24px',
+      boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+    },
+  },
+
+  // Gemini 3.1 Pro z-index token scale
+  zIndex: {
+    base: 1,
+    glassPanel: 10,
+    stickyNav: 100,
+    fab: 500,
+    overlay: 900,
+    modal: 1000,
+    aiCommandCenter: 1100,
+    toast: 1200,
+  },
+
+  // Animation curves (Gemini 3.1 Pro specs)
+  curves: {
+    snappy: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    bounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  },
+
+  // Alert/status colors
+  status: {
+    success: '#00E8B0',
+    warning: '#FFB800',
+    error: '#FF3366',      // Neon Coral — injured/alert
+    info: '#60C0F0',
   },
 
   /**

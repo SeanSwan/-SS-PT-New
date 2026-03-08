@@ -17,6 +17,7 @@ import {
   Video,
   Dumbbell,
   Brain,
+  Apple,
 } from 'lucide-react';
 
 export type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
@@ -55,6 +56,7 @@ export const navigationItems: NavItemData[] = [
   { id: 'form-check', label: 'Form Check', icon: Video, section: 'core', status: 'new' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, section: 'core', status: 'real' },
   { id: 'health', label: 'Body Map', icon: HeartPulse, section: 'core', status: 'real' },
+  { id: 'food-intel', label: 'Food Intelligence', icon: Apple, section: 'core', status: 'new' },
   { id: 'gamification', label: 'Gamification', icon: Trophy, section: 'core', status: 'real' },
   { id: 'messages', label: 'Messages', icon: MessageSquare, section: 'core', status: 'real' },
 

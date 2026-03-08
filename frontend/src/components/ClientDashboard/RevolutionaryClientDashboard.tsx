@@ -38,10 +38,17 @@ import { useNavigate } from 'react-router-dom';
 
 const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
 const LazyFormAnalysisGalaxy = lazy(() => import('./sections/FormAnalysisGalaxy'));
+const FoodIntelligenceDashboard = lazy(() => import('../FoodTracker/FoodIntelligenceDashboard'));
 
 const FormCheckGalaxy: React.FC = () => (
   <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading form analysis...</div>}>
     <LazyFormAnalysisGalaxy />
+  </Suspense>
+);
+
+const FoodIntelGalaxy: React.FC = () => (
+  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading food intelligence...</div>}>
+    <FoodIntelligenceDashboard />
   </Suspense>
 );
 
@@ -284,6 +291,7 @@ const sectionComponents: Record<string, React.FC> = {
   'form-check': FormCheckGalaxy,
   progress: ProgressConstellation,
   health: HealthGalaxy,
+  'food-intel': FoodIntelGalaxy,
   gamification: AchievementNebula,
   messages: MessagesGalaxy,
   account: AccountGalaxy,
@@ -299,6 +307,7 @@ const sectionTitles: Record<string, string> = {
   'form-check': 'Form Analysis Hub',
   progress: 'Progress Constellation',
   health: 'Health & Body Map',
+  'food-intel': 'Food Intelligence',
   gamification: 'Achievement Nebula',
   messages: 'Stellar Messages',
   account: 'My Account',
