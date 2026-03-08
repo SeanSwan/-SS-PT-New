@@ -850,7 +850,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       return;
     }
 
-    if (client.availableSessions <= 0) {
+    if (client.availableSessions <= 0 && user?.role !== 'admin') {
       toast.error('Client has no available sessions remaining');
       return;
     }
@@ -956,7 +956,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               onFocus={() => setShowExerciseSearch(true)}
             />
             <AnimatePresence>
-              {showExerciseSearch && (isLoadingExercises || availableExercises.length > 0) && (
+              {showExerciseSearch && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}

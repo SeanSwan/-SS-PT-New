@@ -97,6 +97,7 @@ const ConsentDisclosureTitle = styled.div`
 `;
 
 const ConsentToggleRow = styled.label`
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;

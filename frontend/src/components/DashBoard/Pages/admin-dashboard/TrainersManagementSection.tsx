@@ -446,11 +446,11 @@ const TrainersManagementSection: React.FC = () => {
       joinedAt: trainer.createdAt || new Date().toISOString(),
       lastActive: trainer.lastLogin || trainer.createdAt || new Date().toISOString(),
       stats: {
-        activeClients: 0, // Would need to be calculated from actual data
-        totalSessions: 0,
-        monthlyRevenue: 0,
-        rating: 0,
-        completedCertifications: trainer.certifications ? trainer.certifications.split(',').length : 0
+        activeClients: trainer.stats?.activeClients || 0,
+        totalSessions: trainer.stats?.totalSessions || trainer.totalSessions || 0,
+        monthlyRevenue: trainer.stats?.monthlyRevenue || 0,
+        rating: trainer.stats?.rating || trainer.averageRating || 0,
+        completedCertifications: trainer.certifications ? (Array.isArray(trainer.certifications) ? trainer.certifications.length : String(trainer.certifications).split(',').length) : 0
       },
       location: '', // Not available in current backend
       bio: trainer.bio || ''
@@ -461,16 +461,17 @@ const TrainersManagementSection: React.FC = () => {
   const fetchTrainers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/auth/trainers', {
+      const response = await fetch('/api/auth/users/trainers?includeAdmin=true&limit=100', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        const mappedTrainers = mapBackendTrainerData(data || []);
+        const trainersArray = data?.trainers || data || [];
+        const mappedTrainers = mapBackendTrainerData(Array.isArray(trainersArray) ? trainersArray : []);
         setTrainers(mappedTrainers);
         calculateStats(mappedTrainers);
       } else {

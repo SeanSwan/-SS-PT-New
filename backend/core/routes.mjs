@@ -151,7 +151,10 @@ import statsRoutes from '../routes/statsRoutes.mjs';
 import mcpRoutes from '../routes/mcpRoutes.mjs';
 import aiMonitoringRoutes from '../routes/aiMonitoringRoutes.mjs';
 import aiRoutes from '../routes/aiRoutes.mjs';
+import aiChatRoutes from '../routes/aiChatRoutes.mjs';
+import dailyMacroRoutes from '../routes/dailyMacroRoutes.mjs';
 import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
+import customPackageRoutes from '../routes/customPackageRoutes.mjs';
 
 // ===================== DEVELOPMENT & DEBUG =====================
 import debugRoutes from '../routes/debug.mjs';
@@ -424,9 +427,14 @@ export const setupRoutes = async (app) => {
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);
+  app.use('/api/ai-chat', aiChatRoutes);
+  app.use('/api/macros', dailyMacroRoutes);
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
   app.use('/api/master-prompt', masterPromptRoutes);
+
+  // ===================== CUSTOM PACKAGES =====================
+  app.use('/api/custom-packages', customPackageRoutes);
 
   // ===================== NASM PROTOCOL ROUTES =====================
   app.use('/api/client-progress', clientProgressRoutes);

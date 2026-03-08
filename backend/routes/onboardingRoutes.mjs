@@ -24,7 +24,7 @@ const router = express.Router();
 // MUST be registered BEFORE /:userId to avoid param route capture
 router.post('/self',
   protect,
-  authorize(['client']),
+  authorize(['client', 'admin']),
   createClientSelfOnboarding
 );
 

@@ -8,6 +8,7 @@ import ModernUserManagementSystem from './Pages/user-management/modern-user-mana
 import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import AdminSpecialsManager from './Pages/admin-specials/AdminSpecialsManager';
+const CustomPackageCreator = React.lazy(() => import('./Pages/admin-dashboard/CustomPackageCreator'));
 import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
 import MessagingPage from '../../pages/MessagingPage';
 
@@ -233,6 +234,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route index element={<PendingOrdersAdminPanel />} />
       <Route path="packages" element={<AdminPackagesView />} />
       <Route path="specials" element={<AdminSpecialsManager />} />
+      <Route path="custom-packages" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <CustomPackageCreator />
+        </React.Suspense>
+      } />
     </Route>
 
     <Route path="/workouts" element={<WorkoutsWorkspace />}>

@@ -55,7 +55,7 @@ router.get('/',
  */
 router.put('/',
   protect,
-  authorize(['client']),
+  authorize(['client', 'admin']),
   async (req, res) => {
     try {
       const ClientProgress = getClientProgress();

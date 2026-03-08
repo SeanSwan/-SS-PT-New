@@ -484,11 +484,11 @@ router.post(
  */
 router.get('/users/trainers', protect, async (req, res) => {
   try {
-    const { specialties, availability, rating, sortBy, limit, page } = req.query;
-    
-    // Build filter criteria
+    const { specialties, availability, rating, sortBy, limit, page, includeAdmin } = req.query;
+
+    // Build filter criteria — include admin users who also function as trainers
     let whereClause = {
-      role: 'trainer',
+      role: { [Op.in]: includeAdmin === 'true' ? ['trainer', 'admin'] : ['trainer'] },
       isActive: true
     };
     
@@ -555,10 +555,65 @@ router.get('/users/trainers', protect, async (req, res) => {
     
     // Calculate pagination info
     const totalPages = Math.ceil(count / limitValue);
-    
+
+    // Enrich trainers with real stats from assignments, sessions, and commissions
+    let enrichedTrainers = trainers.map(t => t.toJSON ? t.toJSON() : t);
+    try {
+      const { getModels } = await import('../models/associations.mjs');
+      const models = await getModels();
+      const { ClientTrainerAssignment, Session } = models;
+
+      for (let i = 0; i < enrichedTrainers.length; i++) {
+        const trainerId = enrichedTrainers[i].id;
+        let activeClients = 0;
+        let totalSessions = 0;
+        let monthlyRevenue = 0;
+
+        // Count active client assignments
+        if (ClientTrainerAssignment) {
+          try {
+            activeClients = await ClientTrainerAssignment.count({
+              where: { trainerId, status: 'active' }
+            });
+          } catch { /* table may not exist */ }
+        }
+
+        // Count completed sessions and this month's revenue
+        if (Session) {
+          try {
+            totalSessions = await Session.count({
+              where: { trainerId, status: 'completed' }
+            });
+            // This month's completed sessions for revenue estimate
+            const now = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const monthlySessions = await Session.count({
+              where: {
+                trainerId,
+                status: 'completed',
+                sessionDate: { [Op.gte]: monthStart }
+              }
+            });
+            // Revenue estimate based on sessions × average rate
+            const hourlyRate = enrichedTrainers[i].hourlyRate || 175;
+            monthlyRevenue = monthlySessions * hourlyRate;
+          } catch { /* table may not exist */ }
+        }
+
+        enrichedTrainers[i].stats = {
+          activeClients,
+          totalSessions,
+          monthlyRevenue,
+          rating: enrichedTrainers[i].averageRating || 0
+        };
+      }
+    } catch (statsErr) {
+      logger.warn('Could not enrich trainer stats:', statsErr.message);
+    }
+
     res.json({
       success: true,
-      trainers,
+      trainers: enrichedTrainers,
       pagination: {
         total: count,
         pages: totalPages,
@@ -568,9 +623,9 @@ router.get('/users/trainers', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching trainers:', { error: error.message, stack: error.stack });
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Server error fetching trainers' 
+      message: 'Server error fetching trainers'
     });
   }
 });

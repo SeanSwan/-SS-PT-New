@@ -447,6 +447,11 @@ export const authorize = (roles = []) => {
       });
     }
     
+    // Admin role always has access (universal override)
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
     // Check if user's role is included in the allowed roles
     if (roles.includes(req.user.role)) {
       return next();
@@ -493,16 +498,16 @@ export const trainerOnly = (req, res, next) => {
  * Client-only access middleware
  */
 export const clientOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'client') {
+  if (req.user && (req.user.role === 'client' || req.user.role === 'admin')) {
     next();
   } else {
-    logger.warn('Non-client attempted client action', { 
-      userId: req.user?.id, 
+    logger.warn('Non-client attempted client action', {
+      userId: req.user?.id,
       role: req.user?.role,
-      path: req.path, 
-      method: req.method 
+      path: req.path,
+      method: req.method
     });
-    
+
     res.status(403).json({
       success: false,
       message: 'Access denied: Client only'
