@@ -377,7 +377,7 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   }));
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -401,7 +401,7 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   return {
     content: text,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.1-pro-preview',
     tokenUsage: {
       inputTokens: data.usageMetadata?.promptTokenCount || null,
       outputTokens: data.usageMetadata?.candidatesTokenCount || null,
