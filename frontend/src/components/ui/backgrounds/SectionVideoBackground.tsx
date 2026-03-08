@@ -48,6 +48,8 @@ const VideoLayer = styled.video<{ $isVisible: boolean }>`
   opacity: ${({ $isVisible }) => ($isVisible ? 1 : 0)};
   transition: opacity 1.2s ease-in-out;
   will-change: opacity;
+  /* Fallback gradient when video can't play */
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 50%, #0a0a1a 100%);
 
   @media (prefers-reduced-motion: reduce) {
     display: none;
@@ -141,7 +143,7 @@ export const SectionVideoBackground: React.FC<SectionVideoBackgroundProps> = ({
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           onLoadedData={() => setVideoLoaded(true)}
           onError={() => setVideoError(true)}
         >
