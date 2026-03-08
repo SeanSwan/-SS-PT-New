@@ -84,6 +84,7 @@ export const createSpecial = async (req, res) => {
       bonusSessions,
       bonusDuration,
       applicablePackageIds,
+      assignedClientIds,
       startDate,
       endDate
     } = req.body;
@@ -100,6 +101,7 @@ export const createSpecial = async (req, res) => {
       bonusSessions: bonusSessions || 0,
       bonusDuration: bonusDuration || 60,
       applicablePackageIds: applicablePackageIds || [],
+      assignedClientIds: assignedClientIds || [],
       startDate,
       endDate,
       isActive: true,

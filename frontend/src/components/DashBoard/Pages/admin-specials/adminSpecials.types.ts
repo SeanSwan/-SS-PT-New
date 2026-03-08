@@ -5,6 +5,7 @@ export interface AdminSpecial {
   bonusSessions: number;
   bonusDuration: number;
   applicablePackageIds: number[];
+  assignedClientIds: number[];
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -17,12 +18,20 @@ export interface Package {
   name: string;
 }
 
+export interface ClientOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export interface AdminSpecialFormData {
   name: string;
   description: string;
   bonusSessions: number;
   bonusDuration: number;
   applicablePackageIds: number[];
+  assignedClientIds: number[];
   startDate: string;
   endDate: string;
 }

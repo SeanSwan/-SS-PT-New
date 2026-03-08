@@ -1,5 +1,5 @@
-import React from 'react';
-import { AdminSpecial, AdminSpecialFormData, Package } from './adminSpecials.types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AdminSpecial, AdminSpecialFormData, Package, ClientOption } from './adminSpecials.types';
 import {
   Modal,
   ModalContent,
@@ -12,7 +12,17 @@ import {
   CheckboxLabel,
   ButtonRow,
   CancelButton,
-  SaveButton
+  SaveButton,
+  ClientSearchBox,
+  ClientSearchInput,
+  SearchIcon,
+  ClientDropdown,
+  ClientDropdownItem,
+  AssignedClientChips,
+  ClientChip,
+  ChipRemove,
+  ClientNote,
+  ModalScrollContent,
 } from './adminSpecials.styles';
 
 interface AdminSpecialsModalProps {
@@ -20,6 +30,7 @@ interface AdminSpecialsModalProps {
   editingSpecial: AdminSpecial | null;
   formData: AdminSpecialFormData;
   packages: Package[];
+  clients: ClientOption[];
   onClose: () => void;
   onChange: (next: AdminSpecialFormData) => void;
   onSave: () => void;
@@ -31,11 +42,55 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
   editingSpecial,
   formData,
   packages,
+  clients,
   onClose,
   onChange,
   onSave,
   onTogglePackage
 }) => {
+  const [clientSearch, setClientSearch] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Reset search when modal closes
+  useEffect(() => {
+    if (!show) {
+      setClientSearch('');
+      setShowDropdown(false);
+    }
+  }, [show]);
+
+  // Filter clients by search term, exclude already-assigned
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return [];
+    const term = clientSearch.toLowerCase();
+    return clients.filter(c =>
+      !formData.assignedClientIds.includes(c.id) &&
+      (`${c.firstName} ${c.lastName}`.toLowerCase().includes(term) ||
+       c.email.toLowerCase().includes(term))
+    ).slice(0, 10);
+  }, [clientSearch, clients, formData.assignedClientIds]);
+
+  const addClient = useCallback((clientId: number) => {
+    onChange({
+      ...formData,
+      assignedClientIds: [...formData.assignedClientIds, clientId],
+    });
+    setClientSearch('');
+    setShowDropdown(false);
+  }, [formData, onChange]);
+
+  const removeClient = useCallback((clientId: number) => {
+    onChange({
+      ...formData,
+      assignedClientIds: formData.assignedClientIds.filter(id => id !== clientId),
+    });
+  }, [formData, onChange]);
+
+  const getClientName = useCallback((id: number) => {
+    const client = clients.find(c => c.id === id);
+    return client ? `${client.firstName} ${client.lastName}` : `Client #${id}`;
+  }, [clients]);
+
   if (!show) return null;
 
   return (
@@ -43,72 +98,127 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalTitle>{editingSpecial ? 'Edit Special' : 'Create Special'}</ModalTitle>
 
-        <FormGroup>
-          <Label>Name *</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => onChange({ ...formData, name: e.target.value })}
-            placeholder="e.g., New Year Kickstart"
-          />
-        </FormGroup>
+        <ModalScrollContent>
+          <FormGroup>
+            <Label>Name *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => onChange({ ...formData, name: e.target.value })}
+              placeholder="e.g., New Year Kickstart"
+            />
+          </FormGroup>
 
-        <FormGroup>
-          <Label>Description</Label>
-          <TextArea
-            value={formData.description}
-            onChange={(e) => onChange({ ...formData, description: e.target.value })}
-            placeholder="Optional description..."
-          />
-        </FormGroup>
+          <FormGroup>
+            <Label>Description</Label>
+            <TextArea
+              value={formData.description}
+              onChange={(e) => onChange({ ...formData, description: e.target.value })}
+              placeholder="Optional description..."
+            />
+          </FormGroup>
 
-        <FormGroup>
-          <Label>Bonus Sessions *</Label>
-          <Input
-            type="number"
-            min="1"
-            value={formData.bonusSessions}
-            onChange={(e) =>
-              onChange({
-                ...formData,
-                bonusSessions: parseInt(e.target.value, 10) || 1
-              })
-            }
-          />
-        </FormGroup>
+          <FormGroup>
+            <Label>Bonus Sessions *</Label>
+            <Input
+              type="number"
+              min="1"
+              value={formData.bonusSessions}
+              onChange={(e) =>
+                onChange({
+                  ...formData,
+                  bonusSessions: parseInt(e.target.value, 10) || 1
+                })
+              }
+            />
+          </FormGroup>
 
-        <FormGroup>
-          <Label>Start Date *</Label>
-          <Input
-            type="date"
-            value={formData.startDate}
-            onChange={(e) => onChange({ ...formData, startDate: e.target.value })}
-          />
-        </FormGroup>
+          <FormGroup>
+            <Label>Start Date *</Label>
+            <Input
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => onChange({ ...formData, startDate: e.target.value })}
+            />
+          </FormGroup>
 
-        <FormGroup>
-          <Label>End Date *</Label>
-          <Input
-            type="date"
-            value={formData.endDate}
-            onChange={(e) => onChange({ ...formData, endDate: e.target.value })}
-          />
-        </FormGroup>
+          <FormGroup>
+            <Label>End Date *</Label>
+            <Input
+              type="date"
+              value={formData.endDate}
+              onChange={(e) => onChange({ ...formData, endDate: e.target.value })}
+            />
+          </FormGroup>
 
-        <FormGroup>
-          <Label>Applicable Packages (leave empty for all)</Label>
-          <CheckboxGroup>
-            {packages.map((pkg) => (
-              <CheckboxLabel key={pkg.id}>
-                <input
-                  type="checkbox"
-                  checked={formData.applicablePackageIds.includes(pkg.id)}
-                  onChange={() => onTogglePackage(pkg.id)}
-                />
-                {pkg.name}
-              </CheckboxLabel>
-            ))}
-          </CheckboxGroup>
-        </FormGroup>
+          <FormGroup>
+            <Label>Assign to Clients (leave empty for all)</Label>
+            <ClientSearchBox>
+              <SearchIcon>🔍</SearchIcon>
+              <ClientSearchInput
+                value={clientSearch}
+                onChange={(e) => {
+                  setClientSearch(e.target.value);
+                  setShowDropdown(e.target.value.trim().length > 0);
+                }}
+                placeholder="Search clients by name or email..."
+                onFocus={() => clientSearch.trim() && setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              />
+            </ClientSearchBox>
+
+            {showDropdown && filteredClients.length > 0 && (
+              <ClientDropdown>
+                {filteredClients.map(client => (
+                  <ClientDropdownItem
+                    key={client.id}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addClient(client.id)}
+                  >
+                    <span>{client.firstName} {client.lastName}</span>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>{client.email}</span>
+                  </ClientDropdownItem>
+                ))}
+              </ClientDropdown>
+            )}
+
+            {showDropdown && clientSearch.trim() && filteredClients.length === 0 && (
+              <ClientNote>No matching clients found</ClientNote>
+            )}
+
+            {formData.assignedClientIds.length > 0 && (
+              <AssignedClientChips>
+                {formData.assignedClientIds.map(id => (
+                  <ClientChip key={id}>
+                    {getClientName(id)}
+                    <ChipRemove onClick={() => removeClient(id)} title="Remove">&times;</ChipRemove>
+                  </ClientChip>
+                ))}
+              </AssignedClientChips>
+            )}
+
+            <ClientNote>
+              {formData.assignedClientIds.length === 0
+                ? 'No clients selected — special will be available to everyone'
+                : `${formData.assignedClientIds.length} client${formData.assignedClientIds.length > 1 ? 's' : ''} assigned`}
+            </ClientNote>
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Applicable Packages (leave empty for all)</Label>
+            <CheckboxGroup>
+              {packages.map((pkg) => (
+                <CheckboxLabel key={pkg.id}>
+                  <input
+                    type="checkbox"
+                    checked={formData.applicablePackageIds.includes(pkg.id)}
+                    onChange={() => onTogglePackage(pkg.id)}
+                  />
+                  {pkg.name}
+                </CheckboxLabel>
+              ))}
+            </CheckboxGroup>
+          </FormGroup>
+        </ModalScrollContent>
 
         <ButtonRow>
           <CancelButton onClick={onClose}>Cancel</CancelButton>

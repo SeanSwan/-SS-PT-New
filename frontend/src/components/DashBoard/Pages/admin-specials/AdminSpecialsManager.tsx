@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../../../../services/api';
-import { AdminSpecial, AdminSpecialFormData, Package } from './adminSpecials.types';
+import { AdminSpecial, AdminSpecialFormData, Package, ClientOption } from './adminSpecials.types';
 import { Container, Header, Title, AddButton } from './adminSpecials.styles';
 import AdminSpecialsTable from './AdminSpecialsTable';
 import AdminSpecialsModal from './AdminSpecialsModal';
@@ -11,6 +11,7 @@ const defaultFormData = (): AdminSpecialFormData => ({
   bonusSessions: 1,
   bonusDuration: 60,
   applicablePackageIds: [],
+  assignedClientIds: [],
   startDate: new Date().toISOString().split('T')[0],
   endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 });
@@ -18,6 +19,7 @@ const defaultFormData = (): AdminSpecialFormData => ({
 const AdminSpecialsManager: React.FC = () => {
   const [specials, setSpecials] = useState<AdminSpecial[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingSpecial, setEditingSpecial] = useState<AdminSpecial | null>(null);
@@ -44,10 +46,28 @@ const AdminSpecialsManager: React.FC = () => {
     }
   }, []);
 
+  const fetchClients = useCallback(async () => {
+    try {
+      const response = await apiService.get('/api/admin/clients');
+      const rawClients = response.data.clients || response.data.data || response.data || [];
+      setClients(
+        (Array.isArray(rawClients) ? rawClients : []).map((c: any) => ({
+          id: c.id,
+          firstName: c.firstName || c.first_name || '',
+          lastName: c.lastName || c.last_name || '',
+          email: c.email || '',
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to fetch clients for specials:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSpecials();
     fetchPackages();
-  }, [fetchSpecials, fetchPackages]);
+    fetchClients();
+  }, [fetchSpecials, fetchPackages, fetchClients]);
 
   const openCreateModal = () => {
     setEditingSpecial(null);
@@ -63,6 +83,7 @@ const AdminSpecialsManager: React.FC = () => {
       bonusSessions: special.bonusSessions,
       bonusDuration: special.bonusDuration,
       applicablePackageIds: special.applicablePackageIds || [],
+      assignedClientIds: special.assignedClientIds || [],
       startDate: special.startDate.split('T')[0],
       endDate: special.endDate.split('T')[0]
     });
@@ -142,6 +163,7 @@ const AdminSpecialsManager: React.FC = () => {
         editingSpecial={editingSpecial}
         formData={formData}
         packages={packages}
+        clients={clients}
         onClose={() => setShowModal(false)}
         onChange={setFormData}
         onSave={handleSave}

@@ -63,6 +63,12 @@ AdminSpecial.init(
       allowNull: true,
       defaultValue: []
     },
+    assignedClientIds: {
+      type: DataTypes.ARRAY(DataTypes.INTEGER),
+      allowNull: true,
+      defaultValue: [],
+      comment: 'Client IDs this special is assigned to. Empty = available to all clients.'
+    },
     startDate: {
       type: DataTypes.DATE,
       allowNull: false

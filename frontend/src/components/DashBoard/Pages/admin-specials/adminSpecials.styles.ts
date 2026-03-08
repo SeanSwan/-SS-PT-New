@@ -221,3 +221,114 @@ export const EmptyState = styled.div`
   padding: 48px;
   color: rgba(255, 255, 255, 0.6);
 `;
+
+// ── Client Assignment Styles ──
+
+export const ClientSearchBox = styled.div`
+  position: relative;
+  margin-bottom: 8px;
+`;
+
+export const ClientSearchInput = styled.input`
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 81, 169, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 0.875rem;
+
+  &::placeholder { color: rgba(255, 255, 255, 0.4); }
+  &:focus {
+    outline: none;
+    border-color: #00ffff;
+  }
+`;
+
+export const SearchIcon = styled.span`
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  pointer-events: none;
+`;
+
+export const ClientDropdown = styled.div`
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid rgba(120, 81, 169, 0.3);
+  border-radius: 8px;
+  background: rgba(10, 10, 26, 0.95);
+  margin-bottom: 8px;
+
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-thumb { background: rgba(120, 81, 169, 0.4); border-radius: 5px; }
+`;
+
+export const ClientDropdownItem = styled.button`
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &:hover { background: rgba(120, 81, 169, 0.2); }
+  &:not(:last-child) { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+`;
+
+export const AssignedClientChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+export const ClientChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 16px;
+  color: #00ffff;
+  font-size: 0.75rem;
+  font-weight: 500;
+`;
+
+export const ChipRemove = styled.button`
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+
+  &:hover { color: #ff6b6b; }
+`;
+
+export const ClientNote = styled.p`
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  margin: 4px 0 0;
+  font-style: italic;
+`;
+
+export const ModalScrollContent = styled.div`
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-thumb { background: rgba(120, 81, 169, 0.4); border-radius: 5px; }
+`;
