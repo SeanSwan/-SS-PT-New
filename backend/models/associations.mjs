@@ -167,6 +167,14 @@ const setupAssociations = async () => {
     const BootcampSpaceProfileModule = await import('./BootcampSpaceProfile.mjs');
     const ExerciseTrendModule = await import('./ExerciseTrend.mjs');
 
+    // Photo Gallery & Lead Generation Models
+    const GalleryEventModule = await import('./GalleryEvent.mjs');
+    const GalleryPhotoModule = await import('./GalleryPhoto.mjs');
+    const GalleryVisitorModule = await import('./GalleryVisitor.mjs');
+    const EnhancementRequestModule = await import('./EnhancementRequest.mjs');
+    const GalleryDonationModule = await import('./GalleryDonation.mjs');
+    const GalleryReferralModule = await import('./GalleryReferral.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -318,6 +326,14 @@ const setupAssociations = async () => {
     const BootcampSpaceProfile = BootcampSpaceProfileModule.default;
     const ExerciseTrend = ExerciseTrendModule.default;
 
+    // Photo Gallery & Lead Generation Models
+    const GalleryEvent = GalleryEventModule.default;
+    const GalleryPhoto = GalleryPhotoModule.default;
+    const GalleryVisitor = GalleryVisitorModule.default;
+    const EnhancementRequest = EnhancementRequestModule.default;
+    const GalleryDonation = GalleryDonationModule.default;
+    const GalleryReferral = GalleryReferralModule.default;
+
     console.log('Setting up Sequelize associations only...');
     
     // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
@@ -404,7 +420,9 @@ const setupAssociations = async () => {
         // Boot Camp Class Builder (Phase 10)
         BootcampTemplate, BootcampStation, BootcampExercise,
         BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
-        ExerciseTrend
+        ExerciseTrend,
+        // Photo Gallery & Lead Generation Models
+        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral
       };
     }
 
@@ -1006,6 +1024,31 @@ const setupAssociations = async () => {
     ExerciseTrend.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
     console.log('✅ Boot Camp Class Builder models integrated');
 
+    // ── Photo Gallery & Lead Generation Associations ─────────────────
+    GalleryEvent.hasMany(GalleryPhoto, { foreignKey: 'eventId', as: 'photos' });
+    GalleryEvent.hasMany(GalleryVisitor, { foreignKey: 'eventId', as: 'visitors' });
+    GalleryEvent.hasMany(GalleryDonation, { foreignKey: 'eventId', as: 'donations' });
+    GalleryEvent.hasMany(GalleryReferral, { foreignKey: 'eventId', as: 'referrals' });
+    GalleryEvent.belongsTo(GalleryPhoto, { foreignKey: 'coverPhotoId', as: 'coverPhoto', constraints: false });
+
+    GalleryPhoto.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+    GalleryPhoto.hasMany(EnhancementRequest, { foreignKey: 'photoId', as: 'enhancementRequests' });
+
+    GalleryVisitor.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+    GalleryVisitor.hasMany(EnhancementRequest, { foreignKey: 'visitorId', as: 'enhancementRequests' });
+    GalleryVisitor.hasMany(GalleryDonation, { foreignKey: 'visitorId', as: 'donations' });
+    GalleryVisitor.hasMany(GalleryReferral, { foreignKey: 'visitorId', as: 'referrals' });
+
+    EnhancementRequest.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
+    EnhancementRequest.belongsTo(GalleryPhoto, { foreignKey: 'photoId', as: 'photo' });
+
+    GalleryDonation.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
+    GalleryDonation.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+
+    GalleryReferral.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
+    GalleryReferral.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+    console.log('✅ Photo Gallery & Lead Generation models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -1165,7 +1208,10 @@ const setupAssociations = async () => {
       // Boot Camp Class Builder (Phase 10)
       BootcampTemplate, BootcampStation, BootcampExercise,
       BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
-      ExerciseTrend
+      ExerciseTrend,
+
+      // Photo Gallery & Lead Generation Models
+      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

@@ -157,6 +157,10 @@ import freeApiRoutes from '../routes/freeApiRoutes.mjs';
 import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
 import customPackageRoutes from '../routes/customPackageRoutes.mjs';
 
+// ===================== PHOTO GALLERY & LEAD GENERATION =====================
+import galleryRoutes from '../routes/galleryRoutes.mjs';
+import adminGalleryRoutes from '../routes/adminGalleryRoutes.mjs';
+
 // ===================== DEVELOPMENT & DEBUG =====================
 import debugRoutes from '../routes/debug.mjs';
 import devRoutes from '../routes/dev-routes.mjs';
@@ -437,6 +441,10 @@ export const setupRoutes = async (app) => {
 
   // ===================== CUSTOM PACKAGES =====================
   app.use('/api/custom-packages', customPackageRoutes);
+
+  // ===================== PHOTO GALLERY & LEAD GENERATION =====================
+  app.use('/api/gallery', galleryRoutes);
+  app.use('/api/admin/gallery', adminGalleryRoutes);
 
   // ===================== NASM PROTOCOL ROUTES =====================
   app.use('/api/client-progress', clientProgressRoutes);

@@ -151,6 +151,10 @@ const SignupModal = lazyLoadWithErrorHandling(
   () => import('../pages/OptimizedSignupModal'),
   'Signup Modal'
 );
+const GalleryPage = lazyLoadWithErrorHandling(
+  () => import('../pages/GalleryPage'),
+  'Gallery Page'
+);
 const ContactPage = lazyLoadWithErrorHandling(
   () => import('../pages/contactpage/ContactV3'),
   'Contact Page V3',
@@ -411,6 +415,22 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <AboutPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'gallery',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <GalleryPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'gallery/:slug',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <GalleryPage />
         </Suspense>
       )
     },

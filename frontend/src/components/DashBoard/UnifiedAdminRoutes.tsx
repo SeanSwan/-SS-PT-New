@@ -52,6 +52,7 @@ import CosmicSuspenseLoader from '../Shared/CosmicSuspenseLoader';
 import OrientationList from './Pages/admin-dashboard/components/OrientationList';
 import ParamRedirect from './ParamRedirect';
 
+const AdminGalleryManager = React.lazy(() => import('./Pages/admin-gallery/AdminGalleryManager'));
 const HomepageDesignLab = React.lazy(() => import('./Pages/admin-design/HomepageDesignLab'));
 const MovementAnalysisListPage = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisListPage'));
 const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisWizard'));
@@ -298,6 +299,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="exercises" element={<AdminExerciseCommandCenter />} />
       {/* Legacy route - gamification moved to its own workspace */}
       <Route path="gamification" element={<Navigate to="/dashboard/gamification" replace />} />
+      <Route path="gallery" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <AdminGalleryManager />
+        </React.Suspense>
+      } />
       {/* Design tab removed (Phase 1 consolidation) - redirect to content root */}
       <Route path="design" element={<Navigate to="/dashboard/content/video-studio" replace />} />
     </Route>

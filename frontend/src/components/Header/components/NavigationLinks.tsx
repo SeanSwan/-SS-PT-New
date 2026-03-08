@@ -266,8 +266,16 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
           Contact
         </StyledNavLink>
         
-        <StyledNavLink 
-          to="/about" 
+        <StyledNavLink
+          to="/gallery"
+          $isActive={isActive('/gallery')}
+          variants={itemVariants}
+        >
+          Swan Photography
+        </StyledNavLink>
+
+        <StyledNavLink
+          to="/about"
           $isActive={isActive('/about')}
           variants={itemVariants}
         >
