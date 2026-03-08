@@ -27,6 +27,7 @@ import {
   TrainingOverview, ClientManagement, ContentStudio, AssignedSessions
 } from './TrainerStellarSections';
 import TrainerStellarSidebar from './TrainerStellarSidebar';
+import AIAssistantFAB from '../../AIAssistant/AIAssistantFAB';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useUniversalTheme } from '../../../context/ThemeContext';
@@ -420,6 +421,9 @@ const StellarTrainerDashboard: React.FC = () => {
           </AnimatePresence>
         </TrainerContentArea>
       </TrainerMainContent>
+
+      {/* AI Assistant Floating Button + Drawer */}
+      <AIAssistantFAB userRole="trainer" />
     </TrainerGalaxyContainer>
   );
 };

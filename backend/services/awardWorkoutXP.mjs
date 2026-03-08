@@ -26,6 +26,7 @@ import WorkoutSession from '../models/WorkoutSession.mjs';
 import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import eventBus from './eventBus.mjs';
+import { createWorkoutAutoPost, createStreakAutoPost } from './socialAutoPost.mjs';
 
 /**
  * Award XP for a workout completion.
@@ -373,10 +374,24 @@ export async function awardWorkoutXP({
     trainerId: awardedBy,
   });
 
-  // ── Return result ──────────────────────────────────────────────────
+  // ── Auto-post to social feed (best-effort, never fails XP award) ──
   const totalPoints = pointsToAward + totalMilestoneBonus;
   const finalNewBalance = updatedStats.points + totalMilestoneBonus;
 
+  try {
+    await createWorkoutAutoPost(userId, {
+      workoutId,
+      duration,
+      exercisesCompleted,
+      pointsAwarded: totalPoints,
+    });
+  } catch (_) { /* best-effort */ }
+
+  try {
+    await createStreakAutoPost(userId, updatedStats.streakDays);
+  } catch (_) { /* best-effort */ }
+
+  // ── Return result ──────────────────────────────────────────────────
   return {
     pointsAwarded: totalPoints,
     newBalance: finalNewBalance,
