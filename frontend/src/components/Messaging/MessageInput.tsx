@@ -93,10 +93,13 @@ const Textarea = styled.textarea`
   overflow-y: auto;
   transition: all 0.2s;
 
+  min-height: 44px;
+
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: #7851A9;
     background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 8px rgba(120, 81, 169, 0.2);
   }
 
   &::placeholder {
@@ -129,7 +132,7 @@ const Textarea = styled.textarea`
 `;
 
 const SendButton = styled.button`
-  background: #3b82f6;
+  background: linear-gradient(135deg, #7851A9, #5D3FD3);
   border: none;
   border-radius: 50%;
   width: 44px;
@@ -143,8 +146,9 @@ const SendButton = styled.button`
   flex-shrink: 0;
 
   &:hover:not(:disabled) {
-    background: #2563eb;
+    background: linear-gradient(135deg, #8B5FC7, #6B4DE0);
     transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(120, 81, 169, 0.4);
   }
 
   &:active:not(:disabled) {

@@ -31,6 +31,7 @@ import {
 import StellarSidebar from './StellarSidebar';
 import HealthGalaxy from './sections/HealthGalaxy';
 import ClientWorkoutLoggerSection from './sections/ClientWorkoutLoggerSection';
+import ClientAIWorkoutCreator from './sections/ClientAIWorkoutCreator';
 import AIAssistantFAB from '../AIAssistant/AIAssistantFAB';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -279,6 +280,7 @@ const sectionComponents: Record<string, React.FC> = {
   schedule: TimeWarp,
   workouts: WorkoutUniverse,
   logger: ClientWorkoutLoggerSection,
+  'ai-workout': ClientAIWorkoutCreator,
   'form-check': FormCheckGalaxy,
   progress: ProgressConstellation,
   health: HealthGalaxy,
@@ -293,6 +295,7 @@ const sectionTitles: Record<string, string> = {
   schedule: 'Time Warp Chamber',
   workouts: 'Training Universe',
   logger: 'Workout Logger',
+  'ai-workout': 'AI Workout Creator',
   'form-check': 'Form Analysis Hub',
   progress: 'Progress Constellation',
   health: 'Health & Body Map',

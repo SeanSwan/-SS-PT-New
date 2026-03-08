@@ -378,6 +378,80 @@ const LoadingSpinner = styled(motion.div)`
   color: rgba(255, 255, 255, 0.7);
 `;
 
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+`;
+
+const ModalContent = styled(motion.div)`
+  background: rgba(10, 10, 26, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const FormField = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const FormInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  min-height: 44px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+`;
+
 // === INTERFACES ===
 interface User {
   id: string;
@@ -418,6 +492,9 @@ const UsersManagementSection: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [newClient, setNewClient] = useState({ firstName: '', lastName: '', email: '', phone: '', password: '' });
+  const [addingClient, setAddingClient] = useState(false);
 
   // Helper function to get auth headers
   const getAuthHeaders = () => {
@@ -588,6 +665,39 @@ const UsersManagementSection: React.FC = () => {
     }
   };
 
+  const handleAddClient = async () => {
+    if (!newClient.firstName || !newClient.lastName || !newClient.email) {
+      setError('First name, last name, and email are required');
+      return;
+    }
+    setAddingClient(true);
+    try {
+      const response = await makeApiCall('/api/auth/user', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: newClient.firstName,
+          lastName: newClient.lastName,
+          email: newClient.email,
+          username: newClient.email.split('@')[0] + Math.floor(Math.random() * 1000),
+          phone: newClient.phone || undefined,
+          password: newClient.password || '***REDACTED-USER-PW***',
+          role: 'client'
+        })
+      });
+      if (response.success) {
+        setShowAddClientModal(false);
+        setNewClient({ firstName: '', lastName: '', email: '', phone: '', password: '' });
+        await fetchUsers();
+      } else {
+        throw new Error(response.message || 'Failed to add client');
+      }
+    } catch (err) {
+      setError(`Failed to add client: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setAddingClient(false);
+    }
+  };
+
   const handleEditUser = async (userId: string) => {
     // TODO: Open edit user modal
     console.log('Edit user:', userId);
@@ -748,7 +858,16 @@ const UsersManagementSection: React.FC = () => {
           </FilterSelect>
         </SearchContainer>
         
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <CommandButton
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowAddClientModal(true)}
+            style={{ background: 'linear-gradient(45deg, #10b981 0%, #00ffff 100%)' }}
+          >
+            <UserPlus size={16} />
+            Add Client
+          </CommandButton>
           <CommandButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -757,7 +876,7 @@ const UsersManagementSection: React.FC = () => {
             <RefreshCw size={16} />
             Refresh
           </CommandButton>
-          
+
           <CommandButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -913,6 +1032,108 @@ const UsersManagementSection: React.FC = () => {
           <p>Try adjusting your search or filters</p>
         </motion.div>
       )}
+
+      {/* Add Client Modal */}
+      <AnimatePresence>
+        {showAddClientModal && (
+          <ModalOverlay
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowAddClientModal(false)}
+          >
+            <ModalContent
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+              <ModalTitle>
+                <UserPlus size={24} color="#00ffff" />
+                Add New Client
+              </ModalTitle>
+
+              <FormField>
+                <FormLabel>First Name *</FormLabel>
+                <FormInput
+                  type="text"
+                  placeholder="First name"
+                  value={newClient.firstName}
+                  onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })}
+                />
+              </FormField>
+
+              <FormField>
+                <FormLabel>Last Name *</FormLabel>
+                <FormInput
+                  type="text"
+                  placeholder="Last name"
+                  value={newClient.lastName}
+                  onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })}
+                />
+              </FormField>
+
+              <FormField>
+                <FormLabel>Email *</FormLabel>
+                <FormInput
+                  type="email"
+                  placeholder="client@example.com"
+                  value={newClient.email}
+                  onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                />
+              </FormField>
+
+              <FormField>
+                <FormLabel>Phone</FormLabel>
+                <FormInput
+                  type="tel"
+                  placeholder="(optional)"
+                  value={newClient.phone}
+                  onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                />
+              </FormField>
+
+              <FormField>
+                <FormLabel>Password</FormLabel>
+                <FormInput
+                  type="text"
+                  placeholder="Default: ***REDACTED-USER-PW***"
+                  value={newClient.password}
+                  onChange={(e) => setNewClient({ ...newClient, password: e.target.value })}
+                />
+              </FormField>
+
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.5rem' }}>
+                Client will be prompted to change password on first login.
+              </div>
+
+              <ModalActions>
+                <CommandButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setShowAddClientModal(false);
+                    setNewClient({ firstName: '', lastName: '', email: '', phone: '', password: '' });
+                  }}
+                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                >
+                  Cancel
+                </CommandButton>
+                <CommandButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleAddClient}
+                  disabled={addingClient || !newClient.firstName || !newClient.lastName || !newClient.email}
+                  style={{ background: 'linear-gradient(45deg, #10b981 0%, #00ffff 100%)' }}
+                >
+                  <UserPlus size={16} />
+                  {addingClient ? 'Creating...' : 'Create Client'}
+                </CommandButton>
+              </ModalActions>
+            </ModalContent>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
     </ManagementContainer>
   );
 };

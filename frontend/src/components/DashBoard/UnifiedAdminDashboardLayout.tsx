@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
 import UnifiedAdminRoutes from './UnifiedAdminRoutes';
+import AIAssistantFAB from '../AIAssistant/AIAssistantFAB';
 import { executiveCommandTheme, ExecutiveGlobalStyles } from './AdminLayoutTheme';
 import {
   ExecutiveLayoutContainer,
@@ -152,6 +153,7 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
             </Suspense>
           </AnimatePresence>
         </ExecutiveMainContent>
+        <AIAssistantFAB userRole="admin" defaultContext="workout_generation" />
       </ExecutiveLayoutContainer>
     </ThemeProvider>
   );
