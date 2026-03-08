@@ -78,7 +78,15 @@ const TABLE_CREATION_ORDER = [
   // PHASE 10: Financial tracking (depends on orders and users)
   'financial_transactions', // FIXED: FinancialTransaction uses 'financial_transactions'
   'business_metrics',       // FIXED: BusinessMetrics uses 'business_metrics'
-  'admin_notifications'     // FIXED: AdminNotification uses 'admin_notifications'
+  'admin_notifications',    // FIXED: AdminNotification uses 'admin_notifications'
+
+  // PHASE 11: Photo Gallery & Lead Generation (gallery_events first, then dependents)
+  'gallery_events',              // GalleryEvent — base table
+  'gallery_photos',              // GalleryPhoto — depends on gallery_events
+  'gallery_visitors',            // GalleryVisitor — depends on gallery_events, Users
+  'gallery_enhancement_requests', // EnhancementRequest — depends on gallery_visitors, gallery_photos
+  'gallery_donations',           // GalleryDonation — depends on gallery_visitors, gallery_events
+  'gallery_referrals'            // GalleryReferral — depends on gallery_visitors, gallery_events
 ];
 
 /**
