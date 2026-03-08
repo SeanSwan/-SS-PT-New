@@ -26,6 +26,8 @@ import FinancialTransaction from '../models/financial/FinancialTransaction.mjs';
 import BusinessMetrics from '../models/financial/BusinessMetrics.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
+import { getTaxRate, calculateForwardTax, calculateTax } from '../utils/taxCalculator.mjs';
+import { getAllModels } from '../models/index.mjs';
 
 const router = express.Router();
 
@@ -625,6 +627,151 @@ router.post('/calculate-metrics', async (req, res) => {
       message: 'Failed to calculate metrics',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
+  }
+});
+
+/**
+ * GET /api/financial/tax/rate
+ * Get current tax rate for a state (default: CA)
+ */
+router.get('/tax/rate', async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const stateCode = (req.query.state || 'CA').toUpperCase();
+    const taxRate = await getTaxRate(stateCode);
+
+    res.json({
+      success: true,
+      data: {
+        stateCode,
+        taxRate,
+        taxPercentage: (taxRate * 100).toFixed(2) + '%',
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching tax rate:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch tax rate' });
+  }
+});
+
+/**
+ * GET /api/financial/tax/calculator
+ * Calculate tax on all active packages + revenue summary
+ * Returns tax liability data for the CA Tax Calculator widget
+ */
+router.get('/tax/calculator', async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const stateCode = (req.query.state || 'CA').toUpperCase();
+    const taxRate = await getTaxRate(stateCode);
+
+    // Get all active storefront packages
+    const { StorefrontItem, Order, ShoppingCart } = getAllModels();
+
+    const packages = StorefrontItem ? await StorefrontItem.findAll({
+      where: { isActive: true },
+      order: [['displayOrder', 'ASC'], ['id', 'ASC']],
+    }) : [];
+
+    // Calculate tax for each package
+    const packageTaxBreakdown = packages.map(pkg => {
+      const price = parseFloat(pkg.price || pkg.totalCost || 0);
+      const tax = calculateForwardTax(price, taxRate);
+      return {
+        id: pkg.id,
+        name: pkg.name,
+        packageType: pkg.packageType,
+        sessions: pkg.sessions || pkg.totalSessions,
+        price,
+        taxAmount: tax.taxAmount,
+        totalWithTax: tax.netAfterTax,
+      };
+    });
+
+    // Get completed orders for revenue tax liability
+    let revenueData = { totalRevenue: 0, totalTaxLiability: 0, orderCount: 0, lastOrder: null };
+
+    if (Order) {
+      try {
+        const { Op } = (await import('sequelize')).default || await import('sequelize');
+        const completedOrders = await Order.findAll({
+          where: { status: { [Op.in]: ['completed', 'processing'] } },
+          order: [['createdAt', 'DESC']],
+          limit: 100,
+        });
+
+        let totalRevenue = 0;
+        for (const order of completedOrders) {
+          totalRevenue += parseFloat(order.totalAmount || 0);
+        }
+
+        const totalTaxLiability = parseFloat((totalRevenue * taxRate).toFixed(2));
+
+        revenueData = {
+          totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+          totalTaxLiability,
+          orderCount: completedOrders.length,
+          lastOrder: completedOrders.length > 0 ? {
+            id: completedOrders[0].id,
+            amount: parseFloat(completedOrders[0].totalAmount || 0),
+            taxOnOrder: parseFloat((parseFloat(completedOrders[0].totalAmount || 0) * taxRate).toFixed(2)),
+            date: completedOrders[0].createdAt,
+          } : null,
+        };
+      } catch (orderErr) {
+        logger.warn('Could not fetch orders for tax calc:', orderErr.message);
+      }
+    }
+
+    // Also check completed shopping carts as alternative revenue source
+    if (ShoppingCart && revenueData.orderCount === 0) {
+      try {
+        const completedCarts = await ShoppingCart.findAll({
+          where: { status: 'completed' },
+          order: [['updatedAt', 'DESC']],
+          limit: 100,
+        });
+
+        let totalRevenue = 0;
+        for (const cart of completedCarts) {
+          totalRevenue += parseFloat(cart.total || 0);
+        }
+
+        revenueData = {
+          totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+          totalTaxLiability: parseFloat((totalRevenue * taxRate).toFixed(2)),
+          orderCount: completedCarts.length,
+          lastOrder: completedCarts.length > 0 ? {
+            id: completedCarts[0].id,
+            amount: parseFloat(completedCarts[0].total || 0),
+            taxOnOrder: parseFloat((parseFloat(completedCarts[0].total || 0) * taxRate).toFixed(2)),
+            date: completedCarts[0].updatedAt,
+          } : null,
+        };
+      } catch (cartErr) {
+        logger.warn('Could not fetch carts for tax calc:', cartErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        stateCode,
+        taxRate,
+        taxPercentage: (taxRate * 100).toFixed(2) + '%',
+        packages: packageTaxBreakdown,
+        revenue: revenueData,
+      }
+    });
+  } catch (error) {
+    logger.error('Error calculating tax:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate tax data' });
   }
 });
 

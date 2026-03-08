@@ -219,9 +219,14 @@ export async function sendChatMessage(messages, options = {}) {
     }
   }
 
+  const availableCount = providers.length;
+  logger.error(`[AIChatService] All ${availableCount} providers failed. Trace: ${failoverTrace.join(' -> ')}`);
+
   return {
     ok: false,
-    content: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.",
+    content: availableCount === 0
+      ? "AI service is not configured on this server. Please contact your administrator to set up AI API keys."
+      : "I'm sorry, I'm having trouble connecting to our AI service right now. Please try again in a moment.",
     provider: 'fallback',
     failoverTrace,
   };
@@ -244,7 +249,31 @@ function getAvailableProviders() {
     providers.push({ name: 'venice', key: process.env.VENICE_API_KEY });
   }
 
+  if (providers.length === 0) {
+    logger.error('[AIChatService] No AI providers configured! Set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in env vars.');
+  }
+
   return providers;
+}
+
+/**
+ * Get diagnostic info about AI chat service availability.
+ * Does NOT reveal actual keys — only shows which are configured.
+ */
+export function getAIChatDiagnostics() {
+  return {
+    providers: {
+      gemini: !!process.env.GEMINI_API_KEY,
+      openai: !!process.env.OPENAI_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      venice: !!process.env.VENICE_API_KEY,
+    },
+    availableCount: getAvailableProviders().length,
+    primaryProvider: process.env.GEMINI_API_KEY ? 'gemini'
+      : process.env.OPENAI_API_KEY ? 'openai'
+      : process.env.ANTHROPIC_API_KEY ? 'anthropic'
+      : 'none',
+  };
 }
 
 async function callProvider(provider, messages, options) {

@@ -15,7 +15,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import AiConversation from '../models/AiConversation.mjs';
-import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData } from '../services/aiChatService.mjs';
+import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -23,6 +23,18 @@ const router = express.Router();
 
 // All routes require authentication
 router.use(protect);
+
+/**
+ * GET /api/ai-chat/diagnostics
+ * Admin-only endpoint to check AI service health
+ */
+router.get('/diagnostics', (req, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Admin only' });
+  }
+  const diag = getAIChatDiagnostics();
+  res.json({ success: true, data: diag });
+});
 
 // Context permissions by role
 const ROLE_CONTEXTS = {

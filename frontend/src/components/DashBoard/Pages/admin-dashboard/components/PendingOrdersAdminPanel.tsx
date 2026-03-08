@@ -365,6 +365,85 @@ interface PendingOrder {
   priority: 'high' | 'medium' | 'low';
 }
 
+// ── View Mode Tabs ──
+const ViewModeTabs = styled.div`
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+`;
+
+const ViewModeTab = styled.button<{ $active?: boolean }>`
+  flex: 1;
+  padding: 0.75rem 1rem;
+  min-height: 44px;
+  border: none;
+  background: ${props => props.$active
+    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.15))'
+    : 'rgba(255, 255, 255, 0.03)'};
+  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  font-weight: ${props => props.$active ? 600 : 400};
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:not(:last-child) {
+    border-right: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.15);
+    color: white;
+  }
+`;
+
+const RevenueSummary = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const RevenueStat = styled.div`
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+`;
+
+const RevenueValue = styled.div<{ $color?: string }>`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: ${props => props.$color || '#00ffff'};
+`;
+
+const RevenueLabel = styled.div`
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+`;
+
+const TaxBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+  font-weight: 600;
+`;
+
+// CA tax rate constant (7.25%)
+const CA_TAX_RATE = 0.0725;
+
+type ViewMode = 'pending' | 'completed' | 'all';
+
 const PendingOrdersAdminPanel: React.FC = () => {
   const { authAxios } = useAuth();
   const [orders, setOrders] = useState<PendingOrder[]>([]);
@@ -375,15 +454,20 @@ const PendingOrdersAdminPanel: React.FC = () => {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
 
-  // Fetch pending orders
+  // Fetch orders based on view mode
   const fetchPendingOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // 🚀 REAL API CALL: Using new enterprise admin orders endpoint
-      const response = await authAxios.get('/api/admin/orders/pending', {
+      // Choose endpoint based on view mode
+      const endpoint = viewMode === 'completed'
+        ? '/api/admin/orders/completed'
+        : '/api/admin/orders/pending';
+
+      const response = await authAxios.get(endpoint, {
         params: {
           sortBy,
           sortOrder,
@@ -394,62 +478,105 @@ const PendingOrdersAdminPanel: React.FC = () => {
       });
 
       if (response.data.success) {
-        // Use real order data from PostgreSQL and Stripe
-        const pendingOrders = response.data.orders.map(order => ({
+        const rawOrders = response.data.orders || response.data.data || [];
+        const mappedOrders = rawOrders.map((order: any) => ({
           id: order.id,
           orderReference: order.id,
           paymentReference: order.checkoutSessionId || 'N/A',
           customer: {
-            id: order.user?.id || 0,
-            name: order.user ? `${order.user.firstName} ${order.user.lastName}`.trim() : 'Unknown Customer',
+            id: order.user?.id || order.userId || 0,
+            name: order.user ? `${order.user.firstName || ''} ${order.user.lastName || ''}`.trim() : 'Unknown Customer',
             email: order.user?.email || 'N/A',
             phone: order.user?.phone || undefined
           },
-          amount: parseFloat(order.totalAmount || 0),
+          amount: parseFloat(order.totalAmount || order.total || 0),
           currency: 'USD',
-          status: order.status === 'pending' ? 'pending_manual_payment' : order.status,
+          status: order.status === 'pending' ? 'pending_manual_payment'
+               : order.status === 'completed' ? 'paid'
+               : order.status,
           createdAt: order.createdAt,
-          expiresAt: order.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now if no expiry
-          items: order.cartItems?.map(item => ({
+          expiresAt: order.expiresAt || order.completedAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          items: (order.cartItems || order.items || []).map((item: any) => ({
             id: item.id,
-            name: item.storefrontItem?.name || 'Unknown Item',
-            quantity: item.quantity,
-            price: parseFloat(item.price),
-            sessions: item.storefrontItem?.sessions || undefined
-          })) || [],
+            name: item.storefrontItem?.name || item.name || 'Unknown Item',
+            quantity: item.quantity || 1,
+            price: parseFloat(item.price || 0),
+            sessions: item.storefrontItem?.sessions || item.sessions || undefined
+          })),
           paymentInstructions: {
             title: 'Complete Payment',
             methods: [
-              {
-                method: 'stripe',
-                title: 'Credit/Debit Card',
-                description: 'Pay securely with your credit or debit card',
-                details: { processor: 'Stripe' }
-              },
-              {
-                method: 'manual',
-                title: 'Manual Payment',
-                description: 'Contact admin to complete payment manually',
-                details: { contact: 'admin@swanstudios.com' }
-              }
+              { method: 'stripe', title: 'Credit/Debit Card', description: 'Pay securely', details: { processor: 'Stripe' } },
+              { method: 'manual', title: 'Manual Payment', description: 'Contact admin', details: { contact: 'admin@swanstudios.com' } }
             ]
           },
-          priority: parseFloat(order.totalAmount || 0) > 200 ? 'high' : parseFloat(order.totalAmount || 0) > 100 ? 'medium' : 'low'
+          priority: parseFloat(order.totalAmount || order.total || 0) > 200 ? 'high' as const
+                  : parseFloat(order.totalAmount || order.total || 0) > 100 ? 'medium' as const
+                  : 'low' as const
         }));
-        
-        setOrders(pendingOrders);
-        console.log(`✅ Loaded ${pendingOrders.length} pending orders from real data`);
+
+        // If viewing 'all', fetch both endpoints
+        if (viewMode === 'all') {
+          try {
+            const completedRes = await authAxios.get('/api/admin/orders/completed', {
+              params: { limit: 50, sortBy: 'createdAt', sortOrder: 'desc' }
+            });
+            if (completedRes.data.success) {
+              const completedRaw = completedRes.data.orders || completedRes.data.data || [];
+              const completedMapped = completedRaw.map((order: any) => ({
+                id: order.id,
+                orderReference: order.id,
+                paymentReference: order.checkoutSessionId || 'N/A',
+                customer: {
+                  id: order.user?.id || order.userId || 0,
+                  name: order.user ? `${order.user.firstName || ''} ${order.user.lastName || ''}`.trim() : 'Unknown Customer',
+                  email: order.user?.email || 'N/A',
+                  phone: order.user?.phone || undefined
+                },
+                amount: parseFloat(order.totalAmount || order.total || 0),
+                currency: 'USD',
+                status: 'paid' as const,
+                createdAt: order.createdAt,
+                expiresAt: order.completedAt || order.createdAt,
+                items: (order.cartItems || order.items || []).map((item: any) => ({
+                  id: item.id,
+                  name: item.storefrontItem?.name || item.name || 'Unknown Item',
+                  quantity: item.quantity || 1,
+                  price: parseFloat(item.price || 0),
+                  sessions: item.storefrontItem?.sessions || item.sessions || undefined
+                })),
+                paymentInstructions: { title: '', methods: [] },
+                priority: parseFloat(order.totalAmount || order.total || 0) > 200 ? 'high' as const : 'low' as const
+              }));
+
+              // Merge and dedupe by id
+              const allOrders = [...mappedOrders];
+              for (const co of completedMapped) {
+                if (!allOrders.find((o: any) => o.id === co.id)) {
+                  allOrders.push(co);
+                }
+              }
+              // Sort by date descending
+              allOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              setOrders(allOrders);
+              return;
+            }
+          } catch {
+            // Completed endpoint may not exist yet, just use pending
+          }
+        }
+
+        setOrders(mappedOrders);
       } else {
-        setError(response.data.message || 'Failed to load pending orders');
+        setError(response.data.message || 'Failed to load orders');
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to load pending orders';
+      const errorMessage = err.response?.data?.message || 'Failed to load orders';
       setError(errorMessage);
-      console.error('❌ Failed to load pending orders:', errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [authAxios, statusFilter, sortBy, sortOrder, searchTerm]);
+  }, [authAxios, statusFilter, sortBy, sortOrder, searchTerm, viewMode]);
 
   // Mark order as paid
   const markAsPaid = useCallback(async (orderId: string) => {
@@ -532,11 +659,52 @@ const PendingOrdersAdminPanel: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
+      {/* View Mode Tabs */}
+      <ViewModeTabs>
+        <ViewModeTab $active={viewMode === 'all'} onClick={() => setViewMode('all')}>
+          All Orders
+        </ViewModeTab>
+        <ViewModeTab $active={viewMode === 'pending'} onClick={() => setViewMode('pending')}>
+          Pending
+        </ViewModeTab>
+        <ViewModeTab $active={viewMode === 'completed'} onClick={() => setViewMode('completed')}>
+          Completed
+        </ViewModeTab>
+      </ViewModeTabs>
+
+      {/* Revenue Summary */}
+      {orders.length > 0 && (
+        <RevenueSummary>
+          <RevenueStat>
+            <RevenueValue $color="#10b981">
+              ${orders.reduce((sum, o) => sum + o.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </RevenueValue>
+            <RevenueLabel>Total Revenue</RevenueLabel>
+          </RevenueStat>
+          <RevenueStat>
+            <RevenueValue $color="#ff6b6b">
+              ${(orders.reduce((sum, o) => sum + o.amount, 0) * CA_TAX_RATE).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </RevenueValue>
+            <RevenueLabel>CA Tax Liability (7.25%)</RevenueLabel>
+          </RevenueStat>
+          <RevenueStat>
+            <RevenueValue>{orders.length}</RevenueValue>
+            <RevenueLabel>Total Orders</RevenueLabel>
+          </RevenueStat>
+          <RevenueStat>
+            <RevenueValue $color="#f59e0b">
+              {orders.filter(o => o.status === 'pending_manual_payment').length}
+            </RevenueValue>
+            <RevenueLabel>Pending Payment</RevenueLabel>
+          </RevenueStat>
+        </RevenueSummary>
+      )}
+
       {/* Header Controls */}
       <PanelHeader>
         <PanelTitle>
           <ShoppingBag size={24} />
-          Pending Orders Management
+          {viewMode === 'pending' ? 'Pending' : viewMode === 'completed' ? 'Completed' : 'All'} Orders
         </PanelTitle>
         
         <ControlsContainer>
@@ -626,13 +794,17 @@ const PendingOrdersAdminPanel: React.FC = () => {
                 <OrderHeader>
                   <OrderInfo>
                     <OrderId>{order.orderReference}</OrderId>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                       <StatusBadge status={order.status}>
-                        {order.status.replace('_', ' ').toUpperCase()}
+                        {order.status === 'paid' ? 'COMPLETED' : order.status.replace('_', ' ').toUpperCase()}
                       </StatusBadge>
                       <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#10b981' }}>
-                        ${order.amount.toLocaleString()}
+                        ${order.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
+                      <TaxBadge>
+                        <DollarSign size={10} />
+                        Tax: ${(order.amount * CA_TAX_RATE).toFixed(2)}
+                      </TaxBadge>
                     </div>
                   </OrderInfo>
                   

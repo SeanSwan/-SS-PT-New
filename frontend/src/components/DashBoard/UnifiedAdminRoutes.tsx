@@ -6,7 +6,7 @@ import { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashb
 import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
 import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
 import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
-import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
+import AdminPackagesView from './Pages/admin-packages/admin-packages-view.V2';
 import AdminSpecialsManager from './Pages/admin-specials/AdminSpecialsManager';
 const CustomPackageCreator = React.lazy(() => import('./Pages/admin-dashboard/CustomPackageCreator'));
 import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
@@ -57,6 +57,7 @@ const MovementAnalysisListPage = React.lazy(() => import('./Pages/admin-movement
 const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisWizard'));
 const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
 const BodyMap = React.lazy(() => import('../BodyMap'));
+const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
 
 
 // Workspace containers
@@ -240,6 +241,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="custom-packages" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <CustomPackageCreator />
+        </React.Suspense>
+      } />
+      <Route path="revenue" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <CATaxCalculatorWidget />
         </React.Suspense>
       } />
     </Route>

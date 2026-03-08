@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Package, Star, Crown } from 'lucide-react';
+import { CreditCard, Package, Star, Crown, Calculator } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 
 const tabs: WorkspaceTab[] = [
@@ -7,6 +7,7 @@ const tabs: WorkspaceTab[] = [
   { id: 'packages', label: 'Packages', icon: <Package size={18} />, path: '/dashboard/store/packages' },
   { id: 'specials', label: 'Specials', icon: <Star size={18} />, path: '/dashboard/store/specials' },
   { id: 'custom-packages', label: 'VIP Packages', icon: <Crown size={18} />, path: '/dashboard/store/custom-packages' },
+  { id: 'revenue', label: 'Revenue & Tax', icon: <Calculator size={18} />, path: '/dashboard/store/revenue' },
 ];
 
 const StoreWorkspace: React.FC = () => (

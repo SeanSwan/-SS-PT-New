@@ -32,7 +32,9 @@ import {
   RefreshCw,
   CheckSquare,
   X,
-  Inbox
+  Inbox,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 // Import UI Kit components
@@ -424,6 +426,26 @@ const AdminPackagesView: React.FC = () => {
     }
   };
 
+  // Handle inline toggle active/inactive
+  const handleToggleActive = async (pkg: SessionPackage) => {
+    try {
+      await authAxios.put(`/api/admin/storefront/${pkg.id}`, {
+        isActive: !pkg.isActive
+      });
+      toast({
+        title: 'Success',
+        description: `${pkg.name} ${pkg.isActive ? 'deactivated' : 'activated'}`
+      });
+      fetchPackages();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to toggle package status',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Calculate stats
   const stats = {
     total: packages.length,
@@ -570,18 +592,39 @@ const AdminPackagesView: React.FC = () => {
                           </BodyText>
                         </UITable.Cell>
                         <UITable.Cell>
-                          <Badge variant={pkg.isActive ? 'success' : 'warning'}>
-                            {pkg.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
+                          <button
+                            onClick={() => handleToggleActive(pkg)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.25rem',
+                              minHeight: '44px',
+                              minWidth: '44px',
+                            }}
+                            title={`Click to ${pkg.isActive ? 'deactivate' : 'activate'}`}
+                          >
+                            {pkg.isActive ? (
+                              <ToggleRight size={22} style={{ color: '#10b981' }} />
+                            ) : (
+                              <ToggleLeft size={22} style={{ color: '#94a3b8' }} />
+                            )}
+                            <Badge variant={pkg.isActive ? 'success' : 'warning'}>
+                              {pkg.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </button>
                         </UITable.Cell>
                         <UITable.Cell align="right">
                           <FlexBox gap="0.5rem" justify="end">
                             <OutlinedButton onClick={() => handleEditPackage(pkg)}>
                               <Edit size={16} />
                             </OutlinedButton>
-                            <DangerButton onClick={() => { 
-                              setSelectedPackage(pkg); 
-                              setOpenDeleteDialog(true); 
+                            <DangerButton onClick={() => {
+                              setSelectedPackage(pkg);
+                              setOpenDeleteDialog(true);
                             }}>
                               <Trash2 size={16} />
                             </DangerButton>
