@@ -1,154 +1,101 @@
 # Gemini 3.1 Pro — Plan Review
 
-> **Generated:** 3/8/2026, 3:16:20 PM
+> **Generated:** 3/8/2026, 3:41:54 PM
 > **Mode:** plan
-> **Duration:** 38.4s
-> **Tokens:** 1168 in / 2168 out
+> **Duration:** 34.7s
+> **Tokens:** 1420 in / 1835 out
 
 ---
 
 ## Input
 
-## VIP Package Update: Include FREE Orientation Session
+## CRM Lead Management Dashboard + AI Assistant Integration
 
 ### CONTEXT
-The SwanStudios VIP Gallery Package (75) currently includes:
-- 1 PT session with Sean (1 hour)
-- Unlimited photo enhancements for that gallery event
+SwanStudios has multiple lead sources:
+1. Swan Photography gallery visitors (email captured at gallery gate)
+2. Walk-in/manual leads (people giving Sean their contact info at events, gyms, etc.)
+3. Website contact form submissions
+4. Referrals from existing clients
 
-### PROPOSED UPDATE
-Sean wants to include a FREE 1-hour orientation session WITH the \75 VIP purchase. So the package becomes:
-
-**\75 VIP Gallery Package includes:**
-1. **Session 1 (FREE Orientation — 1 hour):** NASM Movement Assessment, discuss client goals, health history, mobil
+Currently gallery email leads show in a tab inside the Admin Gallery Manager. But Sean needs a DEDICATED Lead Management CRM dashboard that consolidates ALL lea
 
 ---
 
 ## Gemini 3.1 Pro Response
 
-Hello Claude. Excellent strategic thinking on the business logic and value proposition. Adding the NASM assessment and 90-day blueprint transforms this from a simple "upsell" into a premium, high-ticket onboarding experience. 
+Hello Claude. Excellent initiative on this CRM Lead Management integration. Consolidating these streams into a unified, intelligent pipeline is exactly what Sean needs to scale SwanStudios. 
 
-As Lead Design Authority, I’ve reviewed your proposal. If we want parents to perceive this as a high-end concierge service (think Apple Fitness+ meets Equinox) rather than a late-night infomercial deal, we must execute the UI with absolute precision. 
+As Lead Design Authority, I have reviewed your architectural plan. The backend logic, RBAC, and de-identification strategies are rock solid. However, to ensure this feels like a premium, bespoke NASM-certified platform and not a generic SaaS template, we need to strictly define the UX/UI execution.
 
-Here are my answers to your strategic questions, followed by the exact design specifications you need to build this.
+Here are the answers to your questions, followed by my design directives.
 
-### UX Strategy Answers (Your Questions)
-1. **Presentation:** Do NOT use a bulleted list. We will use a **"Vertical Journey Timeline"**. Parents need to visualize the transformation. Step 1: The Assessment. Step 2: The Blueprint. Step 3: The Execution. Step 4: The Memories (Photos).
-2. **Framing:** Never use the word "FREE" in a premium UI—it devalues the service. Use **"Complimentary"** or **"Included VIP Bonus"**. 
-3. **Backend Representation:** Represent them as two distinct session credits with different types: `type: 'nasm_assessment'` and `type: 'pt_session'`. The UI will query these to show the user their specific onboarding milestones.
-4. **3-Month Plan:** Absolutely mention it. Frame it as a **"Personalized 90-Day Blueprint"**. This is the anchor of the perceived value.
-5. **Value Breakdown:** No tacky red strikethroughs (e.g., ~~$150~~ $75). Instead, use a "Value Unlocked" summary at the bottom of the timeline. We will use typography hierarchy (Swan Cyan for the price, Cosmic Purple for the value text) to make it feel like an exclusive grant rather than a discount.
-6. **Trust Card:** Shift the focus from "Sean is a nice guy" to **"Clinical Precision & 25+ Years Experience"**. Highlight the NASM credential with a custom badge. Parents want to know their kids (and themselves) are in the hands of a master biomechanic.
+### Answers to Your Questions
+1. **Workspace Tab vs. Page:** It must be a **Workspace Tab** within the Admin Dashboard. Context switching kills workflow. Keep it in the unified shell so Sean can drag a lead into the Universal Master Schedule without leaving the view.
+2. **Pipeline UX:** **Hybrid approach.** Desktop (1024px+) gets a horizontal Glassmorphic Kanban board. Mobile/Tablet (320px–768px) gets a vertical, swipeable Accordion List. A 6-column Kanban on a phone is a UX nightmare.
+3. **Auto-email:** **SendGrid.** Do not build custom SMTP; we need reliable deliverability and open-tracking for our Lead Scoring. 
+4. **SMS:** **Email-only for V1.** Let's perfect the AI-drafted email workflows first. We will integrate Twilio for SMS in V2.
+5. **Visual Distinction:** Use **Cosmic Edge Tags** (glowing 1px borders/badges). Swan Gallery = Cosmic Purple (`#7851A9`), Walk-in = Swan Cyan (`#00FFFF`), Web = Starlight Silver (`#E2E8F0`), Referral = Nebula Pink (`#FF69B4`).
+6. **Design Specs:** Detailed in Section 4 below.
+7. **AI Context:** **Yes.** Add `lead_nurturing` to the RBAC. The AI needs a distinct persona here—acting as a high-end concierge/sales assistant, not a fitness coach.
 
 ---
 
-### 1. Design Gaps in Your Plan
-*   **Cognitive Overload:** Mixing digital assets (photos) with physical services (PT) in one list is jarring. We need visual separation. The PT journey is the core; the photos are the "cherry on top" VIP perk.
-*   **Mobile Modal Constraints:** On our 320px and 375px breakpoints, a timeline will push the CTA below the fold. We need a **Sticky Glass Footer** for the CTA so the user can always convert while scrolling the value props.
-*   **Accessibility:** Modal must have `aria-modal="true"`, focus trapping, and the timeline steps need `aria-label`s indicating sequence (e.g., "Step 1 of 3").
-*   **Entrance Choreography:** You didn't specify how this modal appears. A premium package needs a premium reveal.
+### 1. Design Gaps (What's Missing)
 
-### 2. Enhancement Opportunities (The Galaxy-Swan Polish)
-*   **The "Cosmic Glow" Focus:** The "Complimentary Assessment" step should have a subtle, pulsing radial gradient behind its icon to draw the eye and signify its special status.
-*   **Iconography:** We need custom SVG nodes for the timeline. 
-    *   *Assessment:* A geometric compass or anatomical node.
-    *   *Blueprint:* A glowing document/grid.
-    *   *Session:* A dynamic movement spark.
-    *   *Photos:* The Swan motif.
-*   **Haptic Feedback:** On mobile, tapping the CTA should trigger a subtle CSS scale-down (`0.98`) before routing to Stripe, mimicking a physical button press.
+*   **Mobile-First Drag & Drop:** Your plan lacks a mobile interaction model for moving leads. On mobile, we cannot rely on drag-and-drop. We need a tap-to-move action sheet (e.g., "Move to -> Qualified") with 44px minimum touch targets.
+*   **AI Drafting UX:** How does Sean interact with the AI to draft an email? It shouldn't be a separate chat window. We need a **Slide-out Context Drawer** (right side) when a Lead Card is clicked. The drawer contains the lead details, history, and an inline AI prompt box ("Draft follow-up").
+*   **De-identification Transparency:** Sean needs to trust the AI privacy. When the AI drafts a message, we need a subtle UI indicator showing that the AI processed the data using the `spiritName`, but the UI has seamlessly re-injected the real name for Sean's review. 
+*   **Lead Scoring Visualization:** Numbers are boring. We need a visual "Gravity" or "Heat" indicator. A lead score of 90+ should have a subtle, pulsating CSS glow, indicating they are "hot."
+
+### 2. Enhancement Opportunities (The Premium Feel)
+
+*   **The "Converted" Micro-interaction:** When a lead is dragged into the "Converted" column, trigger a subtle, elegant particle effect (CSS or Canvas)—a burst of Swan Cyan and Cosmic Purple stardust. Reward the conversion.
+*   **Glassmorphic Depth:** The Kanban columns shouldn't be solid boxes. They should be deep space (`rgba(10, 10, 26, 0.4)`) with a heavy backdrop blur (`backdrop-filter: blur(12px)`), allowing the underlying Galaxy-Swan gradients to bleed through subtly.
+*   **AI "Thinking" State:** Reject generic bouncing dots. When the AI is drafting an email, use a "Constellation" loading state—subtle nodes connecting with 1px cyan lines, representing the AI connecting data points.
 
 ### 3. Architecture Recommendations
+
 *   **Component Structure:**
-    ```tsx
-    <VIPModalOverlay>
-      <VIPGlassPanel>
-        <ModalHeader />
-        <ScrollableContent>
-          <ValuePropositionHero />
-          <JourneyTimeline>
-            <TimelineNode type="assessment" />
-            <TimelineNode type="blueprint" />
-            <TimelineNode type="training" />
-          </JourneyTimeline>
-          <BonusDivider />
-          <PhotoEnhancementPerk />
-        </ScrollableContent>
-        <StickyGlassFooter>
-          <PriceDisplay />
-          <ConversionButton />
-        </StickyGlassFooter>
-      </VIPGlassPanel>
-    </VIPModalOverlay>
-    ```
-*   **Animation Approach:** Use **Framer Motion** for the modal entrance and staggering the timeline nodes. Use **CSS Transitions** for hover/active states to keep the main thread clean.
+    *   `<LeadCRMContainer>` (Handles state, fetching, and responsive layout swapping)
+    *   `<DesktopKanban>` (Framer Motion `Reorder.Group` for fluid drag-and-drop)
+    *   `<MobilePipeline>` (Vertical list with expandable sections)
+    *   `<LeadCard>` (The individual lead component)
+    *   `<LeadDetailDrawer>` (The slide-out panel for AI interaction and email drafting)
+*   **Animation Strategy:** Use **Framer Motion** for the Kanban drag-and-drop and the Drawer slide-out. Use native **CSS Transitions** for hover states and glows (better performance).
+*   **State Management:** Keep the lead state optimistic. When Sean moves a card, update the UI instantly, then fire the backend request. Revert if it fails.
 
-### 4. Implementation Directives for Claude (Exact Specs)
+### 4. Implementation Directives for Claude (Strict Specs)
 
-**A. Theme & Color Tokens (Strict Adherence):**
-*   Background: `linear-gradient(145deg, rgba(10,10,26,0.85) 0%, rgba(120,81,169,0.15) 100%)`
-*   Glass Blur: `backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);`
-*   Borders: `1px solid rgba(0, 255, 255, 0.12)`
-*   Text Primary: `rgba(255, 255, 255, 0.95)`
-*   Text Secondary: `rgba(255, 255, 255, 0.65)`
-*   Accent (Swan Cyan): `#00FFFF`
-*   Accent (Cosmic Purple): `#7851A9`
+Claude, follow these exact specifications when building the styled-components:
 
-**B. Typography & Spacing:**
-*   **Hero Title:** 28px (mobile) / 36px (desktop 1024px+), Font Weight 700, Tracking `-0.03em`.
-*   **Timeline Titles:** 16px, Font Weight 600, Color: Primary.
-*   **Timeline Body:** 14px, Font Weight 400, Line Height `1.6`, Color: Secondary.
-*   **Padding:** Modal interior should be `24px` on mobile (320-430px), `40px` on tablet/desktop (768px+).
+**A. Color & Typography Tokens:**
+*   **Background:** App shell remains Galaxy Core (`#0a0a1a`).
+*   **Kanban Columns:** `background: rgba(255, 255, 255, 0.02); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05);`
+*   **Lead Cards:** `background: rgba(255, 255, 255, 0.05); border-radius: 12px; backdrop-filter: blur(8px);`
+*   **Card Hover State:** `transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 255, 255, 0.08); border: 1px solid rgba(0, 255, 255, 0.3);`
+*   **Typography:** Primary text `#FFFFFF`, Secondary text `#A0AEC0`. Lead Names should be `font-weight: 600; font-size: 16px; tracking: -0.01em;`.
 
-**C. The Timeline CSS (The "Journey"):**
-*   The vertical line connecting steps: `width: 2px; background: linear-gradient(to bottom, #00FFFF 0%, #7851A9 100%); opacity: 0.3;`
-*   Step Nodes (Circles): `width: 32px; height: 32px; border-radius: 50%; background: #0a0a1a; border: 2px solid #00FFFF; display: flex; align-items: center; justify-content: center;`
+**B. Measurements & Spacing:**
+*   **Kanban Gap:** `gap: 24px;` between columns.
+*   **Card Padding:** `padding: 16px;` inside Lead Cards.
+*   **Touch Targets:** Any button (edit, move, email) must be `min-height: 44px; min-width: 44px;`.
+*   **Drawer Width:** The Lead Detail Drawer should be `width: 100%;` on mobile, and `width: 480px;` on desktop (`min-width: 768px`).
 
-**D. The Sticky Footer & CTA:**
-*   **Footer Container:** `position: sticky; bottom: 0; padding: 20px 24px; background: rgba(10,10,26,0.9); backdrop-filter: blur(12px); border-top: 1px solid rgba(120,81,169,0.3);`
-*   **CTA Button:** 
-    *   `min-height: 56px` (Luxurious touch target, well above 44px min).
-    *   `background: linear-gradient(90deg, #7851A9 0%, #00FFFF 100%);`
-    *   `border-radius: 12px;`
-    *   `color: #0a0a1a; font-weight: 700; font-size: 16px;`
-    *   Hover state (Desktop): `filter: brightness(1.2); box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);`
-    *   Transition: `all 0.3s cubic-bezier(0.16, 1, 0.3, 1)`
+**C. Animation Curves:**
+*   Use this exact bezier for the Drawer slide-out and Card drops: `transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);` (creates a premium, snappy-yet-smooth easing).
 
-**E. Framer Motion Choreography:**
-```javascript
-// Modal Entrance
-const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95, y: 20 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    y: 0,
-    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } 
-  }
-};
-
-// Timeline Stagger
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-  }
-};
-```
+**D. The AI Draft UI:**
+*   Inside the Drawer, the AI-drafted email should appear in a distinct block: `background: linear-gradient(145deg, rgba(120, 81, 169, 0.1) 0%, rgba(0, 255, 255, 0.05) 100%); border-left: 3px solid #00FFFF; padding: 16px;`.
+*   Include a "Regenerate" button with a sparkle icon, and an "Approve & Send" button (solid Swan Cyan background, black text).
 
 ### 5. Verdict
 
 **APPROVED WITH MODIFICATIONS.**
 
-The business logic is brilliant and adds massive value. Proceed with the implementation, but you must pivot from a "list of features" to the "Journey Timeline" UI described above. 
+Proceed with the implementation, Claude. Build the backend routes, RBAC, and de-identification hooks first. Then, build the UI starting with the Mobile List View, scaling up to the Desktop Kanban. 
 
-**Your immediate next steps:**
-1. Scaffold the styled-components (`VIPGlassPanel`, `JourneyTimeline`, `StickyGlassFooter`).
-2. Implement the Framer Motion choreography.
-3. Update the backend schema to support the two distinct session types (`nasm_assessment`, `pt_session`).
-4. Ping me with a screenshot or staging link of the timeline layout at the 375px and 1024px breakpoints before wiring up the Stripe checkout.
-
-Let's build something beautiful. Proceed.
+Consult me when you are ready to implement the "Converted" particle micro-interaction and the AI Constellation loading state—I will provide the exact SVG/Canvas logic for those. Let's build something extraordinary.
 
 ---
 

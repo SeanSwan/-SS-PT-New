@@ -5,19 +5,21 @@
  * Drop this into any dashboard — it manages its own state.
  *
  * Gemini 3.1 Pro design specs:
- *   - Desktop (1024px+): Cmd+K / Ctrl+K keyboard shortcut
- *   - Mobile: 64x64 FAB with Nebula Glow breathing animation
+ *   - Desktop (1024px+): Cmd+K / Ctrl+K keyboard shortcut bar (bottom-right)
+ *   - Mobile/Tablet: Swan logo FAB with Nebula Glow (bottom-right, above taskbar)
  *   - "Nebula Glow" = breathing box-shadow using Swan Cyan + Cosmic Purple
  *   - Idle: subtle float animation
  *   - Listening/Processing: pulsing nebula glow
+ *
+ * Also exported: openAIAssistant callback for sidebar integration.
  *
  * Usage:
  *   <AIAssistantFAB userRole="client" />
  *   <AIAssistantFAB userRole="trainer" defaultContext="workout_generation" />
  */
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import { Sparkles, Command } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { Command } from 'lucide-react';
 import type { AIContext } from '../../hooks/useAIChat';
 
 const AIAssistantDrawer = lazy(() => import('./AIAssistantDrawer'));
@@ -43,14 +45,16 @@ const floatIdle = keyframes`
 
 const FAB = styled.button`
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 80px;
+  right: 20px;
   z-index: 1250;
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 2px solid rgba(0, 255, 255, 0.4);
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #0a0a1a;
   cursor: pointer;
   display: flex;
@@ -59,6 +63,15 @@ const FAB = styled.button`
   transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   animation: ${nebulaGlow} 3s ease-in-out infinite,
              ${floatIdle} 2s ease-in-out infinite;
+  padding: 0;
+  overflow: hidden;
+
+  img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.4));
+  }
 
   &:hover {
     transform: scale(1.08);
@@ -70,18 +83,37 @@ const FAB = styled.button`
     transform: scale(0.95);
   }
 
-  @media (max-width: 768px) {
-    bottom: 16px;
-    right: 16px;
+  /* Desktop: slightly larger, well clear of Windows taskbar */
+  @media (min-width: 1024px) {
+    bottom: 90px;
+    right: 24px;
     width: 56px;
     height: 56px;
+
+    img {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  /* Mobile: above browser chrome & Windows taskbar (80px up) */
+  @media (max-width: 768px) {
+    bottom: 72px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+
+    img {
+      width: 32px;
+      height: 32px;
+    }
   }
 `;
 
 // ── Desktop Cmd+K Trigger Bar ──
 const CmdKBar = styled.button`
   position: fixed;
-  bottom: 24px;
+  bottom: 90px;
   right: 24px;
   z-index: 1250;
   display: flex;
@@ -99,6 +131,13 @@ const CmdKBar = styled.button`
   font-family: inherit;
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   animation: ${nebulaGlow} 4s ease-in-out infinite;
+
+  img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.4));
+  }
 
   &:hover {
     border-color: rgba(0, 255, 255, 0.5);
@@ -125,11 +164,6 @@ const KbdStyle = styled.kbd`
   line-height: 1;
 `;
 
-const SparkleIcon = styled(Sparkles)`
-  color: #00FFFF;
-  flex-shrink: 0;
-`;
-
 // ── Mobile-only wrapper ──
 const MobileFABWrapper = styled.div`
   @media (min-width: 1024px) {
@@ -137,25 +171,40 @@ const MobileFABWrapper = styled.div`
   }
 `;
 
-interface AIAssistantFABProps {
+export interface AIAssistantFABProps {
   userRole: 'client' | 'trainer' | 'admin';
   defaultContext?: AIContext;
+  /** If true, hide the FAB (used when opened from sidebar instead) */
+  externalOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({ userRole, defaultContext = 'general' }) => {
-  const [open, setOpen] = useState(false);
+const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
+  userRole,
+  defaultContext = 'general',
+  externalOpen,
+  onOpenChange,
+}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+
+  const setOpen = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+    const newVal = typeof val === 'function' ? val(open) : val;
+    setInternalOpen(newVal);
+    onOpenChange?.(newVal);
+  }, [open, onOpenChange]);
 
   // Cmd+K / Ctrl+K keyboard shortcut
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
-      setOpen(prev => !prev);
+      setOpen((prev: boolean) => !prev);
     }
     // Escape to close
     if (e.key === 'Escape' && open) {
       setOpen(false);
     }
-  }, [open]);
+  }, [open, setOpen]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -166,19 +215,19 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({ userRole, defaultContex
     <>
       {!open && (
         <>
-          {/* Desktop: Cmd+K trigger bar */}
+          {/* Desktop: Cmd+K trigger bar with Swan logo */}
           <CmdKBar onClick={() => setOpen(true)} aria-label="Open AI Assistant (Ctrl+K)">
-            <SparkleIcon size={18} />
+            <img src="/Logo.png" alt="" aria-hidden="true" />
             <span>Ask Swan AI...</span>
             <KbdStyle>
               <Command size={11} />K
             </KbdStyle>
           </CmdKBar>
 
-          {/* Mobile: Nebula Glow FAB */}
+          {/* Mobile/Tablet: Swan logo FAB — positioned above Windows taskbar */}
           <MobileFABWrapper>
-            <FAB onClick={() => setOpen(true)} aria-label="Open AI Assistant" title="AI Assistant">
-              <Sparkles size={26} />
+            <FAB onClick={() => setOpen(true)} aria-label="Open AI Assistant" title="Swan AI Assistant">
+              <img src="/Logo.png" alt="Swan AI" />
             </FAB>
           </MobileFABWrapper>
         </>

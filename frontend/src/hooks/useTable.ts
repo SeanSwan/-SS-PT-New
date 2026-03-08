@@ -183,13 +183,14 @@ export function useTable<T extends Record<string, any>>(
     });
   }, [data, searchTerm, searchFields]);
 
-  // Apply custom filter
+  // Apply custom filter — prefer customFilter prop (always fresh), fallback to activeFilter state
+  const effectiveFilter = customFilter || activeFilter;
   const filteredData = useMemo(() => {
-    if (!activeFilter) {
+    if (!effectiveFilter || typeof effectiveFilter !== 'function') {
       return searchFilteredData;
     }
-    return searchFilteredData.filter(activeFilter);
-  }, [searchFilteredData, activeFilter]);
+    return searchFilteredData.filter(effectiveFilter);
+  }, [searchFilteredData, effectiveFilter]);
 
   // Sort data
   const sortedData = useMemo(() => {
