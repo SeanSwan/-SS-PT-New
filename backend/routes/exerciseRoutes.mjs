@@ -32,6 +32,12 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
     }
 
     const Exercise = getExercise();
+    if (!Exercise) {
+      return res.status(503).json({
+        success: false,
+        message: 'Exercise model not available. Database may still be initializing.'
+      });
+    }
     const searchQuery = q.trim().toLowerCase();
     
     // Build dynamic where clause
@@ -78,8 +84,8 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
         'imageUrl'
       ],
       order: [
-        // Prioritize exact name matches
-        [sequelize.literal(`CASE WHEN LOWER(name) LIKE '%${searchQuery}%' THEN 1 ELSE 2 END`), 'ASC'],
+        // Prioritize exact name matches (parameterized to prevent SQL injection)
+        [sequelize.literal(`CASE WHEN LOWER(name) LIKE '%' || ${sequelize.escape(searchQuery)} || '%' THEN 1 ELSE 2 END`), 'ASC'],
         ['name', 'ASC']
       ],
       limit: parseInt(limit)
