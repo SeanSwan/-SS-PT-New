@@ -9,13 +9,12 @@
  * Requires AI consent to be granted.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Sparkles, Shield, ShieldCheck, ChevronDown, ChevronUp,
-  Dumbbell, Clock, Target, AlertTriangle, Loader, CheckCircle,
-  ShoppingCart
+  Dumbbell, Clock, Target, AlertTriangle, Loader, CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../../context/AuthContext';
@@ -280,7 +279,10 @@ const ClientAIWorkoutCreator: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
-  const aiService = createAiWorkoutService(apiService.authAxios || apiService);
+  const aiService = useMemo(
+    () => createAiWorkoutService(apiService.authAxios || apiService),
+    []
+  );
 
   const checkConsentAndGenerate = useCallback(async () => {
     if (!user?.id) return;
@@ -339,7 +341,8 @@ const ClientAIWorkoutCreator: React.FC = () => {
       toast.success('AI features enabled! Generating your workout...');
       // Now generate
       setViewState('generating');
-      const response = await aiService.generateDraft(user!.id);
+      if (!user?.id) return;
+      const response = await aiService.generateDraft(user.id);
 
       if (isDegraded(response)) {
         setDegradedSuggestions(response.fallback?.templateSuggestions || []);

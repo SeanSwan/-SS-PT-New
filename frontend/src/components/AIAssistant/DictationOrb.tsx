@@ -83,8 +83,11 @@ const DictationOrb: React.FC<DictationOrbProps> = ({ onTranscript, onInterimTran
       if (interimTranscript && onInterimTranscript) onInterimTranscript(interimTranscript);
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       setListening(false);
+      if (event.error === 'not-allowed') {
+        console.warn('Microphone permission denied — enable in browser settings');
+      }
     };
 
     recognition.onend = () => {

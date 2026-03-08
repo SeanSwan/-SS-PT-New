@@ -8,9 +8,8 @@
  */
 import { useState, useCallback, useRef } from 'react';
 
-const API_BASE = import.meta.env.PROD
-  ? 'https://ss-pt-new.onrender.com'
-  : 'http://localhost:10000';
+const API_BASE = import.meta.env.VITE_API_BASE
+  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
 interface Message {
   role: 'user' | 'assistant';
@@ -208,7 +207,8 @@ export function useAIChat() {
         ...prev,
         messages: prev.messages.slice(0, -1),
       } : prev);
-      return null;
+      // Return failure indicator so component can restore input
+      return { failed: true, originalMessage: message } as any;
     } finally {
       setSending(false);
     }

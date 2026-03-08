@@ -424,22 +424,24 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
     if (!text || sending) return;
+    if (text.length > 4000) return; // Max message length guard
+
+    setInputValue('');
 
     // If no active conversation, create one first
     if (!activeConversation) {
       const conv = await createConversation(selectedContext);
-      if (!conv) return;
-      setInputValue('');
-      // Small delay then send - wait for state update
-      setTimeout(async () => {
-        // Hook will have the active conversation set
-      }, 50);
-      // Actually, let the useAIChat hook handle it — we need to wait for state
-      // So just set input and let user send again... or handle inline:
+      if (!conv) {
+        setInputValue(text); // Restore input on failure
+        return;
+      }
     }
 
-    setInputValue('');
-    await sendMessage(text);
+    const result = await sendMessage(text);
+    // If send failed, restore the user's message so they don't lose it
+    if (result?.failed) {
+      setInputValue(result.originalMessage || text);
+    }
   }, [inputValue, sending, activeConversation, selectedContext, createConversation, sendMessage]);
 
   const handleStartChat = useCallback(async (context: AIContext) => {
@@ -461,8 +463,8 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     setInputValue(prev => prev + (prev ? ' ' : '') + text);
   }, []);
 
-  const handleInterim = useCallback((text: string) => {
-    // Could show interim text as placeholder, but keeping it simple
+  const handleInterim = useCallback((_text: string) => {
+    // Reserved for future interim transcript display
   }, []);
 
   if (!open) return null;
@@ -631,6 +633,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 rows={1}
+                maxLength={4000}
                 disabled={sending}
               />
               <SendBtn $active={hasInput && !sending} onClick={handleSend} aria-label="Send message">
