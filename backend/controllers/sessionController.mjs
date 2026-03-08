@@ -997,7 +997,7 @@ export const assignTrainer = async (req, res) => {
     const trainer = await User.findOne({
       where: {
         id: trainerId,
-        role: 'trainer'
+        role: ['trainer', 'admin']
       }
     });
     

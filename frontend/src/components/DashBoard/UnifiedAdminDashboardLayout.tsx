@@ -153,8 +153,8 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
             </Suspense>
           </AnimatePresence>
         </ExecutiveMainContent>
-        <AIAssistantFAB userRole="admin" defaultContext="workout_generation" />
       </ExecutiveLayoutContainer>
+      <AIAssistantFAB userRole="admin" defaultContext="workout_generation" />
     </ThemeProvider>
   );
 };

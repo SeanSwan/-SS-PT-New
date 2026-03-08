@@ -30,7 +30,7 @@ router.get('/trainers', async (req, res) => {
     console.log('🔍 Admin /trainers endpoint called');
     
     const trainers = await sequelize.models.User.findAll({
-      where: { role: 'trainer' },
+      where: { role: ['trainer', 'admin'] },
       order: [['createdAt', 'DESC']],
       attributes: { exclude: ['password', 'refreshTokenHash'] }
     });

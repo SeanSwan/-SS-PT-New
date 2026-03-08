@@ -563,11 +563,11 @@ router.post('/', protect, adminOnly, async (req, res) => {
           role: ['client', 'user'] // Support both client and user roles
         } 
       }),
-      User.findOne({ 
-        where: { 
-          id: parseInt(trainerId), 
-          role: 'trainer' 
-        } 
+      User.findOne({
+        where: {
+          id: parseInt(trainerId),
+          role: ['trainer', 'admin']
+        }
       })
     ]);
 

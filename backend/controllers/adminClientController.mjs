@@ -883,7 +883,7 @@ class AdminClientController {
 
       // Verify trainer exists
       const trainer = await User.findOne({
-        where: { id: trainerId, role: 'trainer' },
+        where: { id: trainerId, role: ['trainer', 'admin'] },
         transaction
       });
 

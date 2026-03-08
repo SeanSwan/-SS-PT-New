@@ -291,7 +291,7 @@ function resolveTargetUser(rawUserId, requesterId, requesterRole) {
     const parsed = Number(rawUserId);
     return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : null;
   }
-  // Clients default to self
-  if (requesterRole === 'client') return requesterId;
-  return null;
+  // All authenticated users default to self when no userId provided
+  // (role-specific restrictions are enforced downstream)
+  return requesterId;
 }

@@ -142,14 +142,14 @@ class TrainerAssignmentService {
 
     // Get trainer
     const trainer = await User.findOne({
-      where: { 
+      where: {
         id: trainerId,
-        role: 'trainer'
+        role: ['trainer', 'admin']
       }
     });
 
     if (!trainer) {
-      throw new Error(`Trainer with ID ${trainerId} not found or not a trainer`);
+      throw new Error(`Trainer with ID ${trainerId} not found or not a trainer/admin`);
     }
 
     // Get client
