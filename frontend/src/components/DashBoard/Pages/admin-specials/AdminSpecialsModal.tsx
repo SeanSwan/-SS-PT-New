@@ -50,14 +50,25 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
 }) => {
   const [clientSearch, setClientSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNoClientWarning, setShowNoClientWarning] = useState(false);
 
   // Reset search when modal closes
   useEffect(() => {
     if (!show) {
       setClientSearch('');
       setShowDropdown(false);
+      setShowNoClientWarning(false);
     }
   }, [show]);
+
+  // Intercept save — warn if no clients assigned
+  const handleSaveClick = useCallback(() => {
+    if (formData.assignedClientIds.length === 0) {
+      setShowNoClientWarning(true);
+    } else {
+      onSave();
+    }
+  }, [formData.assignedClientIds, onSave]);
 
   // Filter clients by search term, exclude already-assigned
   const filteredClients = useMemo(() => {
@@ -220,10 +231,40 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
           </FormGroup>
         </ModalScrollContent>
 
+        {showNoClientWarning && (
+          <div style={{
+            background: 'rgba(255, 51, 102, 0.12)',
+            border: '1px solid rgba(255, 51, 102, 0.4)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '12px',
+            textAlign: 'center',
+          }}>
+            <p style={{ color: '#FF3366', fontWeight: 600, margin: '0 0 6px', fontSize: '0.9rem' }}>
+              ⚠️ No clients assigned
+            </p>
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem', margin: '0 0 14px' }}>
+              This special will apply to <strong style={{ color: '#FF3366' }}>ALL clients</strong>.
+              Are you sure you want to continue?
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <CancelButton onClick={() => setShowNoClientWarning(false)} style={{ fontSize: '0.8rem', padding: '8px 16px' }}>
+                Go Back
+              </CancelButton>
+              <SaveButton
+                onClick={() => { setShowNoClientWarning(false); onSave(); }}
+                style={{ fontSize: '0.8rem', padding: '8px 16px', background: 'linear-gradient(135deg, #FF3366, #cc2952)' }}
+              >
+                Yes, Apply to Everyone
+              </SaveButton>
+            </div>
+          </div>
+        )}
+
         <ButtonRow>
           <CancelButton onClick={onClose}>Cancel</CancelButton>
           <SaveButton
-            onClick={onSave}
+            onClick={handleSaveClick}
             disabled={!formData.name || !formData.startDate || !formData.endDate}
           >
             {editingSpecial ? 'Update' : 'Create'}
