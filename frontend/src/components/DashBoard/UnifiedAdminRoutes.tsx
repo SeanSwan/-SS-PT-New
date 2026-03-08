@@ -59,6 +59,7 @@ const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-a
 const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
 const BodyMap = React.lazy(() => import('../BodyMap'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
+const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 
 
 // Workspace containers
@@ -202,6 +203,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
       <Route path="social" element={<AdminSocialManagementView />} />
       <Route path="waivers" element={<AdminWaiversManager />} />
+      <Route path="leads" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <LeadCRMDashboard />
+        </React.Suspense>
+      } />
       <Route path="movement-screen" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <MovementAnalysisListPage />

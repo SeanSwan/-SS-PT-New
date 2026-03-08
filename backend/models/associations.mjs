@@ -175,6 +175,10 @@ const setupAssociations = async () => {
     const GalleryDonationModule = await import('./GalleryDonation.mjs');
     const GalleryReferralModule = await import('./GalleryReferral.mjs');
 
+    // CRM Lead Management Models
+    const LeadModule = await import('./Lead.mjs');
+    const LeadActivityModule = await import('./LeadActivity.mjs');
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -333,6 +337,10 @@ const setupAssociations = async () => {
     const EnhancementRequest = EnhancementRequestModule.default;
     const GalleryDonation = GalleryDonationModule.default;
     const GalleryReferral = GalleryReferralModule.default;
+
+    // CRM Lead Management Models
+    const Lead = LeadModule.default;
+    const LeadActivity = LeadActivityModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -1049,6 +1057,17 @@ const setupAssociations = async () => {
     GalleryReferral.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
     console.log('✅ Photo Gallery & Lead Generation models integrated');
 
+    // ── CRM Lead Management Associations ─────────────────
+    Lead.hasMany(LeadActivity, { foreignKey: 'leadId', as: 'activities' });
+    Lead.belongsTo(User, { foreignKey: 'convertedUserId', as: 'convertedUser', constraints: false });
+    Lead.belongsTo(User, { foreignKey: 'assignedTrainerId', as: 'assignedTrainer', constraints: false });
+    Lead.belongsTo(User, { foreignKey: 'referredByUserId', as: 'referrer', constraints: false });
+    Lead.belongsTo(GalleryVisitor, { foreignKey: 'galleryVisitorId', as: 'galleryVisitor', constraints: false });
+
+    LeadActivity.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead' });
+    LeadActivity.belongsTo(User, { foreignKey: 'performedByUserId', as: 'performedBy', constraints: false });
+    console.log('✅ CRM Lead Management models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -1211,7 +1230,10 @@ const setupAssociations = async () => {
       ExerciseTrend,
 
       // Photo Gallery & Lead Generation Models
-      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral
+      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral,
+
+      // CRM Lead Management Models
+      Lead, LeadActivity
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

@@ -1,0 +1,91 @@
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../database.mjs';
+
+class Lead extends Model {}
+
+Lead.init(
+  {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+
+    // Contact info
+    firstName: { type: DataTypes.STRING(100), allowNull: false, field: 'first_name' },
+    lastName: { type: DataTypes.STRING(100), allowNull: true, field: 'last_name' },
+    email: { type: DataTypes.STRING(255), allowNull: true },
+    phone: { type: DataTypes.STRING(30), allowNull: true },
+
+    // Lead source tracking
+    source: {
+      type: DataTypes.ENUM('gallery', 'walk_in', 'website', 'referral', 'social_media', 'other'),
+      allowNull: false,
+      defaultValue: 'other',
+    },
+    sourceDetail: { type: DataTypes.STRING(255), allowNull: true, field: 'source_detail' },
+    // e.g., "Basketball Game March 2026" for gallery, "Gold's Gym Anaheim" for walk_in
+
+    // Pipeline status
+    status: {
+      type: DataTypes.ENUM('new', 'contacted', 'qualified', 'scheduled', 'converted', 'lost'),
+      allowNull: false,
+      defaultValue: 'new',
+    },
+
+    // Lead scoring (0-100)
+    score: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+
+    // Scheduling link
+    scheduledSessionId: { type: DataTypes.INTEGER, allowNull: true, field: 'scheduled_session_id' },
+
+    // Conversion link (when they become a client)
+    convertedUserId: { type: DataTypes.INTEGER, allowNull: true, field: 'converted_user_id' },
+
+    // Gallery visitor link (if lead came from gallery)
+    galleryVisitorId: { type: DataTypes.INTEGER, allowNull: true, field: 'gallery_visitor_id' },
+
+    // Referrer (existing client who referred)
+    referredByUserId: { type: DataTypes.INTEGER, allowNull: true, field: 'referred_by_user_id' },
+
+    // AI spirit name for de-identified processing
+    spiritName: { type: DataTypes.STRING(100), allowNull: true, field: 'spirit_name' },
+
+    // Notes and metadata
+    notes: { type: DataTypes.TEXT, allowNull: true },
+    goals: { type: DataTypes.TEXT, allowNull: true },
+    tags: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+
+    // Communication tracking
+    lastContactedAt: { type: DataTypes.DATE, allowNull: true, field: 'last_contacted_at' },
+    nextFollowUpAt: { type: DataTypes.DATE, allowNull: true, field: 'next_follow_up_at' },
+    contactCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, field: 'contact_count' },
+
+    // Timestamps for pipeline tracking
+    contactedAt: { type: DataTypes.DATE, allowNull: true, field: 'contacted_at' },
+    qualifiedAt: { type: DataTypes.DATE, allowNull: true, field: 'qualified_at' },
+    scheduledAt: { type: DataTypes.DATE, allowNull: true, field: 'scheduled_at' },
+    convertedAt: { type: DataTypes.DATE, allowNull: true, field: 'converted_at' },
+    lostAt: { type: DataTypes.DATE, allowNull: true, field: 'lost_at' },
+    lostReason: { type: DataTypes.STRING(255), allowNull: true, field: 'lost_reason' },
+
+    // Assigned trainer (for RBAC - trainers only see their assigned leads)
+    assignedTrainerId: { type: DataTypes.INTEGER, allowNull: true, field: 'assigned_trainer_id' },
+  },
+  {
+    sequelize,
+    modelName: 'Lead',
+    tableName: 'leads',
+    timestamps: true,
+    underscored: true,
+    paranoid: true, // soft delete
+    indexes: [
+      { fields: ['status'] },
+      { fields: ['source'] },
+      { fields: ['email'] },
+      { fields: ['score'] },
+      { fields: ['assigned_trainer_id'] },
+      { fields: ['next_follow_up_at'] },
+      { fields: ['converted_user_id'] },
+      { fields: ['gallery_visitor_id'] },
+    ],
+  }
+);
+
+export default Lead;

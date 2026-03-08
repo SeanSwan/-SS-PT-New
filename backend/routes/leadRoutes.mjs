@@ -1,0 +1,383 @@
+/**
+ * Lead Management Routes (Admin/Trainer)
+ * =======================================
+ * CRM endpoints for managing leads from all sources.
+ * RBAC: Admin sees all leads, Trainers see only assigned leads.
+ */
+import express from 'express';
+import { Op } from 'sequelize';
+import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import logger from '../utils/logger.mjs';
+
+const router = express.Router();
+
+// All routes require auth + admin or trainer role
+router.use(protect);
+router.use(trainerOrAdminOnly);
+
+// Helper: Get Lead and LeadActivity models dynamically to avoid circular imports
+const getModels = async () => {
+  const { default: Lead } = await import('../models/Lead.mjs');
+  const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
+  return { Lead, LeadActivity };
+};
+
+// Spirit name generator for de-identification
+const SPIRIT_NAMES = [
+  'Golden Hawk', 'Silver Crane', 'Thunder Phoenix', 'Mountain Bear',
+  'Rising Eagle', 'Wise Owl', 'Stone Bison', 'Young Falcon',
+  'Crimson Wolf', 'Emerald Dragon', 'Azure Lion', 'Amber Tiger',
+  'Sapphire Fox', 'Ruby Leopard', 'Jade Panther', 'Pearl Lynx',
+  'Storm Raven', 'Midnight Heron', 'Dawn Sparrow', 'Iron Stag',
+];
+
+const generateSpiritName = () => {
+  const adjectives = ['Cosmic', 'Stellar', 'Radiant', 'Nebula', 'Aurora', 'Crystal', 'Diamond', 'Onyx'];
+  const animals = ['Hawk', 'Crane', 'Phoenix', 'Bear', 'Eagle', 'Owl', 'Wolf', 'Dragon', 'Lion', 'Tiger', 'Fox', 'Panther'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  return `${adj} ${animal}`;
+};
+
+/**
+ * GET /api/leads
+ * List all leads with filtering, sorting, and pagination.
+ * Admin: all leads. Trainer: only assigned leads.
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { Lead } = await getModels();
+    const { status, source, search, sortBy = 'createdAt', sortOrder = 'DESC', page = 1, limit = 50 } = req.query;
+
+    const where = {};
+
+    // RBAC: Trainers only see assigned leads
+    if (req.user.role === 'trainer') {
+      where.assignedTrainerId = req.user.id;
+    }
+
+    if (status) where.status = status;
+    if (source) where.source = source;
+    if (search) {
+      where[Op.or] = [
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+        { phone: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { rows: leads, count: total } = await Lead.findAndCountAll({
+      where,
+      order: [[sortBy, sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
+      limit: Math.min(parseInt(limit), 100),
+      offset,
+    });
+
+    return res.json({
+      success: true,
+      leads,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    logger.error('[Leads] List error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load leads' });
+  }
+});
+
+/**
+ * GET /api/leads/stats
+ * Dashboard KPI stats for leads.
+ */
+router.get('/stats', async (req, res) => {
+  try {
+    const { Lead } = await getModels();
+
+    const where = {};
+    if (req.user.role === 'trainer') {
+      where.assignedTrainerId = req.user.id;
+    }
+
+    const [total, newLeads, contacted, qualified, scheduled, converted, lost] = await Promise.all([
+      Lead.count({ where }),
+      Lead.count({ where: { ...where, status: 'new' } }),
+      Lead.count({ where: { ...where, status: 'contacted' } }),
+      Lead.count({ where: { ...where, status: 'qualified' } }),
+      Lead.count({ where: { ...where, status: 'scheduled' } }),
+      Lead.count({ where: { ...where, status: 'converted' } }),
+      Lead.count({ where: { ...where, status: 'lost' } }),
+    ]);
+
+    // Calculate conversion rate
+    const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+
+    // Leads needing follow-up (next_follow_up_at is in the past or today)
+    const needsFollowUp = await Lead.count({
+      where: {
+        ...where,
+        status: { [Op.notIn]: ['converted', 'lost'] },
+        nextFollowUpAt: { [Op.lte]: new Date() },
+      },
+    });
+
+    // Hot leads (score >= 70)
+    const hotLeads = await Lead.count({
+      where: { ...where, score: { [Op.gte]: 70 }, status: { [Op.notIn]: ['converted', 'lost'] } },
+    });
+
+    return res.json({
+      success: true,
+      stats: {
+        total, new: newLeads, contacted, qualified, scheduled, converted, lost,
+        conversionRate, needsFollowUp, hotLeads,
+      },
+    });
+  } catch (err) {
+    logger.error('[Leads] Stats error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load lead stats' });
+  }
+});
+
+/**
+ * GET /api/leads/:id
+ * Get single lead with activity history.
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const { Lead, LeadActivity } = await getModels();
+
+    const where = { id: req.params.id };
+    if (req.user.role === 'trainer') {
+      where.assignedTrainerId = req.user.id;
+    }
+
+    const lead = await Lead.findOne({
+      where,
+      include: [
+        { model: LeadActivity, as: 'activities', order: [['createdAt', 'DESC']], limit: 50 },
+      ],
+    });
+
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    return res.json({ success: true, lead });
+  } catch (err) {
+    logger.error('[Leads] Get error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load lead' });
+  }
+});
+
+/**
+ * POST /api/leads
+ * Create a new lead (manual entry).
+ */
+router.post('/', async (req, res) => {
+  try {
+    const { Lead, LeadActivity } = await getModels();
+    const { firstName, lastName, email, phone, source, sourceDetail, notes, goals, tags } = req.body;
+
+    if (!firstName) {
+      return res.status(400).json({ success: false, error: 'firstName is required' });
+    }
+
+    const lead = await Lead.create({
+      firstName,
+      lastName: lastName || null,
+      email: email || null,
+      phone: phone || null,
+      source: source || 'other',
+      sourceDetail: sourceDetail || null,
+      notes: notes || null,
+      goals: goals || null,
+      tags: tags || [],
+      spiritName: generateSpiritName(),
+      assignedTrainerId: req.user.role === 'trainer' ? req.user.id : null,
+    });
+
+    // Log activity
+    await LeadActivity.create({
+      leadId: lead.id,
+      type: 'note_added',
+      performedByUserId: req.user.id,
+      title: 'Lead created',
+      description: `Lead manually created by ${req.user.username || 'admin'} from source: ${source || 'other'}`,
+      metadata: { source, sourceDetail },
+    });
+
+    logger.info(`[Leads] Created lead ${lead.id}: ${firstName} ${lastName || ''} (${source})`);
+    return res.status(201).json({ success: true, lead });
+  } catch (err) {
+    logger.error('[Leads] Create error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to create lead' });
+  }
+});
+
+/**
+ * PUT /api/leads/:id
+ * Update a lead (edit info, change status, add notes).
+ */
+router.put('/:id', async (req, res) => {
+  try {
+    const { Lead, LeadActivity } = await getModels();
+
+    const where = { id: req.params.id };
+    if (req.user.role === 'trainer') {
+      where.assignedTrainerId = req.user.id;
+    }
+
+    const lead = await Lead.findOne({ where });
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    const oldStatus = lead.status;
+    const oldScore = lead.score;
+
+    // Update allowed fields
+    const allowedFields = [
+      'firstName', 'lastName', 'email', 'phone', 'source', 'sourceDetail',
+      'status', 'score', 'notes', 'goals', 'tags', 'lastContactedAt',
+      'nextFollowUpAt', 'lostReason', 'assignedTrainerId',
+    ];
+
+    const updates = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    // Auto-set pipeline timestamps on status change
+    if (updates.status && updates.status !== oldStatus) {
+      const now = new Date();
+      if (updates.status === 'contacted' && !lead.contactedAt) updates.contactedAt = now;
+      if (updates.status === 'qualified' && !lead.qualifiedAt) updates.qualifiedAt = now;
+      if (updates.status === 'scheduled' && !lead.scheduledAt) updates.scheduledAt = now;
+      if (updates.status === 'converted' && !lead.convertedAt) updates.convertedAt = now;
+      if (updates.status === 'lost' && !lead.lostAt) updates.lostAt = now;
+    }
+
+    await lead.update(updates);
+
+    // Log status change activity
+    if (updates.status && updates.status !== oldStatus) {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'status_change',
+        performedByUserId: req.user.id,
+        title: `Status changed to ${updates.status}`,
+        description: `Pipeline status changed from "${oldStatus}" to "${updates.status}"`,
+        metadata: { from: oldStatus, to: updates.status },
+      });
+    }
+
+    // Log score change activity
+    if (updates.score !== undefined && updates.score !== oldScore) {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'score_changed',
+        performedByUserId: req.user.id,
+        title: `Score updated to ${updates.score}`,
+        metadata: { from: oldScore, to: updates.score },
+      });
+    }
+
+    // Log follow-up set
+    if (updates.nextFollowUpAt) {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'follow_up_set',
+        performedByUserId: req.user.id,
+        title: `Follow-up scheduled for ${new Date(updates.nextFollowUpAt).toLocaleDateString()}`,
+        metadata: { date: updates.nextFollowUpAt },
+      });
+    }
+
+    return res.json({ success: true, lead });
+  } catch (err) {
+    logger.error('[Leads] Update error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to update lead' });
+  }
+});
+
+/**
+ * POST /api/leads/:id/activity
+ * Add an activity entry to a lead (note, email sent, call made, etc.)
+ */
+router.post('/:id/activity', async (req, res) => {
+  try {
+    const { Lead, LeadActivity } = await getModels();
+
+    const where = { id: req.params.id };
+    if (req.user.role === 'trainer') {
+      where.assignedTrainerId = req.user.id;
+    }
+
+    const lead = await Lead.findOne({ where });
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    const { type, title, description, metadata } = req.body;
+    if (!type || !title) {
+      return res.status(400).json({ success: false, error: 'type and title are required' });
+    }
+
+    const activity = await LeadActivity.create({
+      leadId: lead.id,
+      type,
+      performedByUserId: req.user.id,
+      title,
+      description: description || null,
+      metadata: metadata || {},
+    });
+
+    // Update contact tracking
+    if (['email_sent', 'call_made', 'sms_sent'].includes(type)) {
+      await lead.update({
+        lastContactedAt: new Date(),
+        contactCount: lead.contactCount + 1,
+      });
+    }
+
+    return res.status(201).json({ success: true, activity });
+  } catch (err) {
+    logger.error('[Leads] Activity error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to add activity' });
+  }
+});
+
+/**
+ * DELETE /api/leads/:id
+ * Soft-delete a lead (admin only).
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Admin only' });
+    }
+
+    const { Lead } = await getModels();
+    const lead = await Lead.findByPk(req.params.id);
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    await lead.destroy(); // soft delete (paranoid: true)
+    return res.json({ success: true, message: 'Lead archived' });
+  } catch (err) {
+    logger.error('[Leads] Delete error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to delete lead' });
+  }
+});
+
+export default router;

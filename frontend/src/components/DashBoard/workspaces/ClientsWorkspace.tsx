@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Users, UserCheck, UserPlus, Mail,
   BarChart3, Link, FileSignature,
-  ClipboardList, Ruler,
+  ClipboardList, Ruler, Target,
 } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 
@@ -17,6 +17,7 @@ const tabs: WorkspaceTab[] = [
   { id: 'progress', label: 'Progress', icon: <BarChart3 size={18} />, path: '/dashboard/people/progress' },
   { id: 'assignments', label: 'Assignments', icon: <Link size={18} />, path: '/dashboard/people/assignments' },
   { id: 'waivers', label: 'Waivers', icon: <FileSignature size={18} />, path: '/dashboard/people/waivers' },
+  { id: 'leads', label: 'Leads CRM', icon: <Target size={18} />, path: '/dashboard/people/leads' },
 ];
 
 const ClientsWorkspace: React.FC = () => (

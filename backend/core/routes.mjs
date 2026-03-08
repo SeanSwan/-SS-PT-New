@@ -161,6 +161,9 @@ import customPackageRoutes from '../routes/customPackageRoutes.mjs';
 import galleryRoutes from '../routes/galleryRoutes.mjs';
 import adminGalleryRoutes from '../routes/adminGalleryRoutes.mjs';
 
+// ===================== CRM LEAD MANAGEMENT =====================
+import leadRoutes from '../routes/leadRoutes.mjs';
+
 // ===================== DEVELOPMENT & DEBUG =====================
 import debugRoutes from '../routes/debug.mjs';
 import devRoutes from '../routes/dev-routes.mjs';
@@ -445,6 +448,9 @@ export const setupRoutes = async (app) => {
   // ===================== PHOTO GALLERY & LEAD GENERATION =====================
   app.use('/api/gallery', galleryRoutes);
   app.use('/api/admin/gallery', adminGalleryRoutes);
+
+  // ===================== CRM LEAD MANAGEMENT =====================
+  app.use('/api/leads', leadRoutes);
 
   // ===================== NASM PROTOCOL ROUTES =====================
   app.use('/api/client-progress', clientProgressRoutes);
