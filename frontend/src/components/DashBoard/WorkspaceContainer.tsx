@@ -28,13 +28,26 @@ interface WorkspaceContainerProps {
 // ─── Styled Components ───────────────────────────────
 const WorkspaceWrapper = styled.div`
   min-height: 100vh;
-  background: rgba(10, 10, 26, 0.95);
+  background: radial-gradient(circle at top right, #120d26 0%, #0a0a1a 100%);
   padding: 24px;
   color: rgba(255, 255, 255, 0.9);
+  font-family: 'Inter', system-ui, sans-serif;
 
   @media (max-width: 768px) {
-    padding: 8px;
+    padding: 12px;
   }
+
+  @media (min-width: 2560px) {
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+`;
+
+const MaxWidthWrapper = styled.div`
+  width: 100%;
+  max-width: 1600px;
 `;
 
 const PageHeader = styled.div`
@@ -48,11 +61,12 @@ const PageHeader = styled.div`
 const PageTitle = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
+  background: linear-gradient(135deg, #00ffff, #7851a9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0 0 4px 0;
+  letter-spacing: -1px;
 
   @media (max-width: 768px) {
     font-size: 22px;
@@ -67,19 +81,17 @@ const PageSubtitle = styled.p`
 
 const TabBar = styled.div`
   display: flex;
-  gap: 4px;
+  gap: 8px;
   margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 0;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  scroll-snap-type: x mandatory;
 
   &::-webkit-scrollbar {
     display: none;
-  }
-
-  @media (max-width: 768px) {
-    gap: 2px;
   }
 `;
 
@@ -87,27 +99,43 @@ const TabButton = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 0 24px;
   min-height: 44px;
   min-width: 44px;
-  border: 1px solid ${(p) => (p.$active ? 'rgba(0, 255, 255, 0.5)' : 'rgba(59, 130, 246, 0.2)')};
-  border-radius: 10px;
-  background: ${(p) =>
-    p.$active
-      ? 'linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.15))'
-      : 'rgba(30, 58, 138, 0.15)'};
-  color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
-  font-size: 14px;
-  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.5)')};
+  font-size: 15px;
+  font-weight: ${(p) => (p.$active ? 600 : 500)};
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease;
   flex-shrink: 0;
+  position: relative;
+  scroll-snap-align: start;
 
   &:hover {
-    background: rgba(59, 130, 246, 0.2);
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(59, 130, 246, 0.4);
+    color: ${(p) => (p.$active ? '#00ffff' : '#FFFFFF')};
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ffff;
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+
+  /* Animated underline for active tab */
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: ${(p) => (p.$active ? '100%' : '0')};
+    height: 2px;
+    background: #00ffff;
+    box-shadow: ${(p) => (p.$active ? '0 -2px 10px rgba(0, 255, 255, 0.5)' : 'none')};
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   svg {
@@ -117,14 +145,13 @@ const TabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 768px) {
-    padding: 8px 10px;
-    font-size: 12px;
-    gap: 4px;
-    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 13px;
+    gap: 6px;
 
     svg {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
     }
   }
 `;
@@ -201,48 +228,51 @@ const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({ title, subtitle
 
   return (
     <WorkspaceWrapper>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <PageHeader>
-          <PageTitle>{title}</PageTitle>
-          <PageSubtitle>{subtitle}</PageSubtitle>
-        </PageHeader>
+      <MaxWidthWrapper>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <PageHeader>
+            <PageTitle>{title}</PageTitle>
+            <PageSubtitle>{subtitle}</PageSubtitle>
+          </PageHeader>
 
-        <TabBar role="tablist">
-          {tabs.map((tab) => (
-            <TabButton
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTabId === tab.id}
-              $active={activeTabId === tab.id}
-              onClick={() => navigate(tab.path)}
-            >
-              {tab.icon}
-              {tab.label}
-            </TabButton>
-          ))}
-        </TabBar>
-
-        <TabContent role="tabpanel">
-          <WorkspaceErrorBoundary>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTabId}
-                variants={contentVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ duration: 0.3 }}
+          <TabBar role="tablist">
+            {tabs.map((tab) => (
+              <TabButton
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTabId === tab.id}
+                aria-controls={`panel-${tab.id}`}
+                $active={activeTabId === tab.id}
+                onClick={() => navigate(tab.path)}
               >
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
-          </WorkspaceErrorBoundary>
-        </TabContent>
-      </motion.div>
+                {tab.icon}
+                {tab.label}
+              </TabButton>
+            ))}
+          </TabBar>
+
+          <TabContent role="tabpanel" id={`panel-${activeTabId}`}>
+            <WorkspaceErrorBoundary>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTabId}
+                  variants={contentVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ duration: 0.25 }}
+                >
+                  <Outlet />
+                </motion.div>
+              </AnimatePresence>
+            </WorkspaceErrorBoundary>
+          </TabContent>
+        </motion.div>
+      </MaxWidthWrapper>
     </WorkspaceWrapper>
   );
 };

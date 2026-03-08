@@ -1,17 +1,10 @@
 /**
- * Admin Packages View V2 - GOLDEN STANDARD
- * ==========================================
- * Refactored to use UI Kit compound components + useTable + useForm hooks
- * 
- * Features:
- * ✅ Table compound component
- * ✅ Pagination compound component
- * ✅ Badge component with variants
- * ✅ EmptyState and LoadingState components
- * ✅ useTable hook for table logic
- * ✅ useForm hook for form management
- * ✅ Zero local table components
- * ✅ Zero MUI dependencies
+ * Admin Packages View V2 - Gemini 3.1 Pro Command Center Design
+ * ==============================================================
+ * Card grid layout with SwanToggle for instant active/inactive toggle.
+ * Optimistic UI updates, zero modals for status changes.
+ *
+ * Design Authority: Gemini 3.1 Pro
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,68 +13,113 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { useTable } from '../../../../hooks/useTable';
 import { useForm } from '../../../../hooks/useForm';
-import GlowButton from '../../../ui/buttons/GlowButton';
 
-// Import icons
 import {
-  Search,
-  Edit,
-  Package,
-  Plus,
-  Trash2,
-  RefreshCw,
-  CheckSquare,
-  X,
-  Inbox,
-  ToggleLeft,
-  ToggleRight
+  Search, Edit, Package, Plus, Trash2, RefreshCw,
+  CheckSquare, X, Inbox
 } from 'lucide-react';
 
-// Import UI Kit components
-import { PageTitle, SectionTitle, BodyText, SmallText, Label } from '../../../ui-kit/Typography';
-import { PrimaryButton, OutlinedButton, DangerButton } from '../../../ui-kit/Button';
-import { Card, CardHeader, CardBody, GridContainer, FlexBox } from '../../../ui-kit/Card';
-import { StyledInput, StyledTextarea, FormField } from '../../../ui-kit/Input';
-import UITable from '../../../ui-kit/Table';
-import Pagination from '../../../ui-kit/Pagination';
-import Badge from '../../../ui-kit/Badge';
-import EmptyState, { LoadingState } from '../../../ui-kit/EmptyState';
-import { PageContainer, ContentContainer, StatsGridContainer } from '../../../ui-kit/Container';
+import {
+  GlassCardStatic,
+  KPIGrid,
+  KPICard,
+  KPIValue,
+  KPILabel,
+  StatusBadge,
+  PackageGrid,
+  SectionHeader,
+  SectionTitle,
+  StoreButton,
+  SwanToggleLabel,
+  SwanToggleTrack,
+  SwanToggleInput,
+  SearchBar,
+  SearchInput,
+  FilterPill,
+  ShimmerBlock,
+  ErrorBanner,
+  formatCurrency,
+  formatCurrencyCompact,
+  STORE_TOKENS,
+} from '../store-shared/StoreDesignSystem';
 
-// ==========================================
-// PAGE-SPECIFIC STYLED COMPONENTS
-// ==========================================
+// ── Page-specific styled components ─────────────────────
 
-// Stats Card
-const StatsCard = styled(Card)`
-  text-align: center;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.05));
-  border-color: rgba(59, 130, 246, 0.3);
+const PackagesWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 `;
 
-const StatValue = styled.div`
-  font-size: 2.5rem;
+const FiltersRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
+const PackageCard = styled(GlassCardStatic)`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 300ms cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: ${STORE_TOKENS.border.purple};
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(120,81,169,0.1);
+  }
+`;
+
+const PackageCardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+`;
+
+const PackageName = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  flex: 1;
+`;
+
+const PackagePrice = styled.div`
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #3b82f6;
-  margin-bottom: 0.5rem;
+  color: ${STORE_TOKENS.color.cyan};
+  text-shadow: 0 0 20px rgba(0,255,255,0.3);
 `;
 
-const StatLabel = styled.div`
+const PackageDetail = styled.div`
   font-size: 0.875rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: ${STORE_TOKENS.color.muted};
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
-// Modal components
-const ModalBackdrop = styled.div<{ isOpen: boolean }>`
-  display: ${props => props.isOpen ? 'flex' : 'none'};
+const PackageActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+`;
+
+const PerSessionPrice = styled.span`
+  font-size: 0.8rem;
+  color: ${STORE_TOKENS.color.muted};
+`;
+
+// Modal styles
+const ModalBackdrop = styled.div<{ $isOpen: boolean }>`
+  display: ${({ $isOpen }) => ($isOpen ? 'flex' : 'none')};
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
   backdrop-filter: blur(4px);
   z-index: 9999;
   align-items: center;
@@ -91,19 +129,19 @@ const ModalBackdrop = styled.div<{ isOpen: boolean }>`
 `;
 
 const ModalContainer = styled.div`
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  background: linear-gradient(135deg, #120d26 0%, #0a0a1a 100%);
+  border: 1px solid ${STORE_TOKENS.border.glass};
+  border-radius: ${STORE_TOKENS.radius.card};
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 `;
 
 const ModalHeader = styled.div`
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid ${STORE_TOKENS.border.glass};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -111,86 +149,92 @@ const ModalHeader = styled.div`
 
 const ModalBody = styled.div`
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 const ModalFooter = styled.div`
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid ${STORE_TOKENS.border.glass};
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
 `;
 
-// Filter components
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
-`;
-
-const SearchContainer = styled.div`
-  position: relative;
-  flex: 1;
-  min-width: 300px;
-  
-  svg {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.5);
-  }
-  
-  input {
-    padding-left: 2.75rem;
-  }
-`;
-
-const FilterButton = styled.button<{ isActive: boolean }>`
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
+const FormLabel = styled.label`
+  font-size: 0.8rem;
   font-weight: 600;
-  border: 1px solid ${props => props.isActive ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)'};
-  background: ${props => props.isActive ? 'rgba(59, 130, 246, 0.2)' : 'transparent'};
-  color: ${props => props.isActive ? '#60a5fa' : '#e2e8f0'};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
-  }
+  color: ${STORE_TOKENS.color.muted};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+  display: block;
 `;
 
-// Select dropdown
-const Select = styled.select`
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: #ffffff;
-  font-size: 0.875rem;
+const FormInput = styled.input`
   width: 100%;
-  cursor: pointer;
-  
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid ${STORE_TOKENS.border.glass};
+  border-radius: ${STORE_TOKENS.radius.button};
+  color: white;
+  font-size: 0.875rem;
+  min-height: 44px;
+
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-  
-  option {
-    background: #1e293b;
-    color: #ffffff;
+    border-color: ${STORE_TOKENS.color.cyan};
+    box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
   }
 `;
 
-// ==========================================
-// TYPES
-// ==========================================
+const FormTextarea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid ${STORE_TOKENS.border.glass};
+  border-radius: ${STORE_TOKENS.radius.button};
+  color: white;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 80px;
+
+  &:focus {
+    outline: none;
+    border-color: ${STORE_TOKENS.color.cyan};
+    box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
+  }
+`;
+
+const FormSelect = styled.select`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid ${STORE_TOKENS.border.glass};
+  border-radius: ${STORE_TOKENS.radius.button};
+  color: white;
+  font-size: 0.875rem;
+  min-height: 44px;
+
+  &:focus {
+    outline: none;
+    border-color: ${STORE_TOKENS.color.cyan};
+  }
+  option { background: #120d26; color: white; }
+`;
+
+const PaginationRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: ${STORE_TOKENS.color.muted};
+  font-size: 0.875rem;
+`;
+
+// ── Types ───────────────────────────────────────────────
 
 interface SessionPackage {
   id: number;
@@ -219,15 +263,12 @@ interface PackageFormData {
   isActive: boolean;
 }
 
-// ==========================================
-// COMPONENT
-// ==========================================
+// ── Component ───────────────────────────────────────────
 
 const AdminPackagesView: React.FC = () => {
   const { authAxios } = useAuth();
   const { toast } = useToast();
 
-  // State
   const [packages, setPackages] = useState<SessionPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -236,12 +277,8 @@ const AdminPackagesView: React.FC = () => {
   const [openNewDialog, setOpenNewDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  // Form hook for package form
   const {
-    formData,
-    handleInputChange,
-    setFormData,
-    resetForm
+    formData, handleInputChange, setFormData, resetForm,
   } = useForm<PackageFormData>({
     name: '',
     packageType: 'fixed',
@@ -251,70 +288,38 @@ const AdminPackagesView: React.FC = () => {
     months: 3,
     sessionsPerWeek: 4,
     theme: 'cosmic',
-    isActive: true
+    isActive: true,
   });
 
-  // Table hook with search, filter, and pagination
   const {
     paginatedData: paginatedPackages,
-    currentPage,
-    totalPages,
-    rowsPerPage,
-    hasNextPage,
-    hasPrevPage,
-    totalItems,
-    searchTerm,
-    handlePageChange,
-    handleRowsPerPageChange,
-    handleSearch,
-    goToNextPage,
-    goToPrevPage
+    currentPage, totalPages, totalItems,
+    searchTerm, handleSearch,
+    goToNextPage, goToPrevPage, hasNextPage, hasPrevPage,
   } = useTable<SessionPackage>({
     data: packages,
-    initialRowsPerPage: 10,
+    initialRowsPerPage: 12,
     searchFields: ['name', 'description'],
-    customFilter: (pkg) => {
-      if (typeFilter === 'all') return true;
-      return pkg.packageType === typeFilter;
-    }
+    customFilter: (pkg) => typeFilter === 'all' || pkg.packageType === typeFilter,
   });
 
-  // Fetch packages on mount
-  useEffect(() => {
-    fetchPackages();
-  }, []);
+  useEffect(() => { fetchPackages(); }, []);
 
-  // Fetch packages from API
   const fetchPackages = async () => {
     setLoading(true);
     try {
       const response = await authAxios.get('/api/admin/storefront');
-      if (response.data && response.data.success) {
+      if (response.data?.success) {
         setPackages(response.data.items || []);
-        toast({ title: 'Success', description: 'Packages loaded successfully' });
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching packages:', err);
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to load packages', 
-        variant: 'destructive' 
-      });
+      toast({ title: 'Error', description: 'Failed to load packages', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD', 
-      minimumFractionDigits: 0 
-    }).format(value);
-  };
-
-  // Calculate total price for a package
   const calculateTotal = (pkg: SessionPackage) => {
     if (pkg.packageType === 'fixed' && pkg.sessions) {
       return pkg.pricePerSession * pkg.sessions;
@@ -324,7 +329,22 @@ const AdminPackagesView: React.FC = () => {
     return pkg.price;
   };
 
-  // Handle edit package
+  // Optimistic toggle — update UI instantly, revert on error
+  const handleToggleActive = async (pkg: SessionPackage) => {
+    const prev = [...packages];
+    setPackages(packages.map(p =>
+      p.id === pkg.id ? { ...p, isActive: !p.isActive } : p
+    ));
+
+    try {
+      await authAxios.put(`/api/admin/storefront/${pkg.id}`, { isActive: !pkg.isActive });
+      toast({ title: 'Success', description: `${pkg.name} ${pkg.isActive ? 'deactivated' : 'activated'}` });
+    } catch {
+      setPackages(prev);
+      toast({ title: 'Error', description: 'Failed to toggle package status', variant: 'destructive' });
+    }
+  };
+
   const handleEditPackage = (pkg: SessionPackage) => {
     setSelectedPackage(pkg);
     setFormData({
@@ -336,569 +356,331 @@ const AdminPackagesView: React.FC = () => {
       months: pkg.months || 3,
       sessionsPerWeek: pkg.sessionsPerWeek || 4,
       theme: pkg.theme || 'cosmic',
-      isActive: pkg.isActive
+      isActive: pkg.isActive,
     });
     setOpenEditDialog(true);
   };
 
-  // Handle save package
   const handleSave = async () => {
     if (!selectedPackage) return;
-    
     try {
-      const totalSessions = formData.packageType === 'monthly' 
-        ? formData.months * formData.sessionsPerWeek * 4 
+      const totalSessions = formData.packageType === 'monthly'
+        ? formData.months * formData.sessionsPerWeek * 4
         : formData.sessions;
-      
       const totalCost = formData.pricePerSession * totalSessions;
 
-      const updateData = {
+      await authAxios.put(`/api/admin/storefront/${selectedPackage.id}`, {
         ...formData,
         totalSessions,
         totalCost,
         price: totalCost,
         sessions: formData.packageType === 'fixed' ? formData.sessions : null,
         months: formData.packageType === 'monthly' ? formData.months : null,
-        sessionsPerWeek: formData.packageType === 'monthly' ? formData.sessionsPerWeek : null
-      };
-
-      await authAxios.put(`/api/admin/storefront/${selectedPackage.id}`, updateData);
-      toast({ title: 'Success', description: 'Package updated successfully' });
+        sessionsPerWeek: formData.packageType === 'monthly' ? formData.sessionsPerWeek : null,
+      });
+      toast({ title: 'Success', description: 'Package updated' });
       fetchPackages();
       setOpenEditDialog(false);
-    } catch (err) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to update package', 
-        variant: 'destructive' 
-      });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update package', variant: 'destructive' });
     }
   };
 
-  // Handle create package
   const handleCreate = async () => {
     try {
-      const totalSessions = formData.packageType === 'monthly' 
-        ? formData.months * formData.sessionsPerWeek * 4 
+      const totalSessions = formData.packageType === 'monthly'
+        ? formData.months * formData.sessionsPerWeek * 4
         : formData.sessions;
-      
       const totalCost = formData.pricePerSession * totalSessions;
 
-      const createData = {
+      await authAxios.post('/api/admin/storefront', {
         ...formData,
         totalSessions,
         totalCost,
         price: totalCost,
         sessions: formData.packageType === 'fixed' ? formData.sessions : null,
         months: formData.packageType === 'monthly' ? formData.months : null,
-        sessionsPerWeek: formData.packageType === 'monthly' ? formData.sessionsPerWeek : null
-      };
-
-      await authAxios.post('/api/admin/storefront', createData);
-      toast({ title: 'Success', description: 'Package created successfully' });
+        sessionsPerWeek: formData.packageType === 'monthly' ? formData.sessionsPerWeek : null,
+      });
+      toast({ title: 'Success', description: 'Package created' });
       fetchPackages();
       setOpenNewDialog(false);
       resetForm();
-    } catch (err) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to create package', 
-        variant: 'destructive' 
-      });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to create package', variant: 'destructive' });
     }
   };
 
-  // Handle delete package
   const handleDelete = async () => {
     if (!selectedPackage) return;
-    
     try {
       await authAxios.delete(`/api/admin/storefront/${selectedPackage.id}`);
-      toast({ title: 'Success', description: 'Package deleted successfully' });
+      toast({ title: 'Success', description: 'Package deleted' });
       fetchPackages();
       setOpenDeleteDialog(false);
-    } catch (err) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to delete package', 
-        variant: 'destructive' 
-      });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete package', variant: 'destructive' });
     }
   };
 
-  // Handle inline toggle active/inactive
-  const handleToggleActive = async (pkg: SessionPackage) => {
-    try {
-      await authAxios.put(`/api/admin/storefront/${pkg.id}`, {
-        isActive: !pkg.isActive
-      });
-      toast({
-        title: 'Success',
-        description: `${pkg.name} ${pkg.isActive ? 'deactivated' : 'activated'}`
-      });
-      fetchPackages();
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to toggle package status',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  // Calculate stats
+  // Stats
   const stats = {
     total: packages.length,
     active: packages.filter(p => p.isActive).length,
-    avgPrice: packages.length > 0 
-      ? Math.round(packages.reduce((sum, p) => sum + (p.price || 0), 0) / packages.length) 
-      : 0
+    avgPrice: packages.length > 0
+      ? Math.round(packages.reduce((sum, p) => sum + (p.price || 0), 0) / packages.length)
+      : 0,
   };
 
+  // ── Loading ──
   if (loading) {
     return (
-      <PageContainer>
-        <ContentContainer maxWidth="1400px">
-          <LoadingState message="Loading packages..." />
-        </ContentContainer>
-      </PageContainer>
+      <PackagesWrapper>
+        <SectionHeader>
+          <SectionTitle><Package size={24} /> Session Packages</SectionTitle>
+        </SectionHeader>
+        <KPIGrid>
+          {[1,2,3].map(i => <KPICard key={i}><ShimmerBlock $height="50px" /></KPICard>)}
+        </KPIGrid>
+        <PackageGrid>
+          {[1,2,3,4,5,6].map(i => (
+            <GlassCardStatic key={i}><ShimmerBlock $height="150px" /></GlassCardStatic>
+          ))}
+        </PackageGrid>
+      </PackagesWrapper>
     );
   }
 
+  // ── Form modal content (shared between edit & create) ──
+  const renderFormFields = () => (
+    <>
+      <div>
+        <FormLabel>Package Name</FormLabel>
+        <FormInput name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g., Gold Package" />
+      </div>
+      <div>
+        <FormLabel>Type</FormLabel>
+        <FormSelect name="packageType" value={formData.packageType} onChange={handleInputChange}>
+          <option value="fixed">Fixed Sessions</option>
+          <option value="monthly">Monthly</option>
+        </FormSelect>
+      </div>
+      <div>
+        <FormLabel>Price Per Session ($)</FormLabel>
+        <FormInput name="pricePerSession" type="number" value={formData.pricePerSession} onChange={handleInputChange} />
+      </div>
+      {formData.packageType === 'fixed' && (
+        <div>
+          <FormLabel>Number of Sessions</FormLabel>
+          <FormInput name="sessions" type="number" value={formData.sessions} onChange={handleInputChange} />
+        </div>
+      )}
+      {formData.packageType === 'monthly' && (
+        <>
+          <div>
+            <FormLabel>Months</FormLabel>
+            <FormInput name="months" type="number" value={formData.months} onChange={handleInputChange} />
+          </div>
+          <div>
+            <FormLabel>Sessions Per Week</FormLabel>
+            <FormInput name="sessionsPerWeek" type="number" value={formData.sessionsPerWeek} onChange={handleInputChange} />
+          </div>
+        </>
+      )}
+      <div>
+        <FormLabel>Description</FormLabel>
+        <FormTextarea name="description" value={formData.description} onChange={handleInputChange} rows={3} placeholder="Describe the package benefits..." />
+      </div>
+    </>
+  );
+
   return (
-    <PageContainer>
-      <ContentContainer maxWidth="1400px">
-        {/* Header */}
-        <Card style={{ marginBottom: '2rem' }}>
-          <CardHeader>
-            <FlexBox justify="space-between" align="center">
-              <div>
-                <PageTitle style={{ marginBottom: '0.5rem' }}>
-                  <FlexBox align="center" gap="0.75rem">
-                    <Package size={28} />
-                    Session Packages Management
-                  </FlexBox>
-                </PageTitle>
-              </div>
-              <FlexBox gap="0.75rem">
-                <GlowButton
-                  text="Create Package"
-                  theme="emerald"
-                  size="small"
-                  leftIcon={<Plus size={16} />}
-                  onClick={() => { resetForm(); setOpenNewDialog(true); }}
-                />
-                <GlowButton
-                  text="Refresh"
-                  theme="purple"
-                  size="small"
-                  leftIcon={<RefreshCw size={16} />}
-                  onClick={fetchPackages}
-                />
-              </FlexBox>
-            </FlexBox>
-          </CardHeader>
-        </Card>
+    <PackagesWrapper>
+      {/* Header */}
+      <SectionHeader>
+        <SectionTitle><Package size={24} /> Session Packages</SectionTitle>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <StoreButton onClick={() => { resetForm(); setOpenNewDialog(true); }}>
+            <Plus size={16} /> Create Package
+          </StoreButton>
+          <StoreButton $variant="ghost" onClick={fetchPackages}>
+            <RefreshCw size={16} /> Refresh
+          </StoreButton>
+        </div>
+      </SectionHeader>
 
-        {/* Stats */}
-        <StatsGridContainer style={{ marginBottom: '2rem', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          <StatsCard>
-            <CardBody>
-              <StatValue>{stats.total}</StatValue>
-              <StatLabel>Total Packages</StatLabel>
-            </CardBody>
-          </StatsCard>
-          <StatsCard>
-            <CardBody>
-              <StatValue>{stats.active}</StatValue>
-              <StatLabel>Active Packages</StatLabel>
-            </CardBody>
-          </StatsCard>
-          <StatsCard>
-            <CardBody>
-              <StatValue>{formatCurrency(stats.avgPrice)}</StatValue>
-              <StatLabel>Avg Price</StatLabel>
-            </CardBody>
-          </StatsCard>
-        </StatsGridContainer>
+      {/* KPI Cards */}
+      <KPIGrid>
+        <KPICard $accent="rgba(120,81,169,0.15)">
+          <KPILabel>Total Packages</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.purple}>{stats.total}</KPIValue>
+        </KPICard>
+        <KPICard $accent="rgba(0,255,136,0.15)">
+          <KPILabel>Active</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.completed}>{stats.active}</KPIValue>
+        </KPICard>
+        <KPICard $accent="rgba(0,255,255,0.15)">
+          <KPILabel>Avg Price</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.cyan}>{formatCurrencyCompact(stats.avgPrice)}</KPIValue>
+        </KPICard>
+      </KPIGrid>
 
-        {/* Filters */}
-        <FilterContainer>
-          <SearchContainer>
-            <Search size={18} />
-            <StyledInput
-              placeholder="Search packages..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-          </SearchContainer>
-          <FilterButton 
-            isActive={typeFilter === 'all'} 
-            onClick={() => setTypeFilter('all')}
-          >
-            All Types
-          </FilterButton>
-          <FilterButton 
-            isActive={typeFilter === 'fixed'} 
-            onClick={() => setTypeFilter('fixed')}
-          >
-            Fixed Sessions
-          </FilterButton>
-          <FilterButton 
-            isActive={typeFilter === 'monthly'} 
-            onClick={() => setTypeFilter('monthly')}
-          >
-            Monthly
-          </FilterButton>
-        </FilterContainer>
+      {/* Filters */}
+      <FiltersRow>
+        <SearchBar>
+          <Search size={18} />
+          <SearchInput
+            placeholder="Search packages..."
+            value={searchTerm}
+            onChange={e => handleSearch(e.target.value)}
+          />
+        </SearchBar>
+        <FilterPill $active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>All Types</FilterPill>
+        <FilterPill $active={typeFilter === 'fixed'} onClick={() => setTypeFilter('fixed')}>Fixed Sessions</FilterPill>
+        <FilterPill $active={typeFilter === 'monthly'} onClick={() => setTypeFilter('monthly')}>Monthly</FilterPill>
+      </FiltersRow>
 
-        {/* Table - GOLDEN STANDARD IMPLEMENTATION */}
-        <Card>
-          <CardBody padding="0">
-            {paginatedPackages.length > 0 ? (
-              <>
-                <UITable variant="default">
-                  <UITable.Header>
-                    <UITable.Row>
-                      <UITable.Head>Package Name</UITable.Head>
-                      <UITable.Head>Type</UITable.Head>
-                      <UITable.Head>Details</UITable.Head>
-                      <UITable.Head>Price/Session</UITable.Head>
-                      <UITable.Head>Total Price</UITable.Head>
-                      <UITable.Head>Status</UITable.Head>
-                      <UITable.Head align="right">Actions</UITable.Head>
-                    </UITable.Row>
-                  </UITable.Header>
-                  <UITable.Body>
-                    {paginatedPackages.map((pkg) => (
-                      <UITable.Row key={pkg.id}>
-                        <UITable.Cell>
-                          <BodyText style={{ fontWeight: 600 }}>{pkg.name}</BodyText>
-                        </UITable.Cell>
-                        <UITable.Cell>
-                          <Badge variant="primary">{pkg.packageType}</Badge>
-                        </UITable.Cell>
-                        <UITable.Cell>
-                          {pkg.packageType === 'fixed' ? (
-                            <SmallText>{pkg.sessions} sessions</SmallText>
-                          ) : (
-                            <SmallText>{pkg.months} months, {pkg.sessionsPerWeek}x/week</SmallText>
-                          )}
-                        </UITable.Cell>
-                        <UITable.Cell>{formatCurrency(pkg.pricePerSession)}</UITable.Cell>
-                        <UITable.Cell>
-                          <BodyText style={{ color: '#3b82f6', fontWeight: 600 }}>
-                            {formatCurrency(calculateTotal(pkg))}
-                          </BodyText>
-                        </UITable.Cell>
-                        <UITable.Cell>
-                          <button
-                            onClick={() => handleToggleActive(pkg)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.4rem',
-                              padding: '0.25rem',
-                              minHeight: '44px',
-                              minWidth: '44px',
-                            }}
-                            title={`Click to ${pkg.isActive ? 'deactivate' : 'activate'}`}
-                          >
-                            {pkg.isActive ? (
-                              <ToggleRight size={22} style={{ color: '#10b981' }} />
-                            ) : (
-                              <ToggleLeft size={22} style={{ color: '#94a3b8' }} />
-                            )}
-                            <Badge variant={pkg.isActive ? 'success' : 'warning'}>
-                              {pkg.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </button>
-                        </UITable.Cell>
-                        <UITable.Cell align="right">
-                          <FlexBox gap="0.5rem" justify="end">
-                            <OutlinedButton onClick={() => handleEditPackage(pkg)}>
-                              <Edit size={16} />
-                            </OutlinedButton>
-                            <DangerButton onClick={() => {
-                              setSelectedPackage(pkg);
-                              setOpenDeleteDialog(true);
-                            }}>
-                              <Trash2 size={16} />
-                            </DangerButton>
-                          </FlexBox>
-                        </UITable.Cell>
-                      </UITable.Row>
-                    ))}
-                  </UITable.Body>
-                </UITable>
+      {/* Package Card Grid */}
+      {paginatedPackages.length > 0 ? (
+        <>
+          <PackageGrid>
+            {paginatedPackages.map(pkg => (
+              <PackageCard key={pkg.id}>
+                <PackageCardHeader>
+                  <div style={{ flex: 1 }}>
+                    <PackageName>{pkg.name}</PackageName>
+                    <PackageDetail>
+                      <StatusBadge $status={pkg.isActive ? 'active' : 'inactive'}>
+                        {pkg.packageType}
+                      </StatusBadge>
+                      {pkg.packageType === 'fixed'
+                        ? <span>{pkg.sessions} sessions</span>
+                        : <span>{pkg.months}mo, {pkg.sessionsPerWeek}x/week</span>
+                      }
+                    </PackageDetail>
+                  </div>
+                  {/* SwanToggle — instant optimistic toggle */}
+                  <SwanToggleLabel title={`Click to ${pkg.isActive ? 'deactivate' : 'activate'}`}>
+                    <SwanToggleInput
+                      type="checkbox"
+                      role="switch"
+                      aria-checked={pkg.isActive}
+                      checked={pkg.isActive}
+                      onChange={() => handleToggleActive(pkg)}
+                    />
+                    <SwanToggleTrack $checked={pkg.isActive} />
+                  </SwanToggleLabel>
+                </PackageCardHeader>
 
-                {/* Pagination */}
-                <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <FlexBox justify="space-between" align="center">
-                    <SmallText style={{ color: '#94a3b8' }}>
-                      Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalItems)} of {totalItems} packages
-                    </SmallText>
-                    
-                    <Pagination>
-                      <Pagination.PrevButton 
-                        onClick={goToPrevPage} 
-                        disabled={!hasPrevPage} 
-                      />
-                      <Pagination.PageNumber>
-                        Page {currentPage} of {totalPages}
-                      </Pagination.PageNumber>
-                      <Pagination.NextButton 
-                        onClick={goToNextPage} 
-                        disabled={!hasNextPage} 
-                      />
-                      <Pagination.PageSizeSelector
-                        value={rowsPerPage}
-                        onChange={handleRowsPerPageChange}
-                        options={[5, 10, 25, 50]}
-                      />
-                    </Pagination>
-                  </FlexBox>
+                {pkg.description && (
+                  <div style={{ fontSize: '0.8rem', color: STORE_TOKENS.color.muted, lineHeight: 1.4 }}>
+                    {pkg.description.length > 120 ? pkg.description.slice(0, 120) + '...' : pkg.description}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <PackagePrice>{formatCurrency(calculateTotal(pkg))}</PackagePrice>
+                  <PerSessionPrice>{formatCurrency(pkg.pricePerSession)}/session</PerSessionPrice>
                 </div>
-              </>
-            ) : (
-              <EmptyState
-                icon={<Inbox size={48} />}
-                title="No packages found"
-                message="Try adjusting your search filters or create a new package"
-                action={
-                  <PrimaryButton onClick={() => { resetForm(); setOpenNewDialog(true); }}>
-                    <Plus size={16} style={{ marginRight: '0.5rem' }} />
-                    Create Package
-                  </PrimaryButton>
-                }
-              />
+
+                <PackageActions>
+                  <StoreButton onClick={() => handleEditPackage(pkg)} style={{ flex: 1 }}>
+                    <Edit size={14} /> Edit
+                  </StoreButton>
+                  <StoreButton
+                    $variant="danger"
+                    onClick={() => { setSelectedPackage(pkg); setOpenDeleteDialog(true); }}
+                  >
+                    <Trash2 size={14} />
+                  </StoreButton>
+                </PackageActions>
+              </PackageCard>
+            ))}
+          </PackageGrid>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <PaginationRow>
+              <span>
+                Showing {(currentPage - 1) * 12 + 1} to {Math.min(currentPage * 12, totalItems)} of {totalItems}
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <StoreButton $variant="ghost" onClick={goToPrevPage} disabled={!hasPrevPage}>Prev</StoreButton>
+                <span style={{ padding: '0.5rem 1rem', color: STORE_TOKENS.color.cyan }}>
+                  {currentPage} / {totalPages}
+                </span>
+                <StoreButton $variant="ghost" onClick={goToNextPage} disabled={!hasNextPage}>Next</StoreButton>
+              </div>
+            </PaginationRow>
+          )}
+        </>
+      ) : (
+        <GlassCardStatic style={{ textAlign: 'center', padding: '3rem' }}>
+          <Inbox size={48} style={{ color: STORE_TOKENS.color.muted, marginBottom: '1rem', opacity: 0.3 }} />
+          <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>No packages found</h3>
+          <p style={{ color: STORE_TOKENS.color.muted }}>Try adjusting your search or create a new package.</p>
+          <StoreButton onClick={() => { resetForm(); setOpenNewDialog(true); }} style={{ margin: '1rem auto 0' }}>
+            <Plus size={16} /> Create Package
+          </StoreButton>
+        </GlassCardStatic>
+      )}
+
+      {/* Edit Modal */}
+      <ModalBackdrop $isOpen={openEditDialog} onClick={() => setOpenEditDialog(false)}>
+        <ModalContainer onClick={e => e.stopPropagation()}>
+          <ModalHeader>
+            <SectionTitle style={{ fontSize: '1.25rem' }}>Edit Package</SectionTitle>
+            <StoreButton $variant="ghost" onClick={() => setOpenEditDialog(false)}><X size={18} /></StoreButton>
+          </ModalHeader>
+          <ModalBody>{renderFormFields()}</ModalBody>
+          <ModalFooter>
+            <StoreButton $variant="ghost" onClick={() => setOpenEditDialog(false)}>Cancel</StoreButton>
+            <StoreButton onClick={handleSave}><CheckSquare size={16} /> Save Changes</StoreButton>
+          </ModalFooter>
+        </ModalContainer>
+      </ModalBackdrop>
+
+      {/* Create Modal */}
+      <ModalBackdrop $isOpen={openNewDialog} onClick={() => setOpenNewDialog(false)}>
+        <ModalContainer onClick={e => e.stopPropagation()}>
+          <ModalHeader>
+            <SectionTitle style={{ fontSize: '1.25rem' }}>Create New Package</SectionTitle>
+            <StoreButton $variant="ghost" onClick={() => setOpenNewDialog(false)}><X size={18} /></StoreButton>
+          </ModalHeader>
+          <ModalBody>{renderFormFields()}</ModalBody>
+          <ModalFooter>
+            <StoreButton $variant="ghost" onClick={() => setOpenNewDialog(false)}>Cancel</StoreButton>
+            <StoreButton onClick={handleCreate}><Plus size={16} /> Create Package</StoreButton>
+          </ModalFooter>
+        </ModalContainer>
+      </ModalBackdrop>
+
+      {/* Delete Modal */}
+      <ModalBackdrop $isOpen={openDeleteDialog} onClick={() => setOpenDeleteDialog(false)}>
+        <ModalContainer onClick={e => e.stopPropagation()}>
+          <ModalHeader>
+            <SectionTitle style={{ fontSize: '1.25rem' }}>Delete Package</SectionTitle>
+            <StoreButton $variant="ghost" onClick={() => setOpenDeleteDialog(false)}><X size={18} /></StoreButton>
+          </ModalHeader>
+          <ModalBody>
+            <p style={{ color: 'white' }}>Are you sure you want to delete this package?</p>
+            {selectedPackage && (
+              <GlassCardStatic>
+                <strong style={{ color: 'white' }}>{selectedPackage.name}</strong>
+                <div style={{ color: STORE_TOKENS.color.muted, fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {selectedPackage.description}
+                </div>
+              </GlassCardStatic>
             )}
-          </CardBody>
-        </Card>
-
-        {/* Edit Dialog - USING useForm HOOK */}
-        <ModalBackdrop isOpen={openEditDialog} onClick={() => setOpenEditDialog(false)}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <SectionTitle>Edit Package</SectionTitle>
-              <OutlinedButton onClick={() => setOpenEditDialog(false)}>
-                <X size={18} />
-              </OutlinedButton>
-            </ModalHeader>
-            <ModalBody>
-              <FormField>
-                <Label>Package Name</Label>
-                <StyledInput
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                />
-              </FormField>
-              <FormField>
-                <Label>Type</Label>
-                <Select
-                  name="packageType"
-                  value={formData.packageType}
-                  onChange={handleInputChange}
-                >
-                  <option value="fixed">Fixed Sessions</option>
-                  <option value="monthly">Monthly</option>
-                </Select>
-              </FormField>
-              <FormField>
-                <Label>Price Per Session ($)</Label>
-                <StyledInput
-                  name="pricePerSession"
-                  type="number"
-                  value={formData.pricePerSession}
-                  onChange={handleInputChange}
-                />
-              </FormField>
-              {formData.packageType === 'fixed' && (
-                <FormField>
-                  <Label>Number of Sessions</Label>
-                  <StyledInput
-                    name="sessions"
-                    type="number"
-                    value={formData.sessions}
-                    onChange={handleInputChange}
-                  />
-                </FormField>
-              )}
-              {formData.packageType === 'monthly' && (
-                <>
-                  <FormField>
-                    <Label>Months</Label>
-                    <StyledInput
-                      name="months"
-                      type="number"
-                      value={formData.months}
-                      onChange={handleInputChange}
-                    />
-                  </FormField>
-                  <FormField>
-                    <Label>Sessions Per Week</Label>
-                    <StyledInput
-                      name="sessionsPerWeek"
-                      type="number"
-                      value={formData.sessionsPerWeek}
-                      onChange={handleInputChange}
-                    />
-                  </FormField>
-                </>
-              )}
-              <FormField>
-                <Label>Description</Label>
-                <StyledTextarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                />
-              </FormField>
-            </ModalBody>
-            <ModalFooter>
-              <OutlinedButton onClick={() => setOpenEditDialog(false)}>Cancel</OutlinedButton>
-              <PrimaryButton onClick={handleSave}>
-                <CheckSquare size={16} />
-                Save Changes
-              </PrimaryButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalBackdrop>
-
-        {/* Create Dialog - USING useForm HOOK */}
-        <ModalBackdrop isOpen={openNewDialog} onClick={() => setOpenNewDialog(false)}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <SectionTitle>Create New Package</SectionTitle>
-              <OutlinedButton onClick={() => setOpenNewDialog(false)}>
-                <X size={18} />
-              </OutlinedButton>
-            </ModalHeader>
-            <ModalBody>
-              <FormField>
-                <Label>Package Name</Label>
-                <StyledInput
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Gold Package"
-                />
-              </FormField>
-              <FormField>
-                <Label>Type</Label>
-                <Select
-                  name="packageType"
-                  value={formData.packageType}
-                  onChange={handleInputChange}
-                >
-                  <option value="fixed">Fixed Sessions</option>
-                  <option value="monthly">Monthly</option>
-                </Select>
-              </FormField>
-              <FormField>
-                <Label>Price Per Session ($)</Label>
-                <StyledInput
-                  name="pricePerSession"
-                  type="number"
-                  value={formData.pricePerSession}
-                  onChange={handleInputChange}
-                />
-              </FormField>
-              {formData.packageType === 'fixed' && (
-                <FormField>
-                  <Label>Number of Sessions</Label>
-                  <StyledInput
-                    name="sessions"
-                    type="number"
-                    value={formData.sessions}
-                    onChange={handleInputChange}
-                  />
-                </FormField>
-              )}
-              {formData.packageType === 'monthly' && (
-                <>
-                  <FormField>
-                    <Label>Months</Label>
-                    <StyledInput
-                      name="months"
-                      type="number"
-                      value={formData.months}
-                      onChange={handleInputChange}
-                    />
-                  </FormField>
-                  <FormField>
-                    <Label>Sessions Per Week</Label>
-                    <StyledInput
-                      name="sessionsPerWeek"
-                      type="number"
-                      value={formData.sessionsPerWeek}
-                      onChange={handleInputChange}
-                    />
-                  </FormField>
-                </>
-              )}
-              <FormField>
-                <Label>Description</Label>
-                <StyledTextarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  placeholder="Describe the package benefits..."
-                />
-              </FormField>
-            </ModalBody>
-            <ModalFooter>
-              <OutlinedButton onClick={() => setOpenNewDialog(false)}>Cancel</OutlinedButton>
-              <PrimaryButton onClick={handleCreate}>
-                <Plus size={16} />
-                Create Package
-              </PrimaryButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalBackdrop>
-
-        {/* Delete Dialog */}
-        <ModalBackdrop isOpen={openDeleteDialog} onClick={() => setOpenDeleteDialog(false)}>
-          <ModalContainer onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <SectionTitle>Delete Package</SectionTitle>
-              <OutlinedButton onClick={() => setOpenDeleteDialog(false)}>
-                <X size={18} />
-              </OutlinedButton>
-            </ModalHeader>
-            <ModalBody>
-              <BodyText style={{ marginBottom: '1rem' }}>
-                Are you sure you want to delete this package?
-              </BodyText>
-              {selectedPackage && (
-                <Card>
-                  <CardBody>
-                    <BodyText style={{ fontWeight: 600 }}>{selectedPackage.name}</BodyText>
-                    <SmallText style={{ color: '#94a3b8' }}>{selectedPackage.description}</SmallText>
-                  </CardBody>
-                </Card>
-              )}
-              <BodyText style={{ marginTop: '1rem', color: '#ef4444' }}>
-                This action cannot be undone.
-              </BodyText>
-            </ModalBody>
-            <ModalFooter>
-              <OutlinedButton onClick={() => setOpenDeleteDialog(false)}>Cancel</OutlinedButton>
-              <DangerButton onClick={handleDelete}>
-                <Trash2 size={16} />
-                Delete
-              </DangerButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalBackdrop>
-      </ContentContainer>
-    </PageContainer>
+            <p style={{ color: STORE_TOKENS.color.inactive }}>This action cannot be undone.</p>
+          </ModalBody>
+          <ModalFooter>
+            <StoreButton $variant="ghost" onClick={() => setOpenDeleteDialog(false)}>Cancel</StoreButton>
+            <StoreButton $variant="danger" onClick={handleDelete}><Trash2 size={16} /> Delete</StoreButton>
+          </ModalFooter>
+        </ModalContainer>
+      </ModalBackdrop>
+    </PackagesWrapper>
   );
 };
 

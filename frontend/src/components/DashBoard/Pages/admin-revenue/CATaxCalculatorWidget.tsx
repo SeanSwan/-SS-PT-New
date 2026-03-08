@@ -1,198 +1,73 @@
 /**
- * CATaxCalculatorWidget.tsx - California Tax Calculator
- * =====================================================
- * Revenue widget showing tax liability on package sales
+ * CATaxCalculatorWidget.tsx - California Tax Calculator (Gemini 3.1 Pro Design)
+ * ==============================================================================
+ * Revenue widget showing tax liability on package sales.
+ * Layout: KPI row (4-col) -> Middle row (Calculator 2/3 + Last Order 1/3) -> Disclaimer
  * Fetches real data from /api/financial/tax/calculator
+ *
+ * Design Authority: Gemini 3.1 Pro
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import {
-  Calculator, DollarSign, Receipt, TrendingUp, RefreshCw,
-  Package, AlertTriangle, Clock, ChevronDown, ChevronUp
+  Calculator, Receipt, RefreshCw,
+  AlertTriangle, Clock, ChevronDown, ChevronUp, TrendingUp
 } from 'lucide-react';
 
-// ── Styled Components ──
+import {
+  GlassCardStatic,
+  KPIGrid,
+  KPICard,
+  KPIValue,
+  KPILabel,
+  DashboardMiddleRow,
+  TableContainer,
+  DataTable,
+  Th,
+  Td,
+  Tr,
+  SectionHeader,
+  SectionTitle,
+  SubSectionTitle,
+  StoreButton,
+  ErrorBanner,
+  DisclaimerBox,
+  ShimmerBlock,
+  formatCurrency,
+  STORE_TOKENS,
+} from '../store-shared/StoreDesignSystem';
 
-const WidgetContainer = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(10, 10, 26, 0.95) 0%, rgba(30, 20, 60, 0.9) 100%);
-  border-radius: 20px;
-  padding: 2rem;
-  border: 1px solid rgba(120, 81, 169, 0.3);
-  backdrop-filter: blur(20px);
-`;
+// ── Page-specific styled components ─────────────────────
 
-const WidgetHeader = styled.div`
+const CalculatorWrapper = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 24px;
 `;
 
-const WidgetTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
+const MiddleCardContent = styled(GlassCardStatic)`
+  height: 100%;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
 `;
 
-const RefreshButton = styled.button`
-  background: rgba(120, 81, 169, 0.2);
-  border: 1px solid rgba(120, 81, 169, 0.3);
-  border-radius: 8px;
-  color: white;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  min-height: 44px;
-
-  &:hover {
-    background: rgba(120, 81, 169, 0.3);
-    border-color: rgba(120, 81, 169, 0.5);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const KPIGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const KPICard = styled.div<{ $accent?: string }>`
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid ${({ $accent }) => $accent || 'rgba(255, 255, 255, 0.1)'};
-  border-radius: 12px;
-  padding: 1.25rem;
-  text-align: center;
-`;
-
-const KPIValue = styled.div<{ $color?: string }>`
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: ${({ $color }) => $color || '#00ffff'};
-  margin-bottom: 0.25rem;
-`;
-
-const KPILabel = styled.div`
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 600;
-  color: #00ffff;
-  margin: 1.5rem 0 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const PackageRow = styled.div`
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  align-items: center;
-  font-size: 0.875rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const PackageRowHeader = styled(PackageRow)`
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid rgba(120, 81, 169, 0.3);
-`;
-
-const PackageName = styled.span`
-  color: white;
-  font-weight: 500;
-`;
-
-const TaxAmount = styled.span`
-  color: #ff6b6b;
-  font-weight: 600;
-`;
-
-const TotalWithTax = styled.span`
-  color: #10b981;
-  font-weight: 600;
-`;
-
-const TableWrapper = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-`;
-
-const ToggleButton = styled.button`
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  padding: 0.5rem 0;
-  min-height: 44px;
-
-  &:hover {
-    color: #00ffff;
-  }
-`;
-
-const LastOrderCard = styled.div`
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-top: 1rem;
+const LastOrderDetail = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+
+  &:last-child { border-bottom: none; }
 `;
 
 const LastOrderLabel = styled.span`
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: ${STORE_TOKENS.color.muted};
   text-transform: uppercase;
+  min-width: 80px;
 `;
 
 const LastOrderValue = styled.span`
@@ -201,33 +76,45 @@ const LastOrderValue = styled.span`
   font-weight: 600;
 `;
 
-const ErrorBanner = styled.div`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  color: #ef4444;
-  text-align: center;
+const TaxAmount = styled.span`
+  color: ${STORE_TOKENS.color.tax};
+  font-weight: 600;
+`;
+
+const TotalWithTax = styled.span`
+  color: ${STORE_TOKENS.color.completed};
+  font-weight: 600;
+`;
+
+const PackageType = styled.span`
+  color: ${STORE_TOKENS.color.muted};
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+`;
+
+const ToggleRow = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  justify-content: center;
+  cursor: pointer;
+  color: ${STORE_TOKENS.color.muted};
+  font-size: 0.875rem;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+
+  &:hover { color: ${STORE_TOKENS.color.cyan}; }
 `;
 
-const LoadingDot = styled.div`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #00ffff;
-  animation: pulse 1.5s infinite;
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
-  }
+const LoadingGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 2rem 0;
 `;
 
-// ── Types ──
+// ── Types ───────────────────────────────────────────────
 
 interface PackageTax {
   id: number;
@@ -257,14 +144,14 @@ interface TaxData {
   };
 }
 
-// ── Component ──
+// ── Component ───────────────────────────────────────────
 
 const CATaxCalculatorWidget: React.FC = () => {
   const { authAxios } = useAuth();
   const [taxData, setTaxData] = useState<TaxData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showPackageBreakdown, setShowPackageBreakdown] = useState(true);
+  const [showBreakdown, setShowBreakdown] = useState(true);
 
   const fetchTaxData = useCallback(async () => {
     try {
@@ -283,49 +170,37 @@ const CATaxCalculatorWidget: React.FC = () => {
     }
   }, [authAxios]);
 
-  useEffect(() => {
-    fetchTaxData();
-  }, [fetchTaxData]);
+  useEffect(() => { fetchTaxData(); }, [fetchTaxData]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
-
+  // ── Loading State (Deep Space Shimmer) ──
   if (loading && !taxData) {
     return (
-      <WidgetContainer>
-        <WidgetHeader>
-          <WidgetTitle>
-            <Calculator size={24} />
-            California Tax Calculator
-          </WidgetTitle>
-        </WidgetHeader>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', padding: '2rem' }}>
-          <LoadingDot style={{ animationDelay: '0s' }} />
-          <LoadingDot style={{ animationDelay: '0.3s' }} />
-          <LoadingDot style={{ animationDelay: '0.6s' }} />
-        </div>
-      </WidgetContainer>
+      <CalculatorWrapper>
+        <SectionHeader>
+          <SectionTitle><Calculator size={24} /> California Tax Calculator</SectionTitle>
+        </SectionHeader>
+        <LoadingGrid>
+          <KPIGrid>
+            {[1,2,3,4].map(i => (
+              <KPICard key={i}><ShimmerBlock $height="60px" /></KPICard>
+            ))}
+          </KPIGrid>
+          <ShimmerBlock $height="200px" />
+        </LoadingGrid>
+      </CalculatorWrapper>
     );
   }
 
+  // ── Error State ──
   if (error) {
     return (
-      <WidgetContainer>
-        <WidgetHeader>
-          <WidgetTitle>
-            <Calculator size={24} />
-            California Tax Calculator
-          </WidgetTitle>
-          <RefreshButton onClick={fetchTaxData}>
-            <RefreshCw size={16} />
-            Retry
-          </RefreshButton>
-        </WidgetHeader>
-        <ErrorBanner>
-          <AlertTriangle size={18} />
-          {error}
-        </ErrorBanner>
-      </WidgetContainer>
+      <CalculatorWrapper>
+        <SectionHeader>
+          <SectionTitle><Calculator size={24} /> California Tax Calculator</SectionTitle>
+          <StoreButton onClick={fetchTaxData}><RefreshCw size={16} /> Retry</StoreButton>
+        </SectionHeader>
+        <ErrorBanner><AlertTriangle size={18} /> {error}</ErrorBanner>
+      </CalculatorWrapper>
     );
   }
 
@@ -334,112 +209,126 @@ const CATaxCalculatorWidget: React.FC = () => {
   const { revenue, packages: pkgs } = taxData;
 
   return (
-    <WidgetContainer
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <WidgetHeader>
-        <WidgetTitle>
-          <Calculator size={24} />
-          California Tax Calculator
-        </WidgetTitle>
-        <RefreshButton onClick={fetchTaxData} disabled={loading}>
+    <CalculatorWrapper>
+      {/* Header */}
+      <SectionHeader>
+        <SectionTitle><Calculator size={24} /> California Tax Calculator</SectionTitle>
+        <StoreButton onClick={fetchTaxData} disabled={loading}>
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           Refresh
-        </RefreshButton>
-      </WidgetHeader>
+        </StoreButton>
+      </SectionHeader>
 
-      {/* KPI Cards */}
+      {/* KPI Row (4 columns) */}
       <KPIGrid>
-        <KPICard $accent="rgba(0, 255, 255, 0.2)">
-          <KPIValue $color="#00ffff">{taxData.taxPercentage}</KPIValue>
+        <KPICard $accent="rgba(0,255,255,0.15)">
           <KPILabel>CA State Tax Rate</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.cyan}>{taxData.taxPercentage}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(16, 185, 129, 0.2)">
-          <KPIValue $color="#10b981">{formatCurrency(revenue.totalRevenue)}</KPIValue>
+        <KPICard $accent="rgba(0,255,136,0.15)">
           <KPILabel>Total Revenue</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.revenue}>{formatCurrency(revenue.totalRevenue)}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(255, 107, 107, 0.2)">
-          <KPIValue $color="#ff6b6b">{formatCurrency(revenue.totalTaxLiability)}</KPIValue>
+        <KPICard $accent="rgba(255,107,107,0.15)">
           <KPILabel>Tax Liability (Set Aside)</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.tax}>{formatCurrency(revenue.totalTaxLiability)}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(120, 81, 169, 0.2)">
-          <KPIValue $color="#9b6fcf">{revenue.orderCount}</KPIValue>
+        <KPICard $accent="rgba(120,81,169,0.15)">
           <KPILabel>Completed Orders</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.purple}>{revenue.orderCount}</KPIValue>
         </KPICard>
       </KPIGrid>
 
-      {/* Last Order Info */}
-      {revenue.lastOrder && (
-        <LastOrderCard>
-          <Clock size={18} style={{ color: '#00ffff', flexShrink: 0 }} />
-          <div>
-            <LastOrderLabel>Last Purchase</LastOrderLabel>
-            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-              <LastOrderValue>{formatCurrency(revenue.lastOrder.amount)}</LastOrderValue>
-              <span style={{ color: '#ff6b6b', fontWeight: 600 }}>
-                Tax: {formatCurrency(revenue.lastOrder.taxOnOrder)}
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>
-                {new Date(revenue.lastOrder.date).toLocaleDateString('en-US', {
-                  month: 'short', day: 'numeric', year: 'numeric'
-                })}
-              </span>
+      {/* Middle Row: Tax Breakdown (2/3) + Last Order (1/3) */}
+      <DashboardMiddleRow>
+        <MiddleCardContent>
+          <ToggleRow onClick={() => setShowBreakdown(!showBreakdown)}>
+            <Receipt size={18} />
+            <span style={{ fontWeight: 600, color: STORE_TOKENS.color.cyan }}>
+              Per-Package Tax Breakdown
+            </span>
+            {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </ToggleRow>
+
+          {showBreakdown && (
+            <TableContainer style={{ marginTop: '1rem', border: 'none' }}>
+              <DataTable>
+                <thead>
+                  <tr>
+                    <Th>Package</Th>
+                    <Th>Price</Th>
+                    <Th>Tax ({taxData.taxPercentage})</Th>
+                    <Th>Total w/ Tax</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pkgs.map(pkg => (
+                    <Tr key={pkg.id}>
+                      <Td data-label="Package">
+                        {pkg.name}
+                        <PackageType>
+                          {pkg.sessions ? `${pkg.sessions} sessions` : pkg.packageType}
+                        </PackageType>
+                      </Td>
+                      <Td data-label="Price">{formatCurrency(pkg.price)}</Td>
+                      <Td data-label="Tax"><TaxAmount>{formatCurrency(pkg.taxAmount)}</TaxAmount></Td>
+                      <Td data-label="Total"><TotalWithTax>{formatCurrency(pkg.totalWithTax)}</TotalWithTax></Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </TableContainer>
+          )}
+        </MiddleCardContent>
+
+        {/* Last Order Card (1/3) */}
+        <MiddleCardContent>
+          <SubSectionTitle>
+            <Clock size={18} /> Latest Purchase
+          </SubSectionTitle>
+          {revenue.lastOrder ? (
+            <div>
+              <LastOrderDetail>
+                <LastOrderLabel>Amount</LastOrderLabel>
+                <LastOrderValue>{formatCurrency(revenue.lastOrder.amount)}</LastOrderValue>
+              </LastOrderDetail>
+              <LastOrderDetail>
+                <LastOrderLabel>Tax</LastOrderLabel>
+                <LastOrderValue style={{ color: STORE_TOKENS.color.tax }}>
+                  {formatCurrency(revenue.lastOrder.taxOnOrder)}
+                </LastOrderValue>
+              </LastOrderDetail>
+              <LastOrderDetail>
+                <LastOrderLabel>Date</LastOrderLabel>
+                <LastOrderValue style={{ fontSize: '0.875rem', fontWeight: 400 }}>
+                  {new Date(revenue.lastOrder.date).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', year: 'numeric'
+                  })}
+                </LastOrderValue>
+              </LastOrderDetail>
+              <LastOrderDetail>
+                <LastOrderLabel>Net</LastOrderLabel>
+                <LastOrderValue style={{ color: STORE_TOKENS.color.completed }}>
+                  {formatCurrency(revenue.lastOrder.amount - revenue.lastOrder.taxOnOrder)}
+                </LastOrderValue>
+              </LastOrderDetail>
             </div>
-          </div>
-        </LastOrderCard>
-      )}
-
-      {/* Package Tax Breakdown */}
-      <SectionTitle>
-        <Receipt size={18} />
-        Per-Package Tax Breakdown
-        <ToggleButton onClick={() => setShowPackageBreakdown(!showPackageBreakdown)}>
-          {showPackageBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </ToggleButton>
-      </SectionTitle>
-
-      {showPackageBreakdown && (
-        <TableWrapper>
-          <PackageRowHeader>
-            <span>Package</span>
-            <span>Price</span>
-            <span>Tax ({taxData.taxPercentage})</span>
-            <span>Total w/ Tax</span>
-          </PackageRowHeader>
-          {pkgs.map(pkg => (
-            <PackageRow key={pkg.id}>
-              <PackageName>
-                {pkg.name}
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                  {pkg.sessions ? `${pkg.sessions} sessions` : pkg.packageType}
-                </span>
-              </PackageName>
-              <span style={{ color: 'white' }}>{formatCurrency(pkg.price)}</span>
-              <TaxAmount>{formatCurrency(pkg.taxAmount)}</TaxAmount>
-              <TotalWithTax>{formatCurrency(pkg.totalWithTax)}</TotalWithTax>
-            </PackageRow>
-          ))}
-        </TableWrapper>
-      )}
+          ) : (
+            <div style={{ color: STORE_TOKENS.color.muted, padding: '2rem 0', textAlign: 'center' }}>
+              <TrendingUp size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+              <div>No orders yet</div>
+            </div>
+          )}
+        </MiddleCardContent>
+      </DashboardMiddleRow>
 
       {/* Disclaimer */}
-      <div style={{
-        marginTop: '1.5rem',
-        padding: '0.75rem 1rem',
-        background: 'rgba(245, 158, 11, 0.08)',
-        border: '1px solid rgba(245, 158, 11, 0.2)',
-        borderRadius: '8px',
-        fontSize: '0.75rem',
-        color: 'rgba(255, 255, 255, 0.5)',
-        lineHeight: 1.5,
-      }}>
-        <strong style={{ color: '#f59e0b' }}>Disclaimer:</strong> This calculator uses the California
+      <DisclaimerBox>
+        <strong>Disclaimer:</strong> This calculator uses the California
         state sales tax rate ({taxData.taxPercentage}). Local tax rates may vary. Personal training services
         classification may affect tax applicability. Consult a tax professional for official guidance.
-      </div>
-    </WidgetContainer>
+      </DisclaimerBox>
+    </CalculatorWrapper>
   );
 };
 

@@ -1,183 +1,99 @@
 /**
- * PendingOrdersAdminPanel.tsx - SwanStudios Manual Payment Management
- * ===================================================================
- * Admin interface for managing pending manual payments and orders
- * Integrated with PaymentService manual strategy
- * 
- * Features:
- * - View all pending manual payments
- * - Customer details and order information
- * - "Mark as Paid" functionality
- * - Payment method tracking
- * - Real-time status updates
- * - Export capabilities
- * 
- * Master Prompt v33 Alignment:
- * - Galaxy-themed professional aesthetics
- * - Production-ready error handling
- * - Mobile-first responsive design
- * - WCAG AA accessibility compliance
+ * PendingOrdersAdminPanel.tsx - Orders Command Center (Gemini 3.1 Pro Design)
+ * ===========================================================================
+ * Admin interface for managing orders with revenue summary, tax calculations,
+ * and glass card order display. Fetches from /api/admin/orders endpoints.
+ *
+ * Design Authority: Gemini 3.1 Pro
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   ShoppingBag, User, DollarSign, Calendar, Clock, CheckCircle,
-  AlertTriangle, RefreshCw, Download, Eye, EyeOff, Filter,
-  CreditCard, Banknote, Building, Phone, Mail, Package,
-  ArrowRight, ExternalLink, Search, SortAsc, SortDesc,
-  FileText, MessageSquare, Star, Award, Shield, Zap
+  AlertTriangle, RefreshCw, Eye, EyeOff, Mail, Search,
+  SortAsc, SortDesc
 } from 'lucide-react';
 
-// Styled Components following galaxy theme
-const cosmicPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
-  100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-`;
+import {
+  GlassCard,
+  KPIGrid,
+  KPICard,
+  KPIValue,
+  KPILabel,
+  StatusBadge,
+  ViewModeTabs,
+  ViewModeTab,
+  SectionHeader,
+  SectionTitle,
+  StoreButton,
+  SearchBar,
+  SearchInput,
+  ErrorBanner,
+  ShimmerBlock,
+  formatCurrency,
+  STORE_TOKENS,
+} from '../../store-shared/StoreDesignSystem';
 
-const OrdersContainer = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(10, 10, 26, 0.9) 0%, rgba(30, 58, 138, 0.1) 100%);
-  border-radius: 20px;
-  padding: 2rem;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  backdrop-filter: blur(20px);
-  position: relative;
-  overflow: hidden;
-`;
+// ── Page-specific styled components ─────────────────────
 
-const PanelHeader = styled.div`
+const OrdersWrapper = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 24px;
 `;
 
-const PanelTitle = styled.h2`
-  font-size: 1.75rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #00ffff, #3b82f6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const ControlsContainer = styled.div`
+const ControlsRow = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
-`;
-
-const ActionButton = styled(motion.button)`
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(0, 255, 255, 0.1));
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  color: white;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.2));
-    border-color: rgba(59, 130, 246, 0.6);
-    transform: translateY(-2px);
-  }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const SearchContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
-const SearchInput = styled.input`
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  color: white;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  flex: 1;
-  min-width: 200px;
-  
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: rgba(59, 130, 246, 0.6);
-    animation: ${cosmicPulse} 2s infinite;
-  }
 `;
 
 const FilterSelect = styled.select`
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid ${STORE_TOKENS.border.glass};
+  border-radius: ${STORE_TOKENS.radius.button};
   color: white;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
+  min-height: 44px;
   cursor: pointer;
-  
+
   &:focus {
     outline: none;
-    border-color: rgba(59, 130, 246, 0.6);
+    border-color: ${STORE_TOKENS.color.cyan};
   }
-  
+
   option {
-    background: #1e3a8a;
+    background: #120d26;
     color: white;
   }
 `;
 
 const OrdersGrid = styled.div`
   display: grid;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 20px;
 `;
 
-const OrderCard = styled(motion.div)`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
+const OrderCardWrapper = styled(GlassCard)<{ $priority?: string }>`
   position: relative;
   overflow: hidden;
-  
+
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: ${props => {
-      switch (props.priority) {
-        case 'high': return 'linear-gradient(90deg, #ef4444, #f59e0b)';
-        case 'medium': return 'linear-gradient(90deg, #f59e0b, #10b981)';
-        case 'low': return 'linear-gradient(90deg, #10b981, #3b82f6)';
-        default: return 'linear-gradient(90deg, #00ffff, #3b82f6)';
+    height: 3px;
+    background: ${({ $priority }) => {
+      switch ($priority) {
+        case 'high': return `linear-gradient(90deg, ${STORE_TOKENS.color.inactive}, ${STORE_TOKENS.color.pending})`;
+        case 'medium': return `linear-gradient(90deg, ${STORE_TOKENS.color.pending}, ${STORE_TOKENS.color.completed})`;
+        default: return `linear-gradient(90deg, ${STORE_TOKENS.color.cyan}, ${STORE_TOKENS.color.purple})`;
       }
     }};
   }
@@ -187,41 +103,51 @@ const OrderHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
   gap: 1rem;
-  
+  margin-bottom: 1rem;
+
   @media (max-width: 768px) {
     flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const OrderInfo = styled.div`
-  flex: 1;
-`;
-
-const OrderActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
-  
-  @media (max-width: 768px) {
-    align-self: stretch;
-    justify-content: stretch;
   }
 `;
 
 const OrderId = styled.div`
   font-size: 1.1rem;
   font-weight: 600;
-  color: #00ffff;
+  color: ${STORE_TOKENS.color.cyan};
   margin-bottom: 0.5rem;
 `;
 
-const CustomerInfo = styled.div`
+const OrderMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+`;
+
+const AmountDisplay = styled.span`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: ${STORE_TOKENS.color.completed};
+`;
+
+const TaxBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  background: rgba(255,107,107,0.15);
+  color: ${STORE_TOKENS.color.tax};
+  font-weight: 600;
+`;
+
+const CustomerGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 `;
 
@@ -230,107 +156,40 @@ const InfoItem = styled.div`
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255,255,255,0.7);
+
+  svg { color: ${STORE_TOKENS.color.muted}; flex-shrink: 0; }
 `;
 
-const OrderDetails = styled.div`
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
+const OrderItemsBox = styled.div`
+  background: rgba(0,0,0,0.15);
+  border-radius: ${STORE_TOKENS.radius.button};
   padding: 1rem;
-  margin: 1rem 0;
+  margin-top: 0.5rem;
 `;
 
-const OrderItems = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const OrderItem = styled.div`
+const OrderItemRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  
-  &:last-child {
-    border-bottom: none;
-  }
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.875rem;
+
+  &:last-child { border-bottom: none; }
 `;
 
-const PaymentInstructions = styled.div`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-`;
-
-const StatusBadge = styled.span`
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.status) {
-      case 'pending': return 'rgba(245, 158, 11, 0.2)';
-      case 'paid': return 'rgba(16, 185, 129, 0.2)';
-      case 'expired': return 'rgba(239, 68, 68, 0.2)';
-      default: return 'rgba(107, 114, 128, 0.2)';
-    }
-  }};
-  color: ${props => {
-    switch (props.status) {
-      case 'pending': return '#f59e0b';
-      case 'paid': return '#10b981';
-      case 'expired': return '#ef4444';
-      default: return '#6b7280';
-    }
-  }};
-  border: 1px solid ${props => {
-    switch (props.status) {
-      case 'pending': return 'rgba(245, 158, 11, 0.3)';
-      case 'paid': return 'rgba(16, 185, 129, 0.3)';
-      case 'expired': return 'rgba(239, 68, 68, 0.3)';
-      default: return 'rgba(107, 114, 128, 0.3)';
-    }
-  }};
-`;
-
-const LoadingSpinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(59, 130, 246, 0.3);
-  border-top: 3px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 2rem auto;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-const ErrorMessage = styled.div`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  color: #ef4444;
-  text-align: center;
-  margin: 1rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: center;
-`;
-
-const EmptyState = styled.div`
+const EmptyOrders = styled.div`
   text-align: center;
   padding: 3rem 1rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${STORE_TOKENS.color.muted};
+
+  svg { margin-bottom: 1rem; opacity: 0.3; }
+  h3 { color: white; margin-bottom: 0.5rem; }
 `;
 
-// Interface definitions
+// ── Types ───────────────────────────────────────────────
+
 interface PendingOrder {
   id: string;
   orderReference: string;
@@ -353,96 +212,13 @@ interface PendingOrder {
     price: number;
     sessions?: number;
   }>;
-  paymentInstructions: {
-    title: string;
-    methods: Array<{
-      method: string;
-      title: string;
-      description: string;
-      details: any;
-    }>;
-  };
   priority: 'high' | 'medium' | 'low';
 }
 
-// ── View Mode Tabs ──
-const ViewModeTabs = styled.div`
-  display: flex;
-  gap: 0;
-  margin-bottom: 1.5rem;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-`;
-
-const ViewModeTab = styled.button<{ $active?: boolean }>`
-  flex: 1;
-  padding: 0.75rem 1rem;
-  min-height: 44px;
-  border: none;
-  background: ${props => props.$active
-    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.15))'
-    : 'rgba(255, 255, 255, 0.03)'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
-  font-weight: ${props => props.$active ? 600 : 400};
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:not(:last-child) {
-    border-right: 1px solid rgba(59, 130, 246, 0.2);
-  }
-
-  &:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: white;
-  }
-`;
-
-const RevenueSummary = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const RevenueStat = styled.div`
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 1rem;
-  text-align: center;
-`;
-
-const RevenueValue = styled.div<{ $color?: string }>`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: ${props => props.$color || '#00ffff'};
-`;
-
-const RevenueLabel = styled.div`
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-  margin-top: 0.25rem;
-`;
-
-const TaxBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
-  font-weight: 600;
-`;
-
-// CA tax rate constant (7.25%)
 const CA_TAX_RATE = 0.0725;
-
 type ViewMode = 'pending' | 'completed' | 'all';
+
+// ── Component ───────────────────────────────────────────
 
 const PendingOrdersAdminPanel: React.FC = () => {
   const { authAxios } = useAuth();
@@ -456,13 +232,11 @@ const PendingOrdersAdminPanel: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('all');
 
-  // Fetch orders based on view mode
-  const fetchPendingOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Choose endpoint based on view mode
       const endpoint = viewMode === 'completed'
         ? '/api/admin/orders/completed'
         : '/api/admin/orders/pending';
@@ -473,96 +247,67 @@ const PendingOrdersAdminPanel: React.FC = () => {
           sortOrder,
           limit: 50,
           search: searchTerm || undefined,
-          status: statusFilter === 'all' ? undefined : statusFilter
-        }
+          status: statusFilter === 'all' ? undefined : statusFilter,
+        },
       });
 
       if (response.data.success) {
         const rawOrders = response.data.orders || response.data.data || [];
-        const mappedOrders = rawOrders.map((order: any) => ({
+        const mapOrder = (order: any, defaultStatus: string) => ({
           id: order.id,
           orderReference: order.id,
           paymentReference: order.checkoutSessionId || 'N/A',
           customer: {
             id: order.user?.id || order.userId || 0,
-            name: order.user ? `${order.user.firstName || ''} ${order.user.lastName || ''}`.trim() : 'Unknown Customer',
+            name: order.user
+              ? `${order.user.firstName || ''} ${order.user.lastName || ''}`.trim()
+              : 'Unknown Customer',
             email: order.user?.email || 'N/A',
-            phone: order.user?.phone || undefined
+            phone: order.user?.phone || undefined,
           },
           amount: parseFloat(order.totalAmount || order.total || 0),
           currency: 'USD',
-          status: order.status === 'pending' ? 'pending_manual_payment'
-               : order.status === 'completed' ? 'paid'
-               : order.status,
+          status:
+            order.status === 'pending' ? 'pending_manual_payment'
+            : order.status === 'completed' ? 'paid'
+            : (order.status || defaultStatus),
           createdAt: order.createdAt,
-          expiresAt: order.expiresAt || order.completedAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: order.expiresAt || order.completedAt || new Date(Date.now() + 86400000).toISOString(),
           items: (order.cartItems || order.items || []).map((item: any) => ({
             id: item.id,
             name: item.storefrontItem?.name || item.name || 'Unknown Item',
             quantity: item.quantity || 1,
             price: parseFloat(item.price || 0),
-            sessions: item.storefrontItem?.sessions || item.sessions || undefined
+            sessions: item.storefrontItem?.sessions || item.sessions || undefined,
           })),
-          paymentInstructions: {
-            title: 'Complete Payment',
-            methods: [
-              { method: 'stripe', title: 'Credit/Debit Card', description: 'Pay securely', details: { processor: 'Stripe' } },
-              { method: 'manual', title: 'Manual Payment', description: 'Contact admin', details: { contact: 'admin@swanstudios.com' } }
-            ]
-          },
-          priority: parseFloat(order.totalAmount || order.total || 0) > 200 ? 'high' as const
-                  : parseFloat(order.totalAmount || order.total || 0) > 100 ? 'medium' as const
-                  : 'low' as const
-        }));
+          priority:
+            parseFloat(order.totalAmount || order.total || 0) > 200 ? 'high' as const
+            : parseFloat(order.totalAmount || order.total || 0) > 100 ? 'medium' as const
+            : 'low' as const,
+        });
 
-        // If viewing 'all', fetch both endpoints
+        let mappedOrders = rawOrders.map((o: any) => mapOrder(o, 'pending_manual_payment'));
+
+        // For 'all' mode, also fetch the other endpoint
         if (viewMode === 'all') {
           try {
             const completedRes = await authAxios.get('/api/admin/orders/completed', {
-              params: { limit: 50, sortBy: 'createdAt', sortOrder: 'desc' }
+              params: { limit: 50, sortBy: 'createdAt', sortOrder: 'desc' },
             });
             if (completedRes.data.success) {
               const completedRaw = completedRes.data.orders || completedRes.data.data || [];
-              const completedMapped = completedRaw.map((order: any) => ({
-                id: order.id,
-                orderReference: order.id,
-                paymentReference: order.checkoutSessionId || 'N/A',
-                customer: {
-                  id: order.user?.id || order.userId || 0,
-                  name: order.user ? `${order.user.firstName || ''} ${order.user.lastName || ''}`.trim() : 'Unknown Customer',
-                  email: order.user?.email || 'N/A',
-                  phone: order.user?.phone || undefined
-                },
-                amount: parseFloat(order.totalAmount || order.total || 0),
-                currency: 'USD',
-                status: 'paid' as const,
-                createdAt: order.createdAt,
-                expiresAt: order.completedAt || order.createdAt,
-                items: (order.cartItems || order.items || []).map((item: any) => ({
-                  id: item.id,
-                  name: item.storefrontItem?.name || item.name || 'Unknown Item',
-                  quantity: item.quantity || 1,
-                  price: parseFloat(item.price || 0),
-                  sessions: item.storefrontItem?.sessions || item.sessions || undefined
-                })),
-                paymentInstructions: { title: '', methods: [] },
-                priority: parseFloat(order.totalAmount || order.total || 0) > 200 ? 'high' as const : 'low' as const
-              }));
-
-              // Merge and dedupe by id
-              const allOrders = [...mappedOrders];
+              const completedMapped = completedRaw.map((o: any) => mapOrder(o, 'paid'));
               for (const co of completedMapped) {
-                if (!allOrders.find((o: any) => o.id === co.id)) {
-                  allOrders.push(co);
+                if (!mappedOrders.find((o: any) => o.id === co.id)) {
+                  mappedOrders.push(co);
                 }
               }
-              // Sort by date descending
-              allOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-              setOrders(allOrders);
-              return;
+              mappedOrders.sort((a: any, b: any) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
             }
           } catch {
-            // Completed endpoint may not exist yet, just use pending
+            // Completed endpoint may not exist yet
           }
         }
 
@@ -571,94 +316,82 @@ const PendingOrdersAdminPanel: React.FC = () => {
         setError(response.data.message || 'Failed to load orders');
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to load orders';
-      setError(errorMessage);
+      setError(err.response?.data?.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
   }, [authAxios, statusFilter, sortBy, sortOrder, searchTerm, viewMode]);
 
-  // Mark order as paid
   const markAsPaid = useCallback(async (orderId: string) => {
     try {
       const response = await authAxios.post('/api/payments/confirm-payment', {
         paymentIntentId: orderId,
         adminNotes: 'Manually verified payment',
-        verifiedBy: 'Admin'
+        verifiedBy: 'Admin',
       });
-
       if (response.data.success) {
-        // Refresh orders list
-        fetchPendingOrders();
-        
-        // Show success notification (you can add a toast notification here)
-        console.log('Payment marked as paid successfully');
+        fetchOrders();
       } else {
         setError(response.data.message || 'Failed to mark payment as paid');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to mark payment as paid');
     }
-  }, [authAxios, fetchPendingOrders]);
+  }, [authAxios, fetchOrders]);
 
-  // Initial data load
-  useEffect(() => {
-    fetchPendingOrders();
-  }, [fetchPendingOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  // Auto-refresh setup
   useEffect(() => {
     if (!autoRefresh) return;
-
-    const interval = setInterval(fetchPendingOrders, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchPendingOrders]);
+  }, [autoRefresh, fetchOrders]);
 
-  // Filter orders based on search term
+  // Filter
   const filteredOrders = orders.filter(order => {
     if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
+    const s = searchTerm.toLowerCase();
     return (
-      order.orderReference.toLowerCase().includes(searchLower) ||
-      order.paymentReference.toLowerCase().includes(searchLower) ||
-      order.customer.name.toLowerCase().includes(searchLower) ||
-      order.customer.email.toLowerCase().includes(searchLower)
+      String(order.orderReference).toLowerCase().includes(s) ||
+      order.customer.name.toLowerCase().includes(s) ||
+      order.customer.email.toLowerCase().includes(s)
     );
   });
 
+  // Stats
+  const totalRevenue = orders.reduce((sum, o) => sum + o.amount, 0);
+  const pendingCount = orders.filter(o => o.status === 'pending_manual_payment').length;
+
+  // ── Loading ──
   if (loading && orders.length === 0) {
     return (
-      <OrdersContainer>
-        <LoadingSpinner />
-        <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
-          Loading pending orders...
-        </div>
-      </OrdersContainer>
+      <OrdersWrapper>
+        <SectionHeader>
+          <SectionTitle><ShoppingBag size={24} /> Orders</SectionTitle>
+        </SectionHeader>
+        <KPIGrid>
+          {[1,2,3,4].map(i => <KPICard key={i}><ShimmerBlock $height="50px" /></KPICard>)}
+        </KPIGrid>
+        <ShimmerBlock $height="300px" />
+      </OrdersWrapper>
     );
   }
 
-  if (error) {
+  // ── Error ──
+  if (error && orders.length === 0) {
     return (
-      <OrdersContainer>
-        <ErrorMessage>
-          <AlertTriangle size={20} />
-          {error}
-        </ErrorMessage>
-        <ActionButton onClick={fetchPendingOrders}>
-          <RefreshCw size={16} />
-          Retry
-        </ActionButton>
-      </OrdersContainer>
+      <OrdersWrapper>
+        <SectionHeader>
+          <SectionTitle><ShoppingBag size={24} /> Orders</SectionTitle>
+        </SectionHeader>
+        <ErrorBanner><AlertTriangle size={18} /> {error}</ErrorBanner>
+        <StoreButton onClick={fetchOrders}><RefreshCw size={16} /> Retry</StoreButton>
+      </OrdersWrapper>
     );
   }
 
   return (
-    <OrdersContainer
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
+    <OrdersWrapper>
       {/* View Mode Tabs */}
       <ViewModeTabs>
         <ViewModeTab $active={viewMode === 'all'} onClick={() => setViewMode('all')}>
@@ -672,228 +405,155 @@ const PendingOrdersAdminPanel: React.FC = () => {
         </ViewModeTab>
       </ViewModeTabs>
 
-      {/* Revenue Summary */}
-      {orders.length > 0 && (
-        <RevenueSummary>
-          <RevenueStat>
-            <RevenueValue $color="#10b981">
-              ${orders.reduce((sum, o) => sum + o.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </RevenueValue>
-            <RevenueLabel>Total Revenue</RevenueLabel>
-          </RevenueStat>
-          <RevenueStat>
-            <RevenueValue $color="#ff6b6b">
-              ${(orders.reduce((sum, o) => sum + o.amount, 0) * CA_TAX_RATE).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </RevenueValue>
-            <RevenueLabel>CA Tax Liability (7.25%)</RevenueLabel>
-          </RevenueStat>
-          <RevenueStat>
-            <RevenueValue>{orders.length}</RevenueValue>
-            <RevenueLabel>Total Orders</RevenueLabel>
-          </RevenueStat>
-          <RevenueStat>
-            <RevenueValue $color="#f59e0b">
-              {orders.filter(o => o.status === 'pending_manual_payment').length}
-            </RevenueValue>
-            <RevenueLabel>Pending Payment</RevenueLabel>
-          </RevenueStat>
-        </RevenueSummary>
-      )}
+      {/* KPI Summary Row */}
+      <KPIGrid>
+        <KPICard $accent="rgba(0,255,136,0.15)">
+          <KPILabel>Total Revenue</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.revenue}>{formatCurrency(totalRevenue)}</KPIValue>
+        </KPICard>
+        <KPICard $accent="rgba(255,107,107,0.15)">
+          <KPILabel>CA Tax Liability</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.tax}>{formatCurrency(totalRevenue * CA_TAX_RATE)}</KPIValue>
+        </KPICard>
+        <KPICard $accent="rgba(120,81,169,0.15)">
+          <KPILabel>Total Orders</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.purple}>{orders.length}</KPIValue>
+        </KPICard>
+        <KPICard $accent="rgba(255,184,0,0.15)">
+          <KPILabel>Pending Payment</KPILabel>
+          <KPIValue $color={STORE_TOKENS.color.pending}>{pendingCount}</KPIValue>
+        </KPICard>
+      </KPIGrid>
 
-      {/* Header Controls */}
-      <PanelHeader>
-        <PanelTitle>
-          <ShoppingBag size={24} />
-          {viewMode === 'pending' ? 'Pending' : viewMode === 'completed' ? 'Completed' : 'All'} Orders
-        </PanelTitle>
-        
-        <ControlsContainer>
-          <ActionButton
-            onClick={fetchPendingOrders}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={loading}
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </ActionButton>
-          
-          <ActionButton
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              background: autoRefresh 
-                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(0, 255, 255, 0.1))'
-                : 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(0, 255, 255, 0.1))'
-            }}
-          >
-            {autoRefresh ? <Eye size={16} /> : <EyeOff size={16} />}
-            {autoRefresh ? 'Live' : 'Manual'}
-          </ActionButton>
-        </ControlsContainer>
-      </PanelHeader>
+      {/* Controls */}
+      <ControlsRow>
+        <SearchBar>
+          <Search size={18} />
+          <SearchInput
+            placeholder="Search by order ID, customer name, or email..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </SearchBar>
 
-      {/* Search and Filters */}
-      <SearchContainer>
-        <SearchInput
-          type="text"
-          placeholder="Search by order ID, customer name, or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        
-        <FilterSelect
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
+        <FilterSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="all">All Statuses</option>
           <option value="pending_manual_payment">Pending Payment</option>
           <option value="paid">Paid</option>
           <option value="expired">Expired</option>
         </FilterSelect>
-        
-        <FilterSelect
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-        >
+
+        <FilterSelect value={sortBy} onChange={e => setSortBy(e.target.value)}>
           <option value="createdAt">Created Date</option>
           <option value="amount">Amount</option>
           <option value="customer">Customer</option>
         </FilterSelect>
-        
-        <ActionButton
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+
+        <StoreButton $variant="ghost" onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
           {sortOrder === 'asc' ? <SortAsc size={16} /> : <SortDesc size={16} />}
-        </ActionButton>
-      </SearchContainer>
+        </StoreButton>
+
+        <StoreButton onClick={fetchOrders} disabled={loading}>
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </StoreButton>
+
+        <StoreButton
+          onClick={() => setAutoRefresh(!autoRefresh)}
+          style={autoRefresh ? { borderColor: 'rgba(0,255,136,0.3)' } : undefined}
+        >
+          {autoRefresh ? <Eye size={16} /> : <EyeOff size={16} />}
+          {autoRefresh ? 'Live' : 'Manual'}
+        </StoreButton>
+      </ControlsRow>
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (
-        <EmptyState>
-          <ShoppingBag size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <h3>No Pending Orders</h3>
-          <p>All orders are processed or no manual payments are pending.</p>
-        </EmptyState>
+        <EmptyOrders>
+          <ShoppingBag size={48} />
+          <h3>No Orders Found</h3>
+          <p>All orders are processed or no payments are pending.</p>
+        </EmptyOrders>
       ) : (
         <OrdersGrid>
           <AnimatePresence>
             {filteredOrders.map((order, index) => (
-              <OrderCard
+              <OrderCardWrapper
                 key={order.id}
-                priority={order.priority}
+                $priority={order.priority}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ y: -4 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
               >
                 <OrderHeader>
-                  <OrderInfo>
-                    <OrderId>{order.orderReference}</OrderId>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                      <StatusBadge status={order.status}>
-                        {order.status === 'paid' ? 'COMPLETED' : order.status.replace('_', ' ').toUpperCase()}
+                  <div style={{ flex: 1 }}>
+                    <OrderId>#{order.orderReference}</OrderId>
+                    <OrderMeta>
+                      <StatusBadge
+                        $status={
+                          order.status === 'paid' ? 'completed'
+                          : order.status === 'expired' ? 'inactive'
+                          : 'pending'
+                        }
+                      >
+                        {order.status === 'paid' ? 'COMPLETED'
+                         : order.status === 'pending_manual_payment' ? 'PENDING'
+                         : order.status.toUpperCase()}
                       </StatusBadge>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#10b981' }}>
-                        ${order.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </span>
+                      <AmountDisplay>{formatCurrency(order.amount)}</AmountDisplay>
                       <TaxBadge>
                         <DollarSign size={10} />
-                        Tax: ${(order.amount * CA_TAX_RATE).toFixed(2)}
+                        Tax: {formatCurrency(order.amount * CA_TAX_RATE)}
                       </TaxBadge>
-                    </div>
-                  </OrderInfo>
-                  
-                  <OrderActions>
-                    {order.status === 'pending_manual_payment' && (
-                      <ActionButton
-                        onClick={() => markAsPaid(order.id)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(0, 255, 255, 0.1))',
-                          borderColor: 'rgba(16, 185, 129, 0.3)'
-                        }}
-                      >
-                        <CheckCircle size={16} />
-                        Mark Paid
-                      </ActionButton>
-                    )}
-                  </OrderActions>
+                    </OrderMeta>
+                  </div>
+
+                  {order.status === 'pending_manual_payment' && (
+                    <StoreButton onClick={() => markAsPaid(order.id)} style={{
+                      background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,255,0.1))',
+                      borderColor: 'rgba(0,255,136,0.3)',
+                    }}>
+                      <CheckCircle size={16} /> Mark Paid
+                    </StoreButton>
+                  )}
                 </OrderHeader>
 
-                <CustomerInfo>
-                  <InfoItem>
-                    <User size={16} />
-                    {order.customer.name}
-                  </InfoItem>
-                  <InfoItem>
-                    <Mail size={16} />
-                    {order.customer.email}
-                  </InfoItem>
-                  <InfoItem>
-                    <Calendar size={16} />
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </InfoItem>
+                <CustomerGrid>
+                  <InfoItem><User size={16} /> {order.customer.name}</InfoItem>
+                  <InfoItem><Mail size={16} /> {order.customer.email}</InfoItem>
+                  <InfoItem><Calendar size={16} /> {new Date(order.createdAt).toLocaleDateString()}</InfoItem>
                   <InfoItem>
                     <Clock size={16} />
-                    Expires: {new Date(order.expiresAt).toLocaleDateString()}
+                    {order.status === 'paid' ? 'Completed' : `Expires: ${new Date(order.expiresAt).toLocaleDateString()}`}
                   </InfoItem>
-                </CustomerInfo>
+                </CustomerGrid>
 
-                <OrderDetails>
-                  <h4 style={{ margin: '0 0 1rem 0', color: '#00ffff', fontSize: '1rem' }}>
-                    Order Items
-                  </h4>
-                  <OrderItems>
-                    {order.items.map((item, itemIndex) => (
-                      <OrderItem key={itemIndex}>
+                {order.items.length > 0 && (
+                  <OrderItemsBox>
+                    {order.items.map((item, i) => (
+                      <OrderItemRow key={i}>
                         <div>
-                          <div style={{ fontWeight: 500 }}>{item.name}</div>
+                          <span style={{ fontWeight: 500 }}>{item.name}</span>
                           {item.sessions && (
-                            <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                            <span style={{ fontSize: '0.75rem', color: STORE_TOKENS.color.muted, marginLeft: '0.5rem' }}>
                               {item.sessions} sessions
-                            </div>
+                            </span>
                           )}
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 500 }}>
-                            ${item.price.toLocaleString()} × {item.quantity}
-                          </div>
-                          <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-                            ${(item.price * item.quantity).toLocaleString()}
-                          </div>
-                        </div>
-                      </OrderItem>
+                        <span style={{ fontWeight: 500 }}>
+                          {formatCurrency(item.price)} x {item.quantity}
+                        </span>
+                      </OrderItemRow>
                     ))}
-                  </OrderItems>
-                </OrderDetails>
-
-                {order.status === 'pending_manual_payment' && (
-                  <PaymentInstructions>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#00ffff', fontSize: '0.875rem' }}>
-                      Payment Instructions Sent to Customer
-                    </h4>
-                    <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)' }}>
-                      Customer has been provided with payment instructions including:
-                    </div>
-                    <ul style={{ margin: '0.5rem 0 0 1rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-                      <li>Bank transfer details</li>
-                      <li>Support contact information</li>
-                      <li>Payment reference: {order.paymentReference}</li>
-                    </ul>
-                  </PaymentInstructions>
+                  </OrderItemsBox>
                 )}
-              </OrderCard>
+              </OrderCardWrapper>
             ))}
           </AnimatePresence>
         </OrdersGrid>
       )}
-    </OrdersContainer>
+    </OrdersWrapper>
   );
 };
 
