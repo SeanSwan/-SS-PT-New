@@ -106,23 +106,37 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
 
     // Get recent workout count for context
     const DailyWorkoutForm = getDailyWorkoutForm();
-    const recentWorkoutCount = await DailyWorkoutForm.count({
-      where: {
-        clientId: parseInt(clientId),
-        date: {
-          [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
-        }
+    let recentWorkoutCount = 0;
+    if (DailyWorkoutForm) {
+      try {
+        recentWorkoutCount = await DailyWorkoutForm.count({
+          where: {
+            clientId: parseInt(clientId),
+            date: {
+              [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+            }
+          }
+        });
+      } catch (formErr) {
+        logger.warn('DailyWorkoutForm count failed (table may not exist yet):', formErr.message);
       }
-    });
+    }
 
     // Check if client already has a workout logged today
     const today = new Date().toISOString().split('T')[0];
-    const todayWorkout = await DailyWorkoutForm.findOne({
-      where: {
-        clientId: parseInt(clientId),
-        date: today
+    let todayWorkout = null;
+    if (DailyWorkoutForm) {
+      try {
+        todayWorkout = await DailyWorkoutForm.findOne({
+          where: {
+            clientId: parseInt(clientId),
+            date: today
+          }
+        });
+      } catch (formErr) {
+        logger.warn('DailyWorkoutForm findOne failed (table may not exist yet):', formErr.message);
       }
-    });
+    }
 
     const clientInfo = {
       id: client.id,

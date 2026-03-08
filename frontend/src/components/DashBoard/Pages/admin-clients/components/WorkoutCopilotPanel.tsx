@@ -256,35 +256,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     }
   }, [open, autoGenerate, state, isSubmitting]);
 
-  // ── Pain safety check ──────────────────────────────────────
-
-  const checkPainEntries = useCallback(async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    setPainCheckLoading(true);
-
-    try {
-      const resp = await painService.getActive(clientId);
-      const entries = resp.entries || [];
-
-      if (entries.length > 0 && !painAcknowledged) {
-        setActivePainEntries(entries);
-        setState('pain_check');
-      } else {
-        // No active pain entries (or already acknowledged) — proceed directly
-        await doGenerate();
-        return; // doGenerate manages isSubmitting
-      }
-    } catch {
-      // If pain check fails, proceed with generation (fail-open for UX)
-      await doGenerate();
-      return;
-    }
-
-    setIsSubmitting(false);
-    setPainCheckLoading(false);
-  }, [clientId, isSubmitting, painAcknowledged]);
-
   // ── Generate draft ──────────────────────────────────────────
 
   const doGenerate = useCallback(async () => {
@@ -333,6 +304,35 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setIsSubmitting(false);
     }
   }, [clientId, overrideReason, overrideReasonRequired, service]);
+
+  // ── Pain safety check ──────────────────────────────────────
+
+  const checkPainEntries = useCallback(async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setPainCheckLoading(true);
+
+    try {
+      const resp = await painService.getActive(clientId);
+      const entries = resp.entries || [];
+
+      if (entries.length > 0 && !painAcknowledged) {
+        setActivePainEntries(entries);
+        setState('pain_check');
+      } else {
+        // No active pain entries (or already acknowledged) — proceed directly
+        await doGenerate();
+        return; // doGenerate manages isSubmitting
+      }
+    } catch {
+      // If pain check fails, proceed with generation (fail-open for UX)
+      await doGenerate();
+      return;
+    }
+
+    setIsSubmitting(false);
+    setPainCheckLoading(false);
+  }, [clientId, isSubmitting, painAcknowledged, doGenerate]);
 
   const handleGenerate = useCallback(async () => {
     if (isSubmitting) return;

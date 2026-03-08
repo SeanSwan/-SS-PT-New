@@ -199,7 +199,10 @@ export const getAiConsentStatus = async (req, res) => {
     }
 
     const rawUserId = req.params?.userId || req.query?.userId;
-    const targetUserId = resolveTargetUser(rawUserId, requesterId, requesterRole);
+    // For status checks, default to self for ALL roles (read-only, always safe)
+    const targetUserId = rawUserId
+      ? resolveTargetUser(rawUserId, requesterId, requesterRole)
+      : requesterId;
 
     if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'Missing or invalid userId' });

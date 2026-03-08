@@ -21,7 +21,17 @@ const goalController = {
     try {
       const models = await getModels();
       const { Goal, User } = models;
-      
+
+      if (!Goal) {
+        return res.status(200).json({
+          success: true,
+          goals: [],
+          pagination: { total: 0, page: 1, totalPages: 0 },
+          summary: { total: 0, active: 0, completed: 0, paused: 0, avgProgress: 0 },
+          message: 'Goals feature not yet initialized'
+        });
+      }
+
       const { userId } = req.params;
       const {
         status,
