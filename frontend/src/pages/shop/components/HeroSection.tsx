@@ -372,7 +372,7 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
     <MotionConfig reducedMotion="user">
       <HeroContainer ref={heroRef}>
         <VideoBackground>
-          <video autoPlay loop muted playsInline key="hero-bg-video">
+          <video autoPlay loop muted playsInline preload="metadata" poster="/images/parallax/store-hero-bg.png" key="hero-bg-video">
             <source src={swanVideo} type="video/mp4" />
           </video>
         </VideoBackground>

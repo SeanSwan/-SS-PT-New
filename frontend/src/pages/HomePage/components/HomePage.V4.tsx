@@ -312,6 +312,8 @@ const VideoEl = styled(motion.video)`
   height: 100%;
   object-fit: cover;
   z-index: 0;
+  /* Fallback background when video can't autoplay (mobile Low Power Mode, Data Saver) */
+  background: url('/images/parallax/hero-swan-bg.png') center/cover no-repeat;
 `;
 
 const HeroParallaxImg = styled(motion.div)`
@@ -1307,6 +1309,8 @@ const HomePageV4: React.FC = () => {
             playsInline
             disablePictureInPicture
             aria-hidden="true"
+            poster="/images/parallax/hero-swan-bg.png"
+            preload="metadata"
             initial={prefersReduced ? { opacity: 0.5 } : { scale: 1.1, opacity: 0 }}
             animate={prefersReduced ? { opacity: 0.5 } : { scale: 1, opacity: 0.5 }}
             transition={{ duration: 2, ease: 'easeOut' }}

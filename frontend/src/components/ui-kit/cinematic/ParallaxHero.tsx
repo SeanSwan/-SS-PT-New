@@ -35,6 +35,9 @@ const Video = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Fallback background when video can't autoplay (mobile Low Power Mode, Data Saver) */
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 50%, #0a0a1a 100%);
+  background-size: cover;
 `;
 
 const Image = styled.img`
@@ -99,6 +102,7 @@ const ParallaxHero: React.FC<ParallaxHeroProps> = ({
             muted
             loop
             playsInline
+            preload="metadata"
             poster={imageSrc}
           >
             <source src={videoSrc} type="video/mp4" />
