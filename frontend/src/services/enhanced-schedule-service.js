@@ -1256,7 +1256,7 @@ const enhancedScheduleService = {
             phone: orientationData.phone
           },
           notes: orientationData.goals,
-          duration: orientationData.duration || 30
+          duration: orientationData.duration || 60
         };
         
         // Add the new orientation using the same approach to avoid extensibility errors

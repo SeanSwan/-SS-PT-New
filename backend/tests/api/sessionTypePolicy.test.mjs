@@ -10,7 +10,7 @@ const SESSION_TYPES = [
   { name: 'Extended Training (90 min)', duration: 90, bufferBefore: 0, bufferAfter: 15, creditsRequired: 2, color: '#7851A9' },
   { name: 'Partner Training (60 min)', duration: 60, bufferBefore: 0, bufferAfter: 15, creditsRequired: 1, color: '#FF6B6B' },
   { name: 'Assessment / Movement Screen', duration: 60, bufferBefore: 0, bufferAfter: 30, creditsRequired: 0, color: '#FFD700' },
-  { name: 'Orientation / Onboarding', duration: 30, bufferBefore: 0, bufferAfter: 0, creditsRequired: 0, color: '#4CAF50' },
+  { name: 'Orientation / Onboarding (60 min)', duration: 60, bufferBefore: 0, bufferAfter: 15, creditsRequired: 0, color: '#4CAF50' },
 ];
 
 describe('Session Type Policy', () => {
@@ -58,7 +58,7 @@ describe('Session Type Policy', () => {
   it('Orientation costs 0 credits', () => {
     const orientation = SESSION_TYPES.find(t => t.name.includes('Orientation'));
     expect(orientation.creditsRequired).toBe(0);
-    expect(orientation.duration).toBe(30);
+    expect(orientation.duration).toBe(60);
   });
 
   it('all colors are valid hex codes', () => {

@@ -957,16 +957,17 @@ router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
 
     await visitor.update({ isVip: true, userId: parseInt(userId, 10) });
 
-    // Best-effort: add 2 available sessions to the user account
-    // Session 1: Complimentary NASM Assessment/Orientation
-    // Session 2: PT Training Session
+    // Best-effort: add 1 available session credit to the user account
+    // The orientation is COMPLIMENTARY (0 credits required in session_types)
+    // The PT Training Session uses 1 credit
+    // So after orientation: 1 session left. After PT: 0 sessions left.
     try {
       const User = getUser();
       const user = await User.findByPk(userId);
       if (user) {
         const currentSessions = user.availableSessions || 0;
-        await user.update({ availableSessions: currentSessions + 2 });
-        logger.info(`[Gallery VIP] Added 2 session credits to user ${userId} (now ${currentSessions + 2})`);
+        await user.update({ availableSessions: currentSessions + 1 });
+        logger.info(`[Gallery VIP] Added 1 session credit to user ${userId} (now ${currentSessions + 1}). Orientation is complimentary (0 credits).`);
       }
     } catch (sessionErr) {
       logger.warn(`[Gallery VIP] Could not add session credit for user ${userId}: ${sessionErr.message}`);
@@ -977,13 +978,11 @@ router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
       const { default: SessionPackage } = await import('../models/SessionPackage.mjs');
       if (SessionPackage) {
         await SessionPackage.findOrCreate({
-          where: { name: 'VIP Gallery Package — 2 Sessions' },
+          where: { name: 'VIP Gallery Package — PT Session + Complimentary Orientation' },
           defaults: {
-            name: 'VIP Gallery Package — 2 Sessions',
-            // Session 1: Complimentary NASM Assessment/Orientation
-            // Session 2: PT Training Session
-            description: '2 sessions (1 Complimentary NASM Assessment/Orientation + 1 PT Training Session) purchased via Swan Photography gallery VIP package',
-            sessionCount: 2,
+            name: 'VIP Gallery Package — PT Session + Complimentary Orientation',
+            description: '1 PT Training Session credit + 1 Complimentary NASM Orientation (free, 0 credits). After orientation: 1 session remaining for PT.',
+            sessionCount: 1,
             price: 175.00,
             duration: 60,
             packageType: 'individual',
@@ -1001,7 +1000,7 @@ router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
     return res.json({
       success: true,
       isVip: true,
-      message: 'VIP status activated! Your 2 session credits (Orientation + PT) have been added to your account.',
+      message: 'VIP status activated! 1 PT session credit added + 1 complimentary orientation session (free). Schedule your orientation first!',
     });
   } catch (err) {
     logger.error('[Gallery VIP] Activation error:', err.message);
