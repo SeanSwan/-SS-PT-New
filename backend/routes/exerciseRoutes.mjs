@@ -61,11 +61,11 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
       };
     }
 
-    // Search for muscle groups in JSON arrays
+    // Search for muscle groups in TEXT columns storing JSON arrays
     if (muscleGroup) {
       whereClause[Op.or].push(
-        { primaryMuscles: { [Op.contains]: [muscleGroup] } },
-        { secondaryMuscles: { [Op.contains]: [muscleGroup] } }
+        { primaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } },
+        { secondaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } }
       );
     }
 
