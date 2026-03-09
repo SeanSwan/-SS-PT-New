@@ -20,20 +20,20 @@ export const pulse = keyframes`
 `;
 
 export const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(120, 81, 169, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(120, 81, 169, 0.5); }
+  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.5); }
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(139, 92, 246, 0.6); }
 `;
 
 // --- Main Layout Components ---
 export const PageContainer = styled.div`
   position: relative;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   color: white;
   min-height: 100vh;
   width: 100%;
@@ -94,7 +94,7 @@ export const CardTitle = styled.h2`
   gap: 0.75rem;
 
   svg {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -155,9 +155,9 @@ export const StyledLinearProgress = styled.div<{ $color?: string; value?: number
       props.$color === 'primary' ? 'linear-gradient(90deg, #00c6ff, #0072ff)' :
       props.$color === 'success' ? 'linear-gradient(90deg, #00dfa2, #00b876)' :
       props.$color === 'warning' ? 'linear-gradient(90deg, #ffd166, #ef8d32)' :
-      props.$color === 'secondary' ? 'linear-gradient(90deg, #a142f5, #7851a9)' :
+      props.$color === 'secondary' ? 'linear-gradient(90deg, #a142f5, #8B5CF6)' :
       props.$color === 'info' ? 'linear-gradient(90deg, #0096c7, #0077b6)' :
-      'linear-gradient(90deg, #00ffff, #7851a9)'
+      'linear-gradient(90deg, #60C0F0, #8B5CF6)'
     };
   }
 `;
@@ -168,7 +168,7 @@ export const LevelBadge = styled.div<{ $level: number }>`
     props.$level < 100 ? 'linear-gradient(135deg, #455eb5, #5643cc)' :
     props.$level < 250 ? 'linear-gradient(135deg, #00b2bd, #0096c7)' :
     props.$level < 500 ? 'linear-gradient(135deg, #00b894, #00a3a3)' :
-    props.$level < 750 ? 'linear-gradient(135deg, #c56cf0, #7851a9)' :
+    props.$level < 750 ? 'linear-gradient(135deg, #c56cf0, #8B5CF6)' :
     'linear-gradient(135deg, #fd3872, #eb5757)'
   };
   color: white;
@@ -196,7 +196,7 @@ export const LevelBadge = styled.div<{ $level: number }>`
       props.$level < 100 ? 'linear-gradient(to right, #455eb5, #5643cc, #455eb5)' :
       props.$level < 250 ? 'linear-gradient(to right, #00b2bd, #0096c7, #00b2bd)' :
       props.$level < 500 ? 'linear-gradient(to right, #00b894, #00a3a3, #00b894)' :
-      props.$level < 750 ? 'linear-gradient(to right, #c56cf0, #7851a9, #c56cf0)' :
+      props.$level < 750 ? 'linear-gradient(to right, #c56cf0, #8B5CF6, #c56cf0)' :
       'linear-gradient(to right, #fd3872, #eb5757, #fd3872)'
     };
     background-size: 200% auto;
@@ -263,7 +263,7 @@ export const AchievementItem = styled(motion.div)<{ $unlocked: boolean }>`
     height: 60px;
     border-radius: 50%;
     background: ${props => props.$unlocked ?
-      'linear-gradient(135deg, #00ffff, #7851a9)' :
+      'linear-gradient(135deg, #60C0F0, #8B5CF6)' :
       'rgba(255, 255, 255, 0.1)'
     };
     display: flex;
@@ -296,7 +296,7 @@ export const AchievementItem = styled(motion.div)<{ $unlocked: boolean }>`
       right: -2px;
       bottom: -2px;
       border-radius: 50%;
-      background: linear-gradient(to right, #00ffff, #7851a9, #00ffff);
+      background: linear-gradient(to right, #60C0F0, #8B5CF6, #60C0F0);
       background-size: 200% auto;
       z-index: -1;
       opacity: ${props => props.$unlocked ? 0.7 : 0};
@@ -346,7 +346,7 @@ export const ExerciseIcon = styled.div`
   margin-right: 1rem;
 
   svg {
-    color: #00ffff;
+    color: #60C0F0;
     width: 20px;
     height: 20px;
   }
@@ -417,7 +417,7 @@ export const StatCard = styled.div<{ $color?: string }>`
     props.$color === 'success' ? 'rgba(0, 184, 148, 0.1)' :
     props.$color === 'warning' ? 'rgba(255, 209, 102, 0.1)' :
     props.$color === 'info' ? 'rgba(0, 150, 199, 0.1)' :
-    props.$color === 'secondary' ? 'rgba(120, 81, 169, 0.1)' :
+    props.$color === 'secondary' ? 'rgba(139, 92, 246, 0.1)' :
     'rgba(139, 92, 246, 0.1)'
   };
   border-radius: 10px;
@@ -431,7 +431,7 @@ export const StatCard = styled.div<{ $color?: string }>`
     props.$color === 'success' ? 'rgba(0, 184, 148, 0.2)' :
     props.$color === 'warning' ? 'rgba(255, 209, 102, 0.2)' :
     props.$color === 'info' ? 'rgba(0, 150, 199, 0.2)' :
-    props.$color === 'secondary' ? 'rgba(120, 81, 169, 0.2)' :
+    props.$color === 'secondary' ? 'rgba(139, 92, 246, 0.2)' :
     'rgba(139, 92, 246, 0.2)'
   };
   transition: all 0.3s ease;
@@ -450,8 +450,8 @@ export const StatValue = styled.span<{ $color?: string }>`
     props.$color === 'success' ? 'linear-gradient(135deg, #00bf8f, #00dfa2)' :
     props.$color === 'warning' ? 'linear-gradient(135deg, #ffd166, #ffaa33)' :
     props.$color === 'info' ? 'linear-gradient(135deg, #0096c7, #48cae4)' :
-    props.$color === 'secondary' ? 'linear-gradient(135deg, #7851a9, #a142f5)' :
-    'linear-gradient(135deg, #00ffff, #7851a9)'
+    props.$color === 'secondary' ? 'linear-gradient(135deg, #8B5CF6, #a142f5)' :
+    'linear-gradient(135deg, #60C0F0, #8B5CF6)'
   };
   background-clip: text;
   -webkit-background-clip: text;

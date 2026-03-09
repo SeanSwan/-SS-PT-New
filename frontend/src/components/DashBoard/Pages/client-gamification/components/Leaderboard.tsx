@@ -55,7 +55,7 @@ const UsersChip = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const LeaderboardRow = styled(motion.div)<{ $isCurrentUser: boolean; $isLast: boolean }>`
@@ -74,7 +74,7 @@ const LeaderboardRow = styled(motion.div)<{ $isCurrentUser: boolean; $isLast: bo
       top: 0;
       width: 4px;
       height: 100%;
-      background-color: #00ffff;
+      background-color: #60C0F0;
     }
   `}
 `;
@@ -119,7 +119,7 @@ const UserAvatar = styled.div<{ $src?: string }>`
   height: 40px;
   border-radius: 50%;
   background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,7 +181,7 @@ const RetryButton = styled.button`
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -198,7 +198,7 @@ const ViewAllBtn = styled.button`
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;

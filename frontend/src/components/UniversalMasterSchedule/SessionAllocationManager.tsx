@@ -374,7 +374,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   const getProgressColor = (percentage: number) => {
     if (percentage > 80) return '#ff6b35';
     if (percentage > 60) return '#ffd700';
-    return '#00ffff';
+    return '#60C0F0';
   };
 
   const renderStatsCards = () => (
@@ -912,7 +912,7 @@ const ProjectionMetric = styled.div`
 const ProjectionValue = styled.div`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   line-height: 1;
 `;
 
@@ -970,7 +970,7 @@ const AvatarStyled = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0ea5e9, #7851A9);
+  background: linear-gradient(135deg, #0ea5e9, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1113,7 +1113,7 @@ const Spinner = styled.div`
   width: 40px;
   height: 40px;
   border: 3px solid rgba(14, 165, 233, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spinAnimation} 0.8s linear infinite;
 `;

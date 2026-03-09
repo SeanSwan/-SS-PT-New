@@ -32,7 +32,7 @@ const HeaderRow = styled.div`
 const Title = styled.h3`
   margin: 0;
   font-size: 1.05rem;
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   gap: 8px;

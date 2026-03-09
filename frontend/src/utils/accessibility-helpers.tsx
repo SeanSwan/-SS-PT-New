@@ -33,7 +33,7 @@ export const SkipToContent: React.FC<{ mainContentId?: string }> = ({
         position: 'absolute',
         top: '-40px',
         left: 0,
-        background: '#7851a9',
+        background: '#8B5CF6',
         color: 'white',
         padding: '8px 16px',
         zIndex: 9999,
@@ -43,7 +43,7 @@ export const SkipToContent: React.FC<{ mainContentId?: string }> = ({
         fontWeight: 500,
         ':focus': {
           top: 0,
-          outline: '2px solid #00ffff', 
+          outline: '2px solid #60C0F0', 
           outlineOffset: 2,
         }
       }}

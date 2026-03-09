@@ -58,9 +58,9 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#0ea5e9',
-  purple: '#7851a9',
+  purple: '#8B5CF6',
   purpleLight: '#b794f6',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   success: '#4caf50',
   warning: '#ff9800',
   error: '#f44336',
@@ -301,7 +301,7 @@ const ActionButton = styled.button<{ $variant?: 'contained' | 'outlined'; $fullW
   ${({ $variant }) =>
     $variant === 'contained'
       ? css`
-          background: linear-gradient(135deg, #7851a9, #b794f6);
+          background: linear-gradient(135deg, #8B5CF6, #b794f6);
           color: white;
           border: none;
           &:hover {
@@ -313,7 +313,7 @@ const ActionButton = styled.button<{ $variant?: 'contained' | 'outlined'; $fullW
           color: #b794f6;
           border: 1px solid rgba(121, 81, 169, 0.5);
           &:hover {
-            border-color: #7851a9;
+            border-color: #8B5CF6;
             background: rgba(121, 81, 169, 0.1);
           }
         `}
@@ -967,7 +967,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       case 'warning':
         return '#ff9800';
       case 'prediction':
-        return '#7851a9';
+        return '#8B5CF6';
       case 'optimization':
         return '#4caf50';
       case 'achievement':

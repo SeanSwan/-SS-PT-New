@@ -31,7 +31,7 @@ const cosmicPulse = keyframes`
 `;
 
 const VerificationContainer = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(10, 10, 26, 0.9) 0%, rgba(30, 58, 138, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(0, 32, 96, 0.9) 0%, rgba(30, 58, 138, 0.1) 100%);
   border-radius: 20px;
   padding: 2rem;
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -53,7 +53,7 @@ const PanelHeader = styled.div`
 const PanelTitle = styled.h2`
   font-size: 1.5rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #00ffff, #3b82f6);
+  background: linear-gradient(135deg, #60C0F0, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -98,7 +98,7 @@ const CardIcon = styled.div`
 `;
 
 const CardTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   font-weight: 500;
   margin: 0 0 0.5rem 0;
@@ -187,7 +187,7 @@ const CodeBlock = styled.pre`
   padding: 1rem;
   overflow-x: auto;
   font-size: 0.8rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 1rem 0;
   border: 1px solid rgba(59, 130, 246, 0.2);
 `;

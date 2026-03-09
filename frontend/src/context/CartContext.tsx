@@ -172,7 +172,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: ${type === 'success' ? 'linear-gradient(135deg, #00ffff, #0080ff)' : 'linear-gradient(135deg, #ff6b9d, #ff4d6d)'};
+      background: ${type === 'success' ? 'linear-gradient(135deg, #60C0F0, #0080ff)' : 'linear-gradient(135deg, #ff6b9d, #ff4d6d)'};
       color: ${type === 'success' ? '#000' : '#fff'};
       padding: 12px 20px;
       border-radius: 8px;

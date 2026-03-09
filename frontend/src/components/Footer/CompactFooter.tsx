@@ -43,7 +43,7 @@ const Copyright = styled.div`
   gap: 6px;
   
   svg {
-    color: #00ffff;
+    color: #60C0F0;
     font-size: 0.8rem;
   }
 `;
@@ -64,7 +64,7 @@ const FooterLink = styled(Link)`
   font-size: 0.8rem;
   
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 

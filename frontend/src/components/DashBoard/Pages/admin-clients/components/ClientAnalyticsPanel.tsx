@@ -89,7 +89,7 @@ const SectionHeader = styled.div`
 `;
 
 const Title = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0 0 8px 0;
@@ -123,7 +123,7 @@ const CardHeader = styled.div`
 `;
 
 const CardTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0;
@@ -251,7 +251,7 @@ const CardTitleRow = styled.div`
 `;
 
 const CardTitleWithIcon = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0;
@@ -309,13 +309,13 @@ const ViewButton = styled.button<{ $active?: boolean }>`
   text-transform: none;
   transition: all 0.2s;
   ${p => p.$active ? css`
-    background: linear-gradient(135deg, #00ffff, #00c8ff);
-    color: #0a0a1a;
+    background: linear-gradient(135deg, #60C0F0, #00c8ff);
+    color: #002060;
     border-color: transparent;
   ` : css`
     background: transparent;
-    color: #00ffff;
-    &:hover { background: rgba(139, 92, 246,0.1); border-color: #00ffff; }
+    color: #60C0F0;
+    &:hover { background: rgba(139, 92, 246,0.1); border-color: #60C0F0; }
   `}
 `;
 
@@ -331,7 +331,7 @@ const OutlineButton = styled.button`
   border-radius: 8px;
   border: 1px solid rgba(139, 92, 246,0.5);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -339,7 +339,7 @@ const OutlineButton = styled.button`
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
-  &:hover { border-color: #00ffff; background: rgba(139, 92, 246,0.1); }
+  &:hover { border-color: #60C0F0; background: rgba(139, 92, 246,0.1); }
 `;
 
 const InsightCard = styled.div`
@@ -394,7 +394,7 @@ const ChipTag = styled.span`
   border-radius: 12px;
   font-size: 0.75rem;
   background: rgba(139, 92, 246,0.2);
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const FactorChip = styled.span<{ $color: string }>`
@@ -455,7 +455,7 @@ const ComparisonWrap = styled.div`
 `;
 
 const ComparisonTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.25rem;
   margin: 0 0 8px 0;
 `;
@@ -620,8 +620,8 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
 
   // Chart configurations
   const chartColors = {
-    primary: '#00ffff',
-    secondary: '#7851a9',
+    primary: '#60C0F0',
+    secondary: '#8B5CF6',
     success: '#4caf50',
     warning: '#ff9800',
     error: '#f44336',

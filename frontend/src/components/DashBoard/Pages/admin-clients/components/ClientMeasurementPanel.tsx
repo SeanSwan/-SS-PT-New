@@ -179,7 +179,7 @@ const Spinner = styled.div`
   width: 24px;
   height: 24px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   margin: 32px auto;
@@ -201,8 +201,8 @@ const PrimaryButton = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
+  color: #002060;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;

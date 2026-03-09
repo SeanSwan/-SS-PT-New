@@ -138,7 +138,7 @@ const PlayIconCircle = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.65);
+  background: rgba(0, 32, 96, 0.65);
   backdrop-filter: blur(12px);
   border: 2px solid rgba(139, 92, 246, 0.4);
   animation: ${pulseGlow} 2.5s ease-in-out infinite;

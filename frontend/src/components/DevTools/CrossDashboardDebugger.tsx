@@ -96,7 +96,7 @@ const Grid = styled.div`
 const Title = styled.h1`
   font-size: 2rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
   display: flex;
   align-items: center;
@@ -140,7 +140,7 @@ const Button = styled.button`
   }
   
   &.secondary {
-    background-color: #7851A9;
+    background-color: #8B5CF6;
     color: white;
   }
   
@@ -326,7 +326,7 @@ const TableCell = styled.td`
   
   &.header {
     font-weight: 600;
-    color: #00ffff;
+    color: #60C0F0;
     background-color: #1a1a2e;
   }
 `;
@@ -355,12 +355,12 @@ const TabButton = styled.button`
   transition: all 0.3s ease;
   
   &.active {
-    color: #00ffff;
-    border-bottom-color: #00ffff;
+    color: #60C0F0;
+    border-bottom-color: #60C0F0;
   }
   
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     background-color: rgba(139, 92, 246, 0.1);
   }
 `;
@@ -749,7 +749,7 @@ const CrossDashboardDebugger: React.FC = () => {
     <Container>
       <Paper>
         <FlexBox className="items-center mb-3">
-          <Bug size={36} color="#00ffff" />
+          <Bug size={36} color="#60C0F0" />
           <Title>
             Cross-Dashboard Debugger
           </Title>

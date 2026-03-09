@@ -24,8 +24,8 @@ const API_BASE = import.meta.env.VITE_API_BASE
 
 // ── Theme ──
 const SWAN_CYAN = '#60C0F0';
-const COSMIC_PURPLE = '#7851A9';
-const GALAXY_CORE = '#0a0a1a';
+const COSMIC_PURPLE = '#8B5CF6';
+const GALAXY_CORE = '#002060';
 const NEON_CORAL = '#FF3366';
 const TEXT_PRIMARY = '#E0ECF4';
 
@@ -86,7 +86,7 @@ const Tab = styled.button<{ $active: boolean }>`
   min-height: 44px;
   border: 1px solid ${({ $active }) => $active ? 'rgba(96, 192, 240, 0.4)' : 'rgba(96, 192, 240, 0.12)'};
   border-radius: 12px;
-  background: ${({ $active }) => $active ? 'rgba(96, 192, 240, 0.12)' : 'rgba(10, 10, 26, 0.4)'};
+  background: ${({ $active }) => $active ? 'rgba(96, 192, 240, 0.12)' : 'rgba(0, 32, 96, 0.4)'};
   color: ${({ $active }) => $active ? SWAN_CYAN : 'rgba(224, 236, 244, 0.6)'};
   font-size: 13px;
   font-weight: 500;
@@ -102,7 +102,7 @@ const Tab = styled.button<{ $active: boolean }>`
 `;
 
 const GlassPanel = styled.div`
-  background: rgba(10, 10, 26, 0.4);
+  background: rgba(0, 32, 96, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(96, 192, 240, 0.15);
@@ -169,10 +169,10 @@ const ResultGrid = styled.div`
 `;
 
 const ResultCard = styled.div<{ $variant?: 'cyan' | 'purple' | 'alert' }>`
-  background: rgba(10, 10, 26, 0.5);
+  background: rgba(0, 32, 96, 0.5);
   border: 1px solid ${({ $variant }) =>
     $variant === 'alert' ? 'rgba(255, 51, 102, 0.25)' :
-    $variant === 'purple' ? 'rgba(120, 81, 169, 0.2)' :
+    $variant === 'purple' ? 'rgba(139, 92, 246, 0.2)' :
     'rgba(96, 192, 240, 0.15)'};
   border-radius: 16px;
   padding: 16px;

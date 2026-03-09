@@ -171,7 +171,7 @@ export const CardFooter = styled.div`
   align-items: center;
   margin-top: ${({ theme }) => theme.spacing.md};
   padding-top: ${({ theme }) => theme.spacing.md};
-  border-top: 1px solid rgba(120, 81, 169, 0.5);
+  border-top: 1px solid rgba(139, 92, 246, 0.5);
 `;
 
 export const Grid = styled.div<{ columns?: number }>`
@@ -215,7 +215,7 @@ export const ProgressBar = styled.div<{ value: number; max?: number; color?: str
     left: 0;
     height: 100%;
     width: ${({ value, max = 100 }) => `${Math.min(100, (value / max) * 100)}%`};
-    background-color: ${({ theme, color }) => color || '#00ffff'};
+    background-color: ${({ theme, color }) => color || '#60C0F0'};
     border-radius: 4px;
     transition: width 0.5s ease;
   }
@@ -225,7 +225,7 @@ export const Badge = styled.span<{ color?: string }>`
   display: inline-block;
   padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
   background-color: ${({ color }) => color ? `${color}22` : `rgba(139, 92, 246, 0.15)`};
-  color: ${({ color }) => color || '#00ffff'};
+  color: ${({ color }) => color || '#60C0F0'};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: 0.8rem;
   font-weight: 500;
@@ -247,7 +247,7 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
     switch (variant) {
       case 'primary':
         return `
-          background-color: #00ffff;
+          background-color: #60C0F0;
           color: #121212;
           border: none;
           
@@ -257,8 +257,8 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
         `;
       case 'secondary':
         return `
-          background-color: #7851a9;
-          color: #00ffff;
+          background-color: #8B5CF6;
+          color: #60C0F0;
           border: none;
           
           &:hover, &:focus {
@@ -268,8 +268,8 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
       case 'outline':
         return `
           background-color: transparent;
-          color: #00ffff;
-          border: 1px solid #00ffff;
+          color: #60C0F0;
+          border: 1px solid #60C0F0;
           
           &:hover, &:focus {
             background-color: rgba(139, 92, 246, 0.1);
@@ -278,7 +278,7 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
       case 'text':
         return `
           background-color: transparent;
-          color: #7851a9;
+          color: #8B5CF6;
           border: none;
           padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
           
@@ -288,7 +288,7 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
         `;
       default:
         return `
-          background-color: #7851a9;
+          background-color: #8B5CF6;
           color: #121212;
           border: none;
           
@@ -300,7 +300,7 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
   }}
   
   &:focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   

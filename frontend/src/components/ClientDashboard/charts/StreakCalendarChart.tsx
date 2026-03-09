@@ -25,7 +25,7 @@ const ChartWrapper = styled.div`
 `;
 
 const ChartTitle = styled.h4`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   margin: 0 0 1rem 0;
   display: flex;
@@ -58,7 +58,7 @@ const DayCell = styled.div<{ intensity: number; isToday: boolean }>`
           ? 'rgba(0, 255, 136, 0.55)'
           : 'rgba(0, 255, 136, 0.85)'};
   border: ${({ isToday }) =>
-    isToday ? '2px solid #00ffff' : '1px solid rgba(255, 255, 255, 0.05)'};
+    isToday ? '2px solid #60C0F0' : '1px solid rgba(255, 255, 255, 0.05)'};
   min-height: 20px;
   transition: transform 0.15s ease;
 
@@ -81,7 +81,7 @@ const StreakStat = styled.div`
   .value {
     font-size: 1.4rem;
     font-weight: bold;
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   .label {

@@ -147,7 +147,7 @@ const SearchField = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     background: rgba(255, 255, 255, 0.12);
   }
@@ -191,14 +191,14 @@ const ViewModeButton = styled.button<{ $isActive: boolean }>`
   width: 36px;
   height: 36px;
   border: none;
-  background: ${({ $isActive }) => $isActive ? '#00ffff' : 'transparent'};
+  background: ${({ $isActive }) => $isActive ? '#60C0F0' : 'transparent'};
   color: ${({ $isActive }) => $isActive ? '#000' : 'rgba(255, 255, 255, 0.7)'};
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   
   &:hover {
-    background: ${({ $isActive }) => $isActive ? '#00ffff' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${({ $isActive }) => $isActive ? '#60C0F0' : 'rgba(255, 255, 255, 0.1)'};
     color: ${({ $isActive }) => $isActive ? '#000' : '#ffffff'};
   }
   
@@ -400,7 +400,7 @@ const PageButton = styled.button<{ $isActive?: boolean }>`
   transition: all 0.3s ease;
   
   ${({ $isActive }) => $isActive ? css`
-    background: #00ffff;
+    background: #60C0F0;
     color: #000;
   ` : css`
     background: rgba(255, 255, 255, 0.08);

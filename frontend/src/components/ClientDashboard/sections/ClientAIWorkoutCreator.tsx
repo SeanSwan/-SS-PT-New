@@ -31,13 +31,13 @@ import {
 import apiService from '../../../services/api.service';
 
 const SWAN_CYAN = '#8B5CF6';
-const COSMIC_PURPLE = '#7851A9';
+const COSMIC_PURPLE = '#8B5CF6';
 
 // ── Animations ────────────────────────────────────────────────────────────
 
 const cosmicPulse = keyframes`
   0%, 100% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.15); }
-  50% { box-shadow: 0 0 28px rgba(139, 92, 246, 0.35), 0 0 40px rgba(120, 81, 169, 0.15); }
+  50% { box-shadow: 0 0 28px rgba(139, 92, 246, 0.35), 0 0 40px rgba(139, 92, 246, 0.15); }
 `;
 
 const nebulaSpin = keyframes`
@@ -91,7 +91,7 @@ const GenerateButton = styled(motion.button)`
   width: 100%;
   padding: 1rem 2rem;
   min-height: 56px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.2));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.2));
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   color: ${SWAN_CYAN};
@@ -101,7 +101,7 @@ const GenerateButton = styled(motion.button)`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(120, 81, 169, 0.3));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.3));
     border-color: rgba(139, 92, 246, 0.5);
   }
 
@@ -123,7 +123,7 @@ const ConsentButton = styled(motion.button)`
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   min-height: 44px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   color: ${SWAN_CYAN};
@@ -148,7 +148,7 @@ const CosmicSpinner = styled.div`
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.2), transparent);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.2), transparent);
   animation: ${cosmicPulse} 2s ease-in-out infinite, ${nebulaSpin} 3s linear infinite;
   display: flex;
   align-items: center;
@@ -236,7 +236,7 @@ const ExerciseRow = styled.div`
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
-  background: rgba(120, 81, 169, 0.06);
+  background: rgba(139, 92, 246, 0.06);
   border-radius: 8px;
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.85);
@@ -262,8 +262,8 @@ const WarningCard = styled.div`
 
 const DegradedCard = styled(SectionCard)`
   text-align: center;
-  border-color: rgba(120, 81, 169, 0.2);
-  background: rgba(120, 81, 169, 0.04);
+  border-color: rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.04);
 `;
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -494,8 +494,8 @@ const ClientAIWorkoutCreator: React.FC = () => {
                 {degradedSuggestions.map((t: any, i: number) => (
                   <div key={i} style={{
                     padding: '0.75rem 1rem',
-                    background: 'rgba(120, 81, 169, 0.08)',
-                    border: '1px solid rgba(120, 81, 169, 0.15)',
+                    background: 'rgba(139, 92, 246, 0.08)',
+                    border: '1px solid rgba(139, 92, 246, 0.15)',
                     borderRadius: '8px',
                     color: 'rgba(255,255,255,0.8)',
                     fontSize: '0.875rem'

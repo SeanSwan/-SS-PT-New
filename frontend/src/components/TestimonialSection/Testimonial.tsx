@@ -15,11 +15,11 @@ const TestimonialCard = styled(motion.div)`
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-    border-color: rgba(120, 81, 169, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
   
   ${props => props.$featured && css`
-    border: 1px solid rgba(120, 81, 169, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
   `}
   
   @media (max-width: 768px) {
@@ -48,7 +48,7 @@ const ImageContainer = styled.div`
   flex-shrink: 0;
   margin-right: ${props => props.$featured ? '2.5rem' : '0'};
   margin-bottom: ${props => props.$featured ? '0' : '1.5rem'};
-  border: 3px solid rgba(120, 81, 169, 0.5);
+  border: 3px solid rgba(139, 92, 246, 0.5);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   
   @media (max-width: 768px) {
@@ -79,7 +79,7 @@ const QuoteText = styled.p`
     position: absolute;
     top: -1.5rem;
     left: -0.5rem;
-    color: rgba(120, 81, 169, 0.3);
+    color: rgba(139, 92, 246, 0.3);
   }
   
   @media (max-width: 768px) {

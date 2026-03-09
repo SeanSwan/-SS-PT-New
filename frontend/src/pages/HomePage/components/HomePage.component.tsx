@@ -35,7 +35,7 @@ const FeaturedSection = styled.div`
     right: -5px;
     bottom: -5px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
     z-index: -1;
   }
 `;
@@ -158,7 +158,7 @@ const HomePageContainer = styled.div`
 const SectionDivider = styled(motion.div)`
   position: relative;
   height: 150px;
-  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), rgba(120, 81, 169, 0.05));
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), rgba(139, 92, 246, 0.05));
   margin: 0;
   overflow: hidden;
   display: flex;
@@ -170,7 +170,7 @@ const SectionDivider = styled(motion.div)`
     position: absolute;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8), transparent);
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.8), transparent);
   }
   
   &::after {
@@ -231,7 +231,7 @@ const ScrollPrompt = styled(motion.div)`
   bottom: 30px;
   right: 30px;
   z-index: 100;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60C0F0);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -466,7 +466,7 @@ const HomePage: React.FC = () => {
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/Logo.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-        <meta name="theme-color" content="#0a0a1a" />
+        <meta name="theme-color" content="#002060" />
         <meta name="keywords" content="personal training, fitness, dance, creative expression, wellness, performance training, NCEP certified, NASM protocols" />
         <link rel="canonical" href="https://swanstudios.com" />
       </Helmet>

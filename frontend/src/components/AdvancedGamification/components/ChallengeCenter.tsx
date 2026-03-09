@@ -110,7 +110,7 @@ const Title = styled(motion.h2)`
   background: linear-gradient(135deg, 
     #FF6B6B 0%, 
     #8B5CF6 50%, 
-    #7851A9 100%
+    #8B5CF6 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -140,7 +140,7 @@ const QuickStats = styled(motion.div)`
 const StatCard = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.1),
-    rgba(120, 81, 169, 0.1)
+    rgba(139, 92, 246, 0.1)
   );
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
@@ -211,7 +211,7 @@ const ChallengeCard = styled(motion.div)<{
       case 'monthly':
         return 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.05))';
       default:
-        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.05))';
+        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05))';
     }
   }};
   
@@ -268,7 +268,7 @@ const ChallengeType = styled.div<{ challengeType: Challenge['challengeType'] }>`
       case 'community': return 'linear-gradient(135deg, #FF6B6B, #FF4081)';
       case 'weekly': return 'linear-gradient(135deg, #8A2BE2, #4B0082)';
       case 'monthly': return 'linear-gradient(135deg, #FFD700, #FF8C00)';
-      default: return 'linear-gradient(135deg, #8B5CF6, #7851A9)';
+      default: return 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
     }
   }};
   color: white;
@@ -326,7 +326,7 @@ const ProgressFill = styled(motion.div)<{ progress: number; challengeType: Chall
       case 'community': return 'linear-gradient(90deg, #FF6B6B, #FF4081)';
       case 'weekly': return 'linear-gradient(90deg, #8A2BE2, #4B0082)';
       case 'monthly': return 'linear-gradient(90deg, #FFD700, #FF8C00)';
-      default: return 'linear-gradient(90deg, #8B5CF6, #7851A9)';
+      default: return 'linear-gradient(90deg, #8B5CF6, #8B5CF6)';
     }
   }};
   width: ${props => props.progress}%;
@@ -386,7 +386,7 @@ const ParticipantCount = styled.div`
 const CreateForm = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.05),
-    rgba(120, 81, 169, 0.05)
+    rgba(139, 92, 246, 0.05)
   );
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;

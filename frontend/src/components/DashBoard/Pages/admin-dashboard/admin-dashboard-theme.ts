@@ -3,7 +3,7 @@ export const adminGalaxyTheme = {
     deepSpace: '#0a0a0f',
     commandBlue: '#1e3a8a',
     stellarBlue: '#3b82f6',
-    cyberCyan: '#00ffff',
+    cyberCyan: '#60C0F0',
     stellarWhite: '#ffffff',
     energyBlue: '#0ea5e9',
     warningAmber: '#f59e0b',
@@ -12,10 +12,10 @@ export const adminGalaxyTheme = {
     voidBlack: '#000000',
   },
   gradients: {
-    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #00ffff 100%)',
+    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60C0F0 100%)',
     adminGalaxy: 'radial-gradient(ellipse at center, #1e3a8a 0%, #0a0a0f 70%)',
-    dataFlow: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
-    stellarCommand: 'conic-gradient(from 0deg, #00ffff, #3b82f6, #1e3a8a, #00ffff)',
+    dataFlow: 'linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%)',
+    stellarCommand: 'conic-gradient(from 0deg, #60C0F0, #3b82f6, #1e3a8a, #60C0F0)',
   },
   shadows: {
     commandGlow: '0 0 30px rgba(59, 130, 246, 0.6)',

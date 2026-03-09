@@ -37,11 +37,11 @@ const statsCounter = keyframes`
 const achievementPulse = keyframes`
   0%, 100% { 
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
-                0 0 40px rgba(120, 81, 169, 0.2);
+                0 0 40px rgba(139, 92, 246, 0.2);
   }
   50% { 
     box-shadow: 0 0 30px rgba(139, 92, 246, 0.6),
-                0 0 60px rgba(120, 81, 169, 0.4);
+                0 0 60px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -99,7 +99,7 @@ const HubContainer = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(10, 10, 30, 0.95) 0%,
     rgba(30, 30, 60, 0.9) 25%,
-    rgba(120, 81, 169, 0.1) 50%,
+    rgba(139, 92, 246, 0.1) 50%,
     rgba(139, 92, 246, 0.05) 75%,
     rgba(10, 10, 30, 0.95) 100%
   );
@@ -135,7 +135,7 @@ const WelcomeTitle = styled(motion.h1)`
   font-weight: 700;
   background: linear-gradient(135deg, 
     #8B5CF6 0%, 
-    #7851A9 50%, 
+    #8B5CF6 50%, 
     #00A0E3 100%
   );
   background-clip: text;
@@ -177,7 +177,7 @@ const StatsGrid = styled(motion.div)`
 const StatCard = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.1) 0%,
-    rgba(120, 81, 169, 0.05) 100%
+    rgba(139, 92, 246, 0.05) 100%
   );
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
@@ -238,7 +238,7 @@ const LevelProgress = styled(motion.div)`
 
 const ProgressBar = styled(motion.div)<{ progress: number }>`
   height: 100%;
-  background: linear-gradient(90deg, #8B5CF6, #7851A9);
+  background: linear-gradient(90deg, #8B5CF6, #8B5CF6);
   border-radius: 4px;
   width: ${props => props.progress}%;
   transition: width 1s ease;
@@ -421,7 +421,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           padding="medium"
           isHoverable
         >
-          <h3 style={{ color: '#7851A9', marginBottom: '1rem' }}>Recent Achievement</h3>
+          <h3 style={{ color: '#8B5CF6', marginBottom: '1rem' }}>Recent Achievement</h3>
           <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>
             🏆 Week Warrior - 7 day streak!
           </p>
@@ -501,7 +501,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           {activeTab === 'challenges' && (
             <TabContent key="challenges">
               <GamificationCard variant="gradient" padding="large">
-                <h2 style={{ color: '#7851A9', textAlign: 'center' }}>
+                <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
                   🎯 Challenge Center Coming Soon!
                 </h2>
               </GamificationCard>
@@ -521,7 +521,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           {activeTab === 'progress' && (
             <TabContent key="progress">
               <GamificationCard variant="elevated" padding="large">
-                <h2 style={{ color: '#7851A9', textAlign: 'center' }}>
+                <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
                   📈 Progress Tracker Coming Soon!
                 </h2>
               </GamificationCard>

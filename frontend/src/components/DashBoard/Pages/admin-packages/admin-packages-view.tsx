@@ -219,7 +219,7 @@ const FormInput = styled.input`
 `;
 
 const FormInputAccent = styled(FormInput)`
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: bold;
 `;
 
@@ -333,7 +333,7 @@ const AvatarCircle = styled.span<{ $src?: string }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${p => p.$src ? `url(${p.$src}) center/cover no-repeat` : 'linear-gradient(135deg, #7851a9, #00ffff)'};
+  background: ${p => p.$src ? `url(${p.$src}) center/cover no-repeat` : 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -449,11 +449,11 @@ const ThemeDot = styled.div<{ $theme?: string }>`
   height: 24px;
   border-radius: 50%;
   background: ${p =>
-    p.$theme === 'cosmic' ? 'linear-gradient(135deg, #7851a9, #00ffff)' :
+    p.$theme === 'cosmic' ? 'linear-gradient(135deg, #8B5CF6, #60C0F0)' :
     p.$theme === 'purple' ? 'linear-gradient(135deg, #9c27b0, #d500f9)' :
     p.$theme === 'ruby' ? 'linear-gradient(135deg, #e91e63, #f50057)' :
     p.$theme === 'emerald' ? 'linear-gradient(135deg, #4caf50, #00e676)' :
-    'linear-gradient(135deg, #7851a9, #00ffff)'
+    'linear-gradient(135deg, #8B5CF6, #60C0F0)'
   };
   display: flex;
   align-items: center;
@@ -1173,7 +1173,7 @@ const AdminPackagesView: React.FC = () => {
 
                               {/* Total Price */}
                               <StyledTableCell>
-                                <BodyText $weight={500} $color="#00ffff">
+                                <BodyText $weight={500} $color="#60C0F0">
                                   {formatCurrency(pkg.totalCost || pkg.price || calculateTotalPrice(pkg))}
                                 </BodyText>
                               </StyledTableCell>
@@ -1645,7 +1645,7 @@ const AdminPackagesView: React.FC = () => {
                     : `${selectedPackage.months} months, ${selectedPackage.sessionsPerWeek} sessions/week at ${formatCurrency(selectedPackage.pricePerSession)} per session`
                   }
                 </BodyText>
-                <BodyText $weight={500} $color="#00ffff">
+                <BodyText $weight={500} $color="#60C0F0">
                   Regular Price: {formatCurrency(selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage))}
                 </BodyText>
               </InfoPanel>

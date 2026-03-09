@@ -10,7 +10,7 @@ const NotificationContainer = styled(motion.div)`
   right: 20px;
   z-index: 1000;
   width: 400px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
   backdrop-filter: blur(10px);
   border-radius: 15px;
   border: 1px solid rgba(139, 92, 246, 0.3);

@@ -32,10 +32,10 @@ const APPBAR_HEIGHT = 64;
 
 // ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────────────
 const theme = {
-  galaxyCore: '#0a0a1a',
+  galaxyCore: '#002060',
   paper: 'rgba(30, 30, 60, 0.3)',
-  swanCyan: '#00ffff',
-  cosmicPurple: '#7851a9',
+  swanCyan: '#60C0F0',
+  cosmicPurple: '#8B5CF6',
   textPrimary: '#ffffff',
   textSecondary: 'rgba(255, 255, 255, 0.7)',
   errorMain: '#ff416c',
@@ -72,7 +72,7 @@ const AppBarStyled = styled.header<{ $open: boolean }>`
   align-items: center;
   height: ${APPBAR_HEIGHT}px;
   padding: 0 24px;
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.95) 0%, rgba(10, 10, 26, 0.98) 100%);
+  background: linear-gradient(135deg, rgba(30, 30, 60, 0.95) 0%, rgba(0, 32, 96, 0.98) 100%);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(139, 92, 246, 0.1);
   z-index: 1201;
@@ -207,7 +207,7 @@ const Sidebar = styled.aside<{ $open: boolean }>`
   left: 0;
   bottom: 0;
   width: ${({ $open }) => ($open ? DRAWER_WIDTH : DRAWER_COLLAPSED_WIDTH)}px;
-  background: linear-gradient(180deg, rgba(30, 30, 60, 0.6) 0%, rgba(10, 10, 26, 0.9) 100%);
+  background: linear-gradient(180deg, rgba(30, 30, 60, 0.6) 0%, rgba(0, 32, 96, 0.9) 100%);
   backdrop-filter: blur(10px);
   border-right: 1px solid rgba(139, 92, 246, 0.08);
   overflow-x: hidden;
@@ -350,7 +350,7 @@ const ContentContainer = styled.div`
 const Spinner = styled.div<{ $size?: number }>`
   width: ${({ $size }) => $size || 60}px;
   height: ${({ $size }) => $size || 60}px;
-  border: 4px solid rgba(120, 81, 169, 0.2);
+  border: 4px solid rgba(139, 92, 246, 0.2);
   border-top-color: ${theme.cosmicPurple};
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;

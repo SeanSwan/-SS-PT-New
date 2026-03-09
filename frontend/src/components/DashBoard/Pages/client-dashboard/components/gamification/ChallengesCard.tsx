@@ -70,16 +70,16 @@ const ViewAllButton = styled.button`
   padding: 10px 16px;
   min-height: 44px;
   border-radius: 10px;
-  border: 1px solid rgba(120, 81, 169, 0.4);
-  background: rgba(120, 81, 169, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.05);
   color: white;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(120, 81, 169, 0.15);
-    border-color: rgba(120, 81, 169, 0.6);
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.6);
   }
 `;
 

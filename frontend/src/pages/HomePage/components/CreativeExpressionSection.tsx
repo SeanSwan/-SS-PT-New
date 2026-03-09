@@ -11,10 +11,10 @@ import canvasImage from "../../../assets/canvas.png";
 
 // === EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2) ===
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -70,7 +70,7 @@ const GlowEffect = styled.div`
   width: 70vh;
   height: 70vh;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 212, 170, 0.15), rgba(120, 81, 169, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(0, 212, 170, 0.15), rgba(139, 92, 246, 0.08), transparent 70%);
   top: 10%;
   left: 50%;
   transform: translateX(-50%);

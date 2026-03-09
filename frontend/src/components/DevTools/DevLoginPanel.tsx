@@ -71,7 +71,7 @@ const DevHeader = styled.div`
 const DevTitle = styled.h3`
   font-size: 1rem;
   font-weight: bold;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
 `;
 
@@ -625,7 +625,7 @@ const DevLoginPanel: React.FC = () => {
     return (
       <DevPanelContainer $minimized>
         <DevPaper $minimized onClick={togglePanel}>
-          <Settings size={20} color="#00ffff" />
+          <Settings size={20} color="#60C0F0" />
         </DevPaper>
       </DevPanelContainer>
     );

@@ -46,12 +46,12 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#a0a0a0',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   success: '#22c55e',
   error: '#ef4444',
-  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
+  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%)',
   gradientPrimaryHover: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)',
-  gradientLevel: 'linear-gradient(135deg, #00ffff, #00B4D8)',
+  gradientLevel: 'linear-gradient(135deg, #60C0F0, #00B4D8)',
 };
 
 // ─── Keyframes ──────────────────────────────────────────────────────

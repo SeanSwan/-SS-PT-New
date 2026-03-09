@@ -19,7 +19,7 @@ const GALAXY_SWAN_COLORS = {
     light: '#33FFFF'
   },
   secondary: {
-    main: '#7851A9', // Purple
+    main: '#8B5CF6', // Purple
     dark: '#5D3F87',
     light: '#9B6FBF'
   },
@@ -46,13 +46,13 @@ const luxuryGlow = keyframes`
   0%, 100% { 
     box-shadow: 
       0 0 20px rgba(139, 92, 246, 0.4),
-      0 0 40px rgba(120, 81, 169, 0.3),
+      0 0 40px rgba(139, 92, 246, 0.3),
       inset 0 0 20px rgba(255, 255, 255, 0.1);
   }
   50% { 
     box-shadow: 
       0 0 30px rgba(139, 92, 246, 0.8),
-      0 0 60px rgba(120, 81, 169, 0.6),
+      0 0 60px rgba(139, 92, 246, 0.6),
       inset 0 0 30px rgba(255, 255, 255, 0.2);
   }
 `;
@@ -333,20 +333,20 @@ const LuxuryButtonContainer = styled(motion.button)<{
   ${props => props.$glowIntensity === 'ultra' && css`
     box-shadow: 
       0 0 30px rgba(139, 92, 246, 0.6),
-      0 0 60px rgba(120, 81, 169, 0.4),
+      0 0 60px rgba(139, 92, 246, 0.4),
       0 0 90px rgba(255, 215, 0, 0.3);
   `}
   
   ${props => props.$glowIntensity === 'high' && css`
     box-shadow: 
       0 0 20px rgba(139, 92, 246, 0.5),
-      0 0 40px rgba(120, 81, 169, 0.3);
+      0 0 40px rgba(139, 92, 246, 0.3);
   `}
   
   ${props => props.$glowIntensity === 'medium' && css`
     box-shadow: 
       0 0 15px rgba(139, 92, 246, 0.4),
-      0 0 30px rgba(120, 81, 169, 0.2);
+      0 0 30px rgba(139, 92, 246, 0.2);
   `}
 `;
 

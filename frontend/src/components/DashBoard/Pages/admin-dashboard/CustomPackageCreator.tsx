@@ -28,10 +28,10 @@ import {
 // ═══════════════════════════════════════
 
 const tokens = {
-  galaxyCore: '#0a0a1a',
+  galaxyCore: '#002060',
   galaxySurface: '#14142b',
   swanCyan: '#8B5CF6',
-  cosmicPurple: '#7851A9',
+  cosmicPurple: '#8B5CF6',
   nebulaPink: '#FF2A85',
   warningGold: '#FFD700',
   successGreen: '#00ff80',
@@ -190,11 +190,11 @@ const SliderValue = styled.span`
 
 // VIP Card Preview (Gemini Spec: holographic/iridescent dark-purple gradient)
 const VIPCard = styled(motion.div)<{ $warning: boolean; $danger: boolean }>`
-  background: linear-gradient(135deg, #14142b 0%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #14142b 0%, #002060 100%);
   border: 1px solid ${({ $warning, $danger }) =>
     $danger ? `${tokens.nebulaPink}` :
     $warning ? `${tokens.warningGold}80` :
-    `rgba(120, 81, 169, 0.5)`};
+    `rgba(139, 92, 246, 0.5)`};
   border-radius: 20px;
   padding: 2rem;
   position: relative;
@@ -202,7 +202,7 @@ const VIPCard = styled(motion.div)<{ $warning: boolean; $danger: boolean }>`
   box-shadow: ${({ $warning, $danger }) =>
     $danger ? `0 0 20px rgba(255, 42, 133, 0.3)` :
     $warning ? `0 0 20px rgba(255, 215, 0, 0.2)` :
-    `0 0 20px rgba(120, 81, 169, 0.2)`};
+    `0 0 20px rgba(139, 92, 246, 0.2)`};
 
   &::before {
     content: '';
@@ -211,7 +211,7 @@ const VIPCard = styled(motion.div)<{ $warning: boolean; $danger: boolean }>`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(120, 81, 169, 0.05) 30%,
+      rgba(139, 92, 246, 0.05) 30%,
       rgba(139, 92, 246, 0.03) 60%,
       transparent 100%
     );

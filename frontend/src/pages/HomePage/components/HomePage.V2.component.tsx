@@ -105,7 +105,7 @@ const SectionDivider = styled.div`
     ),
     radial-gradient(
       ellipse at 70% 50%,
-      rgba(120, 81, 169, 0.04) 0%,
+      rgba(139, 92, 246, 0.04) 0%,
       transparent 50%
     );
     animation: ${mistDrift} 12s ease-in-out infinite;
@@ -123,7 +123,7 @@ const SectionDivider = styled.div`
       90deg,
       transparent,
       rgba(0, 212, 170, 0.3),
-      rgba(120, 81, 169, 0.2),
+      rgba(139, 92, 246, 0.2),
       transparent
     );
   }

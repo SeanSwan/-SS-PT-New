@@ -118,7 +118,7 @@ const CTALink = styled.a<{ $variant?: string }>`
     $variant === 'subscribe'
       ? 'linear-gradient(45deg, #ff0000, #cc0000)'
       : $variant === 'playlist'
-        ? 'rgba(120, 81, 169, 0.25)'
+        ? 'rgba(139, 92, 246, 0.25)'
         : 'rgba(255, 0, 0, 0.12)'};
 
   color: ${({ $variant }) =>
@@ -133,7 +133,7 @@ const CTALink = styled.a<{ $variant?: string }>`
       $variant === 'subscribe'
         ? 'transparent'
         : $variant === 'playlist'
-          ? 'rgba(120, 81, 169, 0.4)'
+          ? 'rgba(139, 92, 246, 0.4)'
           : 'rgba(255, 0, 0, 0.25)'};
 
   &:hover {

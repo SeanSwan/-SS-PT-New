@@ -27,7 +27,7 @@ const BreadcrumbLink = styled(RouterLink)`
   transition: color 0.2s ease;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   svg {

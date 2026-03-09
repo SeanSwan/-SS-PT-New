@@ -54,7 +54,7 @@ const StartButton = styled(motion.button)`
   width: 100%;
   padding: 1rem 2rem;
   min-height: 56px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   color: ${SWAN_CYAN};
@@ -64,7 +64,7 @@ const StartButton = styled(motion.button)`
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(120, 81, 169, 0.25));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.25));
     border-color: rgba(139, 92, 246, 0.5);
   }
 `;

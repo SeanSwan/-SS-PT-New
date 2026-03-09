@@ -107,7 +107,7 @@ const SidebarDrawer = () => {
               marginTop: downMD ? 0 : '88px',
               zIndex: 1099,
               width: drawerWidth,
-              background: '#0a0a1a',
+              background: '#002060',
               color: '#FFFFFF',
               borderRight: 'none',
             },

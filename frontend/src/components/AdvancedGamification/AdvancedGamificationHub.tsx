@@ -36,12 +36,12 @@ const shimmerEffect = keyframes`
 const pulseGlow = keyframes`
   0%, 100% { 
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
-                0 0 40px rgba(120, 81, 169, 0.2),
+                0 0 40px rgba(139, 92, 246, 0.2),
                 inset 0 0 20px rgba(255, 255, 255, 0.1);
   }
   50% { 
     box-shadow: 0 0 30px rgba(139, 92, 246, 0.6),
-                0 0 60px rgba(120, 81, 169, 0.4),
+                0 0 60px rgba(139, 92, 246, 0.4),
                 inset 0 0 30px rgba(255, 255, 255, 0.2);
   }
 `;
@@ -82,7 +82,7 @@ const achievementUnlock = keyframes`
 const GamificationContainer = styled(motion.div)`
   min-height: 100vh;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(120, 81, 169, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
     linear-gradient(135deg, #0a0a0f 0%, #16213e 25%, #2e1e3e 50%, #16213e 75%, #0a0a0f 100%);
   background-size: 400% 400%;
@@ -122,7 +122,7 @@ const FloatingParticle = styled(motion.div)`
   position: absolute;
   width: 4px;
   height: 4px;
-  background: radial-gradient(circle, #00ffff 0%, #7851a9 100%);
+  background: radial-gradient(circle, #60C0F0 0%, #8B5CF6 100%);
   border-radius: 50%;
   animation: ${floatingParticles} 8s ease-in-out infinite;
   z-index: 2;
@@ -151,7 +151,7 @@ const GamificationCard = styled(motion.div)<{ variant?: 'primary' | 'secondary' 
           linear-gradient(135deg, 
             rgba(255, 215, 0, 0.15) 0%,
             rgba(255, 140, 0, 0.1) 25%,
-            rgba(120, 81, 169, 0.1) 50%,
+            rgba(139, 92, 246, 0.1) 50%,
             rgba(139, 92, 246, 0.1) 75%,
             rgba(255, 215, 0, 0.15) 100%
           )
@@ -159,7 +159,7 @@ const GamificationCard = styled(motion.div)<{ variant?: 'primary' | 'secondary' 
       case 'secondary':
         return `
           linear-gradient(135deg, 
-            rgba(120, 81, 169, 0.15) 0%,
+            rgba(139, 92, 246, 0.15) 0%,
             rgba(75, 0, 130, 0.1) 50%,
             rgba(139, 92, 246, 0.1) 100%
           )
@@ -169,7 +169,7 @@ const GamificationCard = styled(motion.div)<{ variant?: 'primary' | 'secondary' 
           linear-gradient(135deg, 
             rgba(139, 92, 246, 0.15) 0%,
             rgba(0, 160, 227, 0.1) 50%,
-            rgba(120, 81, 169, 0.1) 100%
+            rgba(139, 92, 246, 0.1) 100%
           )
         `;
     }
@@ -236,11 +236,11 @@ const MainTitle = styled(motion.h1)`
   font-weight: 800;
   background: linear-gradient(
     135deg,
-    #00ffff 0%,
+    #60C0F0 0%,
     #ffffff 25%,
-    #7851a9 50%,
+    #8B5CF6 50%,
     #ffd700 75%,
-    #00ffff 100%
+    #60C0F0 100%
   );
   background-size: 300% 300%;
   -webkit-background-clip: text;
@@ -259,7 +259,7 @@ const MainTitle = styled(motion.h1)`
     transform: translateX(-50%);
     width: 100px;
     height: 4px;
-    background: linear-gradient(90deg, #00ffff, #7851a9, #ffd700);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6, #ffd700);
     border-radius: 2px;
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 
@@ -353,7 +353,7 @@ const StatCard = styled(motion.div)`
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #00ffff, #7851a9, #ffd700);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6, #ffd700);
   }
 
   @media (max-width: 768px) {
@@ -364,7 +364,7 @@ const StatCard = styled(motion.div)`
 const StatNumber = styled(motion.div)`
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 800;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
   text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 `;
@@ -396,7 +396,7 @@ const ChallengeCard = styled(motion.div)`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #8a2be2, #4b0082, #00ffff);
+    background: linear-gradient(90deg, #8a2be2, #4b0082, #60C0F0);
   }
 
   @media (max-width: 768px) {
@@ -415,7 +415,7 @@ const ProgressBarContainer = styled.div`
 
 const ProgressBar = styled(motion.div)<{ progress: number }>`
   height: 100%;
-  background: linear-gradient(90deg, #00ffff 0%, #7851a9 50%, #ffd700 100%);
+  background: linear-gradient(90deg, #60C0F0 0%, #8B5CF6 50%, #ffd700 100%);
   border-radius: 10px;
   position: relative;
   
@@ -449,7 +449,7 @@ const LeaderboardEntry = styled(motion.div)<{ rank: number }>`
     if (props.rank === 1) return 'linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%)';
     if (props.rank === 2) return 'linear-gradient(135deg, rgba(192, 192, 192, 0.2) 0%, rgba(169, 169, 169, 0.1) 100%)';
     if (props.rank === 3) return 'linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(139, 69, 19, 0.1) 100%)';
-    return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(120, 81, 169, 0.05) 100%)';
+    return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)';
   }};
   border: 1px solid ${props => {
     if (props.rank === 1) return 'rgba(255, 215, 0, 0.3)';
@@ -482,7 +482,7 @@ const RankBadge = styled.div<{ rank: number }>`
     if (props.rank === 1) return 'linear-gradient(135deg, #ffd700, #ff8f00)';
     if (props.rank === 2) return 'linear-gradient(135deg, #e8e8e8, #9e9e9e)';
     if (props.rank === 3) return 'linear-gradient(135deg, #cd7f32, #8b4513)';
-    return 'linear-gradient(135deg, #00ffff, #7851a9)';
+    return 'linear-gradient(135deg, #60C0F0, #8B5CF6)';
   }};
   
   color: ${props => props.rank <= 3 ? '#000' : '#fff'};
@@ -835,7 +835,7 @@ const AdvancedGamificationHub: React.FC<AdvancedGamificationHubProps> = ({
                 </ProgressBarContainer>
                 
                 <div style={{ 
-                  color: '#00ffff', 
+                  color: '#60C0F0', 
                   fontSize: '0.8rem',
                   fontWeight: '500' 
                 }}>
@@ -895,7 +895,7 @@ const AdvancedGamificationHub: React.FC<AdvancedGamificationHubProps> = ({
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
                 <div>
-                  <div style={{ color: '#00ffff', fontSize: '0.9rem', fontWeight: '500' }}>
+                  <div style={{ color: '#60C0F0', fontSize: '0.9rem', fontWeight: '500' }}>
                     {challenge.progress} / {challenge.maxProgress}
                   </div>
                   <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
@@ -942,7 +942,7 @@ const AdvancedGamificationHub: React.FC<AdvancedGamificationHubProps> = ({
               </div>
               
               <div style={{ textAlign: 'right' }}>
-                <div style={{ color: '#00ffff', fontWeight: '700', fontSize: '1.2rem' }}>
+                <div style={{ color: '#60C0F0', fontWeight: '700', fontSize: '1.2rem' }}>
                   {user.points.toLocaleString()}
                 </div>
                 <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
@@ -1015,7 +1015,7 @@ const AdvancedGamificationHub: React.FC<AdvancedGamificationHubProps> = ({
                 transition={{ duration: 2 }}
               />
             </ProgressBarContainer>
-            <div style={{ textAlign: 'center', color: '#00ffff', marginTop: '0.5rem' }}>
+            <div style={{ textAlign: 'center', color: '#60C0F0', marginTop: '0.5rem' }}>
               {userStats.completedThisWeek} / {userStats.weeklyGoal} workouts completed
             </div>
           </GamificationCard>
@@ -1085,10 +1085,10 @@ const AdvancedGamificationHub: React.FC<AdvancedGamificationHubProps> = ({
             onClick={() => handleTabChange(tab.key as typeof selectedTab)}
             style={{
               background: selectedTab === tab.key ? 
-                'linear-gradient(135deg, #00ffff 0%, #7851a9 100%)' : 
+                'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 100%)' : 
                 'rgba(255, 255, 255, 0.1)',
               color: '#fff',
-              border: `1px solid ${selectedTab === tab.key ? '#00ffff' : 'rgba(255, 255, 255, 0.2)'}`,
+              border: `1px solid ${selectedTab === tab.key ? '#60C0F0' : 'rgba(255, 255, 255, 0.2)'}`,
               borderRadius: '16px',
               padding: '0.8rem 1.5rem',
               display: 'flex',

@@ -51,7 +51,7 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({
                     transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
                     width: '8px',
                     height: '8px',
-                    background: '#00ffff',
+                    background: '#60C0F0',
                     borderRadius: '50%',
                     boxShadow: '0 0 8px rgba(139, 92, 246, 0.6)'
                   }}>
@@ -66,7 +66,7 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({
                       textAlign: 'center'
                     }}>
                       {skill.subject}<br/>
-                      <span style={{ color: '#00ffff', fontWeight: 'bold' }}>{skill.value}</span>
+                      <span style={{ color: '#60C0F0', fontWeight: 'bold' }}>{skill.value}</span>
                     </div>
                   </div>
                 );
@@ -79,7 +79,7 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
                 textAlign: 'center',
-                color: '#00ffff',
+                color: '#60C0F0',
                 fontSize: '12px',
                 fontWeight: 'bold'
               }}>

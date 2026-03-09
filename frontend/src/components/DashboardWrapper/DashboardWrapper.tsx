@@ -69,7 +69,7 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
         alignItems: 'center',
         height: '100vh',
         color: 'white',
-        background: '#0a0a1a'
+        background: '#002060'
       }}>
         <div>
           <p>Checking permissions...</p>

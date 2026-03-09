@@ -87,7 +87,7 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
@@ -157,7 +157,7 @@ const CommandButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: #ffffff;
@@ -173,7 +173,7 @@ const CommandButton = styled(motion.button)`
   }
   
   &:focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -184,7 +184,7 @@ const CommandButton = styled(motion.button)`
   }
   
   &.success {
-    background: linear-gradient(45deg, #10b981 0%, #00ffff 100%);
+    background: linear-gradient(45deg, #10b981 0%, #60C0F0 100%);
     
     &:hover {
       background: linear-gradient(45deg, #059669 0%, #00e6ff 100%);
@@ -210,7 +210,7 @@ const SettingsPanel = styled(motion.div)`
 `;
 
 const PanelTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 1.5rem 0;
   display: flex;
   align-items: center;
@@ -303,7 +303,7 @@ const Toggle = styled.label`
   }
   
   input:checked + .slider {
-    background: linear-gradient(45deg, #10b981, #00ffff);
+    background: linear-gradient(45deg, #10b981, #60C0F0);
   }
   
   input:checked + .slider:before {
@@ -326,7 +326,7 @@ const FormInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
@@ -342,7 +342,7 @@ const FormSelect = styled.select`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
   
   option {
@@ -456,7 +456,7 @@ const BackupIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #00ffff);
+  background: linear-gradient(135deg, #3b82f6, #60C0F0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -725,7 +725,7 @@ const AdminSettingsSection: React.FC = () => {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <RefreshCw size={32} color="#00ffff" />
+            <RefreshCw size={32} color="#60C0F0" />
           </motion.div>
         </div>
       </ManagementContainer>

@@ -16,9 +16,9 @@ import ConsentSection from "./components/ConsentSection";
 import SummarySection from "./components/SummarySection";
 
 /* ── Galaxy-Swan theme tokens ── */
-const GALAXY_CORE = "#0a0a1a";
+const GALAXY_CORE = "#002060";
 const SWAN_CYAN = "#8B5CF6";
-const COSMIC_PURPLE = "#7851A9";
+const COSMIC_PURPLE = "#8B5CF6";
 
 const cyanPulse = keyframes`
   0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
@@ -95,7 +95,7 @@ const Step = styled.div<{ $active: boolean; $completed: boolean }>`
     }};
   background: ${(props) => {
     if (props.$completed) return "rgba(139, 92, 246, 0.15)";
-    if (props.$active) return "rgba(120, 81, 169, 0.25)";
+    if (props.$active) return "rgba(139, 92, 246, 0.25)";
     return "rgba(255, 255, 255, 0.03)";
   }};
   color: ${(props) => {
@@ -105,7 +105,7 @@ const Step = styled.div<{ $active: boolean; $completed: boolean }>`
   }};
   cursor: ${(props) => (props.$completed ? "pointer" : "default")};
   transition: all 0.3s ease;
-  ${(props) => props.$active && `box-shadow: 0 0 16px rgba(120, 81, 169, 0.4);`}
+  ${(props) => props.$active && `box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);`}
 
   &:hover {
     transform: ${(props) => (props.$completed ? "scale(1.12)" : "none")};

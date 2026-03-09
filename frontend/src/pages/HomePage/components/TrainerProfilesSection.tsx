@@ -21,10 +21,10 @@ import SectionVideoBackground from "../../../components/ui/backgrounds/SectionVi
 
 // === EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2) ===
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -86,9 +86,9 @@ const glow = keyframes`
 `;
 
 const pulseGlow = keyframes`
-  0% { box-shadow: 0 0 15px rgba(120, 81, 169, 0.4); }
-  50% { box-shadow: 0 0 25px rgba(120, 81, 169, 0.7); }
-  100% { box-shadow: 0 0 15px rgba(120, 81, 169, 0.4); }
+  0% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.7); }
+  100% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
 `;
 
 const stellarGlow = keyframes`
@@ -258,11 +258,11 @@ const TrainerImageContainer = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to top, rgba(10, 10, 26, 1), transparent);
+    background: linear-gradient(to top, rgba(0, 32, 96, 1), transparent);
     opacity: 0.6;
 
     @media (min-width: 901px) {
-      background: linear-gradient(to right, rgba(10, 10, 26, 0.8), transparent);
+      background: linear-gradient(to right, rgba(0, 32, 96, 0.8), transparent);
       width: 50%;
       left: auto;
       right: 0;
@@ -476,7 +476,7 @@ const NavigationButton = styled(motion.button)`
       background: ${T.secondary};
       border-color: rgba(0, 212, 170, 0.3);
       color: ${T.text};
-      box-shadow: 0 8px 25px rgba(120, 81, 169, 0.3);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
     }
   }
 

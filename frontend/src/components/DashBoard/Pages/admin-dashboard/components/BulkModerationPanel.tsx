@@ -62,7 +62,7 @@ const SelectedCount = styled.div`
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const CloseButton = styled(motion.button)`
@@ -167,7 +167,7 @@ const ProgressBar = styled.div`
 
 const ProgressFill = styled(motion.div)`
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #00ffff);
+  background: linear-gradient(90deg, #10b981, #60C0F0);
   border-radius: 2px;
 `;
 

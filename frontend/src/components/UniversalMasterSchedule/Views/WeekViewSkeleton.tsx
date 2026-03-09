@@ -97,7 +97,7 @@ const SkeletonWrapper = styled.div`
 `;
 
 const GridWrapper = styled.div`
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   border: 1px solid rgba(0, 206, 209, 0.1);
   border-radius: 12px;
   overflow: hidden;

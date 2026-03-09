@@ -44,7 +44,7 @@ const CustomizationPanel: React.FC = () => {
           <CustomizeFab
             onClick={handleToggle}
             size="medium"
-            color="#7851A9"
+            color="#8B5CF6"
           >
             <AnimateButton type="rotate">
               <IconButton color="inherit" size="large" aria-label="live customize">

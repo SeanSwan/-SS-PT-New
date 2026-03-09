@@ -73,7 +73,7 @@ const spin = keyframes`
 
 // ─── Layout Primitives ──────────────────────────────────────
 const PageWrapper = styled.div`
-  background-color: #0a0a1a;
+  background-color: #002060;
   min-height: 100vh;
   color: #e2e8f0;
 `;
@@ -105,7 +105,7 @@ const TabPanelContent = styled.div`
 
 // ─── Typography ─────────────────────────────────────────────
 const PageTitle = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 8px 0;
   font-size: 2rem;
   font-weight: 700;
@@ -118,7 +118,7 @@ const PageSubtitle = styled.p`
 `;
 
 const SectionTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
@@ -233,7 +233,7 @@ const PaginationSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
@@ -270,8 +270,8 @@ const PrimaryButton = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
+  color: #002060;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -370,7 +370,7 @@ const StyledInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(255, 255, 255, 0.08);
   }
 `;
@@ -462,8 +462,8 @@ const AvatarCircle = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #00ffff;
-  color: #0a0a1a;
+  background: #60C0F0;
+  color: #002060;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -483,10 +483,10 @@ const TabButton = styled.button<{ $active: boolean; $disabled?: boolean }>`
   min-height: 44px;
   padding: 12px 20px;
   border: none;
-  border-bottom: 2px solid ${({ $active }) => ($active ? '#00ffff' : 'transparent')};
+  border-bottom: 2px solid ${({ $active }) => ($active ? '#60C0F0' : 'transparent')};
   background: transparent;
   color: ${({ $active, $disabled }) =>
-    $disabled ? '#555' : $active ? '#00ffff' : '#94a3b8'};
+    $disabled ? '#555' : $active ? '#60C0F0' : '#94a3b8'};
   font-weight: 600;
   font-size: 0.875rem;
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
@@ -494,7 +494,7 @@ const TabButton = styled.button<{ $active: boolean; $disabled?: boolean }>`
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    color: ${({ $active }) => ($active ? '#00ffff' : '#e2e8f0')};
+    color: ${({ $active }) => ($active ? '#60C0F0' : '#e2e8f0')};
   }
 `;
 
@@ -563,7 +563,7 @@ const Spinner = styled.div<{ $size?: number }>`
   width: ${({ $size }) => $size || 24}px;
   height: ${({ $size }) => $size || 24}px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
 `;
@@ -1120,7 +1120,7 @@ const AdminClientManagementView: React.FC = () => {
         <SectionTitle>MCP Server Status</SectionTitle>
         <RoundIconButton
           onClick={fetchMCPStatus}
-          $color="#00ffff"
+          $color="#60C0F0"
           title="Refresh Status"
         >
           <RefreshCw size={20} />

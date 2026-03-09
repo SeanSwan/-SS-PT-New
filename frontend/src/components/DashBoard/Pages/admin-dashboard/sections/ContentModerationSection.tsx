@@ -86,7 +86,7 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
@@ -110,7 +110,7 @@ const FilterSelect = styled.select`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
   
   option {
@@ -124,7 +124,7 @@ const CommandButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: #ffffff;
@@ -140,7 +140,7 @@ const CommandButton = styled(motion.button)`
   }
   
   &:focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -186,7 +186,7 @@ const ContentCard = styled(motion.div)`
       switch (props.status) {
         case 'flagged': return 'linear-gradient(90deg, #ef4444, #f59e0b)';
         case 'pending': return 'linear-gradient(90deg, #f59e0b, #eab308)';
-        case 'approved': return 'linear-gradient(90deg, #10b981, #00ffff)';
+        case 'approved': return 'linear-gradient(90deg, #10b981, #60C0F0)';
         case 'hidden': return 'linear-gradient(90deg, #6b7280, #9ca3af)';
         default: return 'linear-gradient(90deg, #3b82f6, #8b5cf6)';
       }
@@ -211,7 +211,7 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -429,7 +429,7 @@ const StatCard = styled(motion.div)`
 const StatNumber = styled.div`
   font-size: 2rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
 `;
 
@@ -794,7 +794,7 @@ const ContentModerationSection: React.FC = () => {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <RefreshCw size={32} color="#00ffff" style={{ marginRight: '1rem' }} />
+          <RefreshCw size={32} color="#60C0F0" style={{ marginRight: '1rem' }} />
           Loading content for moderation...
         </LoadingSpinner>
       </ManagementContainer>

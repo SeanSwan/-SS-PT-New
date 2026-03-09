@@ -190,7 +190,7 @@ const ProgressLabel = styled.span`
 
 const ProgressValue = styled.span`
   font-size: 0.875rem;
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 600;
 `;
 
@@ -205,7 +205,7 @@ const ProgressBar = styled.div`
 
 const ProgressFill = styled(motion.div)<{ $percentage: number }>`
   height: 100%;
-  background: linear-gradient(90deg, #00ffff 0%, #00ff88 100%);
+  background: linear-gradient(90deg, #60C0F0 0%, #00ff88 100%);
   border-radius: 4px;
   position: relative;
   
@@ -340,8 +340,8 @@ const StatusIndicator = styled(motion.div)<{ $status: string }>`
       default:
         return css`
           background: rgba(139, 92, 246, 0.2);
-          color: #00ffff;
-          border: 1px solid #00ffff;
+          color: #60C0F0;
+          border: 1px solid #60C0F0;
         `;
     }
   }}
@@ -634,7 +634,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 {challenge.category}
               </MetaBadge>
               
-              <MetaBadge $color="#00ffff" $variant="outline">
+              <MetaBadge $color="#60C0F0" $variant="outline">
                 <Users size={12} />
                 {formatNumber(challenge.progressData.totalParticipants)}
               </MetaBadge>

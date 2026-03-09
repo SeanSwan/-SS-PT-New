@@ -50,7 +50,7 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#0ea5e9',
-  accentPurple: '#7851A9',
+  accentPurple: '#8B5CF6',
   success: '#22c55e',
   successLight: 'rgba(34, 197, 94, 0.15)',
   warning: '#f59e0b',

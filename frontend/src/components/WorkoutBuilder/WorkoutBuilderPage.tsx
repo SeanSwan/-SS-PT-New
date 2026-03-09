@@ -4,7 +4,7 @@
  * Phase 9d: 3-pane layout with Context Sidebar, Workout Canvas, AI Insights.
  *
  * Galaxy-Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
- * Cosmic Purple (#7851A9), glassmorphic panels.
+ * Cosmic Purple (#8B5CF6), glassmorphic panels.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -121,7 +121,7 @@ const FormGroup = styled.div`
 const PrimaryButton = styled.button`
   width: 100%;
   padding: 10px;
-  background: linear-gradient(135deg, #60c0f0 0%, #7851a9 100%);
+  background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -238,7 +238,7 @@ const MuscleTag = styled.span`
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: rgba(120, 81, 169, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: rgba(224, 236, 244, 0.6);
 `;
 
@@ -251,12 +251,12 @@ const InsightCard = styled.div<{ $type?: string }>`
   background: ${({ $type }) =>
     $type === 'pain_exclusion' ? 'rgba(255, 71, 87, 0.08)'
     : $type === 'pain_warning' ? 'rgba(255, 184, 0, 0.08)'
-    : $type === 'compensation_awareness' ? 'rgba(120, 81, 169, 0.1)'
+    : $type === 'compensation_awareness' ? 'rgba(139, 92, 246, 0.1)'
     : 'rgba(96, 192, 240, 0.06)'};
   border-left: 3px solid ${({ $type }) =>
     $type === 'pain_exclusion' ? '#FF4757'
     : $type === 'pain_warning' ? '#FFB800'
-    : $type === 'compensation_awareness' ? '#7851A9'
+    : $type === 'compensation_awareness' ? '#8B5CF6'
     : '#60C0F0'};
 `;
 

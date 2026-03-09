@@ -3,7 +3,7 @@
  * AI-powered analysis of client progress with insights and recommendations
  *
  * Migrated from MUI to styled-components + lucide-react
- * Galaxy-Swan theme: Galaxy Core #0a0a1a, Swan Cyan #8B5CF6, Cosmic Purple #7851A9
+ * Galaxy-Swan theme: Galaxy Core #002060, Swan Cyan #8B5CF6, Cosmic Purple #8B5CF6
  */
 
 import React, { useState, useEffect } from 'react';
@@ -42,7 +42,7 @@ const HeaderRow = styled.div`
 `;
 
 const PageTitle = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -109,7 +109,7 @@ const StyledSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
@@ -121,7 +121,7 @@ const StyledSelect = styled.select`
 const AnalyzeButton = styled.button`
   width: 100%;
   min-height: 56px;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   color: white;
   border: none;
   border-radius: 8px;
@@ -135,7 +135,7 @@ const AnalyzeButton = styled.button`
   align-self: flex-end;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(90deg, #7851a9, #00ffff);
+    background: linear-gradient(90deg, #8B5CF6, #60C0F0);
   }
 
   &:disabled {
@@ -154,7 +154,7 @@ const Spinner = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 1rem 0;
   display: flex;
   align-items: center;

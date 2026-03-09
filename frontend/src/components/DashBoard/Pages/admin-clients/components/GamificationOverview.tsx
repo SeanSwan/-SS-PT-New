@@ -346,7 +346,7 @@ const LevelCircle = styled.div`
 const LevelNumber = styled.span`
   font-size: 2rem;
   font-weight: 700;
-  color: #0a0a1a;
+  color: #002060;
 `;
 
 /* Progress bar */
@@ -397,7 +397,7 @@ const ActionButton = styled.button<{ $variant?: 'filled' | 'outline'; $fullWidth
       : css`
           background: linear-gradient(135deg, ${T.gold}, ${T.goldLight});
           border: none;
-          color: #0a0a1a;
+          color: #002060;
           &:hover {
             background: linear-gradient(135deg, ${T.goldLight}, ${T.gold});
             transform: scale(1.05);
@@ -468,7 +468,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
     $active
       ? css`
           background: linear-gradient(135deg, ${T.gold}, ${T.goldLight});
-          color: #0a0a1a;
+          color: #002060;
           border-color: ${T.gold};
           z-index: 1;
         `
@@ -504,7 +504,7 @@ const FilterButton = styled.button<{ $active?: boolean }>`
     $active
       ? css`
           background: linear-gradient(135deg, ${T.gold}, ${T.goldLight});
-          color: #0a0a1a;
+          color: #002060;
           border-color: ${T.gold};
           z-index: 1;
         `
@@ -667,7 +667,7 @@ const TimelineDotCircle = styled.div`
   justify-content: center;
   flex-shrink: 0;
   z-index: 1;
-  color: #0a0a1a;
+  color: #002060;
 `;
 
 const TimelineConnectorLine = styled.div`
@@ -1617,7 +1617,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                 </TextMuted>
                 <ChipTag style={{
                   background: T.gold,
-                  color: '#0a0a1a',
+                  color: '#002060',
                   fontWeight: 700,
                   padding: '6px 16px',
                   fontSize: '0.85rem',

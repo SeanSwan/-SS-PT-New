@@ -87,7 +87,7 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
@@ -111,7 +111,7 @@ const FilterSelect = styled.select`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
   
   option {
@@ -125,7 +125,7 @@ const CommandButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: #ffffff;
@@ -141,7 +141,7 @@ const CommandButton = styled(motion.button)`
   }
   
   &:focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -187,7 +187,7 @@ const ServerCard = styled(motion.div)`
     height: 4px;
     background: ${props => {
       switch (props.status) {
-        case 'healthy': return 'linear-gradient(90deg, #10b981, #00ffff)';
+        case 'healthy': return 'linear-gradient(90deg, #10b981, #60C0F0)';
         case 'warning': return 'linear-gradient(90deg, #f59e0b, #eab308)';
         case 'error': return 'linear-gradient(90deg, #ef4444, #dc2626)';
         case 'offline': return 'linear-gradient(90deg, #6b7280, #9ca3af)';
@@ -210,7 +210,7 @@ const ServerIcon = styled.div`
   border-radius: 12px;
   background: ${props => {
     switch (props.status) {
-      case 'healthy': return 'linear-gradient(135deg, #10b981, #00ffff)';
+      case 'healthy': return 'linear-gradient(135deg, #10b981, #60C0F0)';
       case 'warning': return 'linear-gradient(135deg, #f59e0b, #eab308)';
       case 'error': return 'linear-gradient(135deg, #ef4444, #dc2626)';
       case 'offline': return 'linear-gradient(135deg, #6b7280, #9ca3af)';
@@ -334,7 +334,7 @@ const MetricItem = styled.div`
 const MetricValue = styled.div`
   font-size: 1rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.25rem;
 `;
 
@@ -359,7 +359,7 @@ const PerformanceFill = styled.div`
   background: ${props => {
     if (props.value >= 90) return 'linear-gradient(90deg, #ef4444, #dc2626)';
     if (props.value >= 70) return 'linear-gradient(90deg, #f59e0b, #eab308)';
-    return 'linear-gradient(90deg, #10b981, #00ffff)';
+    return 'linear-gradient(90deg, #10b981, #60C0F0)';
   }};
   border-radius: 3px;
   transition: width 0.3s ease;
@@ -468,7 +468,7 @@ const StatNumber = styled.div`
   &.healthy { color: #10b981; }
   &.warning { color: #f59e0b; }
   &.error { color: #ef4444; }
-  &.default { color: #00ffff; }
+  &.default { color: #60C0F0; }
 `;
 
 const StatTitle = styled.div`
@@ -571,7 +571,7 @@ const LoadingSpinner = styled(motion.div)`
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid #00ffff;
+  border-top: 2px solid #60C0F0;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   
@@ -1110,7 +1110,7 @@ const MCPServersSection: React.FC = () => {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <RefreshCw size={32} color="#00ffff" />
+            <RefreshCw size={32} color="#60C0F0" />
           </motion.div>
         </div>
       </ManagementContainer>
@@ -1440,7 +1440,7 @@ const MCPServersSection: React.FC = () => {
               marginBottom: '1rem'
             }}>
               <h3 style={{ 
-                color: '#00ffff', 
+                color: '#60C0F0', 
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',

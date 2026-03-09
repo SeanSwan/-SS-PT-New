@@ -33,13 +33,13 @@ const float = keyframes`
 
 const pulseGlow = keyframes`
   0% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(120, 81, 169, 0.7);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.7);
   }
   100% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -89,7 +89,7 @@ const HeroContainer = styled.div`
   overflow: hidden;
   margin: 0;
   padding: 0;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
 `;
 
 // Enhanced video background styling 
@@ -119,7 +119,7 @@ const Overlay = styled.div`
   height: 100%;
   background: linear-gradient(
     45deg,
-    rgba(10, 10, 26, 0.75),
+    rgba(0, 32, 96, 0.75),
     rgba(30, 30, 63, 0.75)
   );
   z-index: 1;
@@ -134,7 +134,7 @@ const Overlay = styled.div`
     background: linear-gradient(
       135deg,
       rgba(139, 92, 246, 0.15),
-      rgba(120, 81, 169, 0.15),
+      rgba(139, 92, 246, 0.15),
       rgba(139, 92, 246, 0.15)
     );
     background-size: 200% 200%;
@@ -302,7 +302,7 @@ const Tagline = styled(motion.p)`
   position: relative;
   
   span {
-    color: #00ffff;
+    color: #60C0F0;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
     position: relative;
     display: inline-block;
@@ -314,7 +314,7 @@ const Tagline = styled(motion.p)`
       left: 0;
       width: 100%;
       height: 1px;
-      background: #00ffff;
+      background: #60C0F0;
       transform-origin: left;
       animation: ${reveal} 1.5s ease forwards;
       animation-delay: 1.5s;
@@ -381,7 +381,7 @@ const ScrollIndicator = styled(motion.div)`
       inset: 0;
       border-radius: 20px;
       padding: 2px;
-      background: linear-gradient(45deg, #00ffff, #7851a9);
+      background: linear-gradient(45deg, #60C0F0, #8B5CF6);
       -webkit-mask: 
         linear-gradient(#fff 0 0) content-box, 
         linear-gradient(#fff 0 0);
@@ -394,7 +394,7 @@ const ScrollIndicator = styled(motion.div)`
   .wheel {
     width: 5px;
     height: 10px;
-    background-color: #00ffff;
+    background-color: #60C0F0;
     border-radius: 10px;
     animation: ${scroll} 1.5s infinite;
     ${reducedMotion}
@@ -466,9 +466,9 @@ const AwardBadge = styled(motion.div)`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #00ffff;
+    background: #60C0F0;
     display: block;
-    box-shadow: 0 0 10px #00ffff;
+    box-shadow: 0 0 10px #60C0F0;
   }
   
   @media (max-width: 768px) {

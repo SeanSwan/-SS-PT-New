@@ -203,14 +203,14 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode
   ${({ $status }) =>
     $status === 'blocked' &&
     `
-      border-color: rgba(120, 81, 169, 0.5);
+      border-color: rgba(139, 92, 246, 0.5);
       background: rgba(30, 30, 60, 0.25);
       background-image: repeating-linear-gradient(
         45deg,
-        rgba(120, 81, 169, 0.25),
-        rgba(120, 81, 169, 0.25) 6px,
-        rgba(10, 10, 26, 0.2) 6px,
-        rgba(10, 10, 26, 0.2) 12px
+        rgba(139, 92, 246, 0.25),
+        rgba(139, 92, 246, 0.25) 6px,
+        rgba(0, 32, 96, 0.2) 6px,
+        rgba(0, 32, 96, 0.2) 12px
       );
     `}
 

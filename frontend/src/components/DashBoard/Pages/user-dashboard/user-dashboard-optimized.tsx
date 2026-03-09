@@ -24,7 +24,7 @@ const DashboardContainer = styled.div`
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  background: ${({ theme }) => theme.colors.background.primary || '#0a0a1a'};
+  background: ${({ theme }) => theme.colors.background.primary || '#002060'};
   min-height: 100vh;
   color: ${({ theme }) => theme.colors.text.primary || 'white'};
 
@@ -52,7 +52,7 @@ const HeaderTitle = styled.h1`
   font-size: 1.75rem;
   font-weight: 600;
   margin: 0;
-  color: ${({ theme }) => theme.colors.primary.main || '#00ffff'};
+  color: ${({ theme }) => theme.colors.primary.main || '#60C0F0'};
 `;
 
 const ProfileSection = styled.div`
@@ -78,7 +78,7 @@ const ProfileImage = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,7 +107,7 @@ const ImageUploadButton = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: ${({ theme }) => theme.colors.primary.main || '#00ffff'};
+  background: ${({ theme }) => theme.colors.primary.main || '#60C0F0'};
   border: none;
   display: flex;
   align-items: center;
@@ -128,7 +128,7 @@ const ImageUploadButton = styled.button`
   }
   
   svg {
-    color: #0a0a1a;
+    color: #002060;
   }
 `;
 
@@ -241,13 +241,13 @@ const InfoValue = styled.span`
 const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
   background: ${({ variant, theme }) => 
     variant === 'primary' 
-      ? `linear-gradient(135deg, ${theme.colors.primary.main || '#00ffff'}, ${theme.colors.primary.dark || '#00c8ff'})` 
+      ? `linear-gradient(135deg, ${theme.colors.primary.main || '#60C0F0'}, ${theme.colors.primary.dark || '#00c8ff'})` 
       : 'rgba(255, 255, 255, 0.1)'
   };
   border: ${({ variant }) => variant === 'secondary' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'};
   border-radius: 6px;
   padding: 0.75rem 1rem;
-  color: ${({ variant }) => variant === 'primary' ? '#0a0a1a' : 'white'};
+  color: ${({ variant }) => variant === 'primary' ? '#002060' : 'white'};
   font-weight: 500;
   cursor: pointer;
   display: flex;
@@ -261,7 +261,7 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
     transform: translateY(-2px);
     box-shadow: ${({ variant, theme }) => 
       variant === 'primary' 
-        ? `0 4px 8px ${theme.colors.primary.main || '#00ffff'}40`
+        ? `0 4px 8px ${theme.colors.primary.main || '#60C0F0'}40`
         : '0 4px 8px rgba(255, 255, 255, 0.1)'
     };
   }
@@ -305,7 +305,7 @@ const ToggleSwitch = styled.button<{ $enabled: boolean }>`
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
-  background: ${({ $enabled, theme }) => $enabled ? theme.colors.primary.main || '#00ffff' : 'rgba(255, 255, 255, 0.2)'};
+  background: ${({ $enabled, theme }) => $enabled ? theme.colors.primary.main || '#60C0F0' : 'rgba(255, 255, 255, 0.2)'};
   
   &::after {
     content: '';
@@ -331,7 +331,7 @@ const ActivityItem = styled.div`
   padding: 1rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
-  border-left: 3px solid ${({ theme }) => theme.colors.primary.main || '#00ffff'};
+  border-left: 3px solid ${({ theme }) => theme.colors.primary.main || '#60C0F0'};
 `;
 
 const ActivityTitle = styled.div`
@@ -356,7 +356,7 @@ const LoadingSpinner = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 200px;
-  color: ${({ theme }) => theme.colors.primary.main || '#00ffff'};
+  color: ${({ theme }) => theme.colors.primary.main || '#60C0F0'};
   flex-direction: column;
   gap: 1rem;
 `;
@@ -542,7 +542,7 @@ const UserDashboard: React.FC = () => {
           
           <SectionCard>
             <SectionHeader>
-              <SectionIcon color="#7851a9">
+              <SectionIcon color="#8B5CF6">
                 <Shield size={24} />
               </SectionIcon>
               <SectionTitle>Account Security</SectionTitle>
@@ -615,7 +615,7 @@ const UserDashboard: React.FC = () => {
           
           <SectionCard>
             <SectionHeader>
-              <SectionIcon color="#00ffff">
+              <SectionIcon color="#60C0F0">
                 <Download size={24} />
               </SectionIcon>
               <SectionTitle>Data Export</SectionTitle>

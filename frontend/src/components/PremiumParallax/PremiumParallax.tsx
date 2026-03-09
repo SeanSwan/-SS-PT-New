@@ -161,7 +161,7 @@ const PremiumTitle = styled(motion.h2)`
   span {
     position: relative;
     display: inline-block;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
+    background: linear-gradient(135deg, #60C0F0, #8B5CF6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     padding-bottom: 5px;
@@ -173,7 +173,7 @@ const PremiumTitle = styled(motion.h2)`
       bottom: 0;
       width: 100%;
       height: 3px;
-      background: linear-gradient(90deg, #00ffff, #7851a9);
+      background: linear-gradient(90deg, #60C0F0, #8B5CF6);
       border-radius: 3px;
     }
   }
@@ -195,7 +195,7 @@ const PremiumDescription = styled(motion.p)`
 `;
 
 const HighlightedText = styled.span`
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60C0F0);
   font-weight: 500;
 `;
 
@@ -221,8 +221,8 @@ const FeatureIcon = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
-  color: var(--neon-blue, #00ffff);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
+  color: var(--neon-blue, #60C0F0);
   font-size: 1.2rem;
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
   flex-shrink: 0;
@@ -261,7 +261,7 @@ const PlanCard = styled(motion.div)`
     inset: 0;
     border-radius: 15px;
     padding: 1.5px;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
+    background: linear-gradient(135deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -278,7 +278,7 @@ const PlanCard = styled(motion.div)`
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
     border-radius: 17px;
     filter: blur(10px);
     z-index: -2;
@@ -312,7 +312,7 @@ const PlanName = styled.h3`
 `;
 
 const PlanTagline = styled.p`
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60C0F0);
   font-size: 1rem;
   margin: 0;
 `;
@@ -355,7 +355,7 @@ const PlanFeatureItem = styled.li`
     content: '✓';
     position: absolute;
     left: 0;
-    color: var(--neon-blue, #00ffff);
+    color: var(--neon-blue, #60C0F0);
     font-weight: bold;
   }
 `;
@@ -364,7 +364,7 @@ const ExclusiveTag = styled.div`
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   color: black;
   font-weight: 600;
   font-size: 0.8rem;

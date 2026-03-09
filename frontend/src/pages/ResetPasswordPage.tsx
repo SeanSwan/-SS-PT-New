@@ -12,7 +12,7 @@ const PageOverlay = styled.div`
   height: 100vh;
   z-index: 1500;
   overflow: auto;
-  background: #0a0a1a;
+  background: #002060;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -30,7 +30,7 @@ const FormCard = styled(motion.div)`
 
 const Title = styled.h2`
   text-align: center;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 8px;
   font-size: 1.5rem;
 `;
@@ -46,9 +46,9 @@ const InputField = styled.input`
   width: 100%;
   padding: 12px;
   margin-bottom: 16px;
-  border: 2px solid rgba(120, 81, 169, 0.4);
+  border: 2px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
-  background: rgba(10, 10, 26, 0.8);
+  background: rgba(0, 32, 96, 0.8);
   color: #fff;
   font-size: 1rem;
   min-height: 44px;
@@ -56,7 +56,7 @@ const InputField = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   &::placeholder {
@@ -67,10 +67,10 @@ const InputField = styled.input`
 const SubmitButton = styled.button`
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   border: none;
   border-radius: 8px;
-  color: #0a0a1a;
+  color: #002060;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -102,7 +102,7 @@ const BackLink = styled.a`
   display: block;
   text-align: center;
   margin-top: 20px;
-  color: #00ffff;
+  color: #60C0F0;
   text-decoration: none;
   font-size: 0.9rem;
   cursor: pointer;

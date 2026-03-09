@@ -25,7 +25,7 @@ export const HeaderSection = styled.div`
 
 export const Title = styled.h2`
   font-size: 1.8rem;
-  color: #00ffff;
+  color: #60C0F0;
   text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   margin: 0;
 `;
@@ -51,7 +51,7 @@ export const FilterSelect = styled.select`
   font-size: 0.9rem;
   
   &:hover, &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
   
@@ -86,7 +86,7 @@ export const MetricValue = styled.div`
   font-size: 2rem;
   font-weight: 600;
   margin-bottom: 5px;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 export const MetricLabel = styled.div`
@@ -193,7 +193,7 @@ export const LoadingMessage = styled.div`
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.2rem;
 `;
 

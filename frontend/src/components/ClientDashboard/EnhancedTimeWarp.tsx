@@ -62,7 +62,7 @@ const StellarTimeWarpContainer = styled(motion.div)`
     bottom: 0;
     background:
       radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 80%, rgba(120, 81, 169, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
     pointer-events: none;
     z-index: 1;
@@ -102,7 +102,7 @@ const StellarTitle = styled.h2`
   margin: 0 0 1rem 0;
   font-size: 2rem;
   font-weight: 300;
-  background: linear-gradient(135deg, #00ffff, #7851a9, #ffd700);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6, #ffd700);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -149,7 +149,7 @@ const ScheduleWrapper = styled(motion.div)`
   }
 
   .rbc-toolbar-label {
-    color: #00ffff !important;
+    color: #60C0F0 !important;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.5) !important;
     font-weight: 600 !important;
   }
@@ -157,7 +157,7 @@ const ScheduleWrapper = styled(motion.div)`
   .rbc-btn-group button {
     background: rgba(139, 92, 246, 0.1) !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
-    color: #00ffff !important;
+    color: #60C0F0 !important;
     border-radius: 8px !important;
     margin: 0 2px !important;
     transition: all 0.3s ease !important;
@@ -168,7 +168,7 @@ const ScheduleWrapper = styled(motion.div)`
     }
 
     &.rbc-active {
-      background: linear-gradient(135deg, #00ffff, #7851a9) !important;
+      background: linear-gradient(135deg, #60C0F0, #8B5CF6) !important;
       color: #000 !important;
       font-weight: bold !important;
       box-shadow: 0 0 20px rgba(139, 92, 246, 0.6) !important;
@@ -177,7 +177,7 @@ const ScheduleWrapper = styled(motion.div)`
 
   .rbc-header {
     background: rgba(139, 92, 246, 0.1) !important;
-    color: #00ffff !important;
+    color: #60C0F0 !important;
     border-bottom: 1px solid rgba(139, 92, 246, 0.3) !important;
     font-weight: 600 !important;
     text-shadow: 0 0 8px rgba(139, 92, 246, 0.5) !important;
@@ -189,7 +189,7 @@ const ScheduleWrapper = styled(motion.div)`
   }
 
   .rbc-event {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8)) !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.8)) !important;
     border: none !important;
     border-radius: 10px !important;
     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
@@ -206,7 +206,7 @@ const ScheduleWrapper = styled(motion.div)`
     }
 
     &.booked {
-      background: linear-gradient(135deg, rgba(120, 81, 169, 0.9), rgba(167, 125, 212, 0.9)) !important;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(167, 125, 212, 0.9)) !important;
       color: #fff !important;
     }
 
@@ -261,7 +261,7 @@ const EnhancedTimeWarp: React.FC<EnhancedTimeWarpProps> = ({ className }) => {
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <StellarTitle>
-          <Calendar size={32} color="#00ffff" />
+          <Calendar size={32} color="#60C0F0" />
           Your Schedule
         </StellarTitle>
         <StellarSubtitle>

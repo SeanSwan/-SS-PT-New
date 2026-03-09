@@ -12,7 +12,7 @@ interface MainContentProps {
 }
 
 const MainContentStyled = styled.main<MainContentProps>`
-  background-color: #0a0a1a;
+  background-color: #002060;
   width: 100%;
   min-height: calc(100vh - 88px);
   flex-grow: 1;

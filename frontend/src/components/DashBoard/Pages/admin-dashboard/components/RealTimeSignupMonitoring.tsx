@@ -41,7 +41,7 @@ const HeaderSection = styled.div`
   margin-bottom: 2rem;
   
   h3 {
-    color: #00ffff;
+    color: #60C0F0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -113,13 +113,13 @@ const StatCard = styled(motion.div)`
     padding: 0.5rem;
     border-radius: 8px;
     background: rgba(139, 92, 246, 0.2);
-    color: #00ffff;
+    color: #60C0F0;
   }
   
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 0.5rem;
   }
   
@@ -160,7 +160,7 @@ const RecentSignupsList = styled.div`
     padding: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     font-weight: 600;
-    color: #00ffff;
+    color: #60C0F0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -201,7 +201,7 @@ const RecentSignupsList = styled.div`
     
     .time-ago {
       font-size: 0.875rem;
-      color: #00ffff;
+      color: #60C0F0;
       font-weight: 600;
     }
     
@@ -213,10 +213,10 @@ const RecentSignupsList = styled.div`
 `;
 
 const RefreshButton = styled(motion.button)`
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
   border: none;
   border-radius: 8px;
-  color: #0a0a1a;
+  color: #002060;
   padding: 0.5rem 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -468,7 +468,7 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
         transition={{ duration: 0.5 }}
       >
         <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <RefreshCw size={32} color="#00ffff" className="animate-spin" />
+          <RefreshCw size={32} color="#60C0F0" className="animate-spin" />
           <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
             Loading database monitoring...
           </p>

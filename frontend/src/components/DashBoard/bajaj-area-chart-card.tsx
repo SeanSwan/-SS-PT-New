@@ -41,12 +41,12 @@ const BajajAreaChartCard: React.FC = () => {
   }, [orangeDark]);
 
   return (
-    <Card style={{ background: 'rgba(120, 81, 169, 0.15)' }}>
+    <Card style={{ background: 'rgba(139, 92, 246, 0.15)' }}>
       <Grid container style={{ padding: 16, paddingBottom: 0, color: '#fff' }}>
         <Grid item xs={12}>
           <Grid container style={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Grid item>
-              <Typography variant="subtitle1" style={{ color: '#7851A9' }}>
+              <Typography variant="subtitle1" style={{ color: '#8B5CF6' }}>
                 Bajaj Finery
               </Typography>
             </Grid>

@@ -217,7 +217,7 @@ const useGamificationMcp = () => {
         description: 'Complete 10 workouts',
         progress: 80,
         icon: 'dumbbell',
-        color: '#00ffff'
+        color: '#60C0F0'
       },
       {
         id: 'achievement2',
@@ -234,7 +234,7 @@ const useGamificationMcp = () => {
         description: 'Connect with 3 other users',
         progress: 67,
         icon: 'users',
-        color: '#7851a9'
+        color: '#8B5CF6'
       }
     ]);
     

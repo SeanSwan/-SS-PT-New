@@ -81,11 +81,11 @@ const FilterSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
   }
 `;
 
@@ -98,7 +98,7 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(59, 130, 246, 0.3)')};
   background: ${(p) =>
     p.$active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(30, 58, 138, 0.15)'};
-  color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
+  color: ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)')};
   font-size: 14px;
   cursor: pointer;
   min-height: 44px;
@@ -129,7 +129,7 @@ const RefreshButton = styled.button`
 
   &:hover {
     background: rgba(59, 130, 246, 0.2);
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   svg {
@@ -221,7 +221,7 @@ const JobTypeBadge = styled.span`
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(120, 81, 169, 0.4);
+  background: rgba(139, 92, 246, 0.4);
   color: white;
 `;
 

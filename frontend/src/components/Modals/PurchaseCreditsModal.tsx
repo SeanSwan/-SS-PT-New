@@ -50,7 +50,7 @@ const ModalContent = styled(motion.div)`
     inset: 0;
     border-radius: 16px;
     padding: 2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -98,7 +98,7 @@ const PackageOption = styled(motion.div)`
   }
 
   &.selected {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(139, 92, 246, 0.1);
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
   }
@@ -107,7 +107,7 @@ const PackageOption = styled(motion.div)`
 const Badge = styled.span`
   display: inline-block;
   padding: 0.25rem 0.5rem;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   color: white;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -127,7 +127,7 @@ const MoreOptionsToggle = styled.button`
   gap: 0.5rem;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 

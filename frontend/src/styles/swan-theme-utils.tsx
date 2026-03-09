@@ -343,7 +343,7 @@ export const glassMorphism = css`
 export const textGradient = (colors: string[] = [
   '#8B5CF6',
   '#00A0E3',
-  '#7851A9'
+  '#8B5CF6'
 ]) => css`
   background: linear-gradient(to right, ${colors.join(', ')});
   background-clip: text;

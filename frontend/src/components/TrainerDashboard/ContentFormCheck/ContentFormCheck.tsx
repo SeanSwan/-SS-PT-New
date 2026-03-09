@@ -51,7 +51,7 @@ const PageContainer = styled.div`
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  background: #0a0a1a;
+  background: #002060;
   min-height: 100vh;
   color: white;
 
@@ -72,7 +72,7 @@ const HeaderTitle = styled.h1`
   font-size: 1.75rem;
   font-weight: 600;
   margin: 0;
-  color: #00ffff;
+  color: #60C0F0;
   text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 `;
 
@@ -94,8 +94,8 @@ const Tab = styled.button<{ active: boolean }>`
   padding: 0.75rem 1.25rem;
   border-radius: 8px;
   border: none;
-  background: ${props => props.active ? 'linear-gradient(135deg, #00ffff, #7851a9)' : 'transparent'};
-  color: ${props => props.active ? '#0a0a1a' : 'white'};
+  background: ${props => props.active ? 'linear-gradient(135deg, #60C0F0, #8B5CF6)' : 'transparent'};
+  color: ${props => props.active ? '#002060' : 'white'};
   font-weight: ${props => props.active ? '600' : '400'};
   cursor: pointer;
   transition: all 0.3s ease;
@@ -106,7 +106,7 @@ const Tab = styled.button<{ active: boolean }>`
   gap: 0.5rem;
   
   &:hover {
-    background: ${props => props.active ? 'linear-gradient(135deg, #00ffff, #7851a9)' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${props => props.active ? 'linear-gradient(135deg, #60C0F0, #8B5CF6)' : 'rgba(255, 255, 255, 0.1)'};
   }
   
   @media (max-width: 768px) {
@@ -121,11 +121,11 @@ const Tab = styled.button<{ active: boolean }>`
 `;
 
 const ActionButton = styled.button`
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.2rem;
-  color: #0a0a1a;
+  color: #002060;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -191,7 +191,7 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
@@ -356,7 +356,7 @@ const ContentTag = styled.span`
   border-radius: 20px;
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin-right: 0.5rem;
   display: inline-flex;
   align-items: center;
@@ -520,7 +520,7 @@ const VideoProgressFill = styled.div<{ width: string }>`
   top: 0;
   bottom: 0;
   width: ${props => props.width};
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   border-radius: 3px;
 `;
 
@@ -561,7 +561,7 @@ const AnnotationTab = styled.button<{ active: boolean }>`
   padding: 0.5rem 1rem;
   border: none;
   background: ${props => props.active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
-  color: ${props => props.active ? '#00ffff' : 'white'};
+  color: ${props => props.active ? '#60C0F0' : 'white'};
   font-weight: ${props => props.active ? '600' : '400'};
   cursor: pointer;
   flex: 1;
@@ -582,9 +582,9 @@ const AnnotationTools = styled.div`
 const AnnotationTool = styled.button<{ active?: boolean }>`
   padding: 0.5rem;
   border-radius: 6px;
-  border: 1px solid ${props => props.active ? '#00ffff' : 'rgba(255, 255, 255, 0.15)'};
+  border: 1px solid ${props => props.active ? '#60C0F0' : 'rgba(255, 255, 255, 0.15)'};
   background: ${props => props.active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
-  color: ${props => props.active ? '#00ffff' : 'white'};
+  color: ${props => props.active ? '#60C0F0' : 'white'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -593,7 +593,7 @@ const AnnotationTool = styled.button<{ active?: boolean }>`
   
   &:hover {
     background: ${props => props.active ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.1)'};
-    border-color: ${props => props.active ? '#00ffff' : 'rgba(255, 255, 255, 0.3)'};
+    border-color: ${props => props.active ? '#60C0F0' : 'rgba(255, 255, 255, 0.3)'};
   }
 `;
 
@@ -634,7 +634,7 @@ const CommentText = styled.div`
 
 const CommentTimestamp = styled.div`
   font-size: 0.75rem;
-  color: #00ffff;
+  color: #60C0F0;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -670,7 +670,7 @@ const StyledTextarea = styled.textarea`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(255, 255, 255, 0.1);
   }
 `;
@@ -696,14 +696,14 @@ const AIAnalysisTitle = styled.h4`
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
 
 const AIAnalysisButton = styled.button`
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   border: none;
   border-radius: 6px;
   padding: 0.5rem 1rem;
@@ -723,8 +723,8 @@ const AIAnalysisButton = styled.button`
 `;
 
 const AIAnalysisResult = styled.div`
-  background: rgba(120, 81, 169, 0.1);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   padding: 1rem;
 `;
@@ -812,7 +812,7 @@ const DropZone = styled.div`
   margin-top: 1.5rem;
   
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(139, 92, 246, 0.05);
   }
 `;
@@ -828,7 +828,7 @@ const DropZoneIcon = styled.div`
   margin: 0 auto 1rem auto;
   
   svg {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -849,7 +849,7 @@ const FileInputLabel = styled.label`
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   padding: 0.6rem 1.2rem;
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
@@ -1798,7 +1798,7 @@ const ContentFormCheck: React.FC = () => {
                       top: '0',
                       bottom: '0',
                       width: '30%',
-                      background: 'linear-gradient(90deg, #00ffff, #7851a9)',
+                      background: 'linear-gradient(90deg, #60C0F0, #8B5CF6)',
                       borderRadius: '2px',
                       animation: 'progress 2s infinite ease-in-out'
                     }} />
@@ -1836,7 +1836,7 @@ const ContentFormCheck: React.FC = () => {
                     ))}
                     
                     <div style={{ 
-                      background: 'rgba(120, 81, 169, 0.2)',
+                      background: 'rgba(139, 92, 246, 0.2)',
                       padding: '0.75rem',
                       borderRadius: '6px',
                       marginTop: '1rem',
@@ -2043,7 +2043,7 @@ const Loading = () => (
     width: '40px', 
     height: '40px', 
     border: '3px solid rgba(139, 92, 246, 0.1)', 
-    borderTop: '3px solid #00ffff',
+    borderTop: '3px solid #60C0F0',
     borderRadius: '50%',
     margin: '0 0 1rem 0',
     animation: 'spin 1s infinite linear'

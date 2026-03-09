@@ -134,7 +134,7 @@ const ToggleTrack = styled.span<{ $checked: boolean }>`
   border-radius: 13px;
   background: ${({ $checked }) =>
     $checked
-      ? 'linear-gradient(135deg, #00cccc, #00ffff)'
+      ? 'linear-gradient(135deg, #00cccc, #60C0F0)'
       : 'rgba(255, 255, 255, 0.15)'};
   transition: background 0.25s ease;
   box-shadow: ${({ $checked }) =>

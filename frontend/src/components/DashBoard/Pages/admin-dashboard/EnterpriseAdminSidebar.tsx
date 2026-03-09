@@ -74,7 +74,7 @@ const enterpriseCommandTheme = {
     deepSpace: '#0a0a0f',
     commandBlue: '#1e3a8a',
     stellarBlue: '#3b82f6',
-    cyberCyan: '#00ffff',
+    cyberCyan: '#60C0F0',
     stellarWhite: '#ffffff',
     energyBlue: '#0ea5e9',
     warningAmber: '#f59e0b',
@@ -88,14 +88,14 @@ const enterpriseCommandTheme = {
     gamificationGold: '#fbbf24'
   },
   gradients: {
-    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #00ffff 100%)',
+    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60C0F0 100%)',
     adminNebula: 'linear-gradient(45deg, #0f172a 0%, #1e3a8a 50%, #0a0a0f 100%)',
     mcpServer: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
     socialMedia: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
     businessIntel: 'linear-gradient(135deg, #f97316 0%, #10b981 100%)',
     gamification: 'linear-gradient(135deg, #fbbf24 0%, #ef4444 100%)',
-    stellarCommand: 'conic-gradient(from 0deg, #00ffff, #3b82f6, #8b5cf6, #ec4899, #00ffff)',
-    commandAurora: 'linear-gradient(270deg, #00ffff, #3b82f6, #8b5cf6, #ec4899, #00ffff)'
+    stellarCommand: 'conic-gradient(from 0deg, #60C0F0, #3b82f6, #8b5cf6, #ec4899, #60C0F0)',
+    commandAurora: 'linear-gradient(270deg, #60C0F0, #3b82f6, #8b5cf6, #ec4899, #60C0F0)'
   },
   shadows: {
     commandGlow: '0 0 30px rgba(59, 130, 246, 0.6)',

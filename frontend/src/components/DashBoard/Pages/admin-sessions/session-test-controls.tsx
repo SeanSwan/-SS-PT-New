@@ -130,15 +130,15 @@ const PrimaryButton = styled.button`
   border-radius: 8px;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #0a0a1a;
+  color: #002060;
   cursor: pointer;
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
   box-shadow: 0 4px 10px rgba(0, 200, 255, 0.3);
   transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
 
   &:hover:not(:disabled) {
     box-shadow: 0 6px 15px rgba(0, 200, 255, 0.4);
-    background: linear-gradient(135deg, #00ffff, #00b8eb);
+    background: linear-gradient(135deg, #60C0F0, #00b8eb);
   }
 
   &:disabled {
@@ -160,13 +160,13 @@ const SecondaryButton = styled.button`
   font-weight: 500;
   color: #ffffff;
   cursor: pointer;
-  background: linear-gradient(135deg, #7851a9, #a67dd4);
-  box-shadow: 0 4px 10px rgba(120, 81, 169, 0.3);
+  background: linear-gradient(135deg, #8B5CF6, #a67dd4);
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
   transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
 
   &:hover:not(:disabled) {
-    box-shadow: 0 6px 15px rgba(120, 81, 169, 0.4);
-    background: linear-gradient(135deg, #7851a9, #9366c7);
+    box-shadow: 0 6px 15px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(135deg, #8B5CF6, #9366c7);
   }
 
   &:disabled {
@@ -214,7 +214,7 @@ const StyledInput = styled.input`
   }
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
@@ -272,8 +272,8 @@ const SessionInfoBox = styled.div`
   margin-top: 16px;
   padding: 16px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
-  background-color: rgba(120, 81, 169, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background-color: rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   gap: 8px;

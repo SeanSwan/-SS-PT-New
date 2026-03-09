@@ -133,7 +133,7 @@ const Title = styled(motion.h2)`
   background: linear-gradient(135deg, 
     #4CAF50 0%, 
     #8B5CF6 50%, 
-    #7851A9 100%
+    #8B5CF6 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -160,7 +160,7 @@ const StatsOverview = styled(motion.div)`
 const StatCard = styled(motion.div)<{ trend: 'up' | 'down' | 'neutral' }>`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.1),
-    rgba(120, 81, 169, 0.1)
+    rgba(139, 92, 246, 0.1)
   );
   border: 1px solid ${props => {
     switch (props.trend) {
@@ -273,7 +273,7 @@ const ChartSection = styled(motion.div)`
 const ChartContainer = styled.div`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.05),
-    rgba(120, 81, 169, 0.05)
+    rgba(139, 92, 246, 0.05)
   );
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
@@ -302,7 +302,7 @@ const ChartBar = styled(motion.div)<{ height: number; index: number }>`
   flex: 1;
   background: linear-gradient(to top, 
     #8B5CF6 0%,
-    #7851A9 50%,
+    #8B5CF6 50%,
     #4CAF50 100%
   );
   border-radius: 4px 4px 0 0;
@@ -343,7 +343,7 @@ const SidePanel = styled(motion.div)`
 const MilestoneSection = styled.div`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.05),
-    rgba(120, 81, 169, 0.05)
+    rgba(139, 92, 246, 0.05)
   );
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
@@ -374,7 +374,7 @@ const MilestoneItem = styled(motion.div)<{ isCompleted: boolean }>`
   border-radius: 12px;
   background: ${props => props.isCompleted 
     ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.05))'
-    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(120, 81, 169, 0.05))'
+    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(139, 92, 246, 0.05))'
   };
   border: 1px solid ${props => props.isCompleted 
     ? 'rgba(76, 175, 80, 0.3)' 
@@ -405,7 +405,7 @@ const MilestoneStatus = styled.div<{ isCompleted: boolean }>`
   border-radius: 6px;
   background: ${props => props.isCompleted 
     ? 'linear-gradient(135deg, #4CAF50, #388E3C)'
-    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(120, 81, 169, 0.1))'
+    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(139, 92, 246, 0.1))'
   };
   color: white;
   font-weight: 600;
@@ -429,7 +429,7 @@ const ProgressBarFill = styled(motion.div)<{ progress: number; isCompleted: bool
   border-radius: 3px;
   background: ${props => props.isCompleted
     ? 'linear-gradient(90deg, #4CAF50, #66BB6A)'
-    : 'linear-gradient(90deg, #8B5CF6, #7851A9)'
+    : 'linear-gradient(90deg, #8B5CF6, #8B5CF6)'
   };
   width: ${props => Math.min(props.progress, 100)}%;
   transition: width 1s ease;
@@ -460,7 +460,7 @@ const GoalItem = styled(motion.div)<{ priority: 'low' | 'medium' | 'high'; isCom
     switch (props.priority) {
       case 'high': return 'linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(198, 40, 40, 0.05))';
       case 'medium': return 'linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(230, 81, 0, 0.05))';
-      default: return 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(120, 81, 169, 0.05))';
+      default: return 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(139, 92, 246, 0.05))';
     }
   }};
   border: 1px solid ${props => {
@@ -494,7 +494,7 @@ const GoalPriority = styled.div<{ priority: 'low' | 'medium' | 'high' }>`
     switch (props.priority) {
       case 'high': return 'linear-gradient(135deg, #F44336, #C62828)';
       case 'medium': return 'linear-gradient(135deg, #FF9800, #E65100)';
-      default: return 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(120, 81, 169, 0.2))';
+      default: return 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(139, 92, 246, 0.2))';
     }
   }};
   color: white;

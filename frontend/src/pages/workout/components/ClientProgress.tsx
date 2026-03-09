@@ -75,7 +75,7 @@ interface WorkoutStatistics {
 // Styled Components
 const ProgressContainer = styled.div`
   padding: 20px;
-  background: linear-gradient(135deg, #1e1e3f, #0a0a1a);
+  background: linear-gradient(135deg, #1e1e3f, #002060);
   border-radius: 12px;
   color: white;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -96,7 +96,7 @@ const HeaderSection = styled.div`
 
 const Title = styled.h2`
   font-size: 1.8rem;
-  color: #00ffff;
+  color: #60C0F0;
   text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   margin: 0;
 `;
@@ -122,7 +122,7 @@ const FilterSelect = styled.select`
   font-size: 0.9rem;
   
   &:hover, &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
   
@@ -157,7 +157,7 @@ const MetricValue = styled.div`
   font-size: 2rem;
   font-weight: 600;
   margin-bottom: 5px;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const MetricLabel = styled.div`
@@ -246,7 +246,7 @@ const TableLabel = styled.span`
 `;
 
 const TableValue = styled.span`
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 500;
 `;
 

@@ -44,7 +44,7 @@ const ChartTitle = styled.h3`
   margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const itemVariants = {
@@ -186,18 +186,18 @@ const StrengthProfileRadarChart: React.FC<{ userId: string }> = ({ userId }) => 
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
           <defs>
             <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00ffff" stopOpacity={0.8}/>
+              <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.8}/>
               <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3}/>
             </linearGradient>
           </defs>
           <PolarGrid stroke="rgba(255,255,255,0.2)" />
           <PolarAngleAxis dataKey="subject" tick={{ fill: 'white', fontSize: 12 }} />
           <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-          <Radar name="Strength Profile" dataKey="value" stroke="#00ffff" fill="url(#radarGradient)" fillOpacity={0.6} />
+          <Radar name="Strength Profile" dataKey="value" stroke="#60C0F0" fill="url(#radarGradient)" fillOpacity={0.6} />
           <Tooltip
             contentStyle={{
               backgroundColor: 'rgba(30, 41, 59, 0.9)',
-              border: '1px solid #00ffff',
+              border: '1px solid #60C0F0',
               borderRadius: '8px',
             }}
             labelStyle={{ color: 'white' }}
@@ -311,7 +311,7 @@ const SessionUsageChart: React.FC<{ userId: string }> = ({ userId }) => {
           <Tooltip
             contentStyle={{
               backgroundColor: 'rgba(30, 41, 59, 0.9)',
-              border: '1px solid #00ffff',
+              border: '1px solid #60C0F0',
               borderRadius: '8px',
               color: 'white'
             }}

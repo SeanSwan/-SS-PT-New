@@ -46,9 +46,9 @@ const theme = {
   border: 'rgba(14,165,233,0.2)',
   text: '#e2e8f0',
   accent: '#0ea5e9',
-  galaxyCore: '#0a0a1a',
+  galaxyCore: '#002060',
   swanCyan: '#8B5CF6',
-  cosmicPurple: '#7851A9',
+  cosmicPurple: '#8B5CF6',
 } as const;
 
 // ─── Keyframe Animations ────────────────────────────────────────────
@@ -64,8 +64,8 @@ const float = keyframes`
 `;
 
 const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(139, 92, 246, 0.6); }
 `;
 
 const spin = keyframes`
@@ -152,7 +152,7 @@ const ActionButton = styled.button<{ $fullWidth?: boolean }>`
   ${({ $fullWidth }) => $fullWidth && 'width: 100%;'}
 
   &:hover {
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.3);
     transform: translateY(-2px);
   }
 
@@ -229,7 +229,7 @@ const AvatarCircle = styled.div<{ $size?: number }>`
   height: ${({ $size }) => $size || 40}px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.3));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,7 +391,7 @@ const ChatMessages = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(120, 81, 169, 0.5);
+    background: rgba(139, 92, 246, 0.5);
     border-radius: 3px;
   }
 `;
@@ -403,7 +403,7 @@ const MessageBubble = styled(motion.div)<{ $isUser?: boolean }>`
   border-radius: 12px;
   align-self: ${({ $isUser }) => $isUser ? 'flex-end' : 'flex-start'};
   background: ${({ $isUser }) => $isUser ?
-    'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3))' :
+    'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.3))' :
     'rgba(30, 30, 60, 0.6)'};
   border: 1px solid ${({ $isUser }) => $isUser ?
     'rgba(139, 92, 246, 0.3)' :
@@ -420,7 +420,7 @@ const MessageBubble = styled(motion.div)<{ $isUser?: boolean }>`
     width: 16px;
     height: 16px;
     background: ${({ $isUser }) => $isUser ?
-      'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3))' :
+      'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.3))' :
       'rgba(30, 30, 60, 0.6)'};
     transform: rotate(45deg);
     border-${({ $isUser }) => $isUser ? 'right' : 'left'}: 1px solid ${({ $isUser }) => $isUser ?
@@ -476,7 +476,7 @@ const SendButtonStyled = styled.button`
   height: 44px;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.8));
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -508,7 +508,7 @@ const SessionCard = styled(motion.div)`
 `;
 
 const UpcomingLabel = styled.div`
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.3));
   color: white;
   font-size: 0.7rem;
   font-weight: 500;
@@ -545,7 +545,7 @@ const WorkoutIcon = styled.div`
   align-items: center;
   justify-content: center;
   margin-right: 0.75rem;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
@@ -585,7 +585,7 @@ const AchievementCard = styled(motion.div)<{ $isLocked?: boolean }>`
     left: 0;
     width: 5px;
     height: 100%;
-    background: linear-gradient(to bottom, #00ffff, #7851a9);
+    background: linear-gradient(to bottom, #60C0F0, #8B5CF6);
   }
 
   &:hover {

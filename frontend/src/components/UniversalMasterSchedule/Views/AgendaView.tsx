@@ -284,7 +284,7 @@ const StatusBadge = styled.div<{ $status: string }>`
   text-transform: uppercase;
   letter-spacing: 0.08em;
   background: ${({ $status }) => {
-    if ($status === 'blocked') return 'rgba(120, 81, 169, 0.35)';
+    if ($status === 'blocked') return 'rgba(139, 92, 246, 0.35)';
     if ($status === 'confirmed') return 'rgba(0, 255, 136, 0.2)';
     if ($status === 'completed') return 'rgba(148, 163, 184, 0.2)';
     if ($status === 'cancelled') return 'rgba(255, 71, 87, 0.2)';

@@ -1632,8 +1632,8 @@ const PackageInfoBanner = styled.div`
 const PackageSection = styled.div`
   margin-top: 20px;
   padding: 16px;
-  background: rgba(120, 81, 169, 0.1);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
 `;
 
@@ -1682,7 +1682,7 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => $percent}%;
-  background: linear-gradient(90deg, #8B5CF6, #7851A9);
+  background: linear-gradient(90deg, #8B5CF6, #8B5CF6);
   border-radius: 4px;
   transition: width 0.3s ease;
 `;

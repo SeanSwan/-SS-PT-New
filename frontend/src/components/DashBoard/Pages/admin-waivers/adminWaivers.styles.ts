@@ -16,7 +16,7 @@ export const Header = styled.div`
 `;
 
 export const Title = styled.h1`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.5rem;
   margin: 0;
 `;
@@ -32,7 +32,7 @@ export const FilterSelect = styled.select`
   padding: 10px 14px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(0, 0, 0, 0.3);
   color: white;
   font-size: 0.875rem;
@@ -40,7 +40,7 @@ export const FilterSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
@@ -53,7 +53,7 @@ export const SearchInput = styled.input`
   padding: 10px 14px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(0, 0, 0, 0.3);
   color: white;
   font-size: 0.875rem;
@@ -65,7 +65,7 @@ export const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -80,13 +80,13 @@ export const Table = styled.table`
 export const Th = styled.th`
   text-align: left;
   padding: 14px 16px;
-  background: rgba(120, 81, 169, 0.3);
-  color: #00ffff;
+  background: rgba(139, 92, 246, 0.3);
+  color: #60C0F0;
   font-weight: 600;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(120, 81, 169, 0.3);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 export const Td = styled.td`
@@ -99,7 +99,7 @@ export const Td = styled.td`
 export const Tr = styled.tr`
   transition: background 0.15s;
   &:hover {
-    background: rgba(120, 81, 169, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 `;
 
@@ -122,11 +122,11 @@ export const StatusBadge = styled.span<{ $status: string }>`
 
 const badgeColors: Record<string, { bg: string; fg: string }> = {
   'Waiver Signed': { bg: 'rgba(0, 255, 136, 0.15)', fg: '#00ff88' },
-  'AI Consent Signed': { bg: 'rgba(139, 92, 246, 0.15)', fg: '#00ffff' },
+  'AI Consent Signed': { bg: 'rgba(139, 92, 246, 0.15)', fg: '#60C0F0' },
   'Consent Missing': { bg: 'rgba(255, 107, 107, 0.15)', fg: '#ff6b6b' },
   'Guardian Required': { bg: 'rgba(255, 193, 7, 0.15)', fg: '#ffc107' },
   'Version Outdated': { bg: 'rgba(255, 152, 0, 0.15)', fg: '#ff9800' },
-  'Pending Match': { bg: 'rgba(120, 81, 169, 0.15)', fg: '#b389e0' },
+  'Pending Match': { bg: 'rgba(139, 92, 246, 0.15)', fg: '#b389e0' },
 };
 
 export const ContractBadge = styled.span<{ $label: string }>`
@@ -155,15 +155,15 @@ export const ActionButton = styled.button<{ $variant?: 'approve' | 'reject' | 'r
   ${({ $variant }) => {
     switch ($variant) {
       case 'approve':
-        return 'background: #00ff88; color: #0a0a1a;';
+        return 'background: #00ff88; color: #002060;';
       case 'reject':
         return 'background: #ff6b6b; color: white;';
       case 'revoke':
         return 'background: #ff6b6b; color: white;';
       case 'link':
-        return 'background: #00ffff; color: #0a0a1a;';
+        return 'background: #60C0F0; color: #002060;';
       default:
-        return 'background: #7851a9; color: white;';
+        return 'background: #8B5CF6; color: white;';
     }
   }}
 
@@ -201,11 +201,11 @@ export const ModalContent = styled.div`
   max-width: 700px;
   max-height: 85vh;
   overflow-y: auto;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 export const ModalTitle = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 20px 0;
   font-size: 1.25rem;
 `;
@@ -274,7 +274,7 @@ export const SignatureImage = styled.img`
 
 export const MatchCard = styled.div`
   background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(120, 81, 169, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 10px;
   padding: 14px;
   margin-bottom: 10px;
@@ -344,14 +344,14 @@ export const PageButton = styled.button<{ $active?: boolean }>`
   min-height: 44px;
   min-width: 44px;
   border-radius: 6px;
-  border: 1px solid ${({ $active }) => ($active ? '#00ffff' : 'rgba(120, 81, 169, 0.3)')};
+  border: 1px solid ${({ $active }) => ($active ? '#60C0F0' : 'rgba(139, 92, 246, 0.3)')};
   background: ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.15)' : 'transparent')};
-  color: ${({ $active }) => ($active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
+  color: ${({ $active }) => ($active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)')};
   cursor: pointer;
   font-size: 0.85rem;
 
   &:hover:not(:disabled) {
-    background: rgba(120, 81, 169, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 
   &:disabled {
@@ -370,7 +370,7 @@ export const EmptyState = styled.div`
 export const LoadingState = styled.div`
   text-align: center;
   padding: 48px;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.9rem;
 `;
 
@@ -378,7 +378,7 @@ export const UserSearchList = styled.div`
   max-height: 300px;
   overflow-y: auto;
   margin-top: 12px;
-  border: 1px solid rgba(120, 81, 169, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
 `;
 
@@ -396,7 +396,7 @@ export const UserSearchItem = styled.div<{ $selected?: boolean }>`
   transition: background 0.15s;
 
   &:hover {
-    background: rgba(120, 81, 169, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 
   &:last-child {

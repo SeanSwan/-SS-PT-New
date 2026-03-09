@@ -73,7 +73,7 @@ export const V1ThemeBridge: React.FC<V1ThemeBridgeProps> = ({ children, classNam
 const BridgeWrapper = styled.div`
   /* Apply v2.0 dark background */
   background-color: ${({ theme }) =>
-    theme?.cyberpunk?.darkBg || theme?.background?.primary || '#0a0a1a'};
+    theme?.cyberpunk?.darkBg || theme?.background?.primary || '#002060'};
 
   /* Update text color to match v2.0 */
   color: ${({ theme }) => theme?.text?.primary || '#E8F0FF'};

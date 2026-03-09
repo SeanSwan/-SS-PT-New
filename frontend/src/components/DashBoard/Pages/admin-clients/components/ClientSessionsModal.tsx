@@ -144,7 +144,7 @@ const ClientSessionsModal: React.FC<Props> = ({ open, clientId, clientName, onCl
                     textAlign: 'center',
                   }}>
                     <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>{stat.icon}</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#00ffff' }}>{stat.value}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#60C0F0' }}>{stat.value}</div>
                     <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{stat.label}</div>
                   </div>
                 ))}

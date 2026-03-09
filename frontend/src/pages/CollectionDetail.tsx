@@ -174,7 +174,7 @@ const CollectionDetail: React.FC = () => {
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
 `;
 
 const HeroSection = styled.section`

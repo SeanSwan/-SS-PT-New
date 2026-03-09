@@ -39,7 +39,7 @@ const VideoBackground = styled(motion.div)`
     inset: 0;
     background: linear-gradient(
       160deg, 
-      rgba(120, 81, 169, 0.4), 
+      rgba(139, 92, 246, 0.4), 
       rgba(9, 4, 30, 0.7), 
       rgba(0, 159, 253, 0.3)
     );
@@ -94,7 +94,7 @@ const ParallaxTitle = styled(motion.h2)`
   color: transparent;
   
   /* Text shadow to match hero */
-  text-shadow: 0 0 30px rgba(120, 81, 169, 0.8);
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
 
   @media (max-width: 768px) {
     margin-bottom: 1rem;

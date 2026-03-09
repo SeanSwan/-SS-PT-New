@@ -60,7 +60,7 @@ const FilterChip = styled.button<{ $active: boolean }>`
   border-radius: 16px;
   border: 1px solid ${props => props.$active ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255, 255, 255, 0.15)'};
   background: ${props => props.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -163,7 +163,7 @@ const RetryButton = styled.button`
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -180,7 +180,7 @@ const ViewAllButton = styled.button`
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -291,7 +291,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return (
       <HeaderRow>
         <HeaderLeft>
-          <Activity size={20} color="#00ffff" />
+          <Activity size={20} color="#60C0F0" />
           <HeaderTitle>{isLoading || !transactions.length ? 'Activity Feed' : 'Recent Activity'}</HeaderTitle>
         </HeaderLeft>
         {!compact && !isLoading && transactions.length > 0 && (

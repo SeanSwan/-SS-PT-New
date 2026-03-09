@@ -49,7 +49,7 @@ const Canvas = styled.canvas`
   touch-action: none;
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     outline: none;
   }
 `;
@@ -75,7 +75,7 @@ const ClearButton = styled.button`
   border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 6px;
   background: rgba(10, 10, 30, 0.8);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.75rem;
   cursor: pointer;
   z-index: 2;
@@ -115,7 +115,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
       resizeCanvas();
 
       padRef.current = new SignaturePadLib(canvas, {
-        penColor: '#00ffff',
+        penColor: '#60C0F0',
         backgroundColor: 'rgba(10, 10, 46, 0)',
         minWidth: 1.5,
         maxWidth: 3,

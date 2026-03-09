@@ -33,10 +33,10 @@ import marbleTexture from "../../assets/marble-texture.png";
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -80,7 +80,7 @@ const BackgroundGlow = styled.div`
   background: radial-gradient(
     ellipse at center,
     rgba(0, 212, 170, 0.08) 0%,
-    rgba(120, 81, 169, 0.04) 50%,
+    rgba(139, 92, 246, 0.04) 50%,
     transparent 70%
   );
   border-radius: 50%;

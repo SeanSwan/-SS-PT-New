@@ -5,7 +5,7 @@
  * SwapCard UI, and NASM confidence badges.
  *
  * Galaxy-Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
- * Cosmic Purple (#7851A9), glassmorphic panels.
+ * Cosmic Purple (#8B5CF6), glassmorphic panels.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
@@ -73,7 +73,7 @@ const SectionTitle = styled.h2`
 
 const PrimaryButton = styled.button`
   padding: 10px 24px;
-  background: linear-gradient(135deg, #60c0f0 0%, #7851a9 100%);
+  background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -177,7 +177,7 @@ const TimelineNode = styled.div<{ $type: 'build' | 'switch'; $current?: boolean 
     width: 40px;
     height: 2px;
     background: ${({ $type }) => $type === 'build'
-      ? 'linear-gradient(90deg, #7851a9, #7851a9)'
+      ? 'linear-gradient(90deg, #8B5CF6, #8B5CF6)'
       : 'linear-gradient(90deg, #60c0f0, #60c0f0)'};
     opacity: 0.4;
   }
@@ -198,7 +198,7 @@ const NodeCircle = styled.div<{ $type: 'build' | 'switch'; $current?: boolean }>
   font-weight: 700;
   color: #fff;
   background: ${({ $type }) => $type === 'build'
-    ? 'linear-gradient(135deg, #7851a9, #5a3d8a)'
+    ? 'linear-gradient(135deg, #8B5CF6, #5a3d8a)'
     : 'linear-gradient(135deg, #60c0f0, #4090c0)'};
   ${({ $current }) => $current && `animation: ${pulseGlow} 2s ease-in-out infinite;`}
 `;

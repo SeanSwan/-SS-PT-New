@@ -21,11 +21,11 @@ const shimmerEffect = keyframes`
 const pulseGlow = keyframes`
   0%, 100% { 
     box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1),
-                0 0 20px rgba(120, 81, 169, 0.1);
+                0 0 20px rgba(139, 92, 246, 0.1);
   }
   50% { 
     box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3),
-                0 0 30px rgba(120, 81, 169, 0.2);
+                0 0 30px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -185,7 +185,7 @@ const CardContainer = styled(motion.div)<{
         `;
       case 'gradient':
         return css`
-          background: ${colors.background || 'linear-gradient(135deg, #00ffff 0%, #7851a9 100%)'};
+          background: ${colors.background || 'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 100%)'};
           color: white;
         `;
       case 'premium':
@@ -239,7 +239,7 @@ const CardContainer = styled(motion.div)<{
   }}
   
   ${({ $isSelected }) => $isSelected && css`
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
   `}
   
@@ -328,7 +328,7 @@ const IconContainer = styled.div<{ $isClickable?: boolean }>`
   svg, img {
     width: 20px;
     height: 20px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -389,7 +389,7 @@ const LoadingSpinner = styled.div`
   width: 32px;
   height: 32px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top: 3px solid #00ffff;
+  border-top: 3px solid #60C0F0;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   

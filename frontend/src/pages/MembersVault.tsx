@@ -329,7 +329,7 @@ const spin = keyframes`
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
   color: rgba(255, 255, 255, 0.9);
 `;
 
@@ -347,7 +347,7 @@ const Spinner = styled.div`
   width: 40px;
   height: 40px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
 `;
@@ -357,14 +357,14 @@ const Spinner = styled.div`
 const HeroSection = styled.section`
   padding: 80px 24px 40px;
   text-align: center;
-  background: linear-gradient(180deg, rgba(120, 81, 169, 0.1) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.1) 0%, transparent 100%);
 `;
 
 const HeroTitle = styled.h1`
   font-size: clamp(28px, 5vw, 48px);
   font-weight: 700;
   margin: 0 0 12px;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 `;
@@ -455,7 +455,7 @@ const ContinueBar = styled.div`
 
 const ContinueBarFill = styled.div`
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #00ffff);
+  background: linear-gradient(90deg, #3b82f6, #60C0F0);
   border-radius: 2px;
 `;
 
@@ -504,8 +504,8 @@ const FilterToggle = styled.button<{ $active: boolean }>`
   align-items: center;
   gap: 6px;
   background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
-  border: 1px solid ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.15)')};
-  color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.5)')};
+  border: 1px solid ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.15)')};
+  color: ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.5)')};
   border-radius: 8px;
   padding: 8px 14px;
   min-height: 44px;
@@ -513,14 +513,14 @@ const FilterToggle = styled.button<{ $active: boolean }>`
   font-size: 14px;
   white-space: nowrap;
   transition: all 0.2s;
-  &:hover { border-color: #00ffff; color: #00ffff; }
+  &:hover { border-color: #60C0F0; color: #60C0F0; }
 `;
 
 const ActiveDot = styled.span`
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #00ffff;
+  background: #60C0F0;
 `;
 
 const FilterPanel = styled.div`
@@ -562,8 +562,8 @@ const FilterSelect = styled.select`
   min-height: 44px;
   cursor: pointer;
   text-transform: capitalize;
-  &:focus { border-color: #00ffff; outline: none; }
-  option { background: #0a0a1a; }
+  &:focus { border-color: #60C0F0; outline: none; }
+  option { background: #002060; }
 `;
 
 const ClearButton = styled.button`
@@ -606,7 +606,7 @@ const VideoCard = styled.div`
   transition: transform 0.2s, border-color 0.2s;
   &:hover {
     transform: translateY(-4px);
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -707,14 +707,14 @@ const PageBtn = styled.button<{ $active: boolean }>`
   min-width: 44px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.15)')};
+  border: 1px solid ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.15)')};
   background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.12)' : 'transparent')};
-  color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.5)')};
+  color: ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.5)')};
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  &:hover { border-color: #00ffff; color: #00ffff; }
+  &:hover { border-color: #60C0F0; color: #60C0F0; }
 `;
 
 /* ---- Loading & Empty States ---- */

@@ -11,10 +11,10 @@ import { Calendar, Rocket } from 'lucide-react';
 import SessionCard, { SessionCardSession } from './SessionCard';
 
 const TOKENS = {
-  surfaceGlass: 'rgba(10, 10, 26, 0.6)',
+  surfaceGlass: 'rgba(0, 32, 96, 0.6)',
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
   swanCyan: '#8B5CF6',
-  cosmicPurple: '#7851A9',
+  cosmicPurple: '#8B5CF6',
   deepSpace: '#0A0A1A',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',

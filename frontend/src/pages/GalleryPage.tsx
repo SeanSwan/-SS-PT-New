@@ -71,7 +71,7 @@ const toastSlideOut = keyframes`
 // ── Styled Components ─────────────────────────────────────────────────────
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: radial-gradient(ellipse at top, #120d26 0%, #0a0a1a 60%);
+  background: radial-gradient(ellipse at top, #120d26 0%, #002060 60%);
   color: rgba(255, 255, 255, 0.9);
   font-family: 'Inter', system-ui, sans-serif;
 `;
@@ -86,7 +86,7 @@ const ContentMax = styled.div`
 const PageTitle = styled.h1`
   font-size: 36px;
   font-weight: 800;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -122,7 +122,7 @@ const EventCard = styled(motion.div)`
 const EventCover = styled.div<{ $src: string | null }>`
   width: 100%;
   height: 200px;
-  background: ${p => p.$src ? `url(${p.$src}) center/cover` : 'linear-gradient(135deg, #1a1035, #0a0a1a)'};
+  background: ${p => p.$src ? `url(${p.$src}) center/cover` : 'linear-gradient(135deg, #1a1035, #002060)'};
   position: relative;
 `;
 
@@ -131,7 +131,7 @@ const SportBadge = styled.span`
   top: 12px;
   left: 12px;
   background: rgba(139, 92, 246, 0.15);
-  color: #00ffff;
+  color: #60C0F0;
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
   padding: 4px 12px;
@@ -145,7 +145,7 @@ const PhotoCountBadge = styled.span`
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba(0, 32, 96, 0.85);
   color: rgba(255,255,255,0.9);
   border-radius: 20px;
   padding: 4px 12px;
@@ -179,12 +179,12 @@ const GateOverlay = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.92);
+  background: rgba(0, 32, 96, 0.92);
   backdrop-filter: blur(40px);
 `;
 
 const GateCard = styled(motion.div)`
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 24px;
@@ -197,7 +197,7 @@ const GateCard = styled(motion.div)`
 const GateTitle = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -255,10 +255,10 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   width: 100%;
   padding: 14px;
   min-height: 48px;
-  background: linear-gradient(135deg, #00ffff 0%, #7851a9 100%);
+  background: linear-gradient(135deg, #60C0F0 0%, #8B5CF6 100%);
   border: none;
   border-radius: 12px;
-  color: #0a0a1a;
+  color: #002060;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -298,12 +298,12 @@ const PhotoCard = styled.div<{ $selected?: boolean }>`
       right: 8px;
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, #00ffff, #7851a9);
+      background: linear-gradient(135deg, #60C0F0, #8B5CF6);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #0a0a1a;
+      color: #002060;
       font-size: 16px;
       z-index: 2;
     }
@@ -324,7 +324,7 @@ const PhotoImg = styled.img`
 const PhotoOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(10,10,26,0.9) 0%, transparent 50%);
+  background: linear-gradient(to top, rgba(0,32,96,0.9) 0%, transparent 50%);
   opacity: 0;
   transition: opacity 0.3s;
   display: flex;
@@ -374,7 +374,7 @@ const LightboxBackdrop = styled(motion.div)`
   position: fixed;
   inset: 0;
   z-index: 300;
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -459,7 +459,7 @@ const LightboxBtn = styled.a<{ $primary?: boolean }>`
   text-decoration: none;
   border: 1px solid rgba(255,255,255,0.15);
   ${p => p.$primary
-    ? 'background: linear-gradient(135deg, #00ffff, #7851a9); color: #0a0a1a; border: none;'
+    ? 'background: linear-gradient(135deg, #60C0F0, #8B5CF6); color: #002060; border: none;'
     : 'background: rgba(255,255,255,0.08); color: #fff;'}
   &:hover { opacity: 0.9; }
 `;
@@ -476,8 +476,8 @@ const EnhanceButton = styled.button<{ $hasCredits: boolean }>`
   align-items: center;
   gap: 8px;
   border: none;
-  background: ${p => p.$hasCredits ? '#8B5CF6' : '#7851A9'};
-  color: ${p => p.$hasCredits ? '#0a0a1a' : '#fff'};
+  background: ${p => p.$hasCredits ? '#8B5CF6' : '#8B5CF6'};
+  color: ${p => p.$hasCredits ? '#002060' : '#fff'};
   transition: opacity 0.2s;
   &:hover { opacity: 0.85; }
 `;
@@ -489,9 +489,9 @@ const CreditPill = styled(motion.div)<{ $hasCredits: boolean }>`
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
-  background: rgba(10, 10, 26, 0.75);
+  background: rgba(0, 32, 96, 0.75);
   backdrop-filter: blur(16px);
-  border: 1px solid ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
+  border: 1px solid ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.25)'};
   border-radius: 100px;
   padding: 12px 24px;
   display: flex;
@@ -500,7 +500,7 @@ const CreditPill = styled(motion.div)<{ $hasCredits: boolean }>`
   color: #fff;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 4px 24px ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.1)' : 'rgba(120, 81, 169, 0.1)'};
+  box-shadow: 0 4px 24px ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
   pointer-events: none;
 `;
 
@@ -508,8 +508,8 @@ const CreditDot = styled.span<{ $hasCredits: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.$hasCredits ? '#8B5CF6' : '#7851A9'};
-  box-shadow: 0 0 8px ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.6)' : 'rgba(120, 81, 169, 0.6)'};
+  background: ${p => p.$hasCredits ? '#8B5CF6' : '#8B5CF6'};
+  box-shadow: 0 0 8px ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.6)' : 'rgba(139, 92, 246, 0.6)'};
   animation: ${pulseGlow} 2s infinite;
 `;
 
@@ -519,7 +519,7 @@ const ToastWrapper = styled.div<{ $exiting?: boolean }>`
   bottom: 96px;
   left: 50%;
   z-index: 250;
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba(0, 32, 96, 0.85);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 16px;
@@ -540,12 +540,12 @@ const ModalBackdrop = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.92);
+  background: rgba(0, 32, 96, 0.92);
   backdrop-filter: blur(20px);
 `;
 
 const ModalCard = styled(motion.div)`
-  background: rgba(10, 10, 26, 0.8);
+  background: rgba(0, 32, 96, 0.8);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 24px;
@@ -558,7 +558,7 @@ const ModalCard = styled(motion.div)`
 const ModalTitle = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -586,12 +586,12 @@ const PricingGrid = styled.div`
 
 const PricingCard = styled.button<{ $highlighted?: boolean; $vip?: boolean }>`
   background: ${p => p.$vip
-    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.3), rgba(139, 92, 246, 0.1))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.1))'
     : 'rgba(255, 255, 255, 0.03)'};
   border: 1px solid ${p => p.$highlighted
     ? 'rgba(139, 92, 246, 0.5)'
     : p.$vip
-      ? 'rgba(120, 81, 169, 0.4)'
+      ? 'rgba(139, 92, 246, 0.4)'
       : 'rgba(255, 255, 255, 0.08)'};
   border-radius: 16px;
   padding: 24px 16px;
@@ -617,7 +617,7 @@ const PricingLabel = styled.div`
 const PricingPrice = styled.div`
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -635,7 +635,7 @@ const ReferralLink = styled.p`
   color: rgba(139, 92, 246, 0.7);
   cursor: pointer;
   margin: 0;
-  &:hover { color: #00ffff; text-decoration: underline; }
+  &:hover { color: #60C0F0; text-decoration: underline; }
 `;
 
 const ModalCloseBtn = styled.button`
@@ -718,8 +718,8 @@ const SupportBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'ghost' 
   font-weight: 600;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.12);
-  ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #00ffff, #7851a9); color: #0a0a1a; border: none;'}
-  ${p => p.$variant === 'secondary' && 'background: rgba(139, 92, 246, 0.1); color: #00ffff; border-color: rgba(139, 92, 246,0.3);'}
+  ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #60C0F0, #8B5CF6); color: #002060; border: none;'}
+  ${p => p.$variant === 'secondary' && 'background: rgba(139, 92, 246, 0.1); color: #60C0F0; border-color: rgba(139, 92, 246,0.3);'}
   ${p => (!p.$variant || p.$variant === 'ghost') && 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);'}
   &:hover { opacity: 0.85; }
 `;
@@ -1211,7 +1211,7 @@ const GalleryPage: React.FC = () => {
               onClick={submitEnhancementRequest}
             >
               <span>{enhanceSelections.size} photo{enhanceSelections.size !== 1 ? 's' : ''} selected for enhancement</span>
-              <span style={{ color: '#00ffff' }}>Submit &rarr;</span>
+              <span style={{ color: '#60C0F0' }}>Submit &rarr;</span>
             </FloatingCart>
           )}
         </AnimatePresence>
@@ -1315,14 +1315,14 @@ const GalleryPage: React.FC = () => {
                     <PricingLabel>Single</PricingLabel>
                     <PricingPrice>$15</PricingPrice>
                     <PricingDesc>1 Photo Enhancement</PricingDesc>
-                    {purchaseLoading === 'single' && <PricingDesc style={{ marginTop: 8, color: '#00ffff' }}>Redirecting...</PricingDesc>}
+                    {purchaseLoading === 'single' && <PricingDesc style={{ marginTop: 8, color: '#60C0F0' }}>Redirecting...</PricingDesc>}
                   </PricingCard>
 
                   <PricingCard $highlighted onClick={() => handlePurchaseCredits('bundle')}>
                     <PricingLabel>Bundle</PricingLabel>
                     <PricingPrice>$50</PricingPrice>
                     <PricingDesc>5 Photo Enhancements</PricingDesc>
-                    {purchaseLoading === 'bundle' && <PricingDesc style={{ marginTop: 8, color: '#00ffff' }}>Redirecting...</PricingDesc>}
+                    {purchaseLoading === 'bundle' && <PricingDesc style={{ marginTop: 8, color: '#60C0F0' }}>Redirecting...</PricingDesc>}
                   </PricingCard>
 
                   <PricingCard $vip onClick={() => { setShowUpgradeModal(false); setShowVipModal(true); }}>

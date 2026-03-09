@@ -66,7 +66,7 @@ export const glowAnimation = keyframes`
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); 
   }
   50% { 
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3); 
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.3); 
   }
   100% { 
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); 
@@ -79,10 +79,10 @@ export const glowAnimation = keyframes`
  */
 export const textGlow = keyframes`
   0%, 100% { 
-    text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); 
+    text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.4); 
   }
   50% { 
-    text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); 
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(139, 92, 246, 0.6); 
   }
 `;
 

@@ -26,7 +26,7 @@ const HeaderWrapper = styled.div<{ $scrolled: boolean }>`
   left: 0;
   right: 0;
   z-index: 1000;
-  background: ${({ $scrolled }) => ($scrolled ? 'rgba(10, 10, 26, 0.98)' : '#0a0a1a')};
+  background: ${({ $scrolled }) => ($scrolled ? 'rgba(0, 32, 96, 0.98)' : '#002060')};
   transition: background 0.2s ease, box-shadow 0.2s ease;
   box-shadow: ${({ $scrolled }) => ($scrolled ? '0 5px 20px rgba(0, 0, 0, 0.3)' : 'none')};
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -208,7 +208,7 @@ const DropdownMenu = styled.div<{ $top: number; $left: number }>`
   top: ${({ $top }) => $top}px;
   left: ${({ $left }) => $left}px;
   z-index: 1200;
-  background: #0a0a1a;
+  background: #002060;
   color: white;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   width: 180px;

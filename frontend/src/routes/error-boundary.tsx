@@ -74,7 +74,7 @@ const ErrorBoundary: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '50vh',
-      background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+      background: 'linear-gradient(135deg, #002060, #1e1e3f)',
       color: 'white',
       padding: '2rem',
       textAlign: 'center'
@@ -87,11 +87,11 @@ const ErrorBoundary: React.FC = () => {
       <button
         onClick={() => window.location.reload()}
         style={{
-          background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+          background: 'linear-gradient(135deg, #60C0F0, #00c8ff)',
           border: 'none',
           padding: '0.75rem 1.5rem',
           borderRadius: '8px',
-          color: '#0a0a1a',
+          color: '#002060',
           fontWeight: 500,
           cursor: 'pointer',
           fontSize: '1rem'

@@ -404,7 +404,7 @@ const contentStats = [
     icon: Video,
     value: '23',
     label: 'Training Videos',
-    color: '#7851A9'
+    color: '#8B5CF6'
   },
   {
     icon: CheckCircle,

@@ -49,7 +49,7 @@ const float = keyframes`
 // Styled Components
 const SuccessPageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -66,9 +66,9 @@ const SuccessPageContainer = styled.div`
     width: 100%;
     height: 100%;
     background: 
-      radial-gradient(2px 2px at 20px 30px, #00ffff, transparent),
+      radial-gradient(2px 2px at 20px 30px, #60C0F0, transparent),
       radial-gradient(1px 1px at 90px 40px, #ffffff, transparent),
-      radial-gradient(1px 1px at 130px 80px, #00ffff, transparent);
+      radial-gradient(1px 1px at 130px 80px, #60C0F0, transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
     opacity: 0.1;
@@ -110,7 +110,7 @@ const LoadingContainer = styled.div`
 const LoadingSpinner = styled.div`
   border: 3px solid rgba(139, 92, 246, 0.1);
   border-radius: 50%;
-  border-top: 3px solid #00ffff;
+  border-top: 3px solid #60C0F0;
   width: 50px;
   height: 50px;
   animation: spin 1s linear infinite;

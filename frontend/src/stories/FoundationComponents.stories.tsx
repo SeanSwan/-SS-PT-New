@@ -165,8 +165,8 @@ export const AutoDetect: LivingConstellationStory = {
     density: 'medium',
     interactive: true,
     paused: false,
-    colorFrom: '#00ffff',
-    colorTo: '#7851a9',
+    colorFrom: '#60C0F0',
+    colorTo: '#8B5CF6',
   },
   parameters: {
     docs: {
@@ -182,8 +182,8 @@ export const EnhancedTier: LivingConstellationStory = {
     density: 'high',
     interactive: true,
     paused: false,
-    colorFrom: '#00ffff',
-    colorTo: '#7851a9',
+    colorFrom: '#60C0F0',
+    colorTo: '#8B5CF6',
     forceTier: 'enhanced',
   },
   parameters: {
@@ -200,8 +200,8 @@ export const StandardTier: LivingConstellationStory = {
     density: 'medium',
     interactive: true,
     paused: false,
-    colorFrom: '#00ffff',
-    colorTo: '#7851a9',
+    colorFrom: '#60C0F0',
+    colorTo: '#8B5CF6',
     forceTier: 'standard',
   },
   parameters: {
@@ -218,8 +218,8 @@ export const MinimalTier: LivingConstellationStory = {
     density: 'low',
     interactive: false,
     paused: false,
-    colorFrom: '#00ffff',
-    colorTo: '#7851a9',
+    colorFrom: '#60C0F0',
+    colorTo: '#8B5CF6',
     forceTier: 'minimal',
   },
   parameters: {

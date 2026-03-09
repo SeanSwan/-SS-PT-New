@@ -42,7 +42,7 @@ const HeaderSection = styled.div`
   .title {
     font-size: 2rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #00ffff, #0080ff);
+    background: linear-gradient(135deg, #60C0F0, #0080ff);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -114,7 +114,7 @@ const StatCard = styled(motion.div)`
   .stat-value {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 0.5rem;
     font-family: 'Courier New', monospace;
   }
@@ -141,7 +141,7 @@ const StatCard = styled(motion.div)`
       }
       
       .value {
-        color: #00ffff;
+        color: #60C0F0;
         font-weight: 500;
       }
     }
@@ -186,7 +186,7 @@ const Tab = styled.button<{ $active: boolean }>`
   min-width: fit-content;
   
   background: ${props => props.$active 
-    ? 'linear-gradient(135deg, #00ffff, #0080ff)'
+    ? 'linear-gradient(135deg, #60C0F0, #0080ff)'
     : 'transparent'
   };
   
@@ -194,7 +194,7 @@ const Tab = styled.button<{ $active: boolean }>`
   
   &:hover {
     background: ${props => props.$active 
-      ? 'linear-gradient(135deg, #00ffff, #0080ff)'
+      ? 'linear-gradient(135deg, #60C0F0, #0080ff)'
       : 'rgba(255, 255, 255, 0.1)'
     };
     color: ${props => props.$active ? '#000' : '#fff'};
@@ -222,7 +222,7 @@ const Table = styled.table`
     padding: 1rem;
     text-align: left;
     font-weight: 600;
-    color: #00ffff;
+    color: #60C0F0;
     border-bottom: 1px solid rgba(139, 92, 246, 0.2);
     white-space: nowrap;
   }
@@ -248,7 +248,7 @@ const Table = styled.table`
         
         &.completed {
           background: rgba(139, 92, 246, 0.2);
-          color: #00ffff;
+          color: #60C0F0;
         }
         
         &.paused {
@@ -273,7 +273,7 @@ const Table = styled.table`
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #00ffff, #0080ff);
+          background: linear-gradient(135deg, #60C0F0, #0080ff);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -301,7 +301,7 @@ const Table = styled.table`
     &.duration {
       font-family: 'Courier New', monospace;
       font-weight: 600;
-      color: #00ffff;
+      color: #60C0F0;
     }
   }
   
@@ -325,7 +325,7 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   
   background: ${props => {
     switch (props.$variant) {
-      case 'primary': return 'linear-gradient(135deg, #00ffff, #0080ff)';
+      case 'primary': return 'linear-gradient(135deg, #60C0F0, #0080ff)';
       case 'danger': return 'linear-gradient(135deg, #ff6b9d, #ff4d6d)';
       default: return 'rgba(255, 255, 255, 0.1)';
     }
@@ -373,7 +373,7 @@ const FilterSection = styled.div`
       
       &:focus {
         outline: none;
-        border-color: #00ffff;
+        border-color: #60C0F0;
         box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
       }
     }
@@ -390,7 +390,7 @@ const LoadingSpinner = styled.div`
     width: 40px;
     height: 40px;
     border: 3px solid rgba(139, 92, 246, 0.3);
-    border-top: 3px solid #00ffff;
+    border-top: 3px solid #60C0F0;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -915,7 +915,7 @@ const AdminSessionManager: React.FC = () => {
 
           {activeTab === 'overview' && (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
-              <h3 style={{ color: '#00ffff', marginBottom: '1rem' }}>Platform Overview</h3>
+              <h3 style={{ color: '#60C0F0', marginBottom: '1rem' }}>Platform Overview</h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                 Comprehensive session statistics and platform health metrics are displayed above.
                 Switch to "Live Sessions" to monitor active workouts in real-time.
@@ -925,7 +925,7 @@ const AdminSessionManager: React.FC = () => {
 
           {activeTab === 'history' && (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
-              <h3 style={{ color: '#00ffff', marginBottom: '1rem' }}>Session History</h3>
+              <h3 style={{ color: '#60C0F0', marginBottom: '1rem' }}>Session History</h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                 Detailed session history with analytics and reporting coming soon.
               </p>
@@ -934,7 +934,7 @@ const AdminSessionManager: React.FC = () => {
 
           {activeTab === 'analytics' && (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
-              <h3 style={{ color: '#00ffff', marginBottom: '1rem' }}>Advanced Analytics</h3>
+              <h3 style={{ color: '#60C0F0', marginBottom: '1rem' }}>Advanced Analytics</h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                 Advanced charts, trends, and performance analytics are being prepared.
               </p>

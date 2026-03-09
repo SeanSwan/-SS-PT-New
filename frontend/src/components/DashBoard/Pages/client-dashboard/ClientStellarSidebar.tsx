@@ -37,7 +37,7 @@ const clientGalacticTheme = {
     deepSpace: '#0a0a0f',
     galaxyEmerald: '#10b981',       // Primary emerald for clients
     cosmicGreen: '#22c55e',         // Bright green accents
-    cyberCyan: '#00ffff',           // Keep signature cyan
+    cyberCyan: '#60C0F0',           // Keep signature cyan
     stellarWhite: '#ffffff',
     energyGreen: '#16a34a',         // Enhanced green energy
     warningAmber: '#f59e0b',        // Status indicators
@@ -46,11 +46,11 @@ const clientGalacticTheme = {
     voidBlack: '#000000'
   },
   gradients: {
-    galaxyHome: 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #00ffff 100%)',
+    galaxyHome: 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #60C0F0 100%)',
     stellarNebula: 'linear-gradient(45deg, #0a1f0a 0%, #10b981 50%, #0a0a0f 100%)',
     dataFlow: 'radial-gradient(ellipse at top, #22c55e 0%, #10b981 50%, #0a0a0f 100%)',
-    stellarCommand: 'conic-gradient(from 0deg, #00ffff, #22c55e, #10b981, #00ffff)',
-    galaxyAurora: 'linear-gradient(270deg, #00ffff, #22c55e, #10b981, #00ffff)'
+    stellarCommand: 'conic-gradient(from 0deg, #60C0F0, #22c55e, #10b981, #60C0F0)',
+    galaxyAurora: 'linear-gradient(270deg, #60C0F0, #22c55e, #10b981, #60C0F0)'
   },
   shadows: {
     stellarGlow: '0 0 30px rgba(16, 185, 129, 0.6)',

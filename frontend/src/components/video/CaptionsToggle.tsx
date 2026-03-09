@@ -14,10 +14,10 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   padding: 8px 14px;
   min-height: 44px;
   min-width: 44px;
-  border: 1px solid ${({ $active }) => ($active ? '#00ffff' : 'rgba(255,255,255,0.2)')};
+  border: 1px solid ${({ $active }) => ($active ? '#60C0F0' : 'rgba(255,255,255,0.2)')};
   border-radius: 8px;
   background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.15)' : 'rgba(255,255,255,0.05)')};
-  color: ${({ $active }) => ($active ? '#00ffff' : 'rgba(255,255,255,0.7)')};
+  color: ${({ $active }) => ($active ? '#60C0F0' : 'rgba(255,255,255,0.7)')};
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;

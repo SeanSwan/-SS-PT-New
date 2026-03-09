@@ -7,9 +7,9 @@ const theme = {
   border: 'rgba(14, 165, 233, 0.2)',
   text: '#e2e8f0',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
-  purple: '#7851a9',
-  galaxyCore: '#0a0a1a',
+  cyan: '#60C0F0',
+  purple: '#8B5CF6',
+  galaxyCore: '#002060',
 };
 
 // --- Keyframe Animations ---
@@ -31,8 +31,8 @@ export const pulseAnimation = keyframes`
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(139, 92, 246, 0.6); }
 `;
 
 const spin = keyframes`

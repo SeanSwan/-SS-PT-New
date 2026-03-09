@@ -48,7 +48,7 @@ const MapContainer = styled.div`
 `;
 
 const ViewPanel = styled.div`
-  background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.6)'};
+  background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.6)'};
   border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.15)'};
   border-radius: 16px;
   backdrop-filter: blur(12px);

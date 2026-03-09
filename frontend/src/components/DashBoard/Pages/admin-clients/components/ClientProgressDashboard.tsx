@@ -60,8 +60,8 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
-  purple: '#7851a9',
+  cyan: '#60C0F0',
+  purple: '#8B5CF6',
   green: '#4caf50',
   orange: '#ff9800',
   red: '#f44336',
@@ -245,8 +245,8 @@ const ActionButton = styled.button<{
   ${({ $variant, $active }) => {
     if ($variant === 'contained' || $active) {
       return css`
-        background: linear-gradient(135deg, #00ffff, #00c8ff);
-        color: #0a0a1a;
+        background: linear-gradient(135deg, #60C0F0, #00c8ff);
+        color: #002060;
         border: 1px solid transparent;
         &:hover:not(:disabled) {
           background: linear-gradient(135deg, #00e6ff, #00b3ff);
@@ -284,7 +284,7 @@ const GlassPanel = styled.div<{ $noPadding?: boolean }>`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #00ffff, #7851a9, #ff1744);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6, #ff1744);
   }
 
   &:hover {
@@ -956,7 +956,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                     borderRadius: 8
                   }}
                 />
-                <Line type="monotone" dataKey="overall" stroke="#00ffff" strokeWidth={3} />
+                <Line type="monotone" dataKey="overall" stroke="#60C0F0" strokeWidth={3} />
                 <Line type="monotone" dataKey="strength" stroke="#ff6b6b" strokeWidth={2} />
                 <Line type="monotone" dataKey="endurance" stroke="#4ecdc4" strokeWidth={2} />
                 <Line type="monotone" dataKey="flexibility" stroke="#ffe066" strokeWidth={2} />
@@ -1031,7 +1031,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                     borderRadius: 8
                   }}
                 />
-                <Line type="monotone" dataKey="weight" stroke="#00ffff" strokeWidth={3} name="Weight (kg)" />
+                <Line type="monotone" dataKey="weight" stroke="#60C0F0" strokeWidth={3} name="Weight (kg)" />
                 <Line type="monotone" dataKey="bodyFat" stroke="#ff6b6b" strokeWidth={2} name="Body Fat (%)" />
                 <Line type="monotone" dataKey="muscleMass" stroke="#4ecdc4" strokeWidth={2} name="Muscle Mass (kg)" />
               </LineChart>

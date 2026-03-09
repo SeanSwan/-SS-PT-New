@@ -339,23 +339,23 @@ const BackButton = styled.button`
   cursor: pointer;
   font-size: 14px;
   min-height: 44px;
-  &:hover { border-color: rgba(139, 92, 246, 0.4); color: #00ffff; }
+  &:hover { border-color: rgba(139, 92, 246, 0.4); color: #60C0F0; }
 `;
 
 const SaveButton = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
   border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #00ffff;
+  color: #60C0F0;
   padding: 8px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   min-height: 44px;
-  &:hover { background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3)); }
+  &:hover { background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.3)); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
@@ -455,7 +455,7 @@ const PlaybackLink = styled.a`
   border-radius: 8px;
   background: rgba(139, 92, 246, 0.06);
   border: 1px solid rgba(139, 92, 246, 0.15);
-  color: #00ffff;
+  color: #60C0F0;
   text-decoration: none;
   font-size: 14px;
   min-height: 44px;

@@ -49,11 +49,11 @@ const NavListItemButton = styled(ListItemButton)<{
   ${({ $drawerOpen, $level, $isSelected }) =>
     $drawerOpen && $level === 1 &&
     css`
-      &:hover { background: ${alpha('#7851A9', 0.15)}; }
+      &:hover { background: ${alpha('#8B5CF6', 0.15)}; }
       ${$isSelected && css`
-        background: ${alpha('#7851A9', 0.15)};
-        color: #7851A9;
-        &:hover { background: ${alpha('#7851A9', 0.15)}; color: #7851A9; }
+        background: ${alpha('#8B5CF6', 0.15)};
+        color: #8B5CF6;
+        &:hover { background: ${alpha('#8B5CF6', 0.15)}; color: #8B5CF6; }
       `}
     `}
 
@@ -73,7 +73,7 @@ const NavListItemIcon = styled(ListItemIcon)<{
   $borderRadius: number;
 }>`
   min-width: ${({ $level }) => ($level === 1 ? '36px' : '18px')};
-  color: ${({ $isSelected }) => ($isSelected ? '#7851A9' : '#FFFFFF')};
+  color: ${({ $isSelected }) => ($isSelected ? '#8B5CF6' : '#FFFFFF')};
 
   ${({ $drawerOpen, $level, $borderRadius, $isSelected }) =>
     !$drawerOpen && $level === 1 &&
@@ -83,10 +83,10 @@ const NavListItemIcon = styled(ListItemIcon)<{
       height: 46px;
       align-items: center;
       justify-content: center;
-      &:hover { background: ${alpha('#7851A9', 0.15)}; }
+      &:hover { background: ${alpha('#8B5CF6', 0.15)}; }
       ${$isSelected && css`
-        background: ${alpha('#7851A9', 0.15)};
-        &:hover { background: ${alpha('#7851A9', 0.15)}; }
+        background: ${alpha('#8B5CF6', 0.15)};
+        &:hover { background: ${alpha('#8B5CF6', 0.15)}; }
       `}
     `}
 `;

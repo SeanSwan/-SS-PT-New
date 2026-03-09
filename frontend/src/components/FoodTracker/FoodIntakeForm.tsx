@@ -394,7 +394,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #7851A9 0%, #8B5CF6 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   color: white;
   font-size: 1rem;
   font-weight: 600;

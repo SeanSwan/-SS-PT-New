@@ -40,7 +40,7 @@ const CreatePostCardWrapper = styled.div`
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba(0, 32, 96, 0.85);
   color: #e0e0e0;
 `;
 
@@ -74,7 +74,7 @@ const AvatarCircle = styled.div`
   min-width: 40px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #7851A9, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -311,7 +311,7 @@ const FloatingCreateButton = styled.button`
   bottom: 24px;
   right: 24px;
   z-index: 1000;
-  background: linear-gradient(135deg, #7851A9, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   color: white;
   border: none;
   border-radius: 50%;
@@ -371,7 +371,7 @@ const WorkoutHistoryBtn = styled.button`
   border-radius: 8px;
   border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(139, 92, 246, 0.05);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   min-height: 40px;
@@ -467,7 +467,7 @@ const ContainedButton = styled.button`
   padding: 8px 20px;
   border-radius: 6px;
   border: none;
-  background: linear-gradient(135deg, #7851A9, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   color: white;
   font-family: inherit;
   font-size: 0.875rem;
@@ -919,7 +919,7 @@ const CreatePostCard: React.FC = () => {
                           const dateStr = date ? new Date(date).toLocaleDateString() : '';
                           return (
                             <WorkoutHistoryItem key={w.id || i} onClick={() => selectWorkoutFromHistory(w)}>
-                              <Dumbbell size={16} style={{ flexShrink: 0, color: '#00ffff' }} />
+                              <Dumbbell size={16} style={{ flexShrink: 0, color: '#60C0F0' }} />
                               <WorkoutHistoryInfo>
                                 <WorkoutHistoryName>{name}</WorkoutHistoryName>
                                 {dateStr && <WorkoutHistoryDate>{dateStr}</WorkoutHistoryDate>}

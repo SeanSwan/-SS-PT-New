@@ -1126,7 +1126,7 @@ const ClientAvatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const CreditBadge = styled.span<{ $negative?: boolean }>`
@@ -1197,7 +1197,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
   white-space: nowrap;
   transition: all 150ms ease;
   background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)'};
-  color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${({ $active }) => $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
 
   @media (max-width: 375px) {
     padding: 0.35rem 0.5rem;
@@ -1211,8 +1211,8 @@ const LastPackageBanner = styled.div`
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  background: rgba(120, 81, 169, 0.12);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   margin-bottom: 0.75rem;
 `;
 
@@ -1238,8 +1238,8 @@ const PackageCard = styled.div<{ $selected: boolean; $isLast?: boolean }>`
 
   background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
   border: 2px solid ${({ $selected, $isLast }) =>
-    $selected ? '#00ffff'
-    : $isLast ? 'rgba(120, 81, 169, 0.5)'
+    $selected ? '#60C0F0'
+    : $isLast ? 'rgba(139, 92, 246, 0.5)'
     : 'rgba(255, 255, 255, 0.08)'};
 
   &:hover {
@@ -1258,7 +1258,7 @@ const LastBadge = styled.span`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(120, 81, 169, 0.8);
+  background: rgba(139, 92, 246, 0.8);
   color: white;
 `;
 
@@ -1271,7 +1271,7 @@ const PackageName = styled.div`
 const PackageSessions = styled.div`
   font-size: 1.1rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const PackagePrice = styled.div`
@@ -1295,9 +1295,9 @@ const PaymentMethodButton = styled.button<{ $selected: boolean }>`
   font-size: 0.85rem;
   white-space: nowrap;
   transition: all 150ms ease;
-  border: 2px solid ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.15)'};
+  border: 2px solid ${({ $selected }) => $selected ? '#60C0F0' : 'rgba(255, 255, 255, 0.15)'};
   background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
-  color: ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
+  color: ${({ $selected }) => $selected ? '#60C0F0' : 'rgba(255, 255, 255, 0.7)'};
 
   &:hover {
     border-color: rgba(139, 92, 246, 0.4);
@@ -1381,9 +1381,9 @@ const CardOption = styled.div<{ $selected: boolean }>`
   transition: all 150ms ease;
   font-weight: 600;
   font-size: 0.85rem;
-  color: ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.8)'};
+  color: ${({ $selected }) => $selected ? '#60C0F0' : 'rgba(255, 255, 255, 0.8)'};
   background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.04)'};
-  border: 2px solid ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.1)'};
+  border: 2px solid ${({ $selected }) => $selected ? '#60C0F0' : 'rgba(255, 255, 255, 0.1)'};
 
   &:hover {
     background: rgba(139, 92, 246, 0.08);
@@ -1404,9 +1404,9 @@ const TestCardButton = styled.button<{ disabled?: boolean }>`
   padding: 0.5rem 0.75rem;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px dashed rgba(120, 81, 169, 0.5);
-  background: rgba(120, 81, 169, 0.08);
-  color: rgba(120, 81, 169, 0.9);
+  border: 1px dashed rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.08);
+  color: rgba(139, 92, 246, 0.9);
   font-weight: 600;
   font-size: 0.8rem;
   cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
@@ -1416,8 +1416,8 @@ const TestCardButton = styled.button<{ disabled?: boolean }>`
   justify-content: center;
 
   &:hover:not(:disabled) {
-    background: rgba(120, 81, 169, 0.15);
-    border-color: rgba(120, 81, 169, 0.7);
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.7);
   }
 `;
 

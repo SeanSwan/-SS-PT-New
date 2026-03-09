@@ -120,7 +120,7 @@ const Title = styled(motion.h2)`
   background: linear-gradient(135deg, 
     #FFD700 0%, 
     #8B5CF6 50%, 
-    #7851A9 100%
+    #8B5CF6 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -197,7 +197,7 @@ const PodiumPlace = styled(motion.div)<{ place: number }>`
       case 1: return 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.1))';
       case 2: return 'linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(169, 169, 169, 0.1))';
       case 3: return 'linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(160, 82, 45, 0.1))';
-      default: return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.05))';
+      default: return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05))';
     }
   }};
   
@@ -295,15 +295,15 @@ const LeaderboardRow = styled(motion.div)<{
 
   background: ${props => {
     if (props.isCurrentUser) {
-      return 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.1))';
+      return 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.1))';
     }
     if (props.rank <= 3) {
       return 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.05))';
     }
     if (props.rank <= 10) {
-      return 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(120, 81, 169, 0.05))';
+      return 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.05))';
     }
-    return 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(120, 81, 169, 0.03))';
+    return 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(139, 92, 246, 0.03))';
   }};
 
   border: 1px solid ${props => {
@@ -338,8 +338,8 @@ const RankPosition = styled.div<{ rank: number }>`
     if (props.rank === 1) return 'linear-gradient(135deg, #FFD700, #FFA500)';
     if (props.rank === 2) return 'linear-gradient(135deg, #C0C0C0, #A9A9A9)';
     if (props.rank === 3) return 'linear-gradient(135deg, #CD7F32, #A0522D)';
-    if (props.rank <= 10) return 'linear-gradient(135deg, #8B5CF6, #7851A9)';
-    return 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(120, 81, 169, 0.2))';
+    if (props.rank <= 10) return 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
+    return 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(139, 92, 246, 0.2))';
   }};
 
   color: ${props => (props.rank <= 3 ? '#000' : '#FFF')};
@@ -376,7 +376,7 @@ const Avatar = styled.div<{ isOnline: boolean }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6, #7851A9);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,7 +489,7 @@ const ActionButtons = styled.div`
 `;
 
 const CurrentUserIndicator = styled.div`
-  background: linear-gradient(135deg, #8B5CF6, #7851A9);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 12px;

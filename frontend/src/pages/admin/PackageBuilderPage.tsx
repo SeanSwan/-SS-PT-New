@@ -18,7 +18,7 @@ const Header = styled.div`
   h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: #00ffff;
+    color: #60C0F0;
   }
   p {
     color: rgba(255, 255, 255, 0.6);
@@ -51,7 +51,7 @@ const SectionTitle = styled.h3`
   gap: 0.5rem;
   color: white;
   
-  svg { color: #00ffff; }
+  svg { color: #60C0F0; }
 `;
 
 const FormGroup = styled.div`
@@ -75,7 +75,7 @@ const FormGroup = styled.div`
     
     &:focus {
       outline: none;
-      border-color: #00ffff;
+      border-color: #60C0F0;
     }
   }
 `;
@@ -112,7 +112,7 @@ const SummaryCard = styled(Card)`
 const TotalPrice = styled.div`
   font-size: 2.5rem;
   font-weight: 800;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 1rem 0;
   text-align: center;
 `;
@@ -281,7 +281,7 @@ const PackageBuilderPage: React.FC = () => {
             <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
               <div style={{ color: 'rgba(255,255,255,0.6)' }}>ESTIMATED TOTAL</div>
               <TotalPrice>${pkg.price}</TotalPrice>
-              <div style={{ color: '#00ffff', fontSize: '0.9rem' }}>
+              <div style={{ color: '#60C0F0', fontSize: '0.9rem' }}>
                 {pkg.frequency === 'one-time' ? 'One Time Payment' : `Billed ${pkg.frequency}`}
               </div>
             </div>

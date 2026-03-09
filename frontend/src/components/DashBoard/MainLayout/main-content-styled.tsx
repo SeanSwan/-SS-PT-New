@@ -17,7 +17,7 @@ const MainContentStyled = styled.main<MainContentStyledProps>`
   flex-grow: 1;
   padding-top: 0;
   width: 100%;
-  background-color: #0a0a1a;
+  background-color: #002060;
   border-radius: ${props => props.$borderRadius}px;
   max-width: 100vw;
   box-sizing: border-box;

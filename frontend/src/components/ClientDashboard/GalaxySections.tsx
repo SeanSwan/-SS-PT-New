@@ -64,7 +64,7 @@ const SectionCard = styled(motion.div)`
 `;
 
 const SectionTitle = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.5rem;
   margin-bottom: 1rem;
   display: flex;
@@ -95,7 +95,7 @@ const StatCard = styled(motion.div)`
   .stat-value {
     font-size: 2rem;
     font-weight: bold;
-    color: #00ffff;
+    color: #60C0F0;
     display: block;
   }
   
@@ -112,8 +112,8 @@ const ProgressOrb = styled.div<{ progress: number }>`
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
-    #00ffff 0deg,
-    #00ffff ${props => props.progress * 3.6}deg,
+    #60C0F0 0deg,
+    #60C0F0 ${props => props.progress * 3.6}deg,
     rgba(139, 92, 246, 0.2) ${props => props.progress * 3.6}deg,
     rgba(139, 92, 246, 0.2) 360deg
   );
@@ -135,7 +135,7 @@ const ProgressOrb = styled.div<{ progress: number }>`
   .progress-text {
     position: relative;
     z-index: 1;
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: bold;
     font-size: 1.2rem;
   }
@@ -183,7 +183,7 @@ export const WorkoutUniverse: React.FC = () => {
           </div>
         ) : workout ? (
           <div style={{
-            background: 'linear-gradient(135deg, #00ffff, #7851a9)',
+            background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
             borderRadius: '15px',
             padding: '1.5rem',
             marginBottom: '1rem',
@@ -223,7 +223,7 @@ export const WorkoutUniverse: React.FC = () => {
             border: '1px dashed rgba(139, 92, 246, 0.3)'
           }}>
             <Rocket size={48} color="rgba(139, 92, 246, 0.5)" style={{ marginBottom: '1rem' }} />
-            <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>No Workout Plan Yet</h4>
+            <h4 style={{ color: '#60C0F0', margin: '0 0 0.5rem 0' }}>No Workout Plan Yet</h4>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
               Your trainer will create one after your assessment.
             </p>
@@ -251,7 +251,7 @@ export const WorkoutUniverse: React.FC = () => {
                 }}
               >
                 <div>
-                  <h4 style={{ margin: 0, color: '#00ffff' }}>{day.name || `Day ${day.dayNumber}`}</h4>
+                  <h4 style={{ margin: 0, color: '#60C0F0' }}>{day.name || `Day ${day.dayNumber}`}</h4>
                   <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
                     {day.exercises?.length || 0} exercises
                   </p>
@@ -274,17 +274,17 @@ export const WorkoutUniverse: React.FC = () => {
         </SectionTitle>
         {nutritionLoading ? (
           <div style={{
-            background: 'rgba(120, 81, 169, 0.1)',
+            background: 'rgba(139, 92, 246, 0.1)',
             borderRadius: '15px',
             padding: '2rem',
             textAlign: 'center'
           }}>
-            <Loader size={32} style={{ color: '#00ffff', animation: 'spin 1s linear infinite' }} />
+            <Loader size={32} style={{ color: '#60C0F0', animation: 'spin 1s linear infinite' }} />
             <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>Loading nutrition data...</p>
           </div>
         ) : nutritionPlan ? (
           <div style={{
-            background: 'rgba(120, 81, 169, 0.1)',
+            background: 'rgba(139, 92, 246, 0.1)',
             borderRadius: '15px',
             padding: '1.5rem'
           }}>
@@ -299,7 +299,7 @@ export const WorkoutUniverse: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#00ffff', fontSize: '1.2rem', fontWeight: 'bold' }}>{consumed.toLocaleString()}</div>
+                <div style={{ color: '#60C0F0', fontSize: '1.2rem', fontWeight: 'bold' }}>{consumed.toLocaleString()}</div>
                 <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Consumed</div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -329,7 +329,7 @@ export const WorkoutUniverse: React.FC = () => {
           </div>
         ) : (
           <div style={{
-            background: 'rgba(120, 81, 169, 0.1)',
+            background: 'rgba(139, 92, 246, 0.1)',
             borderRadius: '15px',
             padding: '2rem',
             textAlign: 'center'
@@ -366,7 +366,7 @@ export const ProgressConstellation: React.FC = () => {
       ) : (
         <SectionCard style={{ textAlign: 'center', padding: '2rem' }}>
           <Target size={36} style={{ color: 'rgba(139, 92, 246, 0.5)', marginBottom: '0.75rem' }} />
-          <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>Start a Challenge</h4>
+          <h4 style={{ color: '#60C0F0', margin: '0 0 0.5rem 0' }}>Start a Challenge</h4>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
             Complete your onboarding to unlock personalized challenges.
           </p>
@@ -394,7 +394,7 @@ export const AchievementNebula: React.FC = () => {
     Gold: '#ffd700',
     Platinum: '#e5e4e2'
   };
-  const tierColor = tierColors[tier] || '#00ffff';
+  const tierColor = tierColors[tier] || '#60C0F0';
 
   return (
     <motion.div
@@ -421,7 +421,7 @@ export const AchievementNebula: React.FC = () => {
                 <span style={{ color: tierColor, fontWeight: 'bold', fontSize: '1.1rem' }}>
                   {tier} — Level {level}
                 </span>
-                <span style={{ color: '#00ffff', fontSize: '0.9rem' }}>
+                <span style={{ color: '#60C0F0', fontSize: '0.9rem' }}>
                   {points.toLocaleString()} XP
                 </span>
               </div>
@@ -437,7 +437,7 @@ export const AchievementNebula: React.FC = () => {
                   transition={{ duration: 1.2, ease: 'easeOut' }}
                   style={{
                     height: '100%',
-                    background: `linear-gradient(90deg, #00ffff, ${tierColor})`,
+                    background: `linear-gradient(90deg, #60C0F0, ${tierColor})`,
                     borderRadius: '5px'
                   }}
                 />
@@ -570,7 +570,7 @@ const PersonalStarmap: React.FC = () => {
               width: '100px',
               height: '100px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #00ffff, #7851a9)',
+              background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
               margin: '0 auto 1rem',
               display: 'flex',
               alignItems: 'center',
@@ -581,7 +581,7 @@ const PersonalStarmap: React.FC = () => {
           >
             {initials}
           </div>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#00ffff' }}>{displayName}</h3>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#60C0F0' }}>{displayName}</h3>
           <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)' }}>Role: {roleLabel}</p>
         </div>
 
@@ -594,7 +594,7 @@ const PersonalStarmap: React.FC = () => {
           }}
         >
           <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#00ffff', fontSize: '1.5rem', fontWeight: 'bold' }}>{totalWorkouts}</div>
+            <div style={{ color: '#60C0F0', fontSize: '1.5rem', fontWeight: 'bold' }}>{totalWorkouts}</div>
             <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>Total Workouts</div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -610,7 +610,7 @@ const PersonalStarmap: React.FC = () => {
         <motion.button
           style={{
             width: '100%',
-            background: 'linear-gradient(135deg, #00ffff, #7851a9)',
+            background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
             border: 'none',
             borderRadius: '25px',
             padding: '1rem',
@@ -690,7 +690,7 @@ const LogsAndTrackers: React.FC = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
           <div>
-            <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ color: '#60C0F0', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Activity size={20} /> Workout Logs
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -759,22 +759,22 @@ const LogsAndTrackers: React.FC = () => {
           </div>
 
           <div>
-            <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ color: '#60C0F0', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Target size={20} /> Nutrition Tracking
             </h4>
             {nutritionLoading ? (
               <div style={{
-                background: 'rgba(120, 81, 169, 0.1)',
+                background: 'rgba(139, 92, 246, 0.1)',
                 borderRadius: '15px',
                 padding: '2rem',
                 textAlign: 'center'
               }}>
-                <Loader className="spin" size={32} style={{ color: '#00ffff' }} />
+                <Loader className="spin" size={32} style={{ color: '#60C0F0' }} />
                 <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>Loading nutrition data...</p>
               </div>
             ) : nutritionPlan ? (
               <div style={{
-                background: 'rgba(120, 81, 169, 0.1)',
+                background: 'rgba(139, 92, 246, 0.1)',
                 borderRadius: '15px',
                 padding: '1.5rem',
                 marginBottom: '1rem'
@@ -790,7 +790,7 @@ const LogsAndTrackers: React.FC = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: '#00ffff', fontSize: '1.2rem', fontWeight: 'bold' }}>{consumed.toLocaleString()}</div>
+                    <div style={{ color: '#60C0F0', fontSize: '1.2rem', fontWeight: 'bold' }}>{consumed.toLocaleString()}</div>
                     <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Consumed</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -821,7 +821,7 @@ const LogsAndTrackers: React.FC = () => {
               </div>
             ) : (
               <div style={{
-                background: 'rgba(120, 81, 169, 0.1)',
+                background: 'rgba(139, 92, 246, 0.1)',
                 borderRadius: '15px',
                 padding: '2rem',
                 textAlign: 'center'
@@ -863,7 +863,7 @@ const LogsAndTrackers: React.FC = () => {
 
 // Enhanced Galactic Package Components
 const CurrentPackageCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3), rgba(255, 215, 0, 0.1));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.3), rgba(255, 215, 0, 0.1));
   backdrop-filter: blur(20px);
   border-radius: 25px;
   padding: 2.5rem;
@@ -953,7 +953,7 @@ const PackageSubscription: React.FC = () => {
               <h3
                 style={{
                   margin: '0 0 0.75rem 0',
-                  color: '#00ffff',
+                  color: '#60C0F0',
                   fontSize: '1.8rem',
                   textShadow: '0 0 15px rgba(139, 92, 246, 0.5)'
                 }}
@@ -1013,7 +1013,7 @@ const PackageSubscription: React.FC = () => {
               <div style={{ textAlign: 'center' }}>
                 <div
                   style={{
-                    color: '#00ffff',
+                    color: '#60C0F0',
                     fontSize: '2rem',
                     fontWeight: 'bold',
                     textShadow: '0 0 15px rgba(139, 92, 246, 0.8)'
@@ -1086,7 +1086,7 @@ const PackageSubscription: React.FC = () => {
         >
           <h4
             style={{
-              color: '#00ffff',
+              color: '#60C0F0',
               marginBottom: '0.75rem',
               display: 'flex',
               alignItems: 'center',
@@ -1130,7 +1130,7 @@ export const AccountGalaxy: React.FC = () => (
 
 // === ONBOARDING GALAXY SECTION ===
 const OnboardingCTA = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
   border: 2px solid rgba(139, 92, 246, 0.4);
   border-radius: 20px;
   padding: 2.5rem;
@@ -1165,7 +1165,7 @@ export const OnboardingGalaxy: React.FC = () => {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <SectionCard style={{ textAlign: 'center', padding: '3rem' }}>
-          <Loader size={32} style={{ color: '#00ffff', animation: 'spin 1s linear infinite' }} />
+          <Loader size={32} style={{ color: '#60C0F0', animation: 'spin 1s linear infinite' }} />
           <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '1rem' }}>Loading your profile...</p>
         </SectionCard>
       </motion.div>
@@ -1181,7 +1181,7 @@ export const OnboardingGalaxy: React.FC = () => {
           </SectionTitle>
 
           {showWizard ? (
-            <React.Suspense fallback={<div style={{ textAlign: 'center', padding: '2rem' }}><Loader size={24} style={{ color: '#00ffff' }} /></div>}>
+            <React.Suspense fallback={<div style={{ textAlign: 'center', padding: '2rem' }}><Loader size={24} style={{ color: '#60C0F0' }} /></div>}>
               <LazyClientOnboardingWizard
                 embedded={true}
                 selfSubmit={true}
@@ -1195,8 +1195,8 @@ export const OnboardingGalaxy: React.FC = () => {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
-              <Sparkles size={48} style={{ color: '#00ffff', marginBottom: '1rem' }} />
-              <h3 style={{ color: '#00ffff', fontSize: '1.5rem', marginBottom: '0.75rem' }}>
+              <Sparkles size={48} style={{ color: '#60C0F0', marginBottom: '1rem' }} />
+              <h3 style={{ color: '#60C0F0', fontSize: '1.5rem', marginBottom: '0.75rem' }}>
                 Complete Your Fitness Profile
               </h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', maxWidth: '400px', margin: '0 auto' }}>
@@ -1224,7 +1224,7 @@ export const OnboardingGalaxy: React.FC = () => {
           {onboardingData?.onboardingStatus?.primaryGoal && (
             <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
               <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.85rem' }}>Primary Goal</span>
-              <p style={{ color: '#00ffff', fontSize: '1.1rem', margin: '0.25rem 0 0 0', fontWeight: 600 }}>
+              <p style={{ color: '#60C0F0', fontSize: '1.1rem', margin: '0.25rem 0 0 0', fontWeight: 600 }}>
                 {onboardingData.onboardingStatus.primaryGoal}
               </p>
             </div>

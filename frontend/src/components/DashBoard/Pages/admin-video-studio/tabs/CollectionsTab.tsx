@@ -127,7 +127,7 @@ const BackButton = styled.button`
   transition: color 0.2s;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   svg {
@@ -140,7 +140,7 @@ const PrimaryButton = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
@@ -259,7 +259,7 @@ const CollectionIcon = styled.div`
   svg {
     width: 22px;
     height: 22px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -289,7 +289,7 @@ const TypeBadge = styled.span`
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(120, 81, 169, 0.5);
+  background: rgba(139, 92, 246, 0.5);
   color: white;
   text-transform: uppercase;
 `;
@@ -318,7 +318,7 @@ const FormOverlay = styled(motion.div)`
 `;
 
 const FormPanel = styled(motion.div)`
-  background: rgba(10, 10, 26, 0.98);
+  background: rgba(0, 32, 96, 0.98);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 16px;
@@ -365,7 +365,7 @@ const Input = styled.input`
   }
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -384,7 +384,7 @@ const TextArea = styled.textarea`
   }
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -400,11 +400,11 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
   }
 `;
 
@@ -573,7 +573,7 @@ const PickerCheck = styled.div<{ $checked: boolean }>`
   width: 22px;
   height: 22px;
   border-radius: 4px;
-  border: 2px solid ${(p) => p.$checked ? '#00ffff' : 'rgba(255,255,255,0.2)'};
+  border: 2px solid ${(p) => p.$checked ? '#60C0F0' : 'rgba(255,255,255,0.2)'};
   background: ${(p) => p.$checked ? 'rgba(139, 92, 246,0.2)' : 'transparent'};
   display: flex;
   align-items: center;
@@ -583,7 +583,7 @@ const PickerCheck = styled.div<{ $checked: boolean }>`
   svg {
     width: 14px;
     height: 14px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 

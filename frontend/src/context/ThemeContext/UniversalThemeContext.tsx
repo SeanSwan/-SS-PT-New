@@ -110,27 +110,27 @@ const crystallineDefault = {
   background: {
     primary: '#001545',
     secondary: '#002060',
-    surface: 'rgba(0, 48, 128, 0.6)',
+    surface: 'rgba(0, 32, 96, 0.45)',
     elevated: 'rgba(0, 48, 128, 0.4)',
   },
   text: {
-    primary: '#E0ECF4',
-    secondary: 'rgba(224, 236, 244, 0.85)',
-    muted: 'rgba(224, 236, 244, 0.6)',
-    heading: '#E0ECF4',
-    subheading: 'rgba(224, 236, 244, 0.9)',
-    body: 'rgba(224, 236, 244, 0.85)',
-    label: 'rgba(224, 236, 244, 0.7)',
+    primary: '#F8FAFC',
+    secondary: 'rgba(248, 250, 252, 0.85)',
+    muted: 'rgba(248, 250, 252, 0.6)',
+    heading: '#F8FAFC',
+    subheading: 'rgba(248, 250, 252, 0.9)',
+    body: 'rgba(248, 250, 252, 0.85)',
+    label: 'rgba(248, 250, 252, 0.7)',
     accent: '#60C0F0',
   },
 };
 
 /**
  * ARCTIC DAWN THEME — "Arctic Dawn"
- * Clean professional light theme. Pure white backgrounds, solid cards,
- * NO glassmorphism, NO glow effects. Dramatically different from dark themes.
- * Background: #FFFFFF / #F0F4F8
- * Primary accent: #2563EB (vivid blue)
+ * Icy professional light theme with subtle glass effects.
+ * Background: #F4F7FB (icy off-white, not pure white — preserves glass effect)
+ * Primary accent: #00B4D8 (brighter, icier cyan)
+ * Legacy accent: #7851A9 (Cosmic Purple nod to roots)
  * Gold accent: #C6A84B
  */
 const crystallineLight = {
@@ -138,21 +138,21 @@ const crystallineLight = {
   name: 'Arctic Dawn',
   fonts,
   effects: {
-    glassmorphism: false,
-    glowIntensity: 'none' as const,
-    cardStyle: 'solid' as const,
+    glassmorphism: true,
+    glowIntensity: 'subtle' as const,
+    cardStyle: 'glass' as const,
     borderGlow: false,
   },
   colors: {
-    deepSpace: '#FFFFFF',
-    stardust: '#F0F4F8',
+    deepSpace: '#F4F7FB',
+    stardust: '#EDF1F7',
     void: '#FAFBFC',
 
-    primary: '#2563EB',
-    primaryBlue: '#3B82F6',
-    primaryDeep: '#1D4ED8',
-    primaryLight: '#60A5FA',
-    primaryNeon: '#2563EB',
+    primary: '#00B4D8',
+    primaryBlue: '#0EA5E9',
+    primaryDeep: '#0284C7',
+    primaryLight: '#38BDF8',
+    primaryNeon: '#00B4D8',
 
     secondary: '#4070C0',
     secondaryLight: '#6090D0',
@@ -170,39 +170,39 @@ const crystallineLight = {
     warning: '#D97706',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #2563EB, #3B82F6)',
-    secondary: 'linear-gradient(135deg, #F0F4F8, #FFFFFF)',
-    cosmic: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-    hero: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 50%, #60A5FA 100%)',
-    card: '#FFFFFF',
+    primary: 'linear-gradient(135deg, #00B4D8, #0EA5E9)',
+    secondary: 'linear-gradient(135deg, #F4F7FB, #FFFFFF)',
+    cosmic: 'linear-gradient(135deg, #00B4D8, #0284C7)',
+    hero: 'linear-gradient(135deg, #00B4D8 0%, #0EA5E9 50%, #38BDF8 100%)',
+    card: 'rgba(255, 255, 255, 0.7)',
     accent: 'linear-gradient(135deg, #C6A84B, #D8C478)',
-    stellar: 'linear-gradient(45deg, #2563EB 0%, #C6A84B 100%)',
-    swanCosmic: 'linear-gradient(135deg, #2563EB, #4070C0)',
-    glass: '#FFFFFF',
+    stellar: 'linear-gradient(45deg, #00B4D8 0%, #C6A84B 100%)',
+    swanCosmic: 'linear-gradient(135deg, #00B4D8, #4070C0)',
+    glass: 'rgba(255, 255, 255, 0.7)',
   },
   shadows: {
-    primary: '0 1px 3px rgba(0, 32, 96, 0.08)',
+    primary: '0 2px 8px rgba(0, 180, 216, 0.12)',
     secondary: '0 1px 3px rgba(0, 32, 96, 0.06)',
-    cosmic: '0 4px 16px rgba(0, 32, 96, 0.1), 0 1px 4px rgba(0, 32, 96, 0.06)',
+    cosmic: '0 4px 16px rgba(0, 32, 96, 0.1), 0 1px 4px rgba(0, 180, 216, 0.08)',
     accent: '0 2px 8px rgba(198, 168, 75, 0.2)',
     elevation: '0 8px 24px rgba(0, 32, 96, 0.08)',
     glow: '0 0 0 transparent',
-    glass: '0 1px 4px rgba(0, 32, 96, 0.05)',
-    button: '0 2px 8px rgba(37, 99, 235, 0.25)',
+    glass: '0 8px 32px rgba(0, 0, 0, 0.06)',
+    button: '0 2px 12px rgba(0, 180, 216, 0.3)',
   },
   borders: {
-    subtle: '#E2E8F0',
+    subtle: 'rgba(0, 180, 216, 0.1)',
     elegant: '#CBD5E1',
     prominent: '#94A3B8',
-    glass: '1px solid #E2E8F0',
-    card: '1px solid #E2E8F0',
-    focus: '2px solid #2563EB',
+    glass: '1px solid rgba(255, 255, 255, 0.8)',
+    card: '1px solid rgba(255, 255, 255, 0.8)',
+    focus: '2px solid #00B4D8',
   },
   background: {
-    primary: '#FFFFFF',
-    secondary: '#F0F4F8',
-    surface: '#FFFFFF',
-    elevated: '#FFFFFF',
+    primary: '#F4F7FB',
+    secondary: '#EDF1F7',
+    surface: 'rgba(255, 255, 255, 0.7)',
+    elevated: 'rgba(255, 255, 255, 0.85)',
   },
   text: {
     primary: '#0F172A',
@@ -212,7 +212,7 @@ const crystallineLight = {
     subheading: '#1E293B',
     body: '#475569',
     label: '#64748B',
-    accent: '#2563EB',
+    accent: '#00B4D8',
   },
 };
 
@@ -293,8 +293,8 @@ const crystallineDark = {
   background: {
     primary: '#030712',
     secondary: '#0F172A',
-    surface: 'rgba(15, 23, 42, 0.8)',
-    elevated: 'rgba(15, 23, 42, 0.6)',
+    surface: 'rgba(17, 24, 39, 0.6)',
+    elevated: 'rgba(15, 23, 42, 0.5)',
   },
   text: {
     primary: '#F1F5F9',
@@ -389,8 +389,8 @@ const crystallineMono = {
   background: {
     primary: '#000000',
     secondary: '#0a0a0a',
-    surface: '#111111',
-    elevated: '#1a1a1a',
+    surface: 'rgba(255, 255, 255, 0.05)',
+    elevated: 'rgba(255, 255, 255, 0.03)',
   },
   text: {
     primary: '#FFFFFF',

@@ -798,8 +798,8 @@ const ChargeButton = styled.button<{ $variant: 'fee' | 'full' }>`
     }
   `
       : `
-    background: linear-gradient(135deg, #00ffff 0%, #00d4aa 100%);
-    color: #0a0a1a;
+    background: linear-gradient(135deg, #60C0F0 0%, #00d4aa 100%);
+    color: #002060;
     &:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
@@ -872,7 +872,7 @@ const CustomAmountInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   &::placeholder {

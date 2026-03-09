@@ -277,7 +277,7 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
               ...getEventStyle(event),
               opacity: selectedEvents.includes(event.id) ? 0.8 : 1,
               border: selectedEvents.includes(event.id) 
-                ? '2px solid #00ffff' 
+                ? '2px solid #60C0F0' 
                 : 'none',
               cursor: isDragDropEnabled 
                 ? (multiSelectEnabled ? 'pointer' : 'grab')

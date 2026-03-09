@@ -13,7 +13,7 @@ const MainContainer = styled.div`
 
 const SimpleHeader = styled.header`
   height: 56px;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   color: white;
   display: flex;
   align-items: center;

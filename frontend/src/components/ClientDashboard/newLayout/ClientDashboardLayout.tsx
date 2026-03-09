@@ -35,16 +35,16 @@ const drawerWidthClosed = 65;
 // Theme object
 const dashboardTheme = {
   colors: {
-    primary: '#00ffff',
+    primary: '#60C0F0',
     primaryLight: '#7efbfb',
     primaryDark: '#00b8b8',
-    secondary: '#7851a9',
+    secondary: '#8B5CF6',
     secondaryLight: '#a67dd4',
     secondaryDark: '#5e3d90',
     error: '#ff416c',
     warning: '#ffb700',
     success: '#00bf8f',
-    background: '#0a0a1a',
+    background: '#002060',
     backgroundPaper: 'rgba(30, 30, 60, 0.3)',
     textPrimary: '#ffffff',
     textSecondary: 'rgba(255, 255, 255, 0.7)',

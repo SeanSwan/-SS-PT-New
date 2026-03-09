@@ -20,9 +20,9 @@ import { useAuth } from '../../../../context/AuthContext';
 
 // ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────────────
 const theme = {
-  galaxyCore: '#0a0a1a',
-  swanCyan: '#00ffff',
-  cosmicPurple: '#7851a9',
+  galaxyCore: '#002060',
+  swanCyan: '#60C0F0',
+  cosmicPurple: '#8B5CF6',
   glassBg: 'rgba(29, 31, 43, 0.8)',
   glassBorder: 'rgba(255, 255, 255, 0.1)',
   textPrimary: '#ffffff',

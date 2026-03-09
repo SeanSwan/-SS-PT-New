@@ -31,7 +31,7 @@ import { device } from '../../styles/breakpoints';
 // ── Styled Components ───────────────────────────────────────────────────
 
 const BodyMapSection = styled.div`
-  background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.4)'};
+  background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.4)'};
   border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.1)'};
   border-radius: 20px;
   backdrop-filter: blur(8px);

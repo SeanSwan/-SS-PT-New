@@ -102,7 +102,7 @@ const HeaderSection = styled(motion.div)`
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #8b5cf6 0%, #00ffff 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #60C0F0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -138,14 +138,14 @@ const StatCard = styled(motion.div)`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
     transform: translateY(-4px);
   }
 
   .stat-icon {
     font-size: 3rem;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 1rem;
   }
 
@@ -177,7 +177,7 @@ const StatCard = styled(motion.div)`
 `;
 
 const ControlsSection = styled(motion.div)`
-  background: rgba(120, 81, 169, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 16px;
   padding: 2rem;
@@ -209,7 +209,7 @@ const SearchSection = styled.div`
 `;
 
 const ActionButton = styled(motion.button)`
-  background: linear-gradient(135deg, #8b5cf6 0%, #00ffff 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #60C0F0 100%);
   border: none;
   border-radius: 12px;
   color: #ffffff;
@@ -241,7 +241,7 @@ const DataTable = styled(motion.div)`
 `;
 
 const TableHeader = styled.div`
-  background: rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.3);
   padding: 1.5rem 2rem;
   border-bottom: 1px solid rgba(139, 92, 246, 0.3);
 
@@ -262,7 +262,7 @@ const TrainerCard = styled(motion.div)`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
     transform: translateY(-2px);
   }
@@ -299,11 +299,11 @@ const SearchInput = styled.div`
     }
 
     &:hover {
-      border-color: #00ffff;
+      border-color: #60C0F0;
     }
 
     &:focus {
-      border-color: #00ffff;
+      border-color: #60C0F0;
       box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
     }
   }
@@ -327,11 +327,11 @@ const StyledSelect = styled.select`
   transition: border-color 0.2s ease;
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
@@ -352,7 +352,7 @@ const StyledTable = styled.table`
 `;
 
 const StyledThead = styled.thead`
-  background: rgba(120, 81, 169, 0.2);
+  background: rgba(139, 92, 246, 0.2);
 `;
 
 const StyledTh = styled.th`
@@ -555,7 +555,7 @@ const ProgressBar = styled.div`
     left: 0;
     height: 100%;
     width: 40%;
-    background: #00ffff;
+    background: #60C0F0;
     border-radius: 2px;
     animation: indeterminate 1.5s ease-in-out infinite;
   }
@@ -626,7 +626,7 @@ const PaginationButton = styled.button<{ $disabled?: boolean }>`
 
   &:hover:not(:disabled) {
     background: rgba(139, 92, 246, 0.15);
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -1149,7 +1149,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
                       <StyledTd>
                         <ActionsWrapper>
                           <IconBtn
-                            $color="#00ffff"
+                            $color="#60C0F0"
                             title="View Details"
                             onClick={(e) => {
                               e.stopPropagation();

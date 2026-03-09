@@ -40,12 +40,12 @@ const status = [
 const NotificationBadge = styled(Avatar)`
   transition: all 0.2s ease-in-out;
   cursor: pointer;
-  background: rgba(120, 81, 169, 0.15);
-  color: #7851A9;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
 
   &:hover {
-    background: #7851A9;
-    color: rgba(120, 81, 169, 0.15);
+    background: #8B5CF6;
+    color: rgba(139, 92, 246, 0.15);
   }
 `;
 

@@ -56,8 +56,8 @@ const workoutFlow = keyframes`
 `;
 
 const progressGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 10px rgba(120, 81, 169, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(120, 81, 169, 0.6); }
+  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
 `;
 
 // === STYLED COMPONENTS ===
@@ -69,7 +69,7 @@ const WorkoutContainer = styled(motion.div)`
   min-height: 100vh;
   background: linear-gradient(135deg, 
     rgba(10, 10, 15, 0.95) 0%, 
-    rgba(120, 81, 169, 0.1) 50%, 
+    rgba(139, 92, 246, 0.1) 50%, 
     rgba(139, 92, 246, 0.05) 100%
   );
   
@@ -95,7 +95,7 @@ const HeaderSection = styled.div`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #7851a9, #8b5cf6, #00ffff);
+    background: linear-gradient(90deg, #8B5CF6, #8b5cf6, #60C0F0);
   }
 `;
 
@@ -110,7 +110,7 @@ const HeaderTitle = styled.div`
     font-weight: 700;
     color: #ffffff;
     margin: 0;
-    background: linear-gradient(135deg, #7851a9 0%, #8b5cf6 50%, #00ffff 100%);
+    background: linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -144,7 +144,7 @@ const ClientCard = styled.div`
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #7851a9, #8b5cf6);
+    background: linear-gradient(135deg, #8B5CF6, #8b5cf6);
     display: flex;
     align-items: center;
     justify-content: center;

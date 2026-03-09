@@ -12,7 +12,7 @@
  *
  * ARIA: role="combobox", aria-expanded, aria-activedescendant
  * Touch targets: 44px minimum on all interactive elements
- * Theme: Galaxy-Swan (#0a0a1a background, #00CED1 cyan accents, glass borders)
+ * Theme: Galaxy-Swan (#002060 background, #00CED1 cyan accents, glass borders)
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -299,7 +299,7 @@ const Label = styled.label`
 const InputWrapper = styled.div<{ $isOpen: boolean; $disabled: boolean }>`
   display: flex;
   align-items: center;
-  background: rgba(10, 10, 26, 0.8);
+  background: rgba(0, 32, 96, 0.8);
   border: 1px solid ${({ $isOpen }) => ($isOpen ? 'rgba(0, 206, 209, 0.6)' : 'rgba(0, 206, 209, 0.3)')};
   border-radius: 12px;
   min-height: 44px;
@@ -389,7 +389,7 @@ const Dropdown = styled.div`
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(0, 206, 209, 0.3);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);

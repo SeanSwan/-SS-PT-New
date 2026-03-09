@@ -419,7 +419,7 @@ const TimeCell = styled.div`
   font-size: 0.85rem;
   color: ${galaxySwanTheme.text.secondary};
   text-align: center;
-  background: rgba(10, 10, 26, 0.4);
+  background: rgba(0, 32, 96, 0.4);
   border-radius: 10px;
   border: 1px solid ${galaxySwanTheme.borders.subtle};
 

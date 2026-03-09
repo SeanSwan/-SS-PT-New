@@ -28,7 +28,7 @@ export const fadeIn = keyframes`
 
 export const STORE_TOKENS = {
   bg: {
-    app: 'radial-gradient(circle at top right, #120d26 0%, #0a0a1a 100%)',
+    app: 'radial-gradient(circle at top right, #120d26 0%, #002060 100%)',
     glass: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
     glassHover: 'rgba(255,255,255,0.05)',
     dark: 'rgba(0,0,0,0.2)',
@@ -36,12 +36,12 @@ export const STORE_TOKENS = {
   border: {
     subtle: 'rgba(255,255,255,0.08)',
     glass: 'rgba(255,255,255,0.08)',
-    purple: 'rgba(120,81,169,0.3)',
+    purple: 'rgba(139,92,246,0.3)',
     cyan: 'rgba(139, 92, 246,0.2)',
   },
   color: {
     cyan: '#8B5CF6',
-    purple: '#7851A9',
+    purple: '#8B5CF6',
     white: '#FFFFFF',
     muted: '#A0A0B0',
     completed: '#00FF88',
@@ -73,7 +73,7 @@ export const GlassCard = styled(motion.div)`
   &:hover {
     transform: translateY(-2px);
     border-color: ${STORE_TOKENS.border.purple};
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(120,81,169,0.1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.1);
   }
 `;
 
@@ -256,7 +256,7 @@ export const RevenueSummaryBar = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: linear-gradient(90deg, rgba(120,81,169,0.1) 0%, rgba(139, 92, 246,0.1) 100%);
+  background: linear-gradient(90deg, rgba(139,92,246,0.1) 0%, rgba(139, 92, 246,0.1) 100%);
   border-radius: ${STORE_TOKENS.radius.table};
   border: 1px solid rgba(255,255,255,0.1);
   margin-bottom: 24px;
@@ -350,7 +350,7 @@ export const SectionHeader = styled.div`
 export const SectionTitle = styled.h2`
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -403,12 +403,12 @@ export const StoreButton = styled.button<{ $variant?: 'primary' | 'danger' | 'gh
         `;
       default:
         return css`
-          background: linear-gradient(135deg, rgba(120,81,169,0.2), rgba(139, 92, 246,0.1));
-          border: 1px solid rgba(120,81,169,0.3);
+          background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139, 92, 246,0.1));
+          border: 1px solid rgba(139,92,246,0.3);
           color: white;
           &:hover {
-            background: linear-gradient(135deg, rgba(120,81,169,0.3), rgba(139, 92, 246,0.2));
-            border-color: rgba(120,81,169,0.5);
+            background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(139, 92, 246,0.2));
+            border-color: rgba(139,92,246,0.5);
             transform: translateY(-1px);
           }
         `;
@@ -489,9 +489,9 @@ export const ViewModeTab = styled.button<{ $active?: boolean }>`
   min-height: 44px;
   border: none;
   background: ${({ $active }) => $active
-    ? 'linear-gradient(135deg, rgba(120,81,169,0.3), rgba(139, 92, 246,0.15))'
+    ? 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(139, 92, 246,0.15))'
     : 'rgba(255,255,255,0.02)'};
-  color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255,255,255,0.5)'};
+  color: ${({ $active }) => $active ? '#60C0F0' : 'rgba(255,255,255,0.5)'};
   font-weight: ${({ $active }) => $active ? 600 : 400};
   font-size: 0.875rem;
   cursor: pointer;
@@ -503,7 +503,7 @@ export const ViewModeTab = styled.button<{ $active?: boolean }>`
   }
 
   &:hover {
-    background: rgba(120,81,169,0.15);
+    background: rgba(139,92,246,0.15);
     color: white;
   }
 

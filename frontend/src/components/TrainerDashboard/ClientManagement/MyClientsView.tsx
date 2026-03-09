@@ -147,14 +147,14 @@ const HeaderTitle = styled.div`
     font-weight: 700;
     color: #ffffff;
     margin: 0;
-    background: linear-gradient(135deg, #7851a9 0%, #8b5cf6 50%, #00ffff 100%);
+    background: linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
   .client-count {
-    background: linear-gradient(135deg, #7851a9, #8b5cf6);
+    background: linear-gradient(135deg, #8B5CF6, #8b5cf6);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 20px;
@@ -229,7 +229,7 @@ const SearchContainer = styled.div`
 const FilterButton = styled(motion.button)<{ active?: boolean }>`
   background: ${props => 
     props.active 
-      ? 'linear-gradient(135deg, #7851a9, #8b5cf6)'
+      ? 'linear-gradient(135deg, #8B5CF6, #8b5cf6)'
       : 'rgba(30, 30, 60, 0.6)'
   };
   border: 1px solid ${props => 
@@ -249,7 +249,7 @@ const FilterButton = styled(motion.button)<{ active?: boolean }>`
   &:hover {
     background: ${props => 
       props.active 
-        ? 'linear-gradient(135deg, #7851a9, #8b5cf6)'
+        ? 'linear-gradient(135deg, #8B5CF6, #8b5cf6)'
         : 'rgba(50, 50, 80, 0.4)'
     };
     transform: translateY(-2px);
@@ -351,7 +351,7 @@ const ClientAvatar = styled.div<{ status: string }>`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7851a9, #8b5cf6);
+  background: linear-gradient(135deg, #8B5CF6, #8b5cf6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -488,7 +488,7 @@ const ClientActions = styled.div`
 const ActionButton = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'success' | 'warning' }>`
   background: ${props => {
     switch (props.variant) {
-      case 'primary': return 'linear-gradient(135deg, #7851a9, #8b5cf6)';
+      case 'primary': return 'linear-gradient(135deg, #8B5CF6, #8b5cf6)';
       case 'success': return 'linear-gradient(135deg, #10b981, #34d399)';
       case 'warning': return 'linear-gradient(135deg, #f59e0b, #fbbf24)';
       default: return 'rgba(255, 255, 255, 0.1)';

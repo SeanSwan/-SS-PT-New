@@ -62,7 +62,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   min-height: 36px;
   border: none;
   background: ${props => props.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.8125rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -88,8 +88,8 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 44px;
   background: none;
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#00ffff' : 'transparent'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  border-bottom: 2px solid ${props => props.$active ? '#60C0F0' : 'transparent'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.875rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -97,7 +97,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   margin-bottom: -1px;
 
   &:hover {
-    color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.9)'};
+    color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.9)'};
   }
 `;
 

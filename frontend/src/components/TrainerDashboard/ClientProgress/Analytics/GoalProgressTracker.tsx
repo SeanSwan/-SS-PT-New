@@ -29,11 +29,11 @@ const THEME = {
   text: '#e2e8f0',
   textSecondary: '#94a3b8',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   success: '#4CAF50',
   warning: '#FFC107',
   error: '#FF6B6B',
-  purple: '#7851a9',
+  purple: '#8B5CF6',
   muted: '#A0A0A0',
   surface: 'rgba(255,255,255,0.05)',
   glassBg: 'rgba(29,31,43,0.95)',
@@ -151,7 +151,7 @@ const AccentButton = styled.button`
   align-items: center;
   gap: 6px;
   background: ${THEME.cyan};
-  color: #0a0a1a;
+  color: #002060;
   border: none;
   border-radius: 8px;
   padding: 10px 18px;
@@ -757,7 +757,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return '#4CAF50';
-      case 'active': return '#00ffff';
+      case 'active': return '#60C0F0';
       case 'overdue': return '#FF6B6B';
       case 'paused': return '#FFC107';
       default: return '#A0A0A0';
@@ -796,7 +796,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
     return (
       <SummaryGrid>
         <SummaryCard $accentColor={THEME.cyan}>
-          <Target color="#00ffff" size={32} />
+          <Target color="#60C0F0" size={32} />
           <StatValue>{summary.totalGoals}</StatValue>
           <StatLabel>Total Goals</StatLabel>
         </SummaryCard>
@@ -814,7 +814,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
         </SummaryCard>
 
         <SummaryCard $accentColor={THEME.purple}>
-          <Star color="#7851a9" size={32} />
+          <Star color="#8B5CF6" size={32} />
           <StatValue>{summary.averageProgress}%</StatValue>
           <StatLabel>Avg Progress</StatLabel>
         </SummaryCard>

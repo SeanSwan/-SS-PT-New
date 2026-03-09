@@ -25,10 +25,10 @@ import { SpecialBadge } from './SpecialBadge';
 
 // EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2)
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -87,7 +87,7 @@ const getThemeAccent = (theme: string = 'purple') => {
     case "ruby":    return 'rgba(232, 80, 120, 0.3)';
     case "emerald": return 'rgba(0, 212, 170, 0.3)';
     case "purple":
-    default:        return 'rgba(120, 81, 169, 0.3)';
+    default:        return 'rgba(139, 92, 246, 0.3)';
   }
 };
 
@@ -95,10 +95,10 @@ const getThemeAccent = (theme: string = 'purple') => {
 const getFallbackGradient = (theme: string = 'purple') => {
   switch (theme) {
     case "cosmic":  return `linear-gradient(135deg, rgba(93, 63, 211, 0.4), rgba(0, 212, 170, 0.2))`;
-    case "ruby":    return `linear-gradient(135deg, rgba(232, 80, 120, 0.4), rgba(120, 81, 169, 0.2))`;
+    case "ruby":    return `linear-gradient(135deg, rgba(232, 80, 120, 0.4), rgba(139, 92, 246, 0.2))`;
     case "emerald": return `linear-gradient(135deg, rgba(0, 212, 170, 0.4), rgba(72, 232, 200, 0.2))`;
     case "purple":
-    default:        return `linear-gradient(135deg, rgba(120, 81, 169, 0.4), rgba(200, 148, 255, 0.2))`;
+    default:        return `linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(200, 148, 255, 0.2))`;
   }
 };
 
@@ -241,9 +241,9 @@ const CardMedia = styled.div`
     height: 100%;
     background: linear-gradient(
       to bottom,
-      rgba(10, 10, 26, 0) 0%,
-      rgba(10, 10, 26, 0.4) 60%,
-      rgba(10, 10, 26, 0.85) 100%
+      rgba(0, 32, 96, 0) 0%,
+      rgba(0, 32, 96, 0.4) 60%,
+      rgba(0, 32, 96, 0.85) 100%
     );
     z-index: 2;
   }

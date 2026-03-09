@@ -102,7 +102,7 @@ const BackgroundGlow = styled.div`
   height: 90vh;
   background: radial-gradient(
     ellipse at center,
-    rgba(120, 81, 169, 0.1) 0%,
+    rgba(139, 92, 246, 0.1) 0%,
     rgba(139, 92, 246, 0.03) 50%,
     transparent 70%
   );
@@ -317,14 +317,14 @@ const RatingContainer = styled.div`
 
 const ResultsLabel = styled.div`
   display: inline-block;
-  background: rgba(120, 81, 169, 0.25);
+  background: rgba(139, 92, 246, 0.25);
   color: #c8b6ff;
   padding: 0.4rem 1rem;
   border-radius: 20px;
   font-size: 0.9rem;
   font-weight: 500;
   margin-top: 0.5rem;
-  border: 1px solid rgba(120, 81, 169, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
 `;
 
 const TestimonialText = styled.div`

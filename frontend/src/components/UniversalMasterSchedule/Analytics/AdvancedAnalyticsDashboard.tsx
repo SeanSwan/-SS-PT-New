@@ -283,7 +283,7 @@ export default AdvancedAnalyticsDashboard;
 
 const AnalyticsDashboardContainer = styled.div`
   padding: 2rem;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   min-height: 100vh;
 `;
 

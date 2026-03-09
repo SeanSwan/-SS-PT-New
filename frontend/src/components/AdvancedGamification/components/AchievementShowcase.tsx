@@ -118,7 +118,7 @@ const Title = styled(motion.h2)`
   background: linear-gradient(135deg, 
     #FFD700 0%, 
     #8B5CF6 50%, 
-    #7851A9 100%
+    #8B5CF6 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -145,7 +145,7 @@ const StatsRow = styled(motion.div)`
 const StatBadge = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.1),
-    rgba(120, 81, 169, 0.1)
+    rgba(139, 92, 246, 0.1)
   );
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
@@ -200,7 +200,7 @@ const AchievementCard = styled(motion.div)<{
       case 'rare':
         return 'linear-gradient(135deg, rgba(0, 191, 255, 0.1), rgba(30, 144, 255, 0.05))';
       default:
-        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(120, 81, 169, 0.05))';
+        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(139, 92, 246, 0.05))';
     }
   }};
   
@@ -306,7 +306,7 @@ const ProgressFill = styled(motion.div)<{ progress: number; rarity: Achievement[
       case 'legendary': return 'linear-gradient(90deg, #FFD700, #FFA500)';
       case 'epic': return 'linear-gradient(90deg, #8A2BE2, #4B0082)';
       case 'rare': return 'linear-gradient(90deg, #00BFFF, #1E90FF)';
-      default: return 'linear-gradient(90deg, #8B5CF6, #7851A9)';
+      default: return 'linear-gradient(90deg, #8B5CF6, #8B5CF6)';
     }
   }};
   width: ${props => props.progress}%;
@@ -347,7 +347,7 @@ const RarityBadge = styled.div<{ rarity: Achievement['rarity'] }>`
       case 'legendary': return 'linear-gradient(135deg, #FFD700, #FFA500)';
       case 'epic': return 'linear-gradient(135deg, #8A2BE2, #4B0082)';
       case 'rare': return 'linear-gradient(135deg, #00BFFF, #1E90FF)';
-      default: return 'linear-gradient(135deg, #8B5CF6, #7851A9)';
+      default: return 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
     }
   }};
   color: ${props => props.rarity === 'legendary' ? '#000' : '#FFF'};

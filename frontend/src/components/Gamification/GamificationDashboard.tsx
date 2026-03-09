@@ -104,7 +104,7 @@ const ButtonContainer = styled.div`
 
 const Button = styled.button<{ active?: boolean }>`
   background: ${(props) => props.active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(30, 30, 60, 0.5)'};
-  border: 1px solid ${(props) => props.active ? '#00ffff' : 'rgba(255, 255, 255, 0.1)'};
+  border: 1px solid ${(props) => props.active ? '#60C0F0' : 'rgba(255, 255, 255, 0.1)'};
   color: ${(props) => props.active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'};
   border-radius: 6px;
   padding: 0.5rem 1rem;
@@ -120,7 +120,7 @@ const Button = styled.button<{ active?: boolean }>`
 const IconButton = styled.button`
   background: rgba(139, 92, 246, 0.1);
   border: none;
-  color: #00ffff;
+  color: #60C0F0;
   border-radius: 50%;
   width: 36px;
   height: 36px;
@@ -181,7 +181,7 @@ const Badge = styled.span<{ color?: string }>`
   font-size: 0.7rem;
   font-weight: 500;
   background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(139, 92, 246, 0.15)'};
-  color: ${(props) => props.color || '#00ffff'};
+  color: ${(props) => props.color || '#60C0F0'};
 `;
 
 const ProgressBar = styled.div`
@@ -196,7 +196,7 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div<{ value: number; color?: string }>`
   height: 100%;
   width: ${(props) => `${props.value}%`};
-  background: ${(props) => props.color || 'linear-gradient(90deg, #00ffff, #7851a9)'};
+  background: ${(props) => props.color || 'linear-gradient(90deg, #60C0F0, #8B5CF6)'};
   border-radius: 4px;
   transition: width 0.3s ease;
 `;
@@ -256,7 +256,7 @@ const PlayerToken = styled.div<{ position: number }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
   display: flex;
   align-items: center;
@@ -278,8 +278,8 @@ const DiceContainer = styled.div`
 `;
 
 const DiceButton = styled.button`
-  background: rgba(120, 81, 169, 0.2);
-  border: 1px solid #7851a9;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid #8B5CF6;
   color: #ffffff;
   border-radius: 6px;
   padding: 0.5rem 1.5rem;
@@ -291,7 +291,7 @@ const DiceButton = styled.button`
   gap: 0.5rem;
   
   &:hover {
-    background: rgba(120, 81, 169, 0.3);
+    background: rgba(139, 92, 246, 0.3);
   }
   
   &:disabled {
@@ -439,16 +439,16 @@ const GamificationDashboard: React.FC = () => {
         
         <Grid columns={4}>
           <StatCard>
-            <StatIcon color="#00ffff">
-              <Trophy size={24} color="#00ffff" />
+            <StatIcon color="#60C0F0">
+              <Trophy size={24} color="#60C0F0" />
             </StatIcon>
             <StatValue>Level {profile.level}</StatValue>
             <StatLabel>Current Level</StatLabel>
           </StatCard>
           
           <StatCard>
-            <StatIcon color="#7851a9">
-              <Zap size={24} color="#7851a9" />
+            <StatIcon color="#8B5CF6">
+              <Zap size={24} color="#8B5CF6" />
             </StatIcon>
             <StatValue>{profile.points}</StatValue>
             <StatLabel>Total Points</StatLabel>
@@ -538,13 +538,13 @@ const GamificationDashboard: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {achievements.slice(0, 4).map((achievement) => (
               <AchievementCard key={achievement.id}>
-                <AchievementIcon color={achievement.color || '#00ffff'}>
+                <AchievementIcon color={achievement.color || '#60C0F0'}>
                   {achievement.icon === 'heart' ? (
-                    <Heart size={24} color={achievement.color || '#00ffff'} />
+                    <Heart size={24} color={achievement.color || '#60C0F0'} />
                   ) : achievement.icon === 'users' ? (
-                    <Users size={24} color={achievement.color || '#00ffff'} />
+                    <Users size={24} color={achievement.color || '#60C0F0'} />
                   ) : (
-                    <Award size={24} color={achievement.color || '#00ffff'} />
+                    <Award size={24} color={achievement.color || '#60C0F0'} />
                   )}
                 </AchievementIcon>
                 
@@ -598,21 +598,21 @@ const GamificationDashboard: React.FC = () => {
           <QuestContainer>
             {challenges.map((challenge) => (
               <AchievementCard key={challenge.id}>
-                <AchievementIcon color="#7851a9">
-                  <Star size={24} color="#7851a9" />
+                <AchievementIcon color="#8B5CF6">
+                  <Star size={24} color="#8B5CF6" />
                 </AchievementIcon>
                 
                 <AchievementContent>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <AchievementTitle>{challenge.name}</AchievementTitle>
-                    <Badge color="#7851a9">{challenge.participants} Participants</Badge>
+                    <Badge color="#8B5CF6">{challenge.participants} Participants</Badge>
                   </div>
                   <AchievementDescription>{challenge.description}</AchievementDescription>
                   
                   {challenge.joined ? (
                     <>
                       <ProgressBar>
-                        <ProgressFill value={challenge.progress} color="#7851a9" />
+                        <ProgressFill value={challenge.progress} color="#8B5CF6" />
                       </ProgressBar>
                       <div style={{ 
                         display: 'flex', 

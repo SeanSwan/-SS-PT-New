@@ -73,7 +73,7 @@ const challengeTypeOptions: ChallengeTypeOption[] = [
     icon: <CalendarDays size={24} />,
     duration: '7 days',
     difficulty: 'Moderate',
-    color: '#00ffff',
+    color: '#60C0F0',
     examples: ['5 workouts this week', 'Burn 2000 calories', 'Try 3 new exercises'],
     pros: ['Balanced commitment', 'Good XP rewards', 'Flexible timing'],
     cons: ['Requires consistency', 'Mid-week dropoffs']
@@ -295,7 +295,7 @@ const DetailsGroup = styled.div`
         content: '•';
         position: absolute;
         left: 0;
-        color: #00ffff;
+        color: #60C0F0;
       }
     }
   }

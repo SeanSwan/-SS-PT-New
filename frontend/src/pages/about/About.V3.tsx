@@ -84,7 +84,7 @@ const certifications = [
 
 const statsData = [
   { numericValue: 25, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
-  { numericValue: 1000, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#7851A9' },
+  { numericValue: 1000, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
   { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' },
   { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
 ];

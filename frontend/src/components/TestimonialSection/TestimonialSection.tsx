@@ -36,7 +36,7 @@ const SectionWrapper = styled.section`
     width: 100%;
     height: 100%;
     background: 
-      radial-gradient(circle at 10% 20%, rgba(120, 81, 169, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
       radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
     z-index: 0;
   }
@@ -133,7 +133,7 @@ const TestimonialCard = styled(motion.div)`
   padding: 2.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   
   @media (max-width: 768px) {
     padding: 2rem;
@@ -159,7 +159,7 @@ const ImageContainer = styled.div`
   overflow: hidden;
   flex-shrink: 0;
   margin-right: 2.5rem;
-  border: 3px solid rgba(120, 81, 169, 0.5);
+  border: 3px solid rgba(139, 92, 246, 0.5);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   animation: ${float} 6s ease-in-out infinite;
   
@@ -168,7 +168,7 @@ const ImageContainer = styled.div`
     position: absolute;
     inset: -4px;
     border-radius: 50%;
-    background: linear-gradient(45deg, rgba(139, 92, 246, 0.4), rgba(120, 81, 169, 0.4));
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.4), rgba(139, 92, 246, 0.4));
     z-index: -1;
     opacity: 0.6;
   }
@@ -200,7 +200,7 @@ const QuoteText = styled.p`
   &::before, &::after {
     font-family: Georgia, serif;
     position: absolute;
-    color: rgba(120, 81, 169, 0.3);
+    color: rgba(139, 92, 246, 0.3);
   }
   
   &::before {
@@ -282,10 +282,10 @@ const NavigationButton = styled(motion.button)`
   z-index: 10;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   font-size: 1.2rem;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   
   &:hover {
-    background: rgba(120, 81, 169, 0.6);
+    background: rgba(139, 92, 246, 0.6);
   }
   
   &.prev {
@@ -322,7 +322,7 @@ const ProgressDot = styled.button<{ $active: boolean }>`
   height: 12px;
   border-radius: 50%;
   margin: 0 5px;
-  background-color: ${props => props.$active ? "rgba(120, 81, 169, 0.7)" : "rgba(255, 255, 255, 0.2)"};
+  background-color: ${props => props.$active ? "rgba(139, 92, 246, 0.7)" : "rgba(255, 255, 255, 0.2)"};
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -338,7 +338,7 @@ const ProgressDot = styled.button<{ $active: boolean }>`
   }
   
   &:hover {
-    background-color: ${props => props.$active ? "rgba(120, 81, 169, 0.9)" : "rgba(255, 255, 255, 0.4)"};
+    background-color: ${props => props.$active ? "rgba(139, 92, 246, 0.9)" : "rgba(255, 255, 255, 0.4)"};
   }
 `;
 

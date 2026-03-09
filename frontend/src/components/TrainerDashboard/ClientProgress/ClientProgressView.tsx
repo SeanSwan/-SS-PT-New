@@ -55,9 +55,9 @@ const Input = styled.input`
 `;
 
 const Button = styled.button`
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   border: none;
-  color: #0a0a1a;
+  color: #002060;
   padding: 0.65rem 1.2rem;
   border-radius: 999px;
   font-weight: ${theme.typography.weight.semibold};
@@ -142,7 +142,7 @@ const GoalBar = styled.div`
 const GoalFill = styled.div<{ $progress: number }>`
   height: 100%;
   width: ${(props) => Math.min(100, Math.max(0, props.$progress))}%;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
 `;
 
 const MeasurementList = styled.div`
@@ -157,7 +157,7 @@ const MeasurementRow = styled.div`
   align-items: center;
   padding: 0.75rem 1rem;
   border-radius: 12px;
-  background: rgba(120, 81, 169, 0.1);
+  background: rgba(139, 92, 246, 0.1);
 `;
 
 const MeasurementDate = styled.div`
@@ -212,7 +212,7 @@ const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurem
 
   return (
     <svg width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none">
-      <path d={path} fill="none" stroke="#00ffff" strokeWidth="3" />
+      <path d={path} fill="none" stroke="#60C0F0" strokeWidth="3" />
     </svg>
   );
 };

@@ -51,7 +51,7 @@ const ModerationWidget: React.FC = () => {
     <ModPanel>
       <ModHeader>
         <ModHeaderLeft>
-          <MessageSquare size={20} color="#00ffff" />
+          <MessageSquare size={20} color="#60C0F0" />
           <ModTitle>Content Moderation</ModTitle>
           {stats.pending > 0 && <ModBadge>{stats.pending}</ModBadge>}
         </ModHeaderLeft>
@@ -108,7 +108,7 @@ const ModerationWidget: React.FC = () => {
 // === Styled Components ===
 
 const ModPanel = styled.div`
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(139, 92, 246, 0.1);
@@ -164,7 +164,7 @@ const ModViewAll = styled.button`
   gap: 4px;
   background: none;
   border: none;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   padding: 10px 14px;

@@ -13,7 +13,7 @@ const fadeInUp = keyframes`
 /* ─── Styled Components ─── */
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
   color: #e0e0e0;
   padding: 32px 24px 64px;
 
@@ -32,7 +32,7 @@ const Title = styled.h1`
   font-size: 2.5rem;
   font-weight: 800;
   margin: 0 0 8px;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -56,7 +56,7 @@ const Badge = styled.span`
   border-radius: 20px;
   background: rgba(139, 92, 246, 0.08);
   border: 1px solid rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8rem;
   font-weight: 500;
   margin-top: 12px;
@@ -78,7 +78,7 @@ const FilterTab = styled.button<{ $active: boolean }>`
   border-radius: 20px;
   border: 1px solid ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)')};
   background: ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
-  color: ${({ $active }) => ($active ? '#00ffff' : '#8888aa')};
+  color: ${({ $active }) => ($active ? '#60C0F0' : '#8888aa')};
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -87,7 +87,7 @@ const FilterTab = styled.button<{ $active: boolean }>`
 
   &:hover {
     border-color: rgba(139, 92, 246, 0.4);
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -193,10 +193,10 @@ const VersionPill = styled.span<{ $version: number }>`
   letter-spacing: 1px;
   z-index: 2;
   background: ${({ $version }) =>
-    $version === 1 ? 'rgba(139, 92, 246, 0.2)' : 'rgba(120, 81, 169, 0.3)'};
-  color: ${({ $version }) => ($version === 1 ? '#00ffff' : '#b088f0')};
+    $version === 1 ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.3)'};
+  color: ${({ $version }) => ($version === 1 ? '#60C0F0' : '#b088f0')};
   border: 1px solid ${({ $version }) =>
-    $version === 1 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(120, 81, 169, 0.5)'};
+    $version === 1 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 0.5)'};
   backdrop-filter: blur(8px);
 `;
 
@@ -268,8 +268,8 @@ const ViewButton = styled.button`
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #00ffff, #00a0e3);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #00a0e3);
+  color: #002060;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;

@@ -37,10 +37,10 @@ import SectionVideoBackground from "../../components/ui/backgrounds/SectionVideo
 
 // EW Design Tokens
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -620,7 +620,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
                 src="/swan-golden.mp4"
                 fallbackGradient={`linear-gradient(135deg, ${T.bg} 0%, #1a1a3c 100%)`}
                 overlayOpacity={0.55}
-                overlayGradient="linear-gradient(to bottom, rgba(10, 10, 26, 0.65) 0%, rgba(10, 10, 26, 0.5) 50%, rgba(10, 10, 26, 0.65) 100%)"
+                overlayGradient="linear-gradient(to bottom, rgba(0, 32, 96, 0.65) 0%, rgba(0, 32, 96, 0.5) 50%, rgba(0, 32, 96, 0.65) 100%)"
               />
               <PackagesGrid
                 packages={packages}

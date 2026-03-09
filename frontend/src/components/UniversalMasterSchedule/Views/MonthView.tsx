@@ -303,8 +303,8 @@ const BlockedBadge = styled.span`
   font-size: 0.7rem;
   font-weight: 600;
   color: ${galaxySwanTheme.text.primary};
-  background: rgba(120, 81, 169, 0.35);
-  border: 1px solid rgba(120, 81, 169, 0.6);
+  background: rgba(139, 92, 246, 0.35);
+  border: 1px solid rgba(139, 92, 246, 0.6);
 
   @media (max-width: 768px) {
     padding: 0.1rem 0.3rem;

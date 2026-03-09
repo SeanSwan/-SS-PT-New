@@ -89,7 +89,7 @@ const TrainerAvatar = styled.div<{ $src?: string }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : '#00ffff'};
+  background: ${props => props.$src ? `url(${props.$src}) center/cover` : '#60C0F0'};
   color: white;
   display: flex;
   align-items: center;
@@ -134,7 +134,7 @@ const ScheduleButton = styled.button`
   border-radius: 10px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: rgba(139, 92, 246, 0.05);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -173,7 +173,7 @@ const ScheduledSessionsCard: React.FC<ScheduledSessionsCardProps> = ({
     switch (type.toLowerCase()) {
       case 'strength': return 'rgba(139, 92, 246, 0.9)';
       case 'cardio': return 'rgba(255, 83, 83, 0.9)';
-      case 'flexibility': return 'rgba(120, 81, 169, 0.9)';
+      case 'flexibility': return 'rgba(139, 92, 246, 0.9)';
       case 'balance': return 'rgba(255, 183, 0, 0.9)';
       default: return 'rgba(255, 255, 255, 0.7)';
     }

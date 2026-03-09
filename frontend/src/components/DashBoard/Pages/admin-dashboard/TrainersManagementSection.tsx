@@ -84,7 +84,7 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
@@ -108,7 +108,7 @@ const FilterSelect = styled.select`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
   
   option {
@@ -122,7 +122,7 @@ const CommandButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: #ffffff;
@@ -138,7 +138,7 @@ const CommandButton = styled(motion.button)`
   }
   
   &:focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -186,7 +186,7 @@ const TrainerAvatar = styled.div`
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -242,7 +242,7 @@ const SpecialtyTag = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.5px;
   background: rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
@@ -262,7 +262,7 @@ const StatItem = styled.div`
 const StatValue = styled.div`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.25rem;
 `;
 
@@ -357,7 +357,7 @@ const StatCard = styled(motion.div)`
 const StatNumber = styled.div`
   font-size: 2rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
 `;
 
@@ -692,7 +692,7 @@ const TrainersManagementSection: React.FC = () => {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <RefreshCw size={32} color="#00ffff" />
+            <RefreshCw size={32} color="#60C0F0" />
           </motion.div>
         </div>
       </ManagementContainer>

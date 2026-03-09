@@ -32,7 +32,7 @@ const StyledAppBar = styled.header<{ $hasActiveSession?: boolean }>`
   z-index: 1201;
   width: 100%;
   background: ${({ $hasActiveSession }) =>
-    $hasActiveSession ? 'rgba(76, 175, 80, 0.15)' : '#0a0a1a'};
+    $hasActiveSession ? 'rgba(76, 175, 80, 0.15)' : '#002060'};
   box-shadow: none;
 `;
 

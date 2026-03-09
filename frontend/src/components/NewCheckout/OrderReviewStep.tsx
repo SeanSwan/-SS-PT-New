@@ -59,7 +59,7 @@ const OrderSummaryContainer = styled(motion.div)`
 const SummaryHeader = styled.h3`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 1.5rem 0;
   display: flex;
   align-items: center;
@@ -117,7 +117,7 @@ const ItemDetail = styled.p`
 `;
 
 const ItemPrice = styled.div`
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 600;
   font-size: 0.9rem;
   text-align: right;
@@ -141,7 +141,7 @@ const PriceRow = styled.div`
   &.total {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #00ffff;
+    color: #60C0F0;
     margin: 1rem 0 0 0;
     padding-top: 1rem;
     border-top: 1px solid rgba(139, 92, 246, 0.2);
@@ -169,7 +169,7 @@ const SessionsSummary = styled.div`
 `;
 
 const SessionsTitle = styled.h4`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
   display: flex;
@@ -183,7 +183,7 @@ const SessionsCount = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0.5rem 0;
-  background: linear-gradient(90deg, #00ffff, #3b82f6);
+  background: linear-gradient(90deg, #60C0F0, #3b82f6);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

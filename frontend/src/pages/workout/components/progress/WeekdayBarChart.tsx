@@ -46,7 +46,7 @@ export const WeekdayBarChart: React.FC<WeekdayBarChartProps> = ({
                   color: 'white'
                 }}
               />
-              <Bar dataKey="count" fill="#00ffff" />
+              <Bar dataKey="count" fill="#60C0F0" />
             </BarChart>
           </ResponsiveContainer>
         ) : (

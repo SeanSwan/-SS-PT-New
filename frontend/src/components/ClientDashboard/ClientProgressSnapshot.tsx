@@ -86,7 +86,7 @@ const SectionCard = styled.div`
 `;
 
 const SectionHeading = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.3rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
@@ -204,7 +204,7 @@ const ChartRow = styled.div`
 `;
 
 const TooltipBox = styled.div`
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   padding: 10px 14px;
@@ -310,12 +310,12 @@ const WorkoutIconBox = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: rgba(120, 81, 169, 0.2);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #7851A9;
+  color: #8B5CF6;
   flex-shrink: 0;
 `;
 
@@ -520,8 +520,8 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                         <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                       </linearGradient>
                       <linearGradient id="snapGradPurple" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#7851A9" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#7851A9" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
@@ -565,21 +565,21 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                       yAxisId="left" type="monotone" dataKey="weight" name="Weight (lbs)"
                       stroke="#8B5CF6" strokeWidth={2.5} fill="url(#snapGradCyan)"
                       dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#0a0a1a', strokeWidth: 2 }}
+                      activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#002060', strokeWidth: 2 }}
                       connectNulls
                     />
                     <Area
                       yAxisId="right" type="monotone" dataKey="bodyFat" name="Body Fat (%)"
-                      stroke="#7851A9" strokeWidth={2} fill="url(#snapGradPurple)"
-                      dot={{ fill: '#7851A9', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#7851A9', stroke: '#0a0a1a', strokeWidth: 2 }}
+                      stroke="#8B5CF6" strokeWidth={2} fill="url(#snapGradPurple)"
+                      dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#002060', strokeWidth: 2 }}
                       connectNulls
                     />
                     <Area
                       yAxisId="left" type="monotone" dataKey="waist" name="Waist (in)"
                       stroke="#2DD4BF" strokeWidth={2} fill="transparent"
                       dot={{ fill: '#2DD4BF', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#2DD4BF', stroke: '#0a0a1a', strokeWidth: 2 }}
+                      activeDot={{ r: 5, fill: '#2DD4BF', stroke: '#002060', strokeWidth: 2 }}
                       connectNulls
                     />
                   </AreaChart>
@@ -597,7 +597,7 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                       <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 10 }} />
                       <PolarRadiusAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} />
                       <Radar name="First" dataKey="first" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.1} strokeWidth={2} />
-                      <Radar name="Current" dataKey="current" stroke="#7851A9" fill="#7851A9" fillOpacity={0.25} strokeWidth={2} />
+                      <Radar name="Current" dataKey="current" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.25} strokeWidth={2} />
                       <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                     </RadarChart>
                   </ResponsiveContainer>

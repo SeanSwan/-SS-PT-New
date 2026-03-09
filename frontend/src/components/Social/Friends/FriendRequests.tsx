@@ -60,7 +60,7 @@ const Avatar = styled.div<{ $src?: string }>`
   height: 40px;
   border-radius: 50%;
   background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,7 +108,7 @@ const AcceptBtn = styled.button`
   border-radius: 6px;
   border: none;
   background: rgba(139, 92, 246, 0.15);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -187,7 +187,7 @@ const CloseButton = styled.button`
   border-radius: 8px;
   border: none;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;

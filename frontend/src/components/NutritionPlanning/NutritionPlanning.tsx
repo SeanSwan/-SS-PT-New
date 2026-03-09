@@ -3,7 +3,7 @@
  * AI-powered nutrition plans tailored to workout programs and dietary preferences
  *
  * Migrated from MUI to styled-components + lucide-react
- * Galaxy-Swan theme: Galaxy Core #0a0a1a, Swan Cyan #8B5CF6, Cosmic Purple #7851A9
+ * Galaxy-Swan theme: Galaxy Core #002060, Swan Cyan #8B5CF6, Cosmic Purple #8B5CF6
  */
 
 import React, { useState, useEffect } from 'react';

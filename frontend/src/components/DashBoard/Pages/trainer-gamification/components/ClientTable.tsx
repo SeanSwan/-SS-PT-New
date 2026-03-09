@@ -75,7 +75,7 @@ const ClientAvatar = styled.div`
   height: 36px;
   border-radius: 50%;
   background: rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,7 +117,7 @@ const StreakCell = styled.div<{ $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 4px;
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.4)'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.4)'};
 `;
 
 const ActionsCell = styled.div`
@@ -132,16 +132,16 @@ const ActionBtn = styled.button<{ $variant?: 'secondary' }>`
   padding: 6px 12px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid ${props => props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.4)' : 'rgba(139, 92, 246, 0.4)'};
+  border: 1px solid ${props => props.$variant === 'secondary' ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 0.4)'};
   background: transparent;
-  color: ${props => props.$variant === 'secondary' ? '#7851a9' : '#00ffff'};
+  color: ${props => props.$variant === 'secondary' ? '#8B5CF6' : '#60C0F0'};
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 
   &:hover {
-    background: ${props => props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
+    background: ${props => props.$variant === 'secondary' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
   }
 `;
 
@@ -201,10 +201,10 @@ const ClientTable: React.FC<ClientTableProps> = ({
           </PointsCell>
         </Td>
         <Td>
-          <Badge $color="#00ffff">Level {client.level}</Badge>
+          <Badge $color="#60C0F0">Level {client.level}</Badge>
         </Td>
         <Td>
-          <Badge $color={TIER_COLORS[client.tier] || '#00ffff'}>
+          <Badge $color={TIER_COLORS[client.tier] || '#60C0F0'}>
             {client.tier.toUpperCase()}
           </Badge>
         </Td>

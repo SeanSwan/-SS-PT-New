@@ -50,7 +50,7 @@ const Subtitle = styled.p`
 
 const CreateButton = styled.button`
   padding: 10px 24px;
-  background: linear-gradient(135deg, #60c0f0 0%, #7851a9 100%);
+  background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
   border: none;
   border-radius: 8px;
   color: #fff;

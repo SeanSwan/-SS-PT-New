@@ -363,7 +363,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Session notification helper
   const showSessionNotification = useCallback((message: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
     const colors = {
-      success: { bg: 'linear-gradient(135deg, #00ffff, #0080ff)', color: '#000' },
+      success: { bg: 'linear-gradient(135deg, #60C0F0, #0080ff)', color: '#000' },
       info: { bg: 'linear-gradient(135deg, #4facfe, #00f2fe)', color: '#000' },
       warning: { bg: 'linear-gradient(135deg, #ffa726, #ff9800)', color: '#000' },
       error: { bg: 'linear-gradient(135deg, #ff6b9d, #ff4d6d)', color: '#fff' }

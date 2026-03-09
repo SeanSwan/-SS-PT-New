@@ -144,7 +144,7 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
       }}
     >
       <DialogTitle style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <CalendarCheck size={20} style={{ color: '#00ffff' }} />
+        <CalendarCheck size={20} style={{ color: '#60C0F0' }} />
         Book Session for {clientName || 'Client'}
       </DialogTitle>
 

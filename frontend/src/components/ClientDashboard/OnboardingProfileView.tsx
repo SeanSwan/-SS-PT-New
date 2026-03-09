@@ -77,7 +77,7 @@ const SectionHeader = styled.div`
   align-items: center;
   gap: 0.6rem;
   margin-bottom: 1rem;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   font-weight: 600;
 `;

@@ -119,7 +119,7 @@ const slideUp = keyframes`
 // ─── Galaxy-Swan Theme Tokens ─────────────────────────────────────
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
-  bgSolid: '#0a0a1a',
+  bgSolid: '#002060',
   surface: '#1d1f2b',
   surfaceHover: 'rgba(255,255,255,0.05)',
   border: 'rgba(14,165,233,0.2)',
@@ -129,8 +129,8 @@ const theme = {
   textSecondary: '#a0a0b0',
   accent: '#0ea5e9',
   accentGlow: 'rgba(14,165,233,0.3)',
-  cyan: '#00ffff',
-  purple: '#7851a9',
+  cyan: '#60C0F0',
+  purple: '#8B5CF6',
   success: '#4caf50',
   warning: '#ff9800',
   error: '#f44336',
@@ -285,8 +285,8 @@ const ActionButton = styled.button<{
   ${(p) =>
     p.$variant === 'contained'
       ? css`
-          background: linear-gradient(135deg, #00ffff, #00c8ff);
-          color: #0a0a1a;
+          background: linear-gradient(135deg, #60C0F0, #00c8ff);
+          color: #002060;
           border: none;
           &:hover {
             background: linear-gradient(135deg, #00e6ff, #00b3ff);
@@ -300,7 +300,7 @@ const ActionButton = styled.button<{
           border: 1px solid rgba(139, 92, 246, 0.3);
           &:hover {
             background-color: rgba(255, 255, 255, 0.1);
-            border-color: #00ffff;
+            border-color: #60C0F0;
             box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
           }
         `}
@@ -510,7 +510,7 @@ const CheckboxBox = styled.span<{ $checked?: boolean; $indeterminate?: boolean }
 
   &::after {
     content: '${(p) => (p.$indeterminate ? '\\2014' : p.$checked ? '\\2713' : '')}';
-    color: #0a0a1a;
+    color: #002060;
     font-size: ${(p) => (p.$indeterminate ? '14px' : '12px')};
     font-weight: 700;
   }
@@ -543,7 +543,7 @@ const SwitchThumb = styled.span<{ $checked?: boolean }>`
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: ${(p) => (p.$checked ? '#0a0a1a' : '#ccc')};
+  background: ${(p) => (p.$checked ? '#002060' : '#ccc')};
   transition: left 0.2s ease;
 `;
 
@@ -633,7 +633,7 @@ const AvatarCircle = styled.div<{ $size?: number; $borderColor?: string }>`
   height: ${(p) => p.$size || 56}px;
   border-radius: 50%;
   background: ${theme.cyan};
-  color: #0a0a1a;
+  color: #002060;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -987,8 +987,8 @@ const FABButton = styled.button`
   height: 56px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
+  color: #002060;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1516,7 +1516,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                       <ClientName>{client.firstName} {client.lastName}</ClientName>
                       <Username>@{client.username}</Username>
                       <FlexRow $gap={6} style={{ marginTop: 4 }}>
-                        <StatusChip $small $bgColor="rgba(120, 81, 169, 0.2)" $textColor="#7851a9">
+                        <StatusChip $small $bgColor="rgba(139, 92, 246, 0.2)" $textColor="#8B5CF6">
                           Level {client.level}
                         </StatusChip>
                         <StatusChip $small $bgColor="rgba(255, 215, 0, 0.2)" $textColor="#ffd700">

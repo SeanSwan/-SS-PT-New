@@ -33,9 +33,9 @@ import {
 const trainerStellarTheme = {
   colors: {
     deepSpace: '#0a0a0f',
-    stellarPurple: '#7851a9',     // Primary purple for trainers
+    stellarPurple: '#8B5CF6',     // Primary purple for trainers
     cosmicAmethyst: '#9333ea',    // Bright purple accents
-    cyberCyan: '#00ffff',         // Keep signature cyan
+    cyberCyan: '#60C0F0',         // Keep signature cyan
     stellarWhite: '#ffffff',
     energyPurple: '#8b5cf6',      // Enhanced purple energy
     warningAmber: '#f59e0b',      // Status indicators
@@ -44,14 +44,14 @@ const trainerStellarTheme = {
     voidBlack: '#000000'
   },
   gradients: {
-    trainingHub: 'linear-gradient(135deg, #7851a9 0%, #8b5cf6 50%, #00ffff 100%)',
-    stellarNebula: 'linear-gradient(45deg, #0f0a1a 0%, #7851a9 50%, #0a0a0f 100%)',
-    dataFlow: 'radial-gradient(ellipse at top, #9333ea 0%, #7851a9 50%, #0a0a0f 100%)',
-    stellarCommand: 'conic-gradient(from 0deg, #00ffff, #9333ea, #7851a9, #00ffff)',
-    trainingAurora: 'linear-gradient(270deg, #00ffff, #8b5cf6, #7851a9, #00ffff)'
+    trainingHub: 'linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%)',
+    stellarNebula: 'linear-gradient(45deg, #0f0a1a 0%, #8B5CF6 50%, #0a0a0f 100%)',
+    dataFlow: 'radial-gradient(ellipse at top, #9333ea 0%, #8B5CF6 50%, #0a0a0f 100%)',
+    stellarCommand: 'conic-gradient(from 0deg, #60C0F0, #9333ea, #8B5CF6, #60C0F0)',
+    trainingAurora: 'linear-gradient(270deg, #60C0F0, #8b5cf6, #8B5CF6, #60C0F0)'
   },
   shadows: {
-    stellarGlow: '0 0 30px rgba(120, 81, 169, 0.6)',
+    stellarGlow: '0 0 30px rgba(139, 92, 246, 0.6)',
     trainingNebula: '0 0 40px rgba(139, 92, 246, 0.4)',
     dataVisualization: '0 20px 40px rgba(0, 0, 0, 0.6)',
     cosmicGlow: '0 0 20px currentColor',
@@ -68,7 +68,7 @@ const TrainerSidebarContainer = styled(motion.aside)`
   width: ${props => props.isCollapsed ? '80px' : '280px'};
   background: ${props => props.theme.gradients.stellarNebula};
   backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(120, 81, 169, 0.3);
+  border-right: 1px solid rgba(139, 92, 246, 0.3);
   z-index: 1000;
   transition: width 0.3s ease;
   overflow: hidden;
@@ -106,7 +106,7 @@ const TrainerSidebarContainer = styled(motion.aside)`
 
 const TrainerSidebarHeader = styled(motion.div)`
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(120, 81, 169, 0.2);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   position: relative;
   z-index: 2;
   
@@ -158,7 +158,7 @@ const TrainerSidebarHeader = styled(motion.div)`
     width: 30px;
     height: 30px;
     background: ${props => props.theme.gradients.trainingHub};
-    border: 2px solid rgba(120, 81, 169, 0.3);
+    border: 2px solid rgba(139, 92, 246, 0.3);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -219,18 +219,18 @@ const TrainerNavItem = styled(motion.div)`
   transition: all 0.3s ease;
   
   background: ${props => props.isActive ? 
-    'rgba(120, 81, 169, 0.3)' : 
+    'rgba(139, 92, 246, 0.3)' : 
     'transparent'
   };
   
   border: 1px solid ${props => props.isActive ? 
-    'rgba(120, 81, 169, 0.5)' : 
+    'rgba(139, 92, 246, 0.5)' : 
     'transparent'
   };
   
   &:hover {
-    background: rgba(120, 81, 169, 0.2);
-    border-color: rgba(120, 81, 169, 0.4);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
     transform: translateX(4px);
     
     .trainer-nav-icon {
@@ -268,7 +268,7 @@ const TrainerNavItem = styled(motion.div)`
     left: calc(100% + 1rem);
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(120, 81, 169, 0.9);
+    background: rgba(139, 92, 246, 0.9);
     color: ${props => props.theme.colors.stellarWhite};
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
@@ -278,7 +278,7 @@ const TrainerNavItem = styled(motion.div)`
     pointer-events: none;
     transition: opacity 0.3s ease;
     z-index: 1000;
-    border: 1px solid rgba(120, 81, 169, 0.5);
+    border: 1px solid rgba(139, 92, 246, 0.5);
     box-shadow: ${props => props.theme.shadows.stellarGlow};
     display: ${props => props.isCollapsed ? 'block' : 'none'};
   }
@@ -290,7 +290,7 @@ const TrainerNavItem = styled(motion.div)`
 
 const TrainerSidebarFooter = styled(motion.div)`
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(120, 81, 169, 0.2);
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
   position: relative;
   z-index: 2;
   
@@ -303,7 +303,7 @@ const TrainerSidebarFooter = styled(motion.div)`
   
   .training-signature {
     font-size: 0.6rem;
-    color: rgba(120, 81, 169, 0.8);
+    color: rgba(139, 92, 246, 0.8);
     text-align: center;
     margin-top: 0.25rem;
     display: ${props => props.isCollapsed ? 'none' : 'block'};

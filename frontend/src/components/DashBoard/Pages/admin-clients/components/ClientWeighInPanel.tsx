@@ -235,8 +235,8 @@ const PrimaryButton = styled.button<{ $disabled?: boolean }>`
   border-radius: 8px;
   background: ${({ $disabled }) => $disabled
     ? 'rgba(255, 255, 255, 0.1)'
-    : 'linear-gradient(135deg, #00ffff, #00c8ff)'};
-  color: ${({ $disabled }) => $disabled ? '#555' : '#0a0a1a'};
+    : 'linear-gradient(135deg, #60C0F0, #00c8ff)'};
+  color: ${({ $disabled }) => $disabled ? '#555' : '#002060'};
   font-weight: 600;
   font-size: 0.875rem;
   cursor: ${({ $disabled }) => $disabled ? 'not-allowed' : 'pointer'};
@@ -252,7 +252,7 @@ const Spinner = styled.div`
   width: 24px;
   height: 24px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   margin: 32px auto;

@@ -274,7 +274,7 @@ export const AnimatedGradientText = styled.span<{ gradient?: string }>`
   background: ${props => 
     props.gradient || 
     props.theme.gradients?.stellar || 
-    'linear-gradient(45deg, #8B5CF6 0%, #FFD700 50%, #7851A9 100%)'
+    'linear-gradient(45deg, #8B5CF6 0%, #FFD700 50%, #8B5CF6 100%)'
   };
   background-size: 200% 200%;
   -webkit-background-clip: text;

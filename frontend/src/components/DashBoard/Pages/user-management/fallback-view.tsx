@@ -99,7 +99,7 @@ const EditButton = styled.button`
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -143,14 +143,14 @@ const ToolButton = styled.button<{ $variant?: string }>`
   border-radius: 8px;
   border: 1px solid ${props =>
     props.$variant === 'error' ? 'rgba(244, 67, 54, 0.4)' :
-    props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.4)' :
+    props.$variant === 'secondary' ? 'rgba(139, 92, 246, 0.4)' :
     'rgba(139, 92, 246, 0.4)'
   };
   background: transparent;
   color: ${props =>
     props.$variant === 'error' ? '#f44336' :
-    props.$variant === 'secondary' ? '#7851a9' :
-    '#00ffff'
+    props.$variant === 'secondary' ? '#8B5CF6' :
+    '#60C0F0'
   };
   font-size: 0.875rem;
   cursor: pointer;
@@ -162,7 +162,7 @@ const ToolButton = styled.button<{ $variant?: string }>`
   &:hover {
     background: ${props =>
       props.$variant === 'error' ? 'rgba(244, 67, 54, 0.1)' :
-      props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.1)' :
+      props.$variant === 'secondary' ? 'rgba(139, 92, 246, 0.1)' :
       'rgba(139, 92, 246, 0.1)'
     };
   }

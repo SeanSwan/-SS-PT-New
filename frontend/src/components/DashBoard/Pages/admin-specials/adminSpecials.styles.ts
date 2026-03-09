@@ -14,13 +14,13 @@ export const Header = styled.div`
 `;
 
 export const Title = styled.h1`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.5rem;
   margin: 0;
 `;
 
 export const AddButton = styled.button`
-  background: linear-gradient(135deg, #7851a9, #9b6fcf);
+  background: linear-gradient(135deg, #8B5CF6, #9b6fcf);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -31,7 +31,7 @@ export const AddButton = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -46,10 +46,10 @@ export const Table = styled.table`
 export const Th = styled.th`
   text-align: left;
   padding: 16px;
-  background: rgba(120, 81, 169, 0.3);
-  color: #00ffff;
+  background: rgba(139, 92, 246, 0.3);
+  color: #60C0F0;
   font-weight: 600;
-  border-bottom: 1px solid rgba(120, 81, 169, 0.3);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 export const Td = styled.td`
@@ -83,7 +83,7 @@ export const ActionButton = styled.button<{ $variant?: 'edit' | 'delete' | 'togg
       case 'toggle':
         return 'background: #8B5CF6; color: black;';
       default:
-        return 'background: #7851A9; color: white;';
+        return 'background: #8B5CF6; color: white;';
     }
   }}
 
@@ -111,11 +111,11 @@ export const ModalContent = styled.div`
   padding: 32px;
   width: 90%;
   max-width: 500px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 export const ModalTitle = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 24px 0;
 `;
 
@@ -134,14 +134,14 @@ export const Input = styled.input`
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(0, 0, 0, 0.3);
   color: white;
   font-size: 1rem;
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -149,7 +149,7 @@ export const TextArea = styled.textarea`
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(0, 0, 0, 0.3);
   color: white;
   font-size: 1rem;
@@ -158,7 +158,7 @@ export const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -201,7 +201,7 @@ export const SaveButton = styled.button`
   padding: 10px 20px;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #7851a9, #9b6fcf);
+  background: linear-gradient(135deg, #8B5CF6, #9b6fcf);
   color: white;
   cursor: pointer;
   font-weight: 600;
@@ -233,7 +233,7 @@ export const ClientSearchInput = styled.input`
   width: 100%;
   padding: 10px 12px 10px 36px;
   border-radius: 8px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(0, 0, 0, 0.3);
   color: white;
   font-size: 0.875rem;
@@ -241,7 +241,7 @@ export const ClientSearchInput = styled.input`
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -258,13 +258,13 @@ export const SearchIcon = styled.span`
 export const ClientDropdown = styled.div`
   max-height: 160px;
   overflow-y: auto;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   margin-bottom: 8px;
 
   &::-webkit-scrollbar { width: 5px; }
-  &::-webkit-scrollbar-thumb { background: rgba(120, 81, 169, 0.4); border-radius: 5px; }
+  &::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.4); border-radius: 5px; }
 `;
 
 export const ClientDropdownItem = styled.button`
@@ -281,7 +281,7 @@ export const ClientDropdownItem = styled.button`
   justify-content: space-between;
   align-items: center;
 
-  &:hover { background: rgba(120, 81, 169, 0.2); }
+  &:hover { background: rgba(139, 92, 246, 0.2); }
   &:not(:last-child) { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
 `;
 
@@ -300,7 +300,7 @@ export const ClientChip = styled.span`
   background: rgba(139, 92, 246, 0.1);
   border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 16px;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.75rem;
   font-weight: 500;
 `;
@@ -330,5 +330,5 @@ export const ModalScrollContent = styled.div`
   padding-right: 4px;
 
   &::-webkit-scrollbar { width: 5px; }
-  &::-webkit-scrollbar-thumb { background: rgba(120, 81, 169, 0.4); border-radius: 5px; }
+  &::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.4); border-radius: 5px; }
 `;

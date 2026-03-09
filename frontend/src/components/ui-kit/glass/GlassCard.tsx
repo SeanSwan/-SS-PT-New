@@ -3,7 +3,7 @@
  * =================================================
  * Wraps FrostedCard with Gemini 3.1 Pro design spec variants:
  *   - cyan: Swan Cyan border glow (#8B5CF6 / #60C0F0)
- *   - purple: Cosmic Purple border glow (#7851A9 / #4070C0)
+ *   - purple: Cosmic Purple border glow (#8B5CF6 / #4070C0)
  *   - neutral: Subtle white border (default)
  *   - alert: Neon Coral glow (#FF3366) for injury/error states
  *
@@ -29,9 +29,9 @@ const VARIANT_COLORS: Record<GlassVariant, { border: string; glow: string; hover
     hoverBorder: 'rgba(96, 192, 240, 0.45)',
   },
   purple: {
-    border: 'rgba(120, 81, 169, 0.2)',
-    glow: '0 0 20px rgba(120, 81, 169, 0.15)',
-    hoverBorder: 'rgba(120, 81, 169, 0.45)',
+    border: 'rgba(139, 92, 246, 0.2)',
+    glow: '0 0 20px rgba(139, 92, 246, 0.15)',
+    hoverBorder: 'rgba(139, 92, 246, 0.45)',
   },
   neutral: {
     border: 'rgba(224, 236, 244, 0.1)',
@@ -46,7 +46,7 @@ const VARIANT_COLORS: Record<GlassVariant, { border: string; glow: string; hover
 };
 
 const StyledGlass = styled(motion.div)<{ $variant: GlassVariant; $padding: string; $interactive: boolean }>`
-  background: rgba(10, 10, 26, 0.4);
+  background: rgba(0, 32, 96, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 24px;
@@ -73,11 +73,11 @@ const StyledGlass = styled(motion.div)<{ $variant: GlassVariant; $padding: strin
     `}
 
   @supports not (backdrop-filter: blur(16px)) {
-    background: rgba(10, 10, 26, 0.85);
+    background: rgba(0, 32, 96, 0.85);
   }
 
   @media (prefers-reduced-transparency: reduce) {
-    background: rgba(10, 10, 26, 0.92);
+    background: rgba(0, 32, 96, 0.92);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }

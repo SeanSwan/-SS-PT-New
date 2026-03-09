@@ -23,7 +23,7 @@ const VideoContainer = styled.div`
   width: 100%;
   height: 0;
   padding-bottom: 75%; /* 4:3 aspect ratio */
-  background: linear-gradient(135deg, #1e1e3f, #0a0a1a);
+  background: linear-gradient(135deg, #1e1e3f, #002060);
   border-radius: 10px;
   overflow: hidden;
   display: flex;
@@ -92,7 +92,7 @@ const ScannerCorner = styled.div<{ position: string }>`
   width: 20px;
   height: 20px;
   border-style: solid;
-  border-color: #00ffff;
+  border-color: #60C0F0;
   border-width: ${({ position }) => {
     if (position === 'top-left') return '2px 0 0 2px';
     if (position === 'top-right') return '2px 2px 0 0';
@@ -134,7 +134,7 @@ const ButtonRow = styled.div`
 `;
 
 const ScanButton = styled.button`
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   color: white;
   border: none;
   border-radius: 50px;
@@ -192,7 +192,7 @@ const BarcodeInput = styled.input`
   transition: border-color 0.2s, box-shadow 0.2s;
   
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
   
@@ -204,7 +204,7 @@ const BarcodeInput = styled.input`
 const SubmitButton = styled(ScanButton)`
   width: 100%;
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #2ed573, #00ffff);
+  background: linear-gradient(135deg, #2ed573, #60C0F0);
 `;
 
 const InfoText = styled.div`
@@ -311,7 +311,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           
           <ScanButton 
             onClick={() => setShowManualInput(!showManualInput)}
-            style={{ background: showManualInput ? 'linear-gradient(135deg, #ff6b6b, #ee5a24)' : 'linear-gradient(135deg, #2ed573, #00ffff)' }}
+            style={{ background: showManualInput ? 'linear-gradient(135deg, #ff6b6b, #ee5a24)' : 'linear-gradient(135deg, #2ed573, #60C0F0)' }}
           >
             {showManualInput ? 'Hide Manual Entry' : 'Manual Entry'}
           </ScanButton>

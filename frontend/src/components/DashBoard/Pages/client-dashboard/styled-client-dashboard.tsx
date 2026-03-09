@@ -46,7 +46,7 @@ export const PageContainer = styled.div`
   width: 100%;
   min-height: calc(100vh - 64px);
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   color: #e2e8f0;
 `;
 
@@ -193,7 +193,7 @@ export const StyledLinearProgress = styled.div<{ $value?: number; $color?: strin
         ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
         : $color === 'error'
         ? 'linear-gradient(90deg, #ef4444, #f87171)'
-        : 'linear-gradient(90deg, #0ea5e9, #00ffff)'};
+        : 'linear-gradient(90deg, #0ea5e9, #60C0F0)'};
     transition: width 0.4s ease;
   }
 `;
@@ -210,7 +210,7 @@ export const LevelBadge = styled.div<{ $level: number }>`
   background: ${({ $level }) => {
     if ($level < 10) return 'linear-gradient(135deg, #2e7d32, #4caf50)';
     if ($level < 25) return 'linear-gradient(135deg, #1565c0, #2196f3)';
-    if ($level < 50) return 'linear-gradient(135deg, #7851a9, #9c27b0)';
+    if ($level < 50) return 'linear-gradient(135deg, #8B5CF6, #9c27b0)';
     if ($level < 100) return 'linear-gradient(135deg, #f57c00, #ff9800)';
     if ($level < 200) return 'linear-gradient(135deg, #c62828, #f44336)';
     if ($level < 350) return 'linear-gradient(135deg, #d32f2f, #f44336)';
@@ -282,7 +282,7 @@ export const AchievementItem = styled(motion.div)<{ $unlocked: boolean }>`
     height: 50px;
     border-radius: 50%;
     background: ${props => props.$unlocked
-      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2))'
       : 'rgba(255, 255, 255, 0.05)'};
     display: flex;
     justify-content: center;
@@ -447,7 +447,7 @@ export const InteractiveCard = styled(StyledCard)`
 `;
 
 export const GlowingButton = styled.button`
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(120, 81, 169, 0.2));
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(139, 92, 246, 0.2));
   border: 1px solid rgba(14, 165, 233, 0.3);
   color: #e2e8f0;
   font-weight: 500;
@@ -665,7 +665,7 @@ export const Badge = styled.div<{ $active: boolean }>`
   min-height: 44px;
   border-radius: 20px;
   background: ${props => props.$active
-    ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(120, 81, 169, 0.2))'
+    ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(139, 92, 246, 0.2))'
     : 'rgba(255, 255, 255, 0.05)'};
   color: ${props => props.$active ? '#0ea5e9' : 'rgba(226, 232, 240, 0.5)'};
   font-size: 0.8rem;
@@ -695,7 +695,7 @@ export const RewardCard = styled.div<{ $unlocked: boolean }>`
   padding: 1rem;
   border-radius: 12px;
   background: ${props => props.$unlocked
-    ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(120, 81, 169, 0.1))'
+    ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(139, 92, 246, 0.1))'
     : 'rgba(255, 255, 255, 0.03)'};
   border: 1px solid ${props => props.$unlocked
     ? 'rgba(14, 165, 233, 0.2)'
@@ -736,11 +736,11 @@ export const ChallengeCard = styled.div<{ $active: boolean }>`
   padding: 1.25rem;
   border-radius: 12px;
   background: ${props => props.$active
-    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.2), rgba(14, 165, 233, 0.2))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(14, 165, 233, 0.2))'
     : 'rgba(15, 23, 42, 0.95)'};
   backdrop-filter: blur(12px);
   border: 1px solid ${props => props.$active
-    ? 'rgba(120, 81, 169, 0.3)'
+    ? 'rgba(139, 92, 246, 0.3)'
     : 'rgba(14, 165, 233, 0.2)'};
 
   transition: all 0.3s ease;
@@ -756,7 +756,7 @@ export const ChallengeCard = styled.div<{ $active: boolean }>`
       height: 0;
       border-style: solid;
       border-width: 0 40px 40px 0;
-      border-color: transparent rgba(120, 81, 169, 0.6) transparent transparent;
+      border-color: transparent rgba(139, 92, 246, 0.6) transparent transparent;
     }
   `}
 
@@ -813,7 +813,7 @@ export const ScheduleTimeline = styled.div`
     top: 0;
     height: 100%;
     width: 2px;
-    background: linear-gradient(to bottom, rgba(14, 165, 233, 0.2) 0%, rgba(120, 81, 169, 0.2) 100%);
+    background: linear-gradient(to bottom, rgba(14, 165, 233, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
   }
 `;
 

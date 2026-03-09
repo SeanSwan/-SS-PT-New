@@ -80,7 +80,7 @@ const StatusBadge = styled.span<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   }};
   color: ${({ $status }) => {
     switch ($status) {
-      case 'granted': return '#00ffff';
+      case 'granted': return '#60C0F0';
       case 'withdrawn': return '#ef4444';
       default: return 'rgba(255, 255, 255, 0.6)';
     }
@@ -168,7 +168,7 @@ const ActionButton = styled.button<{ $variant: 'grant' | 'withdraw' | 'neutral' 
     switch ($variant) {
       case 'grant': return `
         background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(139, 92, 246, 0.8));
-        color: #0a0a1a;
+        color: #002060;
         border-color: rgba(139, 92, 246, 0.5);
         box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
         &:hover:not(:disabled) { box-shadow: 0 0 25px rgba(139, 92, 246, 0.4); transform: translateY(-1px); }
@@ -220,7 +220,7 @@ const Spinner = styled(motion.div)`
   width: 20px;
   height: 20px;
   border: 2px solid rgba(139, 92, 246, 0.15);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
 `;
 
@@ -348,7 +348,7 @@ const AiConsentPanel: React.FC = () => {
       transition={{ duration: 0.3 }}
     >
       <PanelTitle>
-        <Shield size={22} color="#00ffff" />
+        <Shield size={22} color="#60C0F0" />
         AI Privacy & Consent
       </PanelTitle>
 
@@ -446,7 +446,7 @@ const AiConsentPanel: React.FC = () => {
 
           {/* Disclosure */}
           <ConsentDisclosure>
-            <strong style={{ color: '#00ffff' }}>Consent Disclosure (v1.0)</strong> — By granting consent, SwanStudios
+            <strong style={{ color: '#60C0F0' }}>Consent Disclosure (v1.0)</strong> — By granting consent, SwanStudios
             may process your de-identified fitness profile through an AI provider to generate personalized workout plans.
             Personal identifiers are never shared. You may withdraw consent at any time.
           </ConsentDisclosure>

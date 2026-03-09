@@ -18,7 +18,7 @@ const Title = styled.h1`
   font-size: 2.5rem;
   margin-bottom: 1.5rem;
   text-align: center;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -67,7 +67,7 @@ const DashboardCard = styled.div`
     bottom: 0;
     border-radius: 12px;
     padding: 2px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     opacity: 0;
@@ -88,7 +88,7 @@ const CardIcon = styled.div`
   justify-content: center;
   margin-bottom: 1.5rem;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 2.5rem;
 `;
 
@@ -111,7 +111,7 @@ const Badge = styled.span`
   font-size: 0.8rem;
   font-weight: 500;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 /**

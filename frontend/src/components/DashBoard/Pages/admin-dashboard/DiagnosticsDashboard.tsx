@@ -22,7 +22,7 @@ const T = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   green: '#4caf50',
   red: '#f44336',
   orange: '#ff9800',

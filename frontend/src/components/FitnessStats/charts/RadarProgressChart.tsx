@@ -84,7 +84,7 @@ const RadarProgressChart: React.FC<RadarProgressChartProps> = ({
   nameKey,
   dataKey,
   height = 300,
-  color = '#00ffff',
+  color = '#60C0F0',
   title,
   maxValue = 100
 }) => {

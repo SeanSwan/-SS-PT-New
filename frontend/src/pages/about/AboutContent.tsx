@@ -30,13 +30,13 @@ const shimmer = keyframes`
 
 const pulseGlow = keyframes`
   0% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(120, 81, 169, 0.7);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.7);
   }
   100% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -68,7 +68,7 @@ const AboutSection = styled.section`
   padding: 6rem 0;
   color: white;
   overflow: hidden;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   
   @media (max-width: 768px) {
     padding: 4rem 0;
@@ -216,7 +216,7 @@ const TextContent = styled(motion.div)`
     &:first-of-type::first-letter {
       font-size: 3.5rem;
       font-weight: 400;
-      color: #00ffff;
+      color: #60C0F0;
       float: left;
       line-height: 0.8;
       margin-right: 0.15em;
@@ -225,13 +225,13 @@ const TextContent = styled(motion.div)`
   }
   
   strong {
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: 400;
     position: relative;
     
     /* Subtle highlight effect on hover */
     &:hover {
-      background: linear-gradient(90deg, #00ffff, #7851a9);
+      background: linear-gradient(90deg, #60C0F0, #8B5CF6);
       background-clip: text;
       -webkit-background-clip: text;
       color: transparent;
@@ -263,7 +263,7 @@ const FeatureList = styled.ul`
       position: absolute;
       left: 0;
       top: 0;
-      color: #00ffff;
+      color: #60C0F0;
       font-weight: bold;
       font-size: 1.2rem;
       text-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
@@ -309,7 +309,7 @@ const ImageWrapper = styled(motion.div)`
     inset: 0;
     border-radius: 15px;
     padding: 2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -362,7 +362,7 @@ const TopLeftElement = styled(OrnamentalElement)`
 const BottomRightElement = styled(OrnamentalElement)`
   bottom: -50px;
   right: -50px;
-  background: radial-gradient(circle at center, rgba(120, 81, 169, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
   animation: ${float} 5s ease-in-out infinite;
   ${reducedMotion}
 `;
@@ -399,7 +399,7 @@ const StatCard = styled(motion.div)`
 const StatNumber = styled.div`
   font-size: 3rem;
   font-weight: 300;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
   text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   position: relative;
@@ -439,7 +439,7 @@ const TimelineTitle = styled(motion.h3)`
   transform: translateX(-50%);
   
   span {
-    color: #00ffff;
+    color: #60C0F0;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
   
@@ -472,7 +472,7 @@ const TimelineLine = styled.div`
   background: linear-gradient(
     to bottom,
     rgba(139, 92, 246, 1),
-    rgba(120, 81, 169, 0.8),
+    rgba(139, 92, 246, 0.8),
     rgba(139, 92, 246, 0.4)
   );
   transform: translateX(-1px);
@@ -535,7 +535,7 @@ const TimelineItem = styled(motion.div)`
 const TimelineYear = styled.div`
   width: 60px;
   height: 60px;
-  background: linear-gradient(45deg, #00ffff, #7851a9);
+  background: linear-gradient(45deg, #60C0F0, #8B5CF6);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -570,7 +570,7 @@ const TimelineContent = styled.div`
     font-size: 1.3rem;
     font-weight: 500;
     margin-bottom: 1rem;
-    color: #00ffff;
+    color: #60C0F0;
     position: relative;
     display: inline-block;
     
@@ -581,7 +581,7 @@ const TimelineContent = styled.div`
       left: 0;
       width: 40px;
       height: 2px;
-      background: #00ffff;
+      background: #60C0F0;
     }
   }
   
@@ -623,7 +623,7 @@ const PhilosophyTitle = styled(motion.h3)`
   transform: translateX(-50%);
   
   span {
-    color: #00ffff;
+    color: #60C0F0;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
   
@@ -674,7 +674,7 @@ const PhilosophyCard = styled(motion.div)`
     inset: 0;
     border-radius: 15px;
     padding: 2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -737,7 +737,7 @@ const PhilosophyIcon = styled.div`
   svg {
     width: 35px;
     height: 35px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -757,7 +757,7 @@ const PhilosophyCardTitle = styled.h4`
     transform: translateX(-50%);
     width: 40px;
     height: 2px;
-    background: #00ffff;
+    background: #60C0F0;
   }
 `;
 
@@ -773,7 +773,7 @@ const PhilosophyCardText = styled.p`
 const TypedTextContainer = styled.div`
   margin: 2.5rem 0;
   position: relative;
-  border-left: 3px solid #00ffff;
+  border-left: 3px solid #60C0F0;
   padding-left: 1.5rem;
   max-width: 80%;
   
@@ -818,7 +818,7 @@ const CertificationsTitle = styled.h5`
   font-size: 1.1rem;
   font-weight: 400;
   margin-bottom: 1rem;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const CertificationBadges = styled.div`
@@ -844,7 +844,7 @@ const CertificationBadge = styled(motion.div)`
   gap: 0.5rem;
   
   svg {
-    color: #00ffff;
+    color: #60C0F0;
   }
   
   &:hover {

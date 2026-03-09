@@ -20,7 +20,7 @@ const Toggle = styled.button`
   bottom: 20px;
   right: 20px;
   z-index: 10000;
-  background: #00ffff;
+  background: #60C0F0;
   border: none;
   border-radius: 50%;
   width: 60px;
@@ -42,7 +42,7 @@ const Toggle = styled.button`
   }
   
   svg {
-    color: #0a0a1a;
+    color: #002060;
   }
 `;
 
@@ -59,7 +59,7 @@ const Panel = styled.div`
 
 const Title = styled.h3`
   margin: 0 0 20px 0;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 18px;
   font-weight: 600;
 `;
@@ -75,7 +75,7 @@ const UserButton = styled.button<{ $active?: boolean }>`
     props.$active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)'
   };
   border: ${(props) => 
-    props.$active ? '1px solid #00ffff' : '1px solid rgba(255, 255, 255, 0.1)'
+    props.$active ? '1px solid #60C0F0' : '1px solid rgba(255, 255, 255, 0.1)'
   };
   border-radius: 8px;
   color: white;
@@ -148,14 +148,14 @@ const UserSwitcher: React.FC = () => {
       name: 'Admin User',
       role: 'admin',
       icon: Crown,
-      color: '#00ffff'
+      color: '#60C0F0'
     },
     {
       username: 'trainer',
       name: 'John Trainer',
       role: 'trainer',
       icon: Users,
-      color: '#7851a9'
+      color: '#8B5CF6'
     },
     {
       username: 'client',

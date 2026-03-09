@@ -285,7 +285,7 @@ const VideoWatch: React.FC = () => {
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
   color: rgba(255, 255, 255, 0.9);
 `;
 
@@ -310,7 +310,7 @@ const BackButton = styled.button`
   min-height: 44px;
   margin-bottom: 16px;
   transition: color 0.2s;
-  &:hover { color: #00ffff; }
+  &:hover { color: #60C0F0; }
 `;
 
 const WatchLayout = styled.div`
@@ -385,7 +385,7 @@ const TagPill = styled.span`
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  color: #00ffff;
+  color: #60C0F0;
   background: rgba(139, 92, 246, 0.08);
   border: 1px solid rgba(139, 92, 246, 0.2);
 `;
@@ -431,7 +431,7 @@ const ChapterItem = styled.button`
 const ChapterTime = styled.span`
   font-size: 13px;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   font-variant-numeric: tabular-nums;
   min-width: 48px;
 `;
@@ -544,8 +544,8 @@ const BackLink = styled(Link)`
   padding: 12px 28px;
   min-height: 48px;
   border-radius: 10px;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
-  color: #0a0a1a;
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
+  color: #002060;
   font-weight: 700;
   text-decoration: none;
   transition: transform 0.2s;

@@ -103,7 +103,7 @@ const GridContainer = styled.div`
 `;
 
 const SessionsBox = styled.div`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
   border-radius: 8px;
   padding: 24px;
   text-align: center;
@@ -111,7 +111,7 @@ const SessionsBox = styled.div`
 `;
 
 const SessionCount = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 700;
   font-size: 3.75rem;
   line-height: 1;
@@ -200,7 +200,7 @@ const Chip = styled.span<{ $variant?: 'error' | 'success' | 'info' | 'cyan' }>`
       case 'cyan':
         return `
           background: rgba(139, 92, 246, 0.2);
-          color: #00ffff;
+          color: #60C0F0;
         `;
       default:
         return `
@@ -379,7 +379,7 @@ const Spinner = styled.div`
   width: 36px;
   height: 36px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
 `;
@@ -490,7 +490,7 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
           {/* Header */}
           <Header>
             <HeaderLeft>
-              <CreditCard size={20} color="#00ffff" />
+              <CreditCard size={20} color="#60C0F0" />
               <HeaderTitle>Billing &amp; Sessions</HeaderTitle>
             </HeaderLeft>
             <RefreshButton onClick={() => refetch()} title="Refresh">
@@ -547,7 +547,7 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
               {data?.nextSession ? (
                 <>
                   <InlineRow>
-                    <Clock size={18} color="#00ffff" />
+                    <Clock size={18} color="#60C0F0" />
                     <InfoText>
                       {formatDateTime(data.nextSession.date)}
                     </InfoText>

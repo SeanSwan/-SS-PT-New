@@ -22,8 +22,8 @@ const CountChip = styled.span`
   border-radius: 12px;
   font-size: 0.8125rem;
   font-weight: 500;
-  background: rgba(120, 81, 169, 0.15);
-  color: #7851a9;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
 `;
 
 const Subtitle = styled.p`

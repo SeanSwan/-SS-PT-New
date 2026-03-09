@@ -143,7 +143,7 @@ const getNotificationIcon = (type: string) => {
     case 'order':
       return <ShoppingCart size={20} style={{ color: '#ec4899' }} />;
     case 'client':
-      return <CalendarCheck size={20} style={{ color: '#7851a9' }} />;
+      return <CalendarCheck size={20} style={{ color: '#8B5CF6' }} />;
     default:
       return <Info size={20} style={{ color: '#03a9f4' }} />;
   }

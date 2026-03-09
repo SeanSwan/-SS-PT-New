@@ -185,7 +185,7 @@ const executiveCommandTheme = {
     executiveGlass: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%)',
     dataFlow: 'radial-gradient(ellipse at top, #3b82f6 0%, #1e3a8a 50%, #0a0a0f 100%)',
     intelligenceHorizon: 'linear-gradient(270deg, #0891b2, #3b82f6, #1e3a8a)',
-    commandAurora: 'linear-gradient(45deg, #00ffff 0%, #3b82f6 50%, #1e3a8a 100%)'
+    commandAurora: 'linear-gradient(45deg, #60C0F0 0%, #3b82f6 50%, #1e3a8a 100%)'
   },
   shadows: {
     commandGlow: '0 0 30px rgba(59, 130, 246, 0.4)',
@@ -601,7 +601,7 @@ const navStatusStyles: Record<NavStatus, { color: string; background: string; bo
   partial: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   progress: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   fix: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.6)' },
-  new: { color: '#00ffff', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
+  new: { color: '#60C0F0', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
   error: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', border: 'rgba(239, 68, 68, 0.7)' }
 };
 
@@ -1154,7 +1154,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                               width: 8,
                               height: 8,
                               borderRadius: '50%',
-                              background: '#00ffff',
+                              background: '#60C0F0',
                               boxShadow: '0 0 8px rgba(139, 92, 246, 0.6)'
                             }}
                             animate={{ scale: [1, 1.2, 1] }}

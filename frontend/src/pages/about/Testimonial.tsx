@@ -35,7 +35,7 @@ const pulseGlow = keyframes`
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(120, 81, 169, 0.5);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
   }
   100% {
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
@@ -82,7 +82,7 @@ const TestimonialCard = styled(motion.div)`
     background: linear-gradient(
       90deg, 
       rgba(139, 92, 246, 0.7), 
-      rgba(120, 81, 169, 0.7)
+      rgba(139, 92, 246, 0.7)
     );
     opacity: 0.8;
     transition: opacity 0.3s ease;
@@ -120,7 +120,7 @@ const ImageContainer = styled.div`
     background: linear-gradient(
       45deg, 
       rgba(139, 92, 246, 0.6), 
-      rgba(120, 81, 169, 0.6)
+      rgba(139, 92, 246, 0.6)
     );
     z-index: -1;
     opacity: 0.7;

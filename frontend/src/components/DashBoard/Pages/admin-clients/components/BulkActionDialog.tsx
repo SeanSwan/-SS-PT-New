@@ -117,10 +117,10 @@ const Button = styled.button<{ $variant?: 'primary' | 'ghost' }>`
         : 'rgba(255, 255, 255, 0.2)'};
   background: ${(props) =>
     props.$variant === 'primary'
-      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(120, 81, 169, 0.4))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(139, 92, 246, 0.4))'
       : 'transparent'};
   color: ${(props) =>
-    props.$variant === 'primary' ? '#0a0a1a' : 'rgba(255, 255, 255, 0.85)'};
+    props.$variant === 'primary' ? '#002060' : 'rgba(255, 255, 255, 0.85)'};
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease;

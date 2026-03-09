@@ -314,7 +314,7 @@ const PrimaryButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: linear-gradient(135deg, #0ea5e9, #7851a9);
+  background: linear-gradient(135deg, #0ea5e9, #8B5CF6);
   color: #fff;
 
   &:hover {

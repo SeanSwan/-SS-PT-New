@@ -32,7 +32,7 @@ const HeaderRow = styled.div`
 const HeaderIcon = styled.span`
   display: inline-flex;
   align-items: center;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const PageTitle = styled.h1`
@@ -92,16 +92,16 @@ const TabButton = styled.button<{ $active: boolean }>`
   padding: 12px 16px;
   border: none;
   background: ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
-  color: ${({ $active }) => ($active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
+  color: ${({ $active }) => ($active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)')};
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.25s ease, color 0.25s ease;
-  border-bottom: 2px solid ${({ $active }) => ($active ? '#00ffff' : 'transparent')};
+  border-bottom: 2px solid ${({ $active }) => ($active ? '#60C0F0' : 'transparent')};
 
   &:hover {
     background: rgba(139, 92, 246, 0.06);
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -149,7 +149,7 @@ const CardFooter = styled.div`
 const Surface = styled.div<{ $highlight?: boolean; $centered?: boolean }>`
   background: ${({ $highlight }) =>
     $highlight
-      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%)'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
       : 'rgba(29, 31, 43, 0.8)'};
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -169,8 +169,8 @@ const PrimaryButton = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #00ffff 0%, #7851a9 100%);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0 0%, #8B5CF6 100%);
+  color: #002060;
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
@@ -193,10 +193,10 @@ const OutlinedButton = styled.button`
   gap: 8px;
   min-height: 44px;
   padding: 10px 20px;
-  border: 1px solid #00ffff;
+  border: 1px solid #60C0F0;
   border-radius: 8px;
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -217,7 +217,7 @@ const TextButton = styled.button<{ $color?: string }>`
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: ${({ $color }) => $color || '#00ffff'};
+  color: ${({ $color }) => $color || '#60C0F0'};
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -231,9 +231,9 @@ const TextButton = styled.button<{ $color?: string }>`
 /* ── Chip ─────────────────────────────────────────────────────── */
 
 const chipColorMap: Record<string, { bg: string; text: string; border: string }> = {
-  Strength: { bg: 'rgba(139, 92, 246, 0.12)', text: '#00ffff', border: 'rgba(139, 92, 246, 0.3)' },
+  Strength: { bg: 'rgba(139, 92, 246, 0.12)', text: '#60C0F0', border: 'rgba(139, 92, 246, 0.3)' },
   Cardio: { bg: 'rgba(255, 82, 82, 0.12)', text: '#ff5252', border: 'rgba(255, 82, 82, 0.3)' },
-  Dance: { bg: 'rgba(120, 81, 169, 0.15)', text: '#b388ff', border: 'rgba(120, 81, 169, 0.3)' },
+  Dance: { bg: 'rgba(139, 92, 246, 0.15)', text: '#b388ff', border: 'rgba(139, 92, 246, 0.3)' },
   success: { bg: 'transparent', text: '#66bb6a', border: 'rgba(102, 187, 106, 0.5)' }
 };
 
@@ -279,7 +279,7 @@ const ProgressFill = styled.div<{ $value: number }>`
   height: 100%;
   width: ${({ $value }) => $value}%;
   border-radius: 3px;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   transition: width 0.6s ease;
   animation: ${progressFillAnim} 0.8s ease-out;
 `;
@@ -304,7 +304,7 @@ const ExerciseIcon = styled.span`
   align-items: center;
   justify-content: center;
   min-width: 28px;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const ExerciseInfo = styled.div`
@@ -332,7 +332,7 @@ const FlexRow = styled.div<{
 const MetaIcon = styled.span<{ $secondary?: boolean }>`
   display: inline-flex;
   align-items: center;
-  color: ${({ $secondary }) => ($secondary ? 'rgba(255, 255, 255, 0.55)' : '#00ffff')};
+  color: ${({ $secondary }) => ($secondary ? 'rgba(255, 255, 255, 0.55)' : '#60C0F0')};
 `;
 
 const ExpandIcon = styled.span<{ $expanded: boolean }>`
@@ -666,7 +666,7 @@ const MyWorkoutsSection: React.FC = () => {
                     <TextButton $color="#ff5252">
                       Cancel
                     </TextButton>
-                    <TextButton $color="#00ffff">
+                    <TextButton $color="#60C0F0">
                       Reschedule
                     </TextButton>
                   </CardFooter>

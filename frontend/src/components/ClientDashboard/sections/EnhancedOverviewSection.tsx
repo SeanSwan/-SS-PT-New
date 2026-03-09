@@ -34,7 +34,7 @@ const LoadingSpinner = styled.div`
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.2rem;
 `;
 
@@ -94,7 +94,7 @@ const EnhancedOverviewSection: React.FC = () => {
       label: 'Total Workouts',
       value: data.stats.totalWorkouts,
       icon: 'W',
-      color: '#00ffff',
+      color: '#60C0F0',
       change: { value: 12, type: 'increase' as const },
     },
     {
@@ -129,7 +129,7 @@ const EnhancedOverviewSection: React.FC = () => {
     {
       label: 'Strength Gain',
       value: data.progress.strengthGain,
-      color: '#00ffff',
+      color: '#60C0F0',
     },
     {
       label: 'Endurance',

@@ -72,7 +72,7 @@ const SectionTitle = styled.h2`
   svg {
     width: 20px;
     height: 20px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -111,7 +111,7 @@ const Input = styled.input`
   }
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -127,11 +127,11 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
   }
 `;
 
@@ -140,7 +140,7 @@ const PrimaryButton = styled.button<{ $loading?: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
@@ -204,7 +204,7 @@ const StrategyBadge = styled.span`
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(120, 81, 169, 0.5);
+  background: rgba(139, 92, 246, 0.5);
   color: white;
 `;
 

@@ -37,7 +37,7 @@ import EnhancedDashboardHeader from './EnhancedDashboardHeader';
  * Replaces the sx={{ bgcolor, '&::before': {...} }} that was on PageContainer.
  */
 const PageWrapper = styled(PageContainer)`
-  background-color: #0a0a1a;
+  background-color: #002060;
   position: relative;
   min-height: 100vh;
 
@@ -142,7 +142,7 @@ const DrawerPanel = styled.div<{ $open: boolean }>`
   bottom: 0;
   width: 80%;
   max-width: 320px;
-  background: #0a0a1a;
+  background: #002060;
   color: white;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 1201;

@@ -903,9 +903,9 @@ const ScheduleContainer = styled.div`
   flex-direction: column;
 
   /* Cosmic Depth Background — Gemini 3.1 Pro directive */
-  background-color: #0a0a1a;
+  background-color: #002060;
   background-image:
-    radial-gradient(circle at 85% 15%, rgba(120, 81, 169, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
   background-attachment: fixed;
   color: #f0f0ff;

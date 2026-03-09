@@ -15,7 +15,7 @@ const Label = styled.label`
 `;
 
 const RequiredIndicator = styled.span`
-  color: #00ffff;
+  color: #60C0F0;
   margin-left: 0.25rem;
 `;
 

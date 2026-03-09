@@ -22,7 +22,7 @@ export const executiveCommandTheme = {
     executiveGlass: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%)',
     dataFlow: 'radial-gradient(ellipse at top, #3b82f6 0%, #1e3a8a 50%, #0a0a0f 100%)',
     intelligenceHorizon: 'linear-gradient(270deg, #0891b2, #3b82f6, #1e3a8a)',
-    commandAurora: 'linear-gradient(45deg, #00ffff 0%, #3b82f6 50%, #1e3a8a 100%)',
+    commandAurora: 'linear-gradient(45deg, #60C0F0 0%, #3b82f6 50%, #1e3a8a 100%)',
   },
   shadows: {
     commandGlow: '0 0 30px rgba(59, 130, 246, 0.4)',

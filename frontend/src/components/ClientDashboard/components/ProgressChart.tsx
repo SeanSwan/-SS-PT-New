@@ -29,7 +29,7 @@ const ChartContainer = styled.div`
   color: white;
   
   h3 {
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 1rem;
     font-size: 1.2rem;
     text-align: center;
@@ -74,7 +74,7 @@ const BarValue = styled.span`
   min-width: 40px;
   text-align: right;
   font-size: 0.9rem;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const CircularProgress = styled.div`
@@ -92,7 +92,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
   className
 }) => {
   const getDefaultColor = (index: number) => {
-    const colors = ['#00ffff', '#ff416c', '#4776e6', '#8360c3', '#2ebf91'];
+    const colors = ['#60C0F0', '#ff416c', '#4776e6', '#8360c3', '#2ebf91'];
     return colors[index % colors.length];
   };
 
@@ -140,7 +140,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
             cy="60"
             r="45"
             fill="none"
-            stroke="#00ffff"
+            stroke="#60C0F0"
             strokeWidth="8"
             strokeDasharray={strokeDasharray}
             strokeDashoffset="0"
@@ -151,7 +151,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({
             x="60"
             y="65"
             textAnchor="middle"
-            fill="#00ffff"
+            fill="#60C0F0"
             fontSize="18"
             fontWeight="bold"
           >

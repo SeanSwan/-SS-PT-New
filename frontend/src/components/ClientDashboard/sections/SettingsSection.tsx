@@ -99,7 +99,7 @@ const ToggleTrack = styled.span<{ $checked: boolean }>`
   border-radius: 13px;
   background: ${({ $checked }) =>
     $checked
-      ? 'linear-gradient(135deg, #00cccc, #00ffff)'
+      ? 'linear-gradient(135deg, #00cccc, #60C0F0)'
       : 'rgba(255, 255, 255, 0.15)'};
   transition: background 0.25s ease;
   box-shadow: ${({ $checked }) =>
@@ -193,7 +193,7 @@ const StyledSelect = styled.select`
   }
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
@@ -237,7 +237,7 @@ const StyledRange = styled.input`
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00cccc, #00ffff);
+    background: linear-gradient(135deg, #00cccc, #60C0F0);
     cursor: pointer;
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
@@ -255,7 +255,7 @@ const StyledRange = styled.input`
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00cccc, #00ffff);
+    background: linear-gradient(135deg, #00cccc, #60C0F0);
     cursor: pointer;
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);

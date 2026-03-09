@@ -30,13 +30,13 @@ export interface LivingConstellationProps {
 
   /**
    * Gradient start color
-   * @default theme.colors.primary or '#00ffff'
+   * @default theme.colors.primary or '#60C0F0'
    */
   colorFrom?: string;
 
   /**
    * Gradient end color
-   * @default theme.colors.secondary or '#7851a9'
+   * @default theme.colors.secondary or '#8B5CF6'
    */
   colorTo?: string;
 
@@ -115,8 +115,8 @@ const LivingConstellation: React.FC<LivingConstellationProps> = ({
   density = 'medium',
   interactive = true,
   paused = false,
-  colorFrom = '#00ffff',
-  colorTo = '#7851a9',
+  colorFrom = '#60C0F0',
+  colorTo = '#8B5CF6',
   className,
   forceTier
 }) => {

@@ -26,7 +26,7 @@ const PanelHeader = styled.div`
   margin-bottom: 16px;
 
   svg {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -57,8 +57,8 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 44px;
   background: none;
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#00ffff' : 'transparent'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  border-bottom: 2px solid ${props => props.$active ? '#60C0F0' : 'transparent'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.875rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -66,7 +66,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   margin-bottom: -1px;
 
   &:hover {
-    color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.9)'};
+    color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.9)'};
   }
 `;
 
@@ -108,9 +108,9 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   border-radius: 8px;
   border: none;
   background: ${props => props.$variant === 'secondary'
-    ? 'rgba(120, 81, 169, 0.3)'
+    ? 'rgba(139, 92, 246, 0.3)'
     : 'rgba(139, 92, 246, 0.15)'};
-  color: ${props => props.$variant === 'secondary' ? '#b388ff' : '#00ffff'};
+  color: ${props => props.$variant === 'secondary' ? '#b388ff' : '#60C0F0'};
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -118,7 +118,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
 
   &:hover:not(:disabled) {
     background: ${props => props.$variant === 'secondary'
-      ? 'rgba(120, 81, 169, 0.4)'
+      ? 'rgba(139, 92, 246, 0.4)'
       : 'rgba(139, 92, 246, 0.25)'};
   }
 

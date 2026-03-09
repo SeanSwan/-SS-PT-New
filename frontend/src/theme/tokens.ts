@@ -54,9 +54,9 @@ export const theme = {
    */
   colors: {
     brand: {
-      cyan: '#00ffff',    // Primary brand color
-      purple: '#7851a9',  // Secondary brand color
-      gradient: 'linear-gradient(135deg, #00ffff, #7851a9)' // Brand gradient
+      cyan: '#60c0f0',    // Primary brand color — Ice Wing (was #00ffff)
+      purple: '#8b5cf6',  // Secondary brand color — Wing Purple (was #7851a9)
+      gradient: 'linear-gradient(135deg, #60c0f0, #8b5cf6)' // Brand gradient
     },
     semantic: {
       success: '#22c55e', // Green - success states

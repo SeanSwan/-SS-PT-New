@@ -196,7 +196,7 @@ export const Paper = forwardRef<HTMLDivElement, PaperProps>(({ elevation = 1, va
     typeof (theme as Record<string, unknown>)?.primary === 'object'
       ? String(((theme as Record<string, any>).primary?.main ?? '#8B5CF6'))
       : '#8B5CF6';
-  const background = String(theme?.background?.surface ?? alpha('#0a0a1a', 0.65));
+  const background = String(theme?.background?.surface ?? alpha('#002060', 0.65));
   const border = variant === 'outlined' ? `1px solid ${alpha(primaryColor, 0.35)}` : '1px solid transparent';
   const shadow = variant === 'elevation' ? `0 ${Math.max(1, elevation) * 4}px ${Math.max(1, elevation) * 12}px rgba(0,0,0,0.24)` : 'none';
 
@@ -327,7 +327,7 @@ const StyledButton = styled.button<{ $variant: ButtonVariant; $btnColor: string;
     $variant === 'contained' &&
     css`
       background: ${$btnColor};
-      color: #0a0a1a;
+      color: #002060;
       border: none;
       &:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 4px 12px ${alpha($btnColor, 0.4)}; }
     `}
@@ -430,7 +430,7 @@ const AvatarRoot = styled.div<{ $size: number; $bgColor: string }>`
   border-radius: 50%;
   overflow: hidden;
   background: ${({ $bgColor }) => $bgColor};
-  color: #0a0a1a;
+  color: #002060;
   font-weight: 600;
   font-size: ${({ $size }) => `${$size * 0.4}px`};
   flex-shrink: 0;
@@ -445,7 +445,7 @@ export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement>, Style
 }
 
 export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
-  ({ src, alt = '', size = 40, bgColor = '#7851A9', sx, style, children, ...rest }, ref) => {
+  ({ src, alt = '', size = 40, bgColor = '#8B5CF6', sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
       <AvatarRoot ref={ref} $size={size} $bgColor={bgColor} style={mergeStyle(style, sx, system)} {...rest}>
@@ -514,7 +514,7 @@ Chip.displayName = 'Chip';
 /* ─── Card / CardContent / CardActions ──────────────────────────────────────── */
 
 const CardRoot = styled.div<{ $elevation: number }>`
-  background: ${alpha('#0a0a1a', 0.65)};
+  background: ${alpha('#002060', 0.65)};
   border: 1px solid ${alpha('#8B5CF6', 0.15)};
   border-radius: 12px;
   box-shadow: ${({ $elevation }) => `0 ${$elevation * 4}px ${$elevation * 12}px rgba(0,0,0,0.24)`};
@@ -568,7 +568,7 @@ const BadgeDot = styled.span<{ $badgeColor: string; $invisible: boolean }>`
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #0a0a1a;
+  color: #002060;
   background: ${({ $badgeColor }) => $badgeColor};
 `;
 
@@ -1014,7 +1014,7 @@ InputAdornment.displayName = 'InputAdornment';
 const OutlinedInputRoot = styled.div<{ $focused: boolean; $disabled: boolean }>`
   display: flex;
   align-items: center;
-  background: ${alpha('#0a0a1a', 0.6)};
+  background: ${alpha('#002060', 0.6)};
   border: 1px solid ${({ $focused }) => ($focused ? '#8B5CF6' : alpha('#FFFFFF', 0.2))};
   border-radius: 8px;
   padding: 8px 12px;
@@ -1261,7 +1261,7 @@ const FabRoot = styled.button<{ $fabSize: number; $fabColor: string; $disabled: 
   border-radius: 50%;
   border: none;
   background: ${({ $fabColor }) => $fabColor};
-  color: #0a0a1a;
+  color: #002060;
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -1282,7 +1282,7 @@ export interface FabProps extends React.ButtonHTMLAttributes<HTMLButtonElement>,
 const fabSizes = { small: 40, medium: 48, large: 56 };
 
 export const Fab = forwardRef<HTMLButtonElement, FabProps>(
-  ({ color = '#7851A9', size = 'medium', variant = 'circular', sx, style, disabled = false, ...rest }, ref) => {
+  ({ color = '#8B5CF6', size = 'medium', variant = 'circular', sx, style, disabled = false, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     const sizeVal = fabSizes[size];
     const extended = variant === 'extended';
@@ -1557,7 +1557,7 @@ const DrawerPanel = styled.div<{
 }>`
   position: ${({ $variant }) => ($variant === 'permanent' ? 'relative' : 'fixed')};
   z-index: 1200;
-  background: ${alpha('#0a0a1a', 0.95)};
+  background: ${alpha('#002060', 0.95)};
   color: #FFFFFF;
   overflow-y: auto;
   transition: transform 0.3s ease;
@@ -2126,7 +2126,7 @@ InputLabel.displayName = 'InputLabel';
 
 const SelectRoot = styled.select<{ $fullWidth: boolean; $error: boolean; $size: string }>`
   appearance: none;
-  background: ${alpha('#0a0a1a', 0.6)};
+  background: ${alpha('#002060', 0.6)};
   border: 1px solid ${alpha('#FFFFFF', 0.23)};
   border-radius: 8px;
   color: #FFFFFF;

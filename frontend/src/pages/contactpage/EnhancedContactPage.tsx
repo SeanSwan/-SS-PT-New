@@ -52,13 +52,13 @@ const float = keyframes`
 
 const pulseGlow = keyframes`
   0% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(120, 81, 169, 0.7);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.7);
   }
   100% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -79,7 +79,7 @@ const borderPulse = keyframes`
     border-color: rgba(139, 92, 246, 0.5);
   }
   50% {
-    border-color: rgba(120, 81, 169, 0.8);
+    border-color: rgba(139, 92, 246, 0.8);
   }
   100% {
     border-color: rgba(139, 92, 246, 0.5);
@@ -112,7 +112,7 @@ const ContactPageWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #002060 0%, #1e1e3f 50%, #002060 100%);
   background-attachment: fixed;
 
   /* Ensure dark bg covers entire page — no white bleed */
@@ -120,7 +120,7 @@ const ContactPageWrapper = styled.div`
     content: '';
     position: fixed;
     inset: 0;
-    background: #0a0a1a;
+    background: #002060;
     z-index: -1;
   }
 `;
@@ -153,7 +153,7 @@ const Overlay = styled.div`
   height: 100%;
   background: linear-gradient(
     45deg,
-    rgba(10, 10, 26, 0.85),
+    rgba(0, 32, 96, 0.85),
     rgba(30, 30, 63, 0.85)
   );
   z-index: 1;
@@ -168,7 +168,7 @@ const Overlay = styled.div`
     background: linear-gradient(
       135deg,
       rgba(139, 92, 246, 0.15),
-      rgba(120, 81, 169, 0.15),
+      rgba(139, 92, 246, 0.15),
       rgba(139, 92, 246, 0.15)
     );
     background-size: 200% 200%;
@@ -206,7 +206,7 @@ const BottomRightOrb = styled.div`
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  background: rgba(120, 81, 169, 0.05);
+  background: rgba(139, 92, 246, 0.05);
   filter: blur(60px);
   opacity: 0.3;
   z-index: 2;
@@ -302,7 +302,7 @@ const PageTitle = styled(motion.h1)`
       to right,
       rgba(139, 92, 246, 0),
       rgba(139, 92, 246, 0.8),
-      rgba(120, 81, 169, 0.8),
+      rgba(139, 92, 246, 0.8),
       rgba(139, 92, 246, 0)
     );
   }
@@ -350,7 +350,7 @@ const ContactSectionsContainer = styled(motion.div)`
     inset: 0;
     border-radius: 20px;
     padding: 2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -426,7 +426,7 @@ const FormTitle = styled(motion.h2)`
     background: linear-gradient(
       to right,
       rgba(139, 92, 246, 1),
-      rgba(120, 81, 169, 0.5)
+      rgba(139, 92, 246, 0.5)
     );
   }
 `;
@@ -436,7 +436,7 @@ const InfoTitle = styled(FormTitle)`
   &:after {
     background: linear-gradient(
       to right,
-      rgba(120, 81, 169, 1),
+      rgba(139, 92, 246, 1),
       rgba(139, 92, 246, 0.5)
     );
   }
@@ -575,7 +575,7 @@ const InfoItem = styled.div`
   margin-bottom: 1rem;
   
   .icon {
-    color: #00ffff;
+    color: #60C0F0;
     margin-right: 12px;
     font-size: 1.5rem;
   }
@@ -586,7 +586,7 @@ const InfoItem = styled.div`
   }
   
   a {
-    color: #00ffff;
+    color: #60C0F0;
     text-decoration: none;
     transition: all 0.3s ease;
     
@@ -622,7 +622,7 @@ const SocialIconLink = styled.a`
 
   &:hover, &:focus-visible {
     background: rgba(139, 92, 246, 0.2);
-    color: #00ffff;
+    color: #60C0F0;
     transform: translateY(-3px);
     border-color: rgba(139, 92, 246, 0.4);
     outline: 2px solid rgba(139, 92, 246, 0.6);
@@ -755,7 +755,7 @@ const FAQItem = styled(motion.div)`
   .question {
     font-size: 1.2rem;
     font-weight: 500;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 0.5rem;
   }
   

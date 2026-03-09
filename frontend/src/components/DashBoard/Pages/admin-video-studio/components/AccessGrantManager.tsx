@@ -112,7 +112,7 @@ const Input = styled.input`
   transition: border-color 0.2s;
   box-sizing: border-box;
 
-  &:focus { border-color: #00ffff; }
+  &:focus { border-color: #60C0F0; }
   &::placeholder { color: #475569; }
 `;
 
@@ -132,7 +132,7 @@ const Dropdown = styled.div`
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: rgba(10, 10, 26, 0.97);
+  background: rgba(0, 32, 96, 0.97);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   z-index: 20;
@@ -194,8 +194,8 @@ const RadioBtn = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: all 0.2s;
   background: ${p => (p.$active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(30, 58, 138, 0.2)')};
-  border: 1px solid ${p => (p.$active ? '#00ffff' : 'rgba(59, 130, 246, 0.3)')};
-  color: ${p => (p.$active ? '#00ffff' : '#94a3b8')};
+  border: 1px solid ${p => (p.$active ? '#60C0F0' : 'rgba(59, 130, 246, 0.3)')};
+  color: ${p => (p.$active ? '#60C0F0' : '#94a3b8')};
 
   &:hover { border-color: rgba(139, 92, 246, 0.5); }
 `;
@@ -217,8 +217,8 @@ const Select = styled.select`
   background-position: right 0.75rem center;
   box-sizing: border-box;
 
-  &:focus { border-color: #00ffff; }
-  option { background: #0a0a1a; color: #e2e8f0; }
+  &:focus { border-color: #60C0F0; }
+  option { background: #002060; color: #e2e8f0; }
 `;
 
 const DateInput = styled.input`
@@ -233,7 +233,7 @@ const DateInput = styled.input`
   box-sizing: border-box;
   margin-top: 0.4rem;
 
-  &:focus { border-color: #00ffff; }
+  &:focus { border-color: #60C0F0; }
   &::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 `;
 

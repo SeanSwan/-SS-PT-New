@@ -28,7 +28,7 @@ const SectionHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 1rem;
@@ -48,7 +48,7 @@ const StatCard = styled.div`
 `;
 
 const StatValue = styled.div`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.6rem;
   font-weight: 700;
 `;
@@ -119,7 +119,7 @@ const GoalBar = styled.div`
 const GoalBarFill = styled.div<{ $progress: number }>`
   height: 100%;
   width: ${(props) => Math.min(100, Math.max(0, props.$progress))}%;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
 `;
 
 const MeasurementList = styled.div`
@@ -134,7 +134,7 @@ const MeasurementRow = styled.div`
   align-items: center;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  background: rgba(120, 81, 169, 0.1);
+  background: rgba(139, 92, 246, 0.1);
 `;
 
 const MeasurementDate = styled.div`
@@ -143,7 +143,7 @@ const MeasurementDate = styled.div`
 `;
 
 const MeasurementValue = styled.div`
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 600;
 `;
 
@@ -196,7 +196,7 @@ const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurem
 
   return (
     <svg width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none">
-      <path d={path} fill="none" stroke="#00ffff" strokeWidth="3" />
+      <path d={path} fill="none" stroke="#60C0F0" strokeWidth="3" />
     </svg>
   );
 };

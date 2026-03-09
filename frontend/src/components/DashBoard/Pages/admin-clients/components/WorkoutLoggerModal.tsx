@@ -21,7 +21,7 @@ const VoiceMemoUpload = lazy(() => import('../../../../WorkoutLogger/VoiceMemoUp
 /* ─────────────────────── Theme Tokens ─────────────────────── */
 
 const SWAN_CYAN = '#8B5CF6';
-const GALAXY_CORE = '#0a0a1a';
+const GALAXY_CORE = '#002060';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }

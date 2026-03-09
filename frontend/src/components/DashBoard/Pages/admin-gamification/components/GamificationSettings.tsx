@@ -113,7 +113,7 @@ const Button = styled.button<{ $variant?: 'primary' | 'outlined' | 'ghost'; $dis
         `;
       default:
         return `
-          background: linear-gradient(135deg, #0ea5e9, #7851A9);
+          background: linear-gradient(135deg, #0ea5e9, #8B5CF6);
           color: #ffffff;
           border: none;
           &:hover:not(:disabled) {

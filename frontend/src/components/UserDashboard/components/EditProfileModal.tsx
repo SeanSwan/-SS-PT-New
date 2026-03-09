@@ -145,7 +145,7 @@ const SaveButton = styled(motion.button)`
   justify-content: center;
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #7851a9));
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6));
   color: white;
   border: none;
   border-radius: 12px;

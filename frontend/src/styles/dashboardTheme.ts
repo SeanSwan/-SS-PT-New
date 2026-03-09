@@ -18,17 +18,17 @@ export const spacing = {
 // Define colors
 export const colors = {
   // Primary colors
-  primary: '#00ffff',
+  primary: '#60C0F0',
   primaryLight: '#7efbfb',
   primaryDark: '#00b8b8',
   
   // Secondary colors
-  secondary: '#7851a9',
+  secondary: '#8B5CF6',
   secondaryLight: '#a67dd4',
   secondaryDark: '#5e3d90',
   
   // Background colors
-  background: '#0a0a1a',
+  background: '#002060',
   paperLight: 'rgba(30, 30, 60, 0.3)',
   paperDark: 'rgba(20, 20, 40, 0.7)',
   
@@ -43,8 +43,8 @@ export const colors = {
   info: '#2196f3',
   
   // Gradients
-  gradientPrimary: 'linear-gradient(90deg, #00ffff 0%, #7efbfb 100%)',
-  gradientSecondary: 'linear-gradient(90deg, #7851a9 0%, #a67dd4 100%)',
+  gradientPrimary: 'linear-gradient(90deg, #60C0F0 0%, #7efbfb 100%)',
+  gradientSecondary: 'linear-gradient(90deg, #8B5CF6 0%, #a67dd4 100%)',
 };
 
 // Define border radii

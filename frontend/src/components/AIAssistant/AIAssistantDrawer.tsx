@@ -20,7 +20,7 @@ import DictationOrb from './DictationOrb';
 
 // ── Theme tokens ──
 const SWAN_CYAN = '#8B5CF6';
-const GALAXY_CORE = '#0a0a1a';
+const GALAXY_CORE = '#002060';
 const GLASS_BG = 'rgba(16, 18, 30, 0.96)';
 
 // ── Animations ──

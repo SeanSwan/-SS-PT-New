@@ -2,7 +2,7 @@ import styled, { keyframes } from 'styled-components';
 import { Loader2 } from 'lucide-react';
 
 export const SWAN_CYAN = '#8B5CF6';
-export const GALAXY_CORE = '#0a0a1a';
+export const GALAXY_CORE = '#002060';
 
 export const spin = keyframes`
   from { transform: rotate(0deg); }

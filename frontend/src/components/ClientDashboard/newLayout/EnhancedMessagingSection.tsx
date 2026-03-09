@@ -52,7 +52,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => 
     $active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
   color: ${({ $active }) => 
-    $active ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
+    $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.7)'};
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -63,7 +63,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   
   &:hover {
     background: rgba(139, 92, 246, 0.15);
-    color: #00ffff;
+    color: #60C0F0;
   }
   
   ${({ $active }) => $active && `
@@ -75,7 +75,7 @@ const TabButton = styled.button<{ $active: boolean }>`
       transform: translateX(-50%);
       width: 60%;
       height: 2px;
-      background: #00ffff;
+      background: #60C0F0;
     }
   `}
   
@@ -128,7 +128,7 @@ const MessageBubble = styled(motion.div)<{ $isOwnMessage: boolean }>`
   padding: 1rem;
   border-radius: 12px;
   background-color: ${({ $isOwnMessage }) => 
-    $isOwnMessage ? 'rgba(139, 92, 246, 0.2)' : 'rgba(120, 81, 169, 0.2)'};
+    $isOwnMessage ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.2)'};
   align-self: ${({ $isOwnMessage }) => 
     $isOwnMessage ? 'flex-end' : 'flex-start'};
   position: relative;
@@ -145,7 +145,7 @@ const MessageBubble = styled(motion.div)<{ $isOwnMessage: boolean }>`
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
     border-top: 8px solid ${({ $isOwnMessage }) => 
-      $isOwnMessage ? 'rgba(139, 92, 246, 0.2)' : 'rgba(120, 81, 169, 0.2)'};
+      $isOwnMessage ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.2)'};
   }
 `;
 
@@ -198,7 +198,7 @@ const StyledInput = styled.input`
   }
   
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background-color: rgba(30, 30, 60, 0.5);
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
   }
@@ -218,7 +218,7 @@ const Avatar = styled.div<{ $bgColor?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${({ $bgColor }) => $bgColor || 'linear-gradient(135deg, #7851a9, #00ffff)'};
+  background: ${({ $bgColor }) => $bgColor || 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
   display: flex;
   align-items: center;
   justify-content: center;

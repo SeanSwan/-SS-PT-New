@@ -106,15 +106,15 @@ const ThemeBadge = styled.div<{ theme: string }>`
   background: ${({ theme }) => {
     switch (theme) {
       case 'cosmic': return 'rgba(139, 92, 246, 0.2)';
-      case 'purple': return 'rgba(120, 81, 169, 0.2)';
+      case 'purple': return 'rgba(139, 92, 246, 0.2)';
       case 'ruby': return 'rgba(224, 36, 94, 0.2)';
       case 'emerald': return 'rgba(0, 200, 100, 0.2)';
-      default: return 'rgba(120, 81, 169, 0.2)';
+      default: return 'rgba(139, 92, 246, 0.2)';
     }
   }};
   color: ${({ theme }) => {
     switch (theme) {
-      case 'cosmic': return '#00ffff';
+      case 'cosmic': return '#60C0F0';
       case 'purple': return '#a97ef8';
       case 'ruby': return '#ff6e91';
       case 'emerald': return '#00ff95';
@@ -124,10 +124,10 @@ const ThemeBadge = styled.div<{ theme: string }>`
   border: 1px solid ${({ theme }) => {
     switch (theme) {
       case 'cosmic': return 'rgba(139, 92, 246, 0.3)';
-      case 'purple': return 'rgba(120, 81, 169, 0.3)';
+      case 'purple': return 'rgba(139, 92, 246, 0.3)';
       case 'ruby': return 'rgba(224, 36, 94, 0.3)';
       case 'emerald': return 'rgba(0, 200, 100, 0.3)';
-      default: return 'rgba(120, 81, 169, 0.3)';
+      default: return 'rgba(139, 92, 246, 0.3)';
     }
   }};
   text-transform: capitalize;
@@ -222,7 +222,7 @@ const FeatureItem = styled.li`
     content: '✓';
     position: absolute;
     left: 0;
-    color: ${({ theme }) => theme === 'cosmic' ? '#00ffff' : '#7851a9'};
+    color: ${({ theme }) => theme === 'cosmic' ? '#60C0F0' : '#8B5CF6'};
   }
 `;
 
@@ -281,7 +281,7 @@ const AddToCartWrapper = styled.div`
 const LoadingSpinner = styled.div`
   border: 4px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  border-top: 4px solid #00ffff;
+  border-top: 4px solid #60C0F0;
   width: 30px;
   height: 30px;
   animation: spin 1s linear infinite;

@@ -33,7 +33,7 @@ const Header = styled.div`
 
 const Title = styled.h2`
   font-size: 1.25rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
 `;
 
@@ -88,9 +88,9 @@ const Button = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: str
   ${({ $variant, $color }) => {
     if ($variant === 'contained') {
       return `
-        background-color: ${$color === 'warning' ? '#ffc107' : '#00ffff'};
+        background-color: ${$color === 'warning' ? '#ffc107' : '#60C0F0'};
         color: ${$color === 'warning' ? '#000' : '#000'};
-        border-color: ${$color === 'warning' ? '#ffc107' : '#00ffff'};
+        border-color: ${$color === 'warning' ? '#ffc107' : '#60C0F0'};
         
         &:hover {
           background-color: ${$color === 'warning' ? '#e0a800' : '#00e6e6'};
@@ -99,11 +99,11 @@ const Button = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: str
     } else {
       return `
         background-color: transparent;
-        color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#7851A9' : '#00ffff'};
-        border-color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#7851A9' : '#00ffff'};
+        color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#8B5CF6' : '#60C0F0'};
+        border-color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#8B5CF6' : '#60C0F0'};
         
         &:hover {
-          background-color: ${$color === 'warning' ? 'rgba(255, 193, 7, 0.1)' : $color === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
+          background-color: ${$color === 'warning' ? 'rgba(255, 193, 7, 0.1)' : $color === 'secondary' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
         }
       `;
     }

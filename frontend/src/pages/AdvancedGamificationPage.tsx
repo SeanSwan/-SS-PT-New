@@ -64,7 +64,7 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
         {/* Header */}
         <GamificationHeader>
           <HeaderContent>
-            <Trophy size={40} color="#00ffff" />
+            <Trophy size={40} color="#60C0F0" />
             <HeaderText>
               <h1>Gamification Hub</h1>
               <p>Transform your fitness journey into an epic adventure</p>
@@ -119,7 +119,7 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
         <FeatureGrid>
           <FeatureCard>
             <FeatureIcon>
-              <Trophy size={32} color="#00ffff" />
+              <Trophy size={32} color="#60C0F0" />
             </FeatureIcon>
             <FeatureContent>
               <h3>Achievements</h3>
@@ -160,7 +160,7 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
 
         {/* Coming Soon Notice */}
         <ComingSoonCard>
-          <Zap size={48} color="#00ffff" />
+          <Zap size={48} color="#60C0F0" />
           <h2>Advanced Features Coming Soon!</h2>
           <p>
             We're building an incredible gamification system with achievements, 
@@ -212,7 +212,7 @@ const HeaderText = styled.div`
     font-size: 2.5rem;
     font-weight: 300;
     margin: 0;
-    background: linear-gradient(135deg, #00ffff, #7d5fff);
+    background: linear-gradient(135deg, #60C0F0, #7d5fff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -269,7 +269,7 @@ const StatInfo = styled.div``;
 const StatValue = styled.div`
   font-size: 1.5rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const StatLabel = styled.div`

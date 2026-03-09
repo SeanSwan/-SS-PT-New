@@ -189,7 +189,7 @@ const UpcomingChecksWidget: React.FC = () => {
   return (
     <CommandCard style={{ padding: '2rem', height: '100%', marginBottom: '1.5rem' }}>
       <h3 style={{
-        color: '#00ffff',
+        color: '#60C0F0',
         margin: '0 0 1rem 0',
         fontSize: '1.25rem',
         fontWeight: 600,

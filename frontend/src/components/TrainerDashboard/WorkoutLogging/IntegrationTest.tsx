@@ -66,7 +66,7 @@ const WorkoutLoggingIntegrationTest: React.FC = () => {
         padding: '2rem',
         textAlign: 'center',
         color: 'white',
-        background: 'linear-gradient(135deg, rgba(120, 81, 169, 0.1), rgba(139, 92, 246, 0.05))',
+        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05))',
         borderRadius: '16px',
         margin: '2rem'
       }}

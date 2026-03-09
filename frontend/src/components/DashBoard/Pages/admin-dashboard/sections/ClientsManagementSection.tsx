@@ -175,7 +175,7 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#60C0F0'};
     box-shadow: 0 0 0 2px ${({ theme }) => theme.colors?.accent ? `${theme.colors.accent}33` : 'rgba(139, 92, 246, 0.2)'};
   }
 `;
@@ -200,7 +200,7 @@ const FilterSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#60C0F0'};
   }
 
   option {
@@ -249,7 +249,7 @@ const ClientAvatar = styled.div<{ $status?: string; $src?: string }>`
   background: ${({ $src, theme }) =>
     $src
       ? `url(${$src}) center/cover no-repeat`
-      : theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6 0%, #00ffff 100%)'};
+      : theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,7 +326,7 @@ const ClientTag = styled.span<{ $status?: string; $variant?: 'status' | 'tier' }
 
   ${props => props.$variant === 'tier' && `
     background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}33` : 'rgba(139, 92, 246, 0.2)'};
-    color: ${props.theme.colors?.accent || '#00ffff'};
+    color: ${props.theme.colors?.accent || '#60C0F0'};
     border: 1px solid ${props.theme.colors?.accent ? `${props.theme.colors.accent}4d` : 'rgba(139, 92, 246, 0.3)'};
   `}
 `;
@@ -361,7 +361,7 @@ const MetricItem = styled.div<{ $clickable?: boolean }>`
 const MetricValue = styled.div`
   font-size: 1.1rem;
   font-weight: 700;
-  color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
+  color: ${({ theme }) => theme.colors?.accent || '#60C0F0'};
   margin-bottom: 0.25rem;
 `;
 
@@ -411,7 +411,7 @@ const EngagementBar = styled.div`
 
 const EngagementFill = styled.div`
   height: 100%;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(90deg, #10b981, #00ffff)'};
+  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(90deg, #10b981, #60C0F0)'};
   border-radius: 3px;
   transition: width 0.3s ease;
 `;
@@ -511,7 +511,7 @@ const StatCard = styled(motion.div)`
 const StatNumber = styled.div`
   font-size: 2rem;
   font-weight: 700;
-  color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
+  color: ${({ theme }) => theme.colors?.accent || '#60C0F0'};
   margin-bottom: 0.5rem;
 `;
 

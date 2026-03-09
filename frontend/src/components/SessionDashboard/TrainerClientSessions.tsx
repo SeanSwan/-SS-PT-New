@@ -42,7 +42,7 @@ const HeaderSection = styled.div`
   .title {
     font-size: 1.75rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #00ffff, #0080ff);
+    background: linear-gradient(135deg, #60C0F0, #0080ff);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -79,7 +79,7 @@ const StatCard = styled(motion.div)`
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 0.25rem;
     font-family: 'Courier New', monospace;
   }
@@ -132,7 +132,7 @@ const ClientCard = styled(motion.div)<{ $hasActiveSession?: boolean }>`
     right: 0;
     height: 3px;
     background: ${props => props.$hasActiveSession 
-      ? 'linear-gradient(90deg, #00ff88, #00ffff, #0080ff)'
+      ? 'linear-gradient(90deg, #00ff88, #60C0F0, #0080ff)'
       : 'linear-gradient(90deg, #333, #666)'
     };
     background-size: 200% 100%;
@@ -150,7 +150,7 @@ const ClientHeader = styled.div`
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00ffff, #0080ff);
+    background: linear-gradient(135deg, #60C0F0, #0080ff);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -196,7 +196,7 @@ const SessionInfo = styled.div`
     
     .session-title {
       font-weight: 600;
-      color: #00ffff;
+      color: #60C0F0;
       margin-bottom: 0.25rem;
     }
     
@@ -243,7 +243,7 @@ const SessionInfo = styled.div`
       .value {
         font-size: 1.25rem;
         font-weight: 600;
-        color: #00ffff;
+        color: #60C0F0;
         margin-bottom: 0.25rem;
       }
       
@@ -275,7 +275,7 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   
   background: ${props => {
     switch (props.$variant) {
-      case 'primary': return 'linear-gradient(135deg, #00ffff, #0080ff)';
+      case 'primary': return 'linear-gradient(135deg, #60C0F0, #0080ff)';
       case 'danger': return 'linear-gradient(135deg, #ff6b9d, #ff4d6d)';
       default: return 'rgba(255, 255, 255, 0.1)';
     }
@@ -326,7 +326,7 @@ const LoadingSpinner = styled.div`
     width: 40px;
     height: 40px;
     border: 3px solid rgba(139, 92, 246, 0.3);
-    border-top: 3px solid #00ffff;
+    border-top: 3px solid #60C0F0;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }

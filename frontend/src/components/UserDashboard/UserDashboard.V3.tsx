@@ -486,7 +486,7 @@ const ProfileImage = styled.div<{ $image?: string }>`
       background: url(${$image});
       background-size: cover;
       background-position: center;
-      border: 4px solid var(--bg-base, #0a0a1a);
+      border: 4px solid var(--bg-base, #002060);
     `
     : css`
       background: linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'});
@@ -548,7 +548,7 @@ const ImageUploadButton = styled(motion.button)`
     ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
     ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 100%
   );
-  border: 3px solid var(--bg-base, #0a0a1a);
+  border: 3px solid var(--bg-base, #002060);
   color: white;
   display: flex;
   align-items: center;
@@ -1112,7 +1112,7 @@ const PrimaryButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #00ffff, #7851a9)'};
+  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #60C0F0, #8B5CF6)'};
   color: white;
   border: none;
   border-radius: 12px;
@@ -1354,7 +1354,7 @@ const Tab = styled(motion.button)<{ $active?: boolean }>`
   border: none;
   border-radius: 12px;
   background: ${({ $active }) =>
-    $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #7851a9))' : 'transparent'
+    $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6))' : 'transparent'
   };
   color: ${({ $active }) =>
     $active ? 'white' : 'var(--text-secondary)'
@@ -1366,7 +1366,7 @@ const Tab = styled(motion.button)<{ $active?: boolean }>`
 
   &:hover {
     background: ${({ $active }) =>
-      $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #7851a9))' : 'var(--bg-surface, var(--bg-elevated))'
+      $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6))' : 'var(--bg-surface, var(--bg-elevated))'
     };
     color: ${({ $active }) =>
       $active ? 'white' : 'var(--text-primary)'
@@ -1400,7 +1400,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 200px;
-  color: ${({ theme }) => theme.colors?.primary || '#00ffff'};
+  color: ${({ theme }) => theme.colors?.primary || '#60C0F0'};
 `;
 
 const LoadingSpinner = styled.div`
@@ -1446,7 +1446,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
             onClick={() => window.location.reload()}
             style={{
               padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #00ffff, #7851a9)',
+              background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
               border: 'none',
               borderRadius: '8px',
               color: 'white',
@@ -1757,19 +1757,19 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>Workouts</span>
-                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#00ffff' }}>
+                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#60C0F0' }}>
                         {displayStats.workouts}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>Level</span>
-                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#00ffff' }}>
+                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#60C0F0' }}>
                         {displayStats.level}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>Points</span>
-                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#00ffff' }}>
+                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#60C0F0' }}>
                         {displayStats.points}
                       </span>
                     </div>

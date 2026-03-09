@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 
 /* ---- Theme Tokens ---- */
 const SWAN_CYAN = '#8B5CF6';
-const GALAXY_CORE = '#0a0a1a';
+const GALAXY_CORE = '#002060';
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; }
@@ -146,7 +146,7 @@ const PainFlag = styled.span`
 
 const TranscriptBox = styled.details`
   margin-top: 16px;
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   overflow: hidden;

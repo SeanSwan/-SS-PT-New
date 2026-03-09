@@ -168,7 +168,7 @@ const CalendarContainer = styled(motion.div)`
     inset: 0;
     border-radius: 16px;
     padding: 2px; /* Thicker gradient border */
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -270,7 +270,7 @@ const RefreshButton = styled.button`
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  color: #00ffff;
+  color: #60C0F0;
   background: rgba(139, 92, 246, 0.1);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 999px;
@@ -366,16 +366,16 @@ const StatLabel = styled.div`
 const StatValue = styled.div`
   font-size: 1.8rem; /* Larger font size for better readability */
   font-weight: 700; /* Bolder */
-  background: linear-gradient(45deg, #00ffff, #7851a9);
+  background: linear-gradient(45deg, #60C0F0, #8B5CF6);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  text-shadow: 0 0 8px rgba(120, 81, 169, 0.5); /* Subtle glow for prominence */
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.5); /* Subtle glow for prominence */
   padding: 0.2rem 0; /* Add padding for better touch area */
 
   /* Add a base color that will show if gradient isn't supported */
   @supports not (background-clip: text) {
-    color: #00ffff;
+    color: #60C0F0;
     background: transparent;
   }
 `;
@@ -427,7 +427,7 @@ const CalendarWrapper = styled.div`
     button {
       background: rgba(30, 30, 60, 0.7); /* Darker background */
       color: white;
-      border: 1px solid rgba(120, 81, 169, 0.4); /* More visible border */
+      border: 1px solid rgba(139, 92, 246, 0.4); /* More visible border */
       transition: all 0.2s ease;
       padding: 0.6rem 1rem; /* Larger touch targets */
       font-size: 1rem; /* Larger text */
@@ -435,17 +435,17 @@ const CalendarWrapper = styled.div`
       margin: 0 2px; /* Slight spacing between buttons */
       
       &:hover:not(.rbc-active) {
-        background: rgba(120, 81, 169, 0.4);
+        background: rgba(139, 92, 246, 0.4);
       }
       
       &.rbc-active {
-        background: rgba(120, 81, 169, 0.6); /* More visible when active */
-        box-shadow: 0 0 12px rgba(120, 81, 169, 0.4);
+        background: rgba(139, 92, 246, 0.6); /* More visible when active */
+        box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
         font-weight: 600; /* Bolder when active */
       }
       
       &:focus {
-        outline: 2px solid #00ffff; /* Focus outline for accessibility */
+        outline: 2px solid #60C0F0; /* Focus outline for accessibility */
         outline-offset: 2px;
       }
     }
@@ -470,7 +470,7 @@ const CalendarWrapper = styled.div`
   }
   
   .rbc-event {
-    background: linear-gradient(45deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9)); /* More saturated colors */
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.9), rgba(139, 92, 246, 0.9)); /* More saturated colors */
     border: none;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -575,7 +575,7 @@ const EventTooltip = styled.div`
     margin: 0 0 0.75rem; /* More bottom margin */
     font-weight: 600; /* Bolder */
     font-size: 1.2rem; /* Larger heading */
-    color: #00ffff;
+    color: #60C0F0;
   }
   
   p {
@@ -644,7 +644,7 @@ const ModalContent = styled(motion.div)`
     inset: 0;
     border-radius: 16px;
     padding: 2px; /* Thicker gradient */
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -768,7 +768,7 @@ const ModalContent = styled(motion.div)`
     transition: all 0.2s ease;
     
     &.primary {
-      background: linear-gradient(45deg, #00ffff, #7851a9);
+      background: linear-gradient(45deg, #60C0F0, #8B5CF6);
       color: white;
       
       &:hover {
@@ -818,7 +818,7 @@ const ModalContent = styled(motion.div)`
   
   .section-heading {
     font-size: 1.2rem;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 1rem;
     position: relative;
     
@@ -829,7 +829,7 @@ const ModalContent = styled(motion.div)`
       left: 0;
       width: 50px;
       height: 2px;
-      background: linear-gradient(45deg, #00ffff, #7851a9);
+      background: linear-gradient(45deg, #60C0F0, #8B5CF6);
       border-radius: 1px;
     }
   }
@@ -868,7 +868,7 @@ const ModalContent = styled(motion.div)`
     margin-bottom: 1rem;
     text-align: center;
     background: rgba(139, 92, 246, 0.2);
-    color: #00ffff;
+    color: #60C0F0;
     border: 1px solid rgba(139, 92, 246, 0.3);
   }
   
@@ -997,7 +997,7 @@ const ModeToggle = styled.div`
     gap: 0.5rem;
     
     &.active {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
       color: white;
       box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
       
@@ -2139,8 +2139,8 @@ const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) 
                             width: '12px',
                             height: '12px',
                             borderRadius: '50%',
-                            background: (isAdmin || hasAdminBypass) ? 'linear-gradient(135deg, #00ffff, #7851a9)' : 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-                            boxShadow: `0 0 10px ${(isAdmin || hasAdminBypass) ? '#00ffff' : '#ff6b6b'}30`
+                            background: (isAdmin || hasAdminBypass) ? 'linear-gradient(135deg, #60C0F0, #8B5CF6)' : 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+                            boxShadow: `0 0 10px ${(isAdmin || hasAdminBypass) ? '#60C0F0' : '#ff6b6b'}30`
                           }} />
                           <div>
                             <div style={{ color: 'white', fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
@@ -2382,7 +2382,7 @@ const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) 
                         aria-label={createModalMode === 'session' ? "Create new session" : "Block selected time"}
                         style={{
                           background: createModalMode === 'session' 
-                            ? 'linear-gradient(135deg, #00ffff, #7851a9)'
+                            ? 'linear-gradient(135deg, #60C0F0, #8B5CF6)'
                             : 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
                           opacity: (
                             createModalMode === 'session' 

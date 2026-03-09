@@ -661,7 +661,7 @@ const EnhancedClientDashboard: React.FC = () => {
         maxWidth="md"
         PaperProps={{
           style: {
-            background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+            background: 'linear-gradient(135deg, #002060, #1e1e3f)',
             color: 'white',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '15px'
@@ -702,7 +702,7 @@ const EnhancedClientDashboard: React.FC = () => {
         maxWidth="md"
         PaperProps={{
           style: {
-            background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+            background: 'linear-gradient(135deg, #002060, #1e1e3f)',
             color: 'white',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '15px'
@@ -797,7 +797,7 @@ const EnhancedClientDashboard: React.FC = () => {
           justifyContent: 'center',
           height: '100vh'
         }}>
-          <CircularProgress size={60} style={{ color: '#00ffff', marginBottom: 24 }} />
+          <CircularProgress size={60} style={{ color: '#60C0F0', marginBottom: 24 }} />
           <Typography variant="h6">Loading your fitness dashboard...</Typography>
         </Box>
       </PageContainer>

@@ -86,7 +86,7 @@ const StyledCard = styled.div`
 `;
 
 const GlowBtn = styled.button`
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   color: white;
   padding: 8px 24px;
   min-height: 44px;
@@ -99,7 +99,7 @@ const GlowBtn = styled.button`
 
   &:hover {
     background: linear-gradient(90deg, #00e5e5, #6a4897);
-    box-shadow: 0 0 20px #00ffff;
+    box-shadow: 0 0 20px #60C0F0;
   }
 `;
 
@@ -112,7 +112,7 @@ const GlowBtnSmall = styled(GlowBtn)`
 const SectionHeading = styled.h5`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 24px;
 `;
 
@@ -279,7 +279,7 @@ const CommunityDashboard = () => {
     >
       <motion.div variants={itemVariants}>
         <PageHeading>
-          <Users size={36} color="#00ffff" />
+          <Users size={36} color="#60C0F0" />
           <h1>Community Hub</h1>
         </PageHeading>
       </motion.div>
@@ -294,7 +294,7 @@ const CommunityDashboard = () => {
               {/* Group 1 */}
               <GroupCard $accent="rgba(139, 92, 246, 0.1)">
                 <GroupHeader>
-                  <AvatarCircle $bg="#00ffff" $color="#0a0a1a">
+                  <AvatarCircle $bg="#60C0F0" $color="#002060">
                     <Dumbbell size={20} />
                   </AvatarCircle>
                   <GroupTitle>HIIT Warriors</GroupTitle>
@@ -307,9 +307,9 @@ const CommunityDashboard = () => {
               </GroupCard>
 
               {/* Group 2 */}
-              <GroupCard $accent="rgba(120, 81, 169, 0.1)">
+              <GroupCard $accent="rgba(139, 92, 246, 0.1)">
                 <GroupHeader>
-                  <AvatarCircle $bg="#7851a9" $color="#ffffff">
+                  <AvatarCircle $bg="#8B5CF6" $color="#ffffff">
                     <Activity size={20} />
                   </AvatarCircle>
                   <GroupTitle>Marathon Prep</GroupTitle>
@@ -324,7 +324,7 @@ const CommunityDashboard = () => {
               {/* Group 3 */}
               <GroupCard $accent="rgba(255, 183, 0, 0.1)">
                 <GroupHeader>
-                  <AvatarCircle $bg="#ffb700" $color="#0a0a1a">
+                  <AvatarCircle $bg="#ffb700" $color="#002060">
                     <Trophy size={20} />
                   </AvatarCircle>
                   <GroupTitle>Wellness Journey</GroupTitle>
@@ -387,8 +387,8 @@ const CommunityDashboard = () => {
               </div>
             </EventCard>
 
-            <EventCard $accent="rgba(120, 81, 169, 0.1)">
-              <DateBox $bg="rgba(120, 81, 169, 0.2)">
+            <EventCard $accent="rgba(139, 92, 246, 0.1)">
+              <DateBox $bg="rgba(139, 92, 246, 0.2)">
                 <DateMonth>JUN</DateMonth>
                 <DateDay>22</DateDay>
               </DateBox>
@@ -434,7 +434,7 @@ const CommunityDashboard = () => {
                   </ChallengeFooter>
                 </ChallengeCard>
 
-                <ChallengeCard $accent="rgba(120, 81, 169, 0.1)">
+                <ChallengeCard $accent="rgba(139, 92, 246, 0.1)">
                   <ChallengeTitle>Healthy Habits</ChallengeTitle>
                   <BodyText style={{ flex: 1 }}>
                     Build 5 new healthy habits over the course of 30 days

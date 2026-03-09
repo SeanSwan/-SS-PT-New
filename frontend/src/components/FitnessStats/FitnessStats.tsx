@@ -37,10 +37,10 @@ import nebula2Image from "../../assets/nebula2.png";
 
 // --- Design Tokens (Ethereal Wilderness, matches ProgramsOverview.V3) ---
 const T = {
-  bg: "#0a0a1a",
+  bg: "#002060",
   surface: "rgba(15, 25, 35, 0.92)",
   primary: "#00D4AA",
-  secondary: "#7851A9",
+  secondary: "#8B5CF6",
   accent: "#48E8C8",
   text: "#F0F8FF",
   textSecondary: "#8AA8B8",
@@ -165,10 +165,10 @@ const SectionVideoBackground = styled.div`
     bottom: 0;
     background: linear-gradient(
       180deg,
-      rgba(10, 10, 26, 0.7) 0%,
-      rgba(10, 10, 26, 0.5) 40%,
-      rgba(10, 10, 26, 0.6) 70%,
-      rgba(10, 10, 26, 0.85) 100%
+      rgba(0, 32, 96, 0.7) 0%,
+      rgba(0, 32, 96, 0.5) 40%,
+      rgba(0, 32, 96, 0.6) 70%,
+      rgba(0, 32, 96, 0.85) 100%
     );
     z-index: 1;
   }
@@ -188,7 +188,7 @@ const GradientFallback = styled.div`
     ),
     radial-gradient(
       ellipse at 70% 80%,
-      rgba(120, 81, 169, 0.06),
+      rgba(139, 92, 246, 0.06),
       transparent 50%
     ),
     linear-gradient(180deg, ${T.bg} 0%, #0d1a1a 100%);

@@ -48,7 +48,7 @@ const BannerContainer = styled(motion.div)`
       90deg,
       transparent 0%,
       rgba(139, 92, 246, 0.05) 25%,
-      rgba(120, 81, 169, 0.05) 75%,
+      rgba(139, 92, 246, 0.05) 75%,
       transparent 100%
     );
     pointer-events: none;

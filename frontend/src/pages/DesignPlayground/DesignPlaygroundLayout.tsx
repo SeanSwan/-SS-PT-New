@@ -42,7 +42,7 @@ const FloatingNav = styled.nav`
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(10, 10, 26, 0.9);
+  background: rgba(0, 32, 96, 0.9);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50px;
@@ -58,7 +58,7 @@ const BackButton = styled.button`
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
@@ -92,7 +92,7 @@ const ArrowButton = styled.button`
   &:hover {
     background: rgba(139, 92, 246, 0.1);
     border-color: rgba(139, 92, 246, 0.4);
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   &:disabled {
@@ -193,10 +193,10 @@ const VersionBadge = styled.span<{ $version: number }>`
   font-weight: 600;
   margin-left: 6px;
   background: ${({ $version }) =>
-    $version === 1 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
-  color: ${({ $version }) => ($version === 1 ? '#00ffff' : '#b088f0')};
+    $version === 1 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.25)'};
+  color: ${({ $version }) => ($version === 1 ? '#60C0F0' : '#b088f0')};
   border: 1px solid ${({ $version }) =>
-    $version === 1 ? 'rgba(139, 92, 246, 0.3)' : 'rgba(120, 81, 169, 0.4)'};
+    $version === 1 ? 'rgba(139, 92, 246, 0.3)' : 'rgba(139, 92, 246, 0.4)'};
 `;
 
 const LoadingContainer = styled.div`
@@ -205,7 +205,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
   color: #e0e0e0;
 `;
 
@@ -213,7 +213,7 @@ const Spinner = styled.div`
   width: 48px;
   height: 48px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid #00ffff;
+  border-top: 3px solid #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   margin-bottom: 16px;
@@ -225,7 +225,7 @@ const ErrorContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
   color: #e0e0e0;
   padding: 24px;
   text-align: center;

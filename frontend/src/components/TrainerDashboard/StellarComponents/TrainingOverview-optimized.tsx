@@ -144,7 +144,7 @@ const trainingStats = [
     icon: TrendingUp,
     value: '92%',
     label: 'Client Retention',
-    color: '#7851A9',
+    color: '#8B5CF6',
     trend: '+5% vs last month'
   },
   {

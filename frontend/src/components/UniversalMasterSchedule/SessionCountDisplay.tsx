@@ -35,7 +35,7 @@ const Header = styled.div`
 const RefreshButton = styled.button`
   background: none;
   border: none;
-  color: #00ffff;
+  color: #60C0F0;
   cursor: pointer;
   display: inline-flex;
   align-items: center;

@@ -332,7 +332,7 @@ const Avatar = styled.div<{ $size?: number; $src?: string }>`
   width: ${({ $size }) => $size || 40}px;
   height: ${({ $size }) => $size || 40}px;
   border-radius: 50%;
-  background: ${({ $src }) => ($src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #0ea5e9, #7851a9)')};
+  background: ${({ $src }) => ($src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #0ea5e9, #8B5CF6)')};
   display: flex;
   align-items: center;
   justify-content: center;

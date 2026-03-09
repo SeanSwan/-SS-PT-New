@@ -28,7 +28,7 @@ const Spinner = styled.div`
   width: 40px;
   height: 40px;
   border: 3px solid rgba(139, 92, 246, 0.15);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 
@@ -88,8 +88,8 @@ const TabButton = styled.button<{ $active?: boolean }>`
   min-height: 44px;
   background: none;
   border: none;
-  border-bottom: 2px solid ${({ $active }) => $active ? '#00ffff' : 'transparent'};
-  color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  border-bottom: 2px solid ${({ $active }) => $active ? '#60C0F0' : 'transparent'};
+  color: ${({ $active }) => $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -97,7 +97,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
   white-space: nowrap;
 
   &:hover {
-    color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.85)'};
+    color: ${({ $active }) => $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.85)'};
   }
 `;
 

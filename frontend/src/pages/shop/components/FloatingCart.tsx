@@ -20,10 +20,10 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 
 // EW Design Tokens
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -48,11 +48,11 @@ interface FloatingCartProps {
 // Keyframe animations
 const stellarPulse = keyframes`
   0%, 100% {
-    box-shadow: 0 0 20px rgba(0, 212, 170, 0.3), 0 0 40px rgba(120, 81, 169, 0.2);
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.3), 0 0 40px rgba(139, 92, 246, 0.2);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(0, 212, 170, 0.5), 0 0 60px rgba(120, 81, 169, 0.35);
+    box-shadow: 0 0 30px rgba(0, 212, 170, 0.5), 0 0 60px rgba(139, 92, 246, 0.35);
     transform: scale(1.05);
   }
 `;

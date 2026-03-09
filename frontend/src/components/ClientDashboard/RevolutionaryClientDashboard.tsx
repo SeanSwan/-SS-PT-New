@@ -63,9 +63,9 @@ const galaxyTheme = {
   colors: {
     deepSpace: '#0a0a0f',
     nebulaPurple: '#1e1e3f',
-    cyberCyan: '#00ffff',
+    cyberCyan: '#60C0F0',
     stellarWhite: '#ffffff',
-    cosmicPurple: '#7851a9',
+    cosmicPurple: '#8B5CF6',
     voidBlack: '#000000',
     starGold: '#ffd700',
     energyBlue: '#00c8ff',
@@ -74,13 +74,13 @@ const galaxyTheme = {
   },
   gradients: {
     galaxy: 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a0f 70%)',
-    nebula: 'linear-gradient(135deg, #7851a9 0%, #00ffff 50%, #1e1e3f 100%)',
-    stellar: 'linear-gradient(45deg, #00ffff 0%, #ffd700 100%)',
-    cosmic: 'radial-gradient(circle, #00ffff 0%, #7851a9 70%, #0a0a0f 100%)'
+    nebula: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 50%, #1e1e3f 100%)',
+    stellar: 'linear-gradient(45deg, #60C0F0 0%, #ffd700 100%)',
+    cosmic: 'radial-gradient(circle, #60C0F0 0%, #8B5CF6 70%, #0a0a0f 100%)'
   },
   shadows: {
     stellar: '0 0 20px rgba(139, 92, 246, 0.5)',
-    nebula: '0 0 30px rgba(120, 81, 169, 0.3)',
+    nebula: '0 0 30px rgba(139, 92, 246, 0.3)',
     cosmic: '0 15px 35px rgba(0, 0, 0, 0.5)',
     glow: '0 0 15px currentColor'
   }

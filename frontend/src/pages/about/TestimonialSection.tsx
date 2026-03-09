@@ -36,13 +36,13 @@ const pulse = keyframes`
 
 const pulseGlow = keyframes`
   0% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(120, 81, 169, 0.7);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.7);
   }
   100% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -52,7 +52,7 @@ const pulseGlow = keyframes`
 const TestimonialSectionContainer = styled.section`
   position: relative;
   padding: 6rem 0;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   overflow: hidden;
   
   /* Glass morphism layer */
@@ -115,7 +115,7 @@ const Subtitle = styled(motion.p)`
   line-height: 1.6;
   
   span {
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: 400;
   }
   
@@ -159,9 +159,9 @@ const HighlightSpan = styled.span`
     height: 3px;
     background: linear-gradient(
       to right,
-      #00ffff,
-      #7851a9,
-      #00ffff
+      #60C0F0,
+      #8B5CF6,
+      #60C0F0
     );
     background-size: 200% auto;
     animation: ${shimmer} 3s linear infinite;
@@ -186,7 +186,7 @@ const FeaturedCard = styled(motion.div)`
     inset: 0;
     border-radius: 15px;
     padding: 1px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -239,7 +239,7 @@ const FeaturedImage = styled.div`
     background: linear-gradient(
       45deg, 
       rgba(139, 92, 246, 0.6), 
-      rgba(120, 81, 169, 0.6)
+      rgba(139, 92, 246, 0.6)
     );
     z-index: -1;
     opacity: 0.7;
@@ -263,7 +263,7 @@ const FeaturedImage = styled.div`
 const FeaturedText = styled.div`
   h4 {
     font-size: 1.5rem;
-    color: #00ffff;
+    color: #60C0F0;
     margin: 0 0 0.25rem;
     font-weight: 400;
   }
@@ -369,8 +369,8 @@ const CTAContainer = styled(motion.div)`
     span {
       background: linear-gradient(
         to right,
-        #00ffff,
-        #7851a9
+        #60C0F0,
+        #8B5CF6
       );
       background-clip: text;
       -webkit-background-clip: text;
@@ -564,7 +564,7 @@ export default function TestimonialSection() {
           right: '8%', 
           width: '500px', 
           height: '500px', 
-          background: 'rgba(120, 81, 169, 0.15)',
+          background: 'rgba(139, 92, 246, 0.15)',
           animationDelay: '1s' 
         }} 
       />

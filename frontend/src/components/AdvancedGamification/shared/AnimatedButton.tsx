@@ -186,7 +186,7 @@ const ButtonContainer = styled(motion.button)<{
     switch (variant) {
       case 'primary':
         return css`
-          background: ${colors.background || 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)'};
+          background: ${colors.background || 'linear-gradient(135deg, #60C0F0 0%, #0080ff 100%)'};
           color: ${colors.text || '#000'};
           border: 1px solid transparent;
           
@@ -243,7 +243,7 @@ const ButtonContainer = styled(motion.button)<{
       case 'ghost':
         return css`
           background: transparent;
-          color: ${colors.text || '#00ffff'};
+          color: ${colors.text || '#60C0F0'};
           border: none;
           
           &:hover:not(:disabled) {
@@ -255,11 +255,11 @@ const ButtonContainer = styled(motion.button)<{
       case 'outline':
         return css`
           background: transparent;
-          color: ${colors.text || '#00ffff'};
-          border: 2px solid ${colors.border || '#00ffff'};
+          color: ${colors.text || '#60C0F0'};
+          border: 2px solid ${colors.border || '#60C0F0'};
           
           &:hover:not(:disabled) {
-            background: ${colors.backgroundHover || '#00ffff'};
+            background: ${colors.backgroundHover || '#60C0F0'};
             color: #000;
           }
         `;
@@ -288,7 +288,7 @@ const ButtonContainer = styled(motion.button)<{
       
       default:
         return css`
-          background: ${colors.background || 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)'};
+          background: ${colors.background || 'linear-gradient(135deg, #60C0F0 0%, #0080ff 100%)'};
           color: ${colors.text || '#000'};
         `;
     }
@@ -326,7 +326,7 @@ const ButtonContainer = styled(motion.button)<{
   
   /* Focus styles */
   &:focus-visible {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   

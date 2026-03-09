@@ -37,7 +37,7 @@ const BackgroundPatterns = styled.div`
     position: absolute;
     background-image: 
       radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(120, 81, 169, 0.05) 0%, transparent 50%);
+      radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
     width: 150%;
     height: 150%;
     top: -25%;
@@ -64,7 +64,7 @@ const GridLines = styled.div`
   z-index: 0;
   background-image: 
     linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 81, 169, 0.05) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
   background-position: -1px -1px;
 `;
@@ -104,7 +104,7 @@ const SectionTitle = styled(motion.h2)`
   position: relative;
   
   span {
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     position: relative;
@@ -117,7 +117,7 @@ const SectionTitle = styled(motion.h2)`
     left: 0;
     width: 100px;
     height: 3px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6);
     border-radius: 3px;
   }
   
@@ -160,7 +160,7 @@ const SectionDescription = styled(motion.p)`
 `;
 
 const HighlightText = styled.span`
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60C0F0);
   font-weight: 500;
 `;
 
@@ -199,7 +199,7 @@ const FeatureItem = styled(motion.li)`
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
+    background: linear-gradient(135deg, #60C0F0, #8B5CF6);
     color: #000;
     font-size: 0.8rem;
     font-weight: bold;
@@ -296,7 +296,7 @@ const PlayButton = styled(motion.button)`
   border-radius: 50%;
   border: none;
   background: rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.8rem;
   display: flex;
   align-items: center;
@@ -365,7 +365,7 @@ const ViewAllLink = styled(motion.a)`
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60C0F0);
   text-decoration: none;
   font-weight: 500;
   font-size: 1.1rem;
@@ -379,7 +379,7 @@ const ViewAllLink = styled(motion.a)`
     left: 0;
     width: 0;
     height: 2px;
-    background: var(--neon-blue, #00ffff);
+    background: var(--neon-blue, #60C0F0);
     transition: width 0.3s ease;
   }
   
@@ -443,7 +443,7 @@ const CloseButton = styled(motion.button)`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--neon-blue, #00ffff);
+  background: var(--neon-blue, #60C0F0);
   color: #000;
   border: none;
   display: flex;

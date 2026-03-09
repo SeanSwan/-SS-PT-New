@@ -383,7 +383,7 @@ const NavButton = styled.button`
   height: 44px;
   border-radius: 10px;
   border: 1px solid rgba(0, 206, 209, 0.3);
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   color: #e2e8f0;
   cursor: pointer;
   transition: all 150ms ease-out;
@@ -413,7 +413,7 @@ const NavLabel = styled.span`
 `;
 
 const GridWrapper = styled.div`
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   border: 1px solid rgba(0, 206, 209, 0.1);
   border-radius: 12px;
   overflow: hidden;

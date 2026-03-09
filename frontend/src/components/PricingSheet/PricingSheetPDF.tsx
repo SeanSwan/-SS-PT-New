@@ -93,7 +93,7 @@ const Badge = styled.span<{ variant: 'recommended' | 'value' }>`
   letter-spacing: 0.05em;
   color: ${props => props.variant === 'recommended' ? '#0a0a0f' : '#0a0a0f'};
   background: ${props => props.variant === 'recommended'
-    ? 'linear-gradient(135deg, #00ffff, #7dd3fc)'
+    ? 'linear-gradient(135deg, #60C0F0, #7dd3fc)'
     : 'linear-gradient(135deg, #ffd700, #fca5a5)'
   };
 `;

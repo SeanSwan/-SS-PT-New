@@ -27,7 +27,7 @@ const ChartTitle = styled.h3`
   margin: 0 0 0.75rem 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const ChartPlaceholder = styled.div`

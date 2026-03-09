@@ -650,7 +650,7 @@ const OverwatchGamificationHub: React.FC = () => {
           }}
           whileHover={{ scale: 1.05 }}
         >
-          <StatIcon $color="linear-gradient(135deg, #7851a9, #5a3d8a)">
+          <StatIcon $color="linear-gradient(135deg, #8B5CF6, #5a3d8a)">
             <Target />
           </StatIcon>
           <StatValue>{profile?.challengesCompleted || 0}</StatValue>

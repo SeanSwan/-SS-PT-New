@@ -16,7 +16,7 @@ const GlobalStyles = createGlobalStyle`
   
   body, html {
     font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
-    background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+    background: linear-gradient(135deg, #002060, #1e1e3f);
     color: white;
     min-height: 100vh;
     margin: 0;
@@ -25,7 +25,7 @@ const GlobalStyles = createGlobalStyle`
   }
   
   #root {
-    background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+    background: linear-gradient(135deg, #002060, #1e1e3f);
     min-height: 100vh;
     width: 100%;
   }
@@ -117,7 +117,7 @@ const GlobalStyles = createGlobalStyle`
   }
 
   .MuiTab-root.Mui-selected {
-    color: #00ffff !important;
+    color: #60C0F0 !important;
   }
 
   /* Login form specific adjustments */
@@ -243,7 +243,7 @@ const GlobalStyles = createGlobalStyle`
   
   /* Focus styles for keyboard navigation */
   :focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -252,8 +252,8 @@ const GlobalStyles = createGlobalStyle`
     position: absolute;
     top: -40px;
     left: 0;
-    background: #00ffff;
-    color: #0a0a1a;
+    background: #60C0F0;
+    color: #002060;
     padding: 8px 16px;
     z-index: 1000;
     transition: top 0.3s;

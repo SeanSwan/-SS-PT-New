@@ -16,10 +16,10 @@ import crystalSwanImage from "../../../assets/crystal-swan.png";
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -135,9 +135,9 @@ const VideoBackground = styled.div`
     bottom: 0;
     background: linear-gradient(
       to bottom,
-      rgba(10, 10, 26, 0.3) 0%,
-      rgba(10, 10, 26, 0.8) 50%,
-      rgba(10, 10, 26, 0.98) 100%
+      rgba(0, 32, 96, 0.3) 0%,
+      rgba(0, 32, 96, 0.8) 50%,
+      rgba(0, 32, 96, 0.98) 100%
     );
     z-index: 1;
   }

@@ -37,7 +37,7 @@ interface TabDef {
 // ─── Styled Components ───────────────────────────────
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   padding: 24px;
   color: rgba(255, 255, 255, 0.9);
 
@@ -53,7 +53,7 @@ const PageHeader = styled.div`
 const PageTitle = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -101,7 +101,7 @@ const TabButton = styled.button<{ $active: boolean }>`
     p.$active
       ? 'linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.15))'
       : 'rgba(30, 58, 138, 0.15)'};
-  color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
+  color: ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)')};
   font-size: 14px;
   font-weight: ${(p) => (p.$active ? 600 : 400)};
   cursor: pointer;

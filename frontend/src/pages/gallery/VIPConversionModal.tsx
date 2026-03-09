@@ -25,9 +25,9 @@ type Step = 'account' | 'checkout' | 'success';
 
 // ── Animations ────────────────────────────────────────────────────────────
 const cosmicPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 60px rgba(120, 81, 169, 0.1); }
-  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.35), 0 0 80px rgba(120, 81, 169, 0.2); }
-  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 60px rgba(120, 81, 169, 0.1); }
+  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 60px rgba(139, 92, 246, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.35), 0 0 80px rgba(139, 92, 246, 0.2); }
+  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 60px rgba(139, 92, 246, 0.1); }
 `;
 
 const checkmarkDraw = keyframes`
@@ -42,9 +42,9 @@ const ringExpand = keyframes`
 `;
 
 const glowPulse = keyframes`
-  0% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 24px rgba(120, 81, 169, 0.2); }
-  50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.6), 0 0 40px rgba(120, 81, 169, 0.35); }
-  100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 24px rgba(120, 81, 169, 0.2); }
+  0% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 24px rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.35); }
+  100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 24px rgba(139, 92, 246, 0.2); }
 `;
 
 // ── Spring transition config ──────────────────────────────────────────────
@@ -64,11 +64,11 @@ const Backdrop = styled(motion.div)`
 
 const ModalContainer = styled(motion.div)`
   position: relative;
-  background: rgba(10, 10, 26, 0.75);
+  background: rgba(0, 32, 96, 0.75);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(139, 92, 246, 0.15);
-  box-shadow: 0 24px 48px -12px rgba(120, 81, 169, 0.4);
+  box-shadow: 0 24px 48px -12px rgba(139, 92, 246, 0.4);
   border-radius: 24px;
   width: 100%;
   max-width: 480px;
@@ -132,7 +132,7 @@ const StepDot = styled.div<{ $active: boolean; $completed: boolean }>`
   height: 8px;
   border-radius: 50%;
   background: ${p =>
-    p.$completed ? '#00ffff' :
+    p.$completed ? '#60C0F0' :
     p.$active ? 'rgba(139, 92, 246, 0.6)' :
     'rgba(255, 255, 255, 0.15)'};
   transition: background 0.3s;
@@ -141,7 +141,7 @@ const StepDot = styled.div<{ $active: boolean; $completed: boolean }>`
 const Title = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -200,7 +200,7 @@ const NameRow = styled.div`
 const ToggleLink = styled.button`
   background: none;
   border: none;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 13px;
   cursor: pointer;
   padding: 0;
@@ -222,10 +222,10 @@ const PrimaryButton = styled.button<{ $loading?: boolean }>`
   width: 100%;
   min-height: 48px;
   padding: 0 24px;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   border: none;
   border-radius: 12px;
-  color: #0a0a1a;
+  color: #002060;
   font-size: 16px;
   font-weight: 700;
   cursor: ${p => p.$loading ? 'wait' : 'pointer'};
@@ -258,7 +258,7 @@ const ErrorText = styled.p`
 const VipPriceTag = styled.div`
   font-size: 48px;
   font-weight: 800;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -269,7 +269,7 @@ const VipPriceTag = styled.div`
 const VipLabel = styled.div`
   font-size: 18px;
   font-weight: 700;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -288,7 +288,7 @@ const TrustCard = styled.div`
 const TrustCardTitle = styled.h4`
   font-size: 14px;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -304,7 +304,7 @@ const TrustBullet = styled.div`
 `;
 
 const BulletIcon = styled.span`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 14px;
   flex-shrink: 0;
 `;
@@ -346,7 +346,7 @@ const TimelineContainer = styled.div`
     top: 20px;
     bottom: 20px;
     width: 2px;
-    background: linear-gradient(180deg, #8B5CF6 0%, #7851A9 100%);
+    background: linear-gradient(180deg, #8B5CF6 0%, #8B5CF6 100%);
     border-radius: 1px;
   }
 `;
@@ -364,7 +364,7 @@ const TimelineNode = styled.div`
   height: 32px;
   border-radius: 50%;
   border: 2px solid #8B5CF6;
-  background: rgba(10, 10, 26, 0.9);
+  background: rgba(0, 32, 96, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,7 +391,7 @@ const TimelineStepDesc = styled.p`
 const ValueBadge = styled.div`
   text-align: center;
   padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(120, 81, 169, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
   border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   margin-bottom: 20px;
@@ -400,7 +400,7 @@ const ValueBadge = styled.div`
 const ValueText = styled.span`
   font-size: 15px;
   font-weight: 700;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -423,7 +423,7 @@ const SuccessCircle = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
   border: 2px solid rgba(139, 92, 246, 0.4);
   display: flex;
   align-items: center;
@@ -445,7 +445,7 @@ const SuccessCheckmark = styled.svg`
 
   polyline {
     fill: none;
-    stroke: #00ffff;
+    stroke: #60C0F0;
     stroke-width: 3;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -458,7 +458,7 @@ const SuccessCheckmark = styled.svg`
 const SuccessTitle = styled.h2`
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -482,7 +482,7 @@ const SecondaryButton = styled.button`
   background: transparent;
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;

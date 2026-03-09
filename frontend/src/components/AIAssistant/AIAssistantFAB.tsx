@@ -28,11 +28,11 @@ const AIAssistantDrawer = lazy(() => import('./AIAssistantDrawer'));
 const nebulaGlow = keyframes`
   0%, 100% {
     box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35),
-                0 0 24px rgba(120, 81, 169, 0.15);
+                0 0 24px rgba(139, 92, 246, 0.15);
   }
   50% {
     box-shadow: 0 4px 28px rgba(139, 92, 246, 0.55),
-                0 0 48px rgba(120, 81, 169, 0.3),
+                0 0 48px rgba(139, 92, 246, 0.3),
                 0 0 64px rgba(139, 92, 246, 0.1);
   }
 `;
@@ -52,10 +52,10 @@ const FAB = styled.button`
   height: 52px;
   border-radius: 50%;
   border: 2px solid rgba(139, 92, 246, 0.4);
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba(0, 32, 96, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #0a0a1a;
+  color: #002060;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -76,7 +76,7 @@ const FAB = styled.button`
   &:hover {
     transform: scale(1.08);
     box-shadow: 0 6px 32px rgba(139, 92, 246, 0.6),
-                0 0 40px rgba(120, 81, 169, 0.35);
+                0 0 40px rgba(139, 92, 246, 0.35);
   }
 
   &:active {
@@ -120,7 +120,7 @@ const CmdKBar = styled.button`
   align-items: center;
   gap: 10px;
   padding: 12px 20px;
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -142,7 +142,7 @@ const CmdKBar = styled.button`
   &:hover {
     border-color: rgba(139, 92, 246, 0.5);
     color: rgba(224, 236, 244, 0.9);
-    background: rgba(10, 10, 26, 0.8);
+    background: rgba(0, 32, 96, 0.8);
   }
 
   @media (max-width: 1023px) {

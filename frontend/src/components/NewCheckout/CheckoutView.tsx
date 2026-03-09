@@ -65,7 +65,7 @@ const cosmicFloat = keyframes`
 
 // Styled Components - Galaxy Theme Preservation
 const CheckoutContainer = styled(motion.div)`
-  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #002060 0%, #1e1e3f 50%, #002060 100%);
   border-radius: 24px;
   border: 1px solid rgba(139, 92, 246, 0.3);
   position: relative;
@@ -94,7 +94,7 @@ const CheckoutContainer = styled(motion.div)`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #00ffff, #3b82f6, #00ffff);
+    background: linear-gradient(90deg, #60C0F0, #3b82f6, #60C0F0);
     animation: ${stellarShimmer} 3s infinite;
   }
 `;
@@ -113,7 +113,7 @@ const CheckoutHeader = styled.div`
 const CheckoutTitle = styled.h1`
   font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #00ffff, #3b82f6);
+  background: linear-gradient(135deg, #60C0F0, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -196,7 +196,7 @@ const SecurityBadge = styled.div`
   font-size: 0.85rem;
   
   svg {
-    color: #00ffff;
+    color: #60C0F0;
   }
   
   @media (max-width: 768px) {
@@ -227,7 +227,7 @@ const CheckoutSection = styled(motion.div)`
 const SectionTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
@@ -269,7 +269,7 @@ const InfoCard = styled.div`
 `;
 
 const InfoCardIcon = styled.div`
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
   display: flex;
   justify-content: center;

@@ -50,7 +50,7 @@ const ActionCard = styled.div`
   }
 
   &:focus-within {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
   }
 `;
 
@@ -92,7 +92,7 @@ const ActionButton = styled.a`
   border-radius: 8px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
@@ -118,8 +118,8 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 44px;
   background: none;
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#00ffff' : 'transparent'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  border-bottom: 2px solid ${props => props.$active ? '#60C0F0' : 'transparent'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.875rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -127,7 +127,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   margin-bottom: -2px;
 
   &:hover {
-    color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.9)'};
+    color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.9)'};
   }
 `;
 

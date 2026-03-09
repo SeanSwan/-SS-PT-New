@@ -12,7 +12,7 @@ const CardContainer = styled.div`
   height: 100%;
   background: rgba(29, 31, 43, 0.8);
   color: white;
-  box-shadow: 0 8px 25px rgba(120, 81, 169, 0.25);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.25);
   position: relative;
   overflow: hidden;
   transition: transform 0.3s ease;
@@ -75,7 +75,7 @@ const ProgressBarContainer = styled.div`
 const ProgressBarFill = styled.div<{ $value: number }>`
   height: 100%;
   width: ${props => props.$value}%;
-  background: #7851a9;
+  background: #8B5CF6;
   border-radius: 5px;
   transition: width 0.6s ease;
 `;

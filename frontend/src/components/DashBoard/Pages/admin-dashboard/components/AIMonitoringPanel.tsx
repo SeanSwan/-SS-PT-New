@@ -153,7 +153,7 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   green: '#4caf50',
   blue: '#2196f3',
   orange: '#ff9800',
@@ -161,7 +161,7 @@ const theme = {
   purple: '#9c27b0',
   glassBg: 'rgba(255, 255, 255, 0.02)',
   glassHover: 'rgba(255, 255, 255, 0.05)',
-  surface: '#0a0a1a',
+  surface: '#002060',
 };
 
 // ── Animations ──
@@ -422,7 +422,7 @@ const ActionButton = styled.button<{ $variant?: 'outlined' | 'filled' | 'text'; 
       case 'filled':
         return css`
           background: linear-gradient(135deg, ${theme.cyan}, #00c8ff);
-          color: #0a0a1a;
+          color: #002060;
           border: none;
           &:hover { background: linear-gradient(135deg, #00e6ff, #00b3ff); }
         `;
@@ -762,7 +762,7 @@ const FABMain = styled.button`
   border-radius: 50%;
   border: none;
   background: linear-gradient(135deg, ${theme.cyan}, #00c8ff);
-  color: #0a0a1a;
+  color: #002060;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -135,7 +135,7 @@ const ProgressBarTrack = styled.div`
 const ProgressBarFill = styled.div`
   width: 40%;
   height: 100%;
-  background: #00ffff;
+  background: #60C0F0;
   animation: ${progressAnimation} 1.5s ease-in-out infinite;
 `;
 

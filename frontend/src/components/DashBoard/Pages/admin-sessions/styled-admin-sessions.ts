@@ -21,13 +21,13 @@ export const pulseAnimation = keyframes`
 
 export const glowAnimation = keyframes`
   0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.3); }
   100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(139, 92, 246, 0.6); }
 `;
 
 // --- Executive Command Intelligence Theme ---
@@ -170,7 +170,7 @@ export const StatsValue = styled.h3`
   margin: 0;
   font-size: 2.2rem;
   font-weight: 700;
-  background: linear-gradient(to right, #00ffff, #3b82f6, #0ea5e9, #0891b2, #00ffff);
+  background: linear-gradient(to right, #60C0F0, #3b82f6, #0ea5e9, #0891b2, #60C0F0);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -335,7 +335,7 @@ export const StyledButton = styled.button<{ $variant?: string; $buttonColor?: st
           ? 'linear-gradient(135deg, #00bf8f, #00ab76)' :
         props.$buttonColor === 'error'
           ? 'linear-gradient(135deg, #ff416c, #ff4b2b)' :
-        'linear-gradient(135deg, #7851a9, #00ffff)')
+        'linear-gradient(135deg, #8B5CF6, #60C0F0)')
       : 'transparent'
   };
 
@@ -440,7 +440,7 @@ export const StyledIconButton = styled(motion.button)<{ $btnColor?: string; btnc
     return c === 'primary' ? '#0073ff' :
     c === 'success' ? '#00bf8f' :
     c === 'error' ? '#ff416c' :
-    '#00ffff';
+    '#60C0F0';
   }};
   border: none;
   border-radius: 8px;
@@ -486,7 +486,7 @@ export const LoadingContainer = styled.div`
 export const LoadingSpinner = styled.div`
   border: 4px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  border-top: 4px solid #00ffff;
+  border-top: 4px solid #60C0F0;
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
@@ -739,7 +739,7 @@ export const PaginationSelect = styled.select`
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
     color: #e2e8f0;
   }
 `;

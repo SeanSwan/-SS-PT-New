@@ -46,7 +46,7 @@ const priceUpdate = keyframes`
 
 // Interactive tooltip component
 const ContextualTooltip = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(120, 81, 169, 0.95));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(139, 92, 246, 0.95));
   color: white;
   padding: 0.75rem 1rem;
   border-radius: 8px;
@@ -75,7 +75,7 @@ const ContextualTooltip = styled(motion.div)`
 
 // Progress indicator for session accumulation
 const SessionProgress = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.1));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.1));
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   padding: 1rem;
@@ -89,7 +89,7 @@ const SessionProgress = styled(motion.div)`
     top: 0;
     left: 0;
     height: 100%;
-    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
     transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 `;
@@ -109,7 +109,7 @@ const ProgressText = styled.div`
   .progress-value {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -118,7 +118,7 @@ const CelebrationParticle = styled(motion.div)`
   position: absolute;
   width: 6px;
   height: 6px;
-  background: #00ffff;
+  background: #60C0F0;
   border-radius: 50%;
   pointer-events: none;
 `;
@@ -128,7 +128,7 @@ const SmartNotification = styled(motion.div)`
   position: fixed;
   top: 2rem;
   right: 2rem;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(120, 81, 169, 0.95));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(139, 92, 246, 0.95));
   color: white;
   padding: 1rem 1.5rem;
   border-radius: 12px;
@@ -152,7 +152,7 @@ const PriceChangeIndicator = styled(motion.div)`
   align-items: center;
   gap: 0.25rem;
   font-size: 0.8rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin-left: 0.5rem;
 `;
 
@@ -173,7 +173,7 @@ const HelpIcon = styled(motion.button)`
   &:hover {
     background: rgba(139, 92, 246, 0.2);
     border-color: rgba(139, 92, 246, 0.4);
-    color: #00ffff;
+    color: #60C0F0;
     transform: scale(1.1);
   }
 `;
@@ -350,7 +350,7 @@ export const SessionProgressIndicator: React.FC<{
           left: 0,
           height: '100%',
           width: `${progress}%`,
-          background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2))',
+          background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2))',
           transition: 'width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
         }}
       />

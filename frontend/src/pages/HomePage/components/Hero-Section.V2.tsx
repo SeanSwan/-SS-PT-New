@@ -17,10 +17,10 @@ import { useReducedMotion } from "../../../hooks/useReducedMotion";
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   surface: 'rgba(15, 25, 35, 0.92)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -123,10 +123,10 @@ const VideoBackground = styled.div`
     top: 0; left: 0; right: 0; bottom: 0;
     background: linear-gradient(
       180deg,
-      rgba(10, 10, 26, 0.55) 0%,
-      rgba(10, 10, 26, 0.35) 35%,
-      rgba(10, 10, 26, 0.45) 65%,
-      rgba(10, 10, 26, 0.75) 100%
+      rgba(0, 32, 96, 0.55) 0%,
+      rgba(0, 32, 96, 0.35) 35%,
+      rgba(0, 32, 96, 0.45) 65%,
+      rgba(0, 32, 96, 0.75) 100%
     );
     z-index: 1;
   }
@@ -138,7 +138,7 @@ const GradientBackground = styled.div`
   z-index: 0;
   background:
     radial-gradient(ellipse at 30% 20%, rgba(0, 212, 170, 0.12), transparent 50%),
-    radial-gradient(ellipse at 70% 80%, rgba(120, 81, 169, 0.08), transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.08), transparent 50%),
     linear-gradient(180deg, ${T.bg} 0%, #0d1a1a 100%);
 `;
 

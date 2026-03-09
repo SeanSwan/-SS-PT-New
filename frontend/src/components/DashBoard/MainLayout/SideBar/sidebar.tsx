@@ -234,7 +234,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
       }}>
         {/* App Logo/Branding */}
         {miniDrawer ? (
-          <Avatar style={{ background: '#8B5CF6', color: '#0a0a1a', width: 40, height: 40 }}>
+          <Avatar style={{ background: '#8B5CF6', color: '#002060', width: 40, height: 40 }}>
             SS
           </Avatar>
         ) : (
@@ -359,7 +359,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
               width: drawerWidth,
               borderRight: '1px solid rgba(255, 255, 255, 0.1)',
               backgroundImage: 'none',
-              background: '#0a0a1a',
+              background: '#002060',
             }
           }}
         >
@@ -384,7 +384,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
             top: 0,
             padding: 0,
             boxShadow: 'none',
-            background: '#0a0a1a',
+            background: '#002060',
             display: matchDownMD ? 'none' : 'block',
           }
         }}

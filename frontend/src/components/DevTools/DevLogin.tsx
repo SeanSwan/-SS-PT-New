@@ -140,7 +140,7 @@ const Input = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
   
@@ -162,7 +162,7 @@ const Select = styled.select`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
   
@@ -188,12 +188,12 @@ const Button = styled.button`
   transition: all 0.3s ease;
   
   &.primary {
-    background-color: #00ffff;
+    background-color: #60C0F0;
     color: #1a1a2e;
   }
   
   &.secondary {
-    background-color: #7851A9;
+    background-color: #8B5CF6;
     color: #ffffff;
   }
   

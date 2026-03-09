@@ -692,7 +692,7 @@ const ChartRow = styled.div`
 `;
 
 const CustomTooltipBox = styled.div`
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   padding: 12px 16px;
@@ -1194,8 +1194,8 @@ const MeasurementEntry: React.FC = () => {
                             <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                           </linearGradient>
                           <linearGradient id="gradPurple" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#7851A9" stopOpacity={0.3} />
-                            <stop offset="100%" stopColor="#7851A9" stopOpacity={0.02} />
+                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
@@ -1248,7 +1248,7 @@ const MeasurementEntry: React.FC = () => {
                           strokeWidth={2.5}
                           fill="url(#gradCyan)"
                           dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#0a0a1a', strokeWidth: 2 }}
+                          activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#002060', strokeWidth: 2 }}
                           connectNulls
                         />
                         <Area
@@ -1256,11 +1256,11 @@ const MeasurementEntry: React.FC = () => {
                           type="monotone"
                           dataKey="bodyFat"
                           name="Body Fat (%)"
-                          stroke="#7851A9"
+                          stroke="#8B5CF6"
                           strokeWidth={2}
                           fill="url(#gradPurple)"
-                          dot={{ fill: '#7851A9', r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, fill: '#7851A9', stroke: '#0a0a1a', strokeWidth: 2 }}
+                          dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
+                          activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#002060', strokeWidth: 2 }}
                           connectNulls
                         />
                         <Area
@@ -1272,7 +1272,7 @@ const MeasurementEntry: React.FC = () => {
                           strokeWidth={2}
                           fill="transparent"
                           dot={{ fill: '#2DD4BF', r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, fill: '#2DD4BF', stroke: '#0a0a1a', strokeWidth: 2 }}
+                          activeDot={{ r: 5, fill: '#2DD4BF', stroke: '#002060', strokeWidth: 2 }}
                           connectNulls
                         />
                       </AreaChart>
@@ -1307,8 +1307,8 @@ const MeasurementEntry: React.FC = () => {
                           <Radar
                             name="Current"
                             dataKey="current"
-                            stroke="#7851A9"
-                            fill="#7851A9"
+                            stroke="#8B5CF6"
+                            fill="#8B5CF6"
                             fillOpacity={0.25}
                             strokeWidth={2}
                           />

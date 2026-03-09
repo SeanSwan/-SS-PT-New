@@ -47,8 +47,8 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 44px;
   background: none;
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#00ffff' : 'transparent'};
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  border-bottom: 2px solid ${props => props.$active ? '#60C0F0' : 'transparent'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.875rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -56,7 +56,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   margin-bottom: -1px;
 
   &:hover {
-    color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.9)'};
+    color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.9)'};
   }
 `;
 
@@ -79,7 +79,7 @@ const Avatar = styled.div<{ $src?: string }>`
   height: 40px;
   border-radius: 50%;
   background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,7 +123,7 @@ const OutlineBtn = styled.button`
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -172,7 +172,7 @@ const SearchBtn = styled.button`
   border-radius: 6px;
   border: none;
   background: rgba(139, 92, 246, 0.15);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -185,7 +185,7 @@ const Spinner = styled.div`
   width: 20px;
   height: 20px;
   border: 2px solid rgba(139, 92, 246, 0.3);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   margin: 0 auto;
@@ -232,7 +232,7 @@ const CloseButton = styled.button`
   border-radius: 8px;
   border: none;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;

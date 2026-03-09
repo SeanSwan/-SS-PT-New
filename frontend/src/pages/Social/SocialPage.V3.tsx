@@ -67,7 +67,7 @@ const NoiseOverlay = styled.div`
 const PageWrapper = styled.div`
   min-height: 100vh;
   width: 100%;
-  background: #0a0a1a;
+  background: #002060;
   color: #E0ECF4;
   overflow-x: hidden;
   position: relative;
@@ -112,9 +112,9 @@ const HeroOverlay = styled.div`
   z-index: 1;
   background: linear-gradient(
     180deg,
-    rgba(10, 10, 26, 0.7) 0%,
-    rgba(10, 10, 26, 0.85) 50%,
-    rgba(10, 10, 26, 0.95) 100%
+    rgba(0, 32, 96, 0.7) 0%,
+    rgba(0, 32, 96, 0.85) 50%,
+    rgba(0, 32, 96, 0.95) 100%
   );
 `;
 
@@ -224,7 +224,7 @@ const DesktopGrid = styled.div`
 // ─── Glass Sidebar ───────────────────────────────────────────────────
 
 const GlassSidebar = styled.div`
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(139, 92, 246, 0.1);
@@ -238,7 +238,7 @@ const GlassSidebar = styled.div`
 // ─── Gamification Card ───────────────────────────────────────────────
 
 const GamificationCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(120, 81, 169, 0.08));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.08));
   border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 1.25rem;
   padding: 20px;
@@ -376,7 +376,7 @@ const NotifDot = styled.span`
   font-size: 0.6rem;
   font-weight: 700;
   background: linear-gradient(135deg, #C6A84B, #DAC36E);
-  color: #0a0a1a;
+  color: #002060;
   margin-left: auto;
 `;
 
@@ -417,7 +417,7 @@ const MobileTabBar = styled.div`
   display: flex;
   width: 100%;
   margin-bottom: 20px;
-  background: rgba(10, 10, 26, 0.6);
+  background: rgba(0, 32, 96, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(139, 92, 246, 0.08);
@@ -460,7 +460,7 @@ const MobileTab = styled.button<{ $active?: boolean }>`
 // ─── Feed Container Glass ────────────────────────────────────────────
 
 const FeedContainer = styled.div`
-  background: rgba(10, 10, 26, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(139, 92, 246, 0.06);

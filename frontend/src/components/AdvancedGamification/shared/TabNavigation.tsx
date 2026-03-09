@@ -192,7 +192,7 @@ const TabButton = styled(motion.button)<{
       case 'pills':
         return css`
           background: ${$isActive 
-            ? $customColors?.activeBackground || 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)'
+            ? $customColors?.activeBackground || 'linear-gradient(135deg, #60C0F0 0%, #0080ff 100%)'
             : $customColors?.background || 'transparent'};
           color: ${$isActive 
             ? $customColors?.activeText || '#000'
@@ -204,7 +204,7 @@ const TabButton = styled(motion.button)<{
           background: transparent;
           border-radius: 0;
           border-bottom: 2px solid ${$isActive 
-            ? $customColors?.indicator || '#00ffff'
+            ? $customColors?.indicator || '#60C0F0'
             : 'transparent'};
         `;
       
@@ -282,7 +282,7 @@ const TabButton = styled(motion.button)<{
   
   /* Focus styles */
   &:focus-visible {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -357,7 +357,7 @@ const ActiveIndicator = styled(motion.div)<{
   $customColors?: TabNavigationProps['customColors'];
 }>`
   position: absolute;
-  background: ${props => props.$customColors?.indicator || '#00ffff'};
+  background: ${props => props.$customColors?.indicator || '#60C0F0'};
   border-radius: 8px;
   z-index: 1;
   

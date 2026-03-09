@@ -233,7 +233,7 @@ const CATaxCalculatorWidget: React.FC = () => {
           <KPILabel>Tax Liability (Set Aside)</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.tax}>{formatCurrency(revenue.totalTaxLiability)}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(120,81,169,0.15)">
+        <KPICard $accent="rgba(139,92,246,0.15)">
           <KPILabel>Completed Orders</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.purple}>{revenue.orderCount}</KPIValue>
         </KPICard>

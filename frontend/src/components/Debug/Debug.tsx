@@ -154,7 +154,7 @@ const Debug: React.FC = () => {
         <div 
           className="drag-handle"
           style={{ 
-            color: '#00ffff', 
+            color: '#60C0F0', 
             marginBottom: isMinimized ? '0' : '10px', 
             display: 'flex', 
             alignItems: 'center', 

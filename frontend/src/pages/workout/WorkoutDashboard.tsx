@@ -45,7 +45,7 @@ const DashboardHeader = styled.div`
 
 const Title = styled.h1`
   font-size: 2rem;
-  color: #00ffff;
+  color: #60C0F0;
   text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   margin: 0;
   
@@ -64,7 +64,7 @@ const Tab = styled.button<{ $isActive: boolean }>`
   padding: 12px 20px;
   background: transparent;
   border: none;
-  color: ${props => props.$isActive ? '#00ffff' : 'white'};
+  color: ${props => props.$isActive ? '#60C0F0' : 'white'};
   font-size: 1rem;
   cursor: pointer;
   position: relative;
@@ -77,12 +77,12 @@ const Tab = styled.button<{ $isActive: boolean }>`
     left: 0;
     width: 100%;
     height: 2px;
-    background: ${props => props.$isActive ? '#00ffff' : 'transparent'};
+    background: ${props => props.$isActive ? '#60C0F0' : 'transparent'};
     transition: background 0.3s ease;
   }
   
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     
     &::after {
       background: rgba(139, 92, 246, 0.5);
@@ -106,7 +106,7 @@ const ClientSelector = styled.select`
   min-width: 200px;
   
   &:hover, &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
 `;

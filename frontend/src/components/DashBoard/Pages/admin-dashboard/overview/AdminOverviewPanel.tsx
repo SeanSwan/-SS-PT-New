@@ -211,10 +211,10 @@ const ControlsHeader = styled.div`
   align-items: center;
   margin-bottom: 2rem;
   padding: 16px 24px;
-  background: rgba(10, 10, 26, 0.4);
+  background: rgba(0, 32, 96, 0.4);
   backdrop-filter: blur(12px);
   border-radius: 16px;
-  border: 1px solid rgba(120, 81, 169, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 `;
 
@@ -245,7 +245,7 @@ const CosmicSelect = styled.select`
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
     color: #ffffff;
     padding: 12px;
   }

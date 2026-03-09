@@ -39,7 +39,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
   
   body, html {
     font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+    background: linear-gradient(135deg, #002060, #1e1e3f);
     color: white;
     min-height: 100vh;
     margin: 0;
@@ -53,7 +53,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
   
   /* Main root container */
   #root {
-    background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+    background: linear-gradient(135deg, #002060, #1e1e3f);
     min-height: 100vh;
     width: 100%;
     isolation: isolate;
@@ -95,7 +95,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
   
   /* Links styling with accessible focus states */
   a {
-    color: #00ffff;
+    color: #60C0F0;
     text-decoration: none;
     transition: color 0.2s ease, text-decoration 0.2s ease;
     
@@ -105,7 +105,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
     }
     
     &:focus-visible {
-      outline: 3px solid #00ffff;
+      outline: 3px solid #60C0F0;
       outline-offset: 3px;
     }
   }
@@ -217,7 +217,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
     }
     
     &:focus-visible {
-      outline: 3px solid #00ffff !important;
+      outline: 3px solid #60C0F0 !important;
       outline-offset: 2px !important;
     }
   }
@@ -227,7 +227,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
     color: rgba(255, 255, 255, 0.7) !important;
     
     &.Mui-selected {
-      color: #00ffff !important;
+      color: #60C0F0 !important;
     }
     
     &:focus-visible {
@@ -387,7 +387,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
   
   /* Focus styles for keyboard navigation - critical for accessibility */
   :focus {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
   
@@ -396,8 +396,8 @@ const ImprovedGlobalStyle = createGlobalStyle`
     position: absolute;
     top: -40px;
     left: 0;
-    background: #00ffff;
-    color: #0a0a1a;
+    background: #60C0F0;
+    color: #002060;
     padding: 8px 16px;
     z-index: 1000;
     transition: top 0.3s;
@@ -469,7 +469,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
         transition: color 0.2s ease;
         
         &:hover, &:focus {
-          color: #00ffff;
+          color: #60C0F0;
         }
       }
     }
@@ -485,7 +485,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
       cursor: pointer;
       
       &:hover, &:focus {
-        color: #00ffff;
+        color: #60C0F0;
       }
     }
   }

@@ -68,10 +68,10 @@ const Banner = styled.div`
   overflow: hidden;
   background: linear-gradient(
     135deg,
-    rgba(120, 81, 169, 0.3),
+    rgba(139, 92, 246, 0.3),
     rgba(59, 130, 246, 0.2)
   );
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 
   @media (max-width: 430px) {
     padding: 32px 16px;
@@ -98,7 +98,7 @@ const IconCircle = styled.div`
   justify-content: center;
   background: rgba(139, 92, 246, 0.1);
   border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 20px;
 `;
 
@@ -126,8 +126,8 @@ const CTAButton = styled.button`
   min-width: 160px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
-  color: #0a0a1a;
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
+  color: #002060;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;

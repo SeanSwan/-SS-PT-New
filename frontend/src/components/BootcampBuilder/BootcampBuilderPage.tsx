@@ -122,7 +122,7 @@ const PrimaryButton = styled.button<{ $floorMode?: boolean }>`
   width: 100%;
   min-height: ${({ $floorMode }) => $floorMode ? '64px' : '44px'};
   padding: 12px 20px;
-  background: linear-gradient(135deg, #60c0f0 0%, #7851a9 100%);
+  background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
   border: none;
   border-radius: 8px;
   color: white;
@@ -235,8 +235,8 @@ const ModGrid = styled.div`
 `;
 
 const ModChip = styled.span`
-  background: rgba(120, 81, 169, 0.1);
-  border: 1px solid rgba(120, 81, 169, 0.2);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 10px;

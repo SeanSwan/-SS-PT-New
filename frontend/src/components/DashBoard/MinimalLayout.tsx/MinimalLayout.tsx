@@ -14,7 +14,7 @@ const MinimalLayoutWrapper = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #0a0a1a;
+  background-color: #002060;
   overflow: hidden;
 `;
 

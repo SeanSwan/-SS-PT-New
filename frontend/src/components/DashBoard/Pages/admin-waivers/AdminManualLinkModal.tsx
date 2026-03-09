@@ -91,7 +91,7 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
                   <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{u.email}</div>
                 </div>
                 {selectedUserId === u.id && (
-                  <span style={{ color: '#00ffff', fontWeight: 600 }}>Selected</span>
+                  <span style={{ color: '#60C0F0', fontWeight: 600 }}>Selected</span>
                 )}
               </UserSearchItem>
             ))}

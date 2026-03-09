@@ -44,7 +44,7 @@ const socialCommandTheme = {
     deepSpace: '#0a0a0f',
     commandBlue: '#1e3a8a',
     stellarBlue: '#3b82f6',
-    cyberCyan: '#00ffff',
+    cyberCyan: '#60C0F0',
     successGreen: '#10b981',
     warningAmber: '#f59e0b',
     criticalRed: '#ef4444',
@@ -53,7 +53,7 @@ const socialCommandTheme = {
     socialPurple: '#8b5cf6'
   },
   gradients: {
-    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #00ffff 100%)',
+    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60C0F0 100%)',
     socialGlow: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
     engagementHeat: 'linear-gradient(135deg, #10b981 0%, #f59e0b 50%, #ef4444 100%)'
   }

@@ -66,7 +66,7 @@ const NotificationsContainer = styled(motion.div)`
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #00ffff, #3b82f6, #00ffff);
+    background: linear-gradient(90deg, #60C0F0, #3b82f6, #60C0F0);
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
   }
@@ -87,7 +87,7 @@ const NotificationHeader = styled.div`
 const HeaderTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
   display: flex;
   align-items: center;
@@ -121,7 +121,7 @@ const ControlButton = styled(motion.button)`
   &.active {
     background: rgba(139, 92, 246, 0.2);
     border-color: rgba(139, 92, 246, 0.5);
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -585,7 +585,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                         ? <>
                             {notification.message.slice(0, 150)}...
                             <span
-                              style={{ color: '#00ffff', cursor: 'pointer', marginLeft: '4px' }}
+                              style={{ color: '#60C0F0', cursor: 'pointer', marginLeft: '4px' }}
                               onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
                             >show more</span>
                           </>
@@ -593,7 +593,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                             {notification.message}
                             {notification.message.length > 150 && (
                               <span
-                                style={{ color: '#00ffff', cursor: 'pointer', marginLeft: '4px' }}
+                                style={{ color: '#60C0F0', cursor: 'pointer', marginLeft: '4px' }}
                                 onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
                               >show less</span>
                             )}

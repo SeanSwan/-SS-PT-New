@@ -55,10 +55,10 @@ const MessageContainer = styled.div<{ $isOwn: boolean }>`
 const MessageBubble = styled.div<{ $isOwn: boolean }>`
   max-width: 70%;
   background: ${props => props.$isOwn
-    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.8), rgba(120, 81, 169, 0.4))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.4))'
     : 'rgba(255, 255, 255, 0.05)'};
   border: 1px solid ${props => props.$isOwn
-    ? 'rgba(120, 81, 169, 0.4)'
+    ? 'rgba(139, 92, 246, 0.4)'
     : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 16px;
   padding: 12px 16px;
@@ -66,7 +66,7 @@ const MessageBubble = styled.div<{ $isOwn: boolean }>`
     ? 'border-bottom-right-radius: 4px;'
     : 'border-bottom-left-radius: 4px;'}
   box-shadow: ${props => props.$isOwn
-    ? '0 4px 12px rgba(120, 81, 169, 0.2)'
+    ? '0 4px 12px rgba(139, 92, 246, 0.2)'
     : '0 2px 8px rgba(0, 0, 0, 0.15)'};
 `;
 

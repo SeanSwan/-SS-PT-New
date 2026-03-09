@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 const ewTokens = {
   text: '#F0F8FF',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
 } as const;
 
 interface SectionTitleProps {
@@ -38,7 +38,7 @@ const StyledTitle = styled(motion.h2)<{ $variant?: 'default' | 'ew' }>`
   text-align: center;
   font-size: 2.5rem;
   color: white;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   position: relative;
@@ -53,7 +53,7 @@ const StyledTitle = styled(motion.h2)<{ $variant?: 'default' | 'ew' }>`
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6);
     border-radius: 3px;
   }
 

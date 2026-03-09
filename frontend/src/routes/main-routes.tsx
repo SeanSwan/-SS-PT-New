@@ -23,13 +23,13 @@ const PageLoader: React.FC = () => (
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: '50vh',
-    background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+    background: 'linear-gradient(135deg, #002060, #1e1e3f)',
     color: 'white'
   }}>
     <div style={{
       border: '4px solid rgba(255, 255, 255, 0.1)',
       borderRadius: '50%',
-      borderTop: '4px solid #00ffff',
+      borderTop: '4px solid #60C0F0',
       width: '50px',
       height: '50px',
       animation: 'spin 1s linear infinite'
@@ -54,7 +54,7 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
                 <div style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+                  background: 'linear-gradient(135deg, #002060, #1e1e3f)',
                   color: 'white',
                   minHeight: '50vh',
                   display: 'flex',
@@ -67,11 +67,11 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
                   <button 
                     onClick={() => window.location.reload()}
                     style={{
-                      background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+                      background: 'linear-gradient(135deg, #60C0F0, #00c8ff)',
                       border: 'none',
                       padding: '0.75rem 1.5rem',
                       borderRadius: '8px',
-                      color: '#0a0a1a',
+                      color: '#002060',
                       fontWeight: 500,
                       cursor: 'pointer',
                       marginTop: '1rem'
@@ -90,7 +90,7 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
             <div style={{
               padding: '2rem',
               textAlign: 'center',
-              background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+              background: 'linear-gradient(135deg, #002060, #1e1e3f)',
               color: 'white',
               minHeight: '50vh',
               display: 'flex',
@@ -103,11 +103,11 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
               <button 
                 onClick={() => window.location.reload()}
                 style={{
-                  background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+                  background: 'linear-gradient(135deg, #60C0F0, #00c8ff)',
                   border: 'none',
                   padding: '0.75rem 1.5rem',
                   borderRadius: '8px',
-                  color: '#0a0a1a',
+                  color: '#002060',
                   fontWeight: 500,
                   cursor: 'pointer',
                   marginTop: '1rem'

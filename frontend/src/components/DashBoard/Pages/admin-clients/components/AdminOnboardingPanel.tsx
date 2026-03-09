@@ -21,7 +21,7 @@ import { useToast } from '../../../../../hooks/use-toast';
 /* ─────────────────────── Theme Tokens ─────────────────────── */
 
 const SWAN_CYAN = '#8B5CF6';
-const COSMIC_PURPLE = '#7851A9';
+const COSMIC_PURPLE = '#8B5CF6';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }

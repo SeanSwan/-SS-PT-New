@@ -17,7 +17,7 @@ interface ClientDashboardLayoutProps {
 const LayoutContainer = styled.div`
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #16213e 100%);
+  background: linear-gradient(135deg, #002060 0%, #1a0a2e 50%, #16213e 100%);
   color: white;
   overflow: hidden;
 `;
@@ -75,7 +75,7 @@ const MenuToggle = styled.button`
   z-index: 1001;
   background: rgba(30, 30, 60, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   padding: 0.5rem;
   border-radius: 8px;
   cursor: pointer;

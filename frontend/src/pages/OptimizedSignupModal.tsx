@@ -322,7 +322,7 @@ const InputField = styled.input`
 const SelectField = styled.select`
   width: 100%;
   padding: 10px 14px; /* Reduced padding */
-  border: 1px solid rgba(120, 81, 169, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
   border-radius: 8px;
   background: rgba(30, 30, 60, 0.3);
   color: white;
@@ -339,7 +339,7 @@ const SelectField = styled.select`
 
   &:focus {
     outline: none;
-    border-color: var(--neon-blue, #00ffff);
+    border-color: var(--neon-blue, #60C0F0);
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     background: rgba(30, 30, 60, 0.5);
   }
@@ -372,7 +372,7 @@ const ForgotPasswordLink = styled(motion.button)`
   display: block;
   margin: 1rem auto 0; /* Reduced margin */
   text-align: center;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60C0F0);
   text-decoration: none;
   cursor: pointer;
   position: relative;
@@ -388,7 +388,7 @@ const ForgotPasswordLink = styled(motion.button)`
     left: 0; 
     width: 100%; 
     height: 1px; 
-    background-color: var(--neon-blue, #00ffff); 
+    background-color: var(--neon-blue, #60C0F0); 
     transform: translateX(-101%); 
     transition: transform 0.3s ease; 
   }
@@ -426,7 +426,7 @@ const FormSection = styled.div`
     margin-bottom: 0.75rem; /* Reduced margin */
     font-size: 1rem; /* Reduced size */
     font-weight: 400; 
-    color: var(--neon-blue, #00ffff); 
+    color: var(--neon-blue, #60C0F0); 
   }
 `;
 
@@ -458,7 +458,7 @@ const MeasurementInput = styled.div`
 const UnitLabel = styled.div`
   padding: 10px 12px;
   background: rgba(139, 92, 246, 0.2);
-  border: 1px solid rgba(120, 81, 169, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
   border-left: none;
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
@@ -518,7 +518,7 @@ const PasswordStrengthBar = styled.div<{ strength: number }>`
       props.strength < 30 ? '#ff4d6d' :
       props.strength < 60 ? '#ffa726' :
       props.strength < 80 ? '#66bb6a' :
-      '#00ffff'
+      '#60C0F0'
     };
     transition: all 0.3s ease;
     border-radius: 2px;
@@ -531,7 +531,7 @@ const PasswordStrengthText = styled.div<{ strength: number }>`
     props.strength < 30 ? '#ff6b9d' :
     props.strength < 60 ? '#ffa726' :
     props.strength < 80 ? '#66bb6a' :
-    '#00ffff'
+    '#60C0F0'
   };
   text-align: center;
 `;
@@ -549,7 +549,7 @@ const PasswordToggle = styled.button`
   padding: 4px;
   
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 

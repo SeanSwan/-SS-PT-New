@@ -213,7 +213,7 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
                     key={client.id}
                     onClick={() => handleSelect(client)}
                     aria-label={`Select ${client.firstName} ${client.lastName}`}
-                    whileHover={{ scale: 1.01, boxShadow: '0 0 12px rgba(120, 81, 169, 0.3)' }}
+                    whileHover={{ scale: 1.01, boxShadow: '0 0 12px rgba(139, 92, 246, 0.3)' }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <ClientAvatar $src={client.photo}>
@@ -265,7 +265,7 @@ const DrawerContainer = styled(motion.div)<{ $isMobile: boolean }>`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: rgba(10, 10, 26, 0.85);
+  background: rgba(0, 32, 96, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 
@@ -352,7 +352,7 @@ const SearchWrapper = styled.div`
   transition: all 0.2s;
 
   &:focus-within {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
   }
 `;
@@ -397,7 +397,7 @@ const ClientRow = styled(motion.button)`
 
   &:hover {
     background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(120, 81, 169, 0.2);
+    border-color: rgba(139, 92, 246, 0.2);
   }
 
   &:focus-visible {
@@ -413,13 +413,13 @@ const ClientAvatar = styled.div<{ $src?: string }>`
   background: ${(p) =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #7851A9, #8B5CF6)'};
+      : 'linear-gradient(135deg, #8B5CF6, #8B5CF6)'};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  color: #0a0a1a;
+  color: #002060;
   flex-shrink: 0;
   text-transform: uppercase;
 `;
@@ -481,7 +481,7 @@ const LoadingDot = styled.div`
   width: 24px;
   height: 24px;
   border: 2px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 

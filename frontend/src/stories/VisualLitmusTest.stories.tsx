@@ -200,7 +200,7 @@ const textColorTests: ColorTest[] = [
   {
     name: 'Primary Text on Void',
     foreground: galaxySwanTheme.text.primary, // #FFFFFF
-    background: galaxySwanTheme.galaxy.void, // #0a0a1a
+    background: galaxySwanTheme.galaxy.void, // #002060
   },
   {
     name: 'Secondary Text on Void',
@@ -240,7 +240,7 @@ const textColorTests: ColorTest[] = [
   // Purple secondary colors
   {
     name: 'Cosmic Purple on Void',
-    foreground: galaxySwanTheme.galaxy.cosmic, // #7851A9
+    foreground: galaxySwanTheme.galaxy.cosmic, // #8B5CF6
     background: galaxySwanTheme.galaxy.void,
   },
   {

@@ -110,7 +110,7 @@ const AdminWaiverDetailModal: React.FC<Props> = ({
               <MatchCard key={vl.id}>
                 <MatchRow>
                   <div>
-                    <strong style={{ color: '#00ffff' }}>{vl.waiverVersion.title}</strong>
+                    <strong style={{ color: '#60C0F0' }}>{vl.waiverVersion.title}</strong>
                     <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
                       {vl.waiverVersion.waiverType}{vl.waiverVersion.activityType ? ` / ${vl.waiverVersion.activityType}` : ''} — v{vl.waiverVersion.version}
                     </div>

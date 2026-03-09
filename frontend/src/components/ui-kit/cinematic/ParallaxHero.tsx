@@ -36,7 +36,7 @@ const Video = styled.video`
   height: 100%;
   object-fit: cover;
   /* Fallback background when video can't autoplay (mobile Low Power Mode, Data Saver) */
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #002060 0%, #1a1a3c 50%, #002060 100%);
   background-size: cover;
 `;
 

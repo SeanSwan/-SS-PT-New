@@ -75,7 +75,7 @@ const Card = styled(motion.div)`
 const CardTitle = styled.h3`
   position: relative;
   z-index: 2;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.5rem;
   font-weight: 300;
   margin-bottom: 1.5rem;
@@ -237,7 +237,7 @@ const ScoreDetails = styled.div`
 `;
 
 const ScoreTitle = styled.div`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -290,7 +290,7 @@ const LoadingBar = styled.div`
     display: block;
     width: 50%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, #00ffff, transparent);
+    background: linear-gradient(90deg, transparent, #60C0F0, transparent);
     animation: ${shimmer} 1.5s infinite;
   }
 `;

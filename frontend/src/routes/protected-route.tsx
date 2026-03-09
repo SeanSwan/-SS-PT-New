@@ -13,7 +13,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #0a0a1a;
+  background-color: #002060;
   color: #e0e0e0;
 `;
 
@@ -26,7 +26,7 @@ const spin = keyframes`
 const SpinnerContainer = styled.div`
   animation: ${spin} 1s linear infinite;
   margin-bottom: 24px;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 // Typography Components
@@ -53,7 +53,7 @@ const AlertContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #0a0a1a;
+  background-color: #002060;
   color: #e0e0e0;
   padding: 24px;
 `;
@@ -98,11 +98,11 @@ const AlertMessage = styled.p`
 
 // Retry Button
 const RetryButton = styled.button`
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
-  color: #0a0a1a;
+  color: #002060;
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;

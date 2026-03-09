@@ -89,7 +89,7 @@ const WelcomeCard = styled.div`
   padding: 32px 24px;
   text-align: center;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(120, 81, 169, 0.15), rgba(139, 92, 246, 0.08));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
   border: 1px solid rgba(139, 92, 246, 0.15);
   backdrop-filter: blur(12px);
 `;
@@ -111,11 +111,11 @@ const GamificationHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #7851A9, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   color: white;
   border-radius: 12px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(120, 81, 169, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 `;
 
 const PointsDisplay = styled.div`
@@ -239,16 +239,16 @@ const ContainedButton = styled.button<{ $color?: string }>`
   border-radius: 8px;
   color: #fff;
   background: ${({ $color }) => {
-    if ($color === 'primary') return 'linear-gradient(135deg, #7851A9, #8B5CF6)';
-    return 'linear-gradient(135deg, #7851A9, #8B5CF6)';
+    if ($color === 'primary') return 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
+    return 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
   }};
   cursor: pointer;
   transition: opacity 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 3px 8px rgba(120, 81, 169, 0.3);
+  box-shadow: 0 3px 8px rgba(139, 92, 246, 0.3);
 
   &:hover {
     opacity: 0.9;
-    box-shadow: 0 4px 12px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -450,7 +450,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
           </StatCard>
 
           <StatCard>
-            <Heading6 $color="#7851A9" $fontWeight={600}>
+            <Heading6 $color="#8B5CF6" $fontWeight={600}>
               {feedStats.transformationPosts}
             </Heading6>
             <CaptionText $color="rgba(255,255,255,0.7)">

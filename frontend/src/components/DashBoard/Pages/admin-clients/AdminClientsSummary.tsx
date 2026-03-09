@@ -35,7 +35,7 @@ const HeaderSection = styled.div`
 `;
 
 const PageTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 16px;
   font-weight: 700;
   font-size: 2rem;
@@ -71,8 +71,8 @@ const HeroButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
+  color: #002060;
   padding: 12px 32px;
   border-radius: 12px;
   border: none;
@@ -110,7 +110,7 @@ const OutlineButton = styled.button<{ $hoverBg?: string; $hoverBorder?: string }
 
   &:hover {
     background-color: ${({ $hoverBg }) => $hoverBg || 'rgba(139, 92, 246, 0.1)'};
-    border-color: ${({ $hoverBorder }) => $hoverBorder || '#00ffff'};
+    border-color: ${({ $hoverBorder }) => $hoverBorder || '#60C0F0'};
   }
 `;
 
@@ -119,9 +119,9 @@ const SmallOutlineButton = styled.button`
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  color: #00ffff;
+  color: #60C0F0;
   background: transparent;
-  border: 1px solid #00ffff;
+  border: 1px solid #60C0F0;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -132,7 +132,7 @@ const SmallOutlineButton = styled.button`
 
   &:hover {
     background-color: rgba(139, 92, 246, 0.1);
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -207,7 +207,7 @@ const StatLabel = styled.p`
 `;
 
 const SectionTitle = styled.h5`
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 24px;
   font-weight: 600;
   font-size: 1.3rem;
@@ -233,7 +233,7 @@ const FeatureIconSlot = styled.span`
   align-items: center;
   justify-content: center;
   min-width: 36px;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const StyledDivider = styled.hr`
@@ -306,7 +306,7 @@ const AdminClientsSummary: React.FC = () => {
       value: '500+',
       label: 'Total Clients',
       Icon: Users,
-      color: '#00ffff'
+      color: '#60C0F0'
     },
     {
       value: '24',
@@ -318,7 +318,7 @@ const AdminClientsSummary: React.FC = () => {
       value: '98%',
       label: 'Retention Rate',
       Icon: TrendingUp,
-      color: '#7851a9'
+      color: '#8B5CF6'
     },
     {
       value: '4.8/5',
@@ -432,7 +432,7 @@ const AdminClientsSummary: React.FC = () => {
               <OutlineButton
                 onClick={handleNavigateToClients}
                 $hoverBg="rgba(139, 92, 246, 0.1)"
-                $hoverBorder="#00ffff"
+                $hoverBorder="#60C0F0"
               >
                 <UserPlus size={20} />
                 Add New Client
@@ -440,8 +440,8 @@ const AdminClientsSummary: React.FC = () => {
 
               <OutlineButton
                 onClick={() => navigate('/dashboard/client-progress')}
-                $hoverBg="rgba(120, 81, 169, 0.1)"
-                $hoverBorder="#7851a9"
+                $hoverBg="rgba(139, 92, 246, 0.1)"
+                $hoverBorder="#8B5CF6"
               >
                 <BarChart3 size={20} />
                 View Progress Reports

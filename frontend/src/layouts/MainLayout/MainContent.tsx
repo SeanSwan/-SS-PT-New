@@ -15,7 +15,7 @@ interface MainContentProps {
 const MainWrapper = styled.main<{ $drawerOpen: boolean; $borderRadius: number }>`
   flex-grow: 1;
   width: 100%;
-  background-color: #0a0a1a;
+  background-color: #002060;
   border-radius: ${props => props.$borderRadius}px;
   position: relative;
   box-sizing: border-box;

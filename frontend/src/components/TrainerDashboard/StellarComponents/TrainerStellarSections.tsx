@@ -388,13 +388,13 @@ const QAClientAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6, #7851A9);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
-  color: #0a0a1a;
+  color: #002060;
   flex-shrink: 0;
 `;
 
@@ -423,7 +423,7 @@ const QuickGenButton = styled(motion.button)`
   gap: 6px;
   padding: 8px 14px;
   min-height: 44px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15));
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   color: #8B5CF6;
@@ -434,7 +434,7 @@ const QuickGenButton = styled(motion.button)`
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(120, 81, 169, 0.25));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.25));
     border-color: rgba(139, 92, 246, 0.5);
     box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
   }
@@ -552,8 +552,8 @@ const TrainingOverview: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        <StatCard glowColor="#7851A9" whileHover={{ scale: 1.02 }}>
-          <StatIcon color="#7851A9">
+        <StatCard glowColor="#8B5CF6" whileHover={{ scale: 1.02 }}>
+          <StatIcon color="#8B5CF6">
             <TrendingUp size={24} />
           </StatIcon>
           <StatContent>
@@ -833,8 +833,8 @@ const ContentStudio: React.FC = () => {
           </StatContent>
         </StatCard>
         
-        <StatCard glowColor="#7851A9" whileHover={{ scale: 1.02 }}>
-          <StatIcon color="#7851A9">
+        <StatCard glowColor="#8B5CF6" whileHover={{ scale: 1.02 }}>
+          <StatIcon color="#8B5CF6">
             <Upload size={24} />
           </StatIcon>
           <StatContent>

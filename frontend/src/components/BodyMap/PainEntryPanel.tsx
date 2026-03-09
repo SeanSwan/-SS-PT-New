@@ -35,7 +35,7 @@ import { device } from '../../styles/breakpoints';
 const Panel = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   z-index: 1200;
-  background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.95)'};
+  background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.95)'};
   backdrop-filter: blur(16px);
   overflow-y: auto;
   box-sizing: border-box;
@@ -159,7 +159,7 @@ const Slider = styled.input<{ $painColor: string }>`
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #0a0a1a;
+    background: #002060;
     border: 3px solid ${({ $painColor }) => $painColor};
     box-shadow: 0 0 12px ${({ $painColor }) => `${$painColor}80`}, inset 0 0 4px ${({ $painColor }) => $painColor};
     cursor: pointer;
@@ -310,9 +310,9 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'secondary' 
     switch ($variant) {
       case 'primary':
         return `
-          background: linear-gradient(135deg, ${accent}, #7851A9);
+          background: linear-gradient(135deg, ${accent}, #8B5CF6);
           border: none;
-          color: #0a0a1a;
+          color: #002060;
           &:hover { filter: brightness(1.1); }
         `;
       case 'danger':

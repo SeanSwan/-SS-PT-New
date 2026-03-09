@@ -51,11 +51,11 @@ export const IntensityTrendChart: React.FC<IntensityTrendChartProps> = ({
               <Line 
                 type="monotone" 
                 dataKey="averageIntensity" 
-                stroke="#00ffff" 
+                stroke="#60C0F0" 
                 strokeWidth={2}
                 name="Intensity"
-                dot={{ fill: '#00ffff', r: 4 }}
-                activeDot={{ r: 6, fill: '#00ffff' }}
+                dot={{ fill: '#60C0F0', r: 4 }}
+                activeDot={{ r: 6, fill: '#60C0F0' }}
               />
             </LineChart>
           </ResponsiveContainer>

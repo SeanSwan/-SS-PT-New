@@ -194,7 +194,7 @@ const CheckboxWrapper = styled.label<{ $checked?: boolean; $indeterminate?: bool
     width: 20px;
     height: 20px;
     border-radius: 4px;
-    border: 2px solid ${p => (p.$checked || p.$indeterminate) ? '#00ffff' : 'rgba(255,255,255,0.5)'};
+    border: 2px solid ${p => (p.$checked || p.$indeterminate) ? '#60C0F0' : 'rgba(255,255,255,0.5)'};
     background: ${p => (p.$checked || p.$indeterminate) ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
     transition: all 0.2s ease;
   }
@@ -202,7 +202,7 @@ const CheckboxWrapper = styled.label<{ $checked?: boolean; $indeterminate?: bool
   &::after {
     content: '${p => p.$indeterminate ? '\\2014' : p.$checked ? '\\2713' : ''}';
     position: absolute;
-    color: #00ffff;
+    color: #60C0F0;
     font-size: ${p => p.$indeterminate ? '14px' : '13px'};
     font-weight: bold;
     line-height: 1;

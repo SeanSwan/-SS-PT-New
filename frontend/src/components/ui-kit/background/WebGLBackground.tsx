@@ -33,16 +33,16 @@ interface WebGLBackgroundProps {
  * ```tsx
  * <WebGLBackground
  *   particleCount={500}
- *   colorFrom="#00ffff"
- *   colorTo="#7851a9"
+ *   colorFrom="#60C0F0"
+ *   colorTo="#8B5CF6"
  *   interactive
  * />
  * ```
  */
 const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
   particleCount = 500,
-  colorFrom = '#00ffff',
-  colorTo = '#7851a9',
+  colorFrom = '#60C0F0',
+  colorTo = '#8B5CF6',
   interactive = true,
   paused = false,
   className

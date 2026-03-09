@@ -34,7 +34,7 @@ const ChartWrapper = styled.div`
 `;
 
 const ChartTitle = styled.h4`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   margin: 0 0 1rem 0;
   display: flex;
@@ -50,7 +50,7 @@ const EmptyState = styled.div`
 `;
 
 const CustomTooltipWrapper = styled.div`
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
   padding: 0.75rem 1rem;
@@ -58,7 +58,7 @@ const CustomTooltipWrapper = styled.div`
   font-size: 0.85rem;
 
   .tooltip-label {
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: 600;
     margin-bottom: 0.25rem;
   }
@@ -131,7 +131,7 @@ const ChallengeActivityChart: React.FC<ChallengeActivityChartProps> = ({ challen
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.completed ? '#00ff88' : '#00ffff'}
+                fill={entry.completed ? '#00ff88' : '#60C0F0'}
                 opacity={entry.completed ? 0.9 : 0.7}
               />
             ))}

@@ -63,7 +63,7 @@ const SessionCard = styled(motion.div)<{ $isActive?: boolean }>`
     right: 0;
     height: 4px;
     background: ${props => props.$isActive 
-      ? 'linear-gradient(90deg, #00ffff, #0080ff, #00ffff)'
+      ? 'linear-gradient(90deg, #60C0F0, #0080ff, #60C0F0)'
       : 'linear-gradient(90deg, #666, #999, #666)'
     };
     background-size: 200% 100%;
@@ -97,7 +97,7 @@ const SessionStatus = styled.span<{ $status: string }>`
     switch (props.$status) {
       case 'active': return 'linear-gradient(135deg, #00ff88, #00cc6a)';
       case 'paused': return 'linear-gradient(135deg, #ffa726, #ff9800)';
-      case 'completed': return 'linear-gradient(135deg, #00ffff, #0080ff)';
+      case 'completed': return 'linear-gradient(135deg, #60C0F0, #0080ff)';
       default: return 'linear-gradient(135deg, #666, #999)';
     }
   }};
@@ -111,7 +111,7 @@ const TimerDisplay = styled.div<{ $isActive?: boolean }>`
   .time {
     font-size: 3rem;
     font-weight: bold;
-    color: #00ffff;
+    color: #60C0F0;
     font-family: 'Courier New', monospace;
     text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
     
@@ -147,7 +147,7 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   
   background: ${props => {
     switch (props.$variant) {
-      case 'primary': return 'linear-gradient(135deg, #00ffff, #0080ff)';
+      case 'primary': return 'linear-gradient(135deg, #60C0F0, #0080ff)';
       case 'danger': return 'linear-gradient(135deg, #ff6b9d, #ff4d6d)';
       default: return 'linear-gradient(135deg, #666, #999)';
     }
@@ -184,7 +184,7 @@ const StatCard = styled.div`
   .value {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 0.25rem;
   }
   
@@ -235,7 +235,7 @@ const HistoryItem = styled(motion.div)`
   }
   
   .duration {
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: 600;
     font-family: 'Courier New', monospace;
   }

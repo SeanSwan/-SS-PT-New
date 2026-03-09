@@ -265,7 +265,7 @@ const ActiveClientHeader = styled(motion.button)`
   height: 56px;
   border-radius: 28px;
   border: 1px solid rgba(139, 92, 246, 0.12);
-  background: rgba(10, 10, 26, 0.5);
+  background: rgba(0, 32, 96, 0.5);
   backdrop-filter: blur(12px);
   cursor: pointer;
   color: inherit;
@@ -295,13 +295,13 @@ const ClientHeaderAvatar = styled.div<{ $src?: string }>`
   background: ${(p) =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #7851A9, #8B5CF6)'};
+      : 'linear-gradient(135deg, #8B5CF6, #8B5CF6)'};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  color: #0a0a1a;
+  color: #002060;
   flex-shrink: 0;
   text-transform: uppercase;
 `;
@@ -377,7 +377,7 @@ const EmptyOrb = styled.div`
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(120, 81, 169, 0.3), rgba(139, 92, 246, 0.08));
+  background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.08));
   border: 1px solid rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
@@ -410,7 +410,7 @@ const EmptyAction = styled(motion.button)`
   border: none;
   border-radius: 14px;
   background: linear-gradient(135deg, #8B5CF6 0%, #0088FF 100%);
-  color: #0a0a1a;
+  color: #002060;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;

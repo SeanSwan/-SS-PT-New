@@ -30,7 +30,7 @@ const DashboardContainer = styled.div`
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  background: #0a0a1a;
+  background: #002060;
   min-height: 100vh;
   color: white;
 
@@ -58,7 +58,7 @@ const HeaderTitle = styled.h1`
   font-size: 1.75rem;
   font-weight: 600;
   margin: 0;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const ProfileSection = styled.div`
@@ -78,7 +78,7 @@ const ProfileImage = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,7 +100,7 @@ const ImageUploadButton = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #00ffff;
+  background: #60C0F0;
   border: none;
   display: flex;
   align-items: center;
@@ -114,7 +114,7 @@ const ImageUploadButton = styled.button`
   }
   
   svg {
-    color: #0a0a1a;
+    color: #002060;
   }
 `;
 
@@ -228,13 +228,13 @@ const InfoValue = styled.span`
 const ActionButton = styled.button<{ color?: string; variant?: 'primary' | 'secondary' }>`
   background: ${({ variant, color }) => 
     variant === 'primary' 
-      ? `linear-gradient(135deg, ${color || '#00ffff'}, ${color ? `${color}cc` : '#00c8ff'})` 
+      ? `linear-gradient(135deg, ${color || '#60C0F0'}, ${color ? `${color}cc` : '#00c8ff'})` 
       : 'rgba(255, 255, 255, 0.1)'
   };
   border: ${({ variant }) => variant === 'secondary' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'};
   border-radius: 6px;
   padding: 0.75rem 1rem;
-  color: ${({ variant }) => variant === 'primary' ? '#0a0a1a' : 'white'};
+  color: ${({ variant }) => variant === 'primary' ? '#002060' : 'white'};
   font-weight: 500;
   cursor: pointer;
   display: flex;
@@ -285,7 +285,7 @@ const ToggleSwitch = styled.button<{ enabled: boolean }>`
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
-  background: ${({ enabled }) => enabled ? '#00ffff' : 'rgba(255, 255, 255, 0.2)'};
+  background: ${({ enabled }) => enabled ? '#60C0F0' : 'rgba(255, 255, 255, 0.2)'};
   
   &::after {
     content: '';
@@ -304,7 +304,7 @@ const ActivityItem = styled.div`
   padding: 1rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
-  border-left: 3px solid #00ffff;
+  border-left: 3px solid #60C0F0;
 `;
 
 const ActivityTitle = styled.div`
@@ -328,7 +328,7 @@ const LoadingSpinner = styled.div`
   display: flex;
   justify-content: center;
   padding: 2rem;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 // Mock data
@@ -431,7 +431,7 @@ const UserDashboard: React.FC = () => {
                 </ProfileDetails>
               </ProfileInfo>
               
-              <ActionButton color="#00ffff" variant="primary">
+              <ActionButton color="#60C0F0" variant="primary">
                 <Edit size={16} />
                 Edit Profile
               </ActionButton>
@@ -469,7 +469,7 @@ const UserDashboard: React.FC = () => {
           
           <SectionCard>
             <SectionHeader>
-              <SectionIcon color="#7851a9">
+              <SectionIcon color="#8B5CF6">
                 <Shield size={24} />
               </SectionIcon>
               <SectionTitle>Account Security</SectionTitle>
@@ -566,7 +566,7 @@ const UserDashboard: React.FC = () => {
           
           <SectionCard>
             <SectionHeader>
-              <SectionIcon color="#00ffff">
+              <SectionIcon color="#60C0F0">
                 <Download size={24} />
               </SectionIcon>
               <SectionTitle>Data Export</SectionTitle>
@@ -580,7 +580,7 @@ const UserDashboard: React.FC = () => {
                 <InfoLabel>Workout History</InfoLabel>
                 <InfoValue>42 sessions</InfoValue>
               </InfoItem>
-              <ActionButton color="#00ffff" variant="primary">
+              <ActionButton color="#60C0F0" variant="primary">
                 <Download size={16} />
                 Export My Data
               </ActionButton>

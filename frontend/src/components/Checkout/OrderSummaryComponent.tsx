@@ -120,7 +120,7 @@ const SummaryHeader = styled.div`
 const SummaryTitle = styled.h3<{ $compact: boolean }>`
   font-size: ${props => props.$compact ? '1.1rem' : '1.25rem'};
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
   display: flex;
   align-items: center;
@@ -129,7 +129,7 @@ const SummaryTitle = styled.h3<{ $compact: boolean }>`
 
 const ItemCount = styled.div`
   background: rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.8rem;
@@ -171,7 +171,7 @@ const ItemIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #00ffff;
+  color: #60C0F0;
   flex-shrink: 0;
 `;
 
@@ -259,7 +259,7 @@ const SummaryRow = styled(motion.div)<{
   ${props => props.$isTotal && css`
     font-size: 1.1rem;
     font-weight: 600;
-    color: #00ffff;
+    color: #60C0F0;
     border-top: 2px solid rgba(139, 92, 246, 0.3);
     margin-top: 0.5rem;
     padding-top: 1rem;
@@ -321,7 +321,7 @@ const PromoInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
 `;
@@ -359,7 +359,7 @@ const SessionsSummary = styled.div`
 `;
 
 const SessionsTitle = styled.h4`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.9rem;
   font-weight: 600;
   margin: 0 0 0.75rem 0;
@@ -380,7 +380,7 @@ const SessionsStat = styled.div`
   .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #00ffff;
+    color: #60C0F0;
     display: block;
     margin-bottom: 0.25rem;
   }
@@ -395,8 +395,8 @@ const SessionsStat = styled.div`
 
 const ProceedButton = styled(motion.button)`
   width: 100%;
-  background: linear-gradient(135deg, #00ffff, #0099ff);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #0099ff);
+  color: #002060;
   border: none;
   border-radius: 12px;
   padding: 1rem 2rem;

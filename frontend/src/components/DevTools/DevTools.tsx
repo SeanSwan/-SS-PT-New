@@ -19,7 +19,7 @@ const FloatingButton = styled.button`
   position: fixed;
   bottom: 16px;
   right: 16px;
-  background-color: #7851A9;
+  background-color: #8B5CF6;
   color: white;
   border: none;
   border-radius: 50%;
@@ -67,7 +67,7 @@ const HeaderLeft = styled.div`
 
 const Title = styled.h1`
   font-size: 1.5rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0;
   margin-left: 8px;
 `;
@@ -103,17 +103,17 @@ const Tab = styled.button<{ $active: boolean }>`
   padding: 12px 16px;
   background: none;
   border: none;
-  color: ${({ $active }) => $active ? '#00ffff' : '#f5f5f5'};
+  color: ${({ $active }) => $active ? '#60C0F0' : '#f5f5f5'};
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-bottom: 2px solid ${({ $active }) => $active ? '#00ffff' : 'transparent'};
+  border-bottom: 2px solid ${({ $active }) => $active ? '#60C0F0' : 'transparent'};
   transition: all 0.3s ease;
   
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     background-color: rgba(139, 92, 246, 0.1);
   }
 `;
@@ -124,7 +124,7 @@ const TabContent = styled.div`
 
 const SectionTitle = styled.h2`
   font-size: 1.25rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 16px;
 `;
 
@@ -159,7 +159,7 @@ const DevTools: React.FC = () => {
         <DevToolsPanel>
           <Header>
             <HeaderLeft>
-              <Bug size={28} color="#00ffff" />
+              <Bug size={28} color="#60C0F0" />
               <Title>SwanStudios Developer Tools</Title>
             </HeaderLeft>
             <CloseButton onClick={handleToggle}>

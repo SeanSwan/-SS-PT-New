@@ -64,9 +64,9 @@ const ToolbarButton = styled.button<{ $active?: boolean }>`
   padding: 0.6rem 1rem;
   min-width: 80px;
   min-height: 44px;
-  border: 1px solid rgba(120, 81, 169, 0.4);
-  background: ${({ $active }) => $active ? 'rgba(120, 81, 169, 0.6)' : 'transparent'};
-  box-shadow: ${({ $active }) => $active ? '0 0 12px rgba(120, 81, 169, 0.4)' : 'none'};
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.6)' : 'transparent'};
+  box-shadow: ${({ $active }) => $active ? '0 0 12px rgba(139, 92, 246, 0.4)' : 'none'};
   font-weight: ${({ $active }) => $active ? '600' : '400'};
   cursor: pointer;
   display: flex;
@@ -76,11 +76,11 @@ const ToolbarButton = styled.button<{ $active?: boolean }>`
   transition: background 0.2s ease;
 
   &:hover {
-    background: rgba(120, 81, 169, 0.4);
+    background: rgba(139, 92, 246, 0.4);
   }
 
   &:focus-visible {
-    outline: 2px solid #00ffff;
+    outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
 

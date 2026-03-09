@@ -143,7 +143,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
         case 'info':
           return 'linear-gradient(90deg, #3b82f6, #2563eb)';
         default:
-          return 'linear-gradient(90deg, #00ffff, #3b82f6)';
+          return 'linear-gradient(90deg, #60C0F0, #3b82f6)';
       }
     }};
   }
@@ -170,7 +170,7 @@ const ToastIcon = styled.div<{ variant: Toast['variant'] }>`
       case 'info':
         return '#3b82f6';
       default:
-        return '#00ffff';
+        return '#60C0F0';
     }
   }};
   

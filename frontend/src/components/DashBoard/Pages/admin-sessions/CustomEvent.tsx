@@ -38,7 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
   available: '#4caf50',
   requested: '#ff9800',
   scheduled: '#2196f3',
-  confirmed: '#7851a9',
+  confirmed: '#8B5CF6',
   completed: '#1565c0',
   cancelled: '#f44336',
   'no-show': '#ef5350'

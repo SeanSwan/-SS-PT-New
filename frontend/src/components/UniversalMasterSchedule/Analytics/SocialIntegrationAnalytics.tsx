@@ -275,7 +275,7 @@ export default SocialIntegrationAnalytics;
 
 const SocialAnalyticsContainer = styled.div`
   padding: 2rem;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
 `;
 
 const HeaderSection = styled.div`

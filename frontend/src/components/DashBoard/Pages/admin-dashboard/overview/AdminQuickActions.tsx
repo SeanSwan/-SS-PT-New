@@ -58,7 +58,7 @@ const QuickActionCard = styled(CommandCard)`
 
 const AdminQuickActions: React.FC<AdminQuickActionsProps> = ({ actions }) => {
   const theme = useTheme() as any;
-  const accent = theme?.colors?.accent || '#00ffff';
+  const accent = theme?.colors?.accent || '#60C0F0';
   return (
     <QuickActionsWrapper>
       <QuickActionsTitle>Quick Actions</QuickActionsTitle>

@@ -42,7 +42,7 @@ const DashboardFooterContainer = styled(motion.footer)`
     background: linear-gradient(90deg, 
       transparent 0%, 
       rgba(139, 92, 246, 0.3) 25%, 
-      rgba(120, 81, 169, 0.3) 75%, 
+      rgba(139, 92, 246, 0.3) 75%, 
       transparent 100%
     );
     animation: pulse 3s ease-in-out infinite;
@@ -109,7 +109,7 @@ const LogoImg = styled(motion.img)`
 
 const BrandText = styled.span`
   font-weight: 600;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -161,7 +161,7 @@ const ScrollTopButton = styled(motion.button)`
   border-radius: 8px;
   background: rgba(0, 30, 60, 0.8);
   border: 1px solid rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,7 +178,7 @@ const ScrollTopButton = styled(motion.button)`
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
+    background: linear-gradient(135deg, #60C0F0, #8B5CF6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);

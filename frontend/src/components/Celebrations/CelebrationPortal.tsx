@@ -26,7 +26,7 @@ const TOKENS = {
   frostWhite: '#E0ECF4',
   swanLavender: '#4070C0',
   wingPurple: '#8B5CF6',
-  cosmicPurple: '#7851A9',
+  cosmicPurple: '#8B5CF6',
   supernovaGold: '#FFD700',
 };
 

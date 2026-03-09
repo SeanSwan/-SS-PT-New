@@ -59,7 +59,7 @@ const Card = styled.div`
 
 const CardTitle = styled.div`
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const CardBody = styled.div`
@@ -73,8 +73,8 @@ const StatusPill = styled.div`
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
-  color: #0a0a1a;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  color: #002060;
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
 `;
 
 const EmptyState = styled.div`

@@ -97,7 +97,7 @@ const SearchInput = styled.input`
   }
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -119,11 +119,11 @@ const FilterSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
   }
 `;
 
@@ -136,7 +136,7 @@ const PrimaryButton = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
   border: none;
   border-radius: 8px;
   padding: 10px 20px;

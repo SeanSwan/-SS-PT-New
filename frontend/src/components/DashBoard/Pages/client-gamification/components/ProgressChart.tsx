@@ -99,7 +99,7 @@ const BarLabel = styled.span<{ $hovered: boolean }>`
   text-align: center;
   font-weight: bold;
   font-size: 0.75rem;
-  color: ${props => props.$hovered ? '#00ffff' : 'rgba(255, 255, 255, 0.5)'};
+  color: ${props => props.$hovered ? '#60C0F0' : 'rgba(255, 255, 255, 0.5)'};
   transform: ${props => props.$hovered ? 'scale(1.1)' : 'scale(1)'};
   transition: all 0.3s ease;
 `;
@@ -111,7 +111,7 @@ const DateLabel = styled.span<{ $hovered: boolean }>`
   width: 100%;
   text-align: center;
   font-size: 0.75rem;
-  color: ${props => props.$hovered ? '#00ffff' : 'rgba(255, 255, 255, 0.5)'};
+  color: ${props => props.$hovered ? '#60C0F0' : 'rgba(255, 255, 255, 0.5)'};
   transform: ${props => props.$hovered ? 'scale(1.1)' : 'scale(1)'};
   transition: all 0.3s ease;
 `;
@@ -234,7 +234,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ snapshots }) => {
             ? snapshot.points - snapshots[index - 1].points
             : snapshot.points;
           const showPositiveChange = index > 0 && snapshot.points > snapshots[index - 1].points;
-          const tierColor = TIER_COLORS[snapshot.tier] || '#00ffff';
+          const tierColor = TIER_COLORS[snapshot.tier] || '#60C0F0';
 
           return (
             <Bar

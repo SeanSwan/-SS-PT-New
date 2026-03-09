@@ -35,9 +35,9 @@ import {
 /* ═══════════════════════════════════════════════════════
    Galaxy-Swan Theme Tokens
    ═══════════════════════════════════════════════════════ */
-const GALAXY_CORE = '#0a0a1a';
+const GALAXY_CORE = '#002060';
 const SWAN_CYAN = '#8B5CF6';
-const COSMIC_PURPLE = '#7851A9';
+const COSMIC_PURPLE = '#8B5CF6';
 const GLASS_BG = 'rgba(255, 255, 255, 0.04)';
 const GLASS_BORDER = 'rgba(255, 255, 255, 0.08)';
 const TEXT_PRIMARY = 'rgba(255, 255, 255, 0.92)';

@@ -24,7 +24,7 @@ import useLeadCRM, { type Lead, type LeadStats, PIPELINE_STAGES } from '../../..
 
 // ── Source color mapping (Gemini spec) ──
 const SOURCE_COLORS: Record<string, string> = {
-  gallery: '#7851A9',      // Cosmic Purple
+  gallery: '#8B5CF6',      // Cosmic Purple
   walk_in: '#8B5CF6',      // Swan Cyan
   website: '#E2E8F0',      // Starlight Silver
   referral: '#FF69B4',     // Nebula Pink
@@ -410,7 +410,7 @@ const DrawerPanel = styled.div`
   right: 0;
   bottom: 0;
   width: 480px;
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   backdrop-filter: blur(24px);
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 1301;
@@ -527,7 +527,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' }>`
   ${p => p.$variant === 'primary' ? `
     background: #8B5CF6;
     border-color: #8B5CF6;
-    color: #0a0a1a;
+    color: #002060;
     &:hover { background: #00E5E5; }
   ` : p.$variant === 'danger' ? `
     background: rgba(245, 101, 101, 0.1);
@@ -559,7 +559,7 @@ const ModalOverlay = styled.div`
 const ModalPanel = styled.div`
   width: 100%;
   max-width: 480px;
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
@@ -600,7 +600,7 @@ const FormField = styled.div`
     &:focus { outline: none; border-color: rgba(139, 92, 246, 0.4); }
     &::placeholder { color: #4A5568; }
 
-    option { background: #0a0a1a; }
+    option { background: #002060; }
   }
 `;
 

@@ -66,18 +66,18 @@ const CATEGORY_BACKGROUNDS: Record<string, string> = {
 
 // Category gradient overlays (dark enough for text readability)
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  workout: 'linear-gradient(135deg, rgba(25,118,210,0.7) 0%, rgba(10,10,26,0.85) 100%)',
-  transformation: 'linear-gradient(135deg, rgba(233,30,99,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  achievement: 'linear-gradient(135deg, rgba(255,152,0,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  challenge: 'linear-gradient(135deg, rgba(156,39,176,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  dance: 'linear-gradient(135deg, rgba(236,72,153,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  music: 'linear-gradient(135deg, rgba(168,85,247,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  singing: 'linear-gradient(135deg, rgba(244,114,182,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  art: 'linear-gradient(135deg, rgba(245,158,11,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  gaming: 'linear-gradient(135deg, rgba(34,197,94,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  comedy: 'linear-gradient(135deg, rgba(251,191,36,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  creative: 'linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(10,10,26,0.85) 100%)',
-  general: 'linear-gradient(135deg, rgba(120,81,169,0.5) 0%, rgba(10,10,26,0.9) 100%)',
+  workout: 'linear-gradient(135deg, rgba(25,118,210,0.7) 0%, rgba(0,32,96,0.85) 100%)',
+  transformation: 'linear-gradient(135deg, rgba(233,30,99,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  achievement: 'linear-gradient(135deg, rgba(255,152,0,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  challenge: 'linear-gradient(135deg, rgba(156,39,176,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  dance: 'linear-gradient(135deg, rgba(236,72,153,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  music: 'linear-gradient(135deg, rgba(168,85,247,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  singing: 'linear-gradient(135deg, rgba(244,114,182,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  art: 'linear-gradient(135deg, rgba(245,158,11,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  gaming: 'linear-gradient(135deg, rgba(34,197,94,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  comedy: 'linear-gradient(135deg, rgba(251,191,36,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  creative: 'linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(0,32,96,0.85) 100%)',
+  general: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(0,32,96,0.9) 100%)',
 };
 
 // Swan watermark SVG path for posts without images
@@ -124,8 +124,8 @@ const PostCardWrapper = styled.article`
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 255, 0.05);
-      border-color: rgba(0, 255, 255, 0.15);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(96, 192, 240, 0.05);
+      border-color: rgba(96, 192, 240, 0.15);
     }
   }
 
@@ -140,7 +140,7 @@ const HeroArea = styled.div<{ $bgImage?: string; $gradient: string; $hasImage: b
   position: relative;
   width: 100%;
   height: clamp(240px, 40vw, 360px);
-  background-color: #0a0a1a;
+  background-color: #002060;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -162,8 +162,8 @@ const HeroArea = styled.div<{ $bgImage?: string; $gradient: string; $hasImage: b
       pointer-events: none;
     }
   ` : `
-    background: radial-gradient(circle at top right, rgba(120, 81, 169, 0.15), transparent 50%),
-                radial-gradient(circle at bottom left, rgba(0, 255, 255, 0.1), transparent 50%);
+    background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.15), transparent 50%),
+                radial-gradient(circle at bottom left, rgba(96, 192, 240, 0.1), transparent 50%);
   `}
 `;
 
@@ -203,7 +203,7 @@ const AvatarStyled = styled.div<{ $size?: number }>`
   width: ${props => props.$size || 44}px;
   height: ${props => props.$size || 44}px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7851A9, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -212,7 +212,7 @@ const AvatarStyled = styled.div<{ $size?: number }>`
   color: #fff;
   overflow: hidden;
   flex-shrink: 0;
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  border: 2px solid rgba(96, 192, 240, 0.3);
 `;
 
 const AvatarImage = styled.img`

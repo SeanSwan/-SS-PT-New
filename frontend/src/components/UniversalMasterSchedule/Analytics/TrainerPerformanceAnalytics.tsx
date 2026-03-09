@@ -326,7 +326,7 @@ export default TrainerPerformanceAnalytics;
 
 const AnalyticsContainer = styled.div`
   padding: 2rem;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
 `;
 
 const HeaderSection = styled.div`
@@ -459,7 +459,7 @@ const AvatarCircle = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0ea5e9, #7851A9);
+  background: linear-gradient(135deg, #0ea5e9, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -25,11 +25,11 @@ import { toast } from 'react-toastify';
 
 // Galaxy-Swan colors
 const C = {
-  deepSpace: '#0a0a1a',
+  deepSpace: '#002060',
   cardSurface: 'rgba(20, 24, 48, 0.85)',
   stellarWhite: '#f0f0ff',
   cyberBlue: '#00d4ff',
-  cosmicPurple: '#7851A9',
+  cosmicPurple: '#8B5CF6',
   swanCyan: '#8B5CF6',
   mutedText: '#8892b0',
   successGreen: '#10b981',

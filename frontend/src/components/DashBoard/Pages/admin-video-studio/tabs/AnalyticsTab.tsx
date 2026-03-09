@@ -140,7 +140,7 @@ const SectionTitle = styled.h2`
   svg {
     width: 20px;
     height: 20px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -159,7 +159,7 @@ const RefreshButton = styled.button`
 
   &:hover {
     background: rgba(59, 130, 246, 0.2);
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   svg {
@@ -207,7 +207,7 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div<{ $pct: number }>`
   height: 100%;
   width: ${(p) => p.$pct}%;
-  background: linear-gradient(90deg, #3b82f6, #00ffff);
+  background: linear-gradient(90deg, #3b82f6, #60C0F0);
   border-radius: 3px;
 `;
 
@@ -225,7 +225,7 @@ const StrategyBadge = styled.span`
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(120, 81, 169, 0.5);
+  background: rgba(139, 92, 246, 0.5);
   color: white;
 `;
 
@@ -299,7 +299,7 @@ const AnalyticsTab: React.FC = () => {
     { label: 'Draft', value: stats.draft, icon: <FileEdit />, color: 'rgba(234, 179, 8, 0.3)' },
     { label: 'Archived', value: stats.archived, icon: <Archive />, color: 'rgba(107, 114, 128, 0.3)' },
     { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: <TrendingUp />, color: 'rgba(139, 92, 246, 0.2)' },
-    { label: 'Collections', value: stats.totalCollections, icon: <FolderOpen />, color: 'rgba(120, 81, 169, 0.3)' },
+    { label: 'Collections', value: stats.totalCollections, icon: <FolderOpen />, color: 'rgba(139, 92, 246, 0.3)' },
   ];
 
   return (

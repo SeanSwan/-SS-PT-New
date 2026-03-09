@@ -26,7 +26,7 @@ import SettingsSection from "./sections/SettingsSection";
 const theme = {
   colors: {
     primary: "#8B5CF6",        // Neon Blue
-    secondary: "#7851A9",      // Purple
+    secondary: "#8B5CF6",      // Purple
     accent: "#FF6B6B",         // Coral for attention
     success: "#4CAF50",        // Green for success
     warning: "#FFC107",        // Amber for warnings
@@ -36,7 +36,7 @@ const theme = {
     grey: "#808080",           // Grey
     silver: "#C0C0C0",         // Silver
     background: "#FFFFFF",     // White background for main content
-    sidebarBg: "#7851A9",      // Purple for sidebar background
+    sidebarBg: "#8B5CF6",      // Purple for sidebar background
     text: "#333333",           // Main text color
     textLight: "#FFFFFF",      // Light text color
     textMuted: "#757575",      // Muted text color

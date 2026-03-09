@@ -51,8 +51,8 @@ const CameraBtn = styled.button`
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: #00ffff;
-  color: #0a0a1a;
+  background: #60C0F0;
+  color: #002060;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,7 +144,7 @@ const InterestChip = styled.span`
   padding: 4px 12px;
   border-radius: 16px;
   border: 1px solid rgba(139, 92, 246, 0.4);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
 `;
 
@@ -157,7 +157,7 @@ const ChipDeleteBtn = styled.button`
   display: flex;
   align-items: center;
 
-  &:hover { color: #00ffff; }
+  &:hover { color: #60C0F0; }
 `;
 
 const SectionTitle = styled.h6`

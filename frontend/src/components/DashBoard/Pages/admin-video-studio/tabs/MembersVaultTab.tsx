@@ -98,7 +98,7 @@ const TierIcon = styled.span<{ $tier: string }>`
       case 'premium':
         return '#fbbf24';
       case 'member':
-        return '#00ffff';
+        return '#60C0F0';
       default:
         return '#22c55e';
     }
@@ -172,12 +172,12 @@ const LockOverlay = styled.div`
   background: rgba(0, 0, 0, 0.6);
   border-radius: 6px;
   font-size: 11px;
-  color: #00ffff;
+  color: #60C0F0;
 
   svg {
     width: 12px;
     height: 12px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -250,7 +250,7 @@ const GrantTitle = styled.h2`
   svg {
     width: 20px;
     height: 20px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -291,7 +291,7 @@ const Input = styled.input`
   }
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 
@@ -307,11 +307,11 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
   }
 `;
 
@@ -319,7 +319,7 @@ const PrimaryButton = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(45deg, #3b82f6, #00ffff);
+  background: linear-gradient(45deg, #3b82f6, #60C0F0);
   border: none;
   border-radius: 8px;
   padding: 10px 20px;

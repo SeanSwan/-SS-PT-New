@@ -49,7 +49,7 @@ const VideoLayer = styled.video<{ $isVisible: boolean }>`
   transition: opacity 1.2s ease-in-out;
   will-change: opacity;
   /* Fallback gradient when video can't play */
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #002060 0%, #1a1a3c 50%, #002060 100%);
 
   @media (prefers-reduced-motion: reduce) {
     display: none;
@@ -70,7 +70,7 @@ const Overlay = styled.div<{ $opacity: number; $gradient?: string }>`
   /* When gradient provided, its rgba alpha values control transparency.
      No extra opacity stacking to avoid doubly-dark overlays. */
   background: ${({ $gradient, $opacity }) =>
-    $gradient || `rgba(10, 10, 26, ${$opacity})`};
+    $gradient || `rgba(0, 32, 96, ${$opacity})`};
 `;
 
 const Content = styled.div`
@@ -94,7 +94,7 @@ const Content = styled.div`
  */
 export const SectionVideoBackground: React.FC<SectionVideoBackgroundProps> = ({
   src,
-  fallbackGradient = 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3c 100%)',
+  fallbackGradient = 'linear-gradient(135deg, #002060 0%, #1a1a3c 100%)',
   overlayOpacity = 0.6,
   overlayGradient,
   children,

@@ -97,7 +97,7 @@ const ItemDescription = styled.div`
 
 const RoleBadge = styled.span`
   background: rgba(139, 92, 246, 0.2);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.65rem;
   padding: 2px 6px;
   border-radius: 4px;
@@ -259,7 +259,7 @@ const DashboardSelector: React.FC = () => {
             onClick={() => handleSelectDashboard('/dashboard/default')}
           >
             <ItemIcon>
-              <LayoutDashboard size={16} color="#00ffff" />
+              <LayoutDashboard size={16} color="#60C0F0" />
             </ItemIcon>
             <ItemContent>
               <ItemTitle>Admin Dashboard</ItemTitle>
@@ -276,7 +276,7 @@ const DashboardSelector: React.FC = () => {
             onClick={() => handleSelectDashboard('/trainer-dashboard')}
           >
             <ItemIcon>
-              <Users size={16} color="#7851a9" />
+              <Users size={16} color="#8B5CF6" />
             </ItemIcon>
             <ItemContent>
               <ItemTitle>Trainer Dashboard</ItemTitle>

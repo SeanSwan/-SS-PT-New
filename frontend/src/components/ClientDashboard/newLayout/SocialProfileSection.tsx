@@ -51,8 +51,8 @@ const Avatar = styled.div`
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 3px solid #00ffff;
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  border: 3px solid #60C0F0;
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,7 +68,7 @@ const CameraButton = styled.button`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #00ffff;
+  background-color: #60C0F0;
   border: none;
   display: flex;
   align-items: center;
@@ -146,7 +146,7 @@ const NameInput = styled.input`
   max-width: 300px;
   
   &:focus {
-    border-bottom-color: #00ffff;
+    border-bottom-color: #60C0F0;
   }
 `;
 
@@ -167,7 +167,7 @@ const HandleInput = styled.input`
   max-width: 300px;
   
   &:focus {
-    border-bottom-color: #00ffff;
+    border-bottom-color: #60C0F0;
   }
 `;
 
@@ -191,7 +191,7 @@ const BioTextArea = styled.textarea`
   resize: vertical;
   
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(30, 30, 60, 0.5);
   }
 `;
@@ -221,7 +221,7 @@ const MetaInput = styled.input`
   outline: none;
   
   &:focus {
-    border-bottom-color: #00ffff;
+    border-bottom-color: #60C0F0;
   }
 `;
 
@@ -255,7 +255,7 @@ const StatItem = styled.div`
 const StatValue = styled.div`
   font-size: 1.5rem;
   font-weight: bold;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const StatLabel = styled.div`
@@ -280,8 +280,8 @@ const Chip = styled.div`
   padding: 0.5rem 1rem;
   border-radius: 16px;
   background-color: transparent;
-  border: 1px solid #7851a9;
-  color: #7851a9;
+  border: 1px solid #8B5CF6;
+  color: #8B5CF6;
   font-size: 0.875rem;
   display: flex;
   align-items: center;
@@ -289,7 +289,7 @@ const Chip = styled.div`
   transition: all 0.3s ease;
   
   &:hover {
-    background-color: rgba(120, 81, 169, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -330,7 +330,7 @@ const AddInterestInput = styled.input`
   font-size: 0.875rem;
   
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(30, 30, 60, 0.5);
   }
 `;
@@ -339,7 +339,7 @@ const AddButton = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #00ffff;
+  background-color: #60C0F0;
   border: none;
   display: flex;
   align-items: center;
@@ -380,7 +380,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) => 
     $active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
   color: ${({ $active }) => 
-    $active ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
+    $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.7)'};
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -391,7 +391,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   
   &:hover {
     background: rgba(139, 92, 246, 0.15);
-    color: #00ffff;
+    color: #60C0F0;
   }
   
   ${({ $active }) => $active && `
@@ -403,7 +403,7 @@ const TabButton = styled.button<{ $active: boolean }>`
       transform: translateX(-50%);
       width: 60%;
       height: 2px;
-      background: #00ffff;
+      background: #60C0F0;
     }
   `}
 `;
@@ -432,7 +432,7 @@ const AchievementCard = styled.div`
 `;
 
 const AchievementIcon = styled.div`
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
   border-radius: 50%;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -484,7 +484,7 @@ const ActivityAvatar = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   display: flex;
   align-items: center;
   justify-content: center;

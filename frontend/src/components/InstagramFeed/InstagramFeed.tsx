@@ -36,11 +36,11 @@ import nebulaImage from '../../assets/nebula.png';
 // --- EW Design Tokens ---
 
 const T = {
-  bg: '#0a0a1a',
+  bg: '#002060',
   cardGlass: 'rgba(15, 20, 35, 0.55)',
   cardGlassFallback: 'rgba(15, 20, 35, 0.88)',
   primary: '#00D4AA',
-  secondary: '#7851A9',
+  secondary: '#8B5CF6',
   accent: '#48E8C8',
   text: '#F0F8FF',
   textSecondary: '#8AA8B8',
@@ -122,7 +122,7 @@ const BackgroundGlow = styled.div`
   max-height: 800px;
   background: radial-gradient(
     ellipse at center,
-    rgba(120, 81, 169, 0.06) 0%,
+    rgba(139, 92, 246, 0.06) 0%,
     rgba(0, 212, 170, 0.03) 40%,
     transparent 70%
   );
@@ -1055,7 +1055,7 @@ const SocialFeed: React.FC = () => {
   // id="instagram" kept for backward-compat anchor links
   return (
     <SectionContainer id="instagram" ref={ref} aria-label="Follow Our Journey">
-      <ParallaxImageBackground src={nebulaImage} overlayOpacity={0.5} overlayGradient="linear-gradient(180deg, rgba(10, 10, 26, 0.5), rgba(12, 14, 28, 0.4), rgba(10, 10, 26, 0.5))" />
+      <ParallaxImageBackground src={nebulaImage} overlayOpacity={0.5} overlayGradient="linear-gradient(180deg, rgba(0, 32, 96, 0.5), rgba(12, 14, 28, 0.4), rgba(0, 32, 96, 0.5))" />
       <BackgroundGlow />
 
       <ContentWrapper>

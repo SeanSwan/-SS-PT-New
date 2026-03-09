@@ -227,7 +227,7 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
       ? 'rgba(255, 71, 87, 0.2)'
       : $variant === 'secondary'
         ? 'rgba(96, 192, 240, 0.15)'
-        : 'linear-gradient(135deg, #60C0F0 0%, #7851A9 100%)'};
+        : 'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 100%)'};
   color: ${({ $variant }) =>
     $variant === 'danger' ? '#FF4757' : $variant === 'secondary' ? '#60C0F0' : '#FFFFFF'};
   border: 1px solid
@@ -280,7 +280,7 @@ const RuleTypeBadge = styled.span<{ $type: string }>`
     $type === 'angle_threshold'
       ? 'rgba(96, 192, 240, 0.2)'
       : $type === 'landmark_deviation'
-        ? 'rgba(120, 81, 169, 0.3)'
+        ? 'rgba(139, 92, 246, 0.3)'
         : 'rgba(0, 255, 136, 0.2)'};
   color: ${({ $type }) =>
     $type === 'angle_threshold'

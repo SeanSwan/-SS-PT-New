@@ -172,7 +172,7 @@ const EditorGrid = styled.div`
   display: grid;
   grid-template-columns: 60px repeat(7, 1fr);
   gap: 2px;
-  background: rgba(10, 10, 26, 0.8);
+  background: rgba(0, 32, 96, 0.8);
   border-radius: 12px;
   padding: 1rem;
   overflow-y: auto;

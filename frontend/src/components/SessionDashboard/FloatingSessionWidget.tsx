@@ -166,7 +166,7 @@ const QuickButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger
     }
   }};
   
-  color: ${props => props.$variant === 'primary' ? '#00ffff' : '#fff'};
+  color: ${props => props.$variant === 'primary' ? '#60C0F0' : '#fff'};
   
   &:hover:not(:disabled) {
     transform: translateY(-1px);

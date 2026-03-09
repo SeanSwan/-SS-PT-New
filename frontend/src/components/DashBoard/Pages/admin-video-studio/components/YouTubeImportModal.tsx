@@ -102,7 +102,7 @@ const Overlay = styled(motion.div)`
 `;
 
 const Modal = styled(motion.div)`
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 16px;
   padding: 2rem;
@@ -168,7 +168,7 @@ const Input = styled.input`
   transition: border-color 0.2s;
   box-sizing: border-box;
 
-  &:focus { border-color: #00ffff; }
+  &:focus { border-color: #60C0F0; }
   &::placeholder { color: #475569; }
 `;
 
@@ -187,7 +187,7 @@ const TextArea = styled.textarea`
   transition: border-color 0.2s;
   box-sizing: border-box;
 
-  &:focus { border-color: #00ffff; }
+  &:focus { border-color: #60C0F0; }
   &::placeholder { color: #475569; }
 `;
 
@@ -208,10 +208,10 @@ const Select = styled.select`
   background-position: right 0.75rem center;
   box-sizing: border-box;
 
-  &:focus { border-color: #00ffff; }
+  &:focus { border-color: #60C0F0; }
 
   option {
-    background: #0a0a1a;
+    background: #002060;
     color: #e2e8f0;
   }
 `;
@@ -235,12 +235,12 @@ const VisibilityBtn = styled.button<{ $active: boolean; $disabled?: boolean }>`
   cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
   transition: all 0.2s;
   background: ${p => (p.$active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(30, 58, 138, 0.2)')};
-  border: 1px solid ${p => (p.$active ? '#00ffff' : 'rgba(59, 130, 246, 0.3)')};
-  color: ${p => (p.$active ? '#00ffff' : p.$disabled ? '#334155' : '#94a3b8')};
+  border: 1px solid ${p => (p.$active ? '#60C0F0' : 'rgba(59, 130, 246, 0.3)')};
+  color: ${p => (p.$active ? '#60C0F0' : p.$disabled ? '#334155' : '#94a3b8')};
   opacity: ${p => (p.$disabled ? 0.4 : 1)};
 
   &:hover:not(:disabled) {
-    border-color: ${p => (p.$disabled ? 'rgba(59, 130, 246, 0.3)' : '#00ffff')};
+    border-color: ${p => (p.$disabled ? 'rgba(59, 130, 246, 0.3)' : '#60C0F0')};
   }
 `;
 

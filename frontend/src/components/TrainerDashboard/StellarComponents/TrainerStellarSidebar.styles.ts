@@ -58,7 +58,7 @@ export const TrainerSidebarContainer = styled(motion.aside)<{ isCollapsed: boole
   left: 0;
   height: calc(100vh - 56px);
   width: ${props => (props.isCollapsed ? '80px' : '280px')};
-  background: ${props => props.theme.gradients?.hero || 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%)'};
+  background: ${props => props.theme.gradients?.hero || 'radial-gradient(ellipse at center, #1e1e3f 0%, #002060 70%)'};
   backdrop-filter: blur(20px);
   border-right: 2px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   z-index: 999;
@@ -78,7 +78,7 @@ export const TrainerSidebarContainer = styled(motion.aside)<{ isCollapsed: boole
       radial-gradient(2px 2px at 20px 30px, rgba(139, 92, 246, 0.4), transparent),
       radial-gradient(1px 1px at 40px 70px, rgba(255, 215, 0, 0.3), transparent),
       radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.2), transparent),
-      radial-gradient(2px 2px at 130px 80px, rgba(120, 81, 169, 0.3), transparent),
+      radial-gradient(2px 2px at 130px 80px, rgba(139, 92, 246, 0.3), transparent),
       radial-gradient(1px 1px at 160px 110px, rgba(139, 92, 246, 0.2), transparent);
     background-size: 120px 100px;
     background-repeat: repeat;
@@ -94,7 +94,7 @@ export const TrainerSidebarContainer = styled(motion.aside)<{ isCollapsed: boole
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(270deg, #00ffff, #FFD700, #7851A9, #00A0E3, #00ffff);
+    background: linear-gradient(270deg, #60C0F0, #FFD700, #8B5CF6, #00A0E3, #60C0F0);
     background-size: 400% 400%;
     animation: ${auroraShift} 8s ease infinite;
     opacity: 0.8;
@@ -256,7 +256,7 @@ const navStatusStyles: Record<NavStatus, { color: string; background: string; bo
   partial: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   progress: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   fix: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.6)' },
-  new: { color: '#00ffff', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
+  new: { color: '#60C0F0', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
   error: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', border: 'rgba(239, 68, 68, 0.7)' },
 };
 
@@ -283,7 +283,7 @@ export const TrainerNavItem = styled(motion.button)<{ isActive: boolean; isColla
   gap: 0.75rem;
   background: ${props =>
     props.isActive
-      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, rgba(120, 81, 169, 0.1) 100%)'
+      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%)'
       : 'transparent'};
   border: none;
   border-left: 3px solid ${props => (props.isActive ? props.theme.colors?.primary || '#8B5CF6' : 'transparent')};
@@ -387,7 +387,7 @@ export const TrainerNavItem = styled(motion.button)<{ isActive: boolean; isColla
   &:hover {
     background: ${props =>
       props.isActive
-        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(120, 81, 169, 0.15) 100%)'
+        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%)'
         : 'rgba(139, 92, 246, 0.05)'};
     transform: translateX(${props => (props.isCollapsed ? '0' : '4px')});
 

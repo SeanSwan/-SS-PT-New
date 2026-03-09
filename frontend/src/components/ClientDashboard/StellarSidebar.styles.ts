@@ -6,9 +6,9 @@ export const stellarTheme = {
   colors: {
     deepSpace: '#0a0a0f',
     nebulaPurple: '#1e1e3f',
-    cyberCyan: '#00ffff',
+    cyberCyan: '#60C0F0',
     stellarWhite: '#ffffff',
-    cosmicPurple: '#7851a9',
+    cosmicPurple: '#8B5CF6',
     starGold: '#ffd700',
     energyBlue: '#00c8ff',
     plasmaGreen: '#00ff88',
@@ -16,15 +16,15 @@ export const stellarTheme = {
     voidBlack: '#000000',
   },
   gradients: {
-    stellar: 'linear-gradient(135deg, #00ffff 0%, #7851a9 50%, #ffd700 100%)',
-    nebula: 'linear-gradient(45deg, #1e1e3f 0%, #7851a9 50%, #0a0a0f 100%)',
-    cosmic: 'radial-gradient(ellipse at top, #00ffff 0%, #1e1e3f 50%, #0a0a0f 100%)',
-    aurora: 'linear-gradient(270deg, #00ffff, #7851a9, #ffd700, #00ffff)',
-    constellation: 'conic-gradient(from 0deg, #00ffff, #7851a9, #ffd700, #00ffff)',
+    stellar: 'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 50%, #ffd700 100%)',
+    nebula: 'linear-gradient(45deg, #1e1e3f 0%, #8B5CF6 50%, #0a0a0f 100%)',
+    cosmic: 'radial-gradient(ellipse at top, #60C0F0 0%, #1e1e3f 50%, #0a0a0f 100%)',
+    aurora: 'linear-gradient(270deg, #60C0F0, #8B5CF6, #ffd700, #60C0F0)',
+    constellation: 'conic-gradient(from 0deg, #60C0F0, #8B5CF6, #ffd700, #60C0F0)',
   },
   shadows: {
     stellar: '0 0 30px rgba(139, 92, 246, 0.6)',
-    nebula: '0 0 40px rgba(120, 81, 169, 0.4)',
+    nebula: '0 0 40px rgba(139, 92, 246, 0.4)',
     cosmic: '0 20px 40px rgba(0, 0, 0, 0.6)',
     glow: '0 0 20px currentColor',
     constellation: 'inset 0 0 20px rgba(139, 92, 246, 0.2)',
@@ -70,7 +70,7 @@ const constellationGlow = keyframes`
     border-color: rgba(139, 92, 246, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(139, 92, 246, 0.6), 0 0 40px rgba(120, 81, 169, 0.3);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.3);
     border-color: rgba(139, 92, 246, 0.8);
   }
 `;
@@ -287,7 +287,7 @@ const navStatusStyles: Record<NavStatus, { color: string; background: string; bo
   partial: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   progress: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   fix: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.6)' },
-  new: { color: '#00ffff', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
+  new: { color: '#60C0F0', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
   error: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', border: 'rgba(239, 68, 68, 0.7)' },
 };
 
@@ -317,7 +317,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
   gap: 0.75rem;
   background: ${props =>
     props.isActive
-      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, rgba(120, 81, 169, 0.1) 100%)'
+      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%)'
       : 'transparent'};
   border: none;
   border-left: 3px solid ${props => (props.isActive ? props.theme.colors.cyberCyan : 'transparent')};
@@ -420,7 +420,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
   &:hover {
     background: ${props =>
       props.isActive
-        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(120, 81, 169, 0.15) 100%)'
+        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%)'
         : 'rgba(139, 92, 246, 0.05)'};
     transform: translateX(${props => (props.isCollapsed ? '0' : '4px')});
 

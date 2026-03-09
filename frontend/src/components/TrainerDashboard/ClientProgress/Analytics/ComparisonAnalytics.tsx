@@ -22,7 +22,7 @@ const theme = {
   text: '#e2e8f0',
   textSecondary: 'rgba(226,232,240,0.6)',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   success: '#4CAF50',
   warning: '#FFC107',
   error: '#FF6B6B',
@@ -558,7 +558,7 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
     return (
       <GlassPanel>
         <FlexRow>
-          <ArrowLeftRight color="#00ffff" size={24} />
+          <ArrowLeftRight color="#60C0F0" size={24} />
           <SectionTitle style={{ margin: 0 }}>{comparisonAnalytics.title}</SectionTitle>
         </FlexRow>
 
@@ -605,7 +605,7 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
                         {metric.client}
                       </MetricScore>
                       <ProgressBarTrack>
-                        <ProgressBarFill $width={metric.client} $color="#00ffff" />
+                        <ProgressBarFill $width={metric.client} $color="#60C0F0" />
                       </ProgressBarTrack>
                     </ProgressBarWrapper>
                   </StyledTd>

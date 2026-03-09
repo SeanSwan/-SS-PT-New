@@ -74,7 +74,7 @@ const galaxyShimmer = keyframes`
 
 // Styled Components
 const SuccessContainer = styled(motion.div)`
-  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #002060 0%, #1e1e3f 50%, #002060 100%);
   border-radius: 24px;
   border: 1px solid rgba(16, 185, 129, 0.3);
   position: relative;

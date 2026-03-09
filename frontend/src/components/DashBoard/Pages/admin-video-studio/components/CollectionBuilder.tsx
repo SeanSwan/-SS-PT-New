@@ -175,7 +175,7 @@ const DragHandle = styled.button`
   transition: color 0.2s, background 0.2s;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     background: rgba(139, 92, 246, 0.06);
   }
 
@@ -411,7 +411,7 @@ const CollectionBuilder: React.FC<CollectionBuilderProps> = ({
           No videos in this collection yet.
           <br />
           <span
-            style={{ color: '#00ffff', cursor: 'pointer', marginTop: '0.5rem', display: 'inline-block' }}
+            style={{ color: '#60C0F0', cursor: 'pointer', marginTop: '0.5rem', display: 'inline-block' }}
             onClick={onAddVideos}
             role="button"
             tabIndex={0}

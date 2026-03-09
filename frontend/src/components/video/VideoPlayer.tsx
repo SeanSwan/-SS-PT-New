@@ -259,7 +259,7 @@ const ReloadButton = styled.button`
   border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

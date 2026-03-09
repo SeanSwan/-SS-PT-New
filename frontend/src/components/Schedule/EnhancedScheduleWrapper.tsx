@@ -66,7 +66,7 @@ const PageTitle = styled.h1`
   color: white;
   margin-bottom: 1.5rem; /* Reduced from 2rem */
   text-align: center;
-  background: linear-gradient(to right, #00ffff, #7851a9);
+  background: linear-gradient(to right, #60C0F0, #8B5CF6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   

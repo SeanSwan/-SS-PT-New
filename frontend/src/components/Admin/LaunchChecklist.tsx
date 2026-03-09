@@ -241,7 +241,7 @@ const ChecklistItemRow = styled.label`
     margin-top: 0.2rem;
     width: 18px;
     height: 18px;
-    accent-color: #00ffff;
+    accent-color: #60C0F0;
   }
 `;
 

@@ -67,11 +67,11 @@ const cosmicFloat = keyframes`
 
 const stellarPulse = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(120, 81, 169, 0.1);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
     transform: scale(1);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5), 0 0 60px rgba(120, 81, 169, 0.2);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5), 0 0 60px rgba(139, 92, 246, 0.2);
     transform: scale(1.02);
   }
 `;
@@ -179,7 +179,7 @@ const powerfulAnimations = css`
       box-shadow: 
         0 20px 40px rgba(0, 0, 0, 0.3),
         0 0 60px rgba(139, 92, 246, 0.4),
-        0 0 100px rgba(120, 81, 169, 0.2);
+        0 0 100px rgba(139, 92, 246, 0.2);
       filter: brightness(1.1) saturate(1.2);
     }
   }
@@ -252,7 +252,7 @@ const luxuryTypography = css`
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #8B5CF6, #7851A9, #FFD700);
+    background: linear-gradient(135deg, #8B5CF6, #8B5CF6, #FFD700);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -381,7 +381,7 @@ const luxuryComponents = css`
     padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
     background: linear-gradient(135deg, 
       rgba(139, 92, 246, 0.1), 
-      rgba(120, 81, 169, 0.2)
+      rgba(139, 92, 246, 0.2)
     );
     border: 1px solid rgba(139, 92, 246, 0.3);
     border-radius: 12px;
@@ -481,9 +481,9 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
   :root {
     /* Color System */
     --cosmic-primary: #8B5CF6;
-    --cosmic-secondary: #7851A9;
+    --cosmic-secondary: #8B5CF6;
     --cosmic-accent: #FFD700;
-    --cosmic-background: #0a0a1a;
+    --cosmic-background: #002060;
     --cosmic-surface: rgba(30, 30, 60, 0.4);
     
     /* Spacing System */

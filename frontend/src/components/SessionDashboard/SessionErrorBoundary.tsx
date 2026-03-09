@@ -115,7 +115,7 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
   font-size: 0.875rem;
   
   background: ${props => props.$variant === 'primary' 
-    ? 'linear-gradient(135deg, #00ffff, #0080ff)'
+    ? 'linear-gradient(135deg, #60C0F0, #0080ff)'
     : 'rgba(255, 255, 255, 0.1)'
   };
   

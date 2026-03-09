@@ -35,14 +35,14 @@ const DebugHeader = styled.div`
   svg {
     width: 28px;
     height: 28px;
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
 const DebugTitle = styled.h2`
   margin: 0;
   font-size: 1.25rem;
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 600;
 `;
 

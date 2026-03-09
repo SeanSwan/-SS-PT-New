@@ -337,7 +337,7 @@ const StackedContainer = styled.div`
 const TrainerSection = styled.div<{ $density: DensityMode }>`
   border-radius: 12px;
   border: 1px solid ${galaxySwanTheme.borders.elegant};
-  background: rgba(10, 10, 26, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   overflow: hidden;
 
   ${({ $density }) =>
@@ -375,7 +375,7 @@ const TrainerAvatar = styled.div<{ $density: DensityMode }>`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, ${galaxySwanTheme.primary.main}, #7851A9);
+  background: linear-gradient(135deg, ${galaxySwanTheme.primary.main}, #8B5CF6);
   color: white;
   display: flex;
   align-items: center;

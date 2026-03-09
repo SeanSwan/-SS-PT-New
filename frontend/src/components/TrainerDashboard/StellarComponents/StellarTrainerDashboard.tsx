@@ -135,7 +135,7 @@ const particleFloat = keyframes`
 const TrainerGalaxyContainer = styled.div`
   display: flex;
   min-height: 100vh;
-  background: ${props => props.theme.gradients?.hero || 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%)'};
+  background: ${props => props.theme.gradients?.hero || 'radial-gradient(ellipse at center, #1e1e3f 0%, #002060 70%)'};
   color: ${props => props.theme.colors?.white || '#ffffff'};
   font-family: 'Inter', 'Roboto', sans-serif;
   position: relative;
@@ -152,7 +152,7 @@ const TrainerGalaxyContainer = styled.div`
       radial-gradient(2px 2px at 40px 70px, ${props => props.theme.colors?.accent || '#FFD700'}, transparent),
       radial-gradient(1px 1px at 90px 40px, ${props => props.theme.colors?.white || '#ffffff'}, transparent),
       radial-gradient(1px 1px at 130px 80px, ${props => props.theme.colors?.primary || '#8B5CF6'}, transparent),
-      radial-gradient(2px 2px at 180px 30px, ${props => props.theme.colors?.secondary || '#7851A9'}, transparent);
+      radial-gradient(2px 2px at 180px 30px, ${props => props.theme.colors?.secondary || '#8B5CF6'}, transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
     animation: ${nebulaSpin} 120s linear infinite;
@@ -196,7 +196,7 @@ const TrainerContentHeader = styled(motion.div)`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(270deg, #00ffff, #FFD700, #7851A9, #00A0E3, #00ffff);
+    background: linear-gradient(270deg, #60C0F0, #FFD700, #8B5CF6, #00A0E3, #60C0F0);
     background-size: 400% 400%;
     animation: ${nebulaSpin} 8s ease infinite;
     opacity: 0.8;

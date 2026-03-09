@@ -66,7 +66,7 @@ const healthFlow = keyframes`
 
 const SystemHealthContainer = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(10, 10, 26, 0.95) 0%, 
+    rgba(0, 32, 96, 0.95) 0%, 
     rgba(59, 130, 246, 0.1) 50%,
     rgba(30, 58, 138, 0.05) 100%
   );

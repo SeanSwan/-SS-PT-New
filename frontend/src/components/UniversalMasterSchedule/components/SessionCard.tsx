@@ -10,10 +10,10 @@ import { motion } from 'framer-motion';
 import { Clock, MapPin, User, Calendar, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 const TOKENS = {
-  surfaceGlass: 'rgba(10, 10, 26, 0.6)',
+  surfaceGlass: 'rgba(0, 32, 96, 0.6)',
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
   swanCyan: '#8B5CF6',
-  cosmicPurple: '#7851A9',
+  cosmicPurple: '#8B5CF6',
   deepSpace: '#0A0A1A',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',
@@ -21,7 +21,7 @@ const TOKENS = {
   dangerRed: '#ef4444',
   warningAmber: '#f59e0b',
   glassStroke: 'rgba(139, 92, 246, 0.1)',
-  purpleStroke: 'rgba(120, 81, 169, 0.3)',
+  purpleStroke: 'rgba(139, 92, 246, 0.3)',
 };
 
 const STATUS_COLORS: Record<string, string> = {

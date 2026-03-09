@@ -56,7 +56,7 @@ const ModalHeader = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -119,7 +119,7 @@ const FullWidthCell = styled.div`
 /* ─────────────────────── Section Headers ─────────────────────── */
 
 const SectionTitle = styled.h3`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -164,7 +164,7 @@ const StyledInput = styled.input<{ $error?: boolean }>`
   }
 
   &:focus {
-    border-color: ${({ $error }) => ($error ? '#f44336' : '#00ffff')};
+    border-color: ${({ $error }) => ($error ? '#f44336' : '#60C0F0')};
   }
 
   &:disabled {
@@ -198,7 +198,7 @@ const StyledTextarea = styled.textarea<{ $error?: boolean }>`
   }
 
   &:focus {
-    border-color: ${({ $error }) => ($error ? '#f44336' : '#00ffff')};
+    border-color: ${({ $error }) => ($error ? '#f44336' : '#60C0F0')};
   }
 
   &:disabled {
@@ -228,7 +228,7 @@ const NativeSelect = styled.select<{ $error?: boolean }>`
   }
 
   &:focus {
-    border-color: ${({ $error }) => ($error ? '#f44336' : '#00ffff')};
+    border-color: ${({ $error }) => ($error ? '#f44336' : '#60C0F0')};
   }
 
   &:disabled {
@@ -263,8 +263,8 @@ const PrimaryButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
-  color: #0a0a1a;
+  background: linear-gradient(135deg, #60C0F0, #00c8ff);
+  color: #002060;
 
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
@@ -349,8 +349,8 @@ const SpinnerIcon = styled.span`
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(10, 10, 26, 0.3);
-  border-top-color: #0a0a1a;
+  border: 2px solid rgba(0, 32, 96, 0.3);
+  border-top-color: #002060;
   border-radius: 50%;
   animation: ${spin} 0.7s linear infinite;
 `;

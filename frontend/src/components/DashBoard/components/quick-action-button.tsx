@@ -71,7 +71,7 @@ const iconMap: Record<string, React.ReactNode> = {
 // Color mapping
 const colorMap: Record<string, string> = {
   primary: 'rgba(139, 92, 246, 0.15)',
-  purple: 'rgba(120, 81, 169, 0.15)',
+  purple: 'rgba(139, 92, 246, 0.15)',
   success: 'rgba(0, 191, 143, 0.15)',
   warning: 'rgba(255, 183, 0, 0.15)',
   danger: 'rgba(255, 84, 84, 0.15)',

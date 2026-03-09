@@ -25,7 +25,7 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#94a3b8',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
+  cyan: '#60C0F0',
   success: '#4caf50',
   warning: '#f59e0b',
   error: '#f44336',

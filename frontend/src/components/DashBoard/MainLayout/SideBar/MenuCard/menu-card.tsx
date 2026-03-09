@@ -49,7 +49,7 @@ import { useAuth } from '../../../../../context/AuthContext';
 const StyledCard = styled(Card)`
   background: linear-gradient(135deg,
     rgba(139, 92, 246, 0.15),
-    rgba(120, 81, 169, 0.1));
+    rgba(139, 92, 246, 0.1));
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -69,7 +69,7 @@ const StyledCard = styled(Card)`
     bottom: 0;
     background: linear-gradient(120deg,
       rgba(139, 92, 246, 0.1),
-      rgba(120, 81, 169, 0.05));
+      rgba(139, 92, 246, 0.05));
     opacity: 0.5;
     z-index: 0;
   }
@@ -97,7 +97,7 @@ const StyledAvatar = styled(Avatar)`
   width: 60px;
   height: 60px;
   border: 2px solid rgba(255, 255, 255, 0.7);
-  background: #0a0a1a;
+  background: #002060;
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
 
   svg {
@@ -112,13 +112,13 @@ const ProgressWrapper = styled.div`
     height: 10px;
     border-radius: 5px;
     overflow: hidden;
-    background: rgba(10, 10, 26, 0.3);
+    background: rgba(0, 32, 96, 0.3);
   }
 `;
 
 // Quick link buttons
 const StyledIconButton = styled(IconButton)<{ $isActive?: boolean }>`
-  background: rgba(10, 10, 26, 0.15);
+  background: rgba(0, 32, 96, 0.15);
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -158,7 +158,7 @@ const StatusChip = styled.div`
 const ViewProfileButton = styled(Button)`
   margin-top: 16px;
   padding: 6px 16px;
-  background: rgba(10, 10, 26, 0.15);
+  background: rgba(0, 32, 96, 0.15);
   color: #FFFFFF;
   border-radius: 8px;
   backdrop-filter: blur(5px);

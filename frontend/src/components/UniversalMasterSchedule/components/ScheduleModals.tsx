@@ -786,7 +786,7 @@ const PremiumLockOverlay = styled.div`
   justify-content: center;
   gap: 1rem;
   padding: 2rem 1.5rem;
-  background: rgba(10, 10, 26, 0.7);
+  background: rgba(0, 32, 96, 0.7);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: 12px;
@@ -828,7 +828,7 @@ const PurchaseButton = styled.button`
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   min-height: 44px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
   border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 10px;
   color: #8B5CF6;
@@ -838,7 +838,7 @@ const PurchaseButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.3));
     border-color: rgba(139, 92, 246, 0.6);
     box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
   }

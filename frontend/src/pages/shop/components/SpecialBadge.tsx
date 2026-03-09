@@ -28,9 +28,9 @@ const BadgeContainer = styled.div`
 const Badge = styled.div`
   background: linear-gradient(
     135deg,
-    #7851A9 0%,
+    #8B5CF6 0%,
     #9B6FCF 50%,
-    #7851A9 100%
+    #8B5CF6 100%
   );
   background-size: 200% 100%;
   animation: ${shimmer} 3s linear infinite;
@@ -41,7 +41,7 @@ const Badge = styled.div`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(120, 81, 169, 0.4);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
   text-align: center;
   min-width: 100px;

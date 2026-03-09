@@ -159,13 +159,13 @@ const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
   },
   // COSMIC GRADIENT — Animated cyan→purple gradient border, deep space base
   cosmicGradient: {
-    background: "#0a0a1a",
+    background: "#002060",
     color: "#E0ECF4",
     shadow: "rgba(139, 92, 246, 0.15)",
     shineLeft: "rgba(139, 92, 246, 0.5)",     // Cyan
-    shineRight: "rgba(120, 81, 169, 0.65)",  // Cosmic Purple
+    shineRight: "rgba(139, 92, 246, 0.65)",  // Cosmic Purple
     glowStart: "#8B5CF6",                    // Swan Cyan
-    glowEnd: "#7851A9",                      // Cosmic Purple
+    glowEnd: "#8B5CF6",                      // Cosmic Purple
   },
 };
 
@@ -217,11 +217,11 @@ const LIGHT_THEME_OVERRIDES: Record<CanonicalVariant, Partial<ButtonTheme>> = {
     shineRight: "rgba(64, 112, 192, 0.25)",
   },
   cosmicGradient: {
-    background: "linear-gradient(135deg, #00BFFF, #7851A9)",
+    background: "linear-gradient(135deg, #00BFFF, #8B5CF6)",
     color: "#FFFFFF",
     shadow: "rgba(0, 191, 255, 0.18)",
     shineLeft: "rgba(0, 191, 255, 0.3)",
-    shineRight: "rgba(120, 81, 169, 0.4)",
+    shineRight: "rgba(139, 92, 246, 0.4)",
   },
 };
 

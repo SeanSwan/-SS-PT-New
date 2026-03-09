@@ -33,7 +33,7 @@ const ChartWrapper = styled.div`
 `;
 
 const ChartTitle = styled.h4`
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.1rem;
   margin: 0 0 1rem 0;
   display: flex;
@@ -49,7 +49,7 @@ const EmptyState = styled.div`
 `;
 
 const CustomTooltipWrapper = styled.div`
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
   padding: 0.75rem 1rem;
@@ -57,7 +57,7 @@ const CustomTooltipWrapper = styled.div`
   font-size: 0.85rem;
 
   .tooltip-label {
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: 600;
     margin-bottom: 0.25rem;
   }
@@ -105,8 +105,8 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({ goals }) => {
         <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="goalGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00ffff" stopOpacity={0.6} />
-              <stop offset="100%" stopColor="#7851a9" stopOpacity={0.1} />
+              <stop offset="0%" stopColor="#60C0F0" stopOpacity={0.6} />
+              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.1} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
@@ -127,7 +127,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({ goals }) => {
           <Area
             type="monotone"
             dataKey="progress"
-            stroke="#00ffff"
+            stroke="#60C0F0"
             strokeWidth={2}
             fill="url(#goalGradient)"
             animationDuration={1200}

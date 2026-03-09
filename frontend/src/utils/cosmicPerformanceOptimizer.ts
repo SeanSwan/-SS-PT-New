@@ -259,7 +259,7 @@ export const applyPerformanceOptimizations = (profile: PerformanceProfile): void
   // Shadow complexity
   switch (profile.shadowComplexity) {
     case 'enhanced':
-      root.style.setProperty('--shadow-cosmic', '0 12px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.2), 0 0 100px rgba(120, 81, 169, 0.1)');
+      root.style.setProperty('--shadow-cosmic', '0 12px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.2), 0 0 100px rgba(139, 92, 246, 0.1)');
       break;
     case 'standard':
       root.style.setProperty('--shadow-cosmic', '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(139, 92, 246, 0.2)');

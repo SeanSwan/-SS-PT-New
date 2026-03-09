@@ -362,14 +362,14 @@ const Overlay = styled.div`
 const ModalContainer = styled.div`
   background: rgba(15, 15, 30, 0.97);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 16px;
   width: 90%;
   max-width: 520px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(120, 81, 169, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(139, 92, 246, 0.1);
   animation: ${fadeIn} 0.2s ease-out;
 `;
 
@@ -452,9 +452,9 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #7851A9;
+    border-color: #8B5CF6;
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 2px rgba(120, 81, 169, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 
   &::placeholder {
@@ -522,7 +522,7 @@ const RoleFilterTab = styled.button<{ $active: boolean }>`
   ${({ $active }) =>
     $active
       ? `
-        background: rgba(120, 81, 169, 0.3);
+        background: rgba(139, 92, 246, 0.3);
         color: #c4a0ff;
       `
       : `
@@ -583,7 +583,7 @@ const ResultItem = styled.div`
   gap: 12px;
 
   &:hover {
-    background: rgba(120, 81, 169, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 
   &:not(:last-child) {
@@ -684,7 +684,7 @@ const RoleBadge = styled.span<{ $role?: string }>`
   ${({ $role }) => {
     switch ($role) {
       case 'admin':
-        return `background: linear-gradient(135deg, rgba(120, 81, 169, 0.25), rgba(93, 63, 211, 0.25)); color: #c4a0ff; border: 1px solid rgba(120, 81, 169, 0.3);`;
+        return `background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(93, 63, 211, 0.25)); color: #c4a0ff; border: 1px solid rgba(139, 92, 246, 0.3);`;
       case 'trainer':
         return `background: rgba(0, 206, 209, 0.15); color: #00CED1; border: 1px solid rgba(0, 206, 209, 0.25);`;
       case 'client':
@@ -702,8 +702,8 @@ const SelectedUserChip = styled.div`
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(120, 81, 169, 0.12);
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
 `;
 
@@ -805,12 +805,12 @@ const CancelButton = styled(Button)`
 `;
 
 const SubmitButton = styled(Button)`
-  background: linear-gradient(135deg, #7851A9 0%, #5D3FD3 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #5D3FD3 100%);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(120, 81, 169, 0.3);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
 
   &:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(120, 81, 169, 0.4);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
     transform: translateY(-1px);
   }
 

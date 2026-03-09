@@ -51,7 +51,7 @@ const ProfileChip = styled(Chip)`
 const UserAvatar = styled(Avatar)`
   margin: 8px 0 8px 8px !important;
   cursor: pointer;
-  border: 2px solid #00ffff;
+  border: 2px solid #60C0F0;
   box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   transition: all 0.3s ease;
 
@@ -89,7 +89,7 @@ const AvatarContainer = styled.div`
 const BigAvatar = styled(Avatar)`
   width: 80px;
   height: 80px;
-  border: 3px solid #00ffff;
+  border: 3px solid #60C0F0;
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   margin-bottom: 16px;
 
@@ -106,7 +106,7 @@ const UploadButton = styled.label`
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #7851a9;
+  background: #8B5CF6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -118,7 +118,7 @@ const UploadButton = styled.label`
 
   &:hover {
     transform: scale(1.1);
-    background: #00ffff;
+    background: #60C0F0;
     color: #000;
   }
 

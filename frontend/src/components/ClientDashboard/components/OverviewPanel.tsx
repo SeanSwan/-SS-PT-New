@@ -36,7 +36,7 @@ const PanelContainer = styled.div`
   transform: translateZ(0);
 
   h2 {
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 1.5rem;
     font-size: 1.4rem;
     text-align: center;
@@ -75,8 +75,8 @@ const MetricCard = styled.div<{ color?: string }>`
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
-    border-color: ${props => props.color || '#00ffff'};
-    box-shadow: 0 0 20px ${props => props.color || '#00ffff'}33;
+    border-color: ${props => props.color || '#60C0F0'};
+    box-shadow: 0 0 20px ${props => props.color || '#60C0F0'}33;
   }
 
   @media (max-width: 768px) {
@@ -93,13 +93,13 @@ const MetricCard = styled.div<{ color?: string }>`
 const MetricIcon = styled.div<{ color?: string }>`
   font-size: 2rem;
   margin-bottom: 0.5rem;
-  color: ${props => props.color || '#00ffff'};
+  color: ${props => props.color || '#60C0F0'};
 `;
 
 const MetricValue = styled.div<{ color?: string }>`
   font-size: 2rem;
   font-weight: bold;
-  color: ${props => props.color || '#00ffff'};
+  color: ${props => props.color || '#60C0F0'};
   margin-bottom: 0.25rem;
 `;
 

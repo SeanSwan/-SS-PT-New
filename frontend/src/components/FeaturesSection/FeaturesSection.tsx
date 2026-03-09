@@ -52,9 +52,9 @@ const glow = keyframes`
 `;
 
 const pulseGlow = keyframes`
-  0% { box-shadow: 0 0 15px rgba(120, 81, 169, 0.4); }
-  50% { box-shadow: 0 0 25px rgba(120, 81, 169, 0.7); }
-  100% { box-shadow: 0 0 15px rgba(120, 81, 169, 0.4); }
+  0% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.7); }
+  100% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
 `;
 
 // Styled components
@@ -76,7 +76,7 @@ const BackgroundGlow = styled.div`
   background: radial-gradient(
     ellipse at center,
     rgba(139, 92, 246, 0.1) 0%,
-    rgba(120, 81, 169, 0.05) 50%,
+    rgba(139, 92, 246, 0.05) 50%,
     transparent 70%
   );
   border-radius: 50%;

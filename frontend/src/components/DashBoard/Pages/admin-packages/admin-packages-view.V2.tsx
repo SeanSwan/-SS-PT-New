@@ -68,7 +68,7 @@ const PackageCard = styled(GlassCardStatic)`
   &:hover {
     transform: translateY(-2px);
     border-color: ${STORE_TOKENS.border.purple};
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(120,81,169,0.1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.1);
   }
 `;
 
@@ -129,7 +129,7 @@ const ModalBackdrop = styled.div<{ $isOpen: boolean }>`
 `;
 
 const ModalContainer = styled.div`
-  background: linear-gradient(135deg, #120d26 0%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #120d26 0%, #002060 100%);
   border: 1px solid ${STORE_TOKENS.border.glass};
   border-radius: ${STORE_TOKENS.radius.card};
   max-width: 600px;
@@ -511,7 +511,7 @@ const AdminPackagesView: React.FC = () => {
 
       {/* KPI Cards */}
       <KPIGrid>
-        <KPICard $accent="rgba(120,81,169,0.15)">
+        <KPICard $accent="rgba(139,92,246,0.15)">
           <KPILabel>Total Packages</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.purple}>{stats.total}</KPIValue>
         </KPICard>

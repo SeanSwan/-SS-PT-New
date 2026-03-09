@@ -53,7 +53,7 @@ const Panel = styled(motion.div)`
 const PanelTitle = styled.h5`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 0 0 16px;
 `;
 
@@ -132,7 +132,7 @@ const SelectOption = styled.button<{ $selected?: boolean }>`
   min-height: 44px;
   border: none;
   background: ${props => props.$selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
-  color: ${props => props.$selected ? '#00ffff' : 'white'};
+  color: ${props => props.$selected ? '#60C0F0' : 'white'};
   font-size: 0.875rem;
   cursor: pointer;
   text-align: left;
@@ -298,7 +298,7 @@ const AddSetBtn = styled.button`
   border-radius: 6px;
   border: none;
   background: rgba(139, 92, 246, 0.1);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.8125rem;
   cursor: pointer;
   margin-top: 16px;

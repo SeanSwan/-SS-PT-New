@@ -38,16 +38,16 @@ interface Particle {
  * ```tsx
  * <CanvasBackground
  *   particleCount={200}
- *   colorFrom="#00ffff"
- *   colorTo="#7851a9"
+ *   colorFrom="#60C0F0"
+ *   colorTo="#8B5CF6"
  *   interactive={false}
  * />
  * ```
  */
 const CanvasBackground: React.FC<CanvasBackgroundProps> = ({
   particleCount = 200,
-  colorFrom = '#00ffff',
-  colorTo = '#7851a9',
+  colorFrom = '#60C0F0',
+  colorTo = '#8B5CF6',
   interactive = false,
   paused = false,
   className

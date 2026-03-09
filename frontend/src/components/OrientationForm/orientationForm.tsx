@@ -71,7 +71,7 @@ const ModalOverlay = styled(motion.div)`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #00ffff, #7851a9);
+    background: linear-gradient(to bottom, #60C0F0, #8B5CF6);
     border-radius: 4px;
   }
 `;
@@ -131,7 +131,7 @@ const CloseButton = styled(motion.button)`
   width: 34px;
   height: 34px;
   font-size: 1.3rem;
-  color: #00ffff;
+  color: #60C0F0;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -169,7 +169,7 @@ const LogoCircle = styled(motion.div)`
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(139, 92, 246, 0.9));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,7 +291,7 @@ const FormGroup = styled(motion.div)`
 
     &:focus {
       outline: none;
-      border-color: #00ffff;
+      border-color: #60C0F0;
       box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
       background: rgba(30, 30, 60, 0.5);
     }
@@ -374,7 +374,7 @@ const WaiverSection = styled(motion.div)`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #00ffff, #7851a9);
+    background: linear-gradient(to bottom, #60C0F0, #8B5CF6);
     border-radius: 3px;
   }
   
@@ -402,7 +402,7 @@ const WaiverSection = styled(motion.div)`
 
 const SubmitButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(139, 92, 246, 0.9));
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -432,7 +432,7 @@ const SubmitButton = styled(motion.button)`
 
 const SuccessMessage = styled(motion.div)`
   text-align: center;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 1.5rem 0 1rem;
   padding: 1.25rem;
   border-radius: 10px;
@@ -459,7 +459,7 @@ const SuccessMessage = styled(motion.div)`
     transform: translateX(-50%);
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
+    background: linear-gradient(135deg, #60C0F0, #8B5CF6);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -502,7 +502,7 @@ const ScheduleLinkContainer = styled(motion.div)`
 `;
 
 const ScheduleLink = styled(Link)`
-  color: #00ffff;
+  color: #60C0F0;
   font-weight: 500;
   position: relative;
   text-decoration: none;

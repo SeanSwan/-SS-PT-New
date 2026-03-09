@@ -3,8 +3,8 @@ import styled, { keyframes } from 'styled-components';
 
 const pulseNebula = keyframes`
   0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); transform: scale(0.95); }
-  70% { box-shadow: 0 0 0 20px rgba(120, 81, 169, 0); transform: scale(1); }
-  100% { box-shadow: 0 0 0 0 rgba(120, 81, 169, 0); transform: scale(0.95); }
+  70% { box-shadow: 0 0 0 20px rgba(139, 92, 246, 0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); transform: scale(0.95); }
 `;
 
 const shimmer = keyframes`
@@ -26,7 +26,7 @@ const SwanCore = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
   animation: ${pulseNebula} 2s infinite cubic-bezier(0.45, 0, 0.55, 1);
   position: relative;
 
@@ -35,7 +35,7 @@ const SwanCore = styled.div`
     position: absolute;
     inset: 4px;
     border-radius: 50%;
-    background: #0a0a1a;
+    background: #002060;
   }
 `;
 

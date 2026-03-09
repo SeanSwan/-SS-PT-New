@@ -59,7 +59,7 @@ const DashboardContainer = styled.div`
     inset: 0;
     border-radius: 16px;
     padding: 2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9, #ff6b9d, #00ffff);
+    background: linear-gradient(45deg, #60C0F0, #8B5CF6, #ff6b9d, #60C0F0);
     background-size: 400% 400%;
     animation: ${gradientShift} 3s ease infinite;
     -webkit-mask:
@@ -76,7 +76,7 @@ const DashboardTitle = styled.h4`
   font-size: 2rem;
   font-weight: 300;
   margin: 0 0 1.5rem 0;
-  background: linear-gradient(to right, #00ffff, #7851a9, #ff6b9d);
+  background: linear-gradient(to right, #60C0F0, #8B5CF6, #ff6b9d);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -106,7 +106,7 @@ const FeatureIconBox = styled.div<{ $color?: string; $colorSecondary?: string }>
   width: 60px;
   height: 60px;
   border-radius: 12px;
-  background: linear-gradient(135deg, ${props => props.$color || '#00ffff'}, ${props => props.$colorSecondary || '#7851a9'});
+  background: linear-gradient(135deg, ${props => props.$color || '#60C0F0'}, ${props => props.$colorSecondary || '#8B5CF6'});
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,7 +143,7 @@ const ActionButton = styled.button<{ $fullWidth?: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
   color: white;
   border: none;
   border-radius: 8px;
@@ -157,7 +157,7 @@ const ActionButton = styled.button<{ $fullWidth?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(90deg, #7851a9, #00ffff);
+    background: linear-gradient(90deg, #8B5CF6, #60C0F0);
     transform: scale(1.02);
   }
 
@@ -175,8 +175,8 @@ const OutlineButton = styled.button`
   justify-content: center;
   gap: 8px;
   background: transparent;
-  color: #00ffff;
-  border: 1px solid #00ffff;
+  color: #60C0F0;
+  border: 1px solid #60C0F0;
   border-radius: 8px;
   padding: 10px 20px;
   min-height: 44px;
@@ -313,7 +313,7 @@ const Spinner = styled.div`
   width: 20px;
   height: 20px;
   border: 2px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
 `;
@@ -408,7 +408,7 @@ const ToggleTrack = styled.span<{ $checked: boolean }>`
   width: 42px;
   height: 24px;
   border-radius: 12px;
-  background: ${props => props.$checked ? '#00ffff' : 'rgba(255, 255, 255, 0.3)'};
+  background: ${props => props.$checked ? '#60C0F0' : 'rgba(255, 255, 255, 0.3)'};
   transition: background 0.2s ease;
 `;
 
@@ -473,7 +473,7 @@ const SectionTitle = styled.h6`
   margin: 0;
   font-size: 1.25rem;
   font-weight: 500;
-  color: #00ffff;
+  color: #60C0F0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -482,7 +482,7 @@ const SectionTitle = styled.h6`
 const StatsValue = styled.div`
   font-size: 2rem;
   font-weight: bold;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const StatsLabel = styled.div`
@@ -495,7 +495,7 @@ const FeatureTitle = styled.h6`
   margin: 0 0 8px 0;
   font-size: 1.125rem;
   font-weight: 500;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const FeatureDescription = styled.p`
@@ -518,7 +518,7 @@ const DefaultFeatureTitle = styled.h6`
   margin: 0 0 1rem 0;
   font-size: 1.25rem;
   font-weight: 500;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const DefaultFeatureText = styled.p`
@@ -535,7 +535,7 @@ const AI_FEATURES = [
     title: 'AI Workout Generator',
     description: 'Generate personalized workouts using advanced AI based on client data, goals, and equipment.',
     icon: Dumbbell,
-    color: '#00ffff',
+    color: '#60C0F0',
     colorSecondary: '#46cdcf',
     capabilities: ['Personalized Plans', 'Equipment Adaptation', 'Progress Integration'],
     component: 'WorkoutGenerator'
@@ -545,7 +545,7 @@ const AI_FEATURES = [
     title: 'Progress Analytics',
     description: 'AI-powered analysis of client progress with insights and recommendations.',
     icon: BarChart3,
-    color: '#7851a9',
+    color: '#8B5CF6',
     colorSecondary: '#9c27b0',
     capabilities: ['Pattern Recognition', 'Predictive Insights', 'Goal Tracking'],
     component: 'ProgressAnalysis'
@@ -728,7 +728,7 @@ const AIFeaturesDashboard = () => {
             disabled={isLoading}
             title="Refresh Status"
           >
-            <RefreshCw size={20} color={isLoading ? 'rgba(255, 255, 255, 0.3)' : '#00ffff'} />
+            <RefreshCw size={20} color={isLoading ? 'rgba(255, 255, 255, 0.3)' : '#60C0F0'} />
           </RefreshIconButton>
         </TitleActions>
       </DashboardTitle>

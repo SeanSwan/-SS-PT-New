@@ -92,7 +92,7 @@ const HeaderSection = styled(motion.div)`
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #00ffff 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -128,7 +128,7 @@ const StatCard = styled(motion.div)`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
     transform: translateY(-4px);
   }
@@ -136,7 +136,7 @@ const StatCard = styled(motion.div)`
   .stat-icon {
     width: 3rem;
     height: 3rem;
-    color: #00ffff;
+    color: #60C0F0;
     margin-bottom: 1rem;
   }
 
@@ -233,11 +233,11 @@ const StyledInput = styled.input`
   }
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 `;
@@ -260,11 +260,11 @@ const StyledSelect = styled.select`
   transition: border-color 0.2s ease;
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
@@ -275,7 +275,7 @@ const StyledSelect = styled.select`
 `;
 
 const ActionButton = styled(motion.button)`
-  background: linear-gradient(135deg, #3b82f6 0%, #00ffff 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%);
   border: none;
   border-radius: 12px;
   color: #ffffff;
@@ -372,7 +372,7 @@ const LoadingBar = styled.div`
     left: 0;
     height: 100%;
     width: 40%;
-    background: #00ffff;
+    background: #60C0F0;
     border-radius: 2px;
     animation: loading-slide 1.2s ease-in-out infinite;
   }
@@ -560,7 +560,7 @@ const PaginationButton = styled.button`
   transition: all 0.15s ease;
 
   &:hover:not(:disabled) {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(139, 92, 246, 0.1);
   }
 
@@ -986,7 +986,7 @@ const EnhancedUserDataManagement: React.FC = () => {
                       <StyledTd>
                         <ActionsCell>
                           <IconBtn
-                            $color="#00ffff"
+                            $color="#60C0F0"
                             title="View Details"
                             onClick={(e) => {
                               e.stopPropagation();

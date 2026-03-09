@@ -237,7 +237,7 @@ const StyledFrostedCard = styled(motion.div)<StyledFrostedCardProps>`
     $interactive &&
     css`
       &:focus-visible {
-        outline: 2px solid ${theme?.colors?.primary || '#00ffff'};
+        outline: 2px solid ${theme?.colors?.primary || '#60C0F0'};
         outline-offset: 2px;
       }
     `}
@@ -253,7 +253,7 @@ const StyledFrostedCard = styled(motion.div)<StyledFrostedCardProps>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${({ theme }) => theme?.colors?.primary || '#00ffff'}40,
+      ${({ theme }) => theme?.colors?.primary || '#60C0F0'}40,
       transparent
     );
     border-radius: 20px 20px 0 0;

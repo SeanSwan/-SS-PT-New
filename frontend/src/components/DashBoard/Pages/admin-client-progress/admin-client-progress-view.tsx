@@ -46,10 +46,10 @@ const theme = {
   text: '#e2e8f0',
   textMuted: '#A0A0A0',
   accent: '#0ea5e9',
-  cyan: '#00ffff',
-  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
+  cyan: '#60C0F0',
+  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%)',
   gradientPrimaryHover: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)',
-  gradientLevel: 'linear-gradient(135deg, #00ffff, #00B4D8)',
+  gradientLevel: 'linear-gradient(135deg, #60C0F0, #00B4D8)',
   shadow: '0 4px 12px rgba(0, 0, 20, 0.2)',
   shadowCyan: '0 4px 12px rgba(139, 92, 246, 0.1)',
 };

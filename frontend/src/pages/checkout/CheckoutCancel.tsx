@@ -59,7 +59,7 @@ const pulseOrange = keyframes`
 // Styled Components
 const CancelPageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   padding: 2rem;
   display: flex;
   flex-direction: column;

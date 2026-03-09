@@ -106,7 +106,7 @@ const StatusBadge = styled.div<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   }};
   color: ${({ $status }) => {
     switch ($status) {
-      case 'granted': return '#00ffff';
+      case 'granted': return '#60C0F0';
       case 'withdrawn': return '#ef4444';
       default: return 'rgba(255, 255, 255, 0.6)';
     }
@@ -201,7 +201,7 @@ const PrivacyItem = styled.li`
 const PrivacyIcon = styled.span<{ $color?: string }>`
   flex-shrink: 0;
   margin-top: 2px;
-  color: ${({ $color }) => $color || '#00ffff'};
+  color: ${({ $color }) => $color || '#60C0F0'};
 `;
 
 const ConsentDisclosure = styled.div`
@@ -218,7 +218,7 @@ const ConsentDisclosure = styled.div`
 const ConsentDisclosureTitle = styled.div`
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
@@ -250,7 +250,7 @@ const ConsentButton = styled.button<{ $variant: 'grant' | 'withdraw' }>`
 
   ${({ $variant }) => $variant === 'grant' ? `
     background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(139, 92, 246, 0.8));
-    color: #0a0a1a;
+    color: #002060;
     border-color: rgba(139, 92, 246, 0.5);
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
 
@@ -309,7 +309,7 @@ const Spinner = styled(motion.div)`
   width: 40px;
   height: 40px;
   border: 3px solid rgba(139, 92, 246, 0.15);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
 `;
 
@@ -510,7 +510,7 @@ const AiConsentScreen: React.FC = () => {
       {/* Header */}
       <PageHeader>
         <PageTitle>
-          <Shield size={28} color="#00ffff" />
+          <Shield size={28} color="#60C0F0" />
           AI Privacy & Consent
         </PageTitle>
         <PageSubtitle>
@@ -571,7 +571,7 @@ const AiConsentScreen: React.FC = () => {
       {/* What AI Features Do */}
       <Card>
         <SectionTitle>
-          <Brain size={20} color="#00ffff" />
+          <Brain size={20} color="#60C0F0" />
           What AI Features Provide
         </SectionTitle>
         <PrivacyList>
@@ -593,7 +593,7 @@ const AiConsentScreen: React.FC = () => {
       {/* Privacy Protections */}
       <Card>
         <SectionTitle>
-          <Lock size={20} color="#00ffff" />
+          <Lock size={20} color="#60C0F0" />
           Your Privacy Protections
         </SectionTitle>
         <PrivacyList>

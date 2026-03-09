@@ -179,7 +179,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15))'
       : 'transparent'};
   color: ${({ $active }) => ($active ? '#8B5CF6' : '#94a3b8')};
   border: ${({ $active }) =>
@@ -188,7 +188,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   &:hover {
     background: ${({ $active }) =>
       $active
-        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15))'
+        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15))'
         : 'rgba(148, 163, 184, 0.08)'};
     color: ${({ $active }) => ($active ? '#8B5CF6' : '#cbd5e1')};
   }
@@ -293,9 +293,9 @@ const RewardBadge = styled.span`
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(120, 81, 169, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #c4b5fd;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'completed' }>`
@@ -329,11 +329,11 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'compl
         `;
       default:
         return `
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
           color: #e2e8f0;
           border: 1px solid rgba(139, 92, 246, 0.3);
           &:hover {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.3));
             transform: translateY(-1px);
           }
         `;

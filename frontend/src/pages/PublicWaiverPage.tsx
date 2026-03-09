@@ -30,7 +30,7 @@ const ACTIVITY_OPTIONS: { value: ActivityType; label: string }[] = [
 
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: #0a0a1a;
+  background: #002060;
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
@@ -49,7 +49,7 @@ const GlassCard = styled.div`
 
 const Title = styled.h1`
   font-size: 1.75rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
 `;
 
@@ -60,7 +60,7 @@ const Subtitle = styled.p`
 
 const SectionTitle = styled.h2`
   font-size: 1.15rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 1.5rem 0 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(139, 92, 246, 0.15);
@@ -78,7 +78,7 @@ const CheckboxLabel = styled.label<{ $checked?: boolean }>`
   gap: 0.5rem;
   min-height: 44px;
   padding: 0.5rem 0.75rem;
-  border: 1px solid ${(p) => (p.$checked ? '#00ffff' : 'rgba(255,255,255,0.15)')};
+  border: 1px solid ${(p) => (p.$checked ? '#60C0F0' : 'rgba(255,255,255,0.15)')};
   border-radius: 8px;
   background: ${(p) => (p.$checked ? 'rgba(139, 92, 246,0.08)' : 'transparent')};
   cursor: pointer;
@@ -88,7 +88,7 @@ const CheckboxLabel = styled.label<{ $checked?: boolean }>`
   input {
     width: 18px;
     height: 18px;
-    accent-color: #00ffff;
+    accent-color: #60C0F0;
   }
 `;
 
@@ -114,7 +114,7 @@ const Input = styled.input<{ $error?: boolean }>`
   font-size: 1rem;
 
   &:focus {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     outline: none;
   }
 `;
@@ -130,14 +130,14 @@ const WaiverTextContainer = styled.div`
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.6;
 
-  h1, h2, h3, h4 { color: #00ffff; margin-top: 1rem; }
+  h1, h2, h3, h4 { color: #60C0F0; margin-top: 1rem; }
   p { margin: 0.5rem 0; }
   ul, ol { padding-left: 1.5rem; }
 `;
 
 const WaiverVersionTitle = styled.h3`
   font-size: 1rem;
-  color: #00ffff;
+  color: #60C0F0;
   margin: 1rem 0 0.5rem;
   padding-bottom: 0.25rem;
   border-bottom: 1px solid rgba(139, 92, 246, 0.1);
@@ -174,7 +174,7 @@ const ConsentRow = styled.label<{ $required?: boolean }>`
   input {
     width: 20px;
     height: 20px;
-    accent-color: #00ffff;
+    accent-color: #60C0F0;
     flex-shrink: 0;
   }
 `;
@@ -189,8 +189,8 @@ const SubmitButton = styled.button<{ $disabled?: boolean }>`
   background: ${(p) =>
     p.$disabled
       ? 'rgba(100, 100, 100, 0.4)'
-      : 'linear-gradient(135deg, #00d9ff, #00ffff)'};
-  color: ${(p) => (p.$disabled ? 'rgba(255,255,255,0.4)' : '#0a0a1a')};
+      : 'linear-gradient(135deg, #00d9ff, #60C0F0)'};
+  color: ${(p) => (p.$disabled ? 'rgba(255,255,255,0.4)' : '#002060')};
   font-size: 1.1rem;
   font-weight: 700;
   cursor: ${(p) => (p.$disabled ? 'not-allowed' : 'pointer')};
@@ -212,7 +212,7 @@ const CheckIcon = styled.div`
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const ErrorText = styled.p`
@@ -225,9 +225,9 @@ const LinkButton = styled.a`
   display: inline-block;
   margin-top: 1.5rem;
   padding: 0.75rem 2rem;
-  border: 1px solid #00ffff;
+  border: 1px solid #60C0F0;
   border-radius: 8px;
-  color: #00ffff;
+  color: #60C0F0;
   text-decoration: none;
 
   &:hover {
@@ -254,7 +254,7 @@ const ToggleRow = styled.label`
   input {
     width: 20px;
     height: 20px;
-    accent-color: #00ffff;
+    accent-color: #60C0F0;
   }
 `;
 
@@ -408,7 +408,7 @@ export default function PublicWaiverPage() {
               Thank you! Your waiver has been submitted successfully.
             </p>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>
-              Confirmation ID: <strong style={{ color: '#00ffff' }}>{submitResult.waiverRecordId}</strong>
+              Confirmation ID: <strong style={{ color: '#60C0F0' }}>{submitResult.waiverRecordId}</strong>
             </p>
             <LinkButton href="/signup">Create an Account</LinkButton>
           </SuccessCard>

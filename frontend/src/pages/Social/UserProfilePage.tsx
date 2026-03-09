@@ -41,7 +41,7 @@ interface UserPost {
 // Galaxy-Swan styled components
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
+  background: linear-gradient(135deg, #002060 0%, #1a1a3e 50%, #002060 100%);
   color: #e2e8f0;
   padding-bottom: 48px;
 `;
@@ -73,7 +73,7 @@ const BannerSection = styled.div<{ $src?: string }>`
   background: ${({ $src }) =>
     $src
       ? `url(${$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #7851a9 0%, #0ea5e9 50%, #7851a9 100%)'};
+      : 'linear-gradient(135deg, #8B5CF6 0%, #0ea5e9 50%, #8B5CF6 100%)'};
   position: relative;
 `;
 
@@ -96,9 +96,9 @@ const AvatarCircle = styled.div<{ $src?: string }>`
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid #0a0a1a;
+  border: 4px solid #002060;
   background: ${({ $src }) =>
-    $src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #7851a9, #0ea5e9)'};
+    $src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #8B5CF6, #0ea5e9)'};
   display: flex;
   align-items: center;
   justify-content: center;

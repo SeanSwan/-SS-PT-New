@@ -39,7 +39,7 @@ const OrderHeader = styled.div`
 
 const OrderId = styled.span`
   font-weight: bold;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const OrderDate = styled.span`
@@ -236,7 +236,7 @@ const OrderHistory: React.FC = () => {
               borderTop: '1px solid rgba(255, 255, 255, 0.1)',
               textAlign: 'right',
               fontWeight: 'bold',
-              color: '#00ffff'
+              color: '#60C0F0'
             }}>
               Total: {formatPrice(order.total)}
             </div>

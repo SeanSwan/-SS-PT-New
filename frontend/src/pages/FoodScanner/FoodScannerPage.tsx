@@ -11,7 +11,7 @@ import axios from 'axios';
 // Styled components
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #002060, #1e1e3f);
   color: white;
   padding: 1rem 1rem 6rem;
 `;
@@ -79,7 +79,7 @@ const Step = styled.div`
 `;
 
 const StepNumber = styled.div`
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   color: white;
   width: 28px;
   height: 28px;
@@ -121,7 +121,7 @@ const SearchInput = styled.input`
 `;
 
 const SearchButton = styled.button`
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   color: white;
   border: none;
   border-radius: 0 8px 8px 0;
@@ -148,7 +148,7 @@ const TabButton = styled.button<{ active: boolean }>`
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  border-bottom: 2px solid ${({ active }) => active ? '#00ffff' : 'transparent'};
+  border-bottom: 2px solid ${({ active }) => active ? '#60C0F0' : 'transparent'};
   transition: all 0.3s ease;
   
   &:hover {
@@ -169,7 +169,7 @@ const LoadingSpinner = styled(motion.div)`
   height: 50px;
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   margin-bottom: 1rem;
 `;
 
@@ -615,7 +615,7 @@ const FoodScannerPage: React.FC = () => {
                   <button
                     onClick={() => navigate('/login')}
                     style={{
-                      background: 'linear-gradient(135deg, #7851a9, #00ffff)',
+                      background: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',

@@ -217,7 +217,7 @@ const Badge = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: rgba(139, 92, 246, 0.15);
-  color: #00ffff;
+  color: #60C0F0;
   border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 

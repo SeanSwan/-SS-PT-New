@@ -119,7 +119,7 @@ const ActionButton = styled.button<{ $variant?: 'start' | 'stop' | 'restart' }>`
       case 'start': return 'linear-gradient(45deg, #2ed573, #26d0ce)';
       case 'stop': return 'linear-gradient(45deg, #e74c3c, #c0392b)';
       case 'restart': return 'linear-gradient(45deg, #f39c12, #e67e22)';
-      default: return 'linear-gradient(45deg, #7851a9, #00ffff)';
+      default: return 'linear-gradient(45deg, #8B5CF6, #60C0F0)';
     }
   }};
 
@@ -228,18 +228,18 @@ const TabBar = styled.div`
 const TabButton = styled.button<{ $active: boolean }>`
   background: none;
   border: none;
-  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
   padding: 0.75rem 1.25rem;
   min-height: 44px;
   font-size: 0.875rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
   white-space: nowrap;
-  border-bottom: 2px solid ${props => props.$active ? '#00ffff' : 'transparent'};
+  border-bottom: 2px solid ${props => props.$active ? '#60C0F0' : 'transparent'};
   transition: all 0.2s ease;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     background: rgba(139, 92, 246, 0.05);
   }
 `;
@@ -306,7 +306,7 @@ const ChipBadge = styled.span<{ $color?: 'success' | 'error' | 'info' | 'warning
     switch (props.$color) {
       case 'success': return '#2ed573';
       case 'error': return '#e74c3c';
-      case 'info': return '#00ffff';
+      case 'info': return '#60C0F0';
       case 'warning': return '#ffc107';
       default: return '#ffffff';
     }
@@ -350,7 +350,7 @@ const ProgressBar = styled.div<{ $value: number }>`
     height: 100%;
     width: ${props => Math.min(100, Math.max(0, props.$value))}%;
     border-radius: 3px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6);
     transition: width 0.4s ease;
   }
 `;
@@ -359,7 +359,7 @@ const Spinner = styled.div<{ $size?: number }>`
   width: ${props => props.$size || 60}px;
   height: ${props => props.$size || 60}px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #00ffff;
+  border-top-color: #60C0F0;
   border-radius: 50%;
   animation: ${spinKeyframes} 0.8s linear infinite;
 `;
@@ -383,7 +383,7 @@ const ToggleSlider = styled.span<{ $checked: boolean }>`
   position: absolute;
   inset: 0;
   border-radius: 12px;
-  background: ${props => props.$checked ? '#00ffff' : 'rgba(255, 255, 255, 0.2)'};
+  background: ${props => props.$checked ? '#60C0F0' : 'rgba(255, 255, 255, 0.2)'};
   transition: background 0.2s ease;
 
   &::after {
@@ -394,7 +394,7 @@ const ToggleSlider = styled.span<{ $checked: boolean }>`
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: ${props => props.$checked ? '#0a0a1a' : '#ffffff'};
+    background: ${props => props.$checked ? '#002060' : '#ffffff'};
     transition: left 0.2s ease;
   }
 `;
@@ -411,7 +411,7 @@ const OutlineButton = styled.button`
   border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
   background: transparent;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -422,7 +422,7 @@ const OutlineButton = styled.button`
 
   &:hover:not(:disabled) {
     background: rgba(139, 92, 246, 0.1);
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 
   &:disabled {
@@ -436,7 +436,7 @@ const PrimaryButton = styled.button`
   padding: 0.5rem 1.25rem;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #7851a9, #00ffff);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   color: white;
   font-size: 0.875rem;
   font-weight: 600;
@@ -476,7 +476,7 @@ const StyledInput = styled.div`
     box-sizing: border-box;
 
     &:focus {
-      border-color: #00ffff;
+      border-color: #60C0F0;
     }
   }
 `;

@@ -76,7 +76,7 @@ const LogoText = styled.span`
   letter-spacing: 1px;
   
   span {
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   @media (max-width: 768px) {
@@ -97,7 +97,7 @@ const DesktopNav = styled.nav`
 `;
 
 const NavLink = styled(Link)<{ $active?: boolean }>`
-  color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.8)'};
+  color: ${({ $active }) => $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.8)'};
   text-decoration: none;
   font-weight: 500;
   font-size: 1rem;
@@ -105,7 +105,7 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
   position: relative;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   ${({ $active }) => $active && css`
@@ -116,8 +116,8 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
       left: 0;
       width: 100%;
       height: 2px;
-      background: #00ffff;
-      box-shadow: 0 0 10px #00ffff;
+      background: #60C0F0;
+      box-shadow: 0 0 10px #60C0F0;
     }
   `}
 `;
@@ -141,7 +141,7 @@ const IconButton = styled(Link)`
   justify-content: center;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     transform: scale(1.1);
   }
 `;
@@ -166,7 +166,7 @@ const CartBadge = styled.span`
 const AuthButton = styled.button`
   background: rgba(139, 92, 246, 0.1);
   border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #00ffff;
+  color: #60C0F0;
   padding: 0.5rem 1.2rem;
   border-radius: 50px;
   font-weight: 600;
@@ -178,7 +178,7 @@ const AuthButton = styled.button`
   gap: 0.5rem;
 
   &:hover {
-    background: #00ffff;
+    background: #60C0F0;
     color: #000;
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
@@ -196,7 +196,7 @@ const DropdownContainer = styled.div`
 const DropdownTrigger = styled.button<{ $isOpen: boolean }>`
   background: transparent;
   border: none;
-  color: ${({ $isOpen }) => $isOpen ? '#00ffff' : 'rgba(255, 255, 255, 0.8)'};
+  color: ${({ $isOpen }) => $isOpen ? '#60C0F0' : 'rgba(255, 255, 255, 0.8)'};
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -209,7 +209,7 @@ const DropdownTrigger = styled.button<{ $isOpen: boolean }>`
   background: ${({ $isOpen }) => $isOpen ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
     background: rgba(139, 92, 246, 0.05);
   }
 
@@ -258,7 +258,7 @@ const DropdownItem = styled(Link)`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #00ffff;
+    color: #60C0F0;
   }
 
   .text-content {
@@ -327,7 +327,7 @@ const MobileNavLink = styled(Link)`
   align-items: center;
 
   &:hover {
-    color: #00ffff;
+    color: #60C0F0;
   }
 `;
 
@@ -368,7 +368,7 @@ const MobilePortalCard = styled(Link)`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #00ffff;
+    color: #60C0F0;
     flex-shrink: 0;
   }
 
@@ -539,7 +539,7 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
             
             {/* Mobile Auth Links */}
             {!isAuthenticated ? (
-               <MobileNavLink to="/login" onClick={() => setMobileMenuOpen(false)} style={{ color: '#00ffff' }}>
+               <MobileNavLink to="/login" onClick={() => setMobileMenuOpen(false)} style={{ color: '#60C0F0' }}>
                  Login / Sign Up
                </MobileNavLink>
             ) : (

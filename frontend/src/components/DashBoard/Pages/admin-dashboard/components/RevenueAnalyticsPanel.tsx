@@ -67,7 +67,7 @@ const dataFlow = keyframes`
 
 const AnalyticsContainer = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(10, 10, 26, 0.95) 0%, 
+    rgba(0, 32, 96, 0.95) 0%, 
     rgba(30, 58, 138, 0.1) 50%,
     rgba(14, 165, 233, 0.05) 100%
   );
@@ -85,7 +85,7 @@ const AnalyticsContainer = styled(motion.div)`
     left: -100%;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #00ffff, transparent);
+    background: linear-gradient(90deg, transparent, #60C0F0, transparent);
     animation: ${dataFlow} 3s linear infinite;
   }
 `;
@@ -102,7 +102,7 @@ const PanelHeader = styled.div`
 const PanelTitle = styled.h1`
   font-size: 2.25rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #00ffff 0%, #3b82f6 50%, #1e3a8a 100%);
+  background: linear-gradient(135deg, #60C0F0 0%, #3b82f6 50%, #1e3a8a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -195,7 +195,7 @@ const TimeRangeSelector = styled.select`
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
+    border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
   
@@ -228,7 +228,7 @@ const KPICard = styled(motion.div)`
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #00ffff, #3b82f6);
+    background: linear-gradient(90deg, #60C0F0, #3b82f6);
   }
 `;
 
@@ -367,7 +367,7 @@ const ErrorContainer = styled.div`
 // =====================================================
 
 const chartColors = {
-  primary: '#00ffff',
+  primary: '#60C0F0',
   secondary: '#3b82f6',
   success: '#10b981',
   warning: '#f59e0b',
@@ -375,7 +375,7 @@ const chartColors = {
   gradient: 'url(#colorGradient)'
 };
 
-const pieChartColors = ['#00ffff', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const pieChartColors = ['#60C0F0', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 // =====================================================
 // MAIN COMPONENT
@@ -730,7 +730,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
           >
             <KPIHeader>
-              <KPIIcon color="#00ffff">
+              <KPIIcon color="#60C0F0">
                 <DollarSign size={24} />
               </KPIIcon>
               <KPIChange isPositive={revenueData.changes.revenue > 0}>
@@ -821,7 +821,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
               <ComposedChart data={revenueData.revenueHistory}>
                 <defs>
                   <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00ffff" stopOpacity={0.3}/>
+                    <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
@@ -852,7 +852,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
                   type="monotone" 
                   dataKey="revenue" 
                   fill="url(#colorGradient)"
-                  stroke="#00ffff"
+                  stroke="#60C0F0"
                   strokeWidth={3}
                 />
                 <Line 

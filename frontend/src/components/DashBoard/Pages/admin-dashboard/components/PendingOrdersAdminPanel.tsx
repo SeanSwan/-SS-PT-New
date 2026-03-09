@@ -415,7 +415,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
           <KPILabel>CA Tax Liability</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.tax}>{formatCurrency(totalRevenue * CA_TAX_RATE)}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(120,81,169,0.15)">
+        <KPICard $accent="rgba(139,92,246,0.15)">
           <KPILabel>Total Orders</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.purple}>{orders.length}</KPIValue>
         </KPICard>

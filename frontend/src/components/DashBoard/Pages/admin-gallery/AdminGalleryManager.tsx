@@ -109,7 +109,7 @@ const KPICard = styled.div`
 const KPIValue = styled.div`
   font-size: 28px;
   font-weight: 800;
-  color: #00ffff;
+  color: #60C0F0;
   line-height: 1.1;
 `;
 
@@ -136,7 +136,7 @@ const Tab = styled.button<{ $active: boolean }>`
   min-height: 44px;
   border: none;
   background: transparent;
-  color: ${p => p.$active ? '#00ffff' : 'rgba(255,255,255,0.5)'};
+  color: ${p => p.$active ? '#60C0F0' : 'rgba(255,255,255,0.5)'};
   font-size: 14px;
   font-weight: ${p => p.$active ? 600 : 500};
   cursor: pointer;
@@ -149,10 +149,10 @@ const Tab = styled.button<{ $active: boolean }>`
     left: 0;
     width: ${p => p.$active ? '100%' : '0'};
     height: 2px;
-    background: #00ffff;
+    background: #60C0F0;
     transition: width 0.3s;
   }
-  &:hover { color: ${p => p.$active ? '#00ffff' : '#fff'}; }
+  &:hover { color: ${p => p.$active ? '#60C0F0' : '#fff'}; }
 `;
 
 const GlassCard = styled.div`
@@ -194,9 +194,9 @@ const StatusBadge = styled.span<{ $status: string }>`
   ${p => {
     switch (p.$status) {
       case 'requested': return 'background: rgba(255,193,7,0.15); color: #ffc107;';
-      case 'in_progress': return 'background: rgba(139, 92, 246,0.15); color: #00ffff;';
+      case 'in_progress': return 'background: rgba(139, 92, 246,0.15); color: #60C0F0;';
       case 'completed': return 'background: rgba(76,175,80,0.15); color: #4caf50;';
-      case 'delivered': return 'background: rgba(120,81,169,0.15); color: #b794f6;';
+      case 'delivered': return 'background: rgba(139,92,246,0.15); color: #b794f6;';
       default: return 'background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6);';
     }
   }}
@@ -210,7 +210,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'ghost' }>`
   font-weight: 600;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.12);
-  ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #00ffff, #7851a9); color: #0a0a1a; border: none;'}
+  ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #60C0F0, #8B5CF6); color: #002060; border: none;'}
   ${p => p.$variant === 'danger' && 'background: rgba(220,38,38,0.15); color: #ef4444; border-color: rgba(220,38,38,0.3);'}
   ${p => (!p.$variant || p.$variant === 'ghost') && 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);'}
   &:hover { opacity: 0.85; }
@@ -255,7 +255,7 @@ const TextArea = styled.textarea`
 `;
 
 const DropZone = styled.div<{ $dragging?: boolean }>`
-  border: 2px dashed ${p => p.$dragging ? '#00ffff' : 'rgba(255,255,255,0.15)'};
+  border: 2px dashed ${p => p.$dragging ? '#60C0F0' : 'rgba(255,255,255,0.15)'};
   border-radius: 12px;
   padding: 40px;
   text-align: center;
@@ -285,7 +285,7 @@ const ToggleSwitch = styled.button<{ $on: boolean }>`
   height: 24px;
   border-radius: 12px;
   border: none;
-  background: ${p => p.$on ? '#00ffff' : 'rgba(255,255,255,0.15)'};
+  background: ${p => p.$on ? '#60C0F0' : 'rgba(255,255,255,0.15)'};
   position: relative;
   cursor: pointer;
   transition: background 0.3s;
@@ -297,7 +297,7 @@ const ToggleSwitch = styled.button<{ $on: boolean }>`
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: ${p => p.$on ? '#0a0a1a' : '#fff'};
+    background: ${p => p.$on ? '#002060' : '#fff'};
     transition: left 0.3s;
   }
 `;
@@ -598,7 +598,7 @@ const AdminGalleryManager: React.FC = () => {
                       {event.location && `${event.location} · `}
                       {event.photoCount} photos
                       {' · '}
-                      <span style={{ color: '#00ffff', cursor: 'pointer' }}>/gallery/{event.slug}</span>
+                      <span style={{ color: '#60C0F0', cursor: 'pointer' }}>/gallery/{event.slug}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -629,7 +629,7 @@ const AdminGalleryManager: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
                         <ToggleSwitch $on={watermarkEnabled} onClick={() => setWatermarkEnabled(!watermarkEnabled)} />
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: watermarkEnabled ? '#00ffff' : 'rgba(255,255,255,0.5)' }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: watermarkEnabled ? '#60C0F0' : 'rgba(255,255,255,0.5)' }}>
                             SwanStudios Watermark {watermarkEnabled ? 'ON' : 'OFF'}
                           </div>
                           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
@@ -646,7 +646,7 @@ const AdminGalleryManager: React.FC = () => {
                         onClick={() => fileInputRef.current?.click()}
                       >
                         {uploading ? (
-                          <span style={{ color: '#00ffff' }}>Uploading & watermarking photos...</span>
+                          <span style={{ color: '#60C0F0' }}>Uploading & watermarking photos...</span>
                         ) : (
                           <>
                             <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
@@ -757,7 +757,7 @@ const AdminGalleryManager: React.FC = () => {
                 {donations.map(d => (
                   <tr key={d.id}>
                     <td data-label="Donor">{d.visitor.email}</td>
-                    <td data-label="Amount" style={{ color: '#00ffff', fontWeight: 700 }}>${parseFloat(d.amount).toFixed(2)}</td>
+                    <td data-label="Amount" style={{ color: '#60C0F0', fontWeight: 700 }}>${parseFloat(d.amount).toFixed(2)}</td>
                     <td data-label="Method">{d.method}{d.method === 'zelle' && !d.zelleConfirmed && ' (unverified)'}</td>
                     <td data-label="Event">{d.event.name}</td>
                     <td data-label="Date">{new Date(d.createdAt).toLocaleDateString()}</td>

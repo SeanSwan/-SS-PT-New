@@ -52,7 +52,7 @@ const IntegrationContainer = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(10, 10, 30, 0.95) 0%,
     rgba(30, 30, 60, 0.9) 25%,
-    rgba(120, 81, 169, 0.1) 50%,
+    rgba(139, 92, 246, 0.1) 50%,
     rgba(139, 92, 246, 0.05) 75%,
     rgba(10, 10, 30, 0.95) 100%
   );
@@ -86,7 +86,7 @@ const Title = styled(motion.h1)`
   font-weight: 700;
   background: linear-gradient(135deg, 
     #8B5CF6 0%, 
-    #7851A9 50%, 
+    #8B5CF6 50%, 
     #FFD700 100%
   );
   background-clip: text;
@@ -143,7 +143,7 @@ const ErrorMessage = styled(motion.div)`
 const StatsBar = styled(motion.div)`
   background: linear-gradient(135deg, 
     rgba(139, 92, 246, 0.1),
-    rgba(120, 81, 169, 0.1)
+    rgba(139, 92, 246, 0.1)
   );
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;

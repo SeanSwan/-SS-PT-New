@@ -103,7 +103,7 @@ const SectionCard = styled(motion.div)`
     bottom: 0;
     background: 
       radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 80%, rgba(120, 81, 169, 0.1) 0%, transparent 50%);
+      radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
     pointer-events: none;
     z-index: 1;
   }
@@ -117,7 +117,7 @@ const SectionCard = styled(motion.div)`
 const SectionTitle = styled.h2`
   position: relative;
   z-index: 2;
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 1.8rem;
   font-weight: 300;
   margin-bottom: 2rem;
@@ -149,8 +149,8 @@ const ProgressOrb = styled.div<{ progress: number; $isAnimating?: boolean }>`
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
-    #00ffff 0deg,
-    #00ffff ${props => props.progress * 3.6}deg,
+    #60C0F0 0deg,
+    #60C0F0 ${props => props.progress * 3.6}deg,
     rgba(139, 92, 246, 0.2) ${props => props.progress * 3.6}deg,
     rgba(139, 92, 246, 0.2) 360deg
   );
@@ -178,7 +178,7 @@ const ProgressOrb = styled.div<{ progress: number; $isAnimating?: boolean }>`
     text-align: center;
     
     .level {
-      color: #00ffff;
+      color: #60C0F0;
       font-weight: 700;
       font-size: 1.8rem;
       display: block;
@@ -208,7 +208,7 @@ const XpProgressBar = styled.div<{ progress: number; $isAnimating?: boolean }>`
     top: 0;
     left: 0;
     height: 100%;
-    background: linear-gradient(90deg, #00ffff, #7851a9, #ffd700);
+    background: linear-gradient(90deg, #60C0F0, #8B5CF6, #ffd700);
     border-radius: 20px;
     width: ${props => props.progress}%;
     animation: ${props => props.$isAnimating ? xpFlow : 'none'} 1s ease-out;
@@ -223,7 +223,7 @@ const XpText = styled.p`
   text-align: center;
   
   .xp-highlight {
-    color: #00ffff;
+    color: #60C0F0;
     font-weight: 600;
   }
 `;
@@ -282,7 +282,7 @@ const StatCard = styled(motion.div)`
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
+    background: linear-gradient(135deg, #60C0F0, #8B5CF6);
     margin: 0 auto 1rem;
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
@@ -290,7 +290,7 @@ const StatCard = styled(motion.div)`
   .stat-value {
     font-size: 2.2rem;
     font-weight: 700;
-    color: #00ffff;
+    color: #60C0F0;
     display: block;
     margin-bottom: 0.5rem;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
@@ -363,14 +363,14 @@ const LoadingSpinner = styled(motion.div)`
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #00ffff;
+  color: #60C0F0;
   
   &::after {
     content: '';
     width: 40px;
     height: 40px;
     border: 3px solid rgba(139, 92, 246, 0.3);
-    border-top: 3px solid #00ffff;
+    border-top: 3px solid #60C0F0;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -416,7 +416,7 @@ const Particle = styled(motion.div)<{ delay: number }>`
   position: absolute;
   width: 4px;
   height: 4px;
-  background: #00ffff;
+  background: #60C0F0;
   border-radius: 50%;
   animation: ${particleFloat} 8s linear infinite;
   animation-delay: ${props => props.delay}s;
@@ -668,7 +668,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
           style={{ marginBottom: 0 }}
         >
           <div style={{ position: 'relative', zIndex: 2 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#00ffff', fontSize: '1.1rem', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#60C0F0', fontSize: '1.1rem', fontWeight: 600 }}>
               <Calendar size={20} />
               Next Session
             </div>
@@ -686,7 +686,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
                 No upcoming sessions &mdash;{' '}
                 <button
                   onClick={() => goToTab('schedule')}
-                  style={{ background: 'none', border: 'none', color: '#00ffff', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0, fontFamily: 'inherit' }}
+                  style={{ background: 'none', border: 'none', color: '#60C0F0', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0, fontFamily: 'inherit' }}
                 >
                   book one from the Schedule tab
                 </button>!
@@ -709,7 +709,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
             </div>
             {packageName ? (
               <div>
-                <div style={{ color: '#00ffff', fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                <div style={{ color: '#60C0F0', fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>
                   {sessionsRemaining}
                 </div>
                 <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>
@@ -739,14 +739,14 @@ const EnhancedOverviewGalaxy: React.FC = () => {
       >
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#00ffff', fontSize: '1.1rem', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#60C0F0', fontSize: '1.1rem', fontWeight: 600 }}>
               <Dumbbell size={20} />
               Recent Workouts
             </div>
             {(workoutHistory?.length ?? 0) > 0 && (
               <button
                 onClick={() => goToTab('workouts')}
-                style={{ background: 'none', border: 'none', color: '#00ffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontFamily: 'inherit' }}
+                style={{ background: 'none', border: 'none', color: '#60C0F0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontFamily: 'inherit' }}
               >
                 View All <ChevronRight size={14} />
               </button>
@@ -766,7 +766,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
                     </div>
                   </div>
                   {w.exercises != null && (
-                    <div style={{ color: '#00ffff', fontSize: '0.85rem' }}>{w.exercises} exercises</div>
+                    <div style={{ color: '#60C0F0', fontSize: '0.85rem' }}>{w.exercises} exercises</div>
                   )}
                 </div>
               ))}
@@ -788,28 +788,28 @@ const EnhancedOverviewGalaxy: React.FC = () => {
       >
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#7851a9', fontSize: '1.1rem', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8B5CF6', fontSize: '1.1rem', fontWeight: 600 }}>
               <BarChart3 size={20} />
               Progress Snapshot
             </div>
             <button
               onClick={() => goToTab('progress')}
-              style={{ background: 'none', border: 'none', color: '#7851a9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontFamily: 'inherit' }}
+              style={{ background: 'none', border: 'none', color: '#8B5CF6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontFamily: 'inherit' }}
             >
               Full Progress <ChevronRight size={14} />
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(120,81,169,0.1)', borderRadius: '12px', border: '1px solid rgba(120,81,169,0.2)' }}>
-              <div style={{ color: '#7851a9', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.totalWorkouts ?? 0}</div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(139,92,246,0.1)', borderRadius: '12px', border: '1px solid rgba(139,92,246,0.2)' }}>
+              <div style={{ color: '#8B5CF6', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.totalWorkouts ?? 0}</div>
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>Total Workouts</div>
             </div>
-            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(120,81,169,0.1)', borderRadius: '12px', border: '1px solid rgba(120,81,169,0.2)' }}>
-              <div style={{ color: '#7851a9', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.sleepAvg != null ? `${clientStats.sleepAvg}h` : '--'}</div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(139,92,246,0.1)', borderRadius: '12px', border: '1px solid rgba(139,92,246,0.2)' }}>
+              <div style={{ color: '#8B5CF6', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.sleepAvg != null ? `${clientStats.sleepAvg}h` : '--'}</div>
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>Avg Sleep</div>
             </div>
-            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(120,81,169,0.1)', borderRadius: '12px', border: '1px solid rgba(120,81,169,0.2)' }}>
-              <div style={{ color: '#7851a9', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.goalConsistency != null ? `${clientStats.goalConsistency}%` : '--'}</div>
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(139,92,246,0.1)', borderRadius: '12px', border: '1px solid rgba(139,92,246,0.2)' }}>
+              <div style={{ color: '#8B5CF6', fontSize: '1.8rem', fontWeight: 700 }}>{clientStats?.goalConsistency != null ? `${clientStats.goalConsistency}%` : '--'}</div>
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>Goal Consistency</div>
             </div>
           </div>

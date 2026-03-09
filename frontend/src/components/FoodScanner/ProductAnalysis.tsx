@@ -145,7 +145,7 @@ const TabButton = styled.button<{ active: boolean }>`
   background: ${({ active }) => active ? 'rgba(60, 60, 100, 0.7)' : 'transparent'};
   color: ${({ active }) => active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
   border: none;
-  border-bottom: 2px solid ${({ active }) => active ? '#00ffff' : 'transparent'};
+  border-bottom: 2px solid ${({ active }) => active ? '#60C0F0' : 'transparent'};
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -346,7 +346,7 @@ const ActionButtons = styled.div`
 
 const ActionButton = styled.button<{ primary?: boolean }>`
   background: ${({ primary }) => primary ? 
-    'linear-gradient(135deg, #7851a9, #00ffff)' : 
+    'linear-gradient(135deg, #8B5CF6, #60C0F0)' : 
     'rgba(60, 60, 100, 0.5)'
   };
   color: white;

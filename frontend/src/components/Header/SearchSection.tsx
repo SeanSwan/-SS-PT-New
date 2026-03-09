@@ -28,12 +28,12 @@ interface HeaderAvatarProps {
 const SearchAvatar = styled(Avatar)`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  background: rgba(120, 81, 169, 0.15);
-  color: #7851A9;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
 
   &:hover {
-    background: #7851A9;
-    color: rgba(120, 81, 169, 0.15);
+    background: #8B5CF6;
+    color: rgba(139, 92, 246, 0.15);
   }
 `;
 
@@ -41,7 +41,7 @@ const SearchInputMobile = styled(OutlinedInput)`
   width: 100%;
   margin-left: 4px;
   padding: 0 16px;
-  background: #0a0a1a;
+  background: #002060;
 
   & input {
     background: transparent;
@@ -154,7 +154,7 @@ const SearchSection: React.FC = () => {
         >
           {() => (
             <Transitions type="zoom" in={mobileOpen}>
-              <Card style={{ background: '#0a0a1a', border: 0, boxShadow: 'none', width: '95vw' }}>
+              <Card style={{ background: '#002060', border: 0, boxShadow: 'none', width: '95vw' }}>
                 <Box style={{ padding: 16 }}>
                   <Grid container style={{ alignItems: 'center', justifyContent: 'space-between' }}>
                     <Grid item style={{ flex: 1 }}>

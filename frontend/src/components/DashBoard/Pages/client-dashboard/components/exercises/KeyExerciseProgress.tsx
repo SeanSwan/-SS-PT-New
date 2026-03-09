@@ -40,7 +40,7 @@ const StartButton = styled.button`
   border-radius: 10px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: rgba(139, 92, 246, 0.05);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;

@@ -136,8 +136,8 @@ const BarFill = styled.div<{ $percent: number; $complete: boolean }>`
   border-radius: 3px;
   background: ${({ $complete }) =>
     $complete
-      ? 'linear-gradient(90deg, #00ffff, #00e676)'
-      : 'linear-gradient(90deg, #3b82f6, #00ffff)'};
+      ? 'linear-gradient(90deg, #60C0F0, #00e676)'
+      : 'linear-gradient(90deg, #3b82f6, #60C0F0)'};
   transition: width 0.3s ease;
 `;
 
@@ -177,7 +177,7 @@ const ResumeButton = styled.button`
   border-radius: 8px;
   border: 1px solid rgba(139, 92, 246, 0.3);
   background: rgba(139, 92, 246, 0.08);
-  color: #00ffff;
+  color: #60C0F0;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -185,7 +185,7 @@ const ResumeButton = styled.button`
 
   &:hover {
     background: rgba(139, 92, 246, 0.15);
-    border-color: #00ffff;
+    border-color: #60C0F0;
   }
 `;
 

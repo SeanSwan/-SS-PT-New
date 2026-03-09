@@ -110,7 +110,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   border-radius: 8px;
   border: 1px solid ${({ $active }) => $active ? THEME.accent : THEME.border};
   background: ${({ $active }) => $active ? THEME.accent : 'transparent'};
-  color: ${({ $active }) => $active ? '#0a0a1a' : THEME.text};
+  color: ${({ $active }) => $active ? '#002060' : THEME.text};
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -135,7 +135,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   border: none;
   border-right: 1px solid ${THEME.border};
   background: ${({ $active }) => $active ? THEME.accent : 'transparent'};
-  color: ${({ $active }) => $active ? '#0a0a1a' : THEME.text};
+  color: ${({ $active }) => $active ? '#002060' : THEME.text};
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;

@@ -92,7 +92,7 @@ const BarProgressChart: React.FC<BarProgressChartProps> = ({
   yKey,
   height = 300,
   title,
-  colors = ['#00ffff', '#7851a9', '#FF6B6B', '#4CAF50', '#FFC107'],
+  colors = ['#60C0F0', '#8B5CF6', '#FF6B6B', '#4CAF50', '#FFC107'],
   labelKey,
   valueFormatter,
   horizontal = false,
@@ -155,7 +155,7 @@ const BarProgressChart: React.FC<BarProgressChartProps> = ({
           />
           <Bar 
             dataKey={yKey} 
-            fill="#00ffff"
+            fill="#60C0F0"
             name={labelKey || yKey}
             radius={[4, 4, 0, 0]}
           >

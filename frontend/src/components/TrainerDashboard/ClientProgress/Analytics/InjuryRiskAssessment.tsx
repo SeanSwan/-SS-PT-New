@@ -290,7 +290,7 @@ const RecommendationHeading = styled.h6`
   margin: 0 0 12px 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #00ffff;
+  color: #60C0F0;
 `;
 
 const CenterBox = styled.div`
@@ -547,7 +547,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
       <GlassPanel>
         <FlexBetween style={{ marginBottom: 24 }}>
           <FlexRow>
-            <Shield color="#00ffff" size={24} style={{ marginRight: 12 }} />
+            <Shield color="#60C0F0" size={24} style={{ marginRight: 12 }} />
             <Heading6 style={{ marginBottom: 0 }}>Injury Risk Assessment</Heading6>
           </FlexRow>
 
@@ -727,7 +727,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
           </ProtocolCard>
 
           <ProtocolCard $bgColor="rgba(139, 92, 246, 0.1)">
-            <ProtocolHeading $color="#00ffff">
+            <ProtocolHeading $color="#60C0F0">
               3. Activate (Underactive)
             </ProtocolHeading>
             <StyledList>

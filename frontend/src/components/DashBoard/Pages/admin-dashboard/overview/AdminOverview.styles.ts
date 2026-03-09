@@ -13,7 +13,7 @@ export const MetricCommandCard = styled(CommandCard)<{ accentColor?: string }>`
     left: 0;
     right: 0;
     height: 4px;
-    background: ${props => props.accentColor || props.theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #00ffff)'};
+    background: ${props => props.accentColor || props.theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #60C0F0)'};
   }
 `;
 
@@ -28,7 +28,7 @@ export const CommandHeader = styled(motion.div)`
   h1 {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
-    background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #00ffff)'};
+    background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #60C0F0)'};
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -124,7 +124,7 @@ export const CommandButton = styled(motion.button)`
   gap: 0.5rem;
 
   &:hover {
-    background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #00ffff)'};
+    background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6, #60C0F0)'};
     border-color: ${({ theme }) => theme.colors?.primary || 'rgba(59, 130, 246, 0.6)'};
     box-shadow: ${({ theme }) => theme.shadows?.primary || '0 0 30px rgba(59, 130, 246, 0.6)'};
     transform: translateY(-2px);

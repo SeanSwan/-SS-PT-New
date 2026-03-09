@@ -72,7 +72,7 @@ const difficultyLevels: DifficultyLevel[] = [
     label: 'Intermediate',
     description: 'For users with some fitness experience looking for moderate challenges',
     icon: <TrendingUp size={20} />,
-    color: '#00ffff',
+    color: '#60C0F0',
     backgroundColor: 'rgba(139, 92, 246, 0.1)',
     characteristics: ['Balanced goals', 'Regular commitment', 'Moderate pace', 'Skill building'],
     targetAudience: 'Regular exercisers, committed users',
@@ -335,7 +335,7 @@ const StatItem = styled.div`
   gap: 0.5rem;
   
   svg {
-    color: #00ffff;
+    color: #60C0F0;
     width: 16px;
     height: 16px;
   }

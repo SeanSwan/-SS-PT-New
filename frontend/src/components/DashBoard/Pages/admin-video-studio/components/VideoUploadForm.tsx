@@ -62,7 +62,7 @@ const Overlay = styled(motion.div)`
 `;
 
 const Modal = styled(motion.div)`
-  background: rgba(10, 10, 26, 0.95);
+  background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 16px;
   padding: 2rem;
@@ -104,7 +104,7 @@ const Title = styled.h2`
 
 const DropZone = styled.div<{ $isDragging: boolean; $hasFile: boolean }>`
   border: 2px dashed ${p =>
-    p.$isDragging ? '#00ffff' : p.$hasFile ? '#22c55e' : 'rgba(59, 130, 246, 0.4)'};
+    p.$isDragging ? '#60C0F0' : p.$hasFile ? '#22c55e' : 'rgba(59, 130, 246, 0.4)'};
   border-radius: 12px;
   padding: 2.5rem 1.5rem;
   text-align: center;
@@ -118,7 +118,7 @@ const DropZone = styled.div<{ $isDragging: boolean; $hasFile: boolean }>`
         : 'rgba(30, 58, 138, 0.15)'};
 
   &:hover {
-    border-color: #00ffff;
+    border-color: #60C0F0;
     background: rgba(139, 92, 246, 0.04);
   }
 `;
@@ -165,7 +165,7 @@ const ProgressTrack = styled.div`
 const ProgressFill = styled(motion.div)<{ $percent: number }>`
   height: 100%;
   width: ${p => p.$percent}%;
-  background: linear-gradient(90deg, #3b82f6, #00ffff);
+  background: linear-gradient(90deg, #3b82f6, #60C0F0);
   border-radius: 4px;
   transition: width 0.3s ease;
 `;
@@ -486,7 +486,7 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ onUploadComplete, onC
               <SuccessIcon><Check size={28} color="#22c55e" /></SuccessIcon>
               <h3 style={{ color: '#fff', margin: '0 0 0.5rem' }}>Upload Complete</h3>
               <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: '0 0 0.3rem' }}>
-                Video ID: <code style={{ color: '#00ffff' }}>{videoId}</code>
+                Video ID: <code style={{ color: '#60C0F0' }}>{videoId}</code>
               </p>
               <ModeBadge $mode={mode}>
                 {mode === 'A' ? <Shield size={14} /> : <ShieldOff size={14} />}
@@ -533,7 +533,7 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ onUploadComplete, onC
                 />
                 {file ? (
                   <FileInfo>
-                    <FileVideo size={22} color="#00ffff" />
+                    <FileVideo size={22} color="#60C0F0" />
                     <div>
                       <div style={{ fontWeight: 600 }}>{file.name}</div>
                       <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{formatBytes(file.size)}</div>
@@ -541,9 +541,9 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ onUploadComplete, onC
                   </FileInfo>
                 ) : (
                   <>
-                    <Upload size={36} color={isDragging ? '#00ffff' : '#3b82f6'} />
+                    <Upload size={36} color={isDragging ? '#60C0F0' : '#3b82f6'} />
                     <DropLabel>
-                      Drag & drop a video here, or <span style={{ color: '#00ffff', cursor: 'pointer' }}>browse</span>
+                      Drag & drop a video here, or <span style={{ color: '#60C0F0', cursor: 'pointer' }}>browse</span>
                     </DropLabel>
                     <DropLabel style={{ fontSize: '0.78rem', color: '#475569' }}>
                       MP4, WebM, QuickTime &mdash; up to 2 GB

@@ -99,27 +99,27 @@ const universalTheme = {
   admin: {
     primary: '#1e3a8a',      // Command Navy
     secondary: '#3b82f6',    // Stellar Blue  
-    accent: '#00ffff',       // Cyber Cyan
+    accent: '#60C0F0',       // Cyber Cyan
     gradients: {
-      primary: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #00ffff 100%)',
+      primary: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60C0F0 100%)',
       background: 'radial-gradient(ellipse at top, #3b82f6 0%, #1e3a8a 50%, #0a0a0f 100%)'
     }
   },
   trainer: {
-    primary: '#7851a9',      // Stellar Purple
+    primary: '#8B5CF6',      // Stellar Purple
     secondary: '#9333ea',    // Cosmic Amethyst
-    accent: '#00ffff',       // Cyber Cyan
+    accent: '#60C0F0',       // Cyber Cyan
     gradients: {
-      primary: 'linear-gradient(135deg, #7851a9 0%, #8b5cf6 50%, #00ffff 100%)',
-      background: 'radial-gradient(ellipse at top, #9333ea 0%, #7851a9 50%, #0a0a0f 100%)'
+      primary: 'linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%)',
+      background: 'radial-gradient(ellipse at top, #9333ea 0%, #8B5CF6 50%, #0a0a0f 100%)'
     }
   },
   client: {
     primary: '#10b981',      // Galaxy Emerald
     secondary: '#22c55e',    // Cosmic Green
-    accent: '#00ffff',       // Cyber Cyan
+    accent: '#60C0F0',       // Cyber Cyan
     gradients: {
-      primary: 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #00ffff 100%)',
+      primary: 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #60C0F0 100%)',
       background: 'radial-gradient(ellipse at top, #22c55e 0%, #10b981 50%, #0a0a0f 100%)'
     }
   },

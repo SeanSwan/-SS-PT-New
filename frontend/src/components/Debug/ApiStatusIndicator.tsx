@@ -117,7 +117,7 @@ const DetailItem = styled.div`
   margin-bottom: 10px;
   
   strong {
-    color: #00ffff;
+    color: #60C0F0;
     display: block;
     margin-bottom: 5px;
   }
