@@ -87,6 +87,62 @@ const shimmer = keyframes`
   100% { background-position: 200% 0; }
 `;
 
+const progressPulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+`;
+
+const ProgressBarContainer = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 12px 0;
+`;
+
+const ProgressBarFill = styled.div<{ $percent: number; $error?: boolean }>`
+  height: 100%;
+  width: ${p => p.$percent}%;
+  background: ${p => p.$error
+    ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+    : 'linear-gradient(90deg, #60C0F0, #8B5CF6)'};
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  animation: ${p => !p.$error && p.$percent > 0 && p.$percent < 100 ? progressPulse : 'none'} 1.5s ease-in-out infinite;
+`;
+
+const ProgressInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const Notification = styled.div<{ $type: 'success' | 'error' }>`
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  ${p => p.$type === 'success'
+    ? 'background: rgba(76, 175, 80, 0.12); border: 1px solid rgba(76, 175, 80, 0.3); color: #4caf50;'
+    : 'background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;'}
+`;
+
 const Wrapper = styled.div`
   color: rgba(255, 255, 255, 0.9);
   font-family: 'Inter', system-ui, sans-serif;
@@ -329,7 +385,14 @@ const AdminGalleryManager: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadFileCount, setUploadFileCount] = useState(0);
+  const [uploadedPhotoCount, setUploadedPhotoCount] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [uploadStartTime, setUploadStartTime] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   useEffect(() => { loadStats(); loadEvents(); }, []);
   useEffect(() => {
@@ -418,28 +481,94 @@ const AdminGalleryManager: React.FC = () => {
     } catch { /* */ }
   };
 
-  const handleFileUpload = async (files: FileList | File[]) => {
+  const handleFileUpload = (files: FileList | File[]) => {
     if (!uploadEventId || !files.length) return;
+    const fileArray = Array.from(files);
+
+    // Reset state
     setUploading(true);
+    setUploadProgress(0);
+    setUploadFileCount(fileArray.length);
+    setUploadedPhotoCount(null);
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadStartTime(Date.now());
+
     const formData = new FormData();
-    Array.from(files).forEach(f => formData.append('photos', f));
+    fileArray.forEach(f => formData.append('photos', f));
     formData.append('watermark', watermarkEnabled ? 'true' : 'false');
 
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/api/admin/gallery/events/${uploadEventId}/upload`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUploadEventId(null);
-        loadEvents();
-        loadStats();
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(percent);
       }
-    } catch { /* */ }
-    setUploading(false);
+    });
+
+    xhr.addEventListener('load', () => {
+      xhrRef.current = null;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.success) {
+            const count = data.photos?.length ?? fileArray.length;
+            setUploadedPhotoCount(count);
+            setUploadSuccess(`${count} photo${count !== 1 ? 's' : ''} uploaded successfully${watermarkEnabled ? ' with watermark' : ''}!`);
+            setUploadProgress(100);
+            loadEvents();
+            loadStats();
+          } else {
+            setUploadError(data.message || 'Upload failed — server returned an error.');
+          }
+        } catch {
+          setUploadError('Upload failed — could not parse server response.');
+        }
+      } else {
+        setUploadError(`Upload failed — server returned ${xhr.status}. Try again or use fewer photos.`);
+      }
+      setUploading(false);
+    });
+
+    xhr.addEventListener('error', () => {
+      xhrRef.current = null;
+      setUploadError('Upload failed — network error. Check your connection and try again.');
+      setUploading(false);
+    });
+
+    xhr.addEventListener('abort', () => {
+      xhrRef.current = null;
+      setUploadError('Upload was cancelled.');
+      setUploading(false);
+    });
+
+    xhr.addEventListener('timeout', () => {
+      xhrRef.current = null;
+      setUploadError('Upload timed out. Try uploading fewer photos at a time.');
+      setUploading(false);
+    });
+
+    const token = localStorage.getItem('token');
+    xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${uploadEventId}/upload`);
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.timeout = 600000; // 10 minutes for large batches
+    xhr.send(formData);
+  };
+
+  const cancelUpload = () => {
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+      xhrRef.current = null;
+    }
+  };
+
+  const getElapsedTime = (): string => {
+    if (!uploadStartTime) return '';
+    const elapsed = Math.round((Date.now() - uploadStartTime) / 1000);
+    if (elapsed < 60) return `${elapsed}s`;
+    return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
   };
 
   const updateEnhancementStatus = async (id: number, status: string) => {
@@ -638,33 +767,90 @@ const AdminGalleryManager: React.FC = () => {
                         </div>
                       </div>
 
-                      <DropZone
-                        $dragging={dragging}
-                        onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                        onDragLeave={() => setDragging(false)}
-                        onDrop={e => { e.preventDefault(); setDragging(false); handleFileUpload(e.dataTransfer.files); }}
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {uploading ? (
-                          <span style={{ color: '#60C0F0' }}>Uploading & watermarking photos...</span>
-                        ) : (
-                          <>
-                            <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
-                            <div>Drag & drop photos here, or click to browse</div>
-                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                              JPG, PNG up to 25MB each · Max 50 at a time
-                              {watermarkEnabled && ' · Watermark will be applied'}
-                            </div>
-                          </>
-                        )}
-                      </DropZone>
+                      {!uploading && (
+                        <DropZone
+                          $dragging={dragging}
+                          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                          onDragLeave={() => setDragging(false)}
+                          onDrop={e => { e.preventDefault(); setDragging(false); handleFileUpload(e.dataTransfer.files); }}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
+                          <div>Drag & drop photos here, or click to browse</div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                            JPG, PNG up to 25MB each · Max 50 at a time
+                            {watermarkEnabled && ' · Watermark will be applied'}
+                          </div>
+                        </DropZone>
+                      )}
+
+                      {/* Upload Progress */}
+                      {uploading && (
+                        <ProgressBarContainer>
+                          <ProgressInfo>
+                            <span>
+                              {uploadProgress < 100
+                                ? `Uploading ${uploadFileCount} photo${uploadFileCount !== 1 ? 's' : ''}...`
+                                : 'Processing & watermarking on server...'}
+                            </span>
+                            <span style={{ fontWeight: 600, color: '#60C0F0' }}>
+                              {uploadProgress}%
+                              {uploadStartTime && ` · ${getElapsedTime()}`}
+                            </span>
+                          </ProgressInfo>
+                          <ProgressBarTrack>
+                            <ProgressBarFill $percent={uploadProgress} />
+                          </ProgressBarTrack>
+                          <ProgressInfo>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                              {uploadProgress < 100
+                                ? 'Sending files to server...'
+                                : 'Server is watermarking & saving — this may take a moment'}
+                            </span>
+                            <ActionBtn
+                              $variant="danger"
+                              onClick={cancelUpload}
+                              style={{ padding: '4px 12px', minHeight: 28, fontSize: 11 }}
+                            >
+                              Cancel
+                            </ActionBtn>
+                          </ProgressInfo>
+                        </ProgressBarContainer>
+                      )}
+
+                      {/* Success Notification */}
+                      {uploadSuccess && !uploading && (
+                        <Notification $type="success">
+                          <span>✓</span> {uploadSuccess}
+                          <ActionBtn
+                            onClick={() => { setUploadSuccess(null); setUploadEventId(null); }}
+                            style={{ marginLeft: 'auto', padding: '2px 10px', minHeight: 28, fontSize: 11 }}
+                          >
+                            Dismiss
+                          </ActionBtn>
+                        </Notification>
+                      )}
+
+                      {/* Error Notification */}
+                      {uploadError && !uploading && (
+                        <Notification $type="error">
+                          <span>✕</span> {uploadError}
+                          <ActionBtn
+                            onClick={() => setUploadError(null)}
+                            style={{ marginLeft: 'auto', padding: '2px 10px', minHeight: 28, fontSize: 11 }}
+                          >
+                            Dismiss
+                          </ActionBtn>
+                        </Notification>
+                      )}
+
                       <input
                         ref={fileInputRef}
                         type="file"
                         multiple
                         accept="image/*"
                         style={{ display: 'none' }}
-                        onChange={e => e.target.files && handleFileUpload(e.target.files)}
+                        onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ''; }}
                       />
                     </motion.div>
                   )}
