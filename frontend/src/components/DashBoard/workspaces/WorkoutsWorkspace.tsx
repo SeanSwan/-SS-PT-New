@@ -219,9 +219,19 @@ const TabBar = styled.div`
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   flex-shrink: 0;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 6px 8px;
+    border-bottom: none;
+    background: rgba(0, 32, 96, 0.3);
+    border-radius: 12px;
+    margin: 8px;
   }
 `;
 
@@ -229,6 +239,10 @@ const TabBarInner = styled.div`
   display: flex;
   gap: 4px;
   min-width: max-content;
+
+  @media (max-width: 768px) {
+    gap: 2px;
+  }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
@@ -246,6 +260,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 48px;
   white-space: nowrap;
   transition: all 0.15s;
+  scroll-snap-align: start;
 
   &:hover {
     color: ${(p) => (p.$active ? '#8B5CF6' : 'rgba(255,255,255,0.9)')};
@@ -255,6 +270,39 @@ const TabButton = styled.button<{ $active: boolean }>`
   &:focus-visible {
     outline: 2px solid #8B5CF6;
     outline-offset: -2px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+    gap: 5px;
+    border-bottom: none;
+    border-radius: 18px;
+    background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent')};
+    border: 1px solid ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.3)' : 'transparent')};
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  @media (max-width: 430px) {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-height: 32px;
+    gap: 4px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 6px 8px;
+    font-size: 11px;
+
+    /* Hide label on very small screens, show icon only */
+    span {
+      display: none;
+    }
   }
 `;
 

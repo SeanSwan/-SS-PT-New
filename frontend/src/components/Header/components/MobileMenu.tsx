@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { IconButton } from '../../ui/primitives/components';
 
 // Icons (lucide-react replacements for MUI icons)
-import { Menu, X, ShoppingBag, User, LayoutDashboard, Users, Video, FileText } from 'lucide-react';
+import { Menu, X, ShoppingBag, User, LayoutDashboard, Users, Video, FileText, Camera } from 'lucide-react';
 
 // Theme-aware colors via CSS variables (no more hardcoded dark-only values)
 
@@ -224,6 +224,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <ShoppingBag size={20} /> SwanStudios Store
             </MobileNavLink>
           </motion.div>
+          <motion.div variants={itemVariants}>
+            <MobileNavLink to="/gallery" onClick={closeMobileMenu} $isActive={isActive('/gallery')}>
+              <Camera size={20} /> Swan Photography
+            </MobileNavLink>
+          </motion.div>
           {isRoleEnabled('admin') && (
             <motion.div variants={itemVariants}>
               <MobileNavLink to="/dashboard/default" onClick={closeMobileMenu} $isActive={isActive('/dashboard')}>
@@ -283,6 +288,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           <motion.div variants={itemVariants}>
             <MobileNavLink to="/store" onClick={closeMobileMenu} $isActive={isActive('/store')}>
               <ShoppingBag size={20} /> SwanStudios Store
+            </MobileNavLink>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <MobileNavLink to="/gallery" onClick={closeMobileMenu} $isActive={isActive('/gallery')}>
+              <Camera size={20} /> Swan Photography
             </MobileNavLink>
           </motion.div>
           <motion.div variants={itemVariants}>

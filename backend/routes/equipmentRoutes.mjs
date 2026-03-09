@@ -143,23 +143,50 @@ async function getOwnedItem(req, res) {
 
 // ─── PROFILE ROUTES ──────────────────────────────────────────────────
 
+// Default equipment profiles auto-created for new trainers on first fetch
+const DEFAULT_PROFILES = [
+  { name: 'Move Fitness', locationType: 'gym', description: 'Primary gym location with full equipment', isDefault: true },
+  { name: 'Park / Outdoor', locationType: 'park', description: 'Outdoor training with bodyweight and portable equipment', isDefault: true },
+  { name: 'Home Gym', locationType: 'home', description: 'Home training setup with basic equipment', isDefault: true },
+  { name: 'Client Home', locationType: 'client_home', description: 'Client home training with minimal equipment', isDefault: true },
+];
+
 // GET /api/equipment-profiles — List trainer's profiles
 router.get('/', async (req, res) => {
   try {
     const EquipmentProfile = getEquipmentProfile();
     const where = { isActive: true };
-    if (req.user.role !== 'admin') {
-      where.trainerId = req.user.id;
-    } else if (req.query.trainerId) {
-      where.trainerId = parseInt(req.query.trainerId, 10);
+    const trainerId = req.user.role !== 'admin'
+      ? req.user.id
+      : req.query.trainerId ? parseInt(req.query.trainerId, 10) : null;
+
+    if (trainerId) {
+      where.trainerId = trainerId;
     }
     if (req.query.locationType) {
       where.locationType = req.query.locationType;
     }
-    const profiles = await EquipmentProfile.findAll({
+
+    let profiles = await EquipmentProfile.findAll({
       where,
       order: [['isDefault', 'DESC'], ['name', 'ASC']],
     });
+
+    // Auto-create default profiles for trainers/admins on first fetch
+    if (profiles.length === 0 && trainerId) {
+      try {
+        const defaults = DEFAULT_PROFILES.map(d => ({ ...d, trainerId }));
+        await EquipmentProfile.bulkCreate(defaults);
+        profiles = await EquipmentProfile.findAll({
+          where,
+          order: [['isDefault', 'DESC'], ['name', 'ASC']],
+        });
+        logger.info('[EquipmentRoutes] Auto-created default profiles for trainer', { trainerId });
+      } catch (seedErr) {
+        logger.warn('[EquipmentRoutes] Auto-seed failed (non-blocking)', { trainerId, error: seedErr.message });
+      }
+    }
+
     res.json({ success: true, profiles });
   } catch (err) {
     logger.error('[EquipmentRoutes] List profiles error:', err);

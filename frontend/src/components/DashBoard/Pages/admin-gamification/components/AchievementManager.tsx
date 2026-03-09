@@ -691,6 +691,16 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
 
       {/* Display achievements in a grid */}
       <AchievementGrid>
+        {filteredAchievements.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px 20px', opacity: 0.6 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>No Achievements Yet</h3>
+            <p style={{ margin: 0, fontSize: 14 }}>
+              Create your first achievement to start rewarding your clients for their fitness journey.
+              Achievements drive engagement and help clients stay motivated!
+            </p>
+          </div>
+        )}
         {filteredAchievements.map((achievement) => (
           <AchievementItem
             key={achievement.id}

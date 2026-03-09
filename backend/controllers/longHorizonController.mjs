@@ -14,6 +14,7 @@ import { getAllModels } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { deIdentify, hashPayload } from '../services/deIdentificationService.mjs';
+import { buildMasterPromptFromUserData } from '../services/masterPromptBuilder.mjs';
 import { routeAiGeneration } from '../services/ai/providerRouter.mjs';
 import { runLongHorizonValidationPipeline } from '../services/ai/longHorizonOutputValidator.mjs';
 import { buildDegradedResponse } from '../services/ai/degradedResponse.mjs';
@@ -259,10 +260,23 @@ export const generateLongHorizonPlan = async (req, res) => {
     }
 
     if (!resolvedMasterPrompt || !isPlainObject(resolvedMasterPrompt)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Master Prompt JSON not found for this user',
-      });
+      // Auto-build from available user data instead of returning 404
+      try {
+        resolvedMasterPrompt = await buildMasterPromptFromUserData(targetUser);
+        if (resolvedMasterPrompt) {
+          await targetUser.update({ masterPromptJson: resolvedMasterPrompt });
+          logger.info('[LH-Generate] Auto-generated masterPromptJson for user', { targetUserId });
+        }
+      } catch (buildErr) {
+        logger.warn('[LH-Generate] Failed to auto-build masterPromptJson', { targetUserId, error: buildErr.message });
+      }
+
+      if (!resolvedMasterPrompt || !isPlainObject(resolvedMasterPrompt)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Master Prompt JSON not found for this user. Please complete your profile.',
+        });
+      }
     }
 
     // ── Step 11: De-identification (fail-closed) ────────────────
@@ -700,6 +714,15 @@ export const approveLongHorizonPlan = async (req, res) => {
       } catch {
         resolvedMasterPrompt = null;
       }
+    }
+    // Auto-build if still missing (approval path)
+    if (!resolvedMasterPrompt) {
+      try {
+        resolvedMasterPrompt = await buildMasterPromptFromUserData(targetUser);
+        if (resolvedMasterPrompt) {
+          await targetUser.update({ masterPromptJson: resolvedMasterPrompt });
+        }
+      } catch { /* non-blocking — goalProfile will fall back to defaults */ }
     }
 
     const clientGoals = resolvedMasterPrompt?.client?.goals || resolvedMasterPrompt?.goals;

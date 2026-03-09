@@ -406,6 +406,40 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new' }) => {
     }
   }, [id, clientId, authAxios]);
 
+  // Auto-save draft to localStorage every 10 seconds
+  const STORAGE_KEY = `movement-analysis-draft-${id || clientId || 'new'}`;
+
+  // Restore from localStorage on mount (if no server data loaded)
+  useEffect(() => {
+    if (id) return; // Don't restore from localStorage if editing existing record
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.fullName) {
+          setData((d) => ({ ...d, ...parsed }));
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, [STORAGE_KEY, id]);
+
+  // Debounced auto-save to localStorage
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        if (data.fullName) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+      } catch { /* storage full or disabled */ }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [data, STORAGE_KEY]);
+
+  // Clear localStorage draft after successful server save
+  const clearDraft = useCallback(() => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }, [STORAGE_KEY]);
+
   const updateField = useCallback(<K extends keyof MovementAnalysisData>(key: K, value: MovementAnalysisData[K]) => {
     setData((d) => ({ ...d, [key]: value }));
   }, []);
@@ -422,12 +456,14 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new' }) => {
         const res = await authAxios.post('/api/movement-analysis', payload);
         if (res.data?.data?.id) setSavedId(res.data.data.id);
       }
+      // Clear localStorage draft after successful server save
+      clearDraft();
     } catch (err) {
       console.error('Save failed:', err);
     } finally {
       setSaving(false);
     }
-  }, [authAxios, data, savedId]);
+  }, [authAxios, data, savedId, clearDraft]);
 
   const nextStep = useCallback(async () => {
     if (step === 0 && !data.fullName) return;

@@ -93,6 +93,21 @@ const TabBar = styled.div`
   &::-webkit-scrollbar {
     display: none;
   }
+
+  @media (max-width: 768px) {
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 4px 0;
+    border-bottom: none;
+    background: rgba(0, 32, 96, 0.3);
+    border-radius: 12px;
+    padding: 6px 8px;
+  }
+
+  @media (max-width: 375px) {
+    gap: 2px;
+    padding: 4px 4px;
+  }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
@@ -145,14 +160,40 @@ const TabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 768px) {
-    padding: 0 14px;
-    font-size: 13px;
+    padding: 8px 14px;
+    font-size: 12px;
     gap: 6px;
+    border-radius: 18px;
+    min-height: 36px;
+
+    &::after {
+      display: none;
+    }
+
+    background: ${(p) => (p.$active ? 'rgba(96, 192, 240, 0.15)' : 'transparent')};
+    border: 1px solid ${(p) => (p.$active ? 'rgba(96, 192, 240, 0.3)' : 'transparent')};
 
     svg {
       width: 16px;
       height: 16px;
     }
+  }
+
+  @media (max-width: 430px) {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-height: 32px;
+    gap: 4px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  @media (max-width: 375px) {
+    padding: 6px 8px;
+    font-size: 11px;
   }
 `;
 

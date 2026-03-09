@@ -472,29 +472,52 @@ function formatExerciseName(key) {
 function distributeMuscleGroups(muscles, stationCount) {
   const result = [];
   for (let i = 0; i < stationCount; i++) {
-    // Round-robin distribute muscles, ensuring no two adjacent stations share primary muscle
+    // Round-robin distribute muscles — each station focuses on ONE primary muscle group
+    // with a secondary for variety, cycling through ALL available muscle groups
     const primary = muscles[i % muscles.length];
-    const secondary = muscles[(i + 1) % muscles.length];
-    result.push([primary, secondary]);
+    // Secondary picks from a different offset to avoid repeating the same pairing
+    const secondary = muscles[(i + Math.ceil(muscles.length / 2)) % muscles.length];
+    // Only add secondary if it's different from primary
+    result.push(primary !== secondary ? [primary, secondary] : [primary]);
   }
   return result;
 }
 
 function selectStationExercises(available, stationMuscles, count, usedNames) {
-  // Find exercises matching this station's muscle groups that haven't been used
-  const matching = available
+  const primaryMuscle = stationMuscles[0]; // First muscle is always the primary target
+
+  // PRIORITY 1: Match on PRIMARY muscle group (first listed muscle of the exercise)
+  const primaryMatches = available
     .filter(ex => {
-      const exMuscles = ex.muscles ?? [];
-      return stationMuscles.some(m => exMuscles.includes(m));
+      const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
+      return exPrimary && exPrimary === primaryMuscle;
     })
     .filter(ex => !usedNames.has(ex.key));
 
-  // Sort by muscle overlap (more overlap = better fit for the primary muscle)
-  matching.sort((a, b) => {
-    const aMatch = (a.muscles ?? []).filter(m => stationMuscles.includes(m)).length;
-    const bMatch = (b.muscles ?? []).filter(m => stationMuscles.includes(m)).length;
-    return bMatch - aMatch;
-  });
+  // PRIORITY 2: Exercises where primary muscle is anywhere in their muscle list
+  const secondaryMatches = available
+    .filter(ex => {
+      const exMuscles = ex.muscles ?? [];
+      const exPrimary = ex.primaryMuscle || exMuscles[0];
+      // Skip if already in primary matches
+      if (exPrimary === primaryMuscle) return false;
+      return exMuscles.includes(primaryMuscle);
+    })
+    .filter(ex => !usedNames.has(ex.key));
+
+  // PRIORITY 3: Match on secondary station muscles (if any)
+  const tertiaryMatches = stationMuscles.length > 1
+    ? available
+        .filter(ex => {
+          const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
+          return stationMuscles.slice(1).includes(exPrimary);
+        })
+        .filter(ex => !usedNames.has(ex.key))
+        .filter(ex => !primaryMatches.some(p => p.key === ex.key) && !secondaryMatches.some(s => s.key === ex.key))
+    : [];
+
+  // Combine in priority order
+  const matching = [...primaryMatches, ...secondaryMatches, ...tertiaryMatches];
 
   const needed = Math.max(1, count - 1); // Leave 1 slot for cardio finisher
 

@@ -29,6 +29,7 @@ import { PERMISSION_TYPES } from '../models/TrainerPermissions.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
+import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
 
 const router = express.Router();
 
@@ -535,8 +536,33 @@ router.post('/', protect, async (req, res) => {
 
     await transaction.commit();
 
-    // Process with MCP servers asynchronously (don't block response)
-    setImmediate(() => {
+    // Award XP/gamification points asynchronously (don't block response)
+    setImmediate(async () => {
+      let xpTransaction;
+      try {
+        xpTransaction = await sequelize.transaction();
+        const exercises = formData?.exercises || [];
+        await awardWorkoutXP({
+          userId: clientId,
+          workoutId: dailyForm.id,
+          duration: estimatedDuration || null,
+          exercisesCompleted: exercises.length,
+          exerciseDetails: exercises.map(ex => ({
+            name: ex.exerciseName || ex.name || 'unknown',
+            sets: (ex.sets || []).length,
+            type: ex.exerciseType || 'strength',
+          })),
+          workoutDate: date,
+          awardedBy: trainerId || null,
+        }, xpTransaction);
+        await xpTransaction.commit();
+        logger.info('Workout XP awarded', { clientId, formId: dailyForm.id, exerciseCount: exercises.length });
+      } catch (xpErr) {
+        if (xpTransaction) await xpTransaction.rollback().catch(() => {});
+        logger.warn('XP award failed (non-critical)', { clientId, error: xpErr.message });
+      }
+
+      // Process with MCP servers (legacy, disabled by default)
       processMCPIntegration(dailyForm.id, {
         clientId,
         trainerId,

@@ -110,10 +110,47 @@ export function getSystemPrompt(role, context) {
 /**
  * Fetch relevant user data to enrich the AI context.
  * Returns a string summary of the user's data to append to the system prompt.
+ * Pulls from: User profile, masterPromptJson, pain entries, sessions, equipment, movement analysis.
  */
 export async function enrichWithUserData(userId, role, context, sequelize) {
   try {
     const dataParts = [];
+
+    // Fetch user profile + masterPromptJson (the richest single source)
+    try {
+      const [users] = await sequelize.query(
+        `SELECT "firstName", "lastName", role, "createdAt", email, "fitnessGoal",
+                "weight", "height", "dateOfBirth", "gender", "healthConcerns",
+                "trainingExperience", "masterPromptJson", "availableSessions"
+         FROM "Users" WHERE id = :userId LIMIT 1`,
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      ).catch(() => [[]]);
+      if (users && users.length > 0) {
+        const user = users[0];
+        // Always include basic profile
+        dataParts.push(`\n--- CLIENT PROFILE ---\nName: ${user.firstName || ''} ${user.lastName || ''}\nGoal: ${user.fitnessGoal || 'Not set'}\nExperience: ${user.trainingExperience || 'Not set'}\nHealth Concerns: ${user.healthConcerns || 'None noted'}\nSessions Available: ${user.availableSessions ?? 'Unknown'}`);
+
+        // Include masterPromptJson if available (has goals, equipment, movement data)
+        if (user.masterPromptJson) {
+          const mp = typeof user.masterPromptJson === 'string'
+            ? JSON.parse(user.masterPromptJson)
+            : user.masterPromptJson;
+          if (mp.goals) {
+            dataParts.push(`\n--- CLIENT GOALS ---\nPrimary: ${mp.goals.primary || 'general_fitness'}\nSecondary: ${(mp.goals.secondary || []).join(', ') || 'None'}\nNotes: ${mp.goals.notes || 'None'}`);
+          }
+          if (mp.movementAssessment) {
+            const ma = mp.movementAssessment;
+            dataParts.push(`\n--- MOVEMENT ASSESSMENT ---\nNASM Score: ${ma.nasmScore || 'Not assessed'}\nPrimary Compensations: ${(ma.primaryCompensations || []).map(c => `${c.finding} (${c.severity})`).join(', ') || 'None'}`);
+          }
+          if (mp.equipment && mp.equipment.length > 0) {
+            dataParts.push(`\n--- AVAILABLE EQUIPMENT ---\n${mp.equipment.map(e => `${e.profileName} (${e.locationType}): ${(e.items || []).map(i => i.name).join(', ') || 'No items listed'}`).join('\n')}`);
+          }
+          if (mp.health?.injuries && mp.health.injuries.length > 0) {
+            dataParts.push(`\n--- KNOWN INJURIES/LIMITATIONS ---\n${mp.health.injuries.join(', ')}`);
+          }
+        }
+      }
+    } catch { /* best-effort */ }
 
     // Fetch active pain entries (body map)
     if (['general', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'].includes(context)) {
@@ -145,22 +182,8 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       } catch { /* best-effort */ }
     }
 
-    // Fetch user profile summary
-    if (['general', 'client_review', 'data_management'].includes(context)) {
-      try {
-        const [users] = await sequelize.query(
-          `SELECT "firstName", "lastName", role, "createdAt", email
-           FROM "Users" WHERE id = :userId LIMIT 1`,
-          { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
-        ).catch(() => [[]]);
-        if (users && users.length > 0) {
-          dataParts.push(`\n--- USER PROFILE ---\n${JSON.stringify(users[0], null, 1)}`);
-        }
-      } catch { /* best-effort */ }
-    }
-
     if (dataParts.length === 0) return '';
-    return '\n\n=== RELEVANT USER DATA ===\n' + dataParts.join('\n') + '\n=== END USER DATA ===';
+    return '\n\n=== RELEVANT USER DATA (auto-populated from platform) ===\n' + dataParts.join('\n') + '\n=== END USER DATA ===';
   } catch (err) {
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';

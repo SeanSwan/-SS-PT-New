@@ -38,10 +38,8 @@ export const ExecutiveMainContent = styled(motion.main)`
   flex: 1;
   margin-left: 280px;
   padding: ${props => props.theme.spacing.lg};
-  height: 100vh;
-  @supports (height: 100dvh) {
-    height: 100dvh;
-  }
+  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   background: rgba(248, 250, 252, 0.02);
   backdrop-filter: blur(10px);
@@ -50,11 +48,15 @@ export const ExecutiveMainContent = styled(motion.main)`
 
   @media (max-width: 768px) {
     margin-left: 0;
-    padding: ${props => props.theme.spacing.sm};
+    padding: 16px;
   }
 
   @media (max-width: 430px) {
-    padding: 0.25rem;
+    padding: 12px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 8px;
   }
 `;
 

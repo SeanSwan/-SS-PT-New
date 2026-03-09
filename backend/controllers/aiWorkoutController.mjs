@@ -46,6 +46,7 @@ import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { updateMetrics } from '../routes/aiMonitoringRoutes.mjs';
 import { deIdentify, hashPayload } from '../services/deIdentificationService.mjs';
+import { buildMasterPromptFromUserData } from '../services/masterPromptBuilder.mjs';
 import { routeAiGeneration } from '../services/ai/providerRouter.mjs';
 import { runValidationPipeline, validateApprovedDraftPlan } from '../services/ai/outputValidator.mjs';
 import { buildDegradedResponse } from '../services/ai/degradedResponse.mjs';
@@ -379,10 +380,24 @@ export const generateWorkoutPlan = async (req, res) => {
     }
 
     if (!resolvedMasterPrompt || !isPlainObject(resolvedMasterPrompt)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Master Prompt JSON not found for this user',
-      });
+      // Auto-build from available user data instead of returning 404
+      try {
+        resolvedMasterPrompt = await buildMasterPromptFromUserData(targetUser);
+        if (resolvedMasterPrompt) {
+          // Save for future use so we don't rebuild every time
+          await targetUser.update({ masterPromptJson: resolvedMasterPrompt });
+          logger.info('Auto-generated masterPromptJson for user', { targetUserId });
+        }
+      } catch (buildErr) {
+        logger.warn('Failed to auto-build masterPromptJson', { targetUserId, error: buildErr.message });
+      }
+
+      if (!resolvedMasterPrompt || !isPlainObject(resolvedMasterPrompt)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Master Prompt JSON not found for this user. Please complete your profile.',
+        });
+      }
     }
 
     // --- Phase 1: De-identify masterPromptJson before AI call ---

@@ -139,6 +139,12 @@ const Header = styled.div`
     height: 4px;
     background: linear-gradient(90deg, ${workoutTheme.colors.primary}, ${workoutTheme.colors.accent});
   }
+
+  @media (max-width: 430px) {
+    padding: ${workoutTheme.spacing.md};
+    margin-bottom: ${workoutTheme.spacing.md};
+    border-radius: ${workoutTheme.borderRadius.md};
+  }
 `;
 
 const ClientInfo = styled.div`
@@ -246,6 +252,11 @@ const ExerciseCard = styled(motion.div)`
     border-color: ${workoutTheme.colors.primary};
     animation: ${stellarGlow} 2s ease-in-out infinite;
   }
+
+  @media (max-width: 430px) {
+    padding: ${workoutTheme.spacing.md};
+    border-radius: ${workoutTheme.borderRadius.md};
+  }
 `;
 
 const ExerciseHeader = styled.div`
@@ -296,6 +307,11 @@ const RatingGroup = styled.div`
   gap: ${workoutTheme.spacing.xs};
   min-width: 120px;
 
+  @media (max-width: 430px) {
+    min-width: auto;
+    width: 100%;
+  }
+
   label {
     font-size: 0.85rem;
     font-weight: 500;
@@ -323,8 +339,7 @@ const TableHeader = styled.div`
   letter-spacing: 0.5px;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: ${workoutTheme.spacing.xs};
+    display: none;
   }
 `;
 
@@ -345,8 +360,20 @@ const SetRow = styled.div`
   }
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: ${workoutTheme.spacing.sm};
+    grid-template-columns: repeat(3, 1fr) 40px;
+    gap: 8px;
+    padding: 12px;
+
+    & > *:first-child {
+      grid-column: 1 / -1;
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr 1fr 40px;
+    gap: 6px;
+    padding: 10px;
   }
 `;
 
@@ -366,6 +393,7 @@ const NumberInput = styled.input`
   color: ${workoutTheme.colors.text};
   text-align: center;
   font-size: 0.9rem;
+  min-height: 44px;
 
   &:focus {
     outline: none;
@@ -381,6 +409,11 @@ const NumberInput = styled.input`
 
   &[type=number] {
     -moz-appearance: textfield;
+  }
+
+  @media (max-width: 430px) {
+    font-size: 16px;
+    padding: 10px;
   }
 `;
 
@@ -412,9 +445,14 @@ const StarButton = styled.button<{ filled: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px;
+  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
-  
+
   svg {
     width: 16px;
     height: 16px;
@@ -425,6 +463,17 @@ const StarButton = styled.button<{ filled: boolean }>`
   &:hover svg {
     fill: ${workoutTheme.colors.warning};
     transform: scale(1.1);
+  }
+
+  @media (max-width: 430px) {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
   }
 `;
 
@@ -492,6 +541,8 @@ const RemoveSetButton = styled.button`
   color: ${workoutTheme.colors.error};
   cursor: pointer;
   padding: ${workoutTheme.spacing.xs};
+  min-width: 36px;
+  min-height: 36px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -504,6 +555,16 @@ const RemoveSetButton = styled.button`
   svg {
     width: 14px;
     height: 14px;
+  }
+
+  @media (max-width: 430px) {
+    min-width: 44px;
+    min-height: 44px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -609,6 +670,14 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+  }
+
+  @media (max-width: 430px) {
+    min-width: unset;
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.9rem;
+    padding: ${workoutTheme.spacing.md};
   }
 `;
 

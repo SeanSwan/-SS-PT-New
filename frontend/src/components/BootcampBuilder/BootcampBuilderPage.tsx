@@ -28,6 +28,14 @@ const PageWrapper = styled.div<{ $floorMode?: boolean }>`
     ? css`background: #000; color: #F8F9FA;`
     : css`background: linear-gradient(180deg, #002060 0%, #001040 100%); color: #e0ecf4;`
   }
+
+  @media (max-width: 430px) {
+    padding: 12px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 8px;
+  }
 `;
 
 const TopBar = styled.div`
@@ -37,12 +45,23 @@ const TopBar = styled.div`
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 12px;
+
+  @media (max-width: 430px) {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    gap: 8px;
+  }
 `;
 
 const Title = styled.h1`
   font-size: 22px;
   font-weight: 700;
   margin: 0;
+
+  @media (max-width: 430px) {
+    font-size: 18px;
+  }
 `;
 
 const Subtitle = styled.p`
@@ -67,7 +86,15 @@ const ThreePane = styled.div`
   display: grid;
   grid-template-columns: 300px 1fr 320px;
   gap: 16px;
-  @media (max-width: 1024px) { grid-template-columns: 1fr; }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 430px) {
+    gap: 8px;
+  }
 `;
 
 const Panel = styled.div`
@@ -75,6 +102,11 @@ const Panel = styled.div`
   border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 12px;
   padding: 16px;
+
+  @media (max-width: 430px) {
+    padding: 12px;
+    border-radius: 8px;
+  }
 `;
 
 const PanelTitle = styled.h2`
@@ -106,6 +138,11 @@ const Select = styled.select`
   color: #e0ecf4;
   font-size: 14px;
   &:focus { border-color: #60c0f0; outline: none; }
+
+  @media (max-width: 430px) {
+    font-size: 16px;
+    padding: 10px 14px;
+  }
 `;
 
 const Input = styled.input`
@@ -118,6 +155,11 @@ const Input = styled.input`
   color: #e0ecf4;
   font-size: 14px;
   &:focus { border-color: #60c0f0; outline: none; }
+
+  @media (max-width: 430px) {
+    font-size: 16px;
+    padding: 10px 14px;
+  }
 `;
 
 const PrimaryButton = styled.button<{ $floorMode?: boolean }>`
@@ -172,16 +214,41 @@ const StationName = styled.span`
   font-size: 14px;
 `;
 
-const ExerciseRow = styled.div<{ $isCardio?: boolean }>`
+const ExerciseRow = styled.button<{ $isCardio?: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
+  padding: 8px 4px;
   font-size: 13px;
+  min-height: 44px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
   ${({ $isCardio }) => $isCardio && css`
     color: #00FF88;
     font-style: italic;
   `}
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-left-color: rgba(96, 192, 240, 0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60c0f0;
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 430px) {
+    padding: 10px 4px;
+    font-size: 14px;
+  }
 `;
 
 const DifficultyChip = styled.span<{ $tier: string }>`
@@ -339,7 +406,13 @@ const BootcampBuilderPage: React.FC = () => {
           <Title>Boot Camp Class Builder</Title>
           <Subtitle>AI-powered group fitness class generation with station planning and overflow management</Subtitle>
         </div>
-        <FloorModeToggle $active={floorMode} onClick={() => setFloorMode(!floorMode)}>
+        <FloorModeToggle
+          $active={floorMode}
+          onClick={() => setFloorMode(!floorMode)}
+          aria-pressed={floorMode}
+          aria-label={floorMode ? 'Exit high-contrast floor mode' : 'Enable high-contrast floor mode for gym use'}
+          title="High-contrast mode optimized for outdoor/gym floor coaching on tablets"
+        >
           {floorMode ? 'Exit Floor Mode' : 'Floor Mode'}
         </FloorModeToggle>
       </TopBar>
@@ -427,7 +500,7 @@ const BootcampBuilderPage: React.FC = () => {
                           key={`${si}-${ex.sortOrder}`}
                           $isCardio={ex.isCardioFinisher}
                           onClick={() => setSelectedExercise(ex)}
-                          style={{ cursor: 'pointer' }}
+                          type="button"
                         >
                           <span>
                             {ex.sortOrder}. {ex.exerciseName}
@@ -449,7 +522,7 @@ const BootcampBuilderPage: React.FC = () => {
                         key={ex.sortOrder}
                         $isCardio={ex.isCardioFinisher}
                         onClick={() => setSelectedExercise(ex)}
-                        style={{ cursor: 'pointer' }}
+                        type="button"
                       >
                         <span>
                           {ex.sortOrder}. {ex.exerciseName}
