@@ -1,7 +1,5 @@
 'use strict';
 
-const { v4: uuidv4 } = require('uuid');
-
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface) {
@@ -9,7 +7,6 @@ module.exports = {
     const achievements = [
       // Fitness achievements
       {
-        id: uuidv4(),
         title: 'First Steps',
         name: 'First Steps',
         description: 'Complete your very first workout session. Every journey begins with a single step!',
@@ -25,7 +22,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'Iron Will',
         name: 'Iron Will',
         description: 'Complete 10 workout sessions. You are building a foundation of discipline!',
@@ -41,7 +37,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'Unstoppable',
         name: 'Unstoppable',
         description: 'Complete 50 workout sessions. You are a force to be reckoned with!',
@@ -57,7 +52,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'Century Club',
         name: 'Century Club',
         description: 'Complete 100 workout sessions. Welcome to the elite!',
@@ -74,7 +68,6 @@ module.exports = {
       },
       // Streak achievements
       {
-        id: uuidv4(),
         title: 'Consistency King',
         name: 'Consistency King',
         description: 'Maintain a 7-day workout streak. Consistency is the key to transformation!',
@@ -90,7 +83,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'Month Warrior',
         name: 'Month Warrior',
         description: 'Maintain a 30-day workout streak. A full month of dedication!',
@@ -106,7 +98,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'Swan Legend',
         name: 'Swan Legend',
         description: 'Maintain a 90-day workout streak. You are a SwanStudios legend!',
@@ -123,7 +114,6 @@ module.exports = {
       },
       // Milestone achievements
       {
-        id: uuidv4(),
         title: 'Point Collector',
         name: 'Point Collector',
         description: 'Earn your first 500 XP points. The rewards are just beginning!',
@@ -139,7 +129,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'XP Master',
         name: 'XP Master',
         description: 'Earn 5,000 XP points. You are mastering the SwanStudios system!',
@@ -156,7 +145,6 @@ module.exports = {
       },
       // Special achievements
       {
-        id: uuidv4(),
         title: 'Profile Complete',
         name: 'Profile Complete',
         description: 'Complete your profile with goals, measurements, and movement assessment.',
@@ -172,7 +160,6 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: uuidv4(),
         title: 'Social Swan',
         name: 'Social Swan',
         description: 'Share your first workout achievement on the social feed.',
