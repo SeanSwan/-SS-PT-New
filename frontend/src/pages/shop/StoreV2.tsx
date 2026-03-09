@@ -144,7 +144,9 @@ const HeroContent = styled.div`
 `;
 
 const HeroLogo = styled.img`
+  border-radius: 50%;
   width: 120px;
+  border-radius: 50%;
   height: auto;
   filter: drop-shadow(0 0 20px ${({ theme }) => theme.colors?.primary || '#60C0F0'}60);
   ${noMotion}

@@ -354,6 +354,7 @@ const HeroContent = styled(motion.div)`
 `;
 
 const HeroLogo = styled(motion.img)`
+  border-radius: 50%;
   height: 80px;
   margin-bottom: 24px;
   filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.3));

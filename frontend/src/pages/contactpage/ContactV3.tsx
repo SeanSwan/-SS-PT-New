@@ -117,7 +117,9 @@ const Section = styled.section`
 // --------------- Hero ---------------
 
 const HeroLogo = styled.img`
+  border-radius: 50%;
   width: 110px;
+  border-radius: 50%;
   height: 110px;
   object-fit: contain;
   margin-bottom: 1.5rem;

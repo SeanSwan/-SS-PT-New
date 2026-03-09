@@ -150,7 +150,9 @@ const PageWrapper = styled.div`
 
 /* Hero */
 const HeroLogo = styled.img`
+  border-radius: 50%;
   width: 120px;
+  border-radius: 50%;
   height: 120px;
   object-fit: contain;
   margin-bottom: 1.5rem;

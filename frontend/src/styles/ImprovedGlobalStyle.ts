@@ -17,9 +17,15 @@ const ImprovedGlobalStyle = createGlobalStyle`
   
   /* Modern CSS focus styles - improved accessibility */
   :focus-visible {
-    outline: 3px solid #00ffff;
+    outline: 3px solid #8B5CF6;
     outline-offset: 3px;
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5);
+  }
+
+  /* Logo images — always circular (PNG has opaque background) */
+  img[alt*="SwanStudios Logo"],
+  img[alt*="SwanStudios logo"] {
+    border-radius: 50%;
   }
   
   /* Base HTML/Body styling with smooth scrolling */

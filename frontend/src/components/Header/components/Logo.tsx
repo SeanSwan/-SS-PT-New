@@ -20,16 +20,16 @@ const galaxyFloat = keyframes`
 
 const cosmicGlow = keyframes`
   0% {
-    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #00ffff) 40%, transparent));
-    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #00ffff) 60%, transparent);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #8B5CF6) 40%, transparent));
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #8B5CF6) 60%, transparent);
   }
   50% {
-    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-primary, #00ffff) 80%, transparent));
-    text-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #00ffff) 90%, transparent);
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-primary, #8B5CF6) 80%, transparent));
+    text-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #8B5CF6) 90%, transparent);
   }
   100% {
-    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #00ffff) 40%, transparent));
-    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #00ffff) 60%, transparent);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #8B5CF6) 40%, transparent));
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #8B5CF6) 60%, transparent);
   }
 `;
 

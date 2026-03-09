@@ -52,7 +52,7 @@ const Logo: React.FC<LogoProps> = ({
       height={height}
       className={className}
       onClick={onClick}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      style={{ cursor: onClick ? 'pointer' : 'default', borderRadius: '50%' }}
     />
   );
 };

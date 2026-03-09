@@ -53,7 +53,9 @@ const PageWrapper = styled.div`
 `;
 
 const HeroLogo = styled.img`
+  border-radius: 50%;
   width: 100px;
+  border-radius: 50%;
   height: 100px;
   object-fit: contain;
   margin-bottom: 1rem;
