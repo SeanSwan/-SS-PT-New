@@ -23,8 +23,10 @@ import {
   Loader2,
   Music2,
   Mic2,
+  Mic,
   Palette,
-  Gamepad2
+  Gamepad2,
+  Laugh
 } from 'lucide-react';
 
 /* ─── Mock Data (fallback when API unavailable) ────── */
@@ -88,8 +90,10 @@ const CATEGORY_COLORS: Record<ChallengeCategory, string> = {
   social: '#06b6d4',
   dance: '#ec4899',
   music: '#a855f7',
+  singing: '#c084fc',
   art: '#f59e0b',
   gaming: '#22c55e',
+  comedy: '#facc15',
   community: '#3b82f6',
 };
 
@@ -100,8 +104,10 @@ const CATEGORY_ICONS: Record<ChallengeCategory, React.ElementType> = {
   social: Users,
   dance: Music2,
   music: Mic2,
+  singing: Mic,
   art: Palette,
   gaming: Gamepad2,
+  comedy: Laugh,
   community: Users,
 };
 
@@ -113,8 +119,10 @@ const ALL_CATEGORIES: { key: ChallengeCategory | 'all'; label: string }[] = [
   { key: 'social', label: 'Social' },
   { key: 'dance', label: 'Dance' },
   { key: 'music', label: 'Music' },
+  { key: 'singing', label: 'Singing' },
   { key: 'art', label: 'Art' },
   { key: 'gaming', label: 'Gaming' },
+  { key: 'comedy', label: 'Comedy' },
   { key: 'community', label: 'Community' },
 ];
 
