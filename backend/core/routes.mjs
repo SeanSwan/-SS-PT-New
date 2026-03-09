@@ -433,6 +433,45 @@ export const setupRoutes = async (app) => {
     }
   });
 
+  // ===================== R2 GALLERY PHOTO SERVE PROXY =====================
+  // Gallery photos stored in R2 get URLs like /api/serve-photo/gallery/{slug}/{number}.jpg
+  app.get('/api/serve-photo/gallery/:slug/:filename', async (req, res) => {
+    try {
+      const { slug, filename } = req.params;
+
+      if (!/^[a-z0-9-]+$/.test(slug) || !/^[\w-]+\.\w+$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid gallery photo path' });
+      }
+
+      const objectKey = `gallery/${slug}/${filename}`;
+
+      const { r2Configured, getR2Client } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) {
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+        const client = getR2Client();
+
+        const ext = filename.split('.').pop().toLowerCase();
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+
+        const command = new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: objectKey,
+          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentDisposition: 'inline',
+        });
+
+        const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+        return res.redirect(302, signedUrl);
+      }
+
+      return res.status(404).json({ error: 'Gallery photo not found' });
+    } catch (err) {
+      logger.error('[GalleryPhotoServeProxy] Error serving gallery photo: %s', err.message);
+      return res.status(500).json({ error: 'Failed to serve gallery photo' });
+    }
+  });
+
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);
   app.use('/api/ai-chat', aiChatRoutes);

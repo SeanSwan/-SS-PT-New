@@ -625,11 +625,11 @@ const ContentModerationSection: React.FC = () => {
           },
           status: post.status,
           createdAt: post.createdAt,
-          metrics: post.engagement || {
-            likes: 0,
-            comments: 0,
-            shares: 0,
-            reports: post.reportsCount || 0
+          metrics: {
+            likes: post.engagement?.likes || 0,
+            comments: post.engagement?.comments || 0,
+            shares: post.engagement?.shares || 0,
+            reports: post.engagement?.reports || post.reportsCount || 0,
           },
           flags: post.moderationFlags || [],
           media: post.media || [],
