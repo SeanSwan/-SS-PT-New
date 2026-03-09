@@ -103,7 +103,7 @@ const ToggleTrack = styled.span<{ $checked: boolean }>`
       : 'rgba(255, 255, 255, 0.15)'};
   transition: background 0.25s ease;
   box-shadow: ${({ $checked }) =>
-    $checked ? '0 0 8px rgba(0, 255, 255, 0.3)' : 'none'};
+    $checked ? '0 0 8px rgba(139, 92, 246, 0.3)' : 'none'};
 `;
 
 const ToggleThumb = styled.span<{ $checked: boolean }>`
@@ -189,12 +189,12 @@ const StyledSelect = styled.select`
   background-position: right 12px center;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 
   &:focus {
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   option {
@@ -240,7 +240,7 @@ const StyledRange = styled.input`
     background: linear-gradient(135deg, #00cccc, #00ffff);
     cursor: pointer;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
     /* 44px touch target via padding trick not needed; 22px thumb is fine
        because the track itself provides an ample hit area */
     transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -248,7 +248,7 @@ const StyledRange = styled.input`
 
   &::-webkit-slider-thumb:hover {
     transform: scale(1.15);
-    box-shadow: 0 0 12px rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
   }
 
   &::-moz-range-thumb {
@@ -258,7 +258,7 @@ const StyledRange = styled.input`
     background: linear-gradient(135deg, #00cccc, #00ffff);
     cursor: pointer;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
   }
 
   /* Make the touch target at least 44px tall */

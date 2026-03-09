@@ -215,7 +215,7 @@ const StyledInput = styled.input`
 
   &:focus {
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &:disabled {
@@ -240,8 +240,8 @@ const ClientInfoBox = styled.div`
   margin-top: 16px;
   padding: 16px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  background-color: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  background-color: rgba(139, 92, 246, 0.05);
 `;
 
 const ClientInfoHeader = styled.div`

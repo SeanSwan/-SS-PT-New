@@ -20,7 +20,7 @@ const VoiceMemoUpload = lazy(() => import('../../../../WorkoutLogger/VoiceMemoUp
 
 /* ─────────────────────── Theme Tokens ─────────────────────── */
 
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 const GALAXY_CORE = '#0a0a1a';
 
 const spin = keyframes`
@@ -49,7 +49,7 @@ const ModalPanel = styled.div`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
 `;
@@ -134,7 +134,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -157,7 +157,7 @@ const TextArea = styled.textarea`
   &:focus {
     outline: none;
     border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -192,8 +192,8 @@ const AddButton = styled.button`
   padding: 8px 14px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 255, 255, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.06);
   color: ${SWAN_CYAN};
   font-size: 0.85rem;
   font-weight: 600;
@@ -201,7 +201,7 @@ const AddButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.12);
+    background: rgba(139, 92, 246, 0.12);
     border-color: ${SWAN_CYAN};
   }
 `;
@@ -308,11 +308,11 @@ const SubmitButton = styled.button`
   color: ${GALAXY_CORE};
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 18px rgba(0, 255, 255, 0.35);
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
   }
 
   &:disabled {
@@ -355,7 +355,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid ${(p) => p.$active ? SWAN_CYAN : 'rgba(255, 255, 255, 0.12)'};
-  background: ${(p) => p.$active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)'};
+  background: ${(p) => p.$active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.03)'};
   color: ${(p) => p.$active ? SWAN_CYAN : '#94a3b8'};
 
   &:hover {

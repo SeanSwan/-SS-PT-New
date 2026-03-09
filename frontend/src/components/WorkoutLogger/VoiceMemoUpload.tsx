@@ -15,7 +15,7 @@ import { Upload, Mic, FileText, AlertTriangle, CheckCircle, X } from 'lucide-rea
 import { useAuth } from '../../context/AuthContext';
 
 /* ---- Theme Tokens ---- */
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 const GALAXY_CORE = '#0a0a1a';
 
 const pulse = keyframes`
@@ -37,7 +37,7 @@ const shimmer = keyframes`
 
 const Container = styled.div<{ $uploading?: boolean }>`
   background: rgba(255, 255, 255, 0.03);
-  border: 2px dashed rgba(0, 255, 255, 0.25);
+  border: 2px dashed rgba(139, 92, 246, 0.25);
   border-radius: 12px;
   padding: 24px;
   text-align: center;
@@ -46,14 +46,14 @@ const Container = styled.div<{ $uploading?: boolean }>`
 
   &:hover, &.drag-over {
     border-color: ${SWAN_CYAN};
-    background: rgba(0, 255, 255, 0.04);
+    background: rgba(139, 92, 246, 0.04);
   }
 
   ${({ $uploading }) => $uploading && `
-    background: linear-gradient(90deg, rgba(0,255,255,0.02) 25%, rgba(0,255,255,0.08) 50%, rgba(0,255,255,0.02) 75%);
+    background: linear-gradient(90deg, rgba(139, 92, 246,0.02) 25%, rgba(139, 92, 246,0.08) 50%, rgba(139, 92, 246,0.02) 75%);
     background-size: 200% 100%;
     animation: ${shimmer} 2s infinite linear;
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     cursor: default;
   `}
 `;
@@ -147,7 +147,7 @@ const PainFlag = styled.span`
 const TranscriptBox = styled.details`
   margin-top: 16px;
   background: rgba(10, 10, 26, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   overflow: hidden;
 
@@ -158,11 +158,11 @@ const TranscriptBox = styled.details`
     font-weight: 600;
     padding: 12px 16px;
     user-select: none;
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
     transition: background 0.2s;
 
     &:hover {
-      background: rgba(0, 255, 255, 0.1);
+      background: rgba(139, 92, 246, 0.1);
     }
   }
 
@@ -176,11 +176,11 @@ const TranscriptBox = styled.details`
     word-break: break-word;
     max-height: 250px;
     overflow-y: auto;
-    border-top: 1px solid rgba(0, 255, 255, 0.1);
+    border-top: 1px solid rgba(139, 92, 246, 0.1);
 
     &::-webkit-scrollbar { width: 6px; }
     &::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-    &::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.3); border-radius: 3px; }
+    &::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 3px; }
   }
 `;
 
@@ -208,7 +208,7 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    ${(p) => p.$primary && `box-shadow: 0 6px 24px rgba(0, 255, 255, 0.4);`}
+    ${(p) => p.$primary && `box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);`}
   }
 
   &:disabled {

@@ -187,7 +187,7 @@ const Card = styled(motion.div)`
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -541,7 +541,7 @@ const ModalOverlay = styled(motion.div)`
 
 const ModalContent = styled(motion.div)`
   background: linear-gradient(135deg, rgba(15, 15, 35, 0.98), rgba(25, 25, 55, 0.95));
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 16px;
   max-width: 700px;
   width: 100%;

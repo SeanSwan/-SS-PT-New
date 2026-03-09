@@ -19,7 +19,7 @@ const PanelCard = styled.div`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 1.5rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 `;
@@ -41,8 +41,8 @@ const StatGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: rgba(0, 255, 255, 0.08);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 1rem;
 `;
@@ -63,7 +63,7 @@ const ChartContainer = styled.div`
   background: rgba(10, 10, 20, 0.6);
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
 `;
 
 const ChartLabel = styled.div`
@@ -112,7 +112,7 @@ const GoalHeader = styled.div`
 const GoalBar = styled.div`
   height: 8px;
   border-radius: 999px;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   overflow: hidden;
 `;
 

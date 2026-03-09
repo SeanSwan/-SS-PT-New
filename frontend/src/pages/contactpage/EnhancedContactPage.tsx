@@ -76,13 +76,13 @@ const gradientShift = keyframes`
 
 const borderPulse = keyframes`
   0% {
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
   50% {
     border-color: rgba(120, 81, 169, 0.8);
   }
   100% {
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -167,9 +167,9 @@ const Overlay = styled.div`
     bottom: 0;
     background: linear-gradient(
       135deg,
-      rgba(0, 255, 255, 0.15),
+      rgba(139, 92, 246, 0.15),
       rgba(120, 81, 169, 0.15),
-      rgba(0, 255, 255, 0.15)
+      rgba(139, 92, 246, 0.15)
     );
     background-size: 200% 200%;
     animation: ${gradientShift} 15s ease infinite;
@@ -186,7 +186,7 @@ const TopLeftOrb = styled.div`
   width: 400px;
   height: 400px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.05);
+  background: rgba(139, 92, 246, 0.05);
   filter: blur(60px);
   opacity: 0.3;
   z-index: 2;
@@ -268,7 +268,7 @@ const PageTitle = styled(motion.h1)`
   font-weight: 300;
   margin-bottom: 1.5rem;
   text-align: center;
-  text-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
   letter-spacing: 2px;
   position: relative;
   display: inline-block;
@@ -300,10 +300,10 @@ const PageTitle = styled(motion.h1)`
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 0.8),
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 0.8),
       rgba(120, 81, 169, 0.8),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0)
     );
   }
 
@@ -425,7 +425,7 @@ const FormTitle = styled(motion.h2)`
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 1),
+      rgba(139, 92, 246, 1),
       rgba(120, 81, 169, 0.5)
     );
   }
@@ -437,7 +437,7 @@ const InfoTitle = styled(FormTitle)`
     background: linear-gradient(
       to right,
       rgba(120, 81, 169, 1),
-      rgba(0, 255, 255, 0.5)
+      rgba(139, 92, 246, 0.5)
     );
   }
 `;
@@ -462,7 +462,7 @@ const InputLabel = styled.label<{ $focused?: boolean; $hasValue?: boolean }>`
   transition: all 0.3s ease;
   pointer-events: none;
   font-size: 0.9rem;
-  color: ${({ $focused }) => $focused ? 'rgba(0, 255, 255, 1)' : 'rgba(255, 255, 255, 0.7)'};
+  color: ${({ $focused }) => $focused ? 'rgba(139, 92, 246, 1)' : 'rgba(255, 255, 255, 0.7)'};
   
   ${({ $focused, $hasValue }) => {
     if ($focused || $hasValue) {
@@ -497,12 +497,12 @@ const StyledInput = styled.input<{ $multiline?: boolean }>`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.8);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
   }
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 
   &::placeholder {
@@ -532,12 +532,12 @@ const StyledTextarea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.8);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
   }
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 
   &::placeholder {
@@ -564,7 +564,7 @@ const InfoCard = styled(motion.div)`
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    border-color: rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -621,11 +621,11 @@ const SocialIconLink = styled.a`
   text-decoration: none;
 
   &:hover, &:focus-visible {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     color: #00ffff;
     transform: translateY(-3px);
-    border-color: rgba(0, 255, 255, 0.4);
-    outline: 2px solid rgba(0, 255, 255, 0.6);
+    border-color: rgba(139, 92, 246, 0.4);
+    outline: 2px solid rgba(139, 92, 246, 0.6);
     outline-offset: 2px;
   }
 `;
@@ -742,9 +742,9 @@ const FAQTitle = styled(motion.h2)`
     margin: 10px auto 0;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0.2),
-      rgba(0, 255, 255, 0.8),
-      rgba(0, 255, 255, 0.2)
+      rgba(139, 92, 246, 0.2),
+      rgba(139, 92, 246, 0.8),
+      rgba(139, 92, 246, 0.2)
     );
   }
 `;

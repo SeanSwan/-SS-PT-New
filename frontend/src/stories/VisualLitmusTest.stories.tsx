@@ -209,7 +209,7 @@ const textColorTests: ColorTest[] = [
   },
   {
     name: 'Accent Text (Cyan) on Void',
-    foreground: galaxySwanTheme.swan.cyan, // #00FFFF
+    foreground: galaxySwanTheme.swan.cyan, // #8B5CF6
     background: galaxySwanTheme.galaxy.void,
   },
 
@@ -228,7 +228,7 @@ const textColorTests: ColorTest[] = [
   // Cyan brand colors on dark backgrounds
   {
     name: 'Swan Cyan on Stardust',
-    foreground: galaxySwanTheme.swan.cyan, // #00FFFF
+    foreground: galaxySwanTheme.swan.cyan, // #8B5CF6
     background: galaxySwanTheme.galaxy.stardust, // #1e1e3f
   },
   {
@@ -269,7 +269,7 @@ const interactiveTests: ColorTest[] = [
   {
     name: 'Button Hover (Cyan)',
     foreground: '#FFFFFF',
-    background: galaxySwanTheme.interactive.active, // #00FFFF
+    background: galaxySwanTheme.interactive.active, // #8B5CF6
   },
 
   // Focus states
@@ -282,7 +282,7 @@ const interactiveTests: ColorTest[] = [
   // Border visibility
   {
     name: 'Elegant Border (Cyan)',
-    foreground: galaxySwanTheme.borders.elegant, // rgba(0, 255, 255, 0.2)
+    foreground: galaxySwanTheme.borders.elegant, // rgba(139, 92, 246, 0.2)
     background: galaxySwanTheme.galaxy.void,
   },
 ];

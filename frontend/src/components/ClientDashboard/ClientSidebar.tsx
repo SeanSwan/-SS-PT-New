@@ -139,7 +139,7 @@ const UserName = styled.h2`
 const UserRole = styled.span`
   font-size: 0.8rem;
   color: ${({ theme }) => theme.colors.primary};
-  background-color: rgba(0, 255, 255, 0.1);
+  background-color: rgba(139, 92, 246, 0.1);
   padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   display: inline-block;

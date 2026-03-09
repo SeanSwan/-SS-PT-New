@@ -19,7 +19,7 @@ import { useAIChat, type AIContext } from '../../hooks/useAIChat';
 import DictationOrb from './DictationOrb';
 
 // ── Theme tokens ──
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 const GALAXY_CORE = '#0a0a1a';
 const GLASS_BG = 'rgba(16, 18, 30, 0.96)';
 
@@ -63,7 +63,7 @@ const DrawerPanel = styled.div`
   width: 420px;
   max-width: 100vw;
   background: ${GLASS_BG};
-  border-left: 1px solid rgba(0, 255, 255, 0.15);
+  border-left: 1px solid rgba(139, 92, 246, 0.15);
   box-shadow: -8px 0 40px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
@@ -80,7 +80,7 @@ const DrawerHeader = styled.div`
   justify-content: space-between;
   padding: 16px 20px;
   background: rgba(37, 39, 66, 0.8);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
   flex-shrink: 0;
 `;
 
@@ -133,7 +133,7 @@ const ContextPill = styled.button<{ $active: boolean }>`
   min-height: 36px;
   border-radius: 999px;
   border: 1px solid ${({ $active }) => $active ? SWAN_CYAN : 'rgba(255, 255, 255, 0.12)'};
-  background: ${({ $active }) => $active ? 'rgba(0, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)'};
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)'};
   color: ${({ $active }) => $active ? SWAN_CYAN : '#94a3b8'};
   font-size: 0.8rem;
   font-weight: 600;
@@ -165,7 +165,7 @@ const ConvItem = styled.button`
   cursor: pointer;
   margin-bottom: 6px;
   transition: all 0.2s;
-  &:hover { background: rgba(0, 255, 255, 0.06); border-color: rgba(0, 255, 255, 0.2); }
+  &:hover { background: rgba(139, 92, 246, 0.06); border-color: rgba(139, 92, 246, 0.2); }
 `;
 
 const ConvTitle = styled.div`
@@ -193,7 +193,7 @@ const MessagesArea = styled.div`
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     border-radius: 3px;
   }
 `;
@@ -203,10 +203,10 @@ const MessageBubble = styled.div<{ $role: 'user' | 'assistant' }>`
   padding: 12px 16px;
   border-radius: ${({ $role }) => $role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
   background: ${({ $role }) => $role === 'user'
-    ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 170, 221, 0.1))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(0, 170, 221, 0.1))'
     : 'rgba(255, 255, 255, 0.04)'};
   border: 1px solid ${({ $role }) => $role === 'user'
-    ? 'rgba(0, 255, 255, 0.2)'
+    ? 'rgba(139, 92, 246, 0.2)'
     : 'rgba(255, 255, 255, 0.08)'};
   align-self: ${({ $role }) => $role === 'user' ? 'flex-end' : 'flex-start'};
   color: #e2e8f0;
@@ -263,7 +263,7 @@ const ChatInput = styled.textarea`
   &:focus {
     outline: none;
     border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
   &::placeholder { color: rgba(255, 255, 255, 0.3); }
 `;
@@ -287,7 +287,7 @@ const SendBtn = styled.button<{ $active: boolean }>`
   flex-shrink: 0;
   &:hover:not(:disabled) {
     transform: ${({ $active }) => $active ? 'scale(1.05)' : 'none'};
-    box-shadow: ${({ $active }) => $active ? '0 4px 18px rgba(0, 255, 255, 0.35)' : 'none'};
+    box-shadow: ${({ $active }) => $active ? '0 4px 18px rgba(139, 92, 246, 0.35)' : 'none'};
   }
 `;
 
@@ -311,8 +311,8 @@ const EmptyIcon = styled.div`
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.08);
-  border: 2px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.08);
+  border: 2px solid rgba(139, 92, 246, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;

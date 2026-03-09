@@ -1100,15 +1100,15 @@ const ClientCard = styled.div<{ $selected?: boolean }>`
   align-items: center;
   padding: 0.75rem;
   border-radius: 10px;
-  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
-  border: 1px solid ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.08)'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
+  border: 1px solid ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255, 255, 255, 0.08)'};
   cursor: pointer;
   transition: all 150ms ease-out;
   min-height: 44px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 
   @media (max-width: 430px) {
@@ -1122,7 +1122,7 @@ const ClientAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1196,7 +1196,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
   font-weight: 600;
   white-space: nowrap;
   transition: all 150ms ease;
-  background: ${({ $active }) => $active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.04)'};
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)'};
   color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
 
   @media (max-width: 375px) {
@@ -1236,15 +1236,15 @@ const PackageCard = styled.div<{ $selected: boolean; $isLast?: boolean }>`
   flex-direction: column;
   gap: 0.25rem;
 
-  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
   border: 2px solid ${({ $selected, $isLast }) =>
     $selected ? '#00ffff'
     : $isLast ? 'rgba(120, 81, 169, 0.5)'
     : 'rgba(255, 255, 255, 0.08)'};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -1296,12 +1296,12 @@ const PaymentMethodButton = styled.button<{ $selected: boolean }>`
   white-space: nowrap;
   transition: all 150ms ease;
   border: 2px solid ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.15)'};
-  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
   color: ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    background: rgba(0, 255, 255, 0.08);
+    border-color: rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.08);
   }
 
   @media (max-width: 375px) {
@@ -1314,8 +1314,8 @@ const SummaryCard = styled.div`
   margin-top: 1rem;
   padding: 1rem;
   border-radius: 10px;
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.2);
 `;
 
 const SummaryRow = styled.div`
@@ -1382,12 +1382,12 @@ const CardOption = styled.div<{ $selected: boolean }>`
   font-weight: 600;
   font-size: 0.85rem;
   color: ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.8)'};
-  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.04)'};
   border: 2px solid ${({ $selected }) => $selected ? '#00ffff' : 'rgba(255, 255, 255, 0.1)'};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 

@@ -152,7 +152,7 @@ const TabButton = styled(motion.button)<{
   user-select: none;
 
   /* P1-4: Mobile touch feedback */
-  -webkit-tap-highlight-color: rgba(0, 255, 255, 0.15);
+  -webkit-tap-highlight-color: rgba(139, 92, 246, 0.15);
   touch-action: manipulation; /* Remove 300ms tap delay */
   
   /* Size variants - P1-2 Fix: 44px minimum touch targets */
@@ -214,7 +214,7 @@ const TabButton = styled(motion.button)<{
             ? $customColors?.activeBackground || 'rgba(255, 255, 255, 0.1)'
             : $customColors?.background || 'transparent'};
           border: 1px solid ${$isActive
-            ? $customColors?.indicator || 'rgba(0, 255, 255, 0.3)'
+            ? $customColors?.indicator || 'rgba(139, 92, 246, 0.3)'
             : 'transparent'};
           backdrop-filter: ${$isActive ? 'blur(10px)' : 'none'};
         `;
@@ -258,12 +258,12 @@ const TabButton = styled(motion.button)<{
           `;
         case 'underline':
           return css`
-            border-bottom-color: ${$customColors?.indicator || 'rgba(0, 255, 255, 0.5)'};
+            border-bottom-color: ${$customColors?.indicator || 'rgba(139, 92, 246, 0.5)'};
           `;
         case 'cards':
           return css`
             background: ${$customColors?.background || 'rgba(255, 255, 255, 0.05)'};
-            border-color: ${$customColors?.indicator || 'rgba(0, 255, 255, 0.2)'};
+            border-color: ${$customColors?.indicator || 'rgba(139, 92, 246, 0.2)'};
           `;
         case 'premium':
           return css`
@@ -289,7 +289,7 @@ const TabButton = styled(motion.button)<{
   /* Active state - P1-4: Enhanced visual feedback on touch */
   &:active {
     transform: scale(0.98);
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 
   /* Mobile optimizations */
@@ -298,7 +298,7 @@ const TabButton = styled(motion.button)<{
 
     /* P1-4: Immediate touch feedback on mobile */
     &:active {
-      background: rgba(0, 255, 255, 0.15);
+      background: rgba(139, 92, 246, 0.15);
       transition: background 0.05s ease;
     }
 

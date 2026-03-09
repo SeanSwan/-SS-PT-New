@@ -132,8 +132,8 @@ const ScheduleButton = styled.button`
   padding: 10px 16px;
   min-height: 44px;
   border-radius: 10px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
-  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.05);
   color: #00ffff;
   font-size: 0.875rem;
   font-weight: 500;
@@ -142,7 +142,7 @@ const ScheduleButton = styled.button`
   margin-top: 24px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 `;
 
@@ -171,7 +171,7 @@ const ScheduledSessionsCard: React.FC<ScheduledSessionsCardProps> = ({
 
   const getSessionTypeColor = (type: string): string => {
     switch (type.toLowerCase()) {
-      case 'strength': return 'rgba(0, 255, 255, 0.9)';
+      case 'strength': return 'rgba(139, 92, 246, 0.9)';
       case 'cardio': return 'rgba(255, 83, 83, 0.9)';
       case 'flexibility': return 'rgba(120, 81, 169, 0.9)';
       case 'balance': return 'rgba(255, 183, 0, 0.9)';

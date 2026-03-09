@@ -26,7 +26,7 @@ export const HeaderSection = styled.div`
 export const Title = styled.h2`
   font-size: 1.8rem;
   color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   margin: 0;
 `;
 
@@ -52,7 +52,7 @@ export const FilterSelect = styled.select`
   
   &:hover, &:focus {
     border-color: #00ffff;
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
   
   @media (max-width: 480px) {
@@ -78,7 +78,7 @@ export const MetricCard = styled.div`
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 

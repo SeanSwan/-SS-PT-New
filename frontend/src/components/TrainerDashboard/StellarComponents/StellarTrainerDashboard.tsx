@@ -56,7 +56,7 @@ const BodyMapWrapper: React.FC = () => {
   if (!selectedClientId) {
     return (
       <div style={{ padding: '1rem' }}>
-        <h3 style={{ color: '#00FFFF', marginBottom: '1rem' }}>Select a Client</h3>
+        <h3 style={{ color: '#8B5CF6', marginBottom: '1rem' }}>Select a Client</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
           {clients.map((c: any) => (
             <button
@@ -64,8 +64,8 @@ const BodyMapWrapper: React.FC = () => {
               onClick={() => setSelectedClientId(c.id)}
               style={{
                 padding: '1rem',
-                background: 'rgba(0,255,255,0.05)',
-                border: '1px solid rgba(0,255,255,0.2)',
+                background: 'rgba(139, 92, 246,0.05)',
+                border: '1px solid rgba(139, 92, 246,0.2)',
                 borderRadius: '12px',
                 color: '#fff',
                 cursor: 'pointer',
@@ -90,17 +90,17 @@ const BodyMapWrapper: React.FC = () => {
         style={{
           marginBottom: '1rem',
           padding: '8px 16px',
-          background: 'rgba(0,255,255,0.1)',
-          border: '1px solid rgba(0,255,255,0.3)',
+          background: 'rgba(139, 92, 246,0.1)',
+          border: '1px solid rgba(139, 92, 246,0.3)',
           borderRadius: '8px',
-          color: '#00FFFF',
+          color: '#8B5CF6',
           cursor: 'pointer',
           minHeight: '44px',
         }}
       >
         &larr; Change Client
       </button>
-      <React.Suspense fallback={<div style={{ padding: '2rem', color: '#00FFFF' }}>Loading Body Map...</div>}>
+      <React.Suspense fallback={<div style={{ padding: '2rem', color: '#8B5CF6' }}>Loading Body Map...</div>}>
         <BodyMap userId={selectedClientId} mode="trainer" />
       </React.Suspense>
     </div>
@@ -108,7 +108,7 @@ const BodyMapWrapper: React.FC = () => {
 };
 
 const FormAnalysisWrapper: React.FC = () => (
-  <React.Suspense fallback={<div style={{ padding: '2rem', color: '#00FFFF' }}>Loading Form Analysis...</div>}>
+  <React.Suspense fallback={<div style={{ padding: '2rem', color: '#8B5CF6' }}>Loading Form Analysis...</div>}>
     <FormAnalysisPage />
   </React.Suspense>
 );
@@ -148,10 +148,10 @@ const TrainerGalaxyContainer = styled.div`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(2px 2px at 20px 30px, ${props => props.theme.colors?.primary || '#00FFFF'}, transparent),
+      radial-gradient(2px 2px at 20px 30px, ${props => props.theme.colors?.primary || '#8B5CF6'}, transparent),
       radial-gradient(2px 2px at 40px 70px, ${props => props.theme.colors?.accent || '#FFD700'}, transparent),
       radial-gradient(1px 1px at 90px 40px, ${props => props.theme.colors?.white || '#ffffff'}, transparent),
-      radial-gradient(1px 1px at 130px 80px, ${props => props.theme.colors?.primary || '#00FFFF'}, transparent),
+      radial-gradient(1px 1px at 130px 80px, ${props => props.theme.colors?.primary || '#8B5CF6'}, transparent),
       radial-gradient(2px 2px at 180px 30px, ${props => props.theme.colors?.secondary || '#7851A9'}, transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
@@ -181,7 +181,7 @@ const TrainerContentHeader = styled(motion.div)`
   background: ${props => props.theme.gradients?.card || 'rgba(30, 30, 60, 0.4)'};
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.3)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.3)'};
   padding: 2rem;
   margin-bottom: 2rem;
   text-align: center;
@@ -203,7 +203,7 @@ const TrainerContentHeader = styled(motion.div)`
   }
   
   h1 {
-    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -241,7 +241,7 @@ const TrainerContentArea = styled(motion.div)`
   background: ${props => props.theme.gradients?.card || 'rgba(30, 30, 60, 0.3)'};
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   padding: 2rem;
   min-height: 60vh;
   position: relative;
@@ -258,7 +258,7 @@ const TrainerContentArea = styled(motion.div)`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: ${props => props.theme.colors?.primary || '#00FFFF'};
+    background: ${props => props.theme.colors?.primary || '#8B5CF6'};
     border-radius: 4px;
     
     &:hover {
@@ -312,7 +312,7 @@ const TrainerParticle = styled(motion.div)`
   position: absolute;
   width: 4px;
   height: 4px;
-  background: ${props => props.theme.colors?.primary || '#00FFFF'};
+  background: ${props => props.theme.colors?.primary || '#8B5CF6'};
   border-radius: 50%;
   opacity: 0;
 `;

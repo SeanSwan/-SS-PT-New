@@ -160,8 +160,8 @@ const SearchInput = styled.input`
 
   &:hover,
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -204,8 +204,8 @@ const FormInput = styled.input`
   min-height: 44px;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -238,8 +238,8 @@ const FormTextarea = styled.textarea`
   font-family: inherit;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -266,8 +266,8 @@ const FormSelect = styled.select`
   padding-right: 2rem;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   option {

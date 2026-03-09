@@ -144,7 +144,7 @@ const CinematicDivider = styled.div`
   background: linear-gradient(
     90deg,
     transparent 0%,
-    ${({ theme }) => (theme.colors?.primary || '#00FFFF') + '40'} 50%,
+    ${({ theme }) => (theme.colors?.primary || '#8B5CF6') + '40'} 50%,
     transparent 100%
   );
   opacity: 0.6;
@@ -263,9 +263,9 @@ const GlassCard = styled(motion.div)`
   overflow: hidden;
 
   &:hover {
-    border-color: ${({ theme }) => theme.colors?.primary || 'rgba(0, 255, 255, 0.3)'};
+    border-color: ${({ theme }) => theme.colors?.primary || 'rgba(139, 92, 246, 0.3)'};
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.08);
   }
 
   @media (max-width: 320px) {
@@ -356,7 +356,7 @@ const HeroContent = styled(motion.div)`
 const HeroLogo = styled(motion.img)`
   height: 80px;
   margin-bottom: 24px;
-  filter: drop-shadow(0 0 24px rgba(0, 255, 255, 0.3));
+  filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.3));
 
   @media (max-width: 320px) {
     height: 60px;
@@ -383,7 +383,7 @@ const HeroLogo = styled(motion.img)`
 `;
 
 const HeroEyebrow = styled(motion.span)`
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
   font-size: 0.75rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -512,12 +512,12 @@ const IconWrapper = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: ${({ theme }) => `rgba(${theme.colors?.primary === '#00FFFF' ? '0, 255, 255' : '120, 81, 169'}, 0.1)`};
+  background: ${({ theme }) => `rgba(${theme.colors?.primary === '#8B5CF6' ? '0, 255, 255' : '120, 81, 169'}, 0.1)`};
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
   transition: all 0.4s ease;
 `;
 
@@ -588,9 +588,9 @@ const ProgramCard = styled(GlassCard)<{ $isPopular?: boolean }>`
   align-items: center;
   text-align: center;
   border-color: ${({ $isPopular, theme }) =>
-    $isPopular ? (theme.colors?.primary || '#00FFFF') : 'rgba(255, 255, 255, 0.08)'};
+    $isPopular ? (theme.colors?.primary || '#8B5CF6') : 'rgba(255, 255, 255, 0.08)'};
   box-shadow: ${({ $isPopular }) =>
-    $isPopular ? '0 24px 64px rgba(0, 255, 255, 0.1)' : 'none'};
+    $isPopular ? '0 24px 64px rgba(139, 92, 246, 0.1)' : 'none'};
 
   @media (min-width: 1024px) {
     transform: ${({ $isPopular }) => ($isPopular ? 'scale(1.05)' : 'scale(1)')};
@@ -598,7 +598,7 @@ const ProgramCard = styled(GlassCard)<{ $isPopular?: boolean }>`
 `;
 
 const PopularBadge = styled.span`
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
   font-size: 0.75rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -615,7 +615,7 @@ const ProgramName = styled.h3`
 
 const ProgramMeta = styled.p`
   font-size: 0.875rem;
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
   margin: 0 0 16px;
   font-weight: 600;
 `;
@@ -640,7 +640,7 @@ const ProgramFeatureItem = styled.li`
   &:last-child { border-bottom: none; }
 
   svg {
-    color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+    color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
     flex-shrink: 0;
   }
 `;
@@ -689,7 +689,7 @@ const GolfFeatureItem = styled(motion.div)`
   line-height: 1.5;
 
   svg {
-    color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+    color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -797,7 +797,7 @@ const AboutLogoWrapper = styled(motion.div)`
 const AboutLogo = styled.img`
   width: 180px;
   height: auto;
-  filter: drop-shadow(0 0 40px rgba(0, 255, 255, 0.2));
+  filter: drop-shadow(0 0 40px rgba(139, 92, 246, 0.2));
 
   @media (max-width: 320px) {
     width: 140px;
@@ -852,7 +852,7 @@ const ApproachCard = styled(GlassCard)`
   text-align: center;
 
   svg {
-    color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+    color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
     margin-bottom: 16px;
   }
 
@@ -899,7 +899,7 @@ const TestimonialGrid = styled(motion.div)`
 const StarsRow = styled.div`
   display: flex;
   gap: 4px;
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
   margin-bottom: 24px;
 `;
 
@@ -932,9 +932,9 @@ const ResultBadge = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.05em;
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
-  background: ${({ theme }) => (theme.colors?.primary || '#00FFFF') + '15'};
-  border: 1px solid ${({ theme }) => (theme.colors?.primary || '#00FFFF') + '30'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
+  background: ${({ theme }) => (theme.colors?.primary || '#8B5CF6') + '15'};
+  border: 1px solid ${({ theme }) => (theme.colors?.primary || '#8B5CF6') + '30'};
 `;
 
 // ═══════════════════════════════════════════════════════
@@ -979,7 +979,7 @@ const StatItem = styled(motion.div)`
 const StatNumber = styled.div`
   font-size: clamp(2.5rem, 5vw, 3.5rem);
   font-weight: 800;
-  background: linear-gradient(135deg, #ffffff 0%, ${({ theme }) => theme.colors?.primary || '#00FFFF'} 100%);
+  background: linear-gradient(135deg, #ffffff 0%, ${({ theme }) => theme.colors?.primary || '#8B5CF6'} 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -995,7 +995,7 @@ const StatLabel = styled.div`
 `;
 
 const StatIcon = styled.div`
-  color: ${({ theme }) => theme.colors?.primary || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.primary || '#8B5CF6'};
   margin-bottom: 8px;
   opacity: 0.6;
 `;
@@ -1100,11 +1100,11 @@ const CTAContainer = styled(motion.div)`
   background: linear-gradient(
     180deg,
     rgba(120, 81, 169, 0.08) 0%,
-    rgba(0, 255, 255, 0.04) 100%
+    rgba(139, 92, 246, 0.04) 100%
   );
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 32px;
   padding: clamp(3rem, 8vw, 5rem) 24px;
   max-width: 900px;
@@ -1112,7 +1112,7 @@ const CTAContainer = styled(motion.div)`
   text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 80px rgba(0, 255, 255, 0.04);
+  box-shadow: 0 0 80px rgba(139, 92, 246, 0.04);
 
   @media (max-width: 320px) {
     padding: 2.5rem 16px;

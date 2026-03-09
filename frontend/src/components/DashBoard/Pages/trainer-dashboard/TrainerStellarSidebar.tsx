@@ -55,7 +55,7 @@ const trainerStellarTheme = {
     trainingNebula: '0 0 40px rgba(139, 92, 246, 0.4)',
     dataVisualization: '0 20px 40px rgba(0, 0, 0, 0.6)',
     cosmicGlow: '0 0 20px currentColor',
-    trainingCenter: 'inset 0 0 20px rgba(0, 255, 255, 0.2)'
+    trainingCenter: 'inset 0 0 20px rgba(139, 92, 246, 0.2)'
   }
 };
 

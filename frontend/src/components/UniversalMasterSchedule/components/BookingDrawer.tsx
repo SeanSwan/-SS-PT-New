@@ -13,14 +13,14 @@ import { X, Search, Clock, MapPin, User, Check, ChevronDown } from 'lucide-react
 const TOKENS = {
   surfaceGlass: 'rgba(10, 10, 26, 0.6)',
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
-  swanCyan: '#00FFFF',
+  swanCyan: '#8B5CF6',
   cosmicPurple: '#7851A9',
   deepSpace: '#0A0A1A',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',
   successGreen: '#10b981',
   dangerRed: '#ef4444',
-  glassStroke: 'rgba(0, 255, 255, 0.1)',
+  glassStroke: 'rgba(139, 92, 246, 0.1)',
   purpleStroke: 'rgba(120, 81, 169, 0.3)',
 };
 
@@ -220,7 +220,7 @@ const BookingDrawer: React.FC<BookingDrawerProps> = ({
                 <ConfirmButton
                   onClick={handleConfirm}
                   disabled={confirming || loading}
-                  whileHover={{ boxShadow: '0 0 15px rgba(0, 255, 255, 0.4)' }}
+                  whileHover={{ boxShadow: '0 0 15px rgba(139, 92, 246, 0.4)' }}
                   whileTap={{ scale: 0.97 }}
                 >
                   {confirming ? 'Booking...' : 'Confirm & Ignite'}
@@ -331,9 +331,9 @@ const StepDivider = styled.div<{ $active: boolean }>`
 
 const SlotSummary = styled.div`
   padding: 16px 24px;
-  background: rgba(0, 255, 255, 0.04);
-  border-top: 1px solid rgba(0, 255, 255, 0.06);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.06);
+  background: rgba(139, 92, 246, 0.04);
+  border-top: 1px solid rgba(139, 92, 246, 0.06);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.06);
 `;
 
 const SlotTime = styled.div`
@@ -385,7 +385,7 @@ const SearchWrapper = styled.div`
 
   &:focus-within {
     border-color: ${TOKENS.swanCyan};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -510,7 +510,7 @@ const ChangeClientBtn = styled.button`
   border-radius: 6px;
   min-height: 44px;
 
-  &:hover { background: rgba(0, 255, 255, 0.06); }
+  &:hover { background: rgba(139, 92, 246, 0.06); }
 `;
 
 const DrawerFooter = styled.div`
@@ -526,7 +526,7 @@ const ConfirmButton = styled(motion.button)`
   padding: 14px 32px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #00FFFF 0%, #0088FF 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #0088FF 100%);
   color: ${TOKENS.deepSpace};
   font-weight: 700;
   font-size: 16px;

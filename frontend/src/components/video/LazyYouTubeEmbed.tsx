@@ -59,8 +59,8 @@ const LazyYouTubeEmbed: React.FC<LazyYouTubeEmbedProps> = ({
 /* ========== Animations ========== */
 
 const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
 `;
 
 /* ========== Styled Components ========== */
@@ -140,7 +140,7 @@ const PlayIconCircle = styled.div`
   justify-content: center;
   background: rgba(10, 10, 26, 0.65);
   backdrop-filter: blur(12px);
-  border: 2px solid rgba(0, 255, 255, 0.4);
+  border: 2px solid rgba(139, 92, 246, 0.4);
   animation: ${pulseGlow} 2.5s ease-in-out infinite;
   padding-left: 4px; /* optical center for play icon */
 

@@ -50,7 +50,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.6);
+    border-color: rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -72,7 +72,7 @@ const CardGrid = styled.div`
 
 const Card = styled.div`
   background: rgba(12, 14, 24, 0.75);
-  border: 1px solid rgba(0, 255, 255, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.18);
   border-radius: 16px;
   padding: ${theme.spacing.md};
   display: flex;
@@ -108,7 +108,7 @@ const SectionTitle = styled.div`
 const EmptyState = styled.div`
   padding: ${theme.spacing.lg};
   border-radius: 16px;
-  border: 1px dashed rgba(0, 255, 255, 0.2);
+  border: 1px dashed rgba(139, 92, 246, 0.2);
   background: rgba(15, 23, 42, 0.5);
   color: ${theme.colors.text.secondary};
 `;
@@ -135,7 +135,7 @@ const GoalHeader = styled.div`
 const GoalBar = styled.div`
   height: 8px;
   border-radius: 999px;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   overflow: hidden;
 `;
 

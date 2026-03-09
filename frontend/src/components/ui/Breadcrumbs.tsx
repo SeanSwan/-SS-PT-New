@@ -57,7 +57,7 @@ const StyledLink = styled(Link)`
   align-items: center;
   gap: 4px;
   text-decoration: none;
-  color: #00FFFF;
+  color: #8B5CF6;
   font-weight: 400;
   font-size: 0.875rem;
   transition: all 0.2s ease-in-out;

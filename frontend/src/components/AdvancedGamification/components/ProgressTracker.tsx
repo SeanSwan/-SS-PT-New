@@ -48,10 +48,10 @@ const trendArrow = keyframes`
 
 const achievementGlow = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -132,7 +132,7 @@ const Title = styled(motion.h2)`
   font-weight: 700;
   background: linear-gradient(135deg, 
     #4CAF50 0%, 
-    #00FFFF 50%, 
+    #8B5CF6 50%, 
     #7851A9 100%
   );
   background-clip: text;
@@ -159,14 +159,14 @@ const StatsOverview = styled(motion.div)`
 
 const StatCard = styled(motion.div)<{ trend: 'up' | 'down' | 'neutral' }>`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.1),
+    rgba(139, 92, 246, 0.1),
     rgba(120, 81, 169, 0.1)
   );
   border: 1px solid ${props => {
     switch (props.trend) {
       case 'up': return 'rgba(76, 175, 80, 0.4)';
       case 'down': return 'rgba(244, 67, 54, 0.4)';
-      default: return 'rgba(0, 255, 255, 0.2)';
+      default: return 'rgba(139, 92, 246, 0.2)';
     }
   }};
   border-radius: 12px;
@@ -185,7 +185,7 @@ const StatCard = styled(motion.div)<{ trend: 'up' | 'down' | 'neutral' }>`
     height: 100%;
     background: linear-gradient(90deg, 
       transparent,
-      rgba(0, 255, 255, 0.1),
+      rgba(139, 92, 246, 0.1),
       transparent
     );
     transition: left 0.5s ease;
@@ -203,7 +203,7 @@ const StatValue = styled.div<{ trend: 'up' | 'down' | 'neutral' }>`
     switch (props.trend) {
       case 'up': return '#4CAF50';
       case 'down': return '#F44336';
-      default: return '#00FFFF';
+      default: return '#8B5CF6';
     }
   }};
   margin-bottom: 0.25rem;
@@ -272,10 +272,10 @@ const ChartSection = styled(motion.div)`
 
 const ChartContainer = styled.div`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.05),
+    rgba(139, 92, 246, 0.05),
     rgba(120, 81, 169, 0.05)
   );
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
@@ -301,7 +301,7 @@ const Chart = styled.div`
 const ChartBar = styled(motion.div)<{ height: number; index: number }>`
   flex: 1;
   background: linear-gradient(to top, 
-    #00FFFF 0%,
+    #8B5CF6 0%,
     #7851A9 50%,
     #4CAF50 100%
   );
@@ -320,9 +320,9 @@ const ChartBar = styled(motion.div)<{ height: number; index: number }>`
     transform: translateX(-50%);
     width: 6px;
     height: 6px;
-    background: #00FFFF;
+    background: #8B5CF6;
     border-radius: 50%;
-    box-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 6px rgba(139, 92, 246, 0.8);
   }
 `;
 
@@ -342,10 +342,10 @@ const SidePanel = styled(motion.div)`
 
 const MilestoneSection = styled.div`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.05),
+    rgba(139, 92, 246, 0.05),
     rgba(120, 81, 169, 0.05)
   );
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
@@ -429,7 +429,7 @@ const ProgressBarFill = styled(motion.div)<{ progress: number; isCompleted: bool
   border-radius: 3px;
   background: ${props => props.isCompleted
     ? 'linear-gradient(90deg, #4CAF50, #66BB6A)'
-    : 'linear-gradient(90deg, #00FFFF, #7851A9)'
+    : 'linear-gradient(90deg, #8B5CF6, #7851A9)'
   };
   width: ${props => Math.min(props.progress, 100)}%;
   transition: width 1s ease;

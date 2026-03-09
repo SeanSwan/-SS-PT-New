@@ -48,9 +48,9 @@ interface EnhancementCredits {
 
 // ── Animations ────────────────────────────────────────────────────────────
 const pulseGlow = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(0, 255, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 `;
 
 const shimmer = keyframes`
@@ -116,7 +116,7 @@ const EventCard = styled(motion.div)`
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.3s;
-  &:hover { border-color: rgba(0, 255, 255, 0.3); }
+  &:hover { border-color: rgba(139, 92, 246, 0.3); }
 `;
 
 const EventCover = styled.div<{ $src: string | null }>`
@@ -130,9 +130,9 @@ const SportBadge = styled.span`
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #00ffff;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 12px;
@@ -186,7 +186,7 @@ const GateOverlay = styled(motion.div)`
 const GateCard = styled(motion.div)`
   background: rgba(10, 10, 26, 0.6);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 24px;
   padding: 40px;
   width: 90vw;
@@ -236,7 +236,7 @@ const Input = styled.input`
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
-  &:focus { border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { border-color: rgba(139, 92, 246, 0.5); }
   &::placeholder { color: rgba(255,255,255,0.3); }
 `;
 
@@ -476,7 +476,7 @@ const EnhanceButton = styled.button<{ $hasCredits: boolean }>`
   align-items: center;
   gap: 8px;
   border: none;
-  background: ${p => p.$hasCredits ? '#00FFFF' : '#7851A9'};
+  background: ${p => p.$hasCredits ? '#8B5CF6' : '#7851A9'};
   color: ${p => p.$hasCredits ? '#0a0a1a' : '#fff'};
   transition: opacity 0.2s;
   &:hover { opacity: 0.85; }
@@ -491,7 +491,7 @@ const CreditPill = styled(motion.div)<{ $hasCredits: boolean }>`
   z-index: 200;
   background: rgba(10, 10, 26, 0.75);
   backdrop-filter: blur(16px);
-  border: 1px solid ${p => p.$hasCredits ? 'rgba(0, 255, 255, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
+  border: 1px solid ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
   border-radius: 100px;
   padding: 12px 24px;
   display: flex;
@@ -500,7 +500,7 @@ const CreditPill = styled(motion.div)<{ $hasCredits: boolean }>`
   color: #fff;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 4px 24px ${p => p.$hasCredits ? 'rgba(0, 255, 255, 0.1)' : 'rgba(120, 81, 169, 0.1)'};
+  box-shadow: 0 4px 24px ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.1)' : 'rgba(120, 81, 169, 0.1)'};
   pointer-events: none;
 `;
 
@@ -508,8 +508,8 @@ const CreditDot = styled.span<{ $hasCredits: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.$hasCredits ? '#00FFFF' : '#7851A9'};
-  box-shadow: 0 0 8px ${p => p.$hasCredits ? 'rgba(0, 255, 255, 0.6)' : 'rgba(120, 81, 169, 0.6)'};
+  background: ${p => p.$hasCredits ? '#8B5CF6' : '#7851A9'};
+  box-shadow: 0 0 8px ${p => p.$hasCredits ? 'rgba(139, 92, 246, 0.6)' : 'rgba(120, 81, 169, 0.6)'};
   animation: ${pulseGlow} 2s infinite;
 `;
 
@@ -521,13 +521,13 @@ const ToastWrapper = styled.div<{ $exiting?: boolean }>`
   z-index: 250;
   background: rgba(10, 10, 26, 0.85);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 255, 255, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 16px;
   padding: 16px 24px;
   color: #fff;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 8px 32px rgba(0, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
   white-space: nowrap;
   animation: ${p => p.$exiting ? toastSlideOut : toastSlideIn} 0.4s ease forwards;
 `;
@@ -547,7 +547,7 @@ const ModalBackdrop = styled(motion.div)`
 const ModalCard = styled(motion.div)`
   background: rgba(10, 10, 26, 0.8);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 24px;
   padding: 40px;
   width: 90vw;
@@ -586,10 +586,10 @@ const PricingGrid = styled.div`
 
 const PricingCard = styled.button<{ $highlighted?: boolean; $vip?: boolean }>`
   background: ${p => p.$vip
-    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.3), rgba(0, 255, 255, 0.1))'
+    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.3), rgba(139, 92, 246, 0.1))'
     : 'rgba(255, 255, 255, 0.03)'};
   border: 1px solid ${p => p.$highlighted
-    ? 'rgba(0, 255, 255, 0.5)'
+    ? 'rgba(139, 92, 246, 0.5)'
     : p.$vip
       ? 'rgba(120, 81, 169, 0.4)'
       : 'rgba(255, 255, 255, 0.08)'};
@@ -600,7 +600,7 @@ const PricingCard = styled.button<{ $highlighted?: boolean; $vip?: boolean }>`
   text-align: center;
   transition: border-color 0.3s, transform 0.2s;
   &:hover {
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
     transform: translateY(-2px);
   }
 `;
@@ -632,7 +632,7 @@ const PricingDesc = styled.div`
 const ReferralLink = styled.p`
   text-align: center;
   font-size: 13px;
-  color: rgba(0, 255, 255, 0.7);
+  color: rgba(139, 92, 246, 0.7);
   cursor: pointer;
   margin: 0;
   &:hover { color: #00ffff; text-decoration: underline; }
@@ -667,9 +667,9 @@ const FloatingCart = styled(motion.div)`
   height: 64px;
   background: rgba(20, 20, 35, 0.85);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 32px;
-  box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -719,7 +719,7 @@ const SupportBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'ghost' 
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.12);
   ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #00ffff, #7851a9); color: #0a0a1a; border: none;'}
-  ${p => p.$variant === 'secondary' && 'background: rgba(0, 255, 255, 0.1); color: #00ffff; border-color: rgba(0,255,255,0.3);'}
+  ${p => p.$variant === 'secondary' && 'background: rgba(139, 92, 246, 0.1); color: #00ffff; border-color: rgba(139, 92, 246,0.3);'}
   ${p => (!p.$variant || p.$variant === 'ghost') && 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);'}
   &:hover { opacity: 0.85; }
 `;

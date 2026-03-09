@@ -64,14 +64,14 @@ const SidebarListItemButton = styled(ListItemButton)<{
   margin-bottom: 4px;
   border-radius: ${({ $borderRadius }) => $borderRadius || 8}px;
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
   ${({ $isSelected }) =>
     $isSelected &&
     css`
-      background: rgba(0, 255, 255, 0.12);
+      background: rgba(139, 92, 246, 0.12);
       &:hover {
-        background: rgba(0, 255, 255, 0.18);
+        background: rgba(139, 92, 246, 0.18);
       }
     `}
 `;
@@ -145,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
               <ListItemIcon
                 style={{
                   minWidth: miniDrawer ? 'auto' : 36,
-                  color: isSelected ? '#00FFFF' : '#FFFFFF'
+                  color: isSelected ? '#8B5CF6' : '#FFFFFF'
                 }}
               >
                 <Icon size={22} />
@@ -158,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
                     <Typography
                       variant="body1"
                       style={{
-                        color: isSelected ? '#00FFFF' : 'inherit',
+                        color: isSelected ? '#8B5CF6' : 'inherit',
                         fontWeight: isSelected ? 500 : 400
                       }}
                     >
@@ -198,7 +198,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
           <ListItemIcon
             style={{
               minWidth: miniDrawer ? 'auto' : 36,
-              color: isSelected ? '#00FFFF' : '#FFFFFF'
+              color: isSelected ? '#8B5CF6' : '#FFFFFF'
             }}
           >
             <Icon size={22} />
@@ -210,7 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
               <Typography
                 variant="body1"
                 style={{
-                  color: isSelected ? '#00FFFF' : 'inherit',
+                  color: isSelected ? '#8B5CF6' : 'inherit',
                   fontWeight: isSelected ? 500 : 400
                 }}
               >
@@ -234,11 +234,11 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
       }}>
         {/* App Logo/Branding */}
         {miniDrawer ? (
-          <Avatar style={{ background: '#00FFFF', color: '#0a0a1a', width: 40, height: 40 }}>
+          <Avatar style={{ background: '#8B5CF6', color: '#0a0a1a', width: 40, height: 40 }}>
             SS
           </Avatar>
         ) : (
-          <Typography variant="h5" style={{ color: '#00FFFF', fontWeight: 'bold' }}>
+          <Typography variant="h5" style={{ color: '#8B5CF6', fontWeight: 'bold' }}>
             Swan Studios
           </Typography>
         )}
@@ -252,7 +252,7 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
             alignItems: 'center',
             marginBottom: 24,
             padding: '12px 16px',
-            background: 'rgba(0, 255, 255, 0.08)',
+            background: 'rgba(139, 92, 246, 0.08)',
             borderRadius: 8
           }}
         >

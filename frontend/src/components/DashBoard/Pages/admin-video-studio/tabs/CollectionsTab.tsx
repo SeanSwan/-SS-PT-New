@@ -235,7 +235,7 @@ const CollectionCard = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     background: rgba(30, 58, 138, 0.25);
   }
 
@@ -250,7 +250,7 @@ const CollectionIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.15));
+  background: linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.15));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,7 +446,7 @@ const SortableItem = styled.div<{ $isDragging?: boolean }>`
   align-items: center;
   gap: 12px;
   background: rgba(30, 58, 138, 0.15);
-  border: 1px solid ${(p) => (p.$isDragging ? 'rgba(0, 255, 255, 0.5)' : 'rgba(59, 130, 246, 0.2)')};
+  border: 1px solid ${(p) => (p.$isDragging ? 'rgba(139, 92, 246, 0.5)' : 'rgba(59, 130, 246, 0.2)')};
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 8px;
@@ -561,11 +561,11 @@ const PickerRow = styled.div<{ $selected: boolean }>`
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  background: ${(p) => p.$selected ? 'rgba(0, 255, 255, 0.1)' : 'rgba(30, 58, 138, 0.1)'};
-  border: 1px solid ${(p) => p.$selected ? 'rgba(0, 255, 255, 0.4)' : 'rgba(59, 130, 246, 0.15)'};
+  background: ${(p) => p.$selected ? 'rgba(139, 92, 246, 0.1)' : 'rgba(30, 58, 138, 0.1)'};
+  border: 1px solid ${(p) => p.$selected ? 'rgba(139, 92, 246, 0.4)' : 'rgba(59, 130, 246, 0.15)'};
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -574,7 +574,7 @@ const PickerCheck = styled.div<{ $checked: boolean }>`
   height: 22px;
   border-radius: 4px;
   border: 2px solid ${(p) => p.$checked ? '#00ffff' : 'rgba(255,255,255,0.2)'};
-  background: ${(p) => p.$checked ? 'rgba(0,255,255,0.2)' : 'transparent'};
+  background: ${(p) => p.$checked ? 'rgba(139, 92, 246,0.2)' : 'transparent'};
   display: flex;
   align-items: center;
   justify-content: center;

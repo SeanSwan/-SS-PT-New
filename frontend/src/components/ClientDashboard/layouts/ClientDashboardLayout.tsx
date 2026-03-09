@@ -83,7 +83,7 @@ const MenuToggle = styled.button`
   
   &:hover {
     background: rgba(30, 30, 60, 1);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
   
   @media (max-width: 768px) {

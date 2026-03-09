@@ -31,14 +31,14 @@ const PanelCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 12px 35px rgba(0, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 12px 35px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -73,7 +73,7 @@ const StatusBadge = styled.span<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   text-transform: uppercase;
   background: ${({ $status }) => {
     switch ($status) {
-      case 'granted': return 'rgba(0, 255, 255, 0.12)';
+      case 'granted': return 'rgba(139, 92, 246, 0.12)';
       case 'withdrawn': return 'rgba(239, 68, 68, 0.12)';
       default: return 'rgba(255, 255, 255, 0.06)';
     }
@@ -87,7 +87,7 @@ const StatusBadge = styled.span<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   }};
   border: 1px solid ${({ $status }) => {
     switch ($status) {
-      case 'granted': return 'rgba(0, 255, 255, 0.3)';
+      case 'granted': return 'rgba(139, 92, 246, 0.3)';
       case 'withdrawn': return 'rgba(239, 68, 68, 0.3)';
       default: return 'rgba(255, 255, 255, 0.1)';
     }
@@ -132,8 +132,8 @@ const InfoIcon = styled.span<{ $color?: string }>`
 `;
 
 const ConsentDisclosure = styled.div`
-  background: rgba(0, 255, 255, 0.04);
-  border: 1px solid rgba(0, 255, 255, 0.12);
+  background: rgba(139, 92, 246, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   border-radius: 10px;
   padding: 1rem;
   margin: 0.75rem 0;
@@ -167,11 +167,11 @@ const ActionButton = styled.button<{ $variant: 'grant' | 'withdraw' | 'neutral' 
   ${({ $variant }) => {
     switch ($variant) {
       case 'grant': return `
-        background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(0, 255, 255, 0.8));
+        background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(139, 92, 246, 0.8));
         color: #0a0a1a;
-        border-color: rgba(0, 255, 255, 0.5);
-        box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
-        &:hover:not(:disabled) { box-shadow: 0 0 25px rgba(0, 255, 255, 0.4); transform: translateY(-1px); }
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+        &:hover:not(:disabled) { box-shadow: 0 0 25px rgba(139, 92, 246, 0.4); transform: translateY(-1px); }
       `;
       case 'withdraw': return `
         background: rgba(239, 68, 68, 0.12);
@@ -189,7 +189,7 @@ const ActionButton = styled.button<{ $variant: 'grant' | 'withdraw' | 'neutral' 
   }}
 
   &:disabled { opacity: 0.5; cursor: not-allowed; }
-  &:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.4); }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.4); }
 `;
 
 const WithdrawWarning = styled.div`
@@ -219,7 +219,7 @@ const LoadingBox = styled.div`
 const Spinner = styled(motion.div)`
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(0, 255, 255, 0.15);
+  border: 2px solid rgba(139, 92, 246, 0.15);
   border-top-color: #00ffff;
   border-radius: 50%;
 `;

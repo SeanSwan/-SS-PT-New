@@ -726,7 +726,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
             </StyledList>
           </ProtocolCard>
 
-          <ProtocolCard $bgColor="rgba(0, 255, 255, 0.1)">
+          <ProtocolCard $bgColor="rgba(139, 92, 246, 0.1)">
             <ProtocolHeading $color="#00ffff">
               3. Activate (Underactive)
             </ProtocolHeading>

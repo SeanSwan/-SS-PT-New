@@ -20,8 +20,8 @@ import { DifficultySlider } from '../shared/FormComponents/DifficultySlider';
 
 const challengeCountdown = keyframes`
   0%, 100% { 
-    color: #00FFFF;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    color: #8B5CF6;
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
   50% { 
     color: #FF6B6B;
@@ -109,7 +109,7 @@ const Title = styled(motion.h2)`
   font-weight: 700;
   background: linear-gradient(135deg, 
     #FF6B6B 0%, 
-    #00FFFF 50%, 
+    #8B5CF6 50%, 
     #7851A9 100%
   );
   background-clip: text;
@@ -139,10 +139,10 @@ const QuickStats = styled(motion.div)`
 
 const StatCard = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.1),
+    rgba(139, 92, 246, 0.1),
     rgba(120, 81, 169, 0.1)
   );
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
@@ -152,7 +152,7 @@ const StatCard = styled(motion.div)`
 const StatValue = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #00FFFF;
+  color: #8B5CF6;
   margin-bottom: 0.5rem;
 `;
 
@@ -211,7 +211,7 @@ const ChallengeCard = styled(motion.div)<{
       case 'monthly':
         return 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.05))';
       default:
-        return 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.05))';
+        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.05))';
     }
   }};
   
@@ -223,7 +223,7 @@ const ChallengeCard = styled(motion.div)<{
       case 'community': return 'rgba(255, 107, 107, 0.3)';
       case 'weekly': return 'rgba(138, 43, 226, 0.3)';
       case 'monthly': return 'rgba(255, 215, 0, 0.3)';
-      default: return 'rgba(0, 255, 255, 0.2)';
+      default: return 'rgba(139, 92, 246, 0.2)';
     }
   }};
 
@@ -243,7 +243,7 @@ const ChallengeCard = styled(motion.div)<{
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -268,7 +268,7 @@ const ChallengeType = styled.div<{ challengeType: Challenge['challengeType'] }>`
       case 'community': return 'linear-gradient(135deg, #FF6B6B, #FF4081)';
       case 'weekly': return 'linear-gradient(135deg, #8A2BE2, #4B0082)';
       case 'monthly': return 'linear-gradient(135deg, #FFD700, #FF8C00)';
-      default: return 'linear-gradient(135deg, #00FFFF, #7851A9)';
+      default: return 'linear-gradient(135deg, #8B5CF6, #7851A9)';
     }
   }};
   color: white;
@@ -307,7 +307,7 @@ const ProgressLabel = styled.div`
 const ProgressValue = styled.div`
   font-size: 0.8rem;
   font-weight: 600;
-  color: #00FFFF;
+  color: #8B5CF6;
 `;
 
 const ProgressBar = styled.div`
@@ -326,7 +326,7 @@ const ProgressFill = styled(motion.div)<{ progress: number; challengeType: Chall
       case 'community': return 'linear-gradient(90deg, #FF6B6B, #FF4081)';
       case 'weekly': return 'linear-gradient(90deg, #8A2BE2, #4B0082)';
       case 'monthly': return 'linear-gradient(90deg, #FFD700, #FF8C00)';
-      default: return 'linear-gradient(90deg, #00FFFF, #7851A9)';
+      default: return 'linear-gradient(90deg, #8B5CF6, #7851A9)';
     }
   }};
   width: ${props => props.progress}%;
@@ -385,10 +385,10 @@ const ParticipantCount = styled.div`
 
 const CreateForm = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.05),
+    rgba(139, 92, 246, 0.05),
     rgba(120, 81, 169, 0.05)
   );
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -421,15 +421,15 @@ const Input = styled.input`
   width: 100%;
   padding: 0.75rem;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   color: white;
   font-size: 0.9rem;
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
   }
 
   &::placeholder {
@@ -441,7 +441,7 @@ const TextArea = styled.textarea`
   width: 100%;
   padding: 0.75rem;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   color: white;
   font-size: 0.9rem;
@@ -450,8 +450,8 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
   }
 
   &::placeholder {

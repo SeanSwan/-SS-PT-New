@@ -211,7 +211,7 @@ const ProfileHeader = styled(motion.div)`
       0 12px 24px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
     /* V3: Cyan glow on hover */
-    border-color: rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.15);
   }
 
   @media (max-width: 768px) {
@@ -926,9 +926,9 @@ const StatItem = styled(motion.div)`
       0 12px 32px rgba(0, 0, 0, 0.2),
       0 6px 16px rgba(0, 0, 0, 0.15),
       inset 0 1px 2px rgba(255, 255, 255, 0.1),
-      0 0 20px rgba(0, 255, 255, 0.05);
+      0 0 20px rgba(139, 92, 246, 0.05);
     /* V3: Cyan glow on hover */
-    border-color: rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.15);
 
     &::before {
       left: 100%;
@@ -1165,8 +1165,8 @@ const SecondaryButton = styled(motion.button)`
     background: var(--bg-surface, var(--bg-elevated));
     transform: translateY(-2px);
     /* V3: Cyan glow on hover */
-    border-color: rgba(0, 255, 255, 0.15);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.05);
+    border-color: rgba(139, 92, 246, 0.15);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.05);
   }
 
   @media (max-width: 768px) {
@@ -1254,8 +1254,8 @@ const SidebarCard = styled(motion.div)`
   backdrop-filter: blur(24px);
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.15);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2), 0 0 20px rgba(0, 255, 255, 0.05);
+    border-color: rgba(139, 92, 246, 0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2), 0 0 20px rgba(139, 92, 246, 0.05);
   }
 
   /* V3: Extended breakpoints */

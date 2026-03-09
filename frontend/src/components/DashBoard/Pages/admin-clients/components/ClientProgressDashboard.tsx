@@ -250,17 +250,17 @@ const ActionButton = styled.button<{
         border: 1px solid transparent;
         &:hover:not(:disabled) {
           background: linear-gradient(135deg, #00e6ff, #00b3ff);
-          box-shadow: 0 4px 16px rgba(0,255,255,0.3);
+          box-shadow: 0 4px 16px rgba(139, 92, 246,0.3);
         }
       `;
     }
     return css`
       background: transparent;
       color: ${theme.cyan};
-      border: 1px solid rgba(0,255,255,0.5);
+      border: 1px solid rgba(139, 92, 246,0.5);
       &:hover:not(:disabled) {
         border-color: ${theme.cyan};
-        background: rgba(0,255,255,0.1);
+        background: rgba(139, 92, 246,0.1);
       }
     `;
   }}
@@ -289,7 +289,7 @@ const GlassPanel = styled.div<{ $noPadding?: boolean }>`
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0,255,255,0.15);
+    box-shadow: 0 12px 40px rgba(139, 92, 246,0.15);
   }
 `;
 
@@ -304,7 +304,7 @@ const CardPanel = styled.div<{ $completed?: boolean }>`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,255,255,0.1);
+    box-shadow: 0 8px 24px rgba(139, 92, 246,0.1);
   }
 `;
 
@@ -952,7 +952,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                 <RechartsTooltip
                   contentStyle={{
                     backgroundColor: '#252742',
-                    border: '1px solid rgba(0, 255, 255, 0.3)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
                     borderRadius: 8
                   }}
                 />
@@ -1027,7 +1027,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                 <RechartsTooltip
                   contentStyle={{
                     backgroundColor: '#252742',
-                    border: '1px solid rgba(0, 255, 255, 0.3)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
                     borderRadius: 8
                   }}
                 />

@@ -14,7 +14,7 @@ import { Shield, ShieldCheck, Eye, Lock, Brain, Info } from 'lucide-react';
 
 // ── Theme tokens (matching wizard) ──────────────────────────────────────────
 
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 
 // ── Styled Components ───────────────────────────────────────────────────────
 
@@ -77,8 +77,8 @@ const ProtectionIcon = styled.span<{ $color?: string }>`
 `;
 
 const ConsentDisclosure = styled.div`
-  background: rgba(0, 255, 255, 0.04);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   padding: 1.25rem;
   font-size: 0.8125rem;
@@ -110,8 +110,8 @@ const ConsentToggleRow = styled.label`
   min-height: 56px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.04);
-    border-color: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.04);
+    border-color: rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -138,7 +138,7 @@ const ToggleTrack = styled.span<{ $checked: boolean }>`
       : 'rgba(255, 255, 255, 0.15)'};
   transition: background 0.25s ease;
   box-shadow: ${({ $checked }) =>
-    $checked ? '0 0 8px rgba(0, 255, 255, 0.3)' : 'none'};
+    $checked ? '0 0 8px rgba(139, 92, 246, 0.3)' : 'none'};
 `;
 
 const ToggleThumb = styled.span<{ $checked: boolean }>`

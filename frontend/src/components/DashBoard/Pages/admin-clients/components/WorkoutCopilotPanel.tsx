@@ -108,7 +108,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
   border-radius: 10px 10px 0 0;
   padding: 8px 14px;
   color: ${({ $active }) => ($active ? SWAN_CYAN : '#cbd5e1')};
-  background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.08)' : 'rgba(255,255,255,0.02)')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.08)' : 'rgba(255,255,255,0.02)')};
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;

@@ -283,7 +283,7 @@ export const ProgressBar = styled.div<{ value: number; max?: number; color?: str
 export const Badge = styled.span<{ color?: string }>`
   display: inline-block;
   padding: ${props => `${getThemeValue(props, 'spacing.xs', '4px')} ${getThemeValue(props, 'spacing.sm', '8px')}`};
-  background-color: ${({ color }) => color ? `${color}22` : `rgba(0, 255, 255, 0.15)`};
+  background-color: ${({ color }) => color ? `${color}22` : `rgba(139, 92, 246, 0.15)`};
   color: ${({ color }) => color || '#00ffff'};
   border-radius: ${props => getThemeValue(props, 'borderRadius.md', '8px')};
   font-size: 0.8rem;
@@ -331,7 +331,7 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
           border: 1px solid #00ffff;
           
           &:hover, &:focus {
-            background-color: rgba(0, 255, 255, 0.1);
+            background-color: rgba(139, 92, 246, 0.1);
           }
         `;
       case 'text':

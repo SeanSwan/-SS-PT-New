@@ -104,7 +104,7 @@ const enterpriseCommandTheme = {
     analyticsGlow: '0 0 20px rgba(249, 115, 22, 0.4)',
     gamificationGlow: '0 0 20px rgba(251, 191, 36, 0.4)',
     stellarGlow: '0 0 20px currentColor',
-    commandCenter: 'inset 0 0 20px rgba(0, 255, 255, 0.2)'
+    commandCenter: 'inset 0 0 20px rgba(139, 92, 246, 0.2)'
   }
 };
 
@@ -575,7 +575,7 @@ const commandGlow = keyframes`
     border-color: rgba(59, 130, 246, 0.4);
   }
   50% { 
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.6), 0 0 40px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.3);
     border-color: rgba(59, 130, 246, 0.8);
   }
 `;
@@ -618,7 +618,7 @@ const EnterpriseAdminSidebarContainer = styled(motion.aside)<{ isCollapsed: bool
     bottom: 0;
     background: 
       radial-gradient(2px 2px at 20px 30px, rgba(59, 130, 246, 0.4), transparent),
-      radial-gradient(1px 1px at 40px 70px, rgba(0, 255, 255, 0.3), transparent),
+      radial-gradient(1px 1px at 40px 70px, rgba(139, 92, 246, 0.3), transparent),
       radial-gradient(1px 1px at 90px 40px, rgba(139, 92, 246, 0.3), transparent),
       radial-gradient(2px 2px at 130px 80px, rgba(236, 72, 153, 0.2), transparent),
       radial-gradient(1px 1px at 160px 120px, rgba(249, 115, 22, 0.2), transparent);

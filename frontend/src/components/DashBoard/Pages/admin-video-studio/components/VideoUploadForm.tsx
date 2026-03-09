@@ -39,8 +39,8 @@ const HASH_TIMEOUT = 60_000; // 60s
 
 // ── Animations ─────────────────────────────────────────────────────────────
 const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
 `;
 
 const shimmer = keyframes`
@@ -112,14 +112,14 @@ const DropZone = styled.div<{ $isDragging: boolean; $hasFile: boolean }>`
   transition: all 0.25s;
   background: ${p =>
     p.$isDragging
-      ? 'rgba(0, 255, 255, 0.06)'
+      ? 'rgba(139, 92, 246, 0.06)'
       : p.$hasFile
         ? 'rgba(34, 197, 94, 0.06)'
         : 'rgba(30, 58, 138, 0.15)'};
 
   &:hover {
     border-color: #00ffff;
-    background: rgba(0, 255, 255, 0.04);
+    background: rgba(139, 92, 246, 0.04);
   }
 `;
 

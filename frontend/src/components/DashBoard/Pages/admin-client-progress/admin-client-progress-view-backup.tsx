@@ -72,7 +72,7 @@ const HeaderBar = styled.div`
   background: ${theme.bgCard};
   padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -190,7 +190,7 @@ const IconBtn = styled.button<{ $color?: 'error' | 'success' }>`
 
 const TabBar = styled.div`
   display: flex;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
   margin-bottom: 24px;
 `;
 
@@ -211,7 +211,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
 
   &:hover {
     color: ${theme.cyan};
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 `;
 
@@ -293,7 +293,7 @@ const SidebarList = styled.div`
 const ClientRow = styled.div<{ $selected?: boolean }>`
   padding: 12px 16px;
   border-bottom: 1px solid ${theme.borderLight};
-  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   cursor: pointer;
   min-height: 44px;
   display: flex;
@@ -301,7 +301,7 @@ const ClientRow = styled.div<{ $selected?: boolean }>`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 

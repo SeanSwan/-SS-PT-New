@@ -1,7 +1,7 @@
 import styled, { keyframes } from 'styled-components';
 import { Loader2 } from 'lucide-react';
 
-export const SWAN_CYAN = '#00FFFF';
+export const SWAN_CYAN = '#8B5CF6';
 export const GALAXY_CORE = '#0a0a1a';
 
 export const spin = keyframes`
@@ -33,7 +33,7 @@ export const ModalPanel = styled.div`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
 `;
@@ -48,7 +48,7 @@ export const InlinePanel = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   backdrop-filter: blur(12px);
   min-height: 400px;
 `;
@@ -117,10 +117,10 @@ export const PrimaryButton = styled.button`
   color: ${GALAXY_CORE};
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 18px rgba(0, 255, 255, 0.35);
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
   }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
@@ -158,7 +158,7 @@ export const Input = styled.input`
   &:focus {
     outline: none;
     border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
   &::placeholder { color: rgba(255, 255, 255, 0.3); }
 `;
@@ -177,7 +177,7 @@ export const TextArea = styled.textarea`
   &:focus {
     outline: none;
     border-color: ${SWAN_CYAN};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
   &::placeholder { color: rgba(255, 255, 255, 0.3); }
 `;
@@ -312,15 +312,15 @@ export const AddButton = styled.button`
   gap: 6px;
   min-height: 40px;
   border-radius: 8px;
-  border: 1px dashed rgba(0, 255, 255, 0.45);
+  border: 1px dashed rgba(139, 92, 246, 0.45);
   color: ${SWAN_CYAN};
-  background: rgba(0, 255, 255, 0.06);
+  background: rgba(139, 92, 246, 0.06);
   font-weight: 600;
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    background: rgba(0, 255, 255, 0.12);
+    background: rgba(139, 92, 246, 0.12);
   }
 `;
 

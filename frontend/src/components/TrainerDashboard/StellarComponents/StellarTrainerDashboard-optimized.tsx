@@ -70,10 +70,10 @@ const TrainerGalaxyContainer = styled.div`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(2px 2px at 20px 30px, ${props => props.theme.colors?.primary || '#00FFFF'}, transparent),
+      radial-gradient(2px 2px at 20px 30px, ${props => props.theme.colors?.primary || '#8B5CF6'}, transparent),
       radial-gradient(2px 2px at 40px 70px, ${props => props.theme.colors?.accent || '#FFD700'}, transparent),
       radial-gradient(1px 1px at 90px 40px, ${props => props.theme.colors?.white || '#ffffff'}, transparent),
-      radial-gradient(1px 1px at 130px 80px, ${props => props.theme.colors?.primary || '#00FFFF'}, transparent),
+      radial-gradient(1px 1px at 130px 80px, ${props => props.theme.colors?.primary || '#8B5CF6'}, transparent),
       radial-gradient(2px 2px at 180px 30px, ${props => props.theme.colors?.secondary || '#7851A9'}, transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
@@ -103,7 +103,7 @@ const TrainerContentHeader = styled(motion.div)`
   background: ${props => props.theme.gradients?.card || 'rgba(30, 30, 60, 0.4)'};
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.3)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.3)'};
   padding: 2rem;
   margin-bottom: 2rem;
   text-align: center;
@@ -124,7 +124,7 @@ const TrainerContentHeader = styled(motion.div)`
   }
   
   h1 {
-    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -162,7 +162,7 @@ const TrainerContentArea = styled(motion.div)`
   background: ${props => props.theme.gradients?.card || 'rgba(30, 30, 60, 0.3)'};
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   padding: 2rem;
   min-height: 60vh;
   position: relative;
@@ -214,7 +214,7 @@ const TrainerParticle = styled(motion.div)`
   position: absolute;
   width: 4px;
   height: 4px;
-  background: ${props => props.theme.colors?.primary || '#00FFFF'};
+  background: ${props => props.theme.colors?.primary || '#8B5CF6'};
   border-radius: 50%;
   opacity: 0;
 `;
@@ -338,7 +338,7 @@ const StellarTrainerDashboard: React.FC = memo(() => {
               style={{
                 marginTop: '1rem',
                 padding: '0.5rem 1rem',
-                background: theme.colors?.primary || '#00FFFF',
+                background: theme.colors?.primary || '#8B5CF6',
                 color: '#000000',
                 border: 'none',
                 borderRadius: '8px',

@@ -10,9 +10,9 @@
   --space-xxl: 3rem;    /* 48px */
   
   /* Refined color palette */
-  --neon-blue: rgba(0, 255, 255, 1);
-  --neon-blue-soft: rgba(0, 255, 255, 0.8);
-  --neon-blue-glow: rgba(0, 255, 255, 0.2);
+  --neon-blue: rgba(139, 92, 246, 1);
+  --neon-blue-soft: rgba(139, 92, 246, 0.8);
+  --neon-blue-glow: rgba(139, 92, 246, 0.2);
   --royal-purple: rgba(120, 81, 169, 1);
   --royal-purple-soft: rgba(120, 81, 169, 0.8);
   --royal-purple-glow: rgba(120, 81, 169, 0.2);
@@ -25,7 +25,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 0, 0, 0.2);
-  --shadow-glow-blue: 0 0 15px rgba(0, 255, 255, 0.4);
+  --shadow-glow-blue: 0 0 15px rgba(139, 92, 246, 0.4);
   --shadow-glow-purple: 0 0 15px rgba(120, 81, 169, 0.4);
   
   /* Border-radius */
@@ -171,7 +171,7 @@ img {
 }
 
 .logo-container img {
-  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.4));
+  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.4));
 }
 
 /* Footer refinements */

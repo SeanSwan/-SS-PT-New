@@ -194,7 +194,7 @@ const StatusBadge = styled.span<{ $status: string }>`
   ${p => {
     switch (p.$status) {
       case 'requested': return 'background: rgba(255,193,7,0.15); color: #ffc107;';
-      case 'in_progress': return 'background: rgba(0,255,255,0.15); color: #00ffff;';
+      case 'in_progress': return 'background: rgba(139, 92, 246,0.15); color: #00ffff;';
       case 'completed': return 'background: rgba(76,175,80,0.15); color: #4caf50;';
       case 'delivered': return 'background: rgba(120,81,169,0.15); color: #b794f6;';
       default: return 'background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6);';
@@ -235,7 +235,7 @@ const Input = styled.input`
   outline: none;
   box-sizing: border-box;
   width: 100%;
-  &:focus { border-color: rgba(0,255,255,0.5); }
+  &:focus { border-color: rgba(139, 92, 246,0.5); }
   &::placeholder { color: rgba(255,255,255,0.3); }
 `;
 
@@ -251,7 +251,7 @@ const TextArea = styled.textarea`
   resize: vertical;
   width: 100%;
   box-sizing: border-box;
-  &:focus { border-color: rgba(0,255,255,0.5); }
+  &:focus { border-color: rgba(139, 92, 246,0.5); }
 `;
 
 const DropZone = styled.div<{ $dragging?: boolean }>`
@@ -261,8 +261,8 @@ const DropZone = styled.div<{ $dragging?: boolean }>`
   text-align: center;
   cursor: pointer;
   transition: border-color 0.3s;
-  background: ${p => p.$dragging ? 'rgba(0,255,255,0.05)' : 'transparent'};
-  &:hover { border-color: rgba(0,255,255,0.3); }
+  background: ${p => p.$dragging ? 'rgba(139, 92, 246,0.05)' : 'transparent'};
+  &:hover { border-color: rgba(139, 92, 246,0.3); }
 `;
 
 const PhotoGrid = styled.div`

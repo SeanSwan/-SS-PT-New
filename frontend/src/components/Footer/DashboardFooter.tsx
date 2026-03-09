@@ -21,7 +21,7 @@ const DashboardFooterContainer = styled(motion.footer)`
   width: 100%;
   background: rgba(15, 12, 41, 0.95);
   backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 255, 255, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
   color: rgba(255, 255, 255, 0.8);
   padding: 8px 16px;
   display: flex;
@@ -41,7 +41,7 @@ const DashboardFooterContainer = styled(motion.footer)`
     height: 1px;
     background: linear-gradient(90deg, 
       transparent 0%, 
-      rgba(0, 255, 255, 0.3) 25%, 
+      rgba(139, 92, 246, 0.3) 25%, 
       rgba(120, 81, 169, 0.3) 75%, 
       transparent 100%
     );
@@ -88,11 +88,11 @@ const BrandSection = styled(motion.div)`
 const LogoImg = styled(motion.img)`
   width: 24px;
   height: 24px;
-  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.3));
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
   transition: all 0.3s ease;
   
   &:hover {
-    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.6));
+    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
     transform: scale(1.1);
   }
   
@@ -128,7 +128,7 @@ const Copyright = styled(motion.div)`
   color: rgba(255, 255, 255, 0.6);
   
   svg {
-    color: rgba(0, 255, 255, 0.7);
+    color: rgba(139, 92, 246, 0.7);
     font-size: 0.65rem;
   }
   
@@ -160,7 +160,7 @@ const ScrollTopButton = styled(motion.button)`
   height: 32px;
   border-radius: 8px;
   background: rgba(0, 30, 60, 0.8);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   color: #00ffff;
   display: flex;
   align-items: center;
@@ -190,8 +190,8 @@ const ScrollTopButton = styled(motion.button)`
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
-    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.4);
     
     &::before {
       opacity: 0.6;

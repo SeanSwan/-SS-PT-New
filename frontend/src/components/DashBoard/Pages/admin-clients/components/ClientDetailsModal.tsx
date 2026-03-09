@@ -35,8 +35,8 @@ const DetailsGrid = styled.div`
 `;
 
 const DetailCard = styled.div`
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.18);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.18);
   border-radius: 12px;
   padding: 0.9rem 1rem;
 `;

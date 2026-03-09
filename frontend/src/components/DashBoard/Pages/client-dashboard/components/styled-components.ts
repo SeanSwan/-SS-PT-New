@@ -20,13 +20,13 @@ export const pulse = keyframes`
 `;
 
 export const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(120, 81, 169, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(120, 81, 169, 0.5); }
+  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(120, 81, 169, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(120, 81, 169, 0.5); }
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
 `;
 
 // --- Animation Variants ---
@@ -454,7 +454,7 @@ export const ExerciseIcon = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -536,7 +536,7 @@ export const StatCard = styled.div<{ $color?: string; color?: string }>`
       c === 'warning' ? 'rgba(255, 209, 102, 0.1)' :
       c === 'info' ? 'rgba(0, 150, 199, 0.1)' :
       c === 'secondary' ? 'rgba(120, 81, 169, 0.1)' :
-      'rgba(0, 255, 255, 0.1)';
+      'rgba(139, 92, 246, 0.1)';
   }};
   border-radius: 10px;
   padding: 1rem;
@@ -551,7 +551,7 @@ export const StatCard = styled.div<{ $color?: string; color?: string }>`
       c === 'warning' ? 'rgba(255, 209, 102, 0.2)' :
       c === 'info' ? 'rgba(0, 150, 199, 0.2)' :
       c === 'secondary' ? 'rgba(120, 81, 169, 0.2)' :
-      'rgba(0, 255, 255, 0.2)';
+      'rgba(139, 92, 246, 0.2)';
   }};
   transition: transform 0.2s ease;
   /* GPU layer promotion */
@@ -605,7 +605,7 @@ export const InteractiveCard = styled(StyledCard)`
   &:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 
   @media (max-width: 768px) {
@@ -618,8 +618,8 @@ export const InteractiveCard = styled(StyledCard)`
 `;
 
 export const GlowingButton = styled.button`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: white;
   font-weight: 500;
   padding: 0.75rem 1.5rem;
@@ -651,7 +651,7 @@ export const GlowingButton = styled.button`
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.2);
 
     &:before {
       left: 100%;
@@ -660,7 +660,7 @@ export const GlowingButton = styled.button`
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 5px 15px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -718,7 +718,7 @@ export const WorkoutCard = styled.div`
   &:hover {
     transform: translateY(-5px);
     background: rgba(30, 30, 60, 0.6);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   }
 
@@ -821,7 +821,7 @@ export const ChallengeCard = styled.div<{ $active?: boolean; active?: boolean }>
   padding: 1.25rem;
   border-radius: 12px;
   background: ${props => (props.$active ?? props.active)
-    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.2), rgba(0, 255, 255, 0.2))'
+    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.2), rgba(139, 92, 246, 0.2))'
     : 'rgba(30, 30, 60, 0.4)'};
   border: 1px solid ${props => (props.$active ?? props.active)
     ? 'rgba(120, 81, 169, 0.3)'
@@ -950,10 +950,10 @@ export const RewardCard = styled.div<{ $unlocked?: boolean; unlocked?: boolean }
   padding: 1rem;
   border-radius: 12px;
   background: ${props => (props.$unlocked ?? props.unlocked)
-    ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.1))'
     : 'rgba(255, 255, 255, 0.03)'};
   border: 1px solid ${props => (props.$unlocked ?? props.unlocked)
-    ? 'rgba(0, 255, 255, 0.2)'
+    ? 'rgba(139, 92, 246, 0.2)'
     : 'rgba(255, 255, 255, 0.05)'};
   opacity: ${props => (props.$unlocked ?? props.unlocked) ? 1 : 0.5};
   filter: ${props => (props.$unlocked ?? props.unlocked) ? 'none' : 'grayscale(1)'};
@@ -969,7 +969,7 @@ export const RewardCard = styled.div<{ $unlocked?: boolean; unlocked?: boolean }
   & .icon {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: ${props => (props.$unlocked ?? props.unlocked) ? 'rgba(0, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'};
+    color: ${props => (props.$unlocked ?? props.unlocked) ? 'rgba(139, 92, 246, 0.9)' : 'rgba(255, 255, 255, 0.3)'};
   }
 
   & .title {

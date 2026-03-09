@@ -10,8 +10,8 @@ import styled, { keyframes } from 'styled-components';
 import { Mic, MicOff } from 'lucide-react';
 
 const pulse = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.4); }
-  50% { box-shadow: 0 0 24px rgba(0, 255, 255, 0.8), 0 0 48px rgba(0, 255, 255, 0.3); }
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.8), 0 0 48px rgba(139, 92, 246, 0.3); }
 `;
 
 const OrbButton = styled.button<{ $listening: boolean }>`
@@ -23,18 +23,18 @@ const OrbButton = styled.button<{ $listening: boolean }>`
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  border: 2px solid ${({ $listening }) => $listening ? '#00FFFF' : 'rgba(255, 255, 255, 0.15)'};
-  background: ${({ $listening }) => $listening ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
-  color: ${({ $listening }) => $listening ? '#00FFFF' : '#94a3b8'};
+  border: 2px solid ${({ $listening }) => $listening ? '#8B5CF6' : 'rgba(255, 255, 255, 0.15)'};
+  background: ${({ $listening }) => $listening ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
+  color: ${({ $listening }) => $listening ? '#8B5CF6' : '#94a3b8'};
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
   animation: ${({ $listening }) => $listening ? pulse : 'none'} 1.5s ease-in-out infinite;
 
   &:hover:not(:disabled) {
-    border-color: #00FFFF;
-    color: #00FFFF;
-    background: rgba(0, 255, 255, 0.08);
+    border-color: #8B5CF6;
+    color: #8B5CF6;
+    background: rgba(139, 92, 246, 0.08);
   }
 
   &:disabled {

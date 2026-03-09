@@ -45,7 +45,7 @@ const normalizeSessionType = (payload: any): SessionType => ({
   duration: Number(payload.duration ?? 60),
   bufferBefore: Number(payload.bufferBefore ?? 0),
   bufferAfter: Number(payload.bufferAfter ?? 0),
-  color: payload.color ?? '#00FFFF',
+  color: payload.color ?? '#8B5CF6',
   price: payload.price ?? undefined,
   isActive: Boolean(payload.isActive ?? true),
   sortOrder: Number(payload.sortOrder ?? 0)

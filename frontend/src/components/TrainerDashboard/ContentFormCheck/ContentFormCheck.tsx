@@ -73,7 +73,7 @@ const HeaderTitle = styled.h1`
   font-weight: 600;
   margin: 0;
   color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 `;
 
 const HeaderActions = styled.div`
@@ -148,7 +148,7 @@ const ActionButton = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
     
     &::before {
       left: 100%;
@@ -193,7 +193,7 @@ const SearchInput = styled.input`
     outline: none;
     border-color: #00ffff;
     background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -275,7 +275,7 @@ const ContentCard = styled.div`
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -291,7 +291,7 @@ const ContentListItem = styled.div`
   
   &:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -351,8 +351,8 @@ const MetaItem = styled.div`
 `;
 
 const ContentTag = styled.span`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
@@ -492,10 +492,10 @@ const VideoPlaybackButton = styled.button`
   &.play-pause {
     width: 48px;
     height: 48px;
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     
     &:hover {
-      background: rgba(0, 255, 255, 0.3);
+      background: rgba(139, 92, 246, 0.3);
     }
   }
 `;
@@ -560,7 +560,7 @@ const AnnotationTabs = styled.div`
 const AnnotationTab = styled.button<{ active: boolean }>`
   padding: 0.5rem 1rem;
   border: none;
-  background: ${props => props.active ? 'rgba(0, 255, 255, 0.2)' : 'transparent'};
+  background: ${props => props.active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
   color: ${props => props.active ? '#00ffff' : 'white'};
   font-weight: ${props => props.active ? '600' : '400'};
   cursor: pointer;
@@ -568,7 +568,7 @@ const AnnotationTab = styled.button<{ active: boolean }>`
   font-size: 0.85rem;
   
   &:hover {
-    background: ${props => props.active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${props => props.active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
   }
 `;
 
@@ -583,7 +583,7 @@ const AnnotationTool = styled.button<{ active?: boolean }>`
   padding: 0.5rem;
   border-radius: 6px;
   border: 1px solid ${props => props.active ? '#00ffff' : 'rgba(255, 255, 255, 0.15)'};
-  background: ${props => props.active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
+  background: ${props => props.active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
   color: ${props => props.active ? '#00ffff' : 'white'};
   display: flex;
   align-items: center;
@@ -592,7 +592,7 @@ const AnnotationTool = styled.button<{ active?: boolean }>`
   transition: all 0.2s ease;
   
   &:hover {
-    background: ${props => props.active ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${props => props.active ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.1)'};
     border-color: ${props => props.active ? '#00ffff' : 'rgba(255, 255, 255, 0.3)'};
   }
 `;
@@ -638,13 +638,13 @@ const CommentTimestamp = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   cursor: pointer;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -718,7 +718,7 @@ const AIAnalysisButton = styled.button`
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -803,7 +803,7 @@ const EmptyStateDescription = styled.p`
 `;
 
 const DropZone = styled.div`
-  border: 2px dashed rgba(0, 255, 255, 0.3);
+  border: 2px dashed rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   padding: 3rem 2rem;
   text-align: center;
@@ -813,7 +813,7 @@ const DropZone = styled.div`
   
   &:hover {
     border-color: #00ffff;
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 `;
 
@@ -821,7 +821,7 @@ const DropZoneIcon = styled.div`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -845,8 +845,8 @@ const DropZoneDescription = styled.p`
 `;
 
 const FileInputLabel = styled.label`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   padding: 0.6rem 1.2rem;
   color: #00ffff;
@@ -858,7 +858,7 @@ const FileInputLabel = styled.label`
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     transform: translateY(-2px);
   }
 `;
@@ -2042,7 +2042,7 @@ const Loading = () => (
   <div style={{ 
     width: '40px', 
     height: '40px', 
-    border: '3px solid rgba(0, 255, 255, 0.1)', 
+    border: '3px solid rgba(139, 92, 246, 0.1)', 
     borderTop: '3px solid #00ffff',
     borderRadius: '50%',
     margin: '0 0 1rem 0',

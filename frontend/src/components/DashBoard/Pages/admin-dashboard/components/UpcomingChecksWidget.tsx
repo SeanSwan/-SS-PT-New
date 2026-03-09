@@ -33,7 +33,7 @@ const ClientList = styled.ul`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     border-radius: 3px;
   }
 `;

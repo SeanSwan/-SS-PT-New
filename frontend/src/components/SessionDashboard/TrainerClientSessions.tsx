@@ -67,12 +67,12 @@ const StatCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.8);
   border-radius: 12px;
   padding: 1.25rem;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     transform: translateY(-2px);
   }
   
@@ -100,13 +100,13 @@ const ClientGrid = styled.div`
 
 const ClientCard = styled(motion.div)<{ $hasActiveSession?: boolean }>`
   background: ${props => props.$hasActiveSession 
-    ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(0, 128, 255, 0.1))'
     : 'rgba(30, 30, 60, 0.8)'
   };
   border-radius: 16px;
   padding: 1.5rem;
   border: 1px solid ${props => props.$hasActiveSession 
-    ? 'rgba(0, 255, 255, 0.4)' 
+    ? 'rgba(139, 92, 246, 0.4)' 
     : 'rgba(255, 255, 255, 0.1)'
   };
   backdrop-filter: blur(10px);
@@ -121,7 +121,7 @@ const ClientCard = styled(motion.div)<{ $hasActiveSession?: boolean }>`
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    border-color: rgba(0, 255, 255, 0.6);
+    border-color: rgba(139, 92, 246, 0.6);
   }
   
   &::before {
@@ -188,8 +188,8 @@ const SessionInfo = styled.div`
   margin-bottom: 1rem;
   
   .current-session {
-    background: rgba(0, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
     border-radius: 8px;
     padding: 0.75rem;
     margin-bottom: 0.75rem;
@@ -325,7 +325,7 @@ const LoadingSpinner = styled.div`
   .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
+    border: 3px solid rgba(139, 92, 246, 0.3);
     border-top: 3px solid #00ffff;
     border-radius: 50%;
     animation: spin 1s linear infinite;

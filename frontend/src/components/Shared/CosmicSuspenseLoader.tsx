@@ -2,7 +2,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 
 const pulseNebula = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4); transform: scale(0.95); }
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); transform: scale(0.95); }
   70% { box-shadow: 0 0 0 20px rgba(120, 81, 169, 0); transform: scale(1); }
   100% { box-shadow: 0 0 0 0 rgba(120, 81, 169, 0); transform: scale(0.95); }
 `;
@@ -26,7 +26,7 @@ const SwanCore = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   animation: ${pulseNebula} 2s infinite cubic-bezier(0.45, 0, 0.55, 1);
   position: relative;
 
@@ -45,7 +45,7 @@ const LoadingText = styled.div`
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  background: linear-gradient(90deg, rgba(255,255,255,0.4) 25%, #00FFFF 50%, rgba(255,255,255,0.4) 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.4) 25%, #8B5CF6 50%, rgba(255,255,255,0.4) 75%);
   background-size: 200% auto;
   color: transparent;
   -webkit-background-clip: text;

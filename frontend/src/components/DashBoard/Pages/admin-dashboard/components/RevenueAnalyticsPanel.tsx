@@ -55,9 +55,9 @@ import {
 // =====================================================
 
 const cosmicPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
-  100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
 `;
 
 const dataFlow = keyframes`
@@ -110,7 +110,7 @@ const PanelTitle = styled.h1`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  text-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
 `;
 
 const StatusIndicator = styled(motion.div)<{ status: 'live' | 'updating' | 'error' }>`
@@ -196,7 +196,7 @@ const TimeRangeSelector = styled.select`
   &:focus {
     outline: none;
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
   
   option {

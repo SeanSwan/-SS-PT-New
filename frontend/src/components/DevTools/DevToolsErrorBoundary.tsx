@@ -71,7 +71,7 @@ class DevToolsErrorBoundary extends Component<Props, State> {
             <button 
               onClick={() => this.setState({ hasError: false, error: null })}
               style={{
-                background: 'rgba(0, 255, 255, 0.2)',
+                background: 'rgba(139, 92, 246, 0.2)',
                 border: 'none',
                 borderRadius: '4px',
                 padding: '5px 10px',

@@ -41,7 +41,7 @@ export const StellarSection = styled(motion.div)`
   background: ${props => props.theme.gradients?.card || 'rgba(30, 30, 60, 0.4)'};
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   padding: 2rem;
   margin-bottom: 2rem;
   position: relative;
@@ -56,7 +56,7 @@ export const StellarSection = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(2px 2px at 20% 30%, rgba(0, 255, 255, 0.4), transparent),
+      radial-gradient(2px 2px at 20% 30%, rgba(139, 92, 246, 0.4), transparent),
       radial-gradient(1px 1px at 40% 70%, rgba(255, 215, 0, 0.3), transparent),
       radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.2), transparent);
     background-size: 100px 80px;
@@ -91,7 +91,7 @@ export const StellarSectionTitle = styled.h2`
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -127,14 +127,14 @@ export const SearchContainer = styled.div`
   .search-input-container {
     position: relative;
     background: ${props => props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'};
-    border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+    border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
     border-radius: 12px;
     padding: 0.75rem 1rem 0.75rem 3rem;
     transition: all 0.3s ease;
     
     &:focus-within {
-      border-color: ${props => props.theme.colors?.primary || '#00FFFF'};
-      box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)'};
+      border-color: ${props => props.theme.colors?.primary || '#8B5CF6'};
+      box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(139, 92, 246, 0.3)'};
     }
   }
   
@@ -176,7 +176,7 @@ export const LoadingSpinner = styled.div`
   width: 40px;
   height: 40px;
   border: 3px solid transparent;
-  border-top: 3px solid ${props => props.theme.colors?.primary || '#00FFFF'};
+  border-top: 3px solid ${props => props.theme.colors?.primary || '#8B5CF6'};
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -274,7 +274,7 @@ export const AnimatedGradientText = styled.span<{ gradient?: string }>`
   background: ${props => 
     props.gradient || 
     props.theme.gradients?.stellar || 
-    'linear-gradient(45deg, #00FFFF 0%, #FFD700 50%, #7851A9 100%)'
+    'linear-gradient(45deg, #8B5CF6 0%, #FFD700 50%, #7851A9 100%)'
   };
   background-size: 200% 200%;
   -webkit-background-clip: text;

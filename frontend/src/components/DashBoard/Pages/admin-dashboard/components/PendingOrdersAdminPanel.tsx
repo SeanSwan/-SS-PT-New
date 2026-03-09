@@ -511,7 +511,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
                   {order.status === 'pending_manual_payment' && (
                     <StoreButton onClick={() => markAsPaid(order.id)} style={{
-                      background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,255,0.1))',
+                      background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(139, 92, 246,0.1))',
                       borderColor: 'rgba(0,255,136,0.3)',
                     }}>
                       <CheckCircle size={16} /> Mark Paid

@@ -23,7 +23,7 @@ const SelectorButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -53,14 +53,14 @@ const DropdownItem = styled.button.withConfig({
   width: 100%;
   padding: 0.75rem 1rem;
   text-align: left;
-  background: ${({ active }) => active ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  background: ${({ active }) => active ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   border: none;
   color: ${({ disabled }) => disabled ? 'rgba(255, 255, 255, 0.4)' : '#fff'};
   cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s ease;
   
   &:hover {
-    background: ${({ disabled }) => disabled ? 'transparent' : 'rgba(0, 255, 255, 0.05)'};
+    background: ${({ disabled }) => disabled ? 'transparent' : 'rgba(139, 92, 246, 0.05)'};
   }
   
   &:not(:last-child) {
@@ -96,7 +96,7 @@ const ItemDescription = styled.div`
 `;
 
 const RoleBadge = styled.span`
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   color: #00ffff;
   font-size: 0.65rem;
   padding: 2px 6px;

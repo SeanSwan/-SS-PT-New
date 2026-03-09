@@ -157,7 +157,7 @@ export default SessionCard;
 const LiteCardContainer = styled.div<{ $status: string }>`
   background: rgba(30, 30, 60, 0.4);
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 0.5rem;
   display: flex;
   flex-direction: column;
@@ -186,7 +186,7 @@ const mobileOptimizations = css`
 const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode?: boolean }>`
   background: ${({ $isPast }) => $isPast ? 'rgba(20, 20, 40, 0.3)' : 'rgba(30, 30, 60, 0.4)'};
   border-radius: 12px;
-  border: 1px solid ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : 'rgba(139, 92, 246, 0.2)'};
   opacity: ${({ $isPast }) => $isPast ? 0.7 : 1};
   padding: 0.7rem 0.8rem;
   display: flex;
@@ -217,7 +217,7 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode
   &:hover {
     ${({ $isPast, $liteMode }) => !$isPast && !$liteMode && `
       transform: scale(1.02);
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
     `}
   }
 
@@ -351,9 +351,9 @@ const SessionsBadge = styled.span<{ $low: boolean }>`
   position: absolute;
   top: 6px;
   right: 6px;
-  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(0, 255, 255, 0.2)'};
-  color: ${({ $low }) => $low ? '#fff' : 'rgba(0, 255, 255, 0.9)'};
-  border: 1px solid ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.5)' : 'rgba(0, 255, 255, 0.3)'};
+  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(139, 92, 246, 0.2)'};
+  color: ${({ $low }) => $low ? '#fff' : 'rgba(139, 92, 246, 0.9)'};
+  border: 1px solid ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.5)' : 'rgba(139, 92, 246, 0.3)'};
   border-radius: 8px;
   padding: 1px 6px;
   font-size: 0.65rem;

@@ -16,7 +16,7 @@ export const cyberpunkPremiumTheme: ConceptTheme = {
   colors: {
     background: '#0A0A0F',
     surface: 'rgba(20, 20, 40, 0.8)',
-    primary: '#00FFFF',
+    primary: '#8B5CF6',
     secondary: '#FF00FF',
     accent: '#FFD700',
     text: '#E0E0FF',
@@ -25,8 +25,8 @@ export const cyberpunkPremiumTheme: ConceptTheme = {
   },
   gradients: {
     hero: 'linear-gradient(135deg, #0A0A0F 0%, #1A1A3F 50%, #0A0A0F 100%)',
-    card: 'linear-gradient(145deg, rgba(0, 255, 255, 0.05), rgba(255, 0, 255, 0.05))',
-    cta: 'linear-gradient(135deg, #00FFFF, #00BBFF)',
+    card: 'linear-gradient(145deg, rgba(139, 92, 246, 0.05), rgba(255, 0, 255, 0.05))',
+    cta: 'linear-gradient(135deg, #8B5CF6, #00BBFF)',
   },
   borderRadius: '4px',
   memorableMoment:

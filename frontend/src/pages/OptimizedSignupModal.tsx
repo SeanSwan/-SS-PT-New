@@ -33,9 +33,9 @@ const float = keyframes`
 `;
 
 const glow = keyframes`
-  0% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.7), 0 0 25px rgba(0, 255, 255, 0.5); }
-  100% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3); }
+  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.7), 0 0 25px rgba(139, 92, 246, 0.5); }
+  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(139, 92, 246, 0.3); }
 `;
 
 /* ------------------ Styled Components ------------------ */
@@ -329,8 +329,8 @@ const SelectField = styled.select`
   font-size: 0.9rem; /* Reduced size */
   transition: all 0.3s ease;
   appearance: none; /* Remove default arrow */
-  background-image: linear-gradient(45deg, transparent 50%, rgba(0, 255, 255, 0.7) 50%),
-                    linear-gradient(135deg, rgba(0, 255, 255, 0.7) 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, rgba(139, 92, 246, 0.7) 50%),
+                    linear-gradient(135deg, rgba(139, 92, 246, 0.7) 50%, transparent 50%);
   background-position: calc(100% - 20px) calc(1em + 0px),
                         calc(100% - 15px) calc(1em + 0px);
   background-size: 5px 5px,
@@ -340,7 +340,7 @@ const SelectField = styled.select`
   &:focus {
     outline: none;
     border-color: var(--neon-blue, #00ffff);
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     background: rgba(30, 30, 60, 0.5);
   }
   
@@ -394,7 +394,7 @@ const ForgotPasswordLink = styled(motion.button)`
   }
   
   &:hover { 
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.7); 
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.7); 
     
     &:after { 
       transform: translateX(0); 
@@ -438,7 +438,7 @@ const ButtonContainer = styled.div`
 
 const HelpText = styled.div`
   font-size: 0.75rem;
-  color: rgba(0, 255, 255, 0.7);
+  color: rgba(139, 92, 246, 0.7);
   margin-top: 0.25rem;
   line-height: 1.3;
 `;
@@ -457,7 +457,7 @@ const MeasurementInput = styled.div`
 
 const UnitLabel = styled.div`
   padding: 10px 12px;
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   border: 1px solid rgba(120, 81, 169, 0.5);
   border-left: none;
   border-top-right-radius: 8px;
@@ -543,7 +543,7 @@ const PasswordToggle = styled.button`
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: rgba(0, 255, 255, 0.7);
+  color: rgba(139, 92, 246, 0.7);
   cursor: pointer;
   font-size: 0.9rem;
   padding: 4px;

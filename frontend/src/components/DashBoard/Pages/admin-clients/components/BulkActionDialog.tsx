@@ -49,9 +49,9 @@ const ActionGrid = styled.div`
 
 const ActionCard = styled.button<{ $active?: boolean }>`
   background: ${(props) =>
-    props.$active ? 'rgba(0, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.8)'};
+    props.$active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(15, 23, 42, 0.8)'};
   border: 1px solid ${(props) =>
-    props.$active ? 'rgba(0, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.12)'};
+    props.$active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255, 255, 255, 0.12)'};
   border-radius: 12px;
   padding: 0.85rem 1rem;
   text-align: left;
@@ -60,7 +60,7 @@ const ActionCard = styled.button<{ $active?: boolean }>`
   transition: border-color 0.2s ease, background 0.2s ease;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.6);
+    border-color: rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -97,7 +97,7 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.6);
+    border-color: rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -113,11 +113,11 @@ const Button = styled.button<{ $variant?: 'primary' | 'ghost' }>`
   border: 1px solid
     ${(props) =>
       props.$variant === 'primary'
-        ? 'rgba(0, 255, 255, 0.6)'
+        ? 'rgba(139, 92, 246, 0.6)'
         : 'rgba(255, 255, 255, 0.2)'};
   background: ${(props) =>
     props.$variant === 'primary'
-      ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.35), rgba(120, 81, 169, 0.4))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(120, 81, 169, 0.4))'
       : 'transparent'};
   color: ${(props) =>
     props.$variant === 'primary' ? '#0a0a1a' : 'rgba(255, 255, 255, 0.85)'};
@@ -127,7 +127,7 @@ const Button = styled.button<{ $variant?: 'primary' | 'ghost' }>`
 
   &:hover {
     transform: translateY(-1px);
-    border-color: rgba(0, 255, 255, 0.6);
+    border-color: rgba(139, 92, 246, 0.6);
   }
 `;
 

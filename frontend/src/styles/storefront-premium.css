@@ -73,7 +73,7 @@
   overflow: hidden;
   background: rgba(30, 30, 60, 0.4);
   backdrop-filter: blur(15px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   cursor: pointer;
@@ -92,8 +92,8 @@
   @media (hover: hover) {
     &:hover {
       transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 255, 255, 0.3);
-      border-color: rgba(0, 255, 255, 0.6);
+      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 92, 246, 0.3);
+      border-color: rgba(139, 92, 246, 0.6);
       background: rgba(30, 30, 60, 0.6);
     }
   }
@@ -361,7 +361,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 92, 246, 0.3);
   z-index: 1000;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   
@@ -383,7 +383,7 @@
   
   &:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(139, 92, 246, 0.5);
   }
   
   &:active {
@@ -423,9 +423,9 @@
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 1),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 1),
+      rgba(139, 92, 246, 0)
     );
     
     @media (max-width: 767px) {

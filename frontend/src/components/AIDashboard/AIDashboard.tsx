@@ -75,7 +75,7 @@ const MetricCard = styled.div<{ $status?: string }>`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -240,7 +240,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   &:hover {
     color: #00ffff;
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 `;
 
@@ -297,7 +297,7 @@ const ChipBadge = styled.span<{ $color?: 'success' | 'error' | 'info' | 'warning
     switch (props.$color) {
       case 'success': return 'rgba(46, 213, 115, 0.2)';
       case 'error': return 'rgba(231, 76, 60, 0.2)';
-      case 'info': return 'rgba(0, 255, 255, 0.15)';
+      case 'info': return 'rgba(139, 92, 246, 0.15)';
       case 'warning': return 'rgba(255, 193, 7, 0.2)';
       default: return 'rgba(255, 255, 255, 0.1)';
     }
@@ -358,7 +358,7 @@ const ProgressBar = styled.div<{ $value: number }>`
 const Spinner = styled.div<{ $size?: number }>`
   width: ${props => props.$size || 60}px;
   height: ${props => props.$size || 60}px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
+  border: 3px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spinKeyframes} 0.8s linear infinite;
@@ -408,7 +408,7 @@ const ToggleLabel = styled.span`
 const OutlineButton = styled.button`
   min-height: 44px;
   padding: 0.5rem 1rem;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
   background: transparent;
   color: #00ffff;
@@ -421,7 +421,7 @@ const OutlineButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     border-color: #00ffff;
   }
 

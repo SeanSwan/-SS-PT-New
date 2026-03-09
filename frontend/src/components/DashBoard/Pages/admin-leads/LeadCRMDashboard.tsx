@@ -25,7 +25,7 @@ import useLeadCRM, { type Lead, type LeadStats, PIPELINE_STAGES } from '../../..
 // ── Source color mapping (Gemini spec) ──
 const SOURCE_COLORS: Record<string, string> = {
   gallery: '#7851A9',      // Cosmic Purple
-  walk_in: '#00FFFF',      // Swan Cyan
+  walk_in: '#8B5CF6',      // Swan Cyan
   website: '#E2E8F0',      // Starlight Silver
   referral: '#FF69B4',     // Nebula Pink
   social_media: '#38B2AC', // Teal
@@ -52,8 +52,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 // ── Animations ──
 const hotLeadPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 40px rgba(0, 255, 255, 0.15); }
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.15); }
 `;
 
 const slideIn = keyframes`
@@ -152,7 +152,7 @@ const SearchInput = styled.div`
   }
 
   &:focus-within {
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -162,10 +162,10 @@ const AddLeadBtn = styled.button`
   gap: 8px;
   padding: 10px 18px;
   min-height: 44px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
-  color: #00FFFF;
+  color: #8B5CF6;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -173,8 +173,8 @@ const AddLeadBtn = styled.button`
   white-space: nowrap;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.5);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -191,13 +191,13 @@ const FilterChip = styled.button<{ $active?: boolean; $color?: string }>`
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid ${p => p.$active ? (p.$color || '#00FFFF') : 'rgba(255,255,255,0.08)'};
-  background: ${p => p.$active ? `${p.$color || '#00FFFF'}22` : 'rgba(255,255,255,0.03)'};
-  color: ${p => p.$active ? (p.$color || '#00FFFF') : '#A0AEC0'};
+  border: 1px solid ${p => p.$active ? (p.$color || '#8B5CF6') : 'rgba(255,255,255,0.08)'};
+  background: ${p => p.$active ? `${p.$color || '#8B5CF6'}22` : 'rgba(255,255,255,0.03)'};
+  color: ${p => p.$active ? (p.$color || '#8B5CF6') : '#A0AEC0'};
 
   &:hover {
-    border-color: ${p => p.$color || '#00FFFF'};
-    color: ${p => p.$color || '#00FFFF'};
+    border-color: ${p => p.$color || '#8B5CF6'};
+    color: ${p => p.$color || '#8B5CF6'};
   }
 `;
 
@@ -283,8 +283,8 @@ const LeadCardStyled = styled.div<{ $score: number; $sourceColor: string }>`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 255, 255, 0.08);
-    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 
   .lead-name {
@@ -332,8 +332,8 @@ const ScoreBadge = styled.span<{ $score: number }>`
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
-  color: ${p => p.$score >= 70 ? '#00FFFF' : p.$score >= 40 ? '#ECC94B' : '#A0AEC0'};
-  background: ${p => p.$score >= 70 ? 'rgba(0,255,255,0.12)' : p.$score >= 40 ? 'rgba(236,201,75,0.12)' : 'rgba(160,174,192,0.08)'};
+  color: ${p => p.$score >= 70 ? '#8B5CF6' : p.$score >= 40 ? '#ECC94B' : '#A0AEC0'};
+  background: ${p => p.$score >= 70 ? 'rgba(139, 92, 246,0.12)' : p.$score >= 40 ? 'rgba(236,201,75,0.12)' : 'rgba(160,174,192,0.08)'};
 `;
 
 // ── Mobile Accordion ──
@@ -470,7 +470,7 @@ const InfoRow = styled.div`
   color: #A0AEC0;
 
   svg { color: #4A5568; flex-shrink: 0; }
-  a { color: #00FFFF; text-decoration: none; &:hover { text-decoration: underline; } }
+  a { color: #8B5CF6; text-decoration: none; &:hover { text-decoration: underline; } }
 `;
 
 const StatusSelector = styled.div`
@@ -487,10 +487,10 @@ const StatusBtn = styled.button<{ $active: boolean }>`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid ${p => p.$active ? '#00FFFF' : 'rgba(255,255,255,0.08)'};
-  background: ${p => p.$active ? 'rgba(0,255,255,0.15)' : 'rgba(255,255,255,0.03)'};
-  color: ${p => p.$active ? '#00FFFF' : '#A0AEC0'};
-  &:hover { border-color: rgba(0,255,255,0.4); }
+  border: 1px solid ${p => p.$active ? '#8B5CF6' : 'rgba(255,255,255,0.08)'};
+  background: ${p => p.$active ? 'rgba(139, 92, 246,0.15)' : 'rgba(255,255,255,0.03)'};
+  color: ${p => p.$active ? '#8B5CF6' : '#A0AEC0'};
+  &:hover { border-color: rgba(139, 92, 246,0.4); }
 `;
 
 const NotesArea = styled.textarea`
@@ -505,7 +505,7 @@ const NotesArea = styled.textarea`
   font-family: inherit;
   resize: vertical;
 
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.3); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.3); }
   &::placeholder { color: #4A5568; }
 `;
 
@@ -525,8 +525,8 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' }>`
   width: 100%;
 
   ${p => p.$variant === 'primary' ? `
-    background: #00FFFF;
-    border-color: #00FFFF;
+    background: #8B5CF6;
+    border-color: #8B5CF6;
     color: #0a0a1a;
     &:hover { background: #00E5E5; }
   ` : p.$variant === 'danger' ? `
@@ -597,7 +597,7 @@ const FormField = styled.div`
     font-size: 14px;
     font-family: inherit;
 
-    &:focus { outline: none; border-color: rgba(0, 255, 255, 0.4); }
+    &:focus { outline: none; border-color: rgba(139, 92, 246, 0.4); }
     &::placeholder { color: #4A5568; }
 
     option { background: #0a0a1a; }
@@ -646,7 +646,7 @@ const ActivityItem = styled.div`
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
-  border-left: 3px solid rgba(0, 255, 255, 0.2);
+  border-left: 3px solid rgba(139, 92, 246, 0.2);
 
   .activity-time {
     font-size: 11px;
@@ -757,7 +757,7 @@ const LeadCRMDashboard: React.FC = () => {
           <div className="kpi-value">{(stats as any)?.total ?? stats?.totalLeads ?? leads.length}</div>
           <div className="kpi-sub">All sources</div>
         </KPICard>
-        <KPICard $accent="#00FFFF">
+        <KPICard $accent="#8B5CF6">
           <div className="kpi-label">Conversion Rate</div>
           <div className="kpi-value">{stats?.conversionRate ?? 0}%</div>
           <div className="kpi-sub">Leads → Clients</div>

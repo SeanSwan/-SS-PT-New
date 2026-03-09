@@ -95,9 +95,9 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   gap: 8px;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid ${(p) => (p.$active ? 'rgba(0, 255, 255, 0.5)' : 'rgba(59, 130, 246, 0.3)')};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(59, 130, 246, 0.3)')};
   background: ${(p) =>
-    p.$active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(30, 58, 138, 0.15)'};
+    p.$active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(30, 58, 138, 0.15)'};
   color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
   font-size: 14px;
   cursor: pointer;
@@ -105,7 +105,7 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 
   svg {
@@ -240,7 +240,7 @@ const LoadingText = styled.p`
 
 const AutoRefreshIndicator = styled.span`
   font-size: 12px;
-  color: rgba(0, 255, 255, 0.6);
+  color: rgba(139, 92, 246, 0.6);
   display: flex;
   align-items: center;
   gap: 4px;

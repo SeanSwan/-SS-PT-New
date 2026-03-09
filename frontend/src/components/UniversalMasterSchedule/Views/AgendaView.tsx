@@ -288,7 +288,7 @@ const StatusBadge = styled.div<{ $status: string }>`
     if ($status === 'confirmed') return 'rgba(0, 255, 136, 0.2)';
     if ($status === 'completed') return 'rgba(148, 163, 184, 0.2)';
     if ($status === 'cancelled') return 'rgba(255, 71, 87, 0.2)';
-    return 'rgba(0, 255, 255, 0.2)';
+    return 'rgba(139, 92, 246, 0.2)';
   }};
   color: ${galaxySwanTheme.text.primary};
   border: 1px solid ${galaxySwanTheme.borders.elegant};

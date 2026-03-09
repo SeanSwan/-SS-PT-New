@@ -175,8 +175,8 @@ const ResumeButton = styled.button`
   padding: 6px 14px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.08);
   color: #00ffff;
   font-size: 13px;
   font-weight: 600;
@@ -184,7 +184,7 @@ const ResumeButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
     border-color: #00ffff;
   }
 `;

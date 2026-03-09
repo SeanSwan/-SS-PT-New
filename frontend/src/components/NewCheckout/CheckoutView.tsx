@@ -47,9 +47,9 @@ import {
 
 // Galaxy-themed animations
 const galaxyPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
-  100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
 `;
 
 const stellarShimmer = keyframes`
@@ -67,7 +67,7 @@ const cosmicFloat = keyframes`
 const CheckoutContainer = styled(motion.div)`
   background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
   border-radius: 24px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   position: relative;
   overflow: hidden;
   width: 100%;
@@ -102,8 +102,8 @@ const CheckoutContainer = styled(motion.div)`
 const CheckoutHeader = styled.div`
   padding: 2rem;
   text-align: center;
-  background: rgba(0, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.05);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   
   @media (max-width: 768px) {
     padding: 1.5rem 1rem;
@@ -189,8 +189,8 @@ const SecurityBadge = styled.div`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.85rem;
@@ -208,7 +208,7 @@ const SecurityBadge = styled.div`
 const CheckoutSection = styled(motion.div)`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 2rem;
   
   @media (max-width: 1024px) {
@@ -252,8 +252,8 @@ const CheckoutInfoGrid = styled.div`
 `;
 
 const InfoCard = styled.div`
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 1.25rem;
   text-align: center;

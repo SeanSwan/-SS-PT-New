@@ -72,7 +72,7 @@ const CelebrationContainer = styled(motion.div)`
   /* Epic glow effect */
   box-shadow: 
     0 0 40px rgba(59, 130, 246, 0.4),
-    0 0 80px rgba(0, 255, 255, 0.2),
+    0 0 80px rgba(139, 92, 246, 0.2),
     0 20px 40px rgba(0, 0, 0, 0.3);
   
   /* Animated border */

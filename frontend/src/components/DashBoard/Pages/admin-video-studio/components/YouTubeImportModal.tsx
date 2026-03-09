@@ -234,7 +234,7 @@ const VisibilityBtn = styled.button<{ $active: boolean; $disabled?: boolean }>`
   font-weight: 600;
   cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
   transition: all 0.2s;
-  background: ${p => (p.$active ? 'rgba(0, 255, 255, 0.12)' : 'rgba(30, 58, 138, 0.2)')};
+  background: ${p => (p.$active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(30, 58, 138, 0.2)')};
   border: 1px solid ${p => (p.$active ? '#00ffff' : 'rgba(59, 130, 246, 0.3)')};
   color: ${p => (p.$active ? '#00ffff' : p.$disabled ? '#334155' : '#94a3b8')};
   opacity: ${p => (p.$disabled ? 0.4 : 1)};
@@ -336,7 +336,7 @@ const ThumbnailPreview = styled.div<{ $src: string }>`
   background: ${p =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(0, 255, 255, 0.05))'};
+      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(139, 92, 246, 0.05))'};
   border: 1px solid rgba(59, 130, 246, 0.2);
   margin-top: 0.5rem;
 `;

@@ -23,7 +23,7 @@
   height: 44px;
   background: rgba(30, 30, 60, 0.4);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -35,7 +35,7 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.1), 
+    rgba(139, 92, 246, 0.1), 
     rgba(120, 81, 169, 0.1)
   );
   opacity: 0;
@@ -64,7 +64,7 @@
   position: absolute;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, #00FFFF, #7851A9);
+  background: linear-gradient(90deg, #8B5CF6, #7851A9);
   border-radius: 1px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -167,7 +167,7 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(0, 255, 255, 0.1), 
+    rgba(139, 92, 246, 0.1), 
     transparent
   );
   transition: left 0.5s ease;
@@ -179,10 +179,10 @@
 
 .mobile-nav-link:active {
   transform: scale(0.98);
-  border-color: rgba(0, 255, 255, 0.5);
+  border-color: rgba(139, 92, 246, 0.5);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
-    0 0 40px rgba(0, 255, 255, 0.2);
+    0 0 40px rgba(139, 92, 246, 0.2);
 }
 
 /* Close Button */
@@ -207,7 +207,7 @@
 
 .mobile-nav-close:hover {
   background: rgba(40, 40, 80, 0.8);
-  border-color: rgba(0, 255, 255, 0.4);
+  border-color: rgba(139, 92, 246, 0.4);
   transform: scale(1.1);
 }
 
@@ -245,7 +245,7 @@
     width: clamp(240px, 20vw, 320px);
     background: rgba(20, 20, 40, 0.6);
     backdrop-filter: blur(30px) saturate(1.8);
-    border-right: 1px solid rgba(0, 255, 255, 0.2);
+    border-right: 1px solid rgba(139, 92, 246, 0.2);
     box-shadow: 
       4px 0 32px rgba(0, 0, 0, 0.3),
       inset -1px 0 0 rgba(255, 255, 255, 0.05);
@@ -259,17 +259,17 @@
   }
   
   .sidebar-cosmic .nav-item:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     transform: translateX(4px);
-    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
   }
   
   .sidebar-cosmic .nav-item.active {
     background: linear-gradient(135deg, 
-      rgba(0, 255, 255, 0.2), 
+      rgba(139, 92, 246, 0.2), 
       rgba(120, 81, 169, 0.1)
     );
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
   }
 }
 
@@ -285,7 +285,7 @@
     backdrop-filter: blur(30px);
     z-index: 9998;
     transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    border-right: 1px solid rgba(0, 255, 255, 0.3);
+    border-right: 1px solid rgba(139, 92, 246, 0.3);
     box-shadow: 8px 0 48px rgba(0, 0, 0, 0.5);
   }
   
@@ -326,7 +326,7 @@
   /* Touch-specific hover states */
   .mobile-nav-link:active,
   .sidebar-cosmic .nav-item:active {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     transform: scale(0.98);
   }
 }
@@ -364,7 +364,7 @@
 .mobile-nav-trigger:focus-visible,
 .mobile-nav-link:focus-visible,
 .mobile-nav-close:focus-visible {
-  outline: 3px solid #00FFFF;
+  outline: 3px solid #8B5CF6;
   outline-offset: 2px;
 }
 

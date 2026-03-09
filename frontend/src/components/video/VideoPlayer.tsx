@@ -256,9 +256,9 @@ const ReloadButton = styled.button`
   gap: 8px;
   padding: 10px 20px;
   min-height: 44px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
   font-size: 14px;
   font-weight: 600;
@@ -266,7 +266,7 @@ const ReloadButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
   }
 `;
 

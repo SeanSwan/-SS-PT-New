@@ -152,15 +152,16 @@ Each preset ships a complete design system: palette, typography, image mood, ide
   - Gilded Fern `#C6A84B` (Luxury Accent — gold contrast against blues)
   - Frost White `#E0ECF4` (Background — derived from logo head highlight)
   - Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
+  - Wing Purple `#8B5CF6` (Glow Accent — derived from logo purple wing gradient, used for all glow buttons, hover states, and accent animations)
 - **Typography:** Same as Preset F — Headings: "Plus Jakarta Sans" (tight tracking). Drama: "Cormorant Garamond" Italic. Data/Mono: "Fira Code". UI/Gaming: "Sora".
 - **Image Mood:** frozen forests, ice caves, crystalline formations, aurora borealis, deep ocean, sapphire gemstones, snow-covered luxury architecture, geometric wildlife, low-poly landscapes
 - **Hero Pattern:** "[Nature noun] meets" (Bold Sans) / "[Power word]." (Massive Serif Italic, gilded accent, ice-blue glow behind)
 - **Special Rules:**
-  - **Nature Layer (Crystalline):** Floating ice crystal particles (subtle geometric shapes at 0.03 opacity instead of pollen), aurora gradient flows (sapphire `#002060` → cyan `#60C0F0` → lavender `#4070C0`), crystalline SVG dividers (geometric frost patterns instead of moss/vines)
+  - **Nature Layer (Crystalline):** Floating ice crystal particles (subtle geometric shapes at 0.03 opacity instead of pollen), aurora gradient flows (sapphire `#002060` → wing purple `#8B5CF6` → cyan `#60C0F0` → lavender `#4070C0`), crystalline SVG dividers (geometric frost patterns instead of moss/vines). All glow/pulse button animations use Wing Purple `#8B5CF6` as the primary glow color.
   - **Luxury Layer:** Gold borders on sapphire glass (`border-[#C6A84B]/20` on `bg-[#002060]/60 backdrop-blur-xl`), premium spacing, serif drama font with frost-white text on deep navy surfaces
-  - **Gaming Layer:** Rarity system recolored: Common=Swan Lavender `#4070C0`, Rare=Gilded Fern `#C6A84B`, Epic=Ice Wing `#60C0F0`, Legendary=animated gradient (sapphire→cyan→gold). XP bars use arctic cyan fill on midnight sapphire track. Level-up animations have a crystalline shatter effect.
-  - **Logo Integration:** The low-poly swan logo uses these exact hex values — every UI element will feel native to the brand mark. Nav logo renders cleanly on `#002060` backgrounds. Accent glows match wing highlights perfectly.
-- **Use For:** SwanStudios (brand-exact match), any project where the swan logo appears
+  - **Gaming Layer:** Rarity system recolored: Common=Swan Lavender `#4070C0`, Rare=Gilded Fern `#C6A84B`, Epic=Wing Purple `#8B5CF6`, Legendary=animated gradient (sapphire→purple→cyan→gold). XP bars use arctic cyan fill on midnight sapphire track. Level-up animations have a crystalline shatter effect with Wing Purple `#8B5CF6` particle bursts.
+  - **Logo Integration:** The low-poly swan logo now features a purple-to-blue wing gradient — Wing Purple `#8B5CF6` is the primary glow/accent color across all interactive elements (buttons, FABs, hover states, focus rings, loading animations). Every UI element will feel native to the brand mark. Nav logo renders cleanly on `#002060` backgrounds. Accent glows use Wing Purple `#8B5CF6` for the primary pulse and Cosmic Purple `#7851A9` as a secondary depth shadow.
+- **Use For:** SwanStudios (brand-exact match), any project where the swan logo appears, AI onboarding prompts
 
 ### Preset G — "Custom" (User-Defined)
 - User provides their own palette, typography, and identity
@@ -361,7 +362,7 @@ Then build. Do not ask follow-ups. Do not over-discuss. **Build.**
 - [ ] Google Fonts loaded for selected preset
 - [ ] All animations respect `prefers-reduced-motion`
 - [ ] If Preset F (Enchanted Apex): nature particles, gilded borders, rarity badges present
-- [ ] If Preset F-Alt (Crystalline Swan): ice crystal particles, sapphire glass, aurora gradients, logo-matched `#002060`/`#60C0F0`/`#C6A84B`
+- [ ] If Preset F-Alt (Crystalline Swan): ice crystal particles, sapphire glass, aurora gradients, logo-matched `#002060`/`#8B5CF6`/`#60C0F0`/`#C6A84B`, all glow buttons use Wing Purple `#8B5CF6`
 
 ### Skills.sh Verification Gate (Claude Code in VS Code)
 - [ ] `web-design-guidelines` skill consulted before design decisions

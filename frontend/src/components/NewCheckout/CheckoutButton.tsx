@@ -37,8 +37,8 @@ const ButtonContainer = styled.div`
 const AmountDisplay = styled(motion.div)`
   text-align: center;
   padding: 0.75rem;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   margin-bottom: 0.5rem;
 `;
@@ -54,7 +54,7 @@ const AmountValue = styled.h3`
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 `;
 
 const SecurityNote = styled.p`

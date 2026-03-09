@@ -183,8 +183,8 @@ const StyledSelect = styled.select`
   transition: border-color 0.2s ease;
 
   &:focus {
-    border-color: #00FFFF;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   option {
@@ -291,8 +291,8 @@ const StyledInput = styled.input<{ $hasUnit?: boolean }>`
   transition: border-color 0.2s ease;
 
   &:focus {
-    border-color: #00FFFF;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -325,17 +325,17 @@ const AddButton = styled.button`
   min-height: 44px;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px dashed rgba(0, 255, 255, 0.4);
+  border: 1px dashed rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #00FFFF;
+  color: #8B5CF6;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
-    border-color: #00FFFF;
+    background: rgba(139, 92, 246, 0.06);
+    border-color: #8B5CF6;
   }
 
   svg {
@@ -394,7 +394,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #7851A9 0%, #00FFFF 100%);
+  background: linear-gradient(135deg, #7851A9 0%, #8B5CF6 100%);
   color: white;
   font-size: 1rem;
   font-weight: 600;

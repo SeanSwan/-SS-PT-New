@@ -13,10 +13,10 @@ const SectionLabel = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(0, 255, 255, 0.6);
+  color: rgba(139, 92, 246, 0.6);
   margin-top: 0.25rem;
   padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
 `;
 
 const InfoNote = styled.p`

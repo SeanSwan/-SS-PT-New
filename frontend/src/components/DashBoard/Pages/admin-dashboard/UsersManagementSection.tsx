@@ -81,7 +81,7 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
 

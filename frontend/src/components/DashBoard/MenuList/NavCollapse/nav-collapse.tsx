@@ -111,7 +111,7 @@ const NestedList = styled(List)`
     height: 100%;
     width: 1px;
     opacity: 1;
-    background: ${alpha('#00FFFF', 0.3)};
+    background: ${alpha('#8B5CF6', 0.3)};
   }
 `;
 

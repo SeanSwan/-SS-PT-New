@@ -88,7 +88,7 @@ const StyledInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -109,7 +109,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   border: none;
   background: ${props => props.$variant === 'secondary'
     ? 'rgba(120, 81, 169, 0.3)'
-    : 'rgba(0, 255, 255, 0.15)'};
+    : 'rgba(139, 92, 246, 0.15)'};
   color: ${props => props.$variant === 'secondary' ? '#b388ff' : '#00ffff'};
   font-size: 0.875rem;
   font-weight: 500;
@@ -119,7 +119,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   &:hover:not(:disabled) {
     background: ${props => props.$variant === 'secondary'
       ? 'rgba(120, 81, 169, 0.4)'
-      : 'rgba(0, 255, 255, 0.25)'};
+      : 'rgba(139, 92, 246, 0.25)'};
   }
 
   &:disabled {

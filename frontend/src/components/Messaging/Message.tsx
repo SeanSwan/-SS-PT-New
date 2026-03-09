@@ -71,7 +71,7 @@ const MessageBubble = styled.div<{ $isOwn: boolean }>`
 `;
 
 const SenderName = styled.div`
-  color: #00FFFF;
+  color: #8B5CF6;
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
@@ -101,7 +101,7 @@ const Timestamp = styled.span`
 `;
 
 const ReadIndicator = styled.span`
-  color: #00FFFF;
+  color: #8B5CF6;
   font-size: 12px;
   font-weight: 600;
 `;

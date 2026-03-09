@@ -52,14 +52,14 @@ const SectionCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 12px 35px rgba(0, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 12px 35px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -86,8 +86,8 @@ const StatGrid = styled.div`
 `;
 
 const StatCard = styled(motion.div)`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   padding: 1rem;
   text-align: center;
@@ -114,8 +114,8 @@ const ProgressOrb = styled.div<{ progress: number }>`
     from 0deg,
     #00ffff 0deg,
     #00ffff ${props => props.progress * 3.6}deg,
-    rgba(0, 255, 255, 0.2) ${props => props.progress * 3.6}deg,
-    rgba(0, 255, 255, 0.2) 360deg
+    rgba(139, 92, 246, 0.2) ${props => props.progress * 3.6}deg,
+    rgba(139, 92, 246, 0.2) 360deg
   );
   display: flex;
   align-items: center;
@@ -216,13 +216,13 @@ export const WorkoutUniverse: React.FC = () => {
           </div>
         ) : (
           <div style={{
-            background: 'rgba(0, 255, 255, 0.05)',
+            background: 'rgba(139, 92, 246, 0.05)',
             borderRadius: '15px',
             padding: '2rem',
             textAlign: 'center',
-            border: '1px dashed rgba(0, 255, 255, 0.3)'
+            border: '1px dashed rgba(139, 92, 246, 0.3)'
           }}>
-            <Rocket size={48} color="rgba(0, 255, 255, 0.5)" style={{ marginBottom: '1rem' }} />
+            <Rocket size={48} color="rgba(139, 92, 246, 0.5)" style={{ marginBottom: '1rem' }} />
             <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>No Workout Plan Yet</h4>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
               Your trainer will create one after your assessment.
@@ -245,9 +245,9 @@ export const WorkoutUniverse: React.FC = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '1rem',
-                  background: 'rgba(0, 255, 255, 0.05)',
+                  background: 'rgba(139, 92, 246, 0.05)',
                   borderRadius: '8px',
-                  border: '1px solid rgba(0, 255, 255, 0.1)'
+                  border: '1px solid rgba(139, 92, 246, 0.1)'
                 }}
               >
                 <div>
@@ -365,7 +365,7 @@ export const ProgressConstellation: React.FC = () => {
         <ChallengeActivityChart challenges={challenges} />
       ) : (
         <SectionCard style={{ textAlign: 'center', padding: '2rem' }}>
-          <Target size={36} style={{ color: 'rgba(0, 255, 255, 0.5)', marginBottom: '0.75rem' }} />
+          <Target size={36} style={{ color: 'rgba(139, 92, 246, 0.5)', marginBottom: '0.75rem' }} />
           <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>Start a Challenge</h4>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
             Complete your onboarding to unlock personalized challenges.
@@ -504,10 +504,10 @@ export const AchievementNebula: React.FC = () => {
         </SectionTitle>
         <div
           style={{
-            background: 'rgba(0, 255, 255, 0.05)',
+            background: 'rgba(139, 92, 246, 0.05)',
             borderRadius: '12px',
             padding: '1.5rem',
-            border: '1px dashed rgba(0, 255, 255, 0.3)',
+            border: '1px dashed rgba(139, 92, 246, 0.3)',
             textAlign: 'center',
             color: 'rgba(255, 255, 255, 0.7)'
           }}
@@ -697,11 +697,11 @@ const LogsAndTrackers: React.FC = () => {
               {historyLoading ? (
                 <div
                   style={{
-                    background: 'rgba(0, 255, 255, 0.05)',
+                    background: 'rgba(139, 92, 246, 0.05)',
                     borderRadius: '8px',
                     padding: '1rem',
                     textAlign: 'center',
-                    border: '1px solid rgba(0, 255, 255, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.1)',
                     color: 'rgba(255, 255, 255, 0.7)'
                   }}
                 >
@@ -725,10 +725,10 @@ const LogsAndTrackers: React.FC = () => {
                   <div
                     key={log.id}
                     style={{
-                      background: 'rgba(0, 255, 255, 0.05)',
+                      background: 'rgba(139, 92, 246, 0.05)',
                       borderRadius: '8px',
                       padding: '1rem',
-                      border: '1px solid rgba(0, 255, 255, 0.1)'
+                      border: '1px solid rgba(139, 92, 246, 0.1)'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -745,10 +745,10 @@ const LogsAndTrackers: React.FC = () => {
               ) : (
                 <div
                   style={{
-                    background: 'rgba(0, 255, 255, 0.05)',
+                    background: 'rgba(139, 92, 246, 0.05)',
                     borderRadius: '8px',
                     padding: '1rem',
-                    border: '1px solid rgba(0, 255, 255, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.1)',
                     color: 'rgba(255, 255, 255, 0.7)'
                   }}
                 >
@@ -863,12 +863,12 @@ const LogsAndTrackers: React.FC = () => {
 
 // Enhanced Galactic Package Components
 const CurrentPackageCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3), rgba(255, 215, 0, 0.1));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3), rgba(255, 215, 0, 0.1));
   backdrop-filter: blur(20px);
   border-radius: 25px;
   padding: 2.5rem;
   margin-bottom: 3rem;
-  border: 2px solid rgba(0, 255, 255, 0.4);
+  border: 2px solid rgba(139, 92, 246, 0.4);
   position: relative;
   overflow: hidden;
   
@@ -880,7 +880,7 @@ const CurrentPackageCard = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(circle at 30% 30%, rgba(0, 255, 255, 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.1) 0%, transparent 60%),
       radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.1) 0%, transparent 60%);
     pointer-events: none;
     animation: ${pulse} 6s ease-in-out infinite;
@@ -955,7 +955,7 @@ const PackageSubscription: React.FC = () => {
                   margin: '0 0 0.75rem 0',
                   color: '#00ffff',
                   fontSize: '1.8rem',
-                  textShadow: '0 0 15px rgba(0, 255, 255, 0.5)'
+                  textShadow: '0 0 15px rgba(139, 92, 246, 0.5)'
                 }}
               >
                 {packageName}
@@ -1016,7 +1016,7 @@ const PackageSubscription: React.FC = () => {
                     color: '#00ffff',
                     fontSize: '2rem',
                     fontWeight: 'bold',
-                    textShadow: '0 0 15px rgba(0, 255, 255, 0.8)'
+                    textShadow: '0 0 15px rgba(139, 92, 246, 0.8)'
                   }}
                 >
                   {sessionsRemaining}
@@ -1078,10 +1078,10 @@ const PackageSubscription: React.FC = () => {
         <div
           style={{
             position: 'relative',
-            background: 'rgba(0, 255, 255, 0.05)',
+            background: 'rgba(139, 92, 246, 0.05)',
             borderRadius: '16px',
             padding: '1.5rem',
-            border: '1px solid rgba(0, 255, 255, 0.2)'
+            border: '1px solid rgba(139, 92, 246, 0.2)'
           }}
         >
           <h4
@@ -1130,8 +1130,8 @@ export const AccountGalaxy: React.FC = () => (
 
 // === ONBOARDING GALAXY SECTION ===
 const OnboardingCTA = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
-  border: 2px solid rgba(0, 255, 255, 0.4);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
+  border: 2px solid rgba(139, 92, 246, 0.4);
   border-radius: 20px;
   padding: 2.5rem;
   text-align: center;
@@ -1139,8 +1139,8 @@ const OnboardingCTA = styled(motion.div)`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.8);
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), 0 0 60px rgba(0, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1);
     transform: translateY(-2px);
   }
 `;
@@ -1222,7 +1222,7 @@ export const OnboardingGalaxy: React.FC = () => {
             Your fitness profile is set up. Your trainer can now create personalized plans for you.
           </p>
           {onboardingData?.onboardingStatus?.primaryGoal && (
-            <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(0, 255, 255, 0.1)', borderRadius: '12px', border: '1px solid rgba(0, 255, 255, 0.2)' }}>
+            <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
               <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.85rem' }}>Primary Goal</span>
               <p style={{ color: '#00ffff', fontSize: '1.1rem', margin: '0.25rem 0 0 0', fontWeight: 600 }}>
                 {onboardingData.onboardingStatus.primaryGoal}

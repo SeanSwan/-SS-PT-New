@@ -74,7 +74,7 @@ const AppBarStyled = styled.header<{ $open: boolean }>`
   padding: 0 24px;
   background: linear-gradient(135deg, rgba(30, 30, 60, 0.95) 0%, rgba(10, 10, 26, 0.98) 100%);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
   z-index: 1201;
   transition: width ${theme.transition}, margin-left ${theme.transition};
   margin-left: ${({ $open }) => ($open ? DRAWER_WIDTH : DRAWER_COLLAPSED_WIDTH)}px;
@@ -157,7 +157,7 @@ const DropdownMenu = styled.div<{ $visible: boolean }>`
   min-width: 180px;
   background: rgba(30, 30, 60, 0.95);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: ${theme.borderRadius};
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   overflow: hidden;
@@ -185,7 +185,7 @@ const DropdownItem = styled.button`
   transition: background ${theme.transitionFast};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 
   &:focus-visible {
@@ -209,7 +209,7 @@ const Sidebar = styled.aside<{ $open: boolean }>`
   width: ${({ $open }) => ($open ? DRAWER_WIDTH : DRAWER_COLLAPSED_WIDTH)}px;
   background: linear-gradient(180deg, rgba(30, 30, 60, 0.6) 0%, rgba(10, 10, 26, 0.9) 100%);
   backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(0, 255, 255, 0.08);
+  border-right: 1px solid rgba(139, 92, 246, 0.08);
   overflow-x: hidden;
   overflow-y: auto;
   white-space: nowrap;
@@ -224,7 +224,7 @@ const Sidebar = styled.aside<{ $open: boolean }>`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     border-radius: 2px;
   }
 `;
@@ -254,7 +254,7 @@ const BrandText = styled.span`
 const StyledDivider = styled.hr`
   border: none;
   height: 1px;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   margin: 0;
 `;
 
@@ -279,7 +279,7 @@ const NavButton = styled.button<{ $active: boolean; $open: boolean }>`
   padding: 0 20px;
   border: none;
   background: ${({ $active }) =>
-    $active ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+    $active ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   color: ${({ $active }) => ($active ? theme.swanCyan : theme.textPrimary)};
   cursor: pointer;
   font-size: 0.875rem;
@@ -289,7 +289,7 @@ const NavButton = styled.button<{ $active: boolean; $open: boolean }>`
   justify-content: ${({ $open }) => ($open ? 'initial' : 'center')};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
+    background: rgba(139, 92, 246, 0.06);
   }
 
   &:focus-visible {
@@ -409,9 +409,9 @@ const ErrorActionBtn = styled.button`
   min-width: 120px;
   min-height: 44px;
   padding: 10px 24px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: ${theme.borderRadius};
-  background: rgba(0, 255, 255, 0.08);
+  background: rgba(139, 92, 246, 0.08);
   color: ${theme.swanCyan};
   font-size: 0.9rem;
   font-weight: 500;
@@ -420,7 +420,7 @@ const ErrorActionBtn = styled.button`
   transition: background ${theme.transitionFast}, border-color ${theme.transitionFast};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
     border-color: ${theme.swanCyan};
   }
 

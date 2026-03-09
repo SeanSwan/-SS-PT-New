@@ -386,8 +386,8 @@ const TagPill = styled.span`
   font-size: 12px;
   font-weight: 500;
   color: #00ffff;
-  background: rgba(0, 255, 255, 0.08);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
 `;
 
 const SectionHeading = styled.h3`
@@ -425,7 +425,7 @@ const ChapterItem = styled.button`
   cursor: pointer;
   border-radius: 8px;
   transition: background 0.15s;
-  &:hover { background: rgba(0, 255, 255, 0.06); }
+  &:hover { background: rgba(139, 92, 246, 0.06); }
 `;
 
 const ChapterTime = styled.span`

@@ -82,7 +82,7 @@ const TierHeader = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     background: rgba(30, 58, 138, 0.25);
   }
 
@@ -140,7 +140,7 @@ const Card = styled.div`
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 

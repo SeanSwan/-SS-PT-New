@@ -78,7 +78,7 @@ const Avatar = styled.div<{ $src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(0, 255, 255, 0.2)'};
+  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
   color: #00ffff;
   display: flex;
   align-items: center;
@@ -121,14 +121,14 @@ const OutlineBtn = styled.button`
   padding: 6px 12px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.1); }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
@@ -150,7 +150,7 @@ const SearchInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const SearchIconEl = styled.div`
@@ -171,20 +171,20 @@ const SearchBtn = styled.button`
   min-height: 32px;
   border-radius: 6px;
   border: none;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover:not(:disabled) { background: rgba(0, 255, 255, 0.25); }
+  &:hover:not(:disabled) { background: rgba(139, 92, 246, 0.25); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const Spinner = styled.div`
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  border: 2px solid rgba(139, 92, 246, 0.3);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
@@ -231,13 +231,13 @@ const CloseButton = styled.button`
   min-height: 44px;
   border-radius: 8px;
   border: none;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.2); }
+  &:hover { background: rgba(139, 92, 246, 0.2); }
 `;
 
 const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $borderRadius?: string }>`
@@ -326,7 +326,7 @@ const FriendSuggestions: React.FC<FriendSuggestionsProps> = ({ open, onClose }) 
   return (
     <CustomModal isOpen={open} onClose={onClose} title="" size="medium">
       <ModalHeader>
-        <UserPlus size={20} color="rgba(0, 255, 255, 0.8)" />
+        <UserPlus size={20} color="rgba(139, 92, 246, 0.8)" />
         <HeaderTitle>Find Friends</HeaderTitle>
       </ModalHeader>
       <Content>

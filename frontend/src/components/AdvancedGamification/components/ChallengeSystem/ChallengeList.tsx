@@ -148,7 +148,7 @@ const SearchField = styled.input`
   &:focus {
     outline: none;
     border-color: #00ffff;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     background: rgba(255, 255, 255, 0.12);
   }
 `;

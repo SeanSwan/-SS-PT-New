@@ -47,7 +47,7 @@ const SlotContainer = styled.div<{ $isOver: boolean; $disabled: boolean }>`
   border: 1px dashed ${({ $isOver }) =>
     $isOver ? '#00e5e5' : galaxySwanTheme.primary.main};
   background: ${({ $isOver }) =>
-    $isOver ? 'rgba(0, 255, 255, 0.1)' : 'rgba(0, 255, 255, 0.05)'};
+    $isOver ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)'};
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

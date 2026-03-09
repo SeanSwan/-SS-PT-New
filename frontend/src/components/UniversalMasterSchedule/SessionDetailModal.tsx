@@ -1638,7 +1638,7 @@ const PackageSection = styled.div`
 `;
 
 const PackageSectionTitle = styled.h4`
-  color: #00FFFF;
+  color: #8B5CF6;
   font-size: 0.875rem;
   margin: 0 0 12px 0;
   text-transform: uppercase;
@@ -1682,7 +1682,7 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => $percent}%;
-  background: linear-gradient(90deg, #00FFFF, #7851A9);
+  background: linear-gradient(90deg, #8B5CF6, #7851A9);
   border-radius: 4px;
   transition: width 0.3s ease;
 `;

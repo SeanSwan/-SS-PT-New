@@ -25,7 +25,7 @@ import SettingsSection from "./sections/SettingsSection";
 // Theme definition
 const theme = {
   colors: {
-    primary: "#00FFFF",        // Neon Blue
+    primary: "#8B5CF6",        // Neon Blue
     secondary: "#7851A9",      // Purple
     accent: "#FF6B6B",         // Coral for attention
     success: "#4CAF50",        // Green for success
@@ -178,7 +178,7 @@ const ClientLayout: React.FC = () => {
             <p>View and manage your scheduled and completed training sessions.</p>
             <div style={{ 
               padding: '1rem', 
-              background: 'rgba(0, 255, 255, 0.1)',
+              background: 'rgba(139, 92, 246, 0.1)',
               borderRadius: '8px',
               marginTop: '1rem'
             }}>

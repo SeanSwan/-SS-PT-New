@@ -2,7 +2,7 @@
  * GlassCard — Variant-based glass panel component
  * =================================================
  * Wraps FrostedCard with Gemini 3.1 Pro design spec variants:
- *   - cyan: Swan Cyan border glow (#00FFFF / #60C0F0)
+ *   - cyan: Swan Cyan border glow (#8B5CF6 / #60C0F0)
  *   - purple: Cosmic Purple border glow (#7851A9 / #4070C0)
  *   - neutral: Subtle white border (default)
  *   - alert: Neon Coral glow (#FF3366) for injury/error states

@@ -41,7 +41,7 @@ interface Stats {
 // ─── Teal-Blue Accent System ─────────────────────────────────────────────────
 
 const TEAL = {
-  cyan: '#00FFFF',
+  cyan: '#8B5CF6',
   bright: '#00C8FF',
   sky: '#0EA5E9',
   blue: '#3b82f6',
@@ -616,7 +616,7 @@ const InteractiveStatCard = styled.button<{ $active: boolean; $accentColor: stri
 
   &:focus-visible {
     border-color: ${TEAL.cyan};
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
   }
 
   &:active {

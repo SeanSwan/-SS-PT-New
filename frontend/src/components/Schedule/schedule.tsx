@@ -250,8 +250,8 @@ const SessionActionsContainer = styled.div`
   gap: 1rem;
   align-items: center;
   padding: 0.75rem 1rem;
-  border: 2px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 255, 255, 0.05);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
   border-radius: 12px;
   backdrop-filter: blur(10px);
   flex-shrink: 0;
@@ -271,13 +271,13 @@ const RefreshButton = styled.button`
   min-width: 44px;
   min-height: 44px;
   color: #00ffff;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 999px;
   cursor: pointer;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -470,7 +470,7 @@ const CalendarWrapper = styled.div`
   }
   
   .rbc-event {
-    background: linear-gradient(45deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9)); /* More saturated colors */
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9)); /* More saturated colors */
     border: none;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -726,8 +726,8 @@ const ModalContent = styled(motion.div)`
     
     &:focus {
       outline: none;
-      border-color: rgba(0, 255, 255, 0.6); /* More visible focus border */
-      box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.3); /* Stronger focus indicator */
+      border-color: rgba(139, 92, 246, 0.6); /* More visible focus border */
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3); /* Stronger focus indicator */
     }
     
     /* Enhanced select styling for better cross-browser compatibility */
@@ -772,7 +772,7 @@ const ModalContent = styled(motion.div)`
       color: white;
       
       &:hover {
-        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
         transform: translateY(-2px);
       }
       
@@ -799,7 +799,7 @@ const ModalContent = styled(motion.div)`
     }
     
     &:focus {
-      outline: 3px solid rgba(0, 255, 255, 0.5); /* Focus outline for accessibility */
+      outline: 3px solid rgba(139, 92, 246, 0.5); /* Focus outline for accessibility */
       outline-offset: 2px;
     }
   }
@@ -867,9 +867,9 @@ const ModalContent = styled(motion.div)`
     font-weight: bold;
     margin-bottom: 1rem;
     text-align: center;
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     color: #00ffff;
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
   }
   
   /* Two-column form layout for larger screens */
@@ -997,9 +997,9 @@ const ModeToggle = styled.div`
     gap: 0.5rem;
     
     &.active {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
       color: white;
-      box-shadow: 0 2px 8px rgba(0, 255, 255, 0.3);
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
       
       &.block-mode {
         background: linear-gradient(135deg, rgba(230, 80, 80, 0.3), rgba(255, 107, 107, 0.3));
@@ -1013,7 +1013,7 @@ const ModeToggle = styled.div`
     }
     
     &:focus {
-      outline: 2px solid rgba(0, 255, 255, 0.5);
+      outline: 2px solid rgba(139, 92, 246, 0.5);
       outline-offset: 2px;
     }
     
@@ -1081,8 +1081,8 @@ const Loader = styled(motion.div)`
   .loader-inner {
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
-    border-top: 3px solid rgba(0, 255, 255, 1);
+    border: 3px solid rgba(139, 92, 246, 0.3);
+    border-top: 3px solid rgba(139, 92, 246, 1);
     border-radius: 50%;
   }
 `;

@@ -452,7 +452,7 @@ const SlotCell = styled.div<{ $hasSession?: boolean; $isPast?: boolean; $isSched
     if ($hasSession) return 'transparent';
     if ($isAdminAccessible) return 'rgba(245, 158, 11, 0.1)'; // Light orange for admin past slots
     if ($isPast) return 'rgba(255, 255, 255, 0.02)';
-    return 'rgba(0, 255, 255, 0.05)';
+    return 'rgba(139, 92, 246, 0.05)';
   }};
   display: flex;
   flex-direction: column;

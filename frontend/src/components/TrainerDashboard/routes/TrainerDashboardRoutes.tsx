@@ -18,7 +18,7 @@ const PageContainer = styled.div`
 
 const SectionCard = styled.div`
   padding: 24px;
-  background: rgba(0, 255, 255, 0.05);
+  background: rgba(139, 92, 246, 0.05);
   border-radius: 8px;
   margin-top: 24px;
 `;

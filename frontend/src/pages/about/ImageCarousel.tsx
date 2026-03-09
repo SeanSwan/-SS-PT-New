@@ -25,7 +25,7 @@ const Overlay = styled.div`
   height: 100%;
   background: linear-gradient(
     45deg,
-    rgba(0, 255, 255, 0.3),
+    rgba(139, 92, 246, 0.3),
     rgba(128, 0, 128, 0.3)
   );
 `

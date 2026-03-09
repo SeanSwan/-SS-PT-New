@@ -48,7 +48,7 @@ import { useAuth } from '../../../../../context/AuthContext';
 // Premium card with glass morphism effect
 const StyledCard = styled(Card)`
   background: linear-gradient(135deg,
-    rgba(0, 255, 255, 0.15),
+    rgba(139, 92, 246, 0.15),
     rgba(120, 81, 169, 0.1));
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -68,7 +68,7 @@ const StyledCard = styled(Card)`
     right: 0;
     bottom: 0;
     background: linear-gradient(120deg,
-      rgba(0, 255, 255, 0.1),
+      rgba(139, 92, 246, 0.1),
       rgba(120, 81, 169, 0.05));
     opacity: 0.5;
     z-index: 0;
@@ -79,7 +79,7 @@ const StyledCard = styled(Card)`
     position: absolute;
     width: 200px;
     height: 200px;
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
     border-radius: 50%;
     top: -100px;
     right: -100px;
@@ -98,11 +98,11 @@ const StyledAvatar = styled(Avatar)`
   height: 60px;
   border: 2px solid rgba(255, 255, 255, 0.7);
   background: #0a0a1a;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
 
   svg {
     font-size: 2rem;
-    color: #00FFFF;
+    color: #8B5CF6;
   }
 `;
 
@@ -127,7 +127,7 @@ const StyledIconButton = styled(IconButton)<{ $isActive?: boolean }>`
   color: #FFFFFF;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   }
@@ -135,8 +135,8 @@ const StyledIconButton = styled(IconButton)<{ $isActive?: boolean }>`
   ${({ $isActive }) =>
     $isActive &&
     css`
-      background: rgba(0, 255, 255, 0.15);
-      border-color: rgba(0, 255, 255, 0.3);
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.3);
     `}
 `;
 
@@ -168,8 +168,8 @@ const ViewProfileButton = styled(Button)`
   width: 100%;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 

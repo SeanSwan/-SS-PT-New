@@ -179,7 +179,7 @@ const GhostCard = styled.div<{ $isValid: boolean }>`
   transform: scale(1.05) rotate(2deg);
   box-shadow: ${({ $isValid }) =>
     $isValid
-      ? '0 0 30px rgba(0, 255, 255, 0.5)'
+      ? '0 0 30px rgba(139, 92, 246, 0.5)'
       : '0 0 30px rgba(255, 71, 87, 0.5)'};
   border-radius: 12px;
   transition: box-shadow 150ms ease-out;

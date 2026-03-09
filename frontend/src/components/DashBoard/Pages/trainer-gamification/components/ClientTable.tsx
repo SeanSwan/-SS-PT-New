@@ -74,7 +74,7 @@ const ClientAvatar = styled.div`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   color: #00ffff;
   display: flex;
   align-items: center;
@@ -132,7 +132,7 @@ const ActionBtn = styled.button<{ $variant?: 'secondary' }>`
   padding: 6px 12px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid ${props => props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.4)' : 'rgba(0, 255, 255, 0.4)'};
+  border: 1px solid ${props => props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.4)' : 'rgba(139, 92, 246, 0.4)'};
   background: transparent;
   color: ${props => props.$variant === 'secondary' ? '#7851a9' : '#00ffff'};
   font-size: 0.8125rem;
@@ -141,7 +141,7 @@ const ActionBtn = styled.button<{ $variant?: 'secondary' }>`
   white-space: nowrap;
 
   &:hover {
-    background: ${props => props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(0, 255, 255, 0.1)'};
+    background: ${props => props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
   }
 `;
 

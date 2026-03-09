@@ -27,7 +27,7 @@ import AwardAchievementDialog from './components/AwardAchievementDialog';
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(0, 255, 255, 0.15);
+  border: 3px solid rgba(139, 92, 246, 0.15);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -145,7 +145,7 @@ const SearchInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 interface TabPanelProps {

@@ -34,7 +34,7 @@ const StatsCardContainer = styled.div<{
   background: ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'linear-gradient(135deg, rgba(0, 109, 255, 0.1), rgba(0, 255, 255, 0.1))';
+        return 'linear-gradient(135deg, rgba(0, 109, 255, 0.1), rgba(139, 92, 246, 0.1))';
       case 'secondary':
         return 'linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(255, 64, 129, 0.1))';
       case 'success':
@@ -56,7 +56,7 @@ const StatsCardContainer = styled.div<{
   border: 1px solid ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'rgba(0, 255, 255, 0.2)';
+        return 'rgba(139, 92, 246, 0.2)';
       case 'secondary':
         return 'rgba(255, 64, 129, 0.2)';
       case 'success':
@@ -83,7 +83,7 @@ const StatsCardContainer = styled.div<{
     border-color: ${props => {
       switch (props.$colorScheme) {
         case 'primary':
-          return 'rgba(0, 255, 255, 0.4)';
+          return 'rgba(139, 92, 246, 0.4)';
         case 'secondary':
           return 'rgba(255, 64, 129, 0.4)';
         case 'success':
@@ -120,7 +120,7 @@ const IconContainer = styled.div<{
   background: ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'linear-gradient(135deg, rgba(0, 109, 255, 0.2), rgba(0, 255, 255, 0.2))';
+        return 'linear-gradient(135deg, rgba(0, 109, 255, 0.2), rgba(139, 92, 246, 0.2))';
       case 'secondary':
         return 'linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(255, 64, 129, 0.2))';
       case 'success':
@@ -141,7 +141,7 @@ const IconContainer = styled.div<{
   border: 1px solid ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'rgba(0, 255, 255, 0.3)';
+        return 'rgba(139, 92, 246, 0.3)';
       case 'secondary':
         return 'rgba(255, 64, 129, 0.3)';
       case 'success':
@@ -161,7 +161,7 @@ const IconContainer = styled.div<{
   color: ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'rgba(0, 255, 255, 1)';
+        return 'rgba(139, 92, 246, 1)';
       case 'secondary':
         return 'rgba(255, 64, 129, 1)';
       case 'success':
@@ -190,7 +190,7 @@ const ValueText = styled.span<{
   color: ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'rgba(0, 255, 255, 1)';
+        return 'rgba(139, 92, 246, 1)';
       case 'secondary':
         return 'rgba(255, 64, 129, 1)';
       case 'success':
@@ -210,7 +210,7 @@ const ValueText = styled.span<{
   text-shadow: 0 0 10px ${props => {
     switch (props.$colorScheme) {
       case 'primary':
-        return 'rgba(0, 255, 255, 0.5)';
+        return 'rgba(139, 92, 246, 0.5)';
       case 'secondary':
         return 'rgba(255, 64, 129, 0.5)';
       case 'success':

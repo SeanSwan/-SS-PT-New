@@ -55,7 +55,7 @@ const BackButton = styled.button`
   align-items: center;
   gap: 4px;
   padding: 8px 12px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
   background: transparent;
   color: #00ffff;
@@ -68,8 +68,8 @@ const BackButton = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.5);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -90,8 +90,8 @@ const ArrowButton = styled.button`
   min-height: 44px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
     color: #00ffff;
   }
 
@@ -193,10 +193,10 @@ const VersionBadge = styled.span<{ $version: number }>`
   font-weight: 600;
   margin-left: 6px;
   background: ${({ $version }) =>
-    $version === 1 ? 'rgba(0, 255, 255, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
+    $version === 1 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
   color: ${({ $version }) => ($version === 1 ? '#00ffff' : '#b088f0')};
   border: 1px solid ${({ $version }) =>
-    $version === 1 ? 'rgba(0, 255, 255, 0.3)' : 'rgba(120, 81, 169, 0.4)'};
+    $version === 1 ? 'rgba(139, 92, 246, 0.3)' : 'rgba(120, 81, 169, 0.4)'};
 `;
 
 const LoadingContainer = styled.div`

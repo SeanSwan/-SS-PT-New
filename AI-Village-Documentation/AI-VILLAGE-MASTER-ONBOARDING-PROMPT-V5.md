@@ -157,7 +157,7 @@ VISUAL VERIFICATION:
 - Fonts: "Sora" | Drama: "Cormorant Garamond" Italic | Mono: "Fira Code"
 - Images: galaxies, nebulae, constellations, aurora borealis, swan silhouettes
 - Hero: "[Transformation noun] beyond" / "[Cosmic word]."
-- Special: Glass surfaces, cosmic gradients, swan motifs, cyan = primary CTAs
+- Special: Glass surfaces, cosmic gradients, swan motifs, Wing Purple `#8B5CF6` = glow accent on buttons/CTAs
 
 **Preset F — "Enchanted Apex" (Nature + Luxury + Gaming) ⭐ SWANSTUDIOS PRIMARY**
 - Identity: Enchanted forest throne room — ancient nature meets elite commerce and competitive gaming. A luxury wellness brand built inside an RPG world map. Bioluminescent flora illuminate gold-leaf UI elements while achievement badges pulse like rare loot drops.
@@ -172,14 +172,14 @@ VISUAL VERIFICATION:
 
 **Preset F-Alt — "Enchanted Apex: Crystalline Swan" ⭐ SWANSTUDIOS BRAND-MATCHED**
 - Identity: Same Nature + Luxury + Gaming fusion, but palette derived directly from the SwanStudios low-poly crystalline swan logo. Frozen enchanted forest meets deep-ocean luxury vault meets competitive arena. Ice crystals replace forest moss; aurora light replaces fireflies; the swan's geometric facets inspire angular glass surfaces.
-- Palette: Midnight Sapphire `#002060` (Primary — logo deep navy), Royal Depth `#003080` (Surface — logo circle bg), Ice Wing `#60C0F0` (Gaming Accent — logo wing highlight), Arctic Cyan `#50A0F0` (Secondary Accent — logo bright feathers), Gilded Fern `#C6A84B` (Luxury Accent — gold contrast), Frost White `#E0ECF4` (Background — derived from logo head light), Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
+- Palette: Midnight Sapphire `#002060` (Primary — logo deep navy), Royal Depth `#003080` (Surface — logo circle bg), Ice Wing `#60C0F0` (Gaming Accent — logo wing highlight), Arctic Cyan `#50A0F0` (Secondary Accent — logo bright feathers), **Wing Purple `#8B5CF6` (Glow Accent — logo purple wing gradient)**, Gilded Fern `#C6A84B` (Luxury Accent — gold contrast), Frost White `#E0ECF4` (Background — derived from logo head light), Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
 - Fonts: Same as Preset F — "Plus Jakarta Sans" (headings) | "Cormorant Garamond" Italic (drama) | "Fira Code" (mono) | "Sora" (UI/gaming)
 - Images: frozen forests, ice caves, crystalline formations, aurora borealis, deep ocean, sapphire gemstones, snow-covered luxury architecture, geometric wildlife, low-poly landscapes
 - Hero: "[Nature noun] meets" / "[Power word]." (gilded accent on power word, ice-blue glow behind)
-- **Special — Nature Layer (Crystalline):** Floating ice crystal particles (subtle geometric shapes at 0.03 opacity), aurora gradient flows (sapphire → cyan → lavender), crystalline SVG dividers (geometric frost patterns instead of vines)
+- **Special — Nature Layer (Crystalline):** Floating ice crystal particles (subtle geometric shapes at 0.03 opacity), aurora gradient flows (sapphire → wing purple → lavender), crystalline SVG dividers (geometric frost patterns instead of vines)
 - **Special — Luxury Layer:** Gold borders on sapphire glass (`border-[#C6A84B]/20` on `bg-[#002060]/60 backdrop-blur-xl`), premium spacing, serif drama font with frost-white text on deep navy
-- **Special — Gaming Layer:** Same rarity system but recolored: Common=Swan Lavender `#4070C0`, Rare=Gilded Fern `#C6A84B`, Epic=Ice Wing `#60C0F0`, Legendary=animated gradient (sapphire→cyan→gold). XP bars use arctic cyan fill on midnight sapphire track. Level-up animations have a crystalline shatter effect.
-- **Logo Integration:** The low-poly swan logo uses these exact colors — every UI element will feel native to the brand mark. Nav logo renders on `#002060` backgrounds. Accent glows match wing highlights.
+- **Special — Gaming Layer:** Same rarity system but recolored: Common=Swan Lavender `#4070C0`, Rare=Gilded Fern `#C6A84B`, Epic=Wing Purple `#8B5CF6`, Legendary=animated gradient (sapphire→wing purple→gold). XP bars use arctic cyan fill on midnight sapphire track. Level-up animations have a crystalline shatter effect.
+- **Logo Integration:** The low-poly swan logo uses these exact colors — every UI element will feel native to the brand mark. Nav logo renders on `#002060` backgrounds. **All glow effects and interactive button glows use Wing Purple `#8B5CF6`** (derived from logo option 8 — purple wing gradient). Accent glows match wing purple highlights.
 - **Use For:** SwanStudios (brand-exact match), any project where the swan logo appears
 
 **Preset G — "Custom" (User-Defined)**
@@ -556,8 +556,8 @@ Each template generates up to 5 concrete achievements. Tiers inherit the templat
 |--------|-------|-----|------------------|
 | Common | Swan Lavender | `#4070C0` | Solid border |
 | Rare | Gilded Fern | `#C6A84B` | Gold border + subtle glow |
-| Epic | Ice Wing | `#60C0F0` | Cyan border + pulse animation |
-| Legendary | Gradient | sapphire → cyan → gold | Animated gradient border + particle effect |
+| Epic | Wing Purple | `#8B5CF6` | Purple border + pulse animation |
+| Legendary | Gradient | sapphire → wing purple → gold | Animated gradient border + particle effect |
 
 Colors map directly to Preset F-Alt (Enchanted Apex: Crystalline Swan) palette tokens.
 
@@ -614,7 +614,7 @@ Colors map directly to Preset F-Alt (Enchanted Apex: Crystalline Swan) palette t
 - **Client Dashboard → Overview:** Points summary, recent achievements, level progress bar
 - **Achievement Cards:** Styled with rarity borders per Crystalline Swan palette (see Rarity System above)
 - **Level-Up Animations:** Crystalline shatter effect on tier advancement (Preset F-Alt gaming layer)
-- **XP Progress Bars:** Arctic cyan (`#50A0F0`) fill on midnight sapphire (`#002060`) track
+- **XP Progress Bars:** Wing Purple (`#8B5CF6`) fill on midnight sapphire (`#002060`) track
 
 ### Integration with Social System
 

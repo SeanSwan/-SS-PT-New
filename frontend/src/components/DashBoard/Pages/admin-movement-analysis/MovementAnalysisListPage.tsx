@@ -43,7 +43,7 @@ const Title = styled.h1`
   align-items: center;
   gap: 10px;
   margin: 0;
-  svg { color: ${({ theme }) => theme.colors?.accent || '#00FFFF'}; }
+  svg { color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'}; }
 `;
 
 const NewButton = styled.button`
@@ -53,7 +53,7 @@ const NewButton = styled.button`
   padding: 12px 20px;
   border-radius: 12px;
   border: none;
-  background: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+  background: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   color: #000;
   font-size: 15px;
   font-weight: 600;
@@ -67,7 +67,7 @@ const SearchBar = styled.div`
   align-items: center;
   gap: 8px;
   background: rgba(0,0,0,0.3);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0,255,255,0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.2)'};
   border-radius: 12px;
   padding: 0 14px;
   margin-bottom: 20px;
@@ -95,8 +95,8 @@ const FilterRow = styled.div`
 const FilterChip = styled.button<{ $active: boolean }>`
   padding: 8px 16px;
   border-radius: 20px;
-  border: 1px solid ${({ $active, theme }) => $active ? (theme.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.15)'};
-  background: ${({ $active }) => $active ? 'rgba(0,255,255,0.15)' : 'transparent'};
+  border: 1px solid ${({ $active, theme }) => $active ? (theme.colors?.accent || '#8B5CF6') : 'rgba(255,255,255,0.15)'};
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246,0.15)' : 'transparent'};
   color: ${({ $active }) => $active ? '#fff' : 'rgba(255,255,255,0.6)'};
   font-size: 13px;
   cursor: pointer;
@@ -109,7 +109,7 @@ const FilterChip = styled.button<{ $active: boolean }>`
 const Table = styled.div`
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0,255,255,0.1)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.1)'};
 `;
 
 const TableRow = styled.div<{ $header?: boolean }>`
@@ -128,7 +128,7 @@ const TableRow = styled.div<{ $header?: boolean }>`
   cursor: ${({ $header }) => $header ? 'default' : 'pointer'};
   min-height: 44px;
   ${({ $header }) => !$header && `
-    &:hover { background: rgba(0,255,255,0.05); }
+    &:hover { background: rgba(139, 92, 246,0.05); }
   `}
 
   @media (max-width: 768px) {
@@ -149,12 +149,12 @@ const StatusBadge = styled.span<{ $status: string }>`
   background: ${({ $status }) =>
     $status === 'draft' ? 'rgba(255,184,51,0.15)' :
     $status === 'completed' ? 'rgba(34,197,94,0.15)' :
-    $status === 'linked' ? 'rgba(0,255,255,0.15)' :
+    $status === 'linked' ? 'rgba(139, 92, 246,0.15)' :
     'rgba(255,255,255,0.1)'};
   color: ${({ $status }) =>
     $status === 'draft' ? '#FFB833' :
     $status === 'completed' ? '#22C55E' :
-    $status === 'linked' ? '#00FFFF' :
+    $status === 'linked' ? '#8B5CF6' :
     'rgba(255,255,255,0.5)'};
 `;
 

@@ -137,7 +137,7 @@ const MarkAllReadButton = styled(Button)`
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case 'orientation':
-      return <ClipboardList size={20} style={{ color: '#00FFFF' }} />;
+      return <ClipboardList size={20} style={{ color: '#8B5CF6' }} />;
     case 'workout':
       return <Dumbbell size={20} style={{ color: '#00bf8f' }} />;
     case 'order':

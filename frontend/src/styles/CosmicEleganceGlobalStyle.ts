@@ -67,11 +67,11 @@ const cosmicFloat = keyframes`
 
 const stellarPulse = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), 0 0 40px rgba(120, 81, 169, 0.1);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(120, 81, 169, 0.1);
     transform: scale(1);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), 0 0 60px rgba(120, 81, 169, 0.2);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5), 0 0 60px rgba(120, 81, 169, 0.2);
     transform: scale(1.02);
   }
 `;
@@ -93,11 +93,11 @@ const galaxyShimmer = keyframes`
 const luxuryGlow = keyframes`
   0%, 100% { 
     filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3)) 
-            drop-shadow(0 0 20px rgba(0, 255, 255, 0.2));
+            drop-shadow(0 0 20px rgba(139, 92, 246, 0.2));
   }
   50% { 
     filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.5)) 
-            drop-shadow(0 0 30px rgba(0, 255, 255, 0.3));
+            drop-shadow(0 0 30px rgba(139, 92, 246, 0.3));
   }
 `;
 
@@ -157,7 +157,7 @@ const powerfulAnimations = css`
       90deg,
       transparent 0%,
       rgba(255, 255, 255, 0.1) 25%,
-      rgba(0, 255, 255, 0.2) 50%,
+      rgba(139, 92, 246, 0.2) 50%,
       rgba(255, 255, 255, 0.1) 75%,
       transparent 100%
     );
@@ -178,7 +178,7 @@ const powerfulAnimations = css`
       transform: translateY(-8px) scale(1.02);
       box-shadow: 
         0 20px 40px rgba(0, 0, 0, 0.3),
-        0 0 60px rgba(0, 255, 255, 0.4),
+        0 0 60px rgba(139, 92, 246, 0.4),
         0 0 100px rgba(120, 81, 169, 0.2);
       filter: brightness(1.1) saturate(1.2);
     }
@@ -252,7 +252,7 @@ const luxuryTypography = css`
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #00FFFF, #7851A9, #FFD700);
+    background: linear-gradient(135deg, #8B5CF6, #7851A9, #FFD700);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -281,9 +281,9 @@ const luxuryTypography = css`
   /* Luxury text effects */
   .text-glow {
     text-shadow: 
-      0 0 10px rgba(0, 255, 255, 0.5),
-      0 0 20px rgba(0, 255, 255, 0.3),
-      0 0 30px rgba(0, 255, 255, 0.1);
+      0 0 10px rgba(139, 92, 246, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.3),
+      0 0 30px rgba(139, 92, 246, 0.1);
   }
   
   .text-elegant {
@@ -314,7 +314,7 @@ const cosmicGlass = css`
     box-shadow: 
       0 12px 48px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 215, 0, 0.1),
-      0 0 60px rgba(0, 255, 255, 0.1);
+      0 0 60px rgba(139, 92, 246, 0.1);
   }
   
   .glass-minimal {
@@ -380,10 +380,10 @@ const luxuryComponents = css`
     position: relative;
     padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
     background: linear-gradient(135deg, 
-      rgba(0, 255, 255, 0.1), 
+      rgba(139, 92, 246, 0.1), 
       rgba(120, 81, 169, 0.2)
     );
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
     border-radius: 12px;
     color: white;
     font-weight: 500;
@@ -415,8 +415,8 @@ const luxuryComponents = css`
       transform: translateY(-2px);
       box-shadow: 
         0 8px 25px rgba(0, 0, 0, 0.3),
-        0 0 30px rgba(0, 255, 255, 0.3);
-      border-color: rgba(0, 255, 255, 0.5);
+        0 0 30px rgba(139, 92, 246, 0.3);
+      border-color: rgba(139, 92, 246, 0.5);
     }
     
     &:active {
@@ -435,10 +435,10 @@ const luxuryComponents = css`
     
     &:hover {
       transform: translateY(-4px);
-      border-color: rgba(0, 255, 255, 0.3);
+      border-color: rgba(139, 92, 246, 0.3);
       box-shadow: 
         0 12px 40px rgba(0, 0, 0, 0.3),
-        0 0 60px rgba(0, 255, 255, 0.2);
+        0 0 60px rgba(139, 92, 246, 0.2);
     }
   }
   
@@ -459,9 +459,9 @@ const luxuryComponents = css`
     
     &:focus {
       outline: none;
-      border-color: rgba(0, 255, 255, 0.6);
+      border-color: rgba(139, 92, 246, 0.6);
       box-shadow: 
-        0 0 0 3px rgba(0, 255, 255, 0.2),
+        0 0 0 3px rgba(139, 92, 246, 0.2),
         0 4px 20px rgba(0, 0, 0, 0.2);
       background: rgba(40, 40, 80, 0.6);
     }
@@ -480,7 +480,7 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
   /* === ROOT VARIABLES === */
   :root {
     /* Color System */
-    --cosmic-primary: #00FFFF;
+    --cosmic-primary: #8B5CF6;
     --cosmic-secondary: #7851A9;
     --cosmic-accent: #FFD700;
     --cosmic-background: #0a0a1a;
@@ -499,8 +499,8 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
     --radius-lg: clamp(12px, 2vw, 20px);
     
     /* Shadows */
-    --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 255, 255, 0.2);
-    --shadow-luxury: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 255, 255, 0.1);
+    --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(139, 92, 246, 0.2);
+    --shadow-luxury: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.1);
   }
   
   /* === BASE STYLES === */

@@ -32,13 +32,13 @@ const shimmer = keyframes`
 
 const pulseGlow = keyframes`
   0% {
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
   50% {
     box-shadow: 0 0 20px rgba(120, 81, 169, 0.5);
   }
   100% {
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -81,7 +81,7 @@ const TestimonialCard = styled(motion.div)`
     height: 4px;
     background: linear-gradient(
       90deg, 
-      rgba(0, 255, 255, 0.7), 
+      rgba(139, 92, 246, 0.7), 
       rgba(120, 81, 169, 0.7)
     );
     opacity: 0.8;
@@ -119,7 +119,7 @@ const ImageContainer = styled.div`
     border-radius: 50%;
     background: linear-gradient(
       45deg, 
-      rgba(0, 255, 255, 0.6), 
+      rgba(139, 92, 246, 0.6), 
       rgba(120, 81, 169, 0.6)
     );
     z-index: -1;
@@ -200,9 +200,9 @@ const Profession = styled.p`
     height: 1px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 0.8),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 0.8),
+      rgba(139, 92, 246, 0)
     );
   }
 `;
@@ -221,7 +221,7 @@ const TestimonialText = styled.p`
   &:before, &:after {
     font-family: 'Georgia', serif;
     font-size: 1.8rem;
-    color: rgba(0, 255, 255, 0.7);
+    color: rgba(139, 92, 246, 0.7);
     line-height: 0;
   }
   

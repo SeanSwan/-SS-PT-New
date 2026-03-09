@@ -46,7 +46,7 @@ const DashboardHeader = styled.div`
 const Title = styled.h1`
   font-size: 2rem;
   color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   margin: 0;
   
   @media (max-width: 768px) {
@@ -85,7 +85,7 @@ const Tab = styled.button<{ $isActive: boolean }>`
     color: #00ffff;
     
     &::after {
-      background: rgba(0, 255, 255, 0.5);
+      background: rgba(139, 92, 246, 0.5);
     }
   }
 `;
@@ -107,7 +107,7 @@ const ClientSelector = styled.select`
   
   &:hover, &:focus {
     border-color: #00ffff;
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
 `;
 

@@ -54,7 +54,7 @@ const Card = styled(motion.div)`
   position: relative;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -71,7 +71,7 @@ const Thumbnail = styled.div<{ $src?: string | null }>`
   background: ${p =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(0, 255, 255, 0.08) 100%)'};
+      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(139, 92, 246, 0.08) 100%)'};
 `;
 
 const DurationBadge = styled.span`
@@ -168,7 +168,7 @@ const VideoCatalogCard: React.FC<VideoCatalogCardProps> = ({ video, onClick }) =
 
   return (
     <Card
-      whileHover={{ scale: 1.02, boxShadow: '0 0 24px rgba(0, 255, 255, 0.15)' }}
+      whileHover={{ scale: 1.02, boxShadow: '0 0 24px rgba(139, 92, 246, 0.15)' }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onClick(video.id)}
       role="button"

@@ -43,12 +43,12 @@ const stellarFloat = keyframes`
 
 const cosmicPulse = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.4);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 50px rgba(255, 215, 0, 0.3);
-    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 50px rgba(255, 215, 0, 0.3);
+    border-color: rgba(139, 92, 246, 0.8);
   }
 `;
 
@@ -57,7 +57,7 @@ const StellarSection = styled(motion.div)`
   background: ${props => props.theme.gradients?.card || 'rgba(30, 30, 60, 0.4)'};
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   padding: 2rem;
   margin-bottom: 2rem;
   position: relative;
@@ -72,7 +72,7 @@ const StellarSection = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(2px 2px at 20% 30%, rgba(0, 255, 255, 0.4), transparent),
+      radial-gradient(2px 2px at 20% 30%, rgba(139, 92, 246, 0.4), transparent),
       radial-gradient(1px 1px at 40% 70%, rgba(255, 215, 0, 0.3), transparent),
       radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.2), transparent);
     background-size: 100px 80px;
@@ -107,7 +107,7 @@ const StellarSectionTitle = styled.h2`
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -155,7 +155,7 @@ const StatCard = styled(motion.div)<{ glowColor?: string }>`
     left: 0;
     right: 0;
     height: 3px;
-    background: ${props => props.glowColor || props.theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)'};
+    background: ${props => props.glowColor || props.theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #00A0E3)'};
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -185,9 +185,9 @@ const StatIcon = styled.div<{ color?: string }>`
   width: 60px;
   height: 60px;
   border-radius: 15px;
-  background: ${props => `${props.color || '#00FFFF'}15`};
-  border: 1px solid ${props => `${props.color || '#00FFFF'}30`};
-  color: ${props => props.color || '#00FFFF'};
+  background: ${props => `${props.color || '#8B5CF6'}15`};
+  border: 1px solid ${props => `${props.color || '#8B5CF6'}30`};
+  color: ${props => props.color || '#8B5CF6'};
   
   @media (max-width: 768px) {
     width: 50px;
@@ -234,7 +234,7 @@ const ContentGrid = styled.div`
 
 const ClientCard = styled(motion.div)`
   background: ${props => props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'};
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 12px;
   padding: 1.25rem;
   display: flex;
@@ -252,7 +252,7 @@ const ClientCard = styled(motion.div)`
     top: 0;
     width: 3px;
     height: 100%;
-    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -260,7 +260,7 @@ const ClientCard = styled(motion.div)`
   &:hover {
     background: ${props => props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'};
     transform: translateX(8px);
-    box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)'};
+    box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(139, 92, 246, 0.3)'};
     
     &::before {
       opacity: 1;
@@ -282,14 +282,14 @@ const ClientAvatar = styled.div`
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
   color: #000000;
   font-weight: 700;
   font-size: 1.1rem;
-  box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)'};
+  box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(139, 92, 246, 0.3)'};
   
   @media (max-width: 768px) {
     width: 45px;
@@ -373,14 +373,14 @@ const QuickClientRow = styled(motion.div)`
   gap: 12px;
   padding: 12px 16px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.06);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -388,7 +388,7 @@ const QAClientAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00FFFF, #7851A9);
+  background: linear-gradient(135deg, #8B5CF6, #7851A9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -423,10 +423,10 @@ const QuickGenButton = styled(motion.button)`
   gap: 6px;
   padding: 8px 14px;
   min-height: 44px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
-  color: #00FFFF;
+  color: #8B5CF6;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -434,9 +434,9 @@ const QuickGenButton = styled(motion.button)`
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(120, 81, 169, 0.25));
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(120, 81, 169, 0.25));
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -532,8 +532,8 @@ const TrainingOverview: React.FC = () => {
       </StellarSectionHeader>
 
       <StatsGrid>
-        <StatCard glowColor="#00FFFF" whileHover={{ scale: 1.02 }}>
-          <StatIcon color="#00FFFF">
+        <StatCard glowColor="#8B5CF6" whileHover={{ scale: 1.02 }}>
+          <StatIcon color="#8B5CF6">
             <Users size={24} />
           </StatIcon>
           <StatContent>
@@ -714,7 +714,7 @@ const ClientManagement: React.FC = () => {
         <div style={{ 
           position: 'relative',
           background: theme.background?.surface || 'rgba(30, 30, 60, 0.6)',
-          border: `1px solid ${theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'}`,
+          border: `1px solid ${theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'}`,
           borderRadius: '12px',
           padding: '0.75rem 1rem 0.75rem 3rem',
           transition: 'all 0.3s ease'
@@ -843,8 +843,8 @@ const ContentStudio: React.FC = () => {
           </StatContent>
         </StatCard>
         
-        <StatCard glowColor="#00FFFF" whileHover={{ scale: 1.02 }}>
-          <StatIcon color="#00FFFF">
+        <StatCard glowColor="#8B5CF6" whileHover={{ scale: 1.02 }}>
+          <StatIcon color="#8B5CF6">
             <Camera size={24} />
           </StatIcon>
           <StatContent>
@@ -968,7 +968,7 @@ const AssignedSessions: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'assigned': return theme.colors?.accent || '#FFD700';
-      case 'scheduled': return theme.colors?.primary || '#00FFFF';
+      case 'scheduled': return theme.colors?.primary || '#8B5CF6';
       case 'completed': return theme.colors?.success || '#00FF88';
       case 'cancelled': return theme.colors?.error || '#FF6B6B';
       default: return theme.colors?.white || '#ffffff';
@@ -993,7 +993,7 @@ const AssignedSessions: React.FC = () => {
           justifyContent: 'center',
           alignItems: 'center',
           height: '200px',
-          color: theme.colors?.primary || '#00FFFF'
+          color: theme.colors?.primary || '#8B5CF6'
         }}>
           <motion.div
             animate={{ rotate: 360 }}
@@ -1018,8 +1018,8 @@ const AssignedSessions: React.FC = () => {
         </StellarSectionTitle>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div style={{
-            background: `${theme.colors?.primary || '#00FFFF'}20`,
-            border: `1px solid ${theme.colors?.primary || '#00FFFF'}40`,
+            background: `${theme.colors?.primary || '#8B5CF6'}20`,
+            border: `1px solid ${theme.colors?.primary || '#8B5CF6'}40`,
             borderRadius: '8px',
             padding: '0.5rem 1rem',
             fontSize: '0.9rem'
@@ -1055,7 +1055,7 @@ const AssignedSessions: React.FC = () => {
             style={{
               background: `${theme.gradients?.card || 'rgba(30, 30, 60, 0.6)'}`,
               backdropFilter: 'blur(10px)',
-              border: `1px solid ${theme.borders?.elegant || 'rgba(0, 255, 255, 0.3)'}`,
+              border: `1px solid ${theme.borders?.elegant || 'rgba(139, 92, 246, 0.3)'}`,
               borderRadius: '16px',
               padding: '1.5rem',
               cursor: 'pointer',
@@ -1063,7 +1063,7 @@ const AssignedSessions: React.FC = () => {
             }}
             whileHover={{
               scale: 1.02,
-              boxShadow: `0 8px 32px ${theme.colors?.primary || '#00FFFF'}30`
+              boxShadow: `0 8px 32px ${theme.colors?.primary || '#8B5CF6'}30`
             }}
             onClick={() => setSelectedClient(clientAssignment)}
           >
@@ -1091,7 +1091,7 @@ const AssignedSessions: React.FC = () => {
                   {clientAssignment.client.email}
                 </p>
               </div>
-              <User size={24} color={theme.colors?.primary || '#00FFFF'} />
+              <User size={24} color={theme.colors?.primary || '#8B5CF6'} />
             </div>
             
             {/* Session Statistics */}
@@ -1125,8 +1125,8 @@ const AssignedSessions: React.FC = () => {
               </div>
               
               <div style={{
-                background: `${theme.colors?.primary || '#00FFFF'}15`,
-                border: `1px solid ${theme.colors?.primary || '#00FFFF'}30`,
+                background: `${theme.colors?.primary || '#8B5CF6'}15`,
+                border: `1px solid ${theme.colors?.primary || '#8B5CF6'}30`,
                 borderRadius: '8px',
                 padding: '0.75rem',
                 textAlign: 'center'
@@ -1134,7 +1134,7 @@ const AssignedSessions: React.FC = () => {
                 <div style={{
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: theme.colors?.primary || '#00FFFF',
+                  color: theme.colors?.primary || '#8B5CF6',
                   margin: '0 0 0.25rem 0'
                 }}>
                   {clientAssignment.scheduledSessions}
@@ -1199,7 +1199,7 @@ const AssignedSessions: React.FC = () => {
                 <div style={{
                   textAlign: 'center',
                   marginTop: '0.75rem',
-                  color: theme.colors?.primary || '#00FFFF',
+                  color: theme.colors?.primary || '#8B5CF6',
                   fontSize: '0.9rem',
                   opacity: 0.8
                 }}>
@@ -1219,7 +1219,7 @@ const AssignedSessions: React.FC = () => {
           position: 'relative',
           zIndex: 2
         }}>
-          <Users size={48} color={theme.colors?.primary || '#00FFFF'} style={{ marginBottom: '1rem' }} />
+          <Users size={48} color={theme.colors?.primary || '#8B5CF6'} style={{ marginBottom: '1rem' }} />
           <h3 style={{
             color: theme.colors?.white || '#ffffff',
             margin: '0 0 1rem 0'

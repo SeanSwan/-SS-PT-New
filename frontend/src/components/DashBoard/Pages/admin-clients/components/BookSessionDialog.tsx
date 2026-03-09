@@ -139,7 +139,7 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
       PaperProps={{
         style: {
           background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-          border: '1px solid rgba(0, 255, 255, 0.2)'
+          border: '1px solid rgba(139, 92, 246, 0.2)'
         }
       }}
     >

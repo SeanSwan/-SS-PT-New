@@ -201,14 +201,14 @@ const TimeLabel = styled.div`
 
 const AvailableCell = styled.div<{ $selected?: boolean }>`
   height: 24px;
-  background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.25)' : 'rgba(0, 255, 255, 0.08)'};
-  border: 1px solid ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.5)' : 'rgba(0, 255, 255, 0.15)'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.25)' : 'rgba(139, 92, 246, 0.08)'};
+  border: 1px solid ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.5)' : 'rgba(139, 92, 246, 0.15)'};
   cursor: pointer;
   transition: all 120ms ease-out;
   border-radius: 2px;
 
   &:hover {
-    background: ${({ $selected }) => $selected ? 'rgba(0, 255, 255, 0.35)' : 'rgba(0, 255, 255, 0.15)'};
+    background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.35)' : 'rgba(139, 92, 246, 0.15)'};
   }
 `;
 
@@ -218,6 +218,6 @@ const LegendSwatch = styled.span<{ $available?: boolean }>`
   height: 12px;
   margin-right: 8px;
   vertical-align: middle;
-  background: ${({ $available }) => $available ? 'rgba(0, 255, 255, 0.25)' : 'rgba(0, 255, 255, 0.08)'};
-  border: 1px solid ${({ $available }) => $available ? 'rgba(0, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.15)'};
+  background: ${({ $available }) => $available ? 'rgba(139, 92, 246, 0.25)' : 'rgba(139, 92, 246, 0.08)'};
+  border: 1px solid ${({ $available }) => $available ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255, 255, 255, 0.15)'};
 `;

@@ -34,7 +34,7 @@ interface FormState {
   isActive: boolean;
 }
 
-const DEFAULT_COLOR = '#00FFFF';
+const DEFAULT_COLOR = '#8B5CF6';
 
 const createEmptyForm = (): FormState => ({
   name: '',

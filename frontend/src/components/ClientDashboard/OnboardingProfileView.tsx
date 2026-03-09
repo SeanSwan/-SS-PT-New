@@ -64,11 +64,11 @@ const ProfileSection = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(8px);
   border-radius: 14px;
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   padding: 1.25rem;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 `;
 

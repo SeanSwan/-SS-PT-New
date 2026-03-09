@@ -222,8 +222,8 @@ const subtleFloat = keyframes`
 `;
 
 const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(0,255,255,0.1); }
-  50% { box-shadow: 0 0 40px rgba(0,255,255,0.25); }
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246,0.1); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246,0.25); }
 `;
 
 /* ═══════════════════════════════════════════════════════

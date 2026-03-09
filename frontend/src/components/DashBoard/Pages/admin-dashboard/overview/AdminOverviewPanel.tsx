@@ -227,7 +227,7 @@ const ControlsInner = styled.div`
 const CosmicSelect = styled.select`
   appearance: none;
   background: rgba(255, 255, 255, 0.03) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2300FFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 10px;
   color: #ffffff;
   padding: 10px 40px 10px 16px;
@@ -239,9 +239,9 @@ const CosmicSelect = styled.select`
   transition: all 0.2s ease;
 
   &:hover, &:focus {
-    background-color: rgba(0, 255, 255, 0.05);
-    border-color: #00FFFF;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+    background-color: rgba(139, 92, 246, 0.05);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
   }
 
   option {

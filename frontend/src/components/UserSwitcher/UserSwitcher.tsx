@@ -29,7 +29,7 @@ const Toggle = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
   transition: all 0.3s ease;
   
   &:hover {
@@ -72,7 +72,7 @@ const UserButton = styled.button<{ $active?: boolean }>`
   padding: 12px;
   margin-bottom: 8px;
   background: ${(props) => 
-    props.$active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)'
+    props.$active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)'
   };
   border: ${(props) => 
     props.$active ? '1px solid #00ffff' : '1px solid rgba(255, 255, 255, 0.1)'
@@ -83,7 +83,7 @@ const UserButton = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
   
   &:last-child {
@@ -126,8 +126,8 @@ const CloseButton = styled.button`
 `;
 
 const CurrentUser = styled.div`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 20px;

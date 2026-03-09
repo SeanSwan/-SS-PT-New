@@ -51,7 +51,7 @@ export const TopExercisesChart: React.FC<TopExercisesChartProps> = ({
               <Tooltip
                 contentStyle={{ 
                   backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                  border: '1px solid rgba(0, 255, 255, 0.3)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
                   color: 'white'
                 }}
               />

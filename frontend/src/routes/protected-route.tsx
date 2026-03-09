@@ -110,7 +110,7 @@ const RetryButton = styled.button`
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
   }
   
   &:active {

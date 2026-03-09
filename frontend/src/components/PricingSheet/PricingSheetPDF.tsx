@@ -27,7 +27,7 @@ const PrintStyles = createGlobalStyle`
 `;
 
 const SheetWrapper = styled.div`
-  background: radial-gradient(circle at top, rgba(0, 255, 255, 0.08), rgba(10, 10, 15, 0.95));
+  background: radial-gradient(circle at top, rgba(139, 92, 246, 0.08), rgba(10, 10, 15, 0.95));
   padding: 3rem;
   border-radius: 24px;
   color: #ffffff;

@@ -15,9 +15,9 @@ const fadeIn = keyframes`
 `;
 
 const glow = keyframes`
-  0% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
-  50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.8); }
-  100% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
+  0% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.8); }
+  100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
 `;
 
 const shimmer = keyframes`
@@ -47,7 +47,7 @@ const LogoContainer = styled(motion.div)`
 const LogoImage = styled.img`
   max-width: 200px;
   height: auto;
-  filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.6));
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.6));
 `;
 
 const SuccessCircle = styled(motion.div)`
@@ -91,7 +91,7 @@ const ConfirmationBox = styled(motion.div)`
   border-radius: 10px;
   padding: 1.5rem;
   margin: 2rem 0;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   width: 100%;
   max-width: 500px;
   animation: ${fadeIn} 1s ease-out forwards;
@@ -128,11 +128,11 @@ const StyledButton = styled.button`
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
   
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.8);
   }
 `;
 

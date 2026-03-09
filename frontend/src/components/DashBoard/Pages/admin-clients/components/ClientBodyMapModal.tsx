@@ -24,7 +24,7 @@ const WidePanel = styled.div`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
 `;

@@ -86,7 +86,7 @@ export const exerciseCommandTheme = {
     exerciseCardHover: '0 8px 30px rgba(30, 58, 138, 0.25)',
     uploadZone: '0 4px 15px rgba(99, 102, 241, 0.2)',
     uploadZoneActive: '0 8px 25px rgba(99, 102, 241, 0.4)',
-    achievementGlow: '0 0 20px rgba(0, 255, 255, 0.5)',
+    achievementGlow: '0 0 20px rgba(139, 92, 246, 0.5)',
     formValidation: '0 2px 10px rgba(16, 185, 129, 0.3)',
     videoPreview: '0 4px 20px rgba(139, 92, 246, 0.3)',
     

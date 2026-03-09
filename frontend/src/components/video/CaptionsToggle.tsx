@@ -16,15 +16,15 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   min-width: 44px;
   border: 1px solid ${({ $active }) => ($active ? '#00ffff' : 'rgba(255,255,255,0.2)')};
   border-radius: 8px;
-  background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.15)' : 'rgba(255,255,255,0.05)')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.15)' : 'rgba(255,255,255,0.05)')};
   color: ${({ $active }) => ($active ? '#00ffff' : 'rgba(255,255,255,0.7)')};
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 
   svg {

@@ -346,7 +346,7 @@ const LoadingWrap = styled.div`
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
+  border: 3px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
@@ -477,7 +477,7 @@ const SearchBar = styled.div`
   align-items: center;
   gap: 12px;
   background: rgba(10, 14, 26, 0.8);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -503,7 +503,7 @@ const FilterToggle = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 6px;
-  background: ${(p) => (p.$active ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
   border: 1px solid ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.15)')};
   color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.5)')};
   border-radius: 8px;
@@ -530,7 +530,7 @@ const FilterPanel = styled.div`
   align-items: flex-end;
   padding: 16px;
   background: rgba(10, 14, 26, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   border-radius: 12px;
   margin-bottom: 24px;
   overflow: hidden;
@@ -630,7 +630,7 @@ const ThumbPlaceholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0, 255, 255, 0.25);
+  color: rgba(139, 92, 246, 0.25);
 `;
 
 const PlayOverlay = styled.div`
@@ -687,9 +687,9 @@ const TagChip = styled.span`
   align-items: center;
   gap: 3px;
   font-size: 11px;
-  color: rgba(0, 255, 255, 0.8);
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  color: rgba(139, 92, 246, 0.8);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 6px;
   padding: 3px 8px;
 `;
@@ -708,7 +708,7 @@ const PageBtn = styled.button<{ $active: boolean }>`
   min-height: 44px;
   border-radius: 8px;
   border: 1px solid ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.15)')};
-  background: ${(p) => (p.$active ? 'rgba(0, 255, 255, 0.12)' : 'transparent')};
+  background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.12)' : 'transparent')};
   color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.5)')};
   font-size: 14px;
   font-weight: 600;

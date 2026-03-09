@@ -33,6 +33,11 @@ const swanColors = {
   swanGold: '#C6A84B',         // Gilded Fern
   swanRose: '#D8C478',         // Light gold
   swanSage: '#B8963A',         // Deep gold
+
+  // Wing Purple Accent (from logo option 8 — purple wing gradient)
+  wingPurple: '#8B5CF6',       // Electric Violet — glow accent
+  wingPurpleDeep: '#7C3AED',   // Deep wing purple
+  wingPurpleLight: '#A78BFA',  // Light wing purple
 };
 
 // Foundation Colors (Midnight Sapphire / Royal Depth)
@@ -105,6 +110,11 @@ export const galaxySwanTheme = {
     gold: swanColors.swanGold,          // #C6A84B — Gilded Fern
     rose: swanColors.swanRose,          // #D8C478
     sage: swanColors.swanSage,          // #B8963A
+
+    // Wing Purple (logo glow accent)
+    wingPurple: swanColors.wingPurple,       // #8B5CF6
+    wingPurpleDeep: swanColors.wingPurpleDeep,   // #7C3AED
+    wingPurpleLight: swanColors.wingPurpleLight, // #A78BFA
   },
 
   // === GALAXY FOUNDATION COLORS ===
@@ -240,7 +250,7 @@ export const galaxySwanTheme = {
     panel: {
       background: 'rgba(10, 10, 26, 0.4)',
       backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(0, 255, 255, 0.15)',
+      border: '1px solid rgba(139, 92, 246, 0.15)',
       borderRadius: '24px',
       boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
     },
@@ -304,6 +314,17 @@ export const galaxySwanTheme = {
       shineRight: "rgba(96, 144, 208, 0.65)",
       glowStart: "#4070C0",
       glowEnd: "#50A0F0",
+    },
+
+    // Wing Purple theme (logo-matched glow accent)
+    wingPurple: {
+      background: "#0F0720",
+      color: "#E0ECF4",
+      shadow: "rgba(139, 92, 246, 0.3)",
+      shineLeft: "rgba(139, 92, 246, 0.5)",
+      shineRight: "rgba(167, 139, 250, 0.65)",
+      glowStart: "#8B5CF6",
+      glowEnd: "#A78BFA",
     },
 
     // Keep existing themes for compatibility
@@ -431,11 +452,12 @@ export default galaxySwanTheme;
  * Maps Crystalline Swan theme to GlowButton component themes
  * ICE WING = PRIMARY, SWAN LAVENDER = SECONDARY
  */
-export const getGlowButtonTheme = (variant: 'primary' | 'secondary' | 'purple' | 'emerald' | 'ruby' | 'cosmic' = 'primary') => {
+export const getGlowButtonTheme = (variant: 'primary' | 'secondary' | 'purple' | 'wingPurple' | 'emerald' | 'ruby' | 'cosmic' = 'primary') => {
   const themeMap = {
     primary: galaxySwanTheme.glowButton.primary,
     secondary: galaxySwanTheme.glowButton.purple,
     purple: galaxySwanTheme.glowButton.purple,
+    wingPurple: galaxySwanTheme.glowButton.wingPurple,
     emerald: galaxySwanTheme.glowButton.emerald,
     ruby: galaxySwanTheme.glowButton.ruby,
     cosmic: galaxySwanTheme.glowButton.cosmic,

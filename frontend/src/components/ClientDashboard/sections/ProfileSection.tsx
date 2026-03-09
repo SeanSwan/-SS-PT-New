@@ -112,7 +112,7 @@ const StyledInput = styled.input`
   font-size: 0.875rem;
   transition: border-color 0.2s ease;
 
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const StyledTextarea = styled.textarea`
@@ -128,7 +128,7 @@ const StyledTextarea = styled.textarea`
   resize: vertical;
   transition: border-color 0.2s ease;
 
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const InterestTags = styled.div`
@@ -143,7 +143,7 @@ const InterestChip = styled.span`
   gap: 4px;
   padding: 4px 12px;
   border-radius: 16px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   color: #00ffff;
   font-size: 0.8125rem;
 `;
@@ -151,7 +151,7 @@ const InterestChip = styled.span`
 const ChipDeleteBtn = styled.button`
   background: none;
   border: none;
-  color: rgba(0, 255, 255, 0.6);
+  color: rgba(139, 92, 246, 0.6);
   cursor: pointer;
   padding: 0;
   display: flex;

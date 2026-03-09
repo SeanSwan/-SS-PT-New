@@ -433,7 +433,7 @@ const VideoCard = styled.div`
 
   &:hover {
     transform: translateY(-4px);
-    border-color: rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.2);
     box-shadow: ${({ theme }) => theme.shadows.elevation};
   }
 `;

@@ -118,7 +118,7 @@ const DarkPanel = styled.div`
 const SectionTitle = styled.h2`
   font-size: 1.4rem;
   font-weight: 700;
-  color: #00FFFF;
+  color: #8B5CF6;
   margin: 0 0 16px 0;
 `;
 
@@ -232,8 +232,8 @@ const StyledInput = styled.input<{ $hasAdornment?: boolean }>`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #00FFFF;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &:disabled {
@@ -280,7 +280,7 @@ const DropdownList = styled.div`
   max-height: 200px;
   overflow-y: auto;
   background: rgba(20, 27, 40, 0.98);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 0 0 8px 8px;
   z-index: 50;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -292,11 +292,11 @@ const DropdownItem = styled.div<{ $highlighted?: boolean }>`
   color: rgba(255, 255, 255, 0.85);
   font-size: 0.95rem;
   background: ${({ $highlighted }) =>
-    $highlighted ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+    $highlighted ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 `;
 
@@ -309,8 +309,8 @@ const OutlinedButton = styled.button`
   padding: 10px 20px;
   min-height: 44px;
   background: transparent;
-  color: #00FFFF;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  color: #8B5CF6;
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 500;
@@ -319,8 +319,8 @@ const OutlinedButton = styled.button`
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    background: rgba(0, 255, 255, 0.08);
-    border-color: #00FFFF;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: #8B5CF6;
   }
 
   &:disabled {
@@ -359,9 +359,9 @@ const UploadZone = styled.label`
   width: 100%;
   min-height: 120px;
   height: 100%;
-  border: 2px dashed rgba(0, 255, 255, 0.3);
+  border: 2px dashed rgba(139, 92, 246, 0.3);
   border-radius: 8px;
-  color: rgba(0, 255, 255, 0.7);
+  color: rgba(139, 92, 246, 0.7);
   background: transparent;
   cursor: pointer;
   font-size: 0.9rem;
@@ -369,8 +369,8 @@ const UploadZone = styled.label`
   box-sizing: border-box;
 
   &:hover {
-    border-color: #00FFFF;
-    background: rgba(0, 255, 255, 0.04);
+    border-color: #8B5CF6;
+    background: rgba(139, 92, 246, 0.04);
   }
 `;
 
@@ -414,7 +414,7 @@ const MeasurementListItem = styled.li`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
+    background: rgba(139, 92, 246, 0.06);
   }
 
   &:last-child {
@@ -441,8 +441,8 @@ const ListSecondary = styled.span`
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(0, 255, 255, 0.15);
-  border-top-color: #00FFFF;
+  border: 3px solid rgba(139, 92, 246, 0.15);
+  border-top-color: #8B5CF6;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   margin: 24px auto;
@@ -489,14 +489,14 @@ const ModalOverlay = styled(motion.div)`
 
 const ModalContent = styled(motion.div)`
   background: rgba(15, 23, 42, 0.98);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   width: 100%;
   max-width: 720px;
   max-height: 85vh;
   overflow-y: auto;
   padding: 24px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 255, 0.05);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.05);
 `;
 
 const ModalHeader = styled.div`
@@ -597,7 +597,7 @@ const HeroMetricCard = styled(motion.div)<{ $positive?: boolean }>`
   backdrop-filter: blur(12px);
   border-radius: 16px;
   border: 1px solid ${({ $positive }) =>
-    $positive ? 'rgba(76, 175, 80, 0.3)' : 'rgba(0, 255, 255, 0.15)'};
+    $positive ? 'rgba(76, 175, 80, 0.3)' : 'rgba(139, 92, 246, 0.15)'};
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -609,7 +609,7 @@ const HeroMetricCard = styled(motion.div)<{ $positive?: boolean }>`
     background: ${({ $positive }) =>
       $positive
         ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, transparent 60%)'
-        : 'linear-gradient(135deg, rgba(0, 255, 255, 0.06) 0%, transparent 60%)'};
+        : 'linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, transparent 60%)'};
     pointer-events: none;
   }
 `;
@@ -625,7 +625,7 @@ const HeroMetricLabel = styled.div`
 const HeroMetricValue = styled.div<{ $positive?: boolean }>`
   font-size: 1.8rem;
   font-weight: 700;
-  color: ${({ $positive }) => ($positive ? '#4caf50' : '#00FFFF')};
+  color: ${({ $positive }) => ($positive ? '#4caf50' : '#8B5CF6')};
   line-height: 1.2;
 
   @media (min-width: 768px) {
@@ -648,8 +648,8 @@ const HeroMetricIcon = styled.div<{ $positive?: boolean }>`
   height: 36px;
   border-radius: 10px;
   background: ${({ $positive }) =>
-    $positive ? 'rgba(76, 175, 80, 0.15)' : 'rgba(0, 255, 255, 0.1)'};
-  color: ${({ $positive }) => ($positive ? '#4caf50' : '#00FFFF')};
+    $positive ? 'rgba(76, 175, 80, 0.15)' : 'rgba(139, 92, 246, 0.1)'};
+  color: ${({ $positive }) => ($positive ? '#4caf50' : '#8B5CF6')};
   margin-bottom: 8px;
 `;
 
@@ -693,10 +693,10 @@ const ChartRow = styled.div`
 
 const CustomTooltipBox = styled.div`
   background: rgba(10, 10, 26, 0.95);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   padding: 12px 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(139, 92, 246, 0.05);
 
   .tooltip-label {
     font-size: 0.82rem;
@@ -1190,8 +1190,8 @@ const MeasurementEntry: React.FC = () => {
                       <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="gradCyan" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#00FFFF" stopOpacity={0.35} />
-                            <stop offset="100%" stopColor="#00FFFF" stopOpacity={0.02} />
+                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                           </linearGradient>
                           <linearGradient id="gradPurple" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#7851A9" stopOpacity={0.3} />
@@ -1244,11 +1244,11 @@ const MeasurementEntry: React.FC = () => {
                           type="monotone"
                           dataKey="weight"
                           name="Weight (lbs)"
-                          stroke="#00FFFF"
+                          stroke="#8B5CF6"
                           strokeWidth={2.5}
                           fill="url(#gradCyan)"
-                          dot={{ fill: '#00FFFF', r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, fill: '#00FFFF', stroke: '#0a0a1a', strokeWidth: 2 }}
+                          dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
+                          activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#0a0a1a', strokeWidth: 2 }}
                           connectNulls
                         />
                         <Area
@@ -1299,8 +1299,8 @@ const MeasurementEntry: React.FC = () => {
                           <Radar
                             name="First"
                             dataKey="first"
-                            stroke="#00FFFF"
-                            fill="#00FFFF"
+                            stroke="#8B5CF6"
+                            fill="#8B5CF6"
                             fillOpacity={0.1}
                             strokeWidth={2}
                           />
@@ -1326,8 +1326,8 @@ const MeasurementEntry: React.FC = () => {
               {stats && (
                 <FlexRow $gap={24} style={{ justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                   <BodyText>
-                    <span style={{ color: '#00FFFF' }}>{stats.totalMeasurements}</span> measurements over{' '}
-                    <span style={{ color: '#00FFFF' }}>{stats.daysSinceStart}</span> days
+                    <span style={{ color: '#8B5CF6' }}>{stats.totalMeasurements}</span> measurements over{' '}
+                    <span style={{ color: '#8B5CF6' }}>{stats.daysSinceStart}</span> days
                   </BodyText>
                 </FlexRow>
               )}

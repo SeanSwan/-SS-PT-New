@@ -339,7 +339,7 @@ const StatusIndicator = styled(motion.div)<{ $status: string }>`
         `;
       default:
         return css`
-          background: rgba(0, 255, 255, 0.2);
+          background: rgba(139, 92, 246, 0.2);
           color: #00ffff;
           border: 1px solid #00ffff;
         `;

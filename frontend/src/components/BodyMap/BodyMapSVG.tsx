@@ -49,7 +49,7 @@ const MapContainer = styled.div`
 
 const ViewPanel = styled.div`
   background: ${({ theme }) => theme.background?.card || 'rgba(10, 10, 26, 0.6)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.15)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.15)'};
   border-radius: 16px;
   backdrop-filter: blur(12px);
   padding: 10px;
@@ -76,7 +76,7 @@ const ViewPanel = styled.div`
 `;
 
 const ViewLabel = styled.h4`
-  color: ${({ theme }) => theme.colors?.accent || 'rgba(0, 255, 255, 0.8)'};
+  color: ${({ theme }) => theme.colors?.accent || 'rgba(139, 92, 246, 0.8)'};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
@@ -130,13 +130,13 @@ interface RegionEllipseProps {
 
 const RegionEllipse = styled.ellipse<RegionEllipseProps>`
   fill: ${({ $isActive, $severityColor }) =>
-    $isActive && $severityColor ? `${$severityColor}33` : 'rgba(0, 255, 255, 0.03)'};
+    $isActive && $severityColor ? `${$severityColor}33` : 'rgba(139, 92, 246, 0.03)'};
   stroke: ${({ $isActive, $isSelected, $severityColor, theme }) =>
     $isSelected
-      ? (theme?.colors?.accent || '#00FFFF')
+      ? (theme?.colors?.accent || '#8B5CF6')
       : $isActive && $severityColor
         ? $severityColor
-        : 'rgba(0, 255, 255, 0.12)'};
+        : 'rgba(139, 92, 246, 0.12)'};
   stroke-width: ${({ $isSelected }) => ($isSelected ? 2.5 : 1)};
   cursor: pointer;
   transition: fill 0.2s, stroke 0.2s, stroke-width 0.15s;
@@ -148,8 +148,8 @@ const RegionEllipse = styled.ellipse<RegionEllipseProps>`
     `}
 
   &:hover {
-    fill: rgba(0, 255, 255, 0.15);
-    stroke: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
+    fill: rgba(139, 92, 246, 0.15);
+    stroke: ${({ theme }) => theme?.colors?.accent || '#8B5CF6'};
     stroke-width: 2;
   }
 `;
@@ -163,7 +163,7 @@ const PainDot = styled.circle<{ $color: string }>`
 // ── Body outline SVG paths ──────────────────────────────────────────────
 
 const BodyOutlineFront: React.FC = () => (
-  <g stroke="rgba(0,255,255,0.25)" strokeWidth="1" fill="none">
+  <g stroke="rgba(139, 92, 246,0.25)" strokeWidth="1" fill="none">
     {/* Head */}
     <ellipse cx="100" cy="28" rx="16" ry="20" />
     {/* Neck */}
@@ -184,7 +184,7 @@ const BodyOutlineFront: React.FC = () => (
 );
 
 const BodyOutlineBack: React.FC = () => (
-  <g stroke="rgba(0,255,255,0.25)" strokeWidth="1" fill="none">
+  <g stroke="rgba(139, 92, 246,0.25)" strokeWidth="1" fill="none">
     {/* Head */}
     <ellipse cx="100" cy="28" rx="16" ry="20" />
     {/* Neck */}

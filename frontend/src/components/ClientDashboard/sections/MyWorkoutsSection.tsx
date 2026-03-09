@@ -91,7 +91,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 48px;
   padding: 12px 16px;
   border: none;
-  background: ${({ $active }) => ($active ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
   color: ${({ $active }) => ($active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
   font-size: 0.875rem;
   font-weight: 600;
@@ -100,7 +100,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   border-bottom: 2px solid ${({ $active }) => ($active ? '#00ffff' : 'transparent')};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
+    background: rgba(139, 92, 246, 0.06);
     color: #00ffff;
   }
 `;
@@ -149,7 +149,7 @@ const CardFooter = styled.div`
 const Surface = styled.div<{ $highlight?: boolean; $centered?: boolean }>`
   background: ${({ $highlight }) =>
     $highlight
-      ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%)'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%)'
       : 'rgba(29, 31, 43, 0.8)'};
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -203,7 +203,7 @@ const OutlinedButton = styled.button`
   transition: background 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 `;
 
@@ -231,7 +231,7 @@ const TextButton = styled.button<{ $color?: string }>`
 /* ── Chip ─────────────────────────────────────────────────────── */
 
 const chipColorMap: Record<string, { bg: string; text: string; border: string }> = {
-  Strength: { bg: 'rgba(0, 255, 255, 0.12)', text: '#00ffff', border: 'rgba(0, 255, 255, 0.3)' },
+  Strength: { bg: 'rgba(139, 92, 246, 0.12)', text: '#00ffff', border: 'rgba(139, 92, 246, 0.3)' },
   Cardio: { bg: 'rgba(255, 82, 82, 0.12)', text: '#ff5252', border: 'rgba(255, 82, 82, 0.3)' },
   Dance: { bg: 'rgba(120, 81, 169, 0.15)', text: '#b388ff', border: 'rgba(120, 81, 169, 0.3)' },
   success: { bg: 'transparent', text: '#66bb6a', border: 'rgba(102, 187, 106, 0.5)' }

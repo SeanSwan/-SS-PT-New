@@ -30,10 +30,10 @@ import { StatsGrid, StatCard } from './TrainerStats-optimized';
 // === PERFORMANCE-OPTIMIZED ANIMATIONS ===
 const analyticsGlow = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.4), 0 0 50px rgba(255, 215, 0, 0.2);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.4), 0 0 50px rgba(255, 215, 0, 0.2);
   }
 `;
 
@@ -57,7 +57,7 @@ const QuickActions = styled(motion.div)`
 
 const ActionCard = styled(motion.div)`
   background: ${props => props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'};
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
@@ -73,7 +73,7 @@ const ActionCard = styled(motion.div)`
     left: 0;
     right: 0;
     height: 3px;
-    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
     transform: scaleX(0);
     transition: transform 0.3s ease;
   }
@@ -100,7 +100,7 @@ const ActionIcon = styled.div`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: ${props => props.theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)'};
+  background: ${props => props.theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #00A0E3)'};
   margin: 0 auto 1rem;
   color: #000000;
   
@@ -130,7 +130,7 @@ const trainingStats = [
     icon: Users,
     value: '24',
     label: 'Active Clients',
-    color: '#00FFFF',
+    color: '#8B5CF6',
     trend: '+3 this week'
   },
   {

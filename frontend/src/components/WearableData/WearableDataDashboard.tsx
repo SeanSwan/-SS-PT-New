@@ -30,7 +30,7 @@ const C = {
   stellarWhite: '#f0f0ff',
   cyberBlue: '#00d4ff',
   cosmicPurple: '#7851A9',
-  swanCyan: '#00FFFF',
+  swanCyan: '#8B5CF6',
   mutedText: '#8892b0',
   successGreen: '#10b981',
   dangerRed: '#ef4444',

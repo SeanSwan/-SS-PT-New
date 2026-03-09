@@ -211,7 +211,7 @@ const GlassPanel = styled.div`
   &:hover {
     background-color: ${theme.glassHover};
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 12px 40px rgba(139, 92, 246, 0.15);
   }
 `;
 
@@ -528,7 +528,7 @@ const ThinProgressFill = styled.div<{ $value: number; $color: string }>`
 const Spinner = styled.div<{ $size?: number }>`
   width: ${({ $size }) => $size || 40}px;
   height: ${({ $size }) => $size || 40}px;
-  border: 3px solid rgba(0, 255, 255, 0.15);
+  border: 3px solid rgba(139, 92, 246, 0.15);
   border-top-color: ${theme.cyan};
   border-radius: 50%;
   animation: ${spinAnim} 0.8s linear infinite;
@@ -562,7 +562,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   &:hover {
     color: ${theme.cyan};
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 `;
 
@@ -767,7 +767,7 @@ const FABMain = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
   transition: all 0.2s ease;
   &:hover {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
@@ -1225,7 +1225,7 @@ const AIMonitoringPanel: React.FC = () => {
                     <ReTooltip
                       contentStyle={{
                         backgroundColor: '#1d1f2b',
-                        border: '1px solid rgba(0, 255, 255, 0.3)',
+                        border: '1px solid rgba(139, 92, 246, 0.3)',
                         borderRadius: 8
                       }}
                     />
@@ -1515,7 +1515,7 @@ const AIMonitoringPanel: React.FC = () => {
                   <ReTooltip
                     contentStyle={{
                       backgroundColor: '#1d1f2b',
-                      border: '1px solid rgba(0, 255, 255, 0.3)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
                       borderRadius: 8
                     }}
                   />
@@ -1561,7 +1561,7 @@ const AIMonitoringPanel: React.FC = () => {
                   <ReTooltip
                     contentStyle={{
                       backgroundColor: '#1d1f2b',
-                      border: '1px solid rgba(0, 255, 255, 0.3)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
                       borderRadius: 8
                     }}
                   />

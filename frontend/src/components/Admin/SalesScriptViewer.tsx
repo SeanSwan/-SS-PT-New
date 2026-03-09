@@ -216,9 +216,9 @@ const Badge = styled.span`
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #00ffff;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 const CopyStatus = styled.span`

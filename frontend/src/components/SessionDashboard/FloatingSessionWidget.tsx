@@ -36,10 +36,10 @@ const WidgetContainer = styled.div.withConfig({
   bottom: 20px;
   right: 20px;
   z-index: 9999;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(0, 128, 255, 0.95));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(0, 128, 255, 0.95));
   border-radius: ${({ $isExpanded }) => $isExpanded ? '20px' : '50px'};
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  border: 2px solid rgba(139, 92, 246, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -62,7 +62,7 @@ const WidgetContainer = styled.div.withConfig({
   
   &:hover {
     transform: ${({ $isExpanded }) => $isExpanded ? 'none' : 'scale(1.1)'};
-    box-shadow: 0 12px 40px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 12px 40px rgba(139, 92, 246, 0.4);
   }
 
   &:active {
@@ -197,7 +197,7 @@ const StatusIndicator = styled.div<{ $status: string }>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 255, 255, 0.8);
+  border: 2px solid rgba(139, 92, 246, 0.8);
   
   background: ${props => {
     switch (props.$status) {

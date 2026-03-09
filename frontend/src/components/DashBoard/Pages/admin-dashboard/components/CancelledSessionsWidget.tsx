@@ -802,7 +802,7 @@ const ChargeButton = styled.button<{ $variant: 'fee' | 'full' }>`
     color: #0a0a1a;
     &:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 255, 255, 0.4);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
     }
   `}
 

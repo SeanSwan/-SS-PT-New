@@ -361,7 +361,7 @@ const TabButton = styled.button`
   
   &:hover {
     color: #00ffff;
-    background-color: rgba(0, 255, 255, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
   }
 `;
 

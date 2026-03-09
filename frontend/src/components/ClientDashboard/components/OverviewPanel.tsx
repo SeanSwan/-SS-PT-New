@@ -40,7 +40,7 @@ const PanelContainer = styled.div`
     margin-bottom: 1.5rem;
     font-size: 1.4rem;
     text-align: center;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
 
   @media (max-width: 768px) {

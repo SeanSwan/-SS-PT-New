@@ -51,7 +51,7 @@ const Title = styled.h1`
   align-items: center;
   gap: 10px;
   margin: 0;
-  svg { color: ${({ theme }) => theme.colors?.accent || '#00FFFF'}; }
+  svg { color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'}; }
   ${device.md} { font-size: 24px; }
 `;
 
@@ -80,8 +80,8 @@ const ProgressStep = styled.div<{ $active: boolean; $completed: boolean }>`
   height: 6px;
   border-radius: 3px;
   background: ${({ $active, $completed, theme }) =>
-    $active ? (theme.colors?.accent || '#00FFFF') :
-    $completed ? (theme.colors?.accent || '#00FFFF') + '88' :
+    $active ? (theme.colors?.accent || '#8B5CF6') :
+    $completed ? (theme.colors?.accent || '#8B5CF6') + '88' :
     'rgba(255,255,255,0.1)'};
   transition: background 0.3s;
 `;
@@ -93,14 +93,14 @@ const StepLabel = styled.div`
   margin-bottom: 20px;
   font-size: 13px;
   color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.5)'};
-  svg { color: ${({ theme }) => theme.colors?.accent || '#00FFFF'}; }
+  svg { color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'}; }
 `;
 
 const Card = styled.div`
   background: ${({ theme }) => theme.background?.card || 'rgba(30, 41, 59, 0.6)'};
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0,255,255,0.1)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.1)'};
   margin-bottom: 20px;
   ${device.md} { padding: 24px; }
 `;
@@ -136,21 +136,21 @@ const Label = styled.label`
 const Input = styled.input`
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0,255,255,0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.2)'};
   background: rgba(0,0,0,0.3);
   color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 15px;
   min-height: 44px;
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   }
 `;
 
 const TextArea = styled.textarea`
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0,255,255,0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.2)'};
   background: rgba(0,0,0,0.3);
   color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 15px;
@@ -159,7 +159,7 @@ const TextArea = styled.textarea`
   font-family: inherit;
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   }
 `;
 
@@ -167,7 +167,7 @@ const SegmentedControl = styled.div`
   display: flex;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0,255,255,0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.2)'};
 `;
 
 const SegmentedButton = styled.button<{ $active: boolean; $variant?: string }>`
@@ -185,7 +185,7 @@ const SegmentedButton = styled.button<{ $active: boolean; $variant?: string }>`
        $variant === 'minor' ? 'rgba(255,184,51,0.6)' :
        $variant === 'pass' ? 'rgba(34,197,94,0.5)' :
        $variant === 'fail' ? 'rgba(255,50,50,0.5)' :
-       'rgba(0,255,255,0.3)') :
+       'rgba(139, 92, 246,0.3)') :
     'rgba(0,0,0,0.2)'};
   color: ${({ $active }) => $active ? '#fff' : 'rgba(255,255,255,0.5)'};
   &:hover { background: ${({ $active }) => $active ? undefined : 'rgba(255,255,255,0.1)'}; }
@@ -201,9 +201,9 @@ const Chip = styled.button<{ $selected: boolean }>`
   padding: 8px 14px;
   border-radius: 20px;
   border: 1px solid ${({ $selected, theme }) =>
-    $selected ? (theme.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.15)'};
+    $selected ? (theme.colors?.accent || '#8B5CF6') : 'rgba(255,255,255,0.15)'};
   background: ${({ $selected }) =>
-    $selected ? 'rgba(0,255,255,0.15)' : 'rgba(0,0,0,0.2)'};
+    $selected ? 'rgba(139, 92, 246,0.15)' : 'rgba(0,0,0,0.2)'};
   color: ${({ $selected }) => $selected ? '#fff' : 'rgba(255,255,255,0.6)'};
   font-size: 13px;
   cursor: pointer;
@@ -211,7 +211,7 @@ const Chip = styled.button<{ $selected: boolean }>`
   display: flex;
   align-items: center;
   transition: all 0.2s;
-  &:hover { border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'}; }
+  &:hover { border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'}; }
 `;
 
 const ToggleRow = styled.div<{ $flagged?: boolean }>`
@@ -271,8 +271,8 @@ const NavButton = styled.button<{ $primary?: boolean }>`
   gap: 8px;
   padding: 12px 24px;
   border-radius: 12px;
-  border: 1px solid ${({ $primary, theme }) => $primary ? 'transparent' : (theme.borders?.subtle || 'rgba(0,255,255,0.2)')};
-  background: ${({ $primary, theme }) => $primary ? (theme.colors?.accent || '#00FFFF') : 'rgba(0,0,0,0.3)'};
+  border: 1px solid ${({ $primary, theme }) => $primary ? 'transparent' : (theme.borders?.subtle || 'rgba(139, 92, 246,0.2)')};
+  background: ${({ $primary, theme }) => $primary ? (theme.colors?.accent || '#8B5CF6') : 'rgba(0,0,0,0.3)'};
   color: ${({ $primary }) => $primary ? '#000' : '#fff'};
   font-size: 15px;
   font-weight: 600;
@@ -349,8 +349,8 @@ const StatusMessage = styled.div`
   text-align: center;
   padding: 12px;
   border-radius: 10px;
-  background: rgba(0,255,255,0.1);
-  color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+  background: rgba(139, 92, 246,0.1);
+  color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   font-size: 14px;
   margin-bottom: 16px;
 `;

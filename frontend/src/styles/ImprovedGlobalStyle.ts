@@ -19,7 +19,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
   :focus-visible {
     outline: 3px solid #00ffff;
     outline-offset: 3px;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5);
   }
   
   /* Base HTML/Body styling with smooth scrolling */
@@ -177,8 +177,8 @@ const ImprovedGlobalStyle = createGlobalStyle`
     border-color: rgba(255, 255, 255, 0.2) !important;
     
     &:focus-within {
-      border-color: rgba(0, 255, 255, 0.6) !important;
-      box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.3) !important;
+      border-color: rgba(139, 92, 246, 0.6) !important;
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3) !important;
     }
   }
 
@@ -225,7 +225,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
     }
     
     &:focus-visible {
-      outline: 3px solid rgba(0, 255, 255, 0.5) !important;
+      outline: 3px solid rgba(139, 92, 246, 0.5) !important;
       outline-offset: -2px !important;
     }
   }

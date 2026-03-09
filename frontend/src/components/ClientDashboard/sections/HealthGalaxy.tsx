@@ -46,7 +46,7 @@ const Title = styled.h2`
   gap: 10px;
 
   svg {
-    color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   }
 `;
 
@@ -62,13 +62,13 @@ const InfoCard = styled.div`
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: ${({ theme }) => theme.background?.card || 'rgba(0, 255, 255, 0.05)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.1)'};
+  background: ${({ theme }) => theme.background?.card || 'rgba(139, 92, 246, 0.05)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.1)'};
   border-radius: 12px;
   margin-bottom: 24px;
 
   svg {
-    color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     flex-shrink: 0;
     margin-top: 2px;
   }

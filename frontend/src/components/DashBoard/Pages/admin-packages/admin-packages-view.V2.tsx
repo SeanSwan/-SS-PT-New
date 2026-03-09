@@ -90,7 +90,7 @@ const PackagePrice = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
   color: ${STORE_TOKENS.color.cyan};
-  text-shadow: 0 0 20px rgba(0,255,255,0.3);
+  text-shadow: 0 0 20px rgba(139, 92, 246,0.3);
 `;
 
 const PackageDetail = styled.div`
@@ -185,7 +185,7 @@ const FormInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${STORE_TOKENS.color.cyan};
-    box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246,0.1);
   }
 `;
 
@@ -203,7 +203,7 @@ const FormTextarea = styled.textarea`
   &:focus {
     outline: none;
     border-color: ${STORE_TOKENS.color.cyan};
-    box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246,0.1);
   }
 `;
 
@@ -519,7 +519,7 @@ const AdminPackagesView: React.FC = () => {
           <KPILabel>Active</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.completed}>{stats.active}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(0,255,255,0.15)">
+        <KPICard $accent="rgba(139, 92, 246,0.15)">
           <KPILabel>Avg Price</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.cyan}>{formatCurrencyCompact(stats.avgPrice)}</KPIValue>
         </KPICard>

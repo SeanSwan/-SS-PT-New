@@ -37,7 +37,7 @@ const SectionWrapper = styled.section`
     height: 100%;
     background: 
       radial-gradient(circle at 10% 20%, rgba(120, 81, 169, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 90% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+      radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
     z-index: 0;
   }
 
@@ -107,7 +107,7 @@ const HighlightSpan = styled.span`
     background: linear-gradient(90deg, 
       rgba(74, 0, 224, 0.7), 
       rgba(142, 45, 226, 1),
-      rgba(0, 255, 255, 0.8),
+      rgba(139, 92, 246, 0.8),
       rgba(142, 45, 226, 1)
     );
     background-size: 200% auto;
@@ -168,7 +168,7 @@ const ImageContainer = styled.div`
     position: absolute;
     inset: -4px;
     border-radius: 50%;
-    background: linear-gradient(45deg, rgba(0, 255, 255, 0.4), rgba(120, 81, 169, 0.4));
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.4), rgba(120, 81, 169, 0.4));
     z-index: -1;
     opacity: 0.6;
   }
@@ -333,7 +333,7 @@ const ProgressDot = styled.button<{ $active: boolean }>`
     position: absolute;
     inset: -2px;
     border-radius: 50%;
-    background: ${props => props.$active ? "rgba(0, 255, 255, 0.3)" : "transparent"};
+    background: ${props => props.$active ? "rgba(139, 92, 246, 0.3)" : "transparent"};
     transition: all 0.3s ease;
   }
   

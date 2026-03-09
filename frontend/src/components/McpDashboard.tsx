@@ -36,7 +36,7 @@ import {
    Galaxy-Swan Theme Tokens
    ═══════════════════════════════════════════════════════ */
 const GALAXY_CORE = '#0a0a1a';
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 const COSMIC_PURPLE = '#7851A9';
 const GLASS_BG = 'rgba(255, 255, 255, 0.04)';
 const GLASS_BORDER = 'rgba(255, 255, 255, 0.08)';
@@ -267,7 +267,7 @@ const OutlinedButton = styled(ButtonBase)`
   &:hover:not(:disabled) {
     border-color: ${SWAN_CYAN}66;
     color: ${SWAN_CYAN};
-    background: rgba(0, 255, 255, 0.04);
+    background: rgba(139, 92, 246, 0.04);
   }
 `;
 

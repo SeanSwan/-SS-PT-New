@@ -129,7 +129,7 @@ const Title = styled(motion.h2)`
   display: inline-block;
   letter-spacing: 2px;
   margin-bottom: 1.5rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   
   span {
     background: linear-gradient(
@@ -159,9 +159,9 @@ const Title = styled(motion.h2)`
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 1),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 1),
+      rgba(139, 92, 246, 0)
     );
   }
 
@@ -220,7 +220,7 @@ const TextContent = styled(motion.div)`
       float: left;
       line-height: 0.8;
       margin-right: 0.15em;
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
     }
   }
   
@@ -266,7 +266,7 @@ const FeatureList = styled.ul`
       color: #00ffff;
       font-weight: bold;
       font-size: 1.2rem;
-      text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+      text-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
     }
   }
 `;
@@ -347,14 +347,14 @@ const OrnamentalElement = styled(motion.div)`
     position: absolute;
     inset: 10px;
     border-radius: 50%;
-    border: 1px dashed rgba(0, 255, 255, 0.3);
+    border: 1px dashed rgba(139, 92, 246, 0.3);
   }
 `;
 
 const TopLeftElement = styled(OrnamentalElement)`
   top: -50px;
   left: -50px;
-  background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
   animation: ${float} 7s ease-in-out infinite;
   ${reducedMotion}
 `;
@@ -401,7 +401,7 @@ const StatNumber = styled.div`
   font-weight: 300;
   color: #00ffff;
   margin-bottom: 0.5rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   position: relative;
   display: inline-block;
 `;
@@ -440,7 +440,7 @@ const TimelineTitle = styled(motion.h3)`
   
   span {
     color: #00ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
   
   &:after {
@@ -452,9 +452,9 @@ const TimelineTitle = styled(motion.h3)`
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 1),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 1),
+      rgba(139, 92, 246, 0)
     );
   }
   
@@ -471,9 +471,9 @@ const TimelineLine = styled.div`
   width: 2px;
   background: linear-gradient(
     to bottom,
-    rgba(0, 255, 255, 1),
+    rgba(139, 92, 246, 1),
     rgba(120, 81, 169, 0.8),
-    rgba(0, 255, 255, 0.4)
+    rgba(139, 92, 246, 0.4)
   );
   transform: translateX(-1px);
   
@@ -544,7 +544,7 @@ const TimelineYear = styled.div`
   color: white;
   position: relative;
   z-index: 2;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
   justify-self: end;
   
   &:after {
@@ -624,7 +624,7 @@ const PhilosophyTitle = styled(motion.h3)`
   
   span {
     color: #00ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
   
   &:after {
@@ -636,9 +636,9 @@ const PhilosophyTitle = styled(motion.h3)`
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 1),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 1),
+      rgba(139, 92, 246, 0)
     );
   }
   
@@ -714,7 +714,7 @@ const PhilosophyIcon = styled.div`
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -729,7 +729,7 @@ const PhilosophyIcon = styled.div`
     position: absolute;
     inset: -5px;
     border-radius: 50%;
-    border: 1px dashed rgba(0, 255, 255, 0.3);
+    border: 1px dashed rgba(139, 92, 246, 0.3);
     animation: ${spin} 15s linear infinite;
     ${reducedMotion}
   }
@@ -848,7 +848,7 @@ const CertificationBadge = styled(motion.div)`
   }
   
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     transform: translateY(-2px);
   }
 `;

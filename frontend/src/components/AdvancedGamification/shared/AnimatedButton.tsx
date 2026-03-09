@@ -27,11 +27,11 @@ const rippleEffect = keyframes`
 const pulseAnimation = keyframes`
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7);
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(0, 255, 255, 0);
+    box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
   }
 `;
 
@@ -192,7 +192,7 @@ const ButtonContainer = styled(motion.button)<{
           
           &:hover:not(:disabled) {
             background: ${colors.backgroundHover || 'linear-gradient(135deg, #00e6e6 0%, #0073e6 100%)'};
-            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
             transform: translateY(-2px);
           }
         `;
@@ -247,7 +247,7 @@ const ButtonContainer = styled(motion.button)<{
           border: none;
           
           &:hover:not(:disabled) {
-            background: rgba(0, 255, 255, 0.1);
+            background: rgba(139, 92, 246, 0.1);
             color: #ffffff;
           }
         `;
@@ -321,7 +321,7 @@ const ButtonContainer = styled(motion.button)<{
   `}
   
   ${({ $showGlow }) => $showGlow && css`
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
   `}
   
   /* Focus styles */

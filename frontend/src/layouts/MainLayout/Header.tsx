@@ -164,8 +164,8 @@ const CartBadge = styled.span`
 `;
 
 const AuthButton = styled.button`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: #00ffff;
   padding: 0.5rem 1.2rem;
   border-radius: 50px;
@@ -180,7 +180,7 @@ const AuthButton = styled.button`
   &:hover {
     background: #00ffff;
     color: #000;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -206,11 +206,11 @@ const DropdownTrigger = styled.button<{ $isOpen: boolean }>`
   padding: 0.5rem 1rem;
   border-radius: 8px;
   transition: all 0.3s ease;
-  background: ${({ $isOpen }) => $isOpen ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  background: ${({ $isOpen }) => $isOpen ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
 
   &:hover {
     color: #00ffff;
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 
   svg {
@@ -246,7 +246,7 @@ const DropdownItem = styled(Link)`
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     transform: translateX(5px);
   }
 
@@ -355,8 +355,8 @@ const MobilePortalCard = styled(Link)`
   transition: all 0.2s ease;
 
   &:hover, &:active {
-    background: rgba(0, 255, 255, 0.08);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
     transform: translateX(5px);
   }
 
@@ -364,7 +364,7 @@ const MobilePortalCard = styled(Link)`
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;

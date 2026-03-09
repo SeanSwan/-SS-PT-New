@@ -25,9 +25,9 @@ import {
 
 // Styled Components
 const cosmicPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
-  100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
 `;
 
 const VerificationContainer = styled(motion.div)`
@@ -112,7 +112,7 @@ const CardDescription = styled.p`
 `;
 
 const ActionButton = styled(motion.button)`
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(0, 255, 255, 0.1));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.1));
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: white;
@@ -127,7 +127,7 @@ const ActionButton = styled(motion.button)`
   justify-content: center;
   
   &:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.2));
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.2));
     border-color: rgba(59, 130, 246, 0.6);
   }
   

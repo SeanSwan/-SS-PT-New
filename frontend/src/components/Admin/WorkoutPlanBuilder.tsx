@@ -566,8 +566,8 @@ const ResultItem = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    background: rgba(0, 255, 255, 0.08);
+    border-color: rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.08);
   }
 `;
 

@@ -42,7 +42,7 @@ const Canvas = styled.canvas`
   display: block;
   width: 100%;
   height: 200px;
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  border: 2px solid rgba(139, 92, 246, 0.3);
   border-radius: 8px;
   background: #0a0a2e;
   cursor: crosshair;
@@ -72,7 +72,7 @@ const ClearButton = styled.button`
   min-width: 44px;
   min-height: 44px;
   padding: 6px 12px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 6px;
   background: rgba(10, 10, 30, 0.8);
   color: #00ffff;
@@ -81,7 +81,7 @@ const ClearButton = styled.button`
   z-index: 2;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 `;
 

@@ -292,7 +292,7 @@ const CommunityDashboard = () => {
 
             <GroupsGrid>
               {/* Group 1 */}
-              <GroupCard $accent="rgba(0, 255, 255, 0.1)">
+              <GroupCard $accent="rgba(139, 92, 246, 0.1)">
                 <GroupHeader>
                   <AvatarCircle $bg="#00ffff" $color="#0a0a1a">
                     <Dumbbell size={20} />
@@ -412,7 +412,7 @@ const CommunityDashboard = () => {
               <SectionHeading>Community Challenges</SectionHeading>
 
               <ChallengesGrid>
-                <ChallengeCard $accent="rgba(0, 255, 255, 0.1)">
+                <ChallengeCard $accent="rgba(139, 92, 246, 0.1)">
                   <ChallengeTitle>30-Day Fitness</ChallengeTitle>
                   <BodyText style={{ flex: 1 }}>
                     Complete a workout every day for 30 days and track your progress

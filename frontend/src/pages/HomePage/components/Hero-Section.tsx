@@ -40,9 +40,9 @@ const subtleRotate = keyframes`
 `;
 
 const glow = keyframes`
-  0% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
-  50% { filter: drop-shadow(0 0 20px rgba(0,255,255,0.8)); }
-  100% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
+  0% { filter: drop-shadow(0 0 5px rgba(139, 92, 246,0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(139, 92, 246,0.8)); }
+  100% { filter: drop-shadow(0 0 5px rgba(139, 92, 246,0.5)); }
 `;
 
 const stellarGlow = keyframes`

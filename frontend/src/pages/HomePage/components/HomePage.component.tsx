@@ -35,7 +35,7 @@ const FeaturedSection = styled.div`
     right: -5px;
     bottom: -5px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
     z-index: -1;
   }
 `;
@@ -118,8 +118,8 @@ const SectionLoader = styled.div`
     content: "";
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
-    border-top-color: rgba(0, 255, 255, 0.8);
+    border: 3px solid rgba(139, 92, 246, 0.3);
+    border-top-color: rgba(139, 92, 246, 0.8);
     border-radius: 50%;
     animation: ${spin} 1s linear infinite, ${pulse} 2s ease-in-out infinite;
     ${reducedMotion}
@@ -158,7 +158,7 @@ const HomePageContainer = styled.div`
 const SectionDivider = styled(motion.div)`
   position: relative;
   height: 150px;
-  background: linear-gradient(to right, rgba(0, 255, 255, 0.05), rgba(120, 81, 169, 0.05));
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), rgba(120, 81, 169, 0.05));
   margin: 0;
   overflow: hidden;
   display: flex;
@@ -170,7 +170,7 @@ const SectionDivider = styled(motion.div)`
     position: absolute;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8), transparent);
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8), transparent);
   }
   
   &::after {
@@ -213,7 +213,7 @@ const FloatingText = styled(motion.div)`
   padding: 0 15px;
   position: relative;
   z-index: 2;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   
   @media (max-width: 768px) {
     font-size: 1rem;

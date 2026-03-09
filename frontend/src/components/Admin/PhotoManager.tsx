@@ -397,7 +397,7 @@ const PhotoPreview = styled.img`
   height: 180px;
   object-fit: cover;
   border-radius: 10px;
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   background: rgba(10, 10, 15, 0.6);
 `;
 

@@ -188,7 +188,7 @@ const TRow = styled.tr`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
+    background: rgba(139, 92, 246, 0.06);
   }
 `;
 
@@ -256,8 +256,8 @@ const PaginationButton = styled.button<{ $disabled?: boolean }>`
   transition: all 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -281,7 +281,7 @@ const PrimaryButton = styled.button`
   &:hover {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
   }
 
   &:active {
@@ -307,7 +307,7 @@ const SecondaryButton = styled.button`
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -327,7 +327,7 @@ const RoundIconButton = styled.button<{ $color?: string; $size?: number }>`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.12);
+    background: rgba(139, 92, 246, 0.12);
   }
 `;
 
@@ -365,7 +365,7 @@ const StyledInput = styled.input`
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 
   &:focus {
@@ -534,7 +534,7 @@ const ContextMenuItem = styled.button<{ $danger?: boolean }>`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 
   svg {
@@ -562,7 +562,7 @@ const SkeletonBox = styled.div<{ $width?: string; $height?: string; $circle?: bo
 const Spinner = styled.div<{ $size?: number }>`
   width: ${({ $size }) => $size || 24}px;
   height: ${({ $size }) => $size || 24}px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
+  border: 3px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;

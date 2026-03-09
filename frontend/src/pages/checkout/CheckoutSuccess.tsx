@@ -80,7 +80,7 @@ const SuccessPageContainer = styled.div`
 const LogoContainer = styled(motion.div)`
   position: relative;
   animation: ${float} 6s ease-in-out infinite;
-  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5));
+  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
   margin-bottom: 2rem;
   z-index: 2;
   
@@ -108,7 +108,7 @@ const LoadingContainer = styled.div`
 `;
 
 const LoadingSpinner = styled.div`
-  border: 3px solid rgba(0, 255, 255, 0.1);
+  border: 3px solid rgba(139, 92, 246, 0.1);
   border-radius: 50%;
   border-top: 3px solid #00ffff;
   width: 50px;

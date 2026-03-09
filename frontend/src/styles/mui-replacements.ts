@@ -321,6 +321,6 @@ export const themeUtils = {
     background: ${alpha('#0a0a1a', opacity)};
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid ${alpha('#00FFFF', 0.2)};
+    border: 1px solid ${alpha('#8B5CF6', 0.2)};
   `,
 };

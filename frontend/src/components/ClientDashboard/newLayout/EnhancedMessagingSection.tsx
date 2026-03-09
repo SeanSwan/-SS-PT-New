@@ -50,7 +50,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background: ${({ $active }) => 
-    $active ? 'rgba(0, 255, 255, 0.2)' : 'transparent'};
+    $active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
   color: ${({ $active }) => 
     $active ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
   border: none;
@@ -62,7 +62,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   position: relative;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
     color: #00ffff;
   }
   
@@ -112,11 +112,11 @@ const MessagesWrapper = styled.div`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.3);
     border-radius: 4px;
     
     &:hover {
-      background: rgba(0, 255, 255, 0.5);
+      background: rgba(139, 92, 246, 0.5);
     }
   }
 `;
@@ -128,7 +128,7 @@ const MessageBubble = styled(motion.div)<{ $isOwnMessage: boolean }>`
   padding: 1rem;
   border-radius: 12px;
   background-color: ${({ $isOwnMessage }) => 
-    $isOwnMessage ? 'rgba(0, 255, 255, 0.2)' : 'rgba(120, 81, 169, 0.2)'};
+    $isOwnMessage ? 'rgba(139, 92, 246, 0.2)' : 'rgba(120, 81, 169, 0.2)'};
   align-self: ${({ $isOwnMessage }) => 
     $isOwnMessage ? 'flex-end' : 'flex-start'};
   position: relative;
@@ -145,7 +145,7 @@ const MessageBubble = styled(motion.div)<{ $isOwnMessage: boolean }>`
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
     border-top: 8px solid ${({ $isOwnMessage }) => 
-      $isOwnMessage ? 'rgba(0, 255, 255, 0.2)' : 'rgba(120, 81, 169, 0.2)'};
+      $isOwnMessage ? 'rgba(139, 92, 246, 0.2)' : 'rgba(120, 81, 169, 0.2)'};
   }
 `;
 
@@ -200,7 +200,7 @@ const StyledInput = styled.input`
   &:focus {
     border-color: #00ffff;
     background-color: rgba(30, 30, 60, 0.5);
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
   }
 `;
 

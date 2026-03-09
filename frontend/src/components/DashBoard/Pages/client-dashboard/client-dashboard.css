@@ -5,7 +5,7 @@
 
 /* Glow effect for buttons */
 .glow-button {
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8));
   color: white;
   border: none;
   border-radius: 8px;
@@ -17,7 +17,7 @@
 }
 
 .glow-button:hover {
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
   transform: translateY(-2px);
 }
 
@@ -58,8 +58,8 @@
 }
 
 .message-user {
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   margin-left: auto;
 }
 
@@ -101,7 +101,7 @@
 }
 
 .send-button {
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8));
   color: white;
   border: none;
   border-radius: 50%;
@@ -116,7 +116,7 @@
 
 .send-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 }
 
 /* Progress bar styling */
@@ -156,7 +156,7 @@
 }
 
 .progress-bar-primary {
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(0, 255, 255, 0.5));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.5));
 }
 
 .progress-bar-secondary {
@@ -184,13 +184,13 @@
 
 .session-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(0, 255, 255, 0.3);
+  border-color: rgba(139, 92, 246, 0.3);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   background: rgba(40, 40, 80, 0.4);
 }
 
 .upcoming-label {
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
   color: white;
   font-size: 0.7rem;
   font-weight: 500;
@@ -217,7 +217,7 @@
 .workout-item:hover {
   background: rgba(40, 40, 80, 0.5);
   transform: translateX(5px);
-  border-color: rgba(0, 255, 255, 0.2);
+  border-color: rgba(139, 92, 246, 0.2);
 }
 
 .workout-icon {
@@ -228,7 +228,7 @@
   align-items: center;
   justify-content: center;
   margin-right: 0.75rem;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 

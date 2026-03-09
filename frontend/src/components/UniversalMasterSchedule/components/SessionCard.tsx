@@ -12,7 +12,7 @@ import { Clock, MapPin, User, Calendar, CheckCircle, XCircle, AlertTriangle } fr
 const TOKENS = {
   surfaceGlass: 'rgba(10, 10, 26, 0.6)',
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
-  swanCyan: '#00FFFF',
+  swanCyan: '#8B5CF6',
   cosmicPurple: '#7851A9',
   deepSpace: '#0A0A1A',
   stellarWhite: '#f0f0ff',
@@ -20,7 +20,7 @@ const TOKENS = {
   successGreen: '#10b981',
   dangerRed: '#ef4444',
   warningAmber: '#f59e0b',
-  glassStroke: 'rgba(0, 255, 255, 0.1)',
+  glassStroke: 'rgba(139, 92, 246, 0.1)',
   purpleStroke: 'rgba(120, 81, 169, 0.3)',
 };
 
@@ -146,7 +146,7 @@ const SessionCard: React.FC<SessionCardProps> = ({
         {session.status === 'available' && onBook && (
           <BookButton
             onClick={(e) => { e.stopPropagation(); onBook(session); }}
-            whileHover={{ boxShadow: '0 0 15px rgba(0, 255, 255, 0.4)' }}
+            whileHover={{ boxShadow: '0 0 15px rgba(139, 92, 246, 0.4)' }}
             whileTap={{ scale: 0.97 }}
           >
             Book Session
@@ -156,7 +156,7 @@ const SessionCard: React.FC<SessionCardProps> = ({
         {isSoon && session.status === 'confirmed' && (
           <JoinButton
             onClick={(e) => e.stopPropagation()}
-            whileHover={{ boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)' }}
+            whileHover={{ boxShadow: '0 0 20px rgba(139, 92, 246, 0.5)' }}
             whileTap={{ scale: 0.97 }}
           >
             Join Virtual Studio
@@ -172,8 +172,8 @@ export default SessionCard;
 // ---- Styled Components ----
 
 const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 12px 4px rgba(0, 255, 255, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 12px 4px rgba(139, 92, 246, 0.15); }
 `;
 
 const CardWrapper = styled(motion.div)<{ $statusColor: string; $variant: string; $isSoon: boolean }>`
@@ -291,7 +291,7 @@ const BookButton = styled(motion.button)`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #00FFFF 0%, #0088FF 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #0088FF 100%);
   color: ${TOKENS.deepSpace};
   font-weight: 700;
   font-size: 14px;
@@ -306,7 +306,7 @@ const JoinButton = styled(motion.button)`
   padding: 12px 24px;
   border: 2px solid ${TOKENS.swanCyan};
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: ${TOKENS.swanCyan};
   font-weight: 700;
   font-size: 15px;

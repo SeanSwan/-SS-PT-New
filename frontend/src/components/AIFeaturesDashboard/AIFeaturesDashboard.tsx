@@ -97,8 +97,8 @@ const FeatureCard = styled.div`
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -186,7 +186,7 @@ const OutlineButton = styled.button`
   transition: background 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 
   svg {
@@ -312,7 +312,7 @@ const Spinner = styled.div`
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(0, 255, 255, 0.2);
+  border: 2px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;

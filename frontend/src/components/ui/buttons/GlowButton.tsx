@@ -161,10 +161,10 @@ const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
   cosmicGradient: {
     background: "#0a0a1a",
     color: "#E0ECF4",
-    shadow: "rgba(0, 255, 255, 0.15)",
-    shineLeft: "rgba(0, 255, 255, 0.5)",     // Cyan
+    shadow: "rgba(139, 92, 246, 0.15)",
+    shineLeft: "rgba(139, 92, 246, 0.5)",     // Cyan
     shineRight: "rgba(120, 81, 169, 0.65)",  // Cosmic Purple
-    glowStart: "#00FFFF",                    // Swan Cyan
+    glowStart: "#8B5CF6",                    // Swan Cyan
     glowEnd: "#7851A9",                      // Cosmic Purple
   },
 };

@@ -18,9 +18,9 @@ const pulse = keyframes`
 `;
 
 const glow = keyframes`
-  0% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.3); }
-  100% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
+  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.3); }
+  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
 `;
 
 // Styled Components
@@ -41,13 +41,13 @@ const DashboardContainer = styled.div`
 
 const SessionCard = styled(motion.div)<{ $isActive?: boolean }>`
   background: ${props => props.$isActive 
-    ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 128, 255, 0.1))'
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(0, 128, 255, 0.1))'
     : 'rgba(30, 30, 60, 0.8)'
   };
   border-radius: 20px;
   padding: 2rem;
   backdrop-filter: blur(10px);
-  border: 1px solid ${props => props.$isActive ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
+  border: 1px solid ${props => props.$isActive ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
   position: relative;
   overflow: hidden;
   
@@ -113,7 +113,7 @@ const TimerDisplay = styled.div<{ $isActive?: boolean }>`
     font-weight: bold;
     color: #00ffff;
     font-family: 'Courier New', monospace;
-    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
     
     ${props => props.$isActive && `
       animation: ${pulse} 2s ease-in-out infinite;
@@ -217,8 +217,8 @@ const HistoryItem = styled(motion.div)`
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
   }
   
   .session-info {

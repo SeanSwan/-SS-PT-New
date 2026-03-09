@@ -20,7 +20,7 @@ const DebugContainer = styled.div`
   margin-bottom: 2rem;
   background-color: rgba(20, 20, 40, 0.8);
   border-radius: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 `;
 

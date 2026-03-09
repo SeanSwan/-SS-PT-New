@@ -24,8 +24,8 @@ import {
 // ── Animations ──────────────────────────────────────────────────────────────
 
 const cyanPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.15); }
-  50% { box-shadow: 0 0 35px rgba(0, 255, 255, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 35px rgba(139, 92, 246, 0.3); }
 `;
 
 const shimmer = keyframes`
@@ -79,7 +79,7 @@ const Card = styled.div`
 const StatusCard = styled(Card)<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   border-color: ${({ $status }) => {
     switch ($status) {
-      case 'granted': return 'rgba(0, 255, 255, 0.25)';
+      case 'granted': return 'rgba(139, 92, 246, 0.25)';
       case 'withdrawn': return 'rgba(239, 68, 68, 0.25)';
       default: return 'rgba(255, 255, 255, 0.08)';
     }
@@ -99,7 +99,7 @@ const StatusBadge = styled.div<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   text-transform: uppercase;
   background: ${({ $status }) => {
     switch ($status) {
-      case 'granted': return 'rgba(0, 255, 255, 0.12)';
+      case 'granted': return 'rgba(139, 92, 246, 0.12)';
       case 'withdrawn': return 'rgba(239, 68, 68, 0.12)';
       default: return 'rgba(255, 255, 255, 0.06)';
     }
@@ -113,7 +113,7 @@ const StatusBadge = styled.div<{ $status: 'granted' | 'withdrawn' | 'none' }>`
   }};
   border: 1px solid ${({ $status }) => {
     switch ($status) {
-      case 'granted': return 'rgba(0, 255, 255, 0.3)';
+      case 'granted': return 'rgba(139, 92, 246, 0.3)';
       case 'withdrawn': return 'rgba(239, 68, 68, 0.3)';
       default: return 'rgba(255, 255, 255, 0.1)';
     }
@@ -205,8 +205,8 @@ const PrivacyIcon = styled.span<{ $color?: string }>`
 `;
 
 const ConsentDisclosure = styled.div`
-  background: rgba(0, 255, 255, 0.04);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   padding: 1.25rem;
   margin: 1.25rem 0;
@@ -249,13 +249,13 @@ const ConsentButton = styled.button<{ $variant: 'grant' | 'withdraw' }>`
   font-family: inherit;
 
   ${({ $variant }) => $variant === 'grant' ? `
-    background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(0, 255, 255, 0.8));
+    background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(139, 92, 246, 0.8));
     color: #0a0a1a;
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
 
     &:hover:not(:disabled) {
-      box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
       transform: translateY(-1px);
     }
   ` : `
@@ -276,7 +276,7 @@ const ConsentButton = styled.button<{ $variant: 'grant' | 'withdraw' }>`
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -308,7 +308,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled(motion.div)`
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(0, 255, 255, 0.15);
+  border: 3px solid rgba(139, 92, 246, 0.15);
   border-top-color: #00ffff;
   border-radius: 50%;
 `;
@@ -341,13 +341,13 @@ const RetryButton = styled.button`
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
     color: #ffffff;
   }
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.4);
   }
 `;
 

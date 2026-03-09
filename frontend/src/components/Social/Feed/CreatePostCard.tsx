@@ -71,7 +71,7 @@ const AvatarCircle = styled.div`
   min-width: 40px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #7851A9, #00FFFF);
+  background: linear-gradient(135deg, #7851A9, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,7 +116,7 @@ const StyledTextarea = styled.textarea<{ $rows?: number }>`
   }
 
   &:focus {
-    border-color: #00FFFF;
+    border-color: #8B5CF6;
   }
 
   &:disabled {
@@ -143,7 +143,7 @@ const StyledInput = styled.input`
   }
 
   &:focus {
-    border-color: #00FFFF;
+    border-color: #8B5CF6;
   }
 `;
 
@@ -242,7 +242,7 @@ const NativeSelect = styled.select`
   transition: border-color 0.2s ease;
 
   &:focus {
-    border-color: #00FFFF;
+    border-color: #8B5CF6;
   }
 
   &:disabled {
@@ -279,9 +279,9 @@ const PostTypeChip = styled.span<{ $selected?: boolean }>`
   cursor: pointer;
   user-select: none;
   min-height: 44px;
-  border: 2px solid ${props => props.$selected ? '#00FFFF' : 'rgba(255, 255, 255, 0.2)'};
-  background: ${props => props.$selected ? 'rgba(0, 255, 255, 0.12)' : 'transparent'};
-  color: ${props => props.$selected ? '#00FFFF' : '#e0e0e0'};
+  border: 2px solid ${props => props.$selected ? '#8B5CF6' : 'rgba(255, 255, 255, 0.2)'};
+  background: ${props => props.$selected ? 'rgba(139, 92, 246, 0.12)' : 'transparent'};
+  color: ${props => props.$selected ? '#8B5CF6' : '#e0e0e0'};
   transition: all 0.2s ease;
 
   &:hover {
@@ -308,7 +308,7 @@ const FloatingCreateButton = styled.button`
   bottom: 24px;
   right: 24px;
   z-index: 1000;
-  background: linear-gradient(135deg, #7851A9, #00FFFF);
+  background: linear-gradient(135deg, #7851A9, #8B5CF6);
   color: white;
   border: none;
   border-radius: 50%;
@@ -319,7 +319,7 @@ const FloatingCreateButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
   transition: transform 0.2s ease, background 0.2s ease;
 
   &:hover {
@@ -350,8 +350,8 @@ const TransformationImageBox = styled.div`
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #00FFFF;
-    background-color: rgba(0, 255, 255, 0.04);
+    border-color: #8B5CF6;
+    background-color: rgba(139, 92, 246, 0.04);
   }
 `;
 
@@ -366,14 +366,14 @@ const WorkoutHistoryBtn = styled.button`
   gap: 6px;
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   min-height: 40px;
   transition: all 0.2s ease;
-  &:hover:not(:disabled) { background: rgba(0, 255, 255, 0.12); }
+  &:hover:not(:disabled) { background: rgba(139, 92, 246, 0.12); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
@@ -394,7 +394,7 @@ const WorkoutHistoryItem = styled.div`
   cursor: pointer;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: background 0.15s;
-  &:hover { background: rgba(0, 255, 255, 0.08); }
+  &:hover { background: rgba(139, 92, 246, 0.08); }
   &:last-child { border-bottom: none; }
 `;
 
@@ -448,7 +448,7 @@ const OutlinedButton = styled.button`
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.06);
-    border-color: #00FFFF;
+    border-color: #8B5CF6;
   }
 
   &:disabled {
@@ -464,7 +464,7 @@ const ContainedButton = styled.button`
   padding: 8px 20px;
   border-radius: 6px;
   border: none;
-  background: linear-gradient(135deg, #7851A9, #00FFFF);
+  background: linear-gradient(135deg, #7851A9, #8B5CF6);
   color: white;
   font-family: inherit;
   font-size: 0.875rem;
@@ -475,7 +475,7 @@ const ContainedButton = styled.button`
   white-space: nowrap;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
   }
 
   &:disabled {

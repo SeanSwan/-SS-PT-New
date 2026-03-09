@@ -360,7 +360,7 @@ const TrainerHeaderBar = styled.div<{ $density: DensityMode }>`
   transition: background 150ms ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 
   ${({ $density }) =>
@@ -496,7 +496,7 @@ const ClickableSlot = styled.div<{ $density: DensityMode }>`
   transition: background 150ms ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 `;
 
@@ -507,7 +507,7 @@ const PastSlot = styled.div<{ $density: DensityMode }>`
 const ShowMoreButton = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background: rgba(0, 255, 255, 0.08);
+  background: rgba(139, 92, 246, 0.08);
   border: 1px dashed ${galaxySwanTheme.primary.main};
   border-radius: 10px;
   color: ${galaxySwanTheme.primary.main};
@@ -518,7 +518,7 @@ const ShowMoreButton = styled.button`
   min-height: 44px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 `;
 

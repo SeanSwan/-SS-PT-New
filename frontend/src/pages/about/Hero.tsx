@@ -133,9 +133,9 @@ const Overlay = styled.div`
     bottom: 0;
     background: linear-gradient(
       135deg,
-      rgba(0, 255, 255, 0.15),
+      rgba(139, 92, 246, 0.15),
       rgba(120, 81, 169, 0.15),
-      rgba(0, 255, 255, 0.15)
+      rgba(139, 92, 246, 0.15)
     );
     background-size: 200% 200%;
     animation: ${gradientShift} 15s ease infinite;
@@ -200,7 +200,7 @@ const LogoContainer = styled(motion.div)`
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     filter: blur(15px);
     z-index: -1;
     animation: ${pulseGlow} 4s infinite ease-in-out;
@@ -228,11 +228,11 @@ const Logo = styled.div`
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.3));
+    filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.3));
     transition: all 0.3s ease;
     
     &:hover {
-      filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+      filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
     }
   }
 `;
@@ -259,7 +259,7 @@ const Title = styled(motion.h1)`
   font-weight: 300;
   margin-bottom: 1.5rem;
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5),
-               0 0 20px rgba(0, 255, 255, 0.3);
+               0 0 20px rgba(139, 92, 246, 0.3);
   letter-spacing: 2px;
   background: linear-gradient(
     to right,
@@ -303,7 +303,7 @@ const Tagline = styled(motion.p)`
   
   span {
     color: #00ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
     position: relative;
     display: inline-block;
     
@@ -372,7 +372,7 @@ const ScrollIndicator = styled(motion.div)`
     justify-content: center;
     padding-top: 10px;
     position: relative;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
     
     /* Glass morphism effect */
     &:before {
@@ -398,7 +398,7 @@ const ScrollIndicator = styled(motion.div)`
     border-radius: 10px;
     animation: ${scroll} 1.5s infinite;
     ${reducedMotion}
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
   }
   
   .scroll-text {

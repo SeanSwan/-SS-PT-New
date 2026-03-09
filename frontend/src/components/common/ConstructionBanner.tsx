@@ -20,10 +20,10 @@ import { galaxySwanTheme } from '../../styles/galaxy-swan-theme';
 // Subtle glow animation for professional look
 const subtleGlow = keyframes`
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
   }
   50% {
-    box-shadow: 0 2px 12px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 2px 12px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -36,7 +36,7 @@ const BannerContainer = styled(motion.div)`
   z-index: 1000;
   background: rgba(15, 12, 41, 0.95);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   animation: ${subtleGlow} 4s ease-in-out infinite;
   
   /* Professional glass morphism effect */
@@ -50,7 +50,7 @@ const BannerContainer = styled(motion.div)`
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(0, 255, 255, 0.05) 25%,
+      rgba(139, 92, 246, 0.05) 25%,
       rgba(120, 81, 169, 0.05) 75%,
       transparent 100%
     );
@@ -95,8 +95,8 @@ const IconContainer = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: ${galaxySwanTheme.primary.main};
   font-size: 1.1rem;
   flex-shrink: 0;
@@ -168,18 +168,18 @@ const ActionButton = styled(Link)`
     &:hover {
       background: linear-gradient(135deg, ${galaxySwanTheme.primary.blue}, ${galaxySwanTheme.primary.main});
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
     }
   }
   
   &.secondary {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     color: ${galaxySwanTheme.primary.main};
-    border-color: rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.2);
     
     &:hover {
-      background: rgba(0, 255, 255, 0.2);
-      border-color: rgba(0, 255, 255, 0.4);
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.4);
       transform: translateY(-1px);
     }
   }

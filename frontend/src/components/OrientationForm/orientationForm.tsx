@@ -31,16 +31,16 @@ const float = keyframes`
 
 const glow = keyframes`
   0% {
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.5),
-                0 0 10px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.5),
+                0 0 10px rgba(139, 92, 246, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8),
-                0 0 30px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.8),
+                0 0 30px rgba(139, 92, 246, 0.5);
   }
   100% {
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.5),
-                0 0 10px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.5),
+                0 0 10px rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -126,7 +126,7 @@ const CloseButton = styled(motion.button)`
   top: 10px;
   right: 10px;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 255, 255, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
   border-radius: 50%;
   width: 34px;
   height: 34px;
@@ -169,7 +169,7 @@ const LogoCircle = styled(motion.div)`
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,7 +189,7 @@ const LogoImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
   padding: 12px;
 `;
 
@@ -212,9 +212,9 @@ const FormTitle = styled(motion.h2)`
     height: 2px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 1),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 1),
+      rgba(139, 92, 246, 0)
     );
   }
   
@@ -292,7 +292,7 @@ const FormGroup = styled(motion.div)`
     &:focus {
       outline: none;
       border-color: #00ffff;
-      box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
       background: rgba(30, 30, 60, 0.5);
     }
     
@@ -402,7 +402,7 @@ const WaiverSection = styled(motion.div)`
 
 const SubmitButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9));
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -437,8 +437,8 @@ const SuccessMessage = styled(motion.div)`
   padding: 1.25rem;
   border-radius: 10px;
   position: relative;
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   
   p {
     font-size: 1.1rem;
@@ -513,7 +513,7 @@ const ScheduleLink = styled(Link)`
   
   &:hover {
     color: white;
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
   
   &:after {
@@ -525,9 +525,9 @@ const ScheduleLink = styled(Link)`
     height: 1px;
     background: linear-gradient(
       to right,
-      rgba(0, 255, 255, 0),
-      rgba(0, 255, 255, 1),
-      rgba(0, 255, 255, 0)
+      rgba(139, 92, 246, 0),
+      rgba(139, 92, 246, 1),
+      rgba(139, 92, 246, 0)
     );
   }
   

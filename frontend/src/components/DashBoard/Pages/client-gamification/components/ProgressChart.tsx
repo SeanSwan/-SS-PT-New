@@ -79,7 +79,7 @@ const Bar = styled.div<{ $height: string; $color: string; $visible: boolean; $de
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   position: relative;
-  box-shadow: ${props => props.$hovered ? '0 0 10px 2px rgba(0, 255, 255, 0.3)' : 'none'};
+  box-shadow: ${props => props.$hovered ? '0 0 10px 2px rgba(139, 92, 246, 0.3)' : 'none'};
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1), height 1s cubic-bezier(0.4, 0, 0.2, 1);
   transition-delay: ${props => props.$delay}s;
   cursor: pointer;

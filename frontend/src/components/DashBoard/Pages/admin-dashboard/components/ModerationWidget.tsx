@@ -111,7 +111,7 @@ const ModPanel = styled.div`
   background: rgba(10, 10, 26, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 24px;
@@ -123,7 +123,7 @@ const ModPanel = styled.div`
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
   }
 `;
 
@@ -171,8 +171,8 @@ const ModViewAll = styled.button`
   min-height: 44px;
   border-radius: 8px;
   transition: background 0.2s;
-  &:hover { background: rgba(0, 255, 255, 0.1); }
-  &:focus-visible { outline: 2px solid #00FFFF; outline-offset: 2px; }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
+  &:focus-visible { outline: 2px solid #8B5CF6; outline-offset: 2px; }
 `;
 
 const ModStats = styled.div`
@@ -220,7 +220,7 @@ const ModItem = styled(motion.div)`
 
   &:hover {
     background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.15);
   }
 `;
 
@@ -275,7 +275,7 @@ const ModActionBtn = styled.button<{ $color: string }>`
   }
 
   &:focus-visible {
-    outline: 2px solid #00FFFF;
+    outline: 2px solid #8B5CF6;
     outline-offset: 2px;
   }
 `;

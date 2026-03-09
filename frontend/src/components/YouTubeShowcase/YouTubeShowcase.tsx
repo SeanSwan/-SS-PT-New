@@ -36,7 +36,7 @@ const BackgroundPatterns = styled.div`
     content: '';
     position: absolute;
     background-image: 
-      radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
       radial-gradient(circle at 75% 75%, rgba(120, 81, 169, 0.05) 0%, transparent 50%);
     width: 150%;
     height: 150%;
@@ -63,7 +63,7 @@ const GridLines = styled.div`
   bottom: 0;
   z-index: 0;
   background-image: 
-    linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(120, 81, 169, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
   background-position: -1px -1px;
@@ -265,7 +265,7 @@ const LogoPlaceholder = styled.div`
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
   }
   
   ${VideoPlaceholder}:hover & {
@@ -295,7 +295,7 @@ const PlayButton = styled(motion.button)`
   height: 80px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   color: #00ffff;
   font-size: 1.8rem;
   display: flex;
@@ -320,7 +320,7 @@ const PlayButton = styled(motion.button)`
     right: -5px;
     bottom: -5px;
     border-radius: 50%;
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     z-index: -1;
     animation: pulse 2s infinite;
   }
@@ -451,7 +451,7 @@ const CloseButton = styled(motion.button)`
   justify-content: center;
   font-size: 1.2rem;
   cursor: pointer;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
   z-index: 1001;
   
   &::before {

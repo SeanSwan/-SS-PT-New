@@ -19,7 +19,7 @@ const ChartWrapper = styled.div`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 `;

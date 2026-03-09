@@ -54,7 +54,7 @@ const UsersChip = styled.span`
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
 `;
 
@@ -62,7 +62,7 @@ const LeaderboardRow = styled(motion.div)<{ $isCurrentUser: boolean; $isLast: bo
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: ${props => props.$isCurrentUser ? 'rgba(0, 255, 255, 0.06)' : 'transparent'};
+  background: ${props => props.$isCurrentUser ? 'rgba(139, 92, 246, 0.06)' : 'transparent'};
   border-bottom: ${props => props.$isLast ? 'none' : '1px solid rgba(255, 255, 255, 0.06)'};
   position: relative;
 
@@ -118,7 +118,7 @@ const UserAvatar = styled.div<{ $src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(0, 255, 255, 0.2)'};
+  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
   color: #00ffff;
   display: flex;
   align-items: center;
@@ -179,14 +179,14 @@ const RetryButton = styled.button`
   padding: 6px 16px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.1); }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
 `;
 
 const ViewAllBtn = styled.button`
@@ -196,14 +196,14 @@ const ViewAllBtn = styled.button`
   padding: 6px 16px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.1); }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
 `;
 
 const FooterRow = styled.div`

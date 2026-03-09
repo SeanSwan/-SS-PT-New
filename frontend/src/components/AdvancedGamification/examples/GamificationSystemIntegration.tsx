@@ -53,7 +53,7 @@ const IntegrationContainer = styled(motion.div)`
     rgba(10, 10, 30, 0.95) 0%,
     rgba(30, 30, 60, 0.9) 25%,
     rgba(120, 81, 169, 0.1) 50%,
-    rgba(0, 255, 255, 0.05) 75%,
+    rgba(139, 92, 246, 0.05) 75%,
     rgba(10, 10, 30, 0.95) 100%
   );
   background-size: 400% 400%;
@@ -68,7 +68,7 @@ const IntegrationContainer = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(ellipse at top, rgba(0, 255, 255, 0.05) 0%, transparent 70%);
+    background: radial-gradient(ellipse at top, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
     pointer-events: none;
   }
 `;
@@ -85,7 +85,7 @@ const Title = styled(motion.h1)`
   font-size: 3.5rem;
   font-weight: 700;
   background: linear-gradient(135deg, 
-    #00FFFF 0%, 
+    #8B5CF6 0%, 
     #7851A9 50%, 
     #FFD700 100%
   );
@@ -93,7 +93,7 @@ const Title = styled(motion.h1)`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 1rem;
-  text-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
 
   @media (max-width: 768px) {
     font-size: 2.5rem;
@@ -142,10 +142,10 @@ const ErrorMessage = styled(motion.div)`
 
 const StatsBar = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.1),
+    rgba(139, 92, 246, 0.1),
     rgba(120, 81, 169, 0.1)
   );
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 1rem 2rem;
   margin-bottom: 2rem;
@@ -169,7 +169,7 @@ const StatItem = styled.div`
 const StatValue = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #00FFFF;
+  color: #8B5CF6;
   margin-bottom: 0.25rem;
 `;
 

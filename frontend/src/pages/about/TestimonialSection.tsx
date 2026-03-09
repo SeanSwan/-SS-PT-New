@@ -98,7 +98,7 @@ const Title = styled(motion.h2)`
   font-weight: 300;
   margin-bottom: 1.25rem;
   color: white;
-  text-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
   letter-spacing: 2px;
   
   @media (max-width: 768px) {
@@ -238,7 +238,7 @@ const FeaturedImage = styled.div`
     border-radius: 50%;
     background: linear-gradient(
       45deg, 
-      rgba(0, 255, 255, 0.6), 
+      rgba(139, 92, 246, 0.6), 
       rgba(120, 81, 169, 0.6)
     );
     z-index: -1;
@@ -554,7 +554,7 @@ export default function TestimonialSection() {
           left: '5%', 
           width: '400px', 
           height: '400px', 
-          background: 'rgba(0, 255, 255, 0.15)',
+          background: 'rgba(139, 92, 246, 0.15)',
           animationDelay: '0s' 
         }} 
       />

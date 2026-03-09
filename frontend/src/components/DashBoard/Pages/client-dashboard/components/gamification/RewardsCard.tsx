@@ -16,7 +16,7 @@ import {
 import { Reward } from '../../types';
 
 const PointsBadge = styled.div`
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   padding: 4px 12px;
   border-radius: 8px;
   display: flex;
@@ -70,7 +70,7 @@ const ClaimButton = styled.button<{ $canClaim: boolean }>`
   padding: 4px 12px;
   min-height: 32px;
   border-radius: 6px;
-  border: 1px solid ${props => props.$canClaim ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.$canClaim ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255, 255, 255, 0.2)'};
   background: transparent;
   color: ${props => props.$canClaim ? 'white' : 'rgba(255, 255, 255, 0.4)'};
   font-size: 0.7rem;
@@ -79,7 +79,7 @@ const ClaimButton = styled.button<{ $canClaim: boolean }>`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: ${props => props.$canClaim ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+    background: ${props => props.$canClaim ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   }
 
   &:disabled {

@@ -45,15 +45,15 @@ export const float = keyframes`
 export const pulseAnimation = keyframes`
   0% { 
     transform: scale(1); 
-    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7); 
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); 
   }
   70% { 
     transform: scale(1.05); 
-    box-shadow: 0 0 0 8px rgba(0, 255, 255, 0); 
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); 
   }
   100% { 
     transform: scale(1); 
-    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); 
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); 
   }
 `;
 
@@ -63,13 +63,13 @@ export const pulseAnimation = keyframes`
  */
 export const glowAnimation = keyframes`
   0% { 
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3); 
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); 
   }
   50% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(120, 81, 169, 0.3); 
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3); 
   }
   100% { 
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3); 
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); 
   }
 `;
 
@@ -79,10 +79,10 @@ export const glowAnimation = keyframes`
  */
 export const textGlow = keyframes`
   0%, 100% { 
-    text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); 
+    text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); 
   }
   50% { 
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); 
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); 
   }
 `;
 

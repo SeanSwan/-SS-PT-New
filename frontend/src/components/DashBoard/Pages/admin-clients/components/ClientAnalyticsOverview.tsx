@@ -15,7 +15,7 @@ interface ClientAnalyticsOverviewProps {
 
 const Card = styled.div`
   background: rgba(12, 14, 24, 0.75);
-  border: 1px solid rgba(0, 255, 255, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.18);
   border-radius: 16px;
   padding: ${theme.spacing.lg};
   display: flex;

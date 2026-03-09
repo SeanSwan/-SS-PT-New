@@ -46,9 +46,9 @@ const float = keyframes`
 `;
 
 const glow = keyframes`
-  0% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
-  50% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8)); }
-  100% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
+  0% { filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.5)); }
+  50% { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.8)); }
+  100% { filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.5)); }
 `;
 
 const pulseGlow = keyframes`
@@ -75,7 +75,7 @@ const BackgroundGlow = styled.div`
   height: 80vh;
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 255, 255, 0.1) 0%,
+    rgba(139, 92, 246, 0.1) 0%,
     rgba(120, 81, 169, 0.05) 50%,
     transparent 70%
   );

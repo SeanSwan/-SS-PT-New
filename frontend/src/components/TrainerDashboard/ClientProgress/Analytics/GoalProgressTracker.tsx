@@ -165,7 +165,7 @@ const AccentButton = styled.button`
   &:hover {
     background: #33ffff;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,255,255,0.25);
+    box-shadow: 0 4px 12px rgba(139, 92, 246,0.25);
   }
 
   &:active {

@@ -81,7 +81,7 @@ export const ActionButton = styled.button<{ $variant?: 'edit' | 'delete' | 'togg
       case 'delete':
         return 'background: #FF6B6B; color: white;';
       case 'toggle':
-        return 'background: #00FFFF; color: black;';
+        return 'background: #8B5CF6; color: black;';
       default:
         return 'background: #7851A9; color: white;';
     }
@@ -297,8 +297,8 @@ export const ClientChip = styled.span`
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 16px;
   color: #00ffff;
   font-size: 0.75rem;

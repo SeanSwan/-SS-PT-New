@@ -27,13 +27,13 @@ const AIAssistantDrawer = lazy(() => import('./AIAssistantDrawer'));
 // ── Nebula Glow Animation (Gemini 3.1 Pro spec) ──
 const nebulaGlow = keyframes`
   0%, 100% {
-    box-shadow: 0 4px 18px rgba(0, 255, 255, 0.35),
+    box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35),
                 0 0 24px rgba(120, 81, 169, 0.15);
   }
   50% {
-    box-shadow: 0 4px 28px rgba(0, 255, 255, 0.55),
+    box-shadow: 0 4px 28px rgba(139, 92, 246, 0.55),
                 0 0 48px rgba(120, 81, 169, 0.3),
-                0 0 64px rgba(0, 255, 255, 0.1);
+                0 0 64px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -51,7 +51,7 @@ const FAB = styled.button`
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 255, 255, 0.4);
+  border: 2px solid rgba(139, 92, 246, 0.4);
   background: rgba(10, 10, 26, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -70,12 +70,12 @@ const FAB = styled.button`
     width: 36px;
     height: 36px;
     object-fit: contain;
-    filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.4));
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
   }
 
   &:hover {
     transform: scale(1.08);
-    box-shadow: 0 6px 32px rgba(0, 255, 255, 0.6),
+    box-shadow: 0 6px 32px rgba(139, 92, 246, 0.6),
                 0 0 40px rgba(120, 81, 169, 0.35);
   }
 
@@ -123,7 +123,7 @@ const CmdKBar = styled.button`
   background: rgba(10, 10, 26, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 14px;
   color: rgba(224, 236, 244, 0.6);
   cursor: pointer;
@@ -136,11 +136,11 @@ const CmdKBar = styled.button`
     width: 20px;
     height: 20px;
     object-fit: contain;
-    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.4));
+    filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.4));
   }
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
     color: rgba(224, 236, 244, 0.9);
     background: rgba(10, 10, 26, 0.8);
   }
@@ -155,12 +155,12 @@ const KbdStyle = styled.kbd`
   align-items: center;
   gap: 3px;
   padding: 3px 7px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 6px;
   font-size: 12px;
   font-family: inherit;
-  color: #00FFFF;
+  color: #8B5CF6;
   line-height: 1;
 `;
 

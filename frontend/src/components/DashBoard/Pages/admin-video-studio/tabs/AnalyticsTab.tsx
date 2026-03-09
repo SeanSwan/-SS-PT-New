@@ -298,7 +298,7 @@ const AnalyticsTab: React.FC = () => {
     { label: 'Published', value: stats.published, icon: <Eye />, color: 'rgba(34, 197, 94, 0.3)' },
     { label: 'Draft', value: stats.draft, icon: <FileEdit />, color: 'rgba(234, 179, 8, 0.3)' },
     { label: 'Archived', value: stats.archived, icon: <Archive />, color: 'rgba(107, 114, 128, 0.3)' },
-    { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: <TrendingUp />, color: 'rgba(0, 255, 255, 0.2)' },
+    { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: <TrendingUp />, color: 'rgba(139, 92, 246, 0.2)' },
     { label: 'Collections', value: stats.totalCollections, icon: <FolderOpen />, color: 'rgba(120, 81, 169, 0.3)' },
   ];
 

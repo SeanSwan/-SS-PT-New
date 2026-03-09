@@ -25,14 +25,14 @@ export const float = keyframes`
 `;
 
 export const pulseAnimation = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(0, 255, 255, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
 `;
 
 const spin = keyframes`
@@ -86,7 +86,7 @@ export const CardTitle = styled.h2`
   color: ${theme.text};
   font-size: 1.8rem;
   font-weight: 300;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -132,7 +132,7 @@ export const StyledTableRow = styled.tr`
   background: transparent;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
     backdrop-filter: blur(10px);
   }
 
@@ -141,7 +141,7 @@ export const StyledTableRow = styled.tr`
   }
 
   &:nth-of-type(even):hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 `;
 
@@ -184,7 +184,7 @@ export const StyledButton = styled.button<{
     box-shadow: none;
 
     &:hover {
-      background: rgba(0, 255, 255, 0.05);
+      background: rgba(139, 92, 246, 0.05);
       transform: translateY(-2px);
     }
   ` : css`
@@ -220,7 +220,7 @@ export const StyledIconButton = styled(motion.button)<{ $btnColor?: string }>`
     props.$btnColor === 'primary' ? 'rgba(0, 115, 255, 0.1)' :
     props.$btnColor === 'success' ? 'rgba(0, 191, 143, 0.1)' :
     props.$btnColor === 'error' ? 'rgba(255, 65, 108, 0.1)' :
-    'rgba(0, 255, 255, 0.1)'
+    'rgba(139, 92, 246, 0.1)'
   };
   color: ${props =>
     props.$btnColor === 'primary' ? '#0073ff' :
@@ -243,7 +243,7 @@ export const StyledIconButton = styled(motion.button)<{ $btnColor?: string }>`
       props.$btnColor === 'primary' ? 'rgba(0, 115, 255, 0.2)' :
       props.$btnColor === 'success' ? 'rgba(0, 191, 143, 0.2)' :
       props.$btnColor === 'error' ? 'rgba(255, 65, 108, 0.2)' :
-      'rgba(0, 255, 255, 0.2)'
+      'rgba(139, 92, 246, 0.2)'
     };
     transform: translateY(-2px);
   }
@@ -433,8 +433,8 @@ export const DescriptionBox = styled.div`
   padding: 1rem;
   margin-bottom: 1.5rem;
   border-radius: 10px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
 `;
 
 /* ── Typography helpers ── */
@@ -681,8 +681,8 @@ export const PaginationButton = styled.button`
   font-family: inherit;
 
   &:hover:not(:disabled) {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
     color: ${theme.cyan};
   }
 

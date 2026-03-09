@@ -59,7 +59,7 @@ const GlassCard = styled.div`
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -86,7 +86,7 @@ const HeroButton = styled.button`
   &:hover {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -109,7 +109,7 @@ const OutlineButton = styled.button<{ $hoverBg?: string; $hoverBorder?: string }
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: ${({ $hoverBg }) => $hoverBg || 'rgba(0, 255, 255, 0.1)'};
+    background-color: ${({ $hoverBg }) => $hoverBg || 'rgba(139, 92, 246, 0.1)'};
     border-color: ${({ $hoverBorder }) => $hoverBorder || '#00ffff'};
   }
 `;
@@ -131,7 +131,7 @@ const SmallOutlineButton = styled.button`
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: rgba(0, 255, 255, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
     border-color: #00ffff;
   }
 `;
@@ -431,7 +431,7 @@ const AdminClientsSummary: React.FC = () => {
             <QuickActionsGrid>
               <OutlineButton
                 onClick={handleNavigateToClients}
-                $hoverBg="rgba(0, 255, 255, 0.1)"
+                $hoverBg="rgba(139, 92, 246, 0.1)"
                 $hoverBorder="#00ffff"
               >
                 <UserPlus size={20} />

@@ -25,7 +25,7 @@ const LogoText = styled(Typography)`
   font-weight: 600;
   font-size: 1.25rem;
   margin-left: 8px;
-  color: #00FFFF;
+  color: #8B5CF6;
   transition: color 0.2s ease-in-out;
 `;
 

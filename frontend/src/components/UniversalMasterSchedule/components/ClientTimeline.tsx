@@ -13,12 +13,12 @@ import SessionCard, { SessionCardSession } from './SessionCard';
 const TOKENS = {
   surfaceGlass: 'rgba(10, 10, 26, 0.6)',
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
-  swanCyan: '#00FFFF',
+  swanCyan: '#8B5CF6',
   cosmicPurple: '#7851A9',
   deepSpace: '#0A0A1A',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',
-  glassStroke: 'rgba(0, 255, 255, 0.1)',
+  glassStroke: 'rgba(139, 92, 246, 0.1)',
 };
 
 interface ClientTimelineProps {

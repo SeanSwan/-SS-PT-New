@@ -141,7 +141,7 @@ const NotificationSection: React.FC = () => {
                               component={Link}
                               to="#"
                               variant="subtitle2"
-                              style={{ color: '#00FFFF' }}
+                              style={{ color: '#8B5CF6' }}
                             >
                               Mark as all read
                             </Typography>

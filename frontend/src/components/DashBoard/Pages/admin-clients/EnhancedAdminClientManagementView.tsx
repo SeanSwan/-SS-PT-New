@@ -291,17 +291,17 @@ const ActionButton = styled.button<{
           &:hover {
             background: linear-gradient(135deg, #00e6ff, #00b3ff);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 255, 255, 0.4);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
           }
         `
       : css`
           background-color: rgba(255, 255, 255, 0.05);
           color: ${theme.text};
-          border: 1px solid rgba(0, 255, 255, 0.3);
+          border: 1px solid rgba(139, 92, 246, 0.3);
           &:hover {
             background-color: rgba(255, 255, 255, 0.1);
             border-color: #00ffff;
-            box-shadow: 0 4px 16px rgba(0, 255, 255, 0.2);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
           }
         `}
 
@@ -439,7 +439,7 @@ const SearchInput = styled.input`
   &:focus {
     background-color: rgba(255, 255, 255, 0.1);
     border-color: ${theme.cyan};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -451,7 +451,7 @@ const StyledSelect = styled.select`
   padding: 8px 32px 8px 12px;
   background-color: rgba(255, 255, 255, 0.05);
   color: ${theme.text};
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   font-size: 0.85rem;
   font-family: inherit;
@@ -468,7 +468,7 @@ const StyledSelect = styled.select`
   }
   &:focus {
     border-color: ${theme.cyan};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 
   option {
@@ -639,7 +639,7 @@ const AvatarCircle = styled.div<{ $size?: number; $borderColor?: string }>`
   justify-content: center;
   font-weight: 700;
   font-size: ${(p) => ((p.$size || 56) * 0.35)}px;
-  border: 2px solid ${(p) => p.$borderColor || 'rgba(0, 255, 255, 0.3)'};
+  border: 2px solid ${(p) => p.$borderColor || 'rgba(139, 92, 246, 0.3)'};
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -993,14 +993,14 @@ const FABButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
   transition: all 0.3s ease;
   min-height: 44px;
 
   &:hover {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
     transform: scale(1.05);
-    box-shadow: 0 8px 28px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 8px 28px rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -1724,7 +1724,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   <CaptionText $color={theme.success}>+12% vs last month</CaptionText>
                 </FlexRow>
               </FlexCol>
-              <Users size={48} color="rgba(0, 255, 255, 0.3)" />
+              <Users size={48} color="rgba(139, 92, 246, 0.3)" />
             </FlexRow>
           </CardPanel>
 

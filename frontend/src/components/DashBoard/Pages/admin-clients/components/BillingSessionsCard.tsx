@@ -103,11 +103,11 @@ const GridContainer = styled.div`
 `;
 
 const SessionsBox = styled.div`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
   border-radius: 8px;
   padding: 24px;
   text-align: center;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 `;
 
 const SessionCount = styled.h2`
@@ -199,7 +199,7 @@ const Chip = styled.span<{ $variant?: 'error' | 'success' | 'info' | 'cyan' }>`
         `;
       case 'cyan':
         return `
-          background: rgba(0, 255, 255, 0.2);
+          background: rgba(139, 92, 246, 0.2);
           color: #00ffff;
         `;
       default:
@@ -378,7 +378,7 @@ const RecentTrainer = styled.span`
 const Spinner = styled.div`
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
+  border: 3px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;

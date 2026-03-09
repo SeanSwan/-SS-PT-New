@@ -60,15 +60,15 @@ const ContentContainer = styled.div`
 const UploadZone = styled(motion.div)<{ isDragOver?: boolean }>`
   border: 2px dashed ${props => 
     props.isDragOver 
-      ? props.theme.colors?.primary || '#00FFFF'
-      : props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.3)'
+      ? props.theme.colors?.primary || '#8B5CF6'
+      : props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.3)'
   };
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
   background: ${props => 
     props.isDragOver
-      ? `${props.theme.colors?.primary || '#00FFFF'}10`
+      ? `${props.theme.colors?.primary || '#8B5CF6'}10`
       : props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'
   };
   transition: all 0.3s ease;
@@ -76,8 +76,8 @@ const UploadZone = styled(motion.div)<{ isDragOver?: boolean }>`
   margin-bottom: 2rem;
   
   &:hover {
-    border-color: ${props => props.theme.colors?.primary || '#00FFFF'};
-    background: ${props => `${props.theme.colors?.primary || '#00FFFF'}10`};
+    border-color: ${props => props.theme.colors?.primary || '#8B5CF6'};
+    background: ${props => `${props.theme.colors?.primary || '#8B5CF6'}10`};
     animation: ${uploadPulse} 2s ease-in-out infinite;
   }
   
@@ -85,8 +85,8 @@ const UploadZone = styled(motion.div)<{ isDragOver?: boolean }>`
     width: 60px;
     height: 60px;
     margin: 0 auto 1rem;
-    color: ${props => props.theme.colors?.primary || '#00FFFF'};
-    background: ${props => `${props.theme.colors?.primary || '#00FFFF'}15`};
+    color: ${props => props.theme.colors?.primary || '#8B5CF6'};
+    background: ${props => `${props.theme.colors?.primary || '#8B5CF6'}15`};
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -142,7 +142,7 @@ const TabButton = styled(motion.button)<{ active?: boolean }>`
   border: none;
   color: ${props => 
     props.active
-      ? props.theme.colors?.primary || '#00FFFF'
+      ? props.theme.colors?.primary || '#8B5CF6'
       : props.theme.text?.secondary || '#E8F0FF'
   };
   padding: 0.75rem 1.5rem;
@@ -159,13 +159,13 @@ const TabButton = styled(motion.button)<{ active?: boolean }>`
     left: 0;
     right: 0;
     height: 2px;
-    background: ${props => props.theme.colors?.primary || '#00FFFF'};
+    background: ${props => props.theme.colors?.primary || '#8B5CF6'};
     transform: scaleX(${props => props.active ? 1 : 0});
     transition: transform 0.3s ease;
   }
   
   &:hover {
-    color: ${props => props.theme.colors?.primary || '#00FFFF'};
+    color: ${props => props.theme.colors?.primary || '#8B5CF6'};
   }
   
   @media (max-width: 768px) {
@@ -188,7 +188,7 @@ const ContentGrid = styled.div`
 
 const ContentCard = styled(motion.div)<{ status?: string }>`
   background: ${props => props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'};
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -236,7 +236,7 @@ const ContentThumbnail = styled.div`
     transform: translate(-50%, -50%);
     width: 50px;
     height: 50px;
-    background: ${props => props.theme.colors?.primary || '#00FFFF'};
+    background: ${props => props.theme.colors?.primary || '#8B5CF6'};
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -312,7 +312,7 @@ const ContentActions = styled.div`
     
     &:hover {
       background: ${props => props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'};
-      color: ${props => props.theme.colors?.primary || '#00FFFF'};
+      color: ${props => props.theme.colors?.primary || '#8B5CF6'};
     }
   }
 `;
@@ -327,7 +327,7 @@ const ProgressBar = styled.div`
   
   .progress-fill {
     height: 100%;
-    background: ${props => props.theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)'};
+    background: ${props => props.theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #00A0E3)'};
     transform-origin: left;
     animation: ${progressFill} 2s ease-out;
   }
@@ -410,7 +410,7 @@ const contentStats = [
     icon: CheckCircle,
     value: '12',
     label: 'Analyses Complete',
-    color: '#00FFFF'
+    color: '#8B5CF6'
   }
 ];
 

@@ -14,7 +14,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../../context/AuthContext';
 import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
 
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 
 const Container = styled.div`
   display: flex;
@@ -54,8 +54,8 @@ const StartButton = styled(motion.button)`
   width: 100%;
   padding: 1rem 2rem;
   min-height: 56px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   color: ${SWAN_CYAN};
   font-size: 1.0625rem;
@@ -64,8 +64,8 @@ const StartButton = styled(motion.button)`
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(120, 81, 169, 0.25));
-    border-color: rgba(0, 255, 255, 0.5);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(120, 81, 169, 0.25));
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 

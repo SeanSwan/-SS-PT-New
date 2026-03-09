@@ -110,8 +110,8 @@ const MetricCard = styled.div`
   transition: all 0.3s ease;
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0,255,255,0.1);
-    border-color: rgba(0,255,255,0.3);
+    box-shadow: 0 12px 40px rgba(139, 92, 246,0.1);
+    border-color: rgba(139, 92, 246,0.3);
   }
 `;
 
@@ -302,7 +302,7 @@ const ButtonGroup = styled.div`
 const ViewButton = styled.button<{ $active?: boolean }>`
   min-height: 44px;
   padding: 8px 16px;
-  border: 1px solid rgba(0,255,255,0.5);
+  border: 1px solid rgba(139, 92, 246,0.5);
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -315,7 +315,7 @@ const ViewButton = styled.button<{ $active?: boolean }>`
   ` : css`
     background: transparent;
     color: #00ffff;
-    &:hover { background: rgba(0,255,255,0.1); border-color: #00ffff; }
+    &:hover { background: rgba(139, 92, 246,0.1); border-color: #00ffff; }
   `}
 `;
 
@@ -329,7 +329,7 @@ const OutlineButton = styled.button`
   min-height: 44px;
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid rgba(0,255,255,0.5);
+  border: 1px solid rgba(139, 92, 246,0.5);
   background: transparent;
   color: #00ffff;
   font-weight: 600;
@@ -339,7 +339,7 @@ const OutlineButton = styled.button`
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
-  &:hover { border-color: #00ffff; background: rgba(0,255,255,0.1); }
+  &:hover { border-color: #00ffff; background: rgba(139, 92, 246,0.1); }
 `;
 
 const InsightCard = styled.div`
@@ -393,7 +393,7 @@ const ChipTag = styled.span`
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 0.75rem;
-  background: rgba(0,255,255,0.2);
+  background: rgba(139, 92, 246,0.2);
   color: #00ffff;
 `;
 
@@ -697,7 +697,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
             <RechartsTooltip
               contentStyle={{
                 backgroundColor: '#252742',
-                border: '1px solid rgba(0,255,255,0.3)',
+                border: '1px solid rgba(139, 92, 246,0.3)',
                 borderRadius: 8
               }}
             />

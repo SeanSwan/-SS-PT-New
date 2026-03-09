@@ -221,7 +221,7 @@ const CATaxCalculatorWidget: React.FC = () => {
 
       {/* KPI Row (4 columns) */}
       <KPIGrid>
-        <KPICard $accent="rgba(0,255,255,0.15)">
+        <KPICard $accent="rgba(139, 92, 246,0.15)">
           <KPILabel>CA State Tax Rate</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.cyan}>{taxData.taxPercentage}</KPIValue>
         </KPICard>

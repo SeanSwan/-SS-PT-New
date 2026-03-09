@@ -19,10 +19,10 @@ import { galaxySwanTheme } from '../../styles/galaxy-swan-theme';
 // Subtle glow animation for professional look
 const subtleGlow = keyframes`
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
   }
   50% {
-    box-shadow: 0 2px 12px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 2px 12px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -31,7 +31,7 @@ const BannerContainer = styled(motion.div)`
   width: 100%;
   background: rgba(15, 12, 41, 0.95);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   animation: ${subtleGlow} 4s ease-in-out infinite;
   position: relative;
   z-index: 100;
@@ -47,7 +47,7 @@ const BannerContainer = styled(motion.div)`
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(0, 255, 255, 0.05) 25%,
+      rgba(139, 92, 246, 0.05) 25%,
       rgba(120, 81, 169, 0.05) 75%,
       transparent 100%
     );
@@ -92,8 +92,8 @@ const IconContainer = styled.div`
   width: 44px;
   height: 44px;
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: ${galaxySwanTheme.primary.main};
   font-size: 1.2rem;
   flex-shrink: 0;
@@ -166,18 +166,18 @@ const ActionButton = styled(Link)`
     &:hover {
       background: linear-gradient(135deg, ${galaxySwanTheme.primary.blue}, ${galaxySwanTheme.primary.main});
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 255, 255, 0.4);
+      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
     }
   }
   
   &.secondary {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     color: ${galaxySwanTheme.primary.main};
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
     
     &:hover {
-      background: rgba(0, 255, 255, 0.2);
-      border-color: rgba(0, 255, 255, 0.5);
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.5);
       transform: translateY(-2px);
     }
   }

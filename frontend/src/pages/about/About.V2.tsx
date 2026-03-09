@@ -127,8 +127,8 @@ const philosophies = [
    ═══════════════════════════════════════════════════════ */
 
 const pulseGlow = keyframes`
-  0%, 100% { filter: drop-shadow(0 0 15px var(--glow-color, rgba(0,255,255,0.15))); }
-  50% { filter: drop-shadow(0 0 35px var(--glow-color, rgba(0,255,255,0.3))); }
+  0%, 100% { filter: drop-shadow(0 0 15px var(--glow-color, rgba(139, 92, 246,0.15))); }
+  50% { filter: drop-shadow(0 0 35px var(--glow-color, rgba(139, 92, 246,0.3))); }
 `;
 
 const breathe = keyframes`

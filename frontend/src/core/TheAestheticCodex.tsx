@@ -1179,9 +1179,9 @@ const TheAestheticCodex: React.FC = () => {
           <div style={{
             marginTop: swanStudiosTheme.spacing.lg,
             padding: swanStudiosTheme.spacing.md,
-            background: 'rgba(0, 255, 255, 0.1)',
+            background: 'rgba(139, 92, 246, 0.1)',
             borderRadius: '8px',
-            border: '1px solid rgba(0, 255, 255, 0.3)'
+            border: '1px solid rgba(139, 92, 246, 0.3)'
           }}>
             <p style={{color: swanStudiosTheme.primary.main, fontWeight: 500, margin: 0}}>
               🎨 Your design system is now complete and ready for development team implementation!

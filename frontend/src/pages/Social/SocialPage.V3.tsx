@@ -143,7 +143,7 @@ const HeroTitle = styled(TypewriterText)`
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
   letter-spacing: 2px;
-  background: linear-gradient(135deg, #00FFFF, #60C0F0, #C6A84B);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0, #C6A84B);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -227,7 +227,7 @@ const GlassSidebar = styled.div`
   background: rgba(10, 10, 26, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.1);
   border-radius: 1.5rem;
   padding: 20px;
   height: fit-content;
@@ -238,8 +238,8 @@ const GlassSidebar = styled.div`
 // ─── Gamification Card ───────────────────────────────────────────────
 
 const GamificationCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(120, 81, 169, 0.08));
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(120, 81, 169, 0.08));
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 1.25rem;
   padding: 20px;
   margin-bottom: 16px;
@@ -257,7 +257,7 @@ const PointsValue = styled.h3`
   font-size: 1.75rem;
   font-weight: 700;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: linear-gradient(135deg, #00FFFF, #60C0F0);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -278,9 +278,9 @@ const LevelBadge = styled.span`
   border-radius: 2rem;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(0, 255, 255, 0.12);
-  color: #00FFFF;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.12);
+  color: #8B5CF6;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 `;
 
 const StreakRow = styled.div`
@@ -308,7 +308,7 @@ const ProgressTrack = styled.div`
 const ProgressFill = styled.div<{ $value: number }>`
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, #00FFFF, #60C0F0);
+  background: linear-gradient(90deg, #8B5CF6, #60C0F0);
   width: ${props => Math.min(Math.max(props.$value, 0), 100)}%;
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 `;
@@ -345,20 +345,20 @@ const NavButton = styled.button<{ $active?: boolean }>`
   border-radius: 12px;
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(96, 192, 240, 0.06))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(96, 192, 240, 0.06))'
       : 'transparent'};
-  color: ${({ $active }) => ($active ? '#00FFFF' : 'rgba(224, 236, 244, 0.8)')};
+  color: ${({ $active }) => ($active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.8)')};
   cursor: pointer;
   font-size: 0.9rem;
   font-family: inherit;
   font-weight: ${({ $active }) => ($active ? 600 : 400)};
   transition: all 0.2s ease;
   border: 1px solid ${({ $active }) =>
-    $active ? 'rgba(0, 255, 255, 0.15)' : 'transparent'};
+    $active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
-    color: #00FFFF;
+    background: rgba(139, 92, 246, 0.06);
+    color: #8B5CF6;
   }
 
   svg {
@@ -382,7 +382,7 @@ const NotifDot = styled.span`
 
 const Divider = styled.hr`
   border: none;
-  border-top: 1px solid rgba(0, 255, 255, 0.08);
+  border-top: 1px solid rgba(139, 92, 246, 0.08);
   margin: 16px 0;
 `;
 
@@ -394,7 +394,7 @@ const QuickActionBtn = styled.button`
   margin-bottom: 8px;
   padding: 10px 16px;
   min-height: 44px;
-  border: 1px solid rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   border-radius: 12px;
   background: transparent;
   cursor: pointer;
@@ -404,9 +404,9 @@ const QuickActionBtn = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
-    border-color: rgba(0, 255, 255, 0.25);
-    color: #00FFFF;
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.25);
+    color: #8B5CF6;
     transform: translateX(4px);
   }
 `;
@@ -420,7 +420,7 @@ const MobileTabBar = styled.div`
   background: rgba(10, 10, 26, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.08);
   border-radius: 1rem;
   padding: 4px;
   gap: 4px;
@@ -438,9 +438,9 @@ const MobileTab = styled.button<{ $active?: boolean }>`
   border-radius: 12px;
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.12), rgba(96, 192, 240, 0.08))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(96, 192, 240, 0.08))'
       : 'transparent'};
-  color: ${({ $active }) => ($active ? '#00FFFF' : 'rgba(224, 236, 244, 0.6)')};
+  color: ${({ $active }) => ($active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.6)')};
   cursor: pointer;
   font-size: 0.75rem;
   font-family: inherit;
@@ -448,7 +448,7 @@ const MobileTab = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    color: #00FFFF;
+    color: #8B5CF6;
   }
 
   @media (max-width: 320px) {
@@ -463,7 +463,7 @@ const FeedContainer = styled.div`
   background: rgba(10, 10, 26, 0.3);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 255, 255, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.06);
   border-radius: 1.5rem;
   padding: 20px;
   min-height: 400px;

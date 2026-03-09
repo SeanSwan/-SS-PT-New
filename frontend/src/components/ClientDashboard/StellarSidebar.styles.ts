@@ -23,11 +23,11 @@ export const stellarTheme = {
     constellation: 'conic-gradient(from 0deg, #00ffff, #7851a9, #ffd700, #00ffff)',
   },
   shadows: {
-    stellar: '0 0 30px rgba(0, 255, 255, 0.6)',
+    stellar: '0 0 30px rgba(139, 92, 246, 0.6)',
     nebula: '0 0 40px rgba(120, 81, 169, 0.4)',
     cosmic: '0 20px 40px rgba(0, 0, 0, 0.6)',
     glow: '0 0 20px currentColor',
-    constellation: 'inset 0 0 20px rgba(0, 255, 255, 0.2)',
+    constellation: 'inset 0 0 20px rgba(139, 92, 246, 0.2)',
   },
 };
 
@@ -66,12 +66,12 @@ const particleOrbit = keyframes`
 
 const constellationGlow = keyframes`
   0%, 100% {
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
-    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), 0 0 40px rgba(120, 81, 169, 0.3);
-    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.6), 0 0 40px rgba(120, 81, 169, 0.3);
+    border-color: rgba(139, 92, 246, 0.8);
   }
 `;
 
@@ -82,8 +82,8 @@ const auroraShift = keyframes`
 `;
 
 const glowPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 40px rgba(0, 255, 255, 0.2); }
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.2); }
 `;
 
 export const SidebarContainer = styled(motion.aside)<{ isCollapsed: boolean; isMobile: boolean }>`
@@ -94,7 +94,7 @@ export const SidebarContainer = styled(motion.aside)<{ isCollapsed: boolean; isM
   width: ${props => (props.isCollapsed ? '80px' : '280px')};
   background: ${props => props.theme.gradients.nebula};
   backdrop-filter: blur(20px);
-  border-right: 2px solid rgba(0, 255, 255, 0.2);
+  border-right: 2px solid rgba(139, 92, 246, 0.2);
   z-index: 999;
   display: flex;
   flex-direction: column;
@@ -109,10 +109,10 @@ export const SidebarContainer = styled(motion.aside)<{ isCollapsed: boolean; isM
     right: 0;
     bottom: 0;
     background:
-      radial-gradient(2px 2px at 20px 30px, rgba(0, 255, 255, 0.4), transparent),
+      radial-gradient(2px 2px at 20px 30px, rgba(139, 92, 246, 0.4), transparent),
       radial-gradient(1px 1px at 40px 70px, rgba(255, 215, 0, 0.3), transparent),
       radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.2), transparent),
-      radial-gradient(2px 2px at 130px 80px, rgba(0, 255, 255, 0.3), transparent);
+      radial-gradient(2px 2px at 130px 80px, rgba(139, 92, 246, 0.3), transparent);
     background-size: 100px 80px;
     background-repeat: repeat;
     animation: ${stellarFloat} 8s ease-in-out infinite;
@@ -166,7 +166,7 @@ export const SidebarHeader = styled(motion.div)<{ isCollapsed: boolean }>`
   display: flex;
   align-items: center;
   justify-content: ${props => (props.isCollapsed ? 'center' : 'space-between')};
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   position: relative;
   background: rgba(30, 30, 63, 0.3);
   backdrop-filter: blur(10px);
@@ -227,8 +227,8 @@ export const CollapseToggle = styled(motion.button)<{ isCollapsed: boolean }>`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: ${props => props.theme.colors.cyberCyan};
   cursor: pointer;
   display: flex;
@@ -237,8 +237,8 @@ export const CollapseToggle = styled(motion.button)<{ isCollapsed: boolean }>`
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.6);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.6);
     box-shadow: ${props => props.theme.shadows.glow};
     transform: scale(1.1);
   }
@@ -287,7 +287,7 @@ const navStatusStyles: Record<NavStatus, { color: string; background: string; bo
   partial: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   progress: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   fix: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.6)' },
-  new: { color: '#00ffff', background: 'rgba(0, 255, 255, 0.2)', border: 'rgba(0, 255, 255, 0.6)' },
+  new: { color: '#00ffff', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
   error: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', border: 'rgba(239, 68, 68, 0.7)' },
 };
 
@@ -317,7 +317,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
   gap: 0.75rem;
   background: ${props =>
     props.isActive
-      ? 'linear-gradient(90deg, rgba(0, 255, 255, 0.2) 0%, rgba(120, 81, 169, 0.1) 100%)'
+      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, rgba(120, 81, 169, 0.1) 100%)'
       : 'transparent'};
   border: none;
   border-left: 3px solid ${props => (props.isActive ? props.theme.colors.cyberCyan : 'transparent')};
@@ -399,7 +399,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
     pointer-events: none;
     opacity: 0;
     margin-left: 10px;
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
     box-shadow: ${props => props.theme.shadows.stellar};
     z-index: 1000;
 
@@ -420,8 +420,8 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
   &:hover {
     background: ${props =>
       props.isActive
-        ? 'linear-gradient(90deg, rgba(0, 255, 255, 0.3) 0%, rgba(120, 81, 169, 0.15) 100%)'
-        : 'rgba(0, 255, 255, 0.05)'};
+        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(120, 81, 169, 0.15) 100%)'
+        : 'rgba(139, 92, 246, 0.05)'};
     transform: translateX(${props => (props.isCollapsed ? '0' : '4px')});
 
     .nav-icon {
@@ -441,7 +441,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
 
 export const SidebarFooter = styled(motion.div)<{ isCollapsed: boolean }>`
   padding: 1.5rem;
-  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
   background: rgba(30, 30, 63, 0.3);
   backdrop-filter: blur(10px);
   text-align: center;
@@ -489,7 +489,7 @@ export const MobileToggle = styled(motion.button)`
   height: 50px;
   border-radius: 50%;
   background: ${props => props.theme.gradients.stellar};
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  border: 2px solid rgba(139, 92, 246, 0.3);
   color: ${props => props.theme.colors.deepSpace};
   cursor: pointer;
   display: none;
@@ -504,7 +504,7 @@ export const MobileToggle = styled(motion.button)`
 
   &:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
   }
 
   &:focus {

@@ -71,7 +71,7 @@ const CardTitle = styled.h2`
   gap: 12px;
 
   svg {
-    color: rgba(0, 255, 255, 0.8);
+    color: rgba(139, 92, 246, 0.8);
   }
 `;
 
@@ -90,7 +90,7 @@ const ActionButton = styled.a`
   padding: 8px 16px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.875rem;
@@ -100,7 +100,7 @@ const ActionButton = styled.a`
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 

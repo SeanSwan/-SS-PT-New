@@ -726,8 +726,8 @@ const EnhancedClientDashboard: React.FC = () => {
                 style={{
                   padding: 16,
                   borderRadius: '10px',
-                  background: reward.unlocked ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  border: `1px solid ${reward.unlocked ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
+                  background: reward.unlocked ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${reward.unlocked ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
                 }}
               >
                 <Box style={{ fontSize: '2rem', marginBottom: 8 }}>

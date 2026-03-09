@@ -353,7 +353,7 @@ const SearchWrapper = styled.div`
 
   &:focus-within {
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -401,7 +401,7 @@ const ClientRow = styled(motion.button)`
   }
 
   &:focus-visible {
-    outline: 2px solid #00FFFF;
+    outline: 2px solid #8B5CF6;
     outline-offset: 2px;
   }
 `;
@@ -413,7 +413,7 @@ const ClientAvatar = styled.div<{ $src?: string }>`
   background: ${(p) =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #7851A9, #00FFFF)'};
+      : 'linear-gradient(135deg, #7851A9, #8B5CF6)'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -458,11 +458,11 @@ const SessionPill = styled.div<{ $low: boolean }>`
   font-weight: 600;
   flex-shrink: 0;
   background: ${(p) =>
-    p.$low ? 'rgba(239, 68, 68, 0.15)' : 'rgba(0, 255, 255, 0.15)'};
+    p.$low ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)'};
   color: ${(p) => (p.$low ? '#fca5a5' : '#67e8f9')};
   border: 1px solid
     ${(p) =>
-      p.$low ? 'rgba(239, 68, 68, 0.3)' : 'rgba(0, 255, 255, 0.3)'};
+      p.$low ? 'rgba(239, 68, 68, 0.3)' : 'rgba(139, 92, 246, 0.3)'};
 `;
 
 const EmptyState = styled.div`
@@ -480,7 +480,7 @@ const EmptyState = styled.div`
 const LoadingDot = styled.div`
   width: 24px;
   height: 24px;
-  border: 2px solid rgba(0, 255, 255, 0.2);
+  border: 2px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;

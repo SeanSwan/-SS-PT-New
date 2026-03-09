@@ -151,12 +151,12 @@ h1.main-title,
   padding: 16px 36px !important;
   font-size: 1.1rem !important;
   border-radius: 8px !important;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9)) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9)) !important;
   border: none !important;
   color: white !important;
   position: relative !important;
   overflow: hidden !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 255, 255, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 20px rgba(139, 92, 246, 0.3) !important;
   transition: all 0.3s ease !important;
   cursor: pointer !important;
   font-weight: 500 !important;
@@ -187,7 +187,7 @@ h1.main-title,
 .hero-section .btn:hover,
 .hero-section .GlowButton:hover {
   transform: translateY(-5px) !important;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 255, 0.5) !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 30px rgba(139, 92, 246, 0.5) !important;
 }
 
 .hero-section button:hover::before,
@@ -255,12 +255,12 @@ h1.main-title,
   width: 100% !important;
   height: auto !important;
   margin-bottom: 2rem !important;
-  filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)) !important;
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5)) !important;
   animation: pulseLogo 3s ease-in-out infinite !important;
 }
 
 @keyframes pulseLogo {
-  0% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.5)); }
-  50% { filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.8)); }
-  100% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.5)); }
+  0% { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.5)); }
+  50% { filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.8)); }
+  100% { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.5)); }
 }

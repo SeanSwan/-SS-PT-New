@@ -122,7 +122,7 @@ export const StatusBadge = styled.span<{ $status: string }>`
 
 const badgeColors: Record<string, { bg: string; fg: string }> = {
   'Waiver Signed': { bg: 'rgba(0, 255, 136, 0.15)', fg: '#00ff88' },
-  'AI Consent Signed': { bg: 'rgba(0, 255, 255, 0.15)', fg: '#00ffff' },
+  'AI Consent Signed': { bg: 'rgba(139, 92, 246, 0.15)', fg: '#00ffff' },
   'Consent Missing': { bg: 'rgba(255, 107, 107, 0.15)', fg: '#ff6b6b' },
   'Guardian Required': { bg: 'rgba(255, 193, 7, 0.15)', fg: '#ffc107' },
   'Version Outdated': { bg: 'rgba(255, 152, 0, 0.15)', fg: '#ff9800' },
@@ -266,7 +266,7 @@ export const ConsentItem = styled.div<{ $accepted: boolean }>`
 export const SignatureImage = styled.img`
   max-width: 100%;
   max-height: 150px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.95);
   padding: 8px;
@@ -345,7 +345,7 @@ export const PageButton = styled.button<{ $active?: boolean }>`
   min-width: 44px;
   border-radius: 6px;
   border: 1px solid ${({ $active }) => ($active ? '#00ffff' : 'rgba(120, 81, 169, 0.3)')};
-  background: ${({ $active }) => ($active ? 'rgba(0, 255, 255, 0.15)' : 'transparent')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.15)' : 'transparent')};
   color: ${({ $active }) => ($active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
   cursor: pointer;
   font-size: 0.85rem;
@@ -390,7 +390,7 @@ export const UserSearchItem = styled.div<{ $selected?: boolean }>`
   min-height: 44px;
   cursor: pointer;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: ${({ $selected }) => ($selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  background: ${({ $selected }) => ($selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.85rem;
   transition: background 0.15s;

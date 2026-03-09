@@ -103,7 +103,7 @@ const Button = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: str
         border-color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#7851A9' : '#00ffff'};
         
         &:hover {
-          background-color: ${$color === 'warning' ? 'rgba(255, 193, 7, 0.1)' : $color === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(0, 255, 255, 0.1)'};
+          background-color: ${$color === 'warning' ? 'rgba(255, 193, 7, 0.1)' : $color === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
         }
       `;
     }

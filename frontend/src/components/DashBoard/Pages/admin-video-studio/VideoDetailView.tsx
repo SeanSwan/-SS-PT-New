@@ -339,15 +339,15 @@ const BackButton = styled.button`
   cursor: pointer;
   font-size: 14px;
   min-height: 44px;
-  &:hover { border-color: rgba(0, 255, 255, 0.4); color: #00ffff; }
+  &:hover { border-color: rgba(139, 92, 246, 0.4); color: #00ffff; }
 `;
 
 const SaveButton = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: #00ffff;
   padding: 8px 20px;
   border-radius: 8px;
@@ -355,7 +355,7 @@ const SaveButton = styled.button`
   font-size: 14px;
   font-weight: 600;
   min-height: 44px;
-  &:hover { background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3)); }
+  &:hover { background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3)); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
@@ -453,13 +453,13 @@ const PlaybackLink = styled.a`
   gap: 8px;
   padding: 10px 16px;
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   color: #00ffff;
   text-decoration: none;
   font-size: 14px;
   min-height: 44px;
-  &:hover { background: rgba(0, 255, 255, 0.12); }
+  &:hover { background: rgba(139, 92, 246, 0.12); }
 `;
 
 const FormColumn = styled.div`
@@ -495,7 +495,7 @@ const Input = styled.input`
   color: #fff;
   font-size: 14px;
   min-height: 44px;
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.4); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.4); }
 `;
 
 const TextArea = styled.textarea`
@@ -507,7 +507,7 @@ const TextArea = styled.textarea`
   font-size: 14px;
   resize: vertical;
   min-height: 100px;
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.4); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.4); }
 `;
 
 const Select = styled.select`
@@ -518,7 +518,7 @@ const Select = styled.select`
   color: #fff;
   font-size: 14px;
   min-height: 44px;
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.4); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.4); }
   option { background: #1a1a2e; }
 `;
 

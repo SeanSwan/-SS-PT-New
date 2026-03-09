@@ -169,8 +169,8 @@ const SelectedUser = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.8rem;
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
   color: #e2e8f0;
   font-size: 0.9rem;
@@ -193,11 +193,11 @@ const RadioBtn = styled.button<{ $active: boolean }>`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  background: ${p => (p.$active ? 'rgba(0, 255, 255, 0.12)' : 'rgba(30, 58, 138, 0.2)')};
+  background: ${p => (p.$active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(30, 58, 138, 0.2)')};
   border: 1px solid ${p => (p.$active ? '#00ffff' : 'rgba(59, 130, 246, 0.3)')};
   color: ${p => (p.$active ? '#00ffff' : '#94a3b8')};
 
-  &:hover { border-color: rgba(0, 255, 255, 0.5); }
+  &:hover { border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const Select = styled.select`

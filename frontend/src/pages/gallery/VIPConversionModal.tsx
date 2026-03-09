@@ -25,9 +25,9 @@ type Step = 'account' | 'checkout' | 'success';
 
 // ── Animations ────────────────────────────────────────────────────────────
 const cosmicPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), 0 0 60px rgba(120, 81, 169, 0.1); }
-  50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.35), 0 0 80px rgba(120, 81, 169, 0.2); }
-  100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), 0 0 60px rgba(120, 81, 169, 0.1); }
+  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 60px rgba(120, 81, 169, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.35), 0 0 80px rgba(120, 81, 169, 0.2); }
+  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 60px rgba(120, 81, 169, 0.1); }
 `;
 
 const checkmarkDraw = keyframes`
@@ -42,9 +42,9 @@ const ringExpand = keyframes`
 `;
 
 const glowPulse = keyframes`
-  0% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.4), 0 0 24px rgba(120, 81, 169, 0.2); }
-  50% { box-shadow: 0 0 16px rgba(0, 255, 255, 0.6), 0 0 40px rgba(120, 81, 169, 0.35); }
-  100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.4), 0 0 24px rgba(120, 81, 169, 0.2); }
+  0% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 24px rgba(120, 81, 169, 0.2); }
+  50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.6), 0 0 40px rgba(120, 81, 169, 0.35); }
+  100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.4), 0 0 24px rgba(120, 81, 169, 0.2); }
 `;
 
 // ── Spring transition config ──────────────────────────────────────────────
@@ -67,7 +67,7 @@ const ModalContainer = styled(motion.div)`
   background: rgba(10, 10, 26, 0.75);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   box-shadow: 0 24px 48px -12px rgba(120, 81, 169, 0.4);
   border-radius: 24px;
   width: 100%;
@@ -90,7 +90,7 @@ const ModalContainer = styled(motion.div)`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     border-radius: 3px;
   }
 `;
@@ -133,7 +133,7 @@ const StepDot = styled.div<{ $active: boolean; $completed: boolean }>`
   border-radius: 50%;
   background: ${p =>
     p.$completed ? '#00ffff' :
-    p.$active ? 'rgba(0, 255, 255, 0.6)' :
+    p.$active ? 'rgba(139, 92, 246, 0.6)' :
     'rgba(255, 255, 255, 0.15)'};
   transition: background 0.3s;
 `;
@@ -141,7 +141,7 @@ const StepDot = styled.div<{ $active: boolean; $completed: boolean }>`
 const Title = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -183,7 +183,7 @@ const Input = styled.input<{ $readOnly?: boolean }>`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 
   &::placeholder {
@@ -222,7 +222,7 @@ const PrimaryButton = styled.button<{ $loading?: boolean }>`
   width: 100%;
   min-height: 48px;
   padding: 0 24px;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   border: none;
   border-radius: 12px;
   color: #0a0a1a;
@@ -258,7 +258,7 @@ const ErrorText = styled.p`
 const VipPriceTag = styled.div`
   font-size: 48px;
   font-weight: 800;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -269,7 +269,7 @@ const VipPriceTag = styled.div`
 const VipLabel = styled.div`
   font-size: 18px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -346,7 +346,7 @@ const TimelineContainer = styled.div`
     top: 20px;
     bottom: 20px;
     width: 2px;
-    background: linear-gradient(180deg, #00FFFF 0%, #7851A9 100%);
+    background: linear-gradient(180deg, #8B5CF6 0%, #7851A9 100%);
     border-radius: 1px;
   }
 `;
@@ -363,21 +363,21 @@ const TimelineNode = styled.div`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px solid #00FFFF;
+  border: 2px solid #8B5CF6;
   background: rgba(10, 10, 26, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  color: #00FFFF;
+  color: #8B5CF6;
   z-index: 1;
 `;
 
 const TimelineStepTitle = styled.h4`
   font-size: 15px;
   font-weight: 700;
-  color: #00FFFF;
+  color: #8B5CF6;
   margin: 0 0 4px;
 `;
 
@@ -391,8 +391,8 @@ const TimelineStepDesc = styled.p`
 const ValueBadge = styled.div`
   text-align: center;
   padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.08) 0%, rgba(120, 81, 169, 0.08) 100%);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(120, 81, 169, 0.08) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   margin-bottom: 20px;
 `;
@@ -400,7 +400,7 @@ const ValueBadge = styled.div`
 const ValueText = styled.span`
   font-size: 15px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -423,8 +423,8 @@ const SuccessCircle = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
-  border: 2px solid rgba(0, 255, 255, 0.4);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
+  border: 2px solid rgba(139, 92, 246, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -435,7 +435,7 @@ const SuccessRing = styled.div`
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   animation: ${ringExpand} 2s ease-out infinite;
 `;
 
@@ -458,7 +458,7 @@ const SuccessCheckmark = styled.svg`
 const SuccessTitle = styled.h2`
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #00FFFF 0%, #7851A9 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #7851A9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -480,7 +480,7 @@ const SecondaryButton = styled.button`
   min-height: 48px;
   padding: 0 24px;
   background: transparent;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   color: #00ffff;
   font-size: 15px;
@@ -491,8 +491,8 @@ const SecondaryButton = styled.button`
   animation: ${glowPulse} 2s ease-in-out infinite;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
-    border-color: rgba(0, 255, 255, 0.5);
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 

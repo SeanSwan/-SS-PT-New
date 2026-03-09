@@ -235,11 +235,11 @@ const Drawer = styled.aside<{ $open: boolean }>`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.3);
     border-radius: 3px;
 
     &:hover {
-      background: rgba(0, 255, 255, 0.5);
+      background: rgba(139, 92, 246, 0.5);
     }
   }
 
@@ -281,7 +281,7 @@ const NavItem = styled.button<{ $active: boolean }>`
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
-  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  background: ${props => props.$active ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   border: none;
   border-left: 3px solid ${props => props.$active ? props.theme.colors.primary : 'transparent'};
   color: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.textSecondary};
@@ -293,7 +293,7 @@ const NavItem = styled.button<{ $active: boolean }>`
   white-space: nowrap;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
     color: ${props => props.theme.colors.primary};
   }
   

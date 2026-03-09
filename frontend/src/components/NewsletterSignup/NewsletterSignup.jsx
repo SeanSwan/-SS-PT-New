@@ -58,7 +58,7 @@ const BackgroundEffect = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 60%),
+  background: radial-gradient(circle at 30% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 60%),
               radial-gradient(circle at 70% 50%, rgba(120, 81, 169, 0.05) 0%, transparent 60%);
   z-index: 0;
 `;
@@ -175,7 +175,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: var(--neon-blue, #00D4AA);
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
   
   &::placeholder {

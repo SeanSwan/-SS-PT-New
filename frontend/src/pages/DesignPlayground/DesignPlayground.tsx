@@ -54,8 +54,8 @@ const Badge = styled.span`
   gap: 6px;
   padding: 6px 14px;
   border-radius: 20px;
-  background: rgba(0, 255, 255, 0.08);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   color: #00ffff;
   font-size: 0.8rem;
   font-weight: 500;
@@ -76,8 +76,8 @@ const FilterBar = styled.div.attrs({ role: 'toolbar', 'aria-label': 'Filter by c
 const FilterTab = styled.button<{ $active: boolean }>`
   padding: 8px 16px;
   border-radius: 20px;
-  border: 1px solid ${({ $active }) => ($active ? 'rgba(0, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.1)')};
-  background: ${({ $active }) => ($active ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  border: 1px solid ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
   color: ${({ $active }) => ($active ? '#00ffff' : '#8888aa')};
   font-size: 0.85rem;
   font-weight: 500;
@@ -86,7 +86,7 @@ const FilterTab = styled.button<{ $active: boolean }>`
   min-height: 44px;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     color: #00ffff;
   }
 `;
@@ -146,8 +146,8 @@ const ConceptCard = styled.div<{ $delay: number }>`
 
   &:hover {
     transform: translateY(-6px);
-    border-color: rgba(0, 255, 255, 0.25);
-    box-shadow: 0 12px 40px rgba(0, 255, 255, 0.08);
+    border-color: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 12px 40px rgba(139, 92, 246, 0.08);
   }
 `;
 
@@ -193,10 +193,10 @@ const VersionPill = styled.span<{ $version: number }>`
   letter-spacing: 1px;
   z-index: 2;
   background: ${({ $version }) =>
-    $version === 1 ? 'rgba(0, 255, 255, 0.2)' : 'rgba(120, 81, 169, 0.3)'};
+    $version === 1 ? 'rgba(139, 92, 246, 0.2)' : 'rgba(120, 81, 169, 0.3)'};
   color: ${({ $version }) => ($version === 1 ? '#00ffff' : '#b088f0')};
   border: 1px solid ${({ $version }) =>
-    $version === 1 ? 'rgba(0, 255, 255, 0.4)' : 'rgba(120, 81, 169, 0.5)'};
+    $version === 1 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(120, 81, 169, 0.5)'};
   backdrop-filter: blur(8px);
 `;
 
@@ -250,7 +250,7 @@ const MomentQuote = styled.div`
   color: #aaaacc;
   margin-bottom: 12px;
   padding-left: 12px;
-  border-left: 2px solid rgba(0, 255, 255, 0.3);
+  border-left: 2px solid rgba(139, 92, 246, 0.3);
   line-height: 1.5;
 `;
 
@@ -280,7 +280,7 @@ const ViewButton = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
   }
 
   &:active {

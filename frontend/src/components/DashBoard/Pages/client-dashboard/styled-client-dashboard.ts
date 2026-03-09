@@ -20,13 +20,13 @@ export const pulse = keyframes`
 `;
 
 export const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(120, 81, 169, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(120, 81, 169, 0.5); }
+  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(120, 81, 169, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(120, 81, 169, 0.5); }
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
 `;
 
 // --- Main Layout Components ---
@@ -339,7 +339,7 @@ export const ExerciseIcon = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -418,7 +418,7 @@ export const StatCard = styled.div<{ $color?: string }>`
     props.$color === 'warning' ? 'rgba(255, 209, 102, 0.1)' :
     props.$color === 'info' ? 'rgba(0, 150, 199, 0.1)' :
     props.$color === 'secondary' ? 'rgba(120, 81, 169, 0.1)' :
-    'rgba(0, 255, 255, 0.1)'
+    'rgba(139, 92, 246, 0.1)'
   };
   border-radius: 10px;
   padding: 1rem;
@@ -432,7 +432,7 @@ export const StatCard = styled.div<{ $color?: string }>`
     props.$color === 'warning' ? 'rgba(255, 209, 102, 0.2)' :
     props.$color === 'info' ? 'rgba(0, 150, 199, 0.2)' :
     props.$color === 'secondary' ? 'rgba(120, 81, 169, 0.2)' :
-    'rgba(0, 255, 255, 0.2)'
+    'rgba(139, 92, 246, 0.2)'
   };
   transition: all 0.3s ease;
 

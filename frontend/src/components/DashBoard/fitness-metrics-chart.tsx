@@ -61,7 +61,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   padding: 6px 16px;
   min-height: 36px;
   border: none;
-  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.15)' : 'transparent'};
+  background: ${props => props.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
   color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.8125rem;
   font-weight: ${props => props.$active ? '600' : '400'};
@@ -69,7 +69,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => props.$active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+    background: ${props => props.$active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
   }
 
   & + & {

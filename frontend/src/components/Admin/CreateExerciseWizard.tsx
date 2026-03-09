@@ -4,8 +4,8 @@ import GlowButton from '../ui/buttons/GlowButton';
 
 const Container = styled.div`
   padding: 1.5rem;
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.18);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.18);
   border-radius: 16px;
 `;
 

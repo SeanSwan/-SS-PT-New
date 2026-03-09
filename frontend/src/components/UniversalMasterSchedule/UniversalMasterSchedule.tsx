@@ -906,7 +906,7 @@ const ScheduleContainer = styled.div`
   background-color: #0a0a1a;
   background-image:
     radial-gradient(circle at 85% 15%, rgba(120, 81, 169, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 15% 85%, rgba(0, 255, 255, 0.08) 0%, transparent 40%);
+    radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
   background-attachment: fixed;
   color: #f0f0ff;
 

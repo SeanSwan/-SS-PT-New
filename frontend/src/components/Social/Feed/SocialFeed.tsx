@@ -59,16 +59,16 @@ const LoadMoreButton = styled.button`
   line-height: 1.75;
   letter-spacing: 0.02857em;
   text-transform: uppercase;
-  border: 1px solid rgba(0, 255, 255, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
   border-radius: 8px;
-  color: #00FFFF;
+  color: #8B5CF6;
   background: transparent;
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
-    border-color: #00FFFF;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: #8B5CF6;
   }
 
   &:disabled {
@@ -88,8 +88,8 @@ const WelcomeCard = styled.div`
   padding: 32px 24px;
   text-align: center;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(120, 81, 169, 0.15), rgba(0, 255, 255, 0.08));
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(120, 81, 169, 0.15), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(139, 92, 246, 0.15);
   backdrop-filter: blur(12px);
 `;
 
@@ -110,7 +110,7 @@ const GamificationHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #7851A9, #00FFFF);
+  background: linear-gradient(135deg, #7851A9, #8B5CF6);
   color: white;
   border-radius: 12px;
   margin-bottom: 24px;
@@ -238,8 +238,8 @@ const ContainedButton = styled.button<{ $color?: string }>`
   border-radius: 8px;
   color: #fff;
   background: ${({ $color }) => {
-    if ($color === 'primary') return 'linear-gradient(135deg, #7851A9, #00FFFF)';
-    return 'linear-gradient(135deg, #7851A9, #00FFFF)';
+    if ($color === 'primary') return 'linear-gradient(135deg, #7851A9, #8B5CF6)';
+    return 'linear-gradient(135deg, #7851A9, #8B5CF6)';
   }};
   cursor: pointer;
   transition: opacity 0.2s ease, box-shadow 0.2s ease;
@@ -263,16 +263,16 @@ const OutlinedButton = styled.button<{ $color?: string }>`
   line-height: 1.75;
   letter-spacing: 0.02857em;
   text-transform: uppercase;
-  border: 1px solid rgba(0, 255, 255, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
   border-radius: 8px;
-  color: #00FFFF;
+  color: #8B5CF6;
   background: transparent;
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
-    border-color: #00FFFF;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: #8B5CF6;
   }
 `;
 
@@ -280,8 +280,8 @@ const OutlinedButton = styled.button<{ $color?: string }>`
 const Spinner = styled.div<{ $size?: number }>`
   width: ${({ $size }) => $size || 40}px;
   height: ${({ $size }) => $size || 40}px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
-  border-top-color: #00FFFF;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8B5CF6;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
 `;
@@ -429,7 +429,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
       {variant === 'full' && posts.length > 0 && (
         <FeedStats>
           <StatCard>
-            <Heading6 $color="#00FFFF" $fontWeight={600}>
+            <Heading6 $color="#8B5CF6" $fontWeight={600}>
               {feedStats.workoutPosts}
             </Heading6>
             <CaptionText $color="rgba(255,255,255,0.7)">

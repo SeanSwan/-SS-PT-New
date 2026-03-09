@@ -15,7 +15,7 @@ import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
 import { getCheckStatus } from '../../../../../utils/measurementStatus';
 
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -43,7 +43,7 @@ const ModalPanel = styled.div`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
 `;
@@ -133,8 +133,8 @@ const WeightChip = styled.div<{ $latest?: boolean }>`
   flex-shrink: 0;
   text-align: center;
   padding: 8px 14px;
-  background: ${({ $latest }) => $latest ? 'rgba(0, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.95)'};
-  border: 1px solid ${({ $latest }) => $latest ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.06)'};
+  background: ${({ $latest }) => $latest ? 'rgba(139, 92, 246, 0.1)' : 'rgba(15, 23, 42, 0.95)'};
+  border: 1px solid ${({ $latest }) => $latest ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255, 255, 255, 0.06)'};
   border-radius: 8px;
 `;
 
@@ -244,14 +244,14 @@ const PrimaryButton = styled.button<{ $disabled?: boolean }>`
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
   }
 `;
 
 const Spinner = styled.div`
   width: 24px;
   height: 24px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
+  border: 3px solid rgba(139, 92, 246, 0.2);
   border-top-color: #00ffff;
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;

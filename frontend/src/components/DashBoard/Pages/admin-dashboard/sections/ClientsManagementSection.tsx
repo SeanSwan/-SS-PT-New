@@ -176,7 +176,7 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors?.accent || '#00ffff'};
-    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors?.accent ? `${theme.colors.accent}33` : 'rgba(0, 255, 255, 0.2)'};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors?.accent ? `${theme.colors.accent}33` : 'rgba(139, 92, 246, 0.2)'};
   }
 `;
 
@@ -325,9 +325,9 @@ const ClientTag = styled.span<{ $status?: string; $variant?: 'status' | 'tier' }
   `}
 
   ${props => props.$variant === 'tier' && `
-    background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}33` : 'rgba(0, 255, 255, 0.2)'};
+    background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}33` : 'rgba(139, 92, 246, 0.2)'};
     color: ${props.theme.colors?.accent || '#00ffff'};
-    border: 1px solid ${props.theme.colors?.accent ? `${props.theme.colors.accent}4d` : 'rgba(0, 255, 255, 0.3)'};
+    border: 1px solid ${props.theme.colors?.accent ? `${props.theme.colors.accent}4d` : 'rgba(139, 92, 246, 0.3)'};
   `}
 `;
 
@@ -348,7 +348,7 @@ const MetricItem = styled.div<{ $clickable?: boolean }>`
     padding: 0.5rem 0.25rem;
     transition: all 0.2s ease;
     &:hover {
-      background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}14` : 'rgba(0, 255, 255, 0.08)'};
+      background: ${props.theme.colors?.accent ? `${props.theme.colors.accent}14` : 'rgba(139, 92, 246, 0.08)'};
       transform: translateY(-2px);
     }
     &:focus-visible {

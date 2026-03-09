@@ -81,7 +81,7 @@ const StatIcon = styled.div<{ color?: string }>`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(0, 255, 255, 0.15)'};
+  background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(139, 92, 246, 0.15)'};
   margin-bottom: 0.5rem;
 `;
 
@@ -103,7 +103,7 @@ const ButtonContainer = styled.div`
 `;
 
 const Button = styled.button<{ active?: boolean }>`
-  background: ${(props) => props.active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(30, 30, 60, 0.5)'};
+  background: ${(props) => props.active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(30, 30, 60, 0.5)'};
   border: 1px solid ${(props) => props.active ? '#00ffff' : 'rgba(255, 255, 255, 0.1)'};
   color: ${(props) => props.active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'};
   border-radius: 6px;
@@ -113,12 +113,12 @@ const Button = styled.button<{ active?: boolean }>`
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 
 const IconButton = styled.button`
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   border: none;
   color: #00ffff;
   border-radius: 50%;
@@ -131,7 +131,7 @@ const IconButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -145,7 +145,7 @@ const AchievementCard = styled.div`
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 `;
 
@@ -156,7 +156,7 @@ const AchievementIcon = styled.div<{ color?: string }>`
   min-width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(0, 255, 255, 0.15)'};
+  background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(139, 92, 246, 0.15)'};
 `;
 
 const AchievementContent = styled.div`
@@ -180,7 +180,7 @@ const Badge = styled.span<{ color?: string }>`
   border-radius: 4px;
   font-size: 0.7rem;
   font-weight: 500;
-  background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(0, 255, 255, 0.15)'};
+  background-color: ${(props) => props.color ? `${props.color}22` : 'rgba(139, 92, 246, 0.15)'};
   color: ${(props) => props.color || '#00ffff'};
 `;
 
@@ -257,7 +257,7 @@ const PlayerToken = styled.div<{ position: number }>`
   height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00ffff, #7851a9);
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;

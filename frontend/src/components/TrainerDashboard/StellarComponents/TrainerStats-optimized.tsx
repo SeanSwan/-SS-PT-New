@@ -24,12 +24,12 @@ import { LucideIcon } from 'lucide-react';
 // === PERFORMANCE-OPTIMIZED ANIMATIONS ===
 const cosmicPulse = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.4);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 50px rgba(255, 215, 0, 0.3);
-    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 50px rgba(255, 215, 0, 0.3);
+    border-color: rgba(139, 92, 246, 0.8);
   }
 `;
 
@@ -81,7 +81,7 @@ export const StatCard = styled(motion.div)<{ color?: string }>`
     background: ${props => 
       props.color 
         ? `linear-gradient(135deg, ${props.color}, ${props.color}80)`
-        : props.theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)'
+        : props.theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #00A0E3)'
     };
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -104,7 +104,7 @@ export const StatCard = styled(motion.div)<{ color?: string }>`
   }
   
   &:focus {
-    outline: 2px solid ${props => props.color || props.theme.colors?.primary || '#00FFFF'};
+    outline: 2px solid ${props => props.color || props.theme.colors?.primary || '#8B5CF6'};
     outline-offset: 2px;
   }
   
@@ -126,9 +126,9 @@ export const StatIcon = styled.div<{ color?: string }>`
   width: 60px;
   height: 60px;
   border-radius: 15px;
-  background: ${props => `${props.color || '#00FFFF'}15`};
-  border: 1px solid ${props => `${props.color || '#00FFFF'}30`};
-  color: ${props => props.color || '#00FFFF'};
+  background: ${props => `${props.color || '#8B5CF6'}15`};
+  border: 1px solid ${props => `${props.color || '#8B5CF6'}30`};
+  color: ${props => props.color || '#8B5CF6'};
   transition: all 0.3s ease;
   
   @media (max-width: 768px) {
@@ -201,7 +201,7 @@ export const StatItem: React.FC<StatItemProps> = memo(({
   icon: IconComponent,
   value,
   label,
-  color = '#00FFFF',
+  color = '#8B5CF6',
   trend,
   trendPositive,
   onClick,
@@ -273,7 +273,7 @@ export const CompactStatCard = styled(motion.div)<{ color?: string }>`
   &:hover {
     background: ${props => props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'};
     transform: translateY(-2px);
-    box-shadow: ${props => `0 4px 16px ${props.color || '#00FFFF'}20`};
+    box-shadow: ${props => `0 4px 16px ${props.color || '#8B5CF6'}20`};
   }
   
   .compact-icon {
@@ -283,8 +283,8 @@ export const CompactStatCard = styled(motion.div)<{ color?: string }>`
     width: 40px;
     height: 40px;
     border-radius: 8px;
-    background: ${props => `${props.color || '#00FFFF'}15`};
-    color: ${props => props.color || '#00FFFF'};
+    background: ${props => `${props.color || '#8B5CF6'}15`};
+    color: ${props => props.color || '#8B5CF6'};
   }
   
   .compact-content {

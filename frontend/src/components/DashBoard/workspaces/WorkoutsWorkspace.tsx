@@ -88,7 +88,7 @@ const WorkoutsWorkspace: React.FC = () => {
       {/* Active Client Header / Trigger */}
       <ActiveClientHeader
         onClick={() => setIsDrawerOpen(true)}
-        whileHover={{ boxShadow: '0 0 16px rgba(0, 255, 255, 0.15)' }}
+        whileHover={{ boxShadow: '0 0 16px rgba(139, 92, 246, 0.15)' }}
         whileTap={{ scale: 0.98 }}
         aria-label={selectedClient ? `Selected: ${selectedClient.firstName} ${selectedClient.lastName}. Click to change.` : 'Select a client'}
       >
@@ -118,7 +118,7 @@ const WorkoutsWorkspace: React.FC = () => {
               <User size={18} />
             </SelectIcon>
             <SelectLabel>Select a Client</SelectLabel>
-            <ChevronDown size={16} style={{ color: '#00FFFF' }} />
+            <ChevronDown size={16} style={{ color: '#8B5CF6' }} />
           </>
         )}
       </ActiveClientHeader>
@@ -144,7 +144,7 @@ const WorkoutsWorkspace: React.FC = () => {
               </EmptySubtitle>
               <EmptyAction
                 onClick={() => setIsDrawerOpen(true)}
-                whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)' }}
+                whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' }}
                 whileTap={{ scale: 0.97 }}
               >
                 <User size={18} />
@@ -212,9 +212,9 @@ const TabButton = styled.button<{ $active: boolean }>`
   gap: 8px;
   padding: 14px 18px;
   border: none;
-  border-bottom: 2px solid ${(p) => (p.$active ? '#00FFFF' : 'transparent')};
+  border-bottom: 2px solid ${(p) => (p.$active ? '#8B5CF6' : 'transparent')};
   background: transparent;
-  color: ${(p) => (p.$active ? '#00FFFF' : 'rgba(255,255,255,0.65)')};
+  color: ${(p) => (p.$active ? '#8B5CF6' : 'rgba(255,255,255,0.65)')};
   font-size: 14px;
   font-weight: ${(p) => (p.$active ? 600 : 500)};
   cursor: pointer;
@@ -223,12 +223,12 @@ const TabButton = styled.button<{ $active: boolean }>`
   transition: all 0.15s;
 
   &:hover {
-    color: ${(p) => (p.$active ? '#00FFFF' : 'rgba(255,255,255,0.9)')};
+    color: ${(p) => (p.$active ? '#8B5CF6' : 'rgba(255,255,255,0.9)')};
     background: rgba(255, 255, 255, 0.02);
   }
 
   &:focus-visible {
-    outline: 2px solid #00FFFF;
+    outline: 2px solid #8B5CF6;
     outline-offset: -2px;
   }
 `;
@@ -241,7 +241,7 @@ const ActiveClientHeader = styled(motion.button)`
   padding: 0 20px;
   height: 56px;
   border-radius: 28px;
-  border: 1px solid rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   background: rgba(10, 10, 26, 0.5);
   backdrop-filter: blur(12px);
   cursor: pointer;
@@ -250,7 +250,7 @@ const ActiveClientHeader = styled(motion.button)`
   flex-shrink: 0;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 
   @media (max-width: 768px) {
@@ -272,7 +272,7 @@ const ClientHeaderAvatar = styled.div<{ $src?: string }>`
   background: ${(p) =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #7851A9, #00FFFF)'};
+      : 'linear-gradient(135deg, #7851A9, #8B5CF6)'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -317,7 +317,7 @@ const SelectIcon = styled.div`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px dashed rgba(0, 255, 255, 0.3);
+  border: 2px dashed rgba(139, 92, 246, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -354,8 +354,8 @@ const EmptyOrb = styled.div`
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(120, 81, 169, 0.3), rgba(0, 255, 255, 0.08));
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  background: radial-gradient(circle at 30% 30%, rgba(120, 81, 169, 0.3), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -386,7 +386,7 @@ const EmptyAction = styled(motion.button)`
   padding: 14px 32px;
   border: none;
   border-radius: 14px;
-  background: linear-gradient(135deg, #00FFFF 0%, #0088FF 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #0088FF 100%);
   color: #0a0a1a;
   font-weight: 700;
   font-size: 15px;

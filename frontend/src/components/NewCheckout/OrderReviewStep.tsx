@@ -29,9 +29,9 @@ import {
 
 // Galaxy-themed animations
 const stellarGlow = keyframes`
-  0% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
-  50% { text-shadow: 0 0 20px rgba(0, 255, 255, 0.8); }
-  100% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
+  0% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+  50% { text-shadow: 0 0 20px rgba(139, 92, 246, 0.8); }
+  100% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
 `;
 
 const priceShimmer = keyframes`
@@ -41,9 +41,9 @@ const priceShimmer = keyframes`
 
 // Styled Components
 const OrderSummaryContainer = styled(motion.div)`
-  background: rgba(0, 255, 255, 0.05);
+  background: rgba(139, 92, 246, 0.05);
   border-radius: 16px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   padding: 1.5rem;
   height: fit-content;
   position: sticky;
@@ -125,7 +125,7 @@ const ItemPrice = styled.div`
 `;
 
 const PricingSection = styled.div`
-  border-top: 2px solid rgba(0, 255, 255, 0.3);
+  border-top: 2px solid rgba(139, 92, 246, 0.3);
   margin-top: 1.5rem;
   padding-top: 1.5rem;
 `;
@@ -144,7 +144,7 @@ const PriceRow = styled.div`
     color: #00ffff;
     margin: 1rem 0 0 0;
     padding-top: 1rem;
-    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
     animation: ${stellarGlow} 2s infinite;
   }
   
@@ -160,8 +160,8 @@ const PriceRow = styled.div`
 `;
 
 const SessionsSummary = styled.div`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   padding: 1rem;
   margin: 1.5rem 0;

@@ -713,8 +713,8 @@ const WeekSessionsBadge = styled.span<{ $low: boolean }>`
   position: absolute;
   top: 2px;
   right: 4px;
-  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(0, 255, 255, 0.25)'};
-  color: ${({ $low }) => $low ? '#fff' : 'rgba(0, 255, 255, 0.95)'};
+  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(139, 92, 246, 0.25)'};
+  color: ${({ $low }) => $low ? '#fff' : 'rgba(139, 92, 246, 0.95)'};
   border-radius: 6px;
   padding: 0 4px;
   font-size: 0.55rem;

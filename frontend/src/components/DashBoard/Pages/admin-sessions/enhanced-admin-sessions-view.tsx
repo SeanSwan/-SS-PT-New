@@ -195,7 +195,7 @@ const CheckboxWrapper = styled.label<{ $checked?: boolean; $indeterminate?: bool
     height: 20px;
     border-radius: 4px;
     border: 2px solid ${p => (p.$checked || p.$indeterminate) ? '#00ffff' : 'rgba(255,255,255,0.5)'};
-    background: ${p => (p.$checked || p.$indeterminate) ? 'rgba(0, 255, 255, 0.2)' : 'transparent'};
+    background: ${p => (p.$checked || p.$indeterminate) ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
     transition: all 0.2s ease;
   }
 
@@ -290,7 +290,7 @@ const PaginationContainer = styled.div`
     min-height: 44px;
 
     &:focus {
-      border-color: rgba(0, 255, 255, 0.5);
+      border-color: rgba(139, 92, 246, 0.5);
     }
   }
 `;
@@ -311,7 +311,7 @@ const PaginationButton = styled.button<{ $disabled?: boolean }>`
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -463,8 +463,8 @@ const FormInput = styled.input`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -486,8 +486,8 @@ const FormTextarea = styled.textarea`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -508,8 +508,8 @@ const FormSelect = styled.select`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   option {
@@ -571,7 +571,7 @@ const DetailFullRow = styled.div`
 const AssignmentPanel = styled.div<{ $accentColor?: string }>`
   padding: 1.5rem;
   background: rgba(30, 30, 60, 0.4);
-  border: 1px solid ${p => p.$accentColor || 'rgba(0, 255, 255, 0.3)'};
+  border: 1px solid ${p => p.$accentColor || 'rgba(139, 92, 246, 0.3)'};
   border-radius: 12px;
 `;
 
@@ -601,7 +601,7 @@ const AssignmentStatsGrid = styled.div`
 
 const PanelHeading = styled.h3<{ $color?: string }>`
   margin: 0 0 1rem 0;
-  color: ${p => p.$color || '#00FFFF'};
+  color: ${p => p.$color || '#8B5CF6'};
   font-size: 1.1rem;
   font-weight: 600;
 `;
@@ -610,16 +610,16 @@ const SessionSelectItem = styled.div<{ $selected?: boolean }>`
   display: flex;
   align-items: center;
   padding: 0.5rem;
-  border: ${p => p.$selected ? '2px solid #00FFFF' : '1px solid rgba(255, 255, 255, 0.2)'};
+  border: ${p => p.$selected ? '2px solid #8B5CF6' : '1px solid rgba(255, 255, 255, 0.2)'};
   border-radius: 8px;
   margin: 0.5rem 0;
   cursor: pointer;
-  background: ${p => p.$selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  background: ${p => p.$selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   min-height: 44px;
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${p => p.$selected ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)'};
+    background: ${p => p.$selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)'};
   }
 `;
 
@@ -2623,8 +2623,8 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
 
       {/* Assignment Controls */}
       <AssignmentGrid>
-        <AssignmentPanel $accentColor="rgba(0, 255, 255, 0.3)">
-          <PanelHeading $color="#00FFFF">
+        <AssignmentPanel $accentColor="rgba(139, 92, 246, 0.3)">
+          <PanelHeading $color="#8B5CF6">
             Assign Trainer to Client
           </PanelHeading>
 
@@ -2794,7 +2794,7 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
                   >
                     <CheckSquare
                       size={20}
-                      color={selectedSessions.includes(session.id) ? '#00FFFF' : '#666'}
+                      color={selectedSessions.includes(session.id) ? '#8B5CF6' : '#666'}
                       style={{ marginRight: '0.5rem', flexShrink: 0 }}
                     />
                     <div>

@@ -71,18 +71,18 @@ const ScannerLine = styled(motion.div)`
   width: 80%;
   height: 2px;
   background: linear-gradient(to right, 
-    rgba(0, 255, 255, 0), 
-    rgba(0, 255, 255, 0.8), 
-    rgba(0, 255, 255, 0)
+    rgba(139, 92, 246, 0), 
+    rgba(139, 92, 246, 0.8), 
+    rgba(139, 92, 246, 0)
   );
-  box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
 `;
 
 const ScannerBox = styled.div`
   position: relative;
   width: 70%;
   height: 50%;
-  border: 2px solid rgba(0, 255, 255, 0.6);
+  border: 2px solid rgba(139, 92, 246, 0.6);
   border-radius: 10px;
   box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
 `;
@@ -193,7 +193,7 @@ const BarcodeInput = styled.input`
   
   &:focus {
     border-color: #00ffff;
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
   
   &::placeholder {

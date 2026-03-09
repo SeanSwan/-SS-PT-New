@@ -83,7 +83,7 @@ const certifications = [
 ];
 
 const statsData = [
-  { numericValue: 25, suffix: '+', label: 'Years Experience', delay: 0, color: '#00FFFF' },
+  { numericValue: 25, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
   { numericValue: 1000, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#7851A9' },
   { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' },
   { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
@@ -134,8 +134,8 @@ const philosophies = [
    ═══════════════════════════════════════════════════════ */
 
 const pulseGlow = keyframes`
-  0%, 100% { filter: drop-shadow(0 0 15px var(--glow-color, rgba(0,255,255,0.15))); }
-  50% { filter: drop-shadow(0 0 35px var(--glow-color, rgba(0,255,255,0.3))); }
+  0%, 100% { filter: drop-shadow(0 0 15px var(--glow-color, rgba(139, 92, 246,0.15))); }
+  50% { filter: drop-shadow(0 0 35px var(--glow-color, rgba(139, 92, 246,0.3))); }
 `;
 
 const breathe = keyframes`
@@ -144,8 +144,8 @@ const breathe = keyframes`
 `;
 
 const cyanPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.15), inset 0 0 8px rgba(0, 255, 255, 0.05); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 12px rgba(0, 255, 255, 0.08); }
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.15), inset 0 0 8px rgba(139, 92, 246, 0.05); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), inset 0 0 12px rgba(139, 92, 246, 0.08); }
 `;
 
 /* ═══════════════════════════════════════════════════════
@@ -557,13 +557,13 @@ const StatCard = styled.div<{ $accentColor?: string }>`
         : theme.background.elevated};
   backdrop-filter: ${({ theme }) =>
     theme.effects.glassmorphism ? 'blur(24px) saturate(1.6)' : 'none'};
-  border: 1px solid ${({ $accentColor }) => `${$accentColor || 'rgba(0,255,255,0.1)'}20`};
+  border: 1px solid ${({ $accentColor }) => `${$accentColor || 'rgba(139, 92, 246,0.1)'}20`};
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 
   &:hover {
     transform: translateY(-6px);
-    border-color: ${({ $accentColor }) => `${$accentColor || '#00FFFF'}50`};
-    box-shadow: 0 0 24px ${({ $accentColor }) => `${$accentColor || '#00FFFF'}25`},
+    border-color: ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}50`};
+    box-shadow: 0 0 24px ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}25`},
                 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 

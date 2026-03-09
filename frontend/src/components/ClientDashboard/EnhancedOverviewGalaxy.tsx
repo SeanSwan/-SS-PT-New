@@ -40,12 +40,12 @@ const stellarPulse = keyframes`
   0%, 100% { 
     opacity: 0.8;
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
   }
   50% { 
     opacity: 1;
     transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -87,7 +87,7 @@ const SectionCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 2rem;
   margin-bottom: 2rem;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
@@ -102,15 +102,15 @@ const SectionCard = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(ellipse at 20% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
       radial-gradient(ellipse at 80% 80%, rgba(120, 81, 169, 0.1) 0%, transparent 50%);
     pointer-events: none;
     z-index: 1;
   }
   
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 20px 40px rgba(0, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -124,7 +124,7 @@ const SectionTitle = styled.h2`
   display: flex;
   align-items: center;
   gap: 1rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   
   &::before {
     content: '✦';
@@ -151,15 +151,15 @@ const ProgressOrb = styled.div<{ progress: number; $isAnimating?: boolean }>`
     from 0deg,
     #00ffff 0deg,
     #00ffff ${props => props.progress * 3.6}deg,
-    rgba(0, 255, 255, 0.2) ${props => props.progress * 3.6}deg,
-    rgba(0, 255, 255, 0.2) 360deg
+    rgba(139, 92, 246, 0.2) ${props => props.progress * 3.6}deg,
+    rgba(139, 92, 246, 0.2) 360deg
   );
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
   position: relative;
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
   animation: ${props => props.$isAnimating ? stellarPulse : 'none'} 2s ease-in-out;
   
   &::before {
@@ -182,7 +182,7 @@ const ProgressOrb = styled.div<{ progress: number; $isAnimating?: boolean }>`
       font-weight: 700;
       font-size: 1.8rem;
       display: block;
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+      text-shadow: 0 0 10px rgba(139, 92, 246, 0.7);
     }
     
     .level-label {
@@ -196,7 +196,7 @@ const ProgressOrb = styled.div<{ progress: number; $isAnimating?: boolean }>`
 const XpProgressBar = styled.div<{ progress: number; $isAnimating?: boolean }>`
   width: 300px;
   height: 8px;
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   border-radius: 20px;
   position: relative;
   overflow: hidden;
@@ -212,7 +212,7 @@ const XpProgressBar = styled.div<{ progress: number; $isAnimating?: boolean }>`
     border-radius: 20px;
     width: ${props => props.progress}%;
     animation: ${props => props.$isAnimating ? xpFlow : 'none'} 1s ease-out;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -247,8 +247,8 @@ const StatGrid = styled.div`
 `;
 
 const StatCard = styled(motion.div)`
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 15px;
   padding: 1.5rem;
   text-align: center;
@@ -265,7 +265,7 @@ const StatCard = styled(motion.div)`
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(0, 255, 255, 0.2) 50%,
+      rgba(139, 92, 246, 0.2) 50%,
       transparent 100%
     );
     transition: left 0.6s ease;
@@ -284,7 +284,7 @@ const StatCard = styled(motion.div)`
     border-radius: 50%;
     background: linear-gradient(135deg, #00ffff, #7851a9);
     margin: 0 auto 1rem;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   }
   
   .stat-value {
@@ -293,7 +293,7 @@ const StatCard = styled(motion.div)`
     color: #00ffff;
     display: block;
     margin-bottom: 0.5rem;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
   
   .stat-label {
@@ -369,7 +369,7 @@ const LoadingSpinner = styled(motion.div)`
     content: '';
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
+    border: 3px solid rgba(139, 92, 246, 0.3);
     border-top: 3px solid #00ffff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -757,7 +757,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
           ) : (workoutHistory?.length ?? 0) > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {workoutHistory!.slice(0, 3).map((w: any) => (
-                <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(0,255,255,0.05)', borderRadius: '10px', border: '1px solid rgba(0,255,255,0.1)' }}>
+                <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(139, 92, 246,0.05)', borderRadius: '10px', border: '1px solid rgba(139, 92, 246,0.1)' }}>
                   <div>
                     <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>{w.name}</div>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>
@@ -772,8 +772,8 @@ const EnhancedOverviewGalaxy: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem', textAlign: 'center', padding: '1.5rem', background: 'rgba(0,255,255,0.03)', borderRadius: '12px', border: '1px dashed rgba(0,255,255,0.15)' }}>
-              <Activity size={28} style={{ color: 'rgba(0,255,255,0.3)', marginBottom: '0.5rem', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem', textAlign: 'center', padding: '1.5rem', background: 'rgba(139, 92, 246,0.03)', borderRadius: '12px', border: '1px dashed rgba(139, 92, 246,0.15)' }}>
+              <Activity size={28} style={{ color: 'rgba(139, 92, 246,0.3)', marginBottom: '0.5rem', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
               Your trainer will log workouts after each session
             </div>
           )}

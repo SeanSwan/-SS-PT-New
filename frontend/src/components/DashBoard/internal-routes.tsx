@@ -12,7 +12,7 @@ const MainDashboard = () => (
     <h1>Admin Dashboard</h1>
     <p>Welcome to the admin dashboard. This is a simplified view to resolve import issues.</p>
     <div style={{ 
-      backgroundColor: 'rgba(0, 255, 255, 0.1)', 
+      backgroundColor: 'rgba(139, 92, 246, 0.1)', 
       padding: '20px', 
       borderRadius: '8px',
       marginTop: '20px'

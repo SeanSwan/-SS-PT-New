@@ -38,8 +38,8 @@ const StartButton = styled.button`
   padding: 10px 16px;
   min-height: 44px;
   border-radius: 10px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
-  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.05);
   color: #00ffff;
   font-size: 0.875rem;
   font-weight: 500;
@@ -48,7 +48,7 @@ const StartButton = styled.button`
   margin-top: 16px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
   }
 `;
 

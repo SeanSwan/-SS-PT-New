@@ -54,8 +54,8 @@ const DashboardCard = styled.div`
   
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 255, 255, 0.1);
-    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
   }
   
   &::before {
@@ -87,7 +87,7 @@ const CardIcon = styled.div`
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
   font-size: 2.5rem;
 `;
@@ -110,7 +110,7 @@ const Badge = styled.span`
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 500;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
 `;
 

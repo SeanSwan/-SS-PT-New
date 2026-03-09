@@ -41,7 +41,7 @@ const GlassCard = styled.div`
   max-width: 720px;
   background: rgba(15, 15, 40, 0.85);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 16px;
   padding: 2rem;
   color: #fff;
@@ -63,7 +63,7 @@ const SectionTitle = styled.h2`
   color: #00ffff;
   margin: 1.5rem 0 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
 `;
 
 const CheckboxGrid = styled.div`
@@ -80,7 +80,7 @@ const CheckboxLabel = styled.label<{ $checked?: boolean }>`
   padding: 0.5rem 0.75rem;
   border: 1px solid ${(p) => (p.$checked ? '#00ffff' : 'rgba(255,255,255,0.15)')};
   border-radius: 8px;
-  background: ${(p) => (p.$checked ? 'rgba(0,255,255,0.08)' : 'transparent')};
+  background: ${(p) => (p.$checked ? 'rgba(139, 92, 246,0.08)' : 'transparent')};
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.95rem;
@@ -122,7 +122,7 @@ const Input = styled.input<{ $error?: boolean }>`
 const WaiverTextContainer = styled.div`
   max-height: 400px;
   overflow-y: auto;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
   padding: 1rem;
   background: rgba(5, 5, 20, 0.6);
@@ -140,7 +140,7 @@ const WaiverVersionTitle = styled.h3`
   color: #00ffff;
   margin: 1rem 0 0.5rem;
   padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
 `;
 
 const PreText = styled.pre`
@@ -207,7 +207,7 @@ const CheckIcon = styled.div`
   height: 64px;
   margin: 0 auto 1.5rem;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -231,7 +231,7 @@ const LinkButton = styled.a`
   text-decoration: none;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 

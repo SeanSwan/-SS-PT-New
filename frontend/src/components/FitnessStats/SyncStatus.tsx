@@ -20,7 +20,7 @@ const StatusContainer = styled.div<{ status: 'success' | 'error' | 'syncing' | '
       case 'error':
         return 'rgba(255, 107, 107, 0.15)';
       case 'syncing':
-        return 'rgba(0, 255, 255, 0.15)';
+        return 'rgba(139, 92, 246, 0.15)';
       case 'stale':
         return 'rgba(255, 187, 0, 0.15)';
     }
@@ -32,7 +32,7 @@ const StatusContainer = styled.div<{ status: 'success' | 'error' | 'syncing' | '
       case 'error':
         return '#FF6B6B';
       case 'syncing':
-        return '#00FFFF';
+        return '#8B5CF6';
       case 'stale':
         return '#FFBB00';
     }

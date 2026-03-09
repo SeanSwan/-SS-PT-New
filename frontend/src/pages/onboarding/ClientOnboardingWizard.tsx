@@ -17,12 +17,12 @@ import SummarySection from "./components/SummarySection";
 
 /* ── Galaxy-Swan theme tokens ── */
 const GALAXY_CORE = "#0a0a1a";
-const SWAN_CYAN = "#00FFFF";
+const SWAN_CYAN = "#8B5CF6";
 const COSMIC_PURPLE = "#7851A9";
 
 const cyanPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.1); }
-  50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); }
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.2); }
 `;
 
 const WizardContainer = styled.div<{ $embedded?: boolean }>`
@@ -40,8 +40,8 @@ const WizardContainer = styled.div<{ $embedded?: boolean }>`
 const WizardCard = styled(motion.div)`
   background: rgba(15, 15, 35, 0.92);
   border-radius: 20px;
-  box-shadow: 0 8px 40px rgba(0, 255, 255, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  box-shadow: 0 8px 40px rgba(139, 92, 246, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 2.5rem;
   max-width: 900px;
   width: 100%;
@@ -67,7 +67,7 @@ const ProgressBar = styled(motion.div)`
   height: 100%;
   background: linear-gradient(90deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
   border-radius: 10px;
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
 `;
 
 const StepIndicator = styled.div`
@@ -94,7 +94,7 @@ const Step = styled.div<{ $active: boolean; $completed: boolean }>`
       return "rgba(255, 255, 255, 0.15)";
     }};
   background: ${(props) => {
-    if (props.$completed) return "rgba(0, 255, 255, 0.15)";
+    if (props.$completed) return "rgba(139, 92, 246, 0.15)";
     if (props.$active) return "rgba(120, 81, 169, 0.25)";
     return "rgba(255, 255, 255, 0.03)";
   }};
@@ -159,17 +159,17 @@ const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
       ? `
     background: linear-gradient(135deg, ${SWAN_CYAN}, #00aadd);
     color: ${GALAXY_CORE};
-    box-shadow: 0 4px 18px rgba(0, 255, 255, 0.35);
+    box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(0, 255, 255, 0.5);
+      box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
     }
   `
       : `
     background: rgba(255, 255, 255, 0.06);
     color: ${SWAN_CYAN};
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -247,8 +247,8 @@ const ModalContent = styled(motion.div)`
   padding: 2.5rem;
   max-width: 600px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 255, 255, 0.25);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   backdrop-filter: blur(20px);
   text-align: center;
 
@@ -281,8 +281,8 @@ const HighlightText = styled.span`
 `;
 
 const CredentialsBox = styled.div`
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 12px;
   padding: 1.5rem;
   margin: 1.5rem 0;

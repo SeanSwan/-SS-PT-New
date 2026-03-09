@@ -333,7 +333,7 @@ export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
 export const glassMorphism = css`
   background: rgba(30, 30, 60, 0.4);
   backdrop-filter: blur(15px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -341,7 +341,7 @@ export const glassMorphism = css`
 
 // Text gradient with Galaxy-Swan colors emphasizing PRIMARY
 export const textGradient = (colors: string[] = [
-  '#00FFFF',
+  '#8B5CF6',
   '#00A0E3',
   '#7851A9'
 ]) => css`
@@ -352,7 +352,7 @@ export const textGradient = (colors: string[] = [
 `;
 
 // Responsive glow effect using PRIMARY colors
-export const responsiveGlow = (color: string = '#00FFFF') => css`
+export const responsiveGlow = (color: string = '#8B5CF6') => css`
   filter: drop-shadow(0 0 10px ${color}33);
   
   @media (prefers-reduced-motion: reduce) {

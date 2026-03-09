@@ -48,7 +48,7 @@ const StellarTimeWarpContainer = styled(motion.div)`
   position: relative;
   background: rgba(10, 10, 15, 0.8);
   border-radius: 20px;
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  border: 2px solid rgba(139, 92, 246, 0.3);
   box-shadow:
     0 15px 35px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -61,7 +61,7 @@ const StellarTimeWarpContainer = styled(motion.div)`
     right: 0;
     bottom: 0;
     background:
-      radial-gradient(ellipse at 20% 20%, rgba(0, 255, 255, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
       radial-gradient(ellipse at 80% 80%, rgba(120, 81, 169, 0.15) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
     pointer-events: none;
@@ -76,10 +76,10 @@ const StellarTimeWarpContainer = styled(motion.div)`
     width: 200%;
     height: 200%;
     background:
-      radial-gradient(2px 2px at 20px 30px, rgba(0, 255, 255, 0.6), transparent),
+      radial-gradient(2px 2px at 20px 30px, rgba(139, 92, 246, 0.6), transparent),
       radial-gradient(2px 2px at 40px 70px, rgba(255, 215, 0, 0.6), transparent),
       radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.8), transparent),
-      radial-gradient(1px 1px at 130px 80px, rgba(0, 255, 255, 0.6), transparent);
+      radial-gradient(1px 1px at 130px 80px, rgba(139, 92, 246, 0.6), transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
     animation: ${nebulaDrift} 30s ease-in-out infinite;
@@ -95,7 +95,7 @@ const StellarHeader = styled(motion.div)`
   padding: 2rem 2rem 1rem;
   background: rgba(30, 30, 60, 0.4);
   backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
 `;
 
 const StellarTitle = styled.h2`
@@ -124,7 +124,7 @@ const StellarSubtitle = styled.p`
   margin: 0;
   color: rgba(255, 255, 255, 0.8);
   font-size: 1.1rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
 `;
 
 const ScheduleWrapper = styled(motion.div)`
@@ -135,14 +135,14 @@ const ScheduleWrapper = styled(motion.div)`
   /* Override schedule component styling to match stellar theme */
   .rbc-calendar {
     background: rgba(30, 30, 60, 0.2) !important;
-    border: 1px solid rgba(0, 255, 255, 0.2) !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
     border-radius: 15px !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
   }
 
   .rbc-toolbar {
     background: rgba(20, 20, 40, 0.8) !important;
-    border: 1px solid rgba(0, 255, 255, 0.3) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
     border-radius: 12px !important;
     margin-bottom: 1rem !important;
     backdrop-filter: blur(10px) !important;
@@ -150,37 +150,37 @@ const ScheduleWrapper = styled(motion.div)`
 
   .rbc-toolbar-label {
     color: #00ffff !important;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5) !important;
     font-weight: 600 !important;
   }
 
   .rbc-btn-group button {
-    background: rgba(0, 255, 255, 0.1) !important;
-    border: 1px solid rgba(0, 255, 255, 0.3) !important;
+    background: rgba(139, 92, 246, 0.1) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
     color: #00ffff !important;
     border-radius: 8px !important;
     margin: 0 2px !important;
     transition: all 0.3s ease !important;
 
     &:hover {
-      background: rgba(0, 255, 255, 0.2) !important;
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.4) !important;
+      background: rgba(139, 92, 246, 0.2) !important;
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
     }
 
     &.rbc-active {
       background: linear-gradient(135deg, #00ffff, #7851a9) !important;
       color: #000 !important;
       font-weight: bold !important;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.6) !important;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.6) !important;
     }
   }
 
   .rbc-header {
-    background: rgba(0, 255, 255, 0.1) !important;
+    background: rgba(139, 92, 246, 0.1) !important;
     color: #00ffff !important;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.3) !important;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.3) !important;
     font-weight: 600 !important;
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5) !important;
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.5) !important;
   }
 
   .rbc-today {
@@ -189,15 +189,15 @@ const ScheduleWrapper = styled(motion.div)`
   }
 
   .rbc-event {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8)) !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8)) !important;
     border: none !important;
     border-radius: 10px !important;
-    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
     transition: all 0.3s ease !important;
 
     &:hover {
       transform: translateY(-2px) !important;
-      box-shadow: 0 6px 20px rgba(0, 255, 255, 0.5) !important;
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5) !important;
     }
 
     &.available {
@@ -222,23 +222,23 @@ const ScheduleWrapper = styled(motion.div)`
   }
 
   .rbc-time-slot {
-    border-color: rgba(0, 255, 255, 0.1) !important;
+    border-color: rgba(139, 92, 246, 0.1) !important;
   }
 
   .rbc-timeslot-group {
-    border-color: rgba(0, 255, 255, 0.1) !important;
+    border-color: rgba(139, 92, 246, 0.1) !important;
   }
 
   .rbc-day-bg + .rbc-day-bg {
-    border-left: 1px solid rgba(0, 255, 255, 0.1) !important;
+    border-left: 1px solid rgba(139, 92, 246, 0.1) !important;
   }
 
   .rbc-month-view {
-    border-color: rgba(0, 255, 255, 0.1) !important;
+    border-color: rgba(139, 92, 246, 0.1) !important;
   }
 
   .rbc-month-row + .rbc-month-row {
-    border-top: 1px solid rgba(0, 255, 255, 0.1) !important;
+    border-top: 1px solid rgba(139, 92, 246, 0.1) !important;
   }
 `;
 

@@ -16,7 +16,7 @@ const ModalHeader = styled.div`
   padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
-  svg { color: rgba(0, 255, 255, 0.8); }
+  svg { color: rgba(139, 92, 246, 0.8); }
 `;
 
 const HeaderTitle = styled.h2`
@@ -59,7 +59,7 @@ const Avatar = styled.div<{ $src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(0, 255, 255, 0.2)'};
+  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
   color: #00ffff;
   display: flex;
   align-items: center;
@@ -107,13 +107,13 @@ const AcceptBtn = styled.button`
   min-height: 36px;
   border-radius: 6px;
   border: none;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.25); }
+  &:hover { background: rgba(139, 92, 246, 0.25); }
 `;
 
 const DeclineBtn = styled.button`
@@ -186,13 +186,13 @@ const CloseButton = styled.button`
   min-height: 44px;
   border-radius: 8px;
   border: none;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.2); }
+  &:hover { background: rgba(139, 92, 246, 0.2); }
 `;
 
 interface FriendRequestsProps {

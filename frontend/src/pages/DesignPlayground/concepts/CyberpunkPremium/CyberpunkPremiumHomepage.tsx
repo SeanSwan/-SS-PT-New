@@ -21,8 +21,8 @@ const glitch = keyframes`
 `;
 
 const pulse = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6), 0 0 80px rgba(0, 255, 255, 0.2); }
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 80px rgba(139, 92, 246, 0.2); }
 `;
 
 const gridMove = keyframes`
@@ -48,8 +48,8 @@ const GridOverlay = styled.div`
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
   animation: ${gridMove} 8s linear infinite;
   z-index: 0;
@@ -92,7 +92,7 @@ const HeroTitle = styled(motion.h1)`
 
 const CyanText = styled.span`
   color: ${theme.colors.primary};
-  text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
 `;
 
 const MagentaText = styled.span`
@@ -139,13 +139,13 @@ const NeonButton = styled(motion.button)`
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
     transition: left 0.5s;
   }
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.4), inset 0 0 40px rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.1);
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.4), inset 0 0 40px rgba(139, 92, 246, 0.05);
     &::before { left: 100%; }
   }
 `;
@@ -203,7 +203,7 @@ const ProgramGrid = styled.div`
 
 const HoloCard = styled(motion.div)`
   background: ${theme.colors.surface};
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: ${theme.borderRadius};
   padding: 32px 20px;
   text-align: center;
@@ -223,8 +223,8 @@ const HoloCard = styled(motion.div)`
   }
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
     transform: translateY(-4px);
   }
 `;
@@ -232,7 +232,7 @@ const HoloCard = styled(motion.div)`
 const CardIcon = styled.div`
   width: 56px;
   height: 56px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: ${theme.borderRadius};
   display: flex;
   align-items: center;
@@ -272,7 +272,7 @@ const StatsGrid = styled.div`
 
 const StatPanel = styled(motion.div)`
   background: ${theme.colors.surface};
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.1);
   border-radius: ${theme.borderRadius};
   padding: 24px;
   text-align: center;
@@ -284,7 +284,7 @@ const StatNumber = styled.div`
   font-size: 2.5rem;
   font-weight: 900;
   color: ${theme.colors.primary};
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
 `;
 
 const StatLabel = styled.div`
@@ -327,7 +327,7 @@ const CTASubtext = styled.p`
 const Footer = styled.footer`
   padding: 48px 24px;
   background: #050508;
-  border-top: 1px solid rgba(0, 255, 255, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
 `;
 
 const FooterInner = styled.div`
@@ -392,7 +392,7 @@ const Copyright = styled.div`
   text-align: center;
   padding-top: 32px;
   margin-top: 32px;
-  border-top: 1px solid rgba(0, 255, 255, 0.05);
+  border-top: 1px solid rgba(139, 92, 246, 0.05);
   font-size: 0.8125rem;
   color: ${theme.colors.textSecondary};
   font-family: '${theme.fonts.body}', monospace;

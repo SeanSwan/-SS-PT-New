@@ -42,8 +42,8 @@ const Card = styled.button`
   min-height: 44px;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.06);
-    border-color: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.06);
+    border-color: rgba(139, 92, 246, 0.2);
   }
 `;
 

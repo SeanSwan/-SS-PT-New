@@ -46,9 +46,9 @@ const TabButton = styled.button<{ $active: boolean }>`
   padding: 10px 18px;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid ${({ $active }) => $active ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)'};
-  background: ${({ $active }) => $active ? 'rgba(0, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)'};
-  color: ${({ $active }) => $active ? '#00FFFF' : '#94a3b8'};
+  border: 1px solid ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255, 255, 255, 0.1)'};
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)'};
+  color: ${({ $active }) => $active ? '#8B5CF6' : '#94a3b8'};
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
@@ -56,8 +56,8 @@ const TabButton = styled.button<{ $active: boolean }>`
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.3);
-    color: #00FFFF;
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #8B5CF6;
   }
 `;
 
@@ -84,8 +84,8 @@ const SpinningLoader = styled(Loader2)`
 `;
 
 const InfoCard = styled.div`
-  background: rgba(0, 255, 255, 0.06);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 1.5rem;
@@ -94,7 +94,7 @@ const InfoCard = styled.div`
   line-height: 1.5;
 
   strong {
-    color: #00FFFF;
+    color: #8B5CF6;
   }
 `;
 

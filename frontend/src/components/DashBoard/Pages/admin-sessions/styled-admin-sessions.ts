@@ -14,20 +14,20 @@ export const float = keyframes`
 `;
 
 export const pulseAnimation = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(0, 255, 255, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 `;
 
 export const glowAnimation = keyframes`
-  0% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(120, 81, 169, 0.3); }
-  100% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.3); }
+  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3); }
+  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
 `;
 
 export const textGlow = keyframes`
-  0%, 100% { text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { text-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
 `;
 
 // --- Executive Command Intelligence Theme ---
@@ -95,7 +95,7 @@ export const CardTitle = styled.h2`
   color: white;
   font-size: 1.8rem;
   font-weight: 300;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
 `;
 
 export const CardContent = styled.div`
@@ -215,8 +215,8 @@ export const SearchField = styled.input`
 
   &:hover,
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
   }
 
   @media (max-width: 600px) {
@@ -313,7 +313,7 @@ export const StyledTableRow = styled.tr`
   background: transparent;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
     backdrop-filter: blur(10px);
   }
 
@@ -322,7 +322,7 @@ export const StyledTableRow = styled.tr`
   }
 
   &:nth-of-type(even):hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 `;
 
@@ -355,7 +355,7 @@ export const StyledButton = styled.button<{ $variant?: string; $buttonColor?: st
         props.$buttonColor === 'primary' ? 'rgba(33, 150, 243, 0.5)' :
         props.$buttonColor === 'success' ? 'rgba(46, 125, 50, 0.5)' :
         props.$buttonColor === 'error' ? 'rgba(255, 65, 108, 0.5)' :
-        'rgba(0, 255, 255, 0.5)'
+        'rgba(139, 92, 246, 0.5)'
       }`
     : 'none'
   };
@@ -375,7 +375,7 @@ export const StyledButton = styled.button<{ $variant?: string; $buttonColor?: st
             ? 'rgba(46, 125, 50, 0.1)' :
           props.$buttonColor === 'error'
             ? 'rgba(255, 65, 108, 0.1)' :
-          'rgba(0, 255, 255, 0.1)')
+          'rgba(139, 92, 246, 0.1)')
         : undefined
     };
   }
@@ -433,7 +433,7 @@ export const StyledIconButton = styled(motion.button)<{ $btnColor?: string; btnc
     return c === 'primary' ? 'rgba(0, 115, 255, 0.1)' :
     c === 'success' ? 'rgba(0, 191, 143, 0.1)' :
     c === 'error' ? 'rgba(255, 65, 108, 0.1)' :
-    'rgba(0, 255, 255, 0.1)';
+    'rgba(139, 92, 246, 0.1)';
   }};
   color: ${props => {
     const c = props.$btnColor || props.btncolor || '';
@@ -458,7 +458,7 @@ export const StyledIconButton = styled(motion.button)<{ $btnColor?: string; btnc
       return c === 'primary' ? 'rgba(0, 115, 255, 0.2)' :
       c === 'success' ? 'rgba(0, 191, 143, 0.2)' :
       c === 'error' ? 'rgba(255, 65, 108, 0.2)' :
-      'rgba(0, 255, 255, 0.2)';
+      'rgba(139, 92, 246, 0.2)';
     }};
     transform: translateY(-2px);
   }
@@ -568,8 +568,8 @@ export const DialogContentArea = styled.div`
     box-sizing: border-box;
 
     &:focus {
-      border-color: rgba(0, 255, 255, 0.5);
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
     }
 
     &::placeholder {
@@ -654,8 +654,8 @@ export const DateInput = styled.input`
 
   &:hover,
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
   }
 
   &::-webkit-calendar-picker-indicator {
@@ -704,8 +704,8 @@ export const SearchInput = styled.input`
 
   &:hover,
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -735,7 +735,7 @@ export const PaginationSelect = styled.select`
   cursor: pointer;
 
   &:focus {
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 
   option {

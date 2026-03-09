@@ -44,10 +44,10 @@ const starBurst = keyframes`
 
 const rarityGlow = keyframes`
   0%, 100% { 
-    filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.3));
+    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3));
   }
   50% { 
-    filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.6));
+    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.6));
   }
 `;
 
@@ -117,7 +117,7 @@ const Title = styled(motion.h2)`
   font-weight: 700;
   background: linear-gradient(135deg, 
     #FFD700 0%, 
-    #00FFFF 50%, 
+    #8B5CF6 50%, 
     #7851A9 100%
   );
   background-clip: text;
@@ -144,15 +144,15 @@ const StatsRow = styled(motion.div)`
 
 const StatBadge = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.1),
+    rgba(139, 92, 246, 0.1),
     rgba(120, 81, 169, 0.1)
   );
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 20px;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #00FFFF;
+  color: #8B5CF6;
   backdrop-filter: blur(10px);
 `;
 
@@ -200,7 +200,7 @@ const AchievementCard = styled(motion.div)<{
       case 'rare':
         return 'linear-gradient(135deg, rgba(0, 191, 255, 0.1), rgba(30, 144, 255, 0.05))';
       default:
-        return 'linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(120, 81, 169, 0.05))';
+        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(120, 81, 169, 0.05))';
     }
   }};
   
@@ -211,7 +211,7 @@ const AchievementCard = styled(motion.div)<{
       case 'legendary': return 'rgba(255, 215, 0, 0.5)';
       case 'epic': return 'rgba(138, 43, 226, 0.4)';
       case 'rare': return 'rgba(0, 191, 255, 0.4)';
-      default: return 'rgba(0, 255, 255, 0.2)';
+      default: return 'rgba(139, 92, 246, 0.2)';
     }
   }};
 
@@ -239,7 +239,7 @@ const AchievementCard = styled(motion.div)<{
         case 'legendary': return 'rgba(255, 215, 0, 0.3)';
         case 'epic': return 'rgba(138, 43, 226, 0.3)';
         case 'rare': return 'rgba(0, 191, 255, 0.3)';
-        default: return 'rgba(0, 255, 255, 0.2)';
+        default: return 'rgba(139, 92, 246, 0.2)';
       }
     }};
   }
@@ -306,7 +306,7 @@ const ProgressFill = styled(motion.div)<{ progress: number; rarity: Achievement[
       case 'legendary': return 'linear-gradient(90deg, #FFD700, #FFA500)';
       case 'epic': return 'linear-gradient(90deg, #8A2BE2, #4B0082)';
       case 'rare': return 'linear-gradient(90deg, #00BFFF, #1E90FF)';
-      default: return 'linear-gradient(90deg, #00FFFF, #7851A9)';
+      default: return 'linear-gradient(90deg, #8B5CF6, #7851A9)';
     }
   }};
   width: ${props => props.progress}%;
@@ -327,7 +327,7 @@ const XpReward = styled.div<{ rarity: Achievement['rarity'] }>`
       case 'legendary': return '#FFD700';
       case 'epic': return '#8A2BE2';
       case 'rare': return '#00BFFF';
-      default: return '#00FFFF';
+      default: return '#8B5CF6';
     }
   }};
   margin-bottom: 1rem;
@@ -347,7 +347,7 @@ const RarityBadge = styled.div<{ rarity: Achievement['rarity'] }>`
       case 'legendary': return 'linear-gradient(135deg, #FFD700, #FFA500)';
       case 'epic': return 'linear-gradient(135deg, #8A2BE2, #4B0082)';
       case 'rare': return 'linear-gradient(135deg, #00BFFF, #1E90FF)';
-      default: return 'linear-gradient(135deg, #00FFFF, #7851A9)';
+      default: return 'linear-gradient(135deg, #8B5CF6, #7851A9)';
     }
   }};
   color: ${props => props.rarity === 'legendary' ? '#000' : '#FFF'};
@@ -437,7 +437,7 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
       case 'legendary': return '#FFD700';
       case 'epic': return '#8A2BE2';
       case 'rare': return '#00BFFF';
-      default: return '#00FFFF';
+      default: return '#8B5CF6';
     }
   };
 

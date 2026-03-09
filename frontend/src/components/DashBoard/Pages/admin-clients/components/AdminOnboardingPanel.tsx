@@ -20,7 +20,7 @@ import { useToast } from '../../../../../hooks/use-toast';
 
 /* ─────────────────────── Theme Tokens ─────────────────────── */
 
-const SWAN_CYAN = '#00FFFF';
+const SWAN_CYAN = '#8B5CF6';
 const COSMIC_PURPLE = '#7851A9';
 
 const spin = keyframes`
@@ -49,7 +49,7 @@ const PanelContainer = styled.div`
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
 `;
@@ -206,14 +206,14 @@ const RetryButton = styled.button`
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.08);
   color: ${SWAN_CYAN};
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
     border-color: ${SWAN_CYAN};
   }
 `;

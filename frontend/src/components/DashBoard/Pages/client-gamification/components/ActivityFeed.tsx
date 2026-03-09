@@ -58,15 +58,15 @@ const FilterChip = styled.button<{ $active: boolean }>`
   padding: 4px 12px;
   min-height: 32px;
   border-radius: 16px;
-  border: 1px solid ${props => props.$active ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.15)'};
-  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.15)' : 'transparent'};
+  border: 1px solid ${props => props.$active ? 'rgba(139, 92, 246, 0.4)' : 'rgba(255, 255, 255, 0.15)'};
+  background: ${props => props.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
   color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => props.$active ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+    background: ${props => props.$active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
   }
 `;
 
@@ -161,14 +161,14 @@ const RetryButton = styled.button`
   padding: 6px 16px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.1); }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
 `;
 
 const ViewAllButton = styled.button`
@@ -178,14 +178,14 @@ const ViewAllButton = styled.button`
   padding: 6px 16px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.1); }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
 `;
 
 const FooterRow = styled.div`

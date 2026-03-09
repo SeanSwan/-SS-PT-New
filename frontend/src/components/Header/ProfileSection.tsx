@@ -52,11 +52,11 @@ const UserAvatar = styled(Avatar)`
   margin: 8px 0 8px 8px !important;
   cursor: pointer;
   border: 2px solid #00ffff;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
     transform: scale(1.05);
   }
 `;
@@ -90,12 +90,12 @@ const BigAvatar = styled(Avatar)`
   width: 80px;
   height: 80px;
   border: 3px solid #00ffff;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
   margin-bottom: 16px;
 
   &:hover {
     cursor: pointer;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
   }
 `;
 
@@ -320,7 +320,7 @@ const ProfileSection: React.FC = () => {
                       <Divider />
                     </Box>
                     <ScrollableContent>
-                      <Card style={{ background: 'rgba(0, 255, 255, 0.08)', margin: '16px 0' }}>
+                      <Card style={{ background: 'rgba(139, 92, 246, 0.08)', margin: '16px 0' }}>
                         <CardContent>
                           <Grid container spacing={3} style={{ flexDirection: 'column' }}>
                             <Grid item xs={12}>

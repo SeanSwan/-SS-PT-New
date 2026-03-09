@@ -21,7 +21,7 @@ const ActionCardContainer = styled(motion.div)`
 `;
 
 const IconContainer = styled.div<{ color?: string }>`
-  background-color: ${props => props.color || 'rgba(0, 255, 255, 0.15)'};
+  background-color: ${props => props.color || 'rgba(139, 92, 246, 0.15)'};
   border-radius: 50%;
   height: 56px;
   width: 56px;
@@ -70,7 +70,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 // Color mapping
 const colorMap: Record<string, string> = {
-  primary: 'rgba(0, 255, 255, 0.15)',
+  primary: 'rgba(139, 92, 246, 0.15)',
   purple: 'rgba(120, 81, 169, 0.15)',
   success: 'rgba(0, 191, 143, 0.15)',
   warning: 'rgba(255, 183, 0, 0.15)',
@@ -116,7 +116,7 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
         y: -5,
         boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
         backgroundColor: 'rgba(40, 40, 80, 0.5)',
-        borderColor: 'rgba(0, 255, 255, 0.3)'
+        borderColor: 'rgba(139, 92, 246, 0.3)'
       }}
       whileTap={{ scale: 0.98 }}
       onClick={handleClick}

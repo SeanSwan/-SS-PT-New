@@ -39,14 +39,14 @@ const sparkle = keyframes`
 `;
 
 const priceUpdate = keyframes`
-  0% { background-color: rgba(0, 255, 255, 0.2); transform: scale(1); }
-  50% { background-color: rgba(0, 255, 255, 0.4); transform: scale(1.05); }
+  0% { background-color: rgba(139, 92, 246, 0.2); transform: scale(1); }
+  50% { background-color: rgba(139, 92, 246, 0.4); transform: scale(1.05); }
   100% { background-color: transparent; transform: scale(1); }
 `;
 
 // Interactive tooltip component
 const ContextualTooltip = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(120, 81, 169, 0.95));
   color: white;
   padding: 0.75rem 1rem;
   border-radius: 8px;
@@ -69,14 +69,14 @@ const ContextualTooltip = styled(motion.div)`
     height: 0;
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
-    border-top: 5px solid rgba(0, 255, 255, 0.95);
+    border-top: 5px solid rgba(139, 92, 246, 0.95);
   }
 `;
 
 // Progress indicator for session accumulation
 const SessionProgress = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   padding: 1rem;
   margin: 1rem 0;
@@ -89,7 +89,7 @@ const SessionProgress = styled(motion.div)`
     top: 0;
     left: 0;
     height: 100%;
-    background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
     transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 `;
@@ -128,7 +128,7 @@ const SmartNotification = styled(motion.div)`
   position: fixed;
   top: 2rem;
   right: 2rem;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(120, 81, 169, 0.95));
   color: white;
   padding: 1rem 1.5rem;
   border-radius: 12px;
@@ -171,8 +171,8 @@ const HelpIcon = styled(motion.button)`
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
     color: #00ffff;
     transform: scale(1.1);
   }
@@ -350,7 +350,7 @@ export const SessionProgressIndicator: React.FC<{
           left: 0,
           height: '100%',
           width: `${progress}%`,
-          background: 'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2))',
+          background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2))',
           transition: 'width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
         }}
       />

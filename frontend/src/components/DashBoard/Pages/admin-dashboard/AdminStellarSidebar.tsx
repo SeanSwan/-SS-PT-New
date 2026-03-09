@@ -601,7 +601,7 @@ const navStatusStyles: Record<NavStatus, { color: string; background: string; bo
   partial: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   progress: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
   fix: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.6)' },
-  new: { color: '#00ffff', background: 'rgba(0, 255, 255, 0.2)', border: 'rgba(0, 255, 255, 0.6)' },
+  new: { color: '#00ffff', background: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.6)' },
   error: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', border: 'rgba(239, 68, 68, 0.7)' }
 };
 
@@ -1155,7 +1155,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                               height: 8,
                               borderRadius: '50%',
                               background: '#00ffff',
-                              boxShadow: '0 0 8px rgba(0, 255, 255, 0.6)'
+                              boxShadow: '0 0 8px rgba(139, 92, 246, 0.6)'
                             }}
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity }}

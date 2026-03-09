@@ -85,7 +85,7 @@ const CommandCenterContainer = styled(motion.div)`
     bottom: 0;
     background: 
       radial-gradient(2px 2px at 20px 30px, rgba(59, 130, 246, 0.4), transparent),
-      radial-gradient(1px 1px at 40px 70px, rgba(0, 255, 255, 0.3), transparent),
+      radial-gradient(1px 1px at 40px 70px, rgba(139, 92, 246, 0.3), transparent),
       radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.2), transparent),
       radial-gradient(2px 2px at 130px 80px, rgba(59, 130, 246, 0.3), transparent);
     background-size: 100px 80px;
@@ -233,8 +233,8 @@ const StatCard = styled(motion.div)<{ variant?: 'primary' | 'success' | 'warning
   `}
   
   ${props => props.variant === 'info' && css`
-    border-color: rgba(0, 255, 255, 0.3);
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-color: rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
   `}
   
   &::before {

@@ -139,7 +139,7 @@ const StatCard = styled(motion.div)`
 
   &:hover {
     border-color: #00ffff;
-    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
     transform: translateY(-4px);
   }
 
@@ -223,7 +223,7 @@ const ActionButton = styled(motion.button)`
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
     transform: translateY(-2px);
   }
 
@@ -263,7 +263,7 @@ const TrainerCard = styled(motion.div)`
 
   &:hover {
     border-color: #00ffff;
-    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
     transform: translateY(-2px);
   }
 `;
@@ -304,7 +304,7 @@ const SearchInput = styled.div`
 
     &:focus {
       border-color: #00ffff;
-      box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
     }
   }
 `;
@@ -332,7 +332,7 @@ const StyledSelect = styled.select`
 
   &:focus {
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   option {

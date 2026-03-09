@@ -44,8 +44,8 @@ const slideUp = keyframes`
 `;
 
 const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2), 0 0 15px rgba(0, 255, 255, 0.05); }
-  50%      { box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.35), 0 0 25px rgba(0, 255, 255, 0.1); }
+  0%, 100% { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2), 0 0 15px rgba(139, 92, 246, 0.05); }
+  50%      { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.35), 0 0 25px rgba(139, 92, 246, 0.1); }
 `;
 
 // --------------- Noise Overlay ---------------
@@ -310,7 +310,7 @@ const inputShared = css`
   &:focus {
     outline: none;
     border: ${({ theme }) => theme.borders.focus};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2), 0 0 20px rgba(0, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2), 0 0 20px rgba(139, 92, 246, 0.08);
     animation: ${pulseGlow} 2s ease-in-out infinite;
     ${reducedMotion}
   }
@@ -577,9 +577,9 @@ const FAQCard = styled.div`
   `}
 
   &:hover {
-    box-shadow: ${({ theme }) => theme.shadows.elevation}, 0 0 30px rgba(0, 255, 255, 0.06);
+    box-shadow: ${({ theme }) => theme.shadows.elevation}, 0 0 30px rgba(139, 92, 246, 0.06);
     transform: translateY(-2px);
-    border-color: rgba(0, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.15);
   }
 
   @media (max-width: 320px) {

@@ -45,7 +45,7 @@ const ModalOverlay = styled(motion.div)`
 const ModalContainer = styled(motion.div)`
   background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
   border-radius: 16px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   max-width: 900px;
   width: 100%;
   max-height: 85vh;
@@ -75,7 +75,7 @@ const ModalContainer = styled(motion.div)`
 
 const ModalHeader = styled.div`
   padding: ${theme.spacing.lg};
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -158,11 +158,11 @@ const ModalContent = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.3);
     border-radius: 4px;
 
     &:hover {
-      background: rgba(0, 255, 255, 0.5);
+      background: rgba(139, 92, 246, 0.5);
     }
   }
 
@@ -187,7 +187,7 @@ const StatCard = styled.div`
   min-width: 140px;
   padding: ${theme.spacing.md};
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.1);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -228,8 +228,8 @@ const FilterButton = styled.button<{ active?: boolean }>`
   padding: ${theme.spacing.sm} ${theme.spacing.md};
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid ${props => props.active ? theme.colors.brand.cyan : 'rgba(0, 255, 255, 0.2)'};
-  background: ${props => props.active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.3)'};
+  border: 1px solid ${props => props.active ? theme.colors.brand.cyan : 'rgba(139, 92, 246, 0.2)'};
+  background: ${props => props.active ? 'rgba(139, 92, 246, 0.1)' : 'rgba(0, 0, 0, 0.3)'};
   color: ${props => props.active ? theme.colors.brand.cyan : theme.colors.text.secondary};
   font-size: ${theme.typography.fontSize.sm};
   font-weight: ${theme.typography.fontWeight.medium};
@@ -237,7 +237,7 @@ const FilterButton = styled.button<{ active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.15);
+    background: rgba(139, 92, 246, 0.15);
     border-color: ${theme.colors.brand.cyan};
   }
 
@@ -254,7 +254,7 @@ const SessionList = styled.div`
 
 const SessionCard = styled(motion.div)`
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.1);
   border-radius: 8px;
   padding: ${theme.spacing.md};
   display: grid;
@@ -265,7 +265,7 @@ const SessionCard = styled(motion.div)`
 
   &:hover {
     background: rgba(0, 0, 0, 0.4);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
 
   @media (max-width: 768px) {
@@ -280,7 +280,7 @@ const SessionDate = styled.div`
   align-items: center;
   justify-content: center;
   padding: ${theme.spacing.sm};
-  background: rgba(0, 255, 255, 0.05);
+  background: rgba(139, 92, 246, 0.05);
   border-radius: 8px;
   min-width: 80px;
 
@@ -411,7 +411,7 @@ const EmptyState = styled.div`
     width: 64px;
     height: 64px;
     margin-bottom: ${theme.spacing.md};
-    color: rgba(0, 255, 255, 0.3);
+    color: rgba(139, 92, 246, 0.3);
   }
 
   p {

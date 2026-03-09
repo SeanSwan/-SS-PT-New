@@ -79,7 +79,7 @@ const galaxyTheme = {
     cosmic: 'radial-gradient(circle, #00ffff 0%, #7851a9 70%, #0a0a0f 100%)'
   },
   shadows: {
-    stellar: '0 0 20px rgba(0, 255, 255, 0.5)',
+    stellar: '0 0 20px rgba(139, 92, 246, 0.5)',
     nebula: '0 0 30px rgba(120, 81, 169, 0.3)',
     cosmic: '0 15px 35px rgba(0, 0, 0, 0.5)',
     glow: '0 0 15px currentColor'
@@ -154,7 +154,7 @@ const ContentHeader = styled(motion.div)`
   background: rgba(30, 30, 60, 0.4);
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   padding: 2rem;
   margin-bottom: 2rem;
   text-align: center;
@@ -194,7 +194,7 @@ const ContentArea = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 2rem;
   min-height: 60vh;
   

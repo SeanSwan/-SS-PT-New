@@ -100,7 +100,7 @@ footer::before,
   background: linear-gradient(
     to right,
     transparent,
-    rgba(0, 255, 255, 0.7), 
+    rgba(139, 92, 246, 0.7), 
     rgba(120, 81, 169, 0.7),
     transparent
   ) !important;

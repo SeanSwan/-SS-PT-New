@@ -51,7 +51,7 @@ const theme = {
   gradientPrimaryHover: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)',
   gradientLevel: 'linear-gradient(135deg, #00ffff, #00B4D8)',
   shadow: '0 4px 12px rgba(0, 0, 20, 0.2)',
-  shadowCyan: '0 4px 12px rgba(0, 255, 255, 0.1)',
+  shadowCyan: '0 4px 12px rgba(139, 92, 246, 0.1)',
 };
 
 /* ─── Keyframes ─── */
@@ -191,7 +191,7 @@ const TabsWrapper = styled.div`
 `;
 
 const TabsBorder = styled.div`
-  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
   display: flex;
   gap: 0;
 `;
@@ -213,7 +213,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   &:hover {
     color: ${theme.cyan};
-    background: rgba(0, 255, 255, 0.05);
+    background: rgba(139, 92, 246, 0.05);
   }
 
   &:focus-visible {
@@ -320,7 +320,7 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${theme.cyan};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 `;
 
@@ -332,7 +332,7 @@ const ClientList = styled.div`
 const ClientItem = styled.div<{ $selected: boolean }>`
   padding: 12px 16px;
   border-bottom: 1px solid ${theme.borderLight};
-  background-color: ${({ $selected }) => ($selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  background-color: ${({ $selected }) => ($selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent')};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -340,7 +340,7 @@ const ClientItem = styled.div<{ $selected: boolean }>`
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: rgba(0, 255, 255, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
   }
 `;
 

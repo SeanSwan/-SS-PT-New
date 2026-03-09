@@ -57,14 +57,14 @@ const OutlineBtn = styled.button`
   padding: 6px 12px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.1); }
+  &:hover { background: rgba(139, 92, 246, 0.1); }
 `;
 
 const SearchBarWrapper = styled.div`
@@ -84,7 +84,7 @@ const SearchInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const SearchIcon = styled.div`
@@ -122,7 +122,7 @@ const TextBtn = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.05); }
+  &:hover { background: rgba(139, 92, 246, 0.05); }
 `;
 
 const FriendItem = styled.div`
@@ -137,7 +137,7 @@ const FriendAvatar = styled.div<{ $src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(0, 255, 255, 0.2)'};
+  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
   color: #00ffff;
   display: flex;
   align-items: center;
@@ -220,14 +220,14 @@ const PrimaryBtn = styled.button`
   min-height: 44px;
   border-radius: 8px;
   border: none;
-  background: rgba(0, 255, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #00ffff;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.25); }
+  &:hover { background: rgba(139, 92, 246, 0.25); }
 `;
 
 const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $borderRadius?: string }>`

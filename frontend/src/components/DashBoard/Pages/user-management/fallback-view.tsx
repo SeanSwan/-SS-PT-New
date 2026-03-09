@@ -75,7 +75,7 @@ const UserInfo = styled.div`
 `;
 
 const UserIcon = styled.div`
-  color: rgba(0, 255, 255, 0.7);
+  color: rgba(139, 92, 246, 0.7);
   display: flex;
 `;
 
@@ -97,7 +97,7 @@ const EditButton = styled.button`
   padding: 6px 16px;
   min-height: 36px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
   color: #00ffff;
   font-size: 0.8125rem;
@@ -105,7 +105,7 @@ const EditButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -144,7 +144,7 @@ const ToolButton = styled.button<{ $variant?: string }>`
   border: 1px solid ${props =>
     props.$variant === 'error' ? 'rgba(244, 67, 54, 0.4)' :
     props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.4)' :
-    'rgba(0, 255, 255, 0.4)'
+    'rgba(139, 92, 246, 0.4)'
   };
   background: transparent;
   color: ${props =>
@@ -163,7 +163,7 @@ const ToolButton = styled.button<{ $variant?: string }>`
     background: ${props =>
       props.$variant === 'error' ? 'rgba(244, 67, 54, 0.1)' :
       props.$variant === 'secondary' ? 'rgba(120, 81, 169, 0.1)' :
-      'rgba(0, 255, 255, 0.1)'
+      'rgba(139, 92, 246, 0.1)'
     };
   }
 `;

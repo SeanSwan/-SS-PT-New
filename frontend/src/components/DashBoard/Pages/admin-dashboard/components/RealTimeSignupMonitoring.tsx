@@ -112,7 +112,7 @@ const StatCard = styled(motion.div)`
   .stat-icon {
     padding: 0.5rem;
     border-radius: 8px;
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     color: #00ffff;
   }
   
@@ -175,7 +175,7 @@ const RecentSignupsList = styled.div`
     transition: background-color 0.2s;
     
     &:hover {
-      background: rgba(0, 255, 255, 0.05);
+      background: rgba(139, 92, 246, 0.05);
     }
     
     &:last-child {

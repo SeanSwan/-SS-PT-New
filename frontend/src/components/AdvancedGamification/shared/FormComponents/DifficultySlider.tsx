@@ -73,7 +73,7 @@ const difficultyLevels: DifficultyLevel[] = [
     description: 'For users with some fitness experience looking for moderate challenges',
     icon: <TrendingUp size={20} />,
     color: '#00ffff',
-    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     characteristics: ['Balanced goals', 'Regular commitment', 'Moderate pace', 'Skill building'],
     targetAudience: 'Regular exercisers, committed users',
     completionRate: '65%',
@@ -136,7 +136,7 @@ const SliderTrack = styled.div<{ $disabled: boolean }>`
   background: linear-gradient(
     90deg,
     rgba(0, 255, 136, 0.3) 0%,
-    rgba(0, 255, 255, 0.3) 33%,
+    rgba(139, 92, 246, 0.3) 33%,
     rgba(255, 165, 0, 0.3) 66%,
     rgba(255, 71, 87, 0.3) 100%
   );

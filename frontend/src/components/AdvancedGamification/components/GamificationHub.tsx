@@ -36,11 +36,11 @@ const statsCounter = keyframes`
 
 const achievementPulse = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
                 0 0 40px rgba(120, 81, 169, 0.2);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6),
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6),
                 0 0 60px rgba(120, 81, 169, 0.4);
   }
 `;
@@ -100,7 +100,7 @@ const HubContainer = styled(motion.div)`
     rgba(10, 10, 30, 0.95) 0%,
     rgba(30, 30, 60, 0.9) 25%,
     rgba(120, 81, 169, 0.1) 50%,
-    rgba(0, 255, 255, 0.05) 75%,
+    rgba(139, 92, 246, 0.05) 75%,
     rgba(10, 10, 30, 0.95) 100%
   );
   background-size: 400% 400%;
@@ -115,7 +115,7 @@ const HubContainer = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(ellipse at top, rgba(0, 255, 255, 0.05) 0%, transparent 70%);
+    background: radial-gradient(ellipse at top, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -134,7 +134,7 @@ const WelcomeTitle = styled(motion.h1)`
   font-size: 3rem;
   font-weight: 700;
   background: linear-gradient(135deg, 
-    #00FFFF 0%, 
+    #8B5CF6 0%, 
     #7851A9 50%, 
     #00A0E3 100%
   );
@@ -142,7 +142,7 @@ const WelcomeTitle = styled(motion.h1)`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 1rem;
-  text-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
 
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -176,10 +176,10 @@ const StatsGrid = styled(motion.div)`
 
 const StatCard = styled(motion.div)`
   background: linear-gradient(135deg, 
-    rgba(0, 255, 255, 0.1) 0%,
+    rgba(139, 92, 246, 0.1) 0%,
     rgba(120, 81, 169, 0.05) 100%
   );
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
   text-align: center;
@@ -196,7 +196,7 @@ const StatCard = styled(motion.div)`
     height: 100%;
     background: linear-gradient(90deg, 
       transparent,
-      rgba(0, 255, 255, 0.1),
+      rgba(139, 92, 246, 0.1),
       transparent
     );
     transition: left 0.5s ease;
@@ -207,15 +207,15 @@ const StatCard = styled(motion.div)`
   }
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
   }
 `;
 
 const StatValue = styled(motion.div)`
   font-size: 2.5rem;
   font-weight: 700;
-  color: #00FFFF;
+  color: #8B5CF6;
   margin-bottom: 0.5rem;
   animation: ${statsCounter} 0.8s ease-out;
 `;
@@ -230,7 +230,7 @@ const StatLabel = styled.div`
 const LevelProgress = styled(motion.div)`
   width: 100%;
   height: 8px;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   border-radius: 4px;
   margin-top: 1rem;
   overflow: hidden;
@@ -238,7 +238,7 @@ const LevelProgress = styled(motion.div)`
 
 const ProgressBar = styled(motion.div)<{ progress: number }>`
   height: 100%;
-  background: linear-gradient(90deg, #00FFFF, #7851A9);
+  background: linear-gradient(90deg, #8B5CF6, #7851A9);
   border-radius: 4px;
   width: ${props => props.progress}%;
   transition: width 1s ease;
@@ -402,7 +402,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           padding="medium"
           isHoverable
         >
-          <h3 style={{ color: '#00FFFF', marginBottom: '1rem' }}>Daily Challenge</h3>
+          <h3 style={{ color: '#8B5CF6', marginBottom: '1rem' }}>Daily Challenge</h3>
           <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>
             Complete 3 workout sessions today
           </p>
@@ -440,7 +440,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           padding="medium"
           isHoverable
         >
-          <h3 style={{ color: '#00FFFF', marginBottom: '1rem' }}>Community</h3>
+          <h3 style={{ color: '#8B5CF6', marginBottom: '1rem' }}>Community</h3>
           <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>
             Join weekly group challenges
           </p>
@@ -491,7 +491,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           {activeTab === 'achievements' && (
             <TabContent key="achievements">
               <GamificationCard variant="glass" padding="large">
-                <h2 style={{ color: '#00FFFF', textAlign: 'center' }}>
+                <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
                   🏆 Achievement Showcase Coming Soon!
                 </h2>
               </GamificationCard>
@@ -511,7 +511,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
           {activeTab === 'leaderboard' && (
             <TabContent key="leaderboard">
               <GamificationCard variant="premium" padding="large">
-                <h2 style={{ color: '#00FFFF', textAlign: 'center' }}>
+                <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
                   📊 Leaderboard Coming Soon!
                 </h2>
               </GamificationCard>

@@ -88,7 +88,7 @@ const CartModalContent = styled(motion.div)`
   position: relative;
   color: white;
   overflow: hidden;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   
   /* Desktop positioning */
   @media (min-width: 769px) {
@@ -106,7 +106,7 @@ const CartModalContent = styled(motion.div)`
 `;
 
 const CartHeader = styled.div`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.1));
   padding: 1.5rem 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: sticky;
@@ -141,7 +141,7 @@ const CartBody = styled.div`
 `;
 
 const CartFooter = styled.div`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(120, 81, 169, 0.05));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(120, 81, 169, 0.05));
   padding: 1.5rem 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   position: sticky;
@@ -168,8 +168,8 @@ const ModalCloseButton = styled.button`
   backdrop-filter: blur(10px);
   
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.4);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
     color: #00ffff;
     transform: scale(1.1) rotate(90deg);
   }
@@ -183,7 +183,7 @@ const CartTitle = styled.h2`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -228,7 +228,7 @@ const CartItemsList = styled.div`
 `;
 
 const CartItemContainer = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 255, 255, 0.05));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(139, 92, 246, 0.05));
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 1.5rem;
@@ -249,11 +249,11 @@ const CartItemContainer = styled(motion.div)`
   }
   
   &:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 255, 255, 0.08));
-    border-color: rgba(0, 255, 255, 0.3);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(139, 92, 246, 0.08));
+    border-color: rgba(139, 92, 246, 0.3);
     box-shadow: 
       0 8px 25px rgba(0, 0, 0, 0.3),
-      0 0 20px rgba(0, 255, 255, 0.2);
+      0 0 20px rgba(139, 92, 246, 0.2);
     transform: translateY(-2px);
     
     &::before {
@@ -274,7 +274,7 @@ const ItemName = styled.h3`
   margin: 0;
   color: #00ffff;
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   line-height: 1.3;
 `;
 
@@ -286,8 +286,8 @@ const ItemDescription = styled.p`
 `;
 
 const SessionInfo = styled.div`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(120, 81, 169, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
   padding: 0.75rem;
   margin-top: 0.5rem;
@@ -373,7 +373,7 @@ const QuantityButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover:not(:disabled) {
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(139, 92, 246, 0.2);
     color: #00ffff;
     transform: scale(1.1);
   }
@@ -419,7 +419,7 @@ const RemoveButton = styled.button`
 `;
 
 const CartSummary = styled.div`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(120, 81, 169, 0.05));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(120, 81, 169, 0.05));
   border-radius: 16px;
   padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -436,7 +436,7 @@ const SummaryRow = styled.div`
     font-weight: 700;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 2px solid rgba(0, 255, 255, 0.3);
+    border-top: 2px solid rgba(139, 92, 246, 0.3);
     
     .total-label {
       background: linear-gradient(135deg, #00ffff, #ffffff);
@@ -455,11 +455,11 @@ const SummaryRow = styled.div`
   }
   
   &.sessions {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
     border-radius: 8px;
     padding: 0.5rem 0.75rem;
     margin: 0.5rem 0;
-    border: 1px solid rgba(0, 255, 255, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -491,10 +491,10 @@ const StatusMessage = styled.div<StatusMessageProps>`
   margin: 10px 0;
   background: ${props => props.$isError 
     ? 'rgba(255, 70, 70, 0.1)' 
-    : 'rgba(0, 255, 255, 0.1)'};
+    : 'rgba(139, 92, 246, 0.1)'};
   border: 1px solid ${props => props.$isError 
     ? 'rgba(255, 70, 70, 0.3)' 
-    : 'rgba(0, 255, 255, 0.3)'};
+    : 'rgba(139, 92, 246, 0.3)'};
   color: ${props => props.$isError 
     ? '#ff6b6b' 
     : '#00ffff'};

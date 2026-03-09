@@ -35,12 +35,12 @@ const shimmerEffect = keyframes`
 
 const pulseGlow = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
                 0 0 40px rgba(120, 81, 169, 0.2),
                 inset 0 0 20px rgba(255, 255, 255, 0.1);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6),
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6),
                 0 0 60px rgba(120, 81, 169, 0.4),
                 inset 0 0 30px rgba(255, 255, 255, 0.2);
   }
@@ -83,7 +83,7 @@ const GamificationContainer = styled(motion.div)`
   min-height: 100vh;
   background: 
     radial-gradient(circle at 20% 30%, rgba(120, 81, 169, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(0, 255, 255, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
     linear-gradient(135deg, #0a0a0f 0%, #16213e 25%, #2e1e3e 50%, #16213e 75%, #0a0a0f 100%);
   background-size: 400% 400%;
   animation: ${css`
@@ -152,7 +152,7 @@ const GamificationCard = styled(motion.div)<{ variant?: 'primary' | 'secondary' 
             rgba(255, 215, 0, 0.15) 0%,
             rgba(255, 140, 0, 0.1) 25%,
             rgba(120, 81, 169, 0.1) 50%,
-            rgba(0, 255, 255, 0.1) 75%,
+            rgba(139, 92, 246, 0.1) 75%,
             rgba(255, 215, 0, 0.15) 100%
           )
         `;
@@ -161,13 +161,13 @@ const GamificationCard = styled(motion.div)<{ variant?: 'primary' | 'secondary' 
           linear-gradient(135deg, 
             rgba(120, 81, 169, 0.15) 0%,
             rgba(75, 0, 130, 0.1) 50%,
-            rgba(0, 255, 255, 0.1) 100%
+            rgba(139, 92, 246, 0.1) 100%
           )
         `;
       default:
         return `
           linear-gradient(135deg, 
-            rgba(0, 255, 255, 0.15) 0%,
+            rgba(139, 92, 246, 0.15) 0%,
             rgba(0, 160, 227, 0.1) 50%,
             rgba(120, 81, 169, 0.1) 100%
           )
@@ -183,14 +183,14 @@ const GamificationCard = styled(motion.div)<{ variant?: 'primary' | 'secondary' 
   overflow: hidden;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 255, 255, 0.1),
+    0 2px 8px rgba(139, 92, 246, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
     transform: translateY(-8px) scale(1.02);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
     animation: ${pulseGlow} 2s ease-in-out infinite;
   }
 
@@ -261,7 +261,7 @@ const MainTitle = styled(motion.h1)`
     height: 4px;
     background: linear-gradient(90deg, #00ffff, #7851a9, #ffd700);
     border-radius: 2px;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 
     @media (max-width: 768px) {
       width: 60px;
@@ -337,9 +337,9 @@ const AchievementBadge = styled(motion.div)<{ tier: 'bronze' | 'silver' | 'gold'
 `;
 
 const StatCard = styled(motion.div)`
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
   text-align: center;
@@ -366,7 +366,7 @@ const StatNumber = styled(motion.div)`
   font-weight: 800;
   color: #00ffff;
   margin-bottom: 0.5rem;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 `;
 
 const StatLabel = styled.div`
@@ -449,7 +449,7 @@ const LeaderboardEntry = styled(motion.div)<{ rank: number }>`
     if (props.rank === 1) return 'linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%)';
     if (props.rank === 2) return 'linear-gradient(135deg, rgba(192, 192, 192, 0.2) 0%, rgba(169, 169, 169, 0.1) 100%)';
     if (props.rank === 3) return 'linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(139, 69, 19, 0.1) 100%)';
-    return 'linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(120, 81, 169, 0.05) 100%)';
+    return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(120, 81, 169, 0.05) 100%)';
   }};
   border: 1px solid ${props => {
     if (props.rank === 1) return 'rgba(255, 215, 0, 0.3)';
@@ -464,7 +464,7 @@ const LeaderboardEntry = styled(motion.div)<{ rank: number }>`
 
   &:hover {
     transform: translateX(8px);
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 

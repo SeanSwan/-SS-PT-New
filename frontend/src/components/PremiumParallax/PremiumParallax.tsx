@@ -89,7 +89,7 @@ const Particle = styled.div`
   position: absolute;
   width: 6px;
   height: 6px;
-  background: rgba(0, 255, 255, 0.6);
+  background: rgba(139, 92, 246, 0.6);
   border-radius: 50%;
   animation: float 20s linear infinite;
   opacity: 0;
@@ -221,10 +221,10 @@ const FeatureIcon = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
   color: var(--neon-blue, #00ffff);
   font-size: 1.2rem;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
   flex-shrink: 0;
 `;
 
@@ -278,7 +278,7 @@ const PlanCard = styled(motion.div)`
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
     border-radius: 17px;
     filter: blur(10px);
     z-index: -2;
@@ -301,7 +301,7 @@ const PlanLogo = styled.div`
   
   img {
     width: 100%;
-    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.5));
+    filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.5));
   }
 `;
 

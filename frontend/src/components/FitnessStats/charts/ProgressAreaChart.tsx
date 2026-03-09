@@ -16,7 +16,7 @@ interface ProgressAreaChartProps {
 
 const ChartShell = styled.div`
   background: rgba(12, 14, 24, 0.75);
-  border: 1px solid rgba(0, 255, 255, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.18);
   border-radius: 16px;
   padding: 1.25rem;
   color: rgba(255, 255, 255, 0.85);
@@ -33,8 +33,8 @@ const ChartTitle = styled.h3`
 const ChartPlaceholder = styled.div`
   min-height: 180px;
   border-radius: 12px;
-  border: 1px dashed rgba(0, 255, 255, 0.2);
-  background: rgba(0, 255, 255, 0.05);
+  border: 1px dashed rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.05);
   display: flex;
   flex-direction: column;
   align-items: center;

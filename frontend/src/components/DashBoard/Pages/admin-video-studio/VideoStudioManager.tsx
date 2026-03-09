@@ -95,11 +95,11 @@ const TabButton = styled.button<{ $active: boolean }>`
   padding: 12px 20px;
   min-height: 44px;
   min-width: 44px;
-  border: 1px solid ${(p) => (p.$active ? 'rgba(0, 255, 255, 0.5)' : 'rgba(59, 130, 246, 0.2)')};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(59, 130, 246, 0.2)')};
   border-radius: 10px;
   background: ${(p) =>
     p.$active
-      ? 'linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(0, 255, 255, 0.15))'
+      ? 'linear-gradient(45deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.15))'
       : 'rgba(30, 58, 138, 0.15)'};
   color: ${(p) => (p.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)')};
   font-size: 14px;

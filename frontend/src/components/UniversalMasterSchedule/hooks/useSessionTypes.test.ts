@@ -12,7 +12,7 @@ describe('useSessionTypes', () => {
 
   it('fetches session types on mount', async () => {
     const mockTypes = [
-      { id: 1, name: 'Personal Training', duration: 60, bufferBefore: 0, bufferAfter: 15, color: '#00FFFF', isActive: true, sortOrder: 1 }
+      { id: 1, name: 'Personal Training', duration: 60, bufferBefore: 0, bufferAfter: 15, color: '#8B5CF6', isActive: true, sortOrder: 1 }
     ];
     vi.mocked(apiService.get).mockResolvedValueOnce({ data: { data: mockTypes } });
 
@@ -28,7 +28,7 @@ describe('useSessionTypes', () => {
 
   it('calculates effective end time correctly', async () => {
     const mockTypes = [
-      { id: 1, name: 'PT', duration: 60, bufferBefore: 0, bufferAfter: 15, color: '#00FFFF', isActive: true, sortOrder: 1 }
+      { id: 1, name: 'PT', duration: 60, bufferBefore: 0, bufferAfter: 15, color: '#8B5CF6', isActive: true, sortOrder: 1 }
     ];
     vi.mocked(apiService.get).mockResolvedValueOnce({ data: { data: mockTypes } });
 

@@ -22,10 +22,10 @@ const FormCard = styled(motion.div)`
   width: 90%;
   max-width: 420px;
   background: rgba(30, 30, 50, 0.95);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   padding: 40px 30px;
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.05);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.05);
 `;
 
 const Title = styled.h2`

@@ -50,7 +50,7 @@ const slideIn = keyframes`
 
 // Styled Components
 const NotificationsContainer = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(0, 255, 255, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 16px;
   padding: 1.5rem;
@@ -119,8 +119,8 @@ const ControlButton = styled(motion.button)`
   }
   
   &.active {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.5);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
     color: #00ffff;
   }
 `;

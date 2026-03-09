@@ -261,7 +261,7 @@ export const dragOver = keyframes`
   }
   50% {
     border-color: ${exerciseCommandTheme.colors.cyberCyan};
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
   }
 `;
 

@@ -85,7 +85,7 @@ const HorizonRadioButton = styled.button<{ $active?: boolean }>`
   border-radius: 999px;
   border: 1px solid ${({ $active }) => ($active ? SWAN_CYAN : 'rgba(255,255,255,0.15)')};
   color: ${({ $active }) => ($active ? SWAN_CYAN : '#cbd5e1')};
-  background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.1)' : 'rgba(255,255,255,0.03)')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.1)' : 'rgba(255,255,255,0.03)')};
   padding: 8px 14px;
   font-size: 0.84rem;
   font-weight: 700;
@@ -97,7 +97,7 @@ const ProfileBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 0.72rem;

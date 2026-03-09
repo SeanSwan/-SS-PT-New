@@ -25,7 +25,7 @@ const NotesField = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -41,11 +41,11 @@ const Button = styled.button<{ $variant?: 'primary' | 'ghost' }>`
   border: 1px solid
     ${(props) =>
       props.$variant === 'primary'
-        ? 'rgba(0, 255, 255, 0.6)'
+        ? 'rgba(139, 92, 246, 0.6)'
         : 'rgba(255, 255, 255, 0.2)'};
   background: ${(props) =>
     props.$variant === 'primary'
-      ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.35), rgba(120, 81, 169, 0.4))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(120, 81, 169, 0.4))'
       : 'transparent'};
   color: ${(props) =>
     props.$variant === 'primary' ? '#0a0a1a' : 'rgba(255, 255, 255, 0.85)'};

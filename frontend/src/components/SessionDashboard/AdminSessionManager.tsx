@@ -67,12 +67,12 @@ const StatCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.8);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   }
@@ -85,7 +85,7 @@ const StatCard = styled(motion.div)`
     
     .icon {
       font-size: 2rem;
-      filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6));
+      filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
     }
     
     .trend {
@@ -170,7 +170,7 @@ const TabList = styled.div`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.5);
+    background: rgba(139, 92, 246, 0.5);
     border-radius: 2px;
   }
 `;
@@ -204,7 +204,7 @@ const Tab = styled.button<{ $active: boolean }>`
 const ContentSection = styled.div`
   background: rgba(30, 30, 60, 0.8);
   border-radius: 16px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   backdrop-filter: blur(10px);
   overflow: hidden;
 `;
@@ -223,7 +223,7 @@ const Table = styled.table`
     text-align: left;
     font-weight: 600;
     color: #00ffff;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
     white-space: nowrap;
   }
   
@@ -247,7 +247,7 @@ const Table = styled.table`
         }
         
         &.completed {
-          background: rgba(0, 255, 255, 0.2);
+          background: rgba(139, 92, 246, 0.2);
           color: #00ffff;
         }
         
@@ -309,7 +309,7 @@ const Table = styled.table`
     transition: background 0.3s ease;
     
     &:hover {
-      background: rgba(0, 255, 255, 0.05);
+      background: rgba(139, 92, 246, 0.05);
     }
   }
 `;
@@ -365,7 +365,7 @@ const FilterSection = styled.div`
     
     select, input {
       padding: 0.5rem 0.75rem;
-      border: 1px solid rgba(0, 255, 255, 0.3);
+      border: 1px solid rgba(139, 92, 246, 0.3);
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.3);
       color: #fff;
@@ -374,7 +374,7 @@ const FilterSection = styled.div`
       &:focus {
         outline: none;
         border-color: #00ffff;
-        box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
       }
     }
   }
@@ -389,7 +389,7 @@ const LoadingSpinner = styled.div`
   .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
+    border: 3px solid rgba(139, 92, 246, 0.3);
     border-top: 3px solid #00ffff;
     border-radius: 50%;
     animation: spin 1s linear infinite;

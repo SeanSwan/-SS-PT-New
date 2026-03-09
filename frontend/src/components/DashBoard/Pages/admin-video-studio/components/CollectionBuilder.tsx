@@ -151,10 +151,10 @@ const ItemWrapper = styled.div<{ $isDragging: boolean }>`
   background: ${p =>
     p.$isDragging ? 'rgba(30, 58, 138, 0.5)' : 'rgba(30, 58, 138, 0.3)'};
   border: 1px solid ${p =>
-    p.$isDragging ? 'rgba(0, 255, 255, 0.5)' : 'rgba(59, 130, 246, 0.3)'};
+    p.$isDragging ? 'rgba(139, 92, 246, 0.5)' : 'rgba(59, 130, 246, 0.3)'};
   border-radius: 8px;
   box-shadow: ${p =>
-    p.$isDragging ? '0 0 20px rgba(0, 255, 255, 0.3)' : 'none'};
+    p.$isDragging ? '0 0 20px rgba(139, 92, 246, 0.3)' : 'none'};
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
   user-select: none;
 `;
@@ -176,7 +176,7 @@ const DragHandle = styled.button`
 
   &:hover {
     color: #00ffff;
-    background: rgba(0, 255, 255, 0.06);
+    background: rgba(139, 92, 246, 0.06);
   }
 
   &:active {
@@ -192,7 +192,7 @@ const ItemThumb = styled.div<{ $src?: string | null }>`
   background: ${p =>
     p.$src
       ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(0, 255, 255, 0.08))'};
+      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(139, 92, 246, 0.08))'};
   border: 1px solid rgba(59, 130, 246, 0.2);
 `;
 

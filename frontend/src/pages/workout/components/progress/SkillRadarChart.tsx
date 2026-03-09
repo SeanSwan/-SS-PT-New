@@ -31,10 +31,10 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({
             <div style={{ 
               width: '200px', 
               height: '200px', 
-              border: '2px solid rgba(0, 255, 255, 0.3)',
+              border: '2px solid rgba(139, 92, 246, 0.3)',
               borderRadius: '50%',
               position: 'relative',
-              background: 'radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, transparent 70%)'
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%)'
             }}>
               {/* Skill points around the circle */}
               {skillData.map((skill, index) => {
@@ -53,7 +53,7 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({
                     height: '8px',
                     background: '#00ffff',
                     borderRadius: '50%',
-                    boxShadow: '0 0 8px rgba(0, 255, 255, 0.6)'
+                    boxShadow: '0 0 8px rgba(139, 92, 246, 0.6)'
                   }}>
                     <div style={{
                       position: 'absolute',

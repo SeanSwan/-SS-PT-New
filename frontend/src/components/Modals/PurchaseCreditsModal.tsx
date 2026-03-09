@@ -88,19 +88,19 @@ const PackageOption = styled(motion.div)`
   margin-bottom: 1rem;
   background: rgba(35, 35, 70, 0.7);
   border-radius: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
     transform: translateY(-2px);
   }
 
   &.selected {
     border-color: #00ffff;
-    background: rgba(0, 255, 255, 0.1);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    background: rgba(139, 92, 246, 0.1);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
   }
 `;
 

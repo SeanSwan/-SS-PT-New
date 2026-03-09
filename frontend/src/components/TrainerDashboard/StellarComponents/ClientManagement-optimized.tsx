@@ -67,13 +67,13 @@ const FilterBar = styled(motion.div)`
 const FilterButton = styled(motion.button)<{ active?: boolean }>`
   background: ${props => 
     props.active 
-      ? props.theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)'
+      ? props.theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #00A0E3)'
       : props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'
   };
   border: 1px solid ${props => 
     props.active 
       ? 'transparent'
-      : props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'
+      : props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'
   };
   border-radius: 8px;
   padding: 0.5rem 1rem;
@@ -90,11 +90,11 @@ const FilterButton = styled(motion.button)<{ active?: boolean }>`
   &:hover {
     background: ${props => 
       props.active 
-        ? props.theme.gradients?.primary || 'linear-gradient(135deg, #00FFFF, #00A0E3)'
+        ? props.theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #00A0E3)'
         : props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'
     };
     transform: translateY(-2px);
-    box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)'};
+    box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(139, 92, 246, 0.3)'};
   }
   
   @media (max-width: 768px) {
@@ -112,7 +112,7 @@ const ClientsList = styled(motion.div)`
 
 const ClientCard = styled(motion.div)`
   background: ${props => props.theme.background?.surface || 'rgba(30, 30, 60, 0.6)'};
-  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${props => props.theme.borders?.elegant || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 12px;
   padding: 1.25rem;
   display: flex;
@@ -130,7 +130,7 @@ const ClientCard = styled(motion.div)`
     top: 0;
     width: 3px;
     height: 100%;
-    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+    background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -138,7 +138,7 @@ const ClientCard = styled(motion.div)`
   &:hover {
     background: ${props => props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'};
     animation: ${clientHover} 0.3s ease forwards;
-    box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)'};
+    box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(139, 92, 246, 0.3)'};
     
     &::before {
       opacity: 1;
@@ -165,14 +165,14 @@ const ClientAvatar = styled.div<{ status?: string }>`
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #00FFFF 0%, #FFD700 100%)'};
+  background: ${props => props.theme.gradients?.stellar || 'linear-gradient(45deg, #8B5CF6 0%, #FFD700 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
   color: #000000;
   font-weight: 700;
   font-size: 1.1rem;
-  box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(0, 255, 255, 0.3)'};
+  box-shadow: ${props => props.theme.shadows?.primary || '0 0 20px rgba(139, 92, 246, 0.3)'};
   position: relative;
   
   &::after {
@@ -304,7 +304,7 @@ const ClientActions = styled.div`
     
     &:hover {
       background: ${props => props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'};
-      color: ${props => props.theme.colors?.primary || '#00FFFF'};
+      color: ${props => props.theme.colors?.primary || '#8B5CF6'};
     }
   }
   

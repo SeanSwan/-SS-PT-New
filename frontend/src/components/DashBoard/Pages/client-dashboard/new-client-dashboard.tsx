@@ -47,7 +47,7 @@ const theme = {
   text: '#e2e8f0',
   accent: '#0ea5e9',
   galaxyCore: '#0a0a1a',
-  swanCyan: '#00FFFF',
+  swanCyan: '#8B5CF6',
   cosmicPurple: '#7851A9',
 } as const;
 
@@ -64,8 +64,8 @@ const float = keyframes`
 `;
 
 const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
-  50% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
+  0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5), 0 0 10px rgba(120, 81, 169, 0.4); }
+  50% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 15px rgba(120, 81, 169, 0.6); }
 `;
 
 const spin = keyframes`
@@ -152,7 +152,7 @@ const ActionButton = styled.button<{ $fullWidth?: boolean }>`
   ${({ $fullWidth }) => $fullWidth && 'width: 100%;'}
 
   &:hover {
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
     transform: translateY(-2px);
   }
 
@@ -229,7 +229,7 @@ const AvatarCircle = styled.div<{ $size?: number }>`
   height: ${({ $size }) => $size || 40}px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,10 +403,10 @@ const MessageBubble = styled(motion.div)<{ $isUser?: boolean }>`
   border-radius: 12px;
   align-self: ${({ $isUser }) => $isUser ? 'flex-end' : 'flex-start'};
   background: ${({ $isUser }) => $isUser ?
-    'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))' :
+    'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3))' :
     'rgba(30, 30, 60, 0.6)'};
   border: 1px solid ${({ $isUser }) => $isUser ?
-    'rgba(0, 255, 255, 0.3)' :
+    'rgba(139, 92, 246, 0.3)' :
     'rgba(255, 255, 255, 0.1)'};
   margin-left: ${({ $isUser }) => $isUser ? 'auto' : '0'};
   margin-right: ${({ $isUser }) => $isUser ? '0' : 'auto'};
@@ -420,14 +420,14 @@ const MessageBubble = styled(motion.div)<{ $isUser?: boolean }>`
     width: 16px;
     height: 16px;
     background: ${({ $isUser }) => $isUser ?
-      'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))' :
+      'linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.3))' :
       'rgba(30, 30, 60, 0.6)'};
     transform: rotate(45deg);
     border-${({ $isUser }) => $isUser ? 'right' : 'left'}: 1px solid ${({ $isUser }) => $isUser ?
-      'rgba(0, 255, 255, 0.3)' :
+      'rgba(139, 92, 246, 0.3)' :
       'rgba(255, 255, 255, 0.1)'};
     border-bottom: 1px solid ${({ $isUser }) => $isUser ?
-      'rgba(0, 255, 255, 0.3)' :
+      'rgba(139, 92, 246, 0.3)' :
       'rgba(255, 255, 255, 0.1)'};
   }
 `;
@@ -476,7 +476,7 @@ const SendButtonStyled = styled.button`
   height: 44px;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8));
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -485,7 +485,7 @@ const SendButtonStyled = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -501,14 +501,14 @@ const SessionCard = styled(motion.div)`
 
   &:hover {
     transform: translateY(-3px);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     background: rgba(40, 40, 80, 0.4);
   }
 `;
 
 const UpcomingLabel = styled.div`
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
   color: white;
   font-size: 0.7rem;
   font-weight: 500;
@@ -533,7 +533,7 @@ const WorkoutItem = styled(motion.div)`
   &:hover {
     background: rgba(40, 40, 80, 0.5);
     transform: translateX(5px);
-    border-color: rgba(0, 255, 255, 0.2);
+    border-color: rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -545,7 +545,7 @@ const WorkoutIcon = styled.div`
   align-items: center;
   justify-content: center;
   margin-right: 0.75rem;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(120, 81, 169, 0.15));
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
@@ -590,9 +590,9 @@ const AchievementCard = styled(motion.div)<{ $isLocked?: boolean }>`
 
   &:hover {
     transform: translateY(-3px);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
     box-shadow: ${({ $isLocked }) => !$isLocked ?
-      '0 10px 25px rgba(0, 255, 255, 0.2)' :
+      '0 10px 25px rgba(139, 92, 246, 0.2)' :
       '0 10px 25px rgba(0, 0, 0, 0.3)'
     };
   }
@@ -1367,7 +1367,7 @@ const NewClientDashboard: React.FC = () => {
                   </WorkoutInfo>
                   <RoundButton
                     $size="small"
-                    style={{ color: 'rgba(0, 255, 255, 0.7)' }}
+                    style={{ color: 'rgba(139, 92, 246, 0.7)' }}
                     aria-label={`View details for ${workout.name}`}
                   >
                     <ChevronRight size={20} aria-hidden="true" />
@@ -1414,7 +1414,7 @@ const NewClientDashboard: React.FC = () => {
               <div style={{ marginLeft: 'auto' }}>
                 <RoundButton
                   $size="small"
-                  style={{ color: 'rgba(0, 255, 255, 0.7)' }}
+                  style={{ color: 'rgba(139, 92, 246, 0.7)' }}
                   title="Video call"
                   aria-label="Start video call with trainer"
                 >

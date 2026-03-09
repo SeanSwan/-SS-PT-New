@@ -42,7 +42,7 @@ button:hover,
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: radial-gradient(circle at top right, rgba(0, 255, 255, 0.05), transparent 70%),
+  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent 70%),
               radial-gradient(circle at bottom left, rgba(120, 81, 169, 0.05), transparent 70%) !important;
   pointer-events: none !important;
   z-index: -1 !important;

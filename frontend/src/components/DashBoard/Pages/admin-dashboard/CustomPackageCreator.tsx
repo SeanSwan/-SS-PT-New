@@ -30,13 +30,13 @@ import {
 const tokens = {
   galaxyCore: '#0a0a1a',
   galaxySurface: '#14142b',
-  swanCyan: '#00FFFF',
+  swanCyan: '#8B5CF6',
   cosmicPurple: '#7851A9',
   nebulaPink: '#FF2A85',
   warningGold: '#FFD700',
   successGreen: '#00ff80',
   glassBg: 'rgba(20, 20, 43, 0.6)',
-  glassBorder: '1px solid rgba(0, 255, 255, 0.15)',
+  glassBorder: '1px solid rgba(139, 92, 246, 0.15)',
   glassShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
 };
 
@@ -124,7 +124,7 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: ${tokens.swanCyan};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   option {
@@ -146,7 +146,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: ${tokens.swanCyan};
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
@@ -176,7 +176,7 @@ const SliderInput = styled.input`
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
   }
 `;
 
@@ -212,7 +212,7 @@ const VIPCard = styled(motion.div)<{ $warning: boolean; $danger: boolean }>`
       135deg,
       transparent 0%,
       rgba(120, 81, 169, 0.05) 30%,
-      rgba(0, 255, 255, 0.03) 60%,
+      rgba(139, 92, 246, 0.03) 60%,
       transparent 100%
     );
     background-size: 200% 200%;
@@ -382,7 +382,7 @@ const ClientOption = styled.div`
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
   &:hover {
-    background: rgba(0, 255, 255, 0.08);
+    background: rgba(139, 92, 246, 0.08);
   }
 
   .name { font-weight: 600; }

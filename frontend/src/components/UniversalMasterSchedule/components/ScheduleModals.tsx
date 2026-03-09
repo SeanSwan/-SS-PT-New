@@ -605,7 +605,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               /* Premium Lock State — Gemini 3.1 Pro Design Spec */
               <PremiumLockOverlay>
                 <LockIconWrapper>
-                  <Lock size={28} color="#00FFFF" />
+                  <Lock size={28} color="#8B5CF6" />
                 </LockIconWrapper>
                 <LockTitle>Unlock Sessions</LockTitle>
                 <LockDescription>
@@ -774,8 +774,8 @@ export default ScheduleModals;
 
 // ── Premium Lock Styles (Gemini 3.1 Pro Design Spec) ──────────────────
 const lockPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 255, 0.2); }
-  50% { box-shadow: 0 0 24px rgba(0, 255, 255, 0.45); }
+  0%, 100% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.45); }
 `;
 
 const PremiumLockOverlay = styled.div`
@@ -790,7 +790,7 @@ const PremiumLockOverlay = styled.div`
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   text-align: center;
 `;
 
@@ -798,8 +798,8 @@ const LockIconWrapper = styled.div`
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.08);
-  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -807,7 +807,7 @@ const LockIconWrapper = styled.div`
 `;
 
 const LockTitle = styled.div`
-  color: #00FFFF;
+  color: #8B5CF6;
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -828,19 +828,19 @@ const PurchaseButton = styled.button`
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   min-height: 44px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 10px;
-  color: #00FFFF;
+  color: #8B5CF6;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(120, 81, 169, 0.3));
-    border-color: rgba(0, 255, 255, 0.6);
-    box-shadow: 0 0 16px rgba(0, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(120, 81, 169, 0.3));
+    border-color: rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -937,7 +937,7 @@ const CancelButton = styled.button`
 const ManualEntryLink = styled.button`
   background: none;
   border: none;
-  color: rgba(0, 255, 255, 0.7);
+  color: rgba(139, 92, 246, 0.7);
   font-size: 0.75rem;
   padding: 0.25rem 0;
   cursor: pointer;
@@ -948,7 +948,7 @@ const ManualEntryLink = styled.button`
   align-items: center;
 
   &:hover {
-    color: rgba(0, 255, 255, 1);
+    color: rgba(139, 92, 246, 1);
     text-decoration: underline;
   }
 `;

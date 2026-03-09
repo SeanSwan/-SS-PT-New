@@ -79,7 +79,7 @@ const SectionCard = styled.div`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -111,7 +111,7 @@ const HeroCard = styled(motion.div)<{ $positive?: boolean }>`
   backdrop-filter: blur(12px);
   border-radius: 14px;
   border: 1px solid ${({ $positive }) =>
-    $positive ? 'rgba(76, 175, 80, 0.3)' : 'rgba(0, 255, 255, 0.15)'};
+    $positive ? 'rgba(76, 175, 80, 0.3)' : 'rgba(139, 92, 246, 0.15)'};
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -123,7 +123,7 @@ const HeroCard = styled(motion.div)<{ $positive?: boolean }>`
     background: ${({ $positive }) =>
       $positive
         ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, transparent 60%)'
-        : 'linear-gradient(135deg, rgba(0, 255, 255, 0.06) 0%, transparent 60%)'};
+        : 'linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, transparent 60%)'};
     pointer-events: none;
   }
 `;
@@ -139,7 +139,7 @@ const HeroLabel = styled.div`
 const HeroValue = styled.div<{ $positive?: boolean }>`
   font-size: 1.6rem;
   font-weight: 700;
-  color: ${({ $positive }) => ($positive ? '#4caf50' : '#00FFFF')};
+  color: ${({ $positive }) => ($positive ? '#4caf50' : '#8B5CF6')};
   line-height: 1.2;
   @media (min-width: 768px) {
     font-size: 1.9rem;
@@ -161,8 +161,8 @@ const HeroIcon = styled.div<{ $positive?: boolean }>`
   height: 32px;
   border-radius: 8px;
   background: ${({ $positive }) =>
-    $positive ? 'rgba(76, 175, 80, 0.15)' : 'rgba(0, 255, 255, 0.1)'};
-  color: ${({ $positive }) => ($positive ? '#4caf50' : '#00FFFF')};
+    $positive ? 'rgba(76, 175, 80, 0.15)' : 'rgba(139, 92, 246, 0.1)'};
+  color: ${({ $positive }) => ($positive ? '#4caf50' : '#8B5CF6')};
   margin-bottom: 6px;
 `;
 
@@ -205,7 +205,7 @@ const ChartRow = styled.div`
 
 const TooltipBox = styled.div`
   background: rgba(10, 10, 26, 0.95);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   padding: 10px 14px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -248,7 +248,7 @@ const MiniListItem = styled.li`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.04);
+    background: rgba(139, 92, 246, 0.04);
   }
   &:last-child {
     border-bottom: none;
@@ -277,9 +277,9 @@ const WeeklyWeightPill = styled.div<{ $active?: boolean }>`
   flex-shrink: 0;
   padding: 10px 14px;
   background: ${({ $active }) =>
-    $active ? 'rgba(0, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.2)'};
+    $active ? 'rgba(139, 92, 246, 0.12)' : 'rgba(0, 0, 0, 0.2)'};
   border: 1px solid ${({ $active }) =>
-    $active ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.06)'};
+    $active ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255, 255, 255, 0.06)'};
   border-radius: 10px;
   text-align: center;
   min-width: 72px;
@@ -294,7 +294,7 @@ const WeeklyWeightDate = styled.div`
 const WeeklyWeightValue = styled.div`
   font-size: 1rem;
   font-weight: 600;
-  color: #00FFFF;
+  color: #8B5CF6;
 `;
 
 const WorkoutCard = styled.div`
@@ -339,8 +339,8 @@ const WorkoutMeta = styled.div`
 `;
 
 const EmptyState = styled.div`
-  background: rgba(0, 255, 255, 0.04);
-  border: 1px dashed rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.04);
+  border: 1px dashed rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 1.25rem;
   text-align: center;
@@ -358,7 +358,7 @@ const StatsFooter = styled.div`
   color: rgba(255, 255, 255, 0.6);
 
   span {
-    color: #00FFFF;
+    color: #8B5CF6;
   }
 `;
 
@@ -516,8 +516,8 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                   <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="snapGradCyan" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#00FFFF" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#00FFFF" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                       </linearGradient>
                       <linearGradient id="snapGradPurple" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#7851A9" stopOpacity={0.3} />
@@ -563,9 +563,9 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                     <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                     <Area
                       yAxisId="left" type="monotone" dataKey="weight" name="Weight (lbs)"
-                      stroke="#00FFFF" strokeWidth={2.5} fill="url(#snapGradCyan)"
-                      dot={{ fill: '#00FFFF', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#00FFFF', stroke: '#0a0a1a', strokeWidth: 2 }}
+                      stroke="#8B5CF6" strokeWidth={2.5} fill="url(#snapGradCyan)"
+                      dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#0a0a1a', strokeWidth: 2 }}
                       connectNulls
                     />
                     <Area
@@ -596,7 +596,7 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                       <PolarGrid stroke="rgba(255, 255, 255, 0.1)" />
                       <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 10 }} />
                       <PolarRadiusAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} />
-                      <Radar name="First" dataKey="first" stroke="#00FFFF" fill="#00FFFF" fillOpacity={0.1} strokeWidth={2} />
+                      <Radar name="First" dataKey="first" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.1} strokeWidth={2} />
                       <Radar name="Current" dataKey="current" stroke="#7851A9" fill="#7851A9" fillOpacity={0.25} strokeWidth={2} />
                       <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                     </RadarChart>

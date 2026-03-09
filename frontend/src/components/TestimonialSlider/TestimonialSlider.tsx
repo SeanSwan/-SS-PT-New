@@ -33,10 +33,10 @@ const diagonalGlimmer = keyframes`
 
 const pulseGlow = keyframes`
   0%, 100% { 
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4)); 
+    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4)); 
   } 
   50% { 
-    filter: drop-shadow(0 0 16px rgba(0, 255, 255, 0.7)); 
+    filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.7)); 
   }
 `;
 
@@ -103,7 +103,7 @@ const BackgroundGlow = styled.div`
   background: radial-gradient(
     ellipse at center,
     rgba(120, 81, 169, 0.1) 0%,
-    rgba(0, 255, 255, 0.03) 50%,
+    rgba(139, 92, 246, 0.03) 50%,
     transparent 70%
   );
   border-radius: 50%;
@@ -165,7 +165,7 @@ const TestimonialCard = styled(motion.div)`
   transition: border-color 0.4s ease;
   
   &:hover { 
-    border-color: rgba(0, 255, 255, 0.3); 
+    border-color: rgba(139, 92, 246, 0.3); 
   }
   
   /* Single subtle diagonal glimmer effect */
@@ -262,7 +262,7 @@ const ClientImage = styled.div<{ image: string }>`
   border: 4px solid var(--neon-blue, #00D4AA);
   margin-right: 0;
   margin-bottom: 1.5rem;
-  box-shadow: 0 8px 20px rgba(0, 255, 255, 0.35);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.35);
   animation: ${pulseGlow} 5s ease-in-out infinite;
   ${reducedMotion}
   flex-shrink: 0;
@@ -411,7 +411,7 @@ const RelatedProgramLink = styled.a`
     opacity: 1;
     text-decoration: none;
     color: white;
-    background-color: rgba(0, 255, 255, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
     border-radius: 5px;
   }
 `;
@@ -454,7 +454,7 @@ const ProgressDot = styled.button<{ $active: boolean }>`
   cursor: pointer;
 
   &:focus-visible {
-    outline: 2px solid rgba(0, 255, 255, 0.8);
+    outline: 2px solid rgba(139, 92, 246, 0.8);
     outline-offset: 2px;
   }
 `;
@@ -463,7 +463,7 @@ const QuoteIcon = styled(motion.div).withConfig({
   shouldForwardProp: (prop) => !["position"].includes(prop)
 })`
   position: absolute;
-  color: rgba(0, 255, 255, 0.08);
+  color: rgba(139, 92, 246, 0.08);
   font-size: 6rem;
   z-index: 0;
   pointer-events: none;

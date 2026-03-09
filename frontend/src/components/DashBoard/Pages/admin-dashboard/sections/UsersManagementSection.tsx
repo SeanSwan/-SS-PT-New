@@ -82,7 +82,7 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -392,7 +392,7 @@ const ModalOverlay = styled(motion.div)`
 
 const ModalContent = styled(motion.div)`
   background: rgba(10, 10, 26, 0.95);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 2rem;
   width: 100%;
@@ -441,7 +441,7 @@ const FormInput = styled.input`
   &:focus {
     outline: none;
     border-color: #00ffff;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
 `;
 

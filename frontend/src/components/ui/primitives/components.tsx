@@ -194,8 +194,8 @@ export const Paper = forwardRef<HTMLDivElement, PaperProps>(({ elevation = 1, va
   const system = getSystemStyles({ ...rest, sx });
   const primaryColor =
     typeof (theme as Record<string, unknown>)?.primary === 'object'
-      ? String(((theme as Record<string, any>).primary?.main ?? '#00FFFF'))
-      : '#00FFFF';
+      ? String(((theme as Record<string, any>).primary?.main ?? '#8B5CF6'))
+      : '#8B5CF6';
   const background = String(theme?.background?.surface ?? alpha('#0a0a1a', 0.65));
   const border = variant === 'outlined' ? `1px solid ${alpha(primaryColor, 0.35)}` : '1px solid transparent';
   const shadow = variant === 'elevation' ? `0 ${Math.max(1, elevation) * 4}px ${Math.max(1, elevation) * 12}px rgba(0,0,0,0.24)` : 'none';
@@ -265,7 +265,7 @@ export const Divider = forwardRef<HTMLHRElement, DividerProps>(({ orientation = 
       alignSelf: 'stretch',
       width: orientation === 'horizontal' ? '100%' : '1px',
       height: orientation === 'horizontal' ? '1px' : 'auto',
-      background: light ? alpha('#FFFFFF', 0.18) : alpha('#00FFFF', 0.24),
+      background: light ? alpha('#FFFFFF', 0.18) : alpha('#8B5CF6', 0.24),
     })}
     {...rest}
   />
@@ -293,7 +293,7 @@ export interface CircularProgressProps extends React.HTMLAttributes<HTMLSpanElem
 }
 
 export const CircularProgress = forwardRef<HTMLSpanElement, CircularProgressProps>(
-  ({ size = 20, thickness = 2, color = '#00FFFF', ...rest }, ref) => <Spinner ref={ref} $size={size} $thickness={thickness} $color={color} role="progressbar" {...rest} />
+  ({ size = 20, thickness = 2, color = '#8B5CF6', ...rest }, ref) => <Spinner ref={ref} $size={size} $thickness={thickness} $color={color} role="progressbar" {...rest} />
 );
 CircularProgress.displayName = 'CircularProgress';
 
@@ -361,7 +361,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'contained', size = 'medium', color = '#00FFFF', fullWidth = false, startIcon, endIcon, sx, style, children, disabled = false, ...rest }, ref) => {
+  ({ variant = 'contained', size = 'medium', color = '#8B5CF6', fullWidth = false, startIcon, endIcon, sx, style, children, disabled = false, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
       <StyledButton
@@ -493,7 +493,7 @@ export interface ChipProps extends React.HTMLAttributes<HTMLSpanElement>, StyleS
 }
 
 export const Chip = forwardRef<HTMLSpanElement, ChipProps>(
-  ({ label, color = '#00FFFF', variant = 'filled', size = 'medium', icon, deleteIcon, onDelete, sx, style, children, onClick, ...rest }, ref) => {
+  ({ label, color = '#8B5CF6', variant = 'filled', size = 'medium', icon, deleteIcon, onDelete, sx, style, children, onClick, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
       <ChipRoot ref={ref} $chipColor={color} $chipVariant={variant} $chipSize={size} $clickable={!!onClick} onClick={onClick} style={mergeStyle(style, sx, system)} {...rest}>
@@ -515,7 +515,7 @@ Chip.displayName = 'Chip';
 
 const CardRoot = styled.div<{ $elevation: number }>`
   background: ${alpha('#0a0a1a', 0.65)};
-  border: 1px solid ${alpha('#00FFFF', 0.15)};
+  border: 1px solid ${alpha('#8B5CF6', 0.15)};
   border-radius: 12px;
   box-shadow: ${({ $elevation }) => `0 ${$elevation * 4}px ${$elevation * 12}px rgba(0,0,0,0.24)`};
   overflow: hidden;
@@ -529,7 +529,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement>, StyleSy
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(({ elevation = 1, variant = 'elevation', sx, style, ...rest }, ref) => {
   const system = getSystemStyles({ ...rest, sx });
-  const border = variant === 'outlined' ? `1px solid ${alpha('#00FFFF', 0.35)}` : undefined;
+  const border = variant === 'outlined' ? `1px solid ${alpha('#8B5CF6', 0.35)}` : undefined;
   const shadow = variant === 'outlined' ? 'none' : undefined;
   return <CardRoot ref={ref} $elevation={elevation} style={mergeStyle(style, sx, { ...system, ...(border ? { border } : {}), ...(shadow ? { boxShadow: shadow } : {}) })} {...rest} />;
 });
@@ -580,7 +580,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ badgeContent, color = '#00FFFF', invisible = false, max = 99, children, ...rest }, ref) => {
+  ({ badgeContent, color = '#8B5CF6', invisible = false, max = 99, children, ...rest }, ref) => {
     const display = typeof badgeContent === 'number' && badgeContent > max ? `${max}+` : badgeContent;
     const hide = invisible || badgeContent === 0 || badgeContent == null;
     return (
@@ -599,7 +599,7 @@ const alertColors: Record<string, { bg: string; border: string; text: string }> 
   success: { bg: alpha('#22c55e', 0.12), border: alpha('#22c55e', 0.4), text: '#86efac' },
   error: { bg: alpha('#ef4444', 0.12), border: alpha('#ef4444', 0.4), text: '#fca5a5' },
   warning: { bg: alpha('#f59e0b', 0.12), border: alpha('#f59e0b', 0.4), text: '#fcd34d' },
-  info: { bg: alpha('#00FFFF', 0.08), border: alpha('#00FFFF', 0.3), text: '#67e8f9' },
+  info: { bg: alpha('#8B5CF6', 0.08), border: alpha('#8B5CF6', 0.3), text: '#67e8f9' },
 };
 
 const AlertRoot = styled.div<{ $severity: string }>`
@@ -706,7 +706,7 @@ export interface LinearProgressProps extends React.HTMLAttributes<HTMLDivElement
 }
 
 export const LinearProgress = forwardRef<HTMLDivElement, LinearProgressProps>(
-  ({ value = 0, variant = 'determinate', color = '#00FFFF', sx, style, ...rest }, ref) => {
+  ({ value = 0, variant = 'determinate', color = '#8B5CF6', sx, style, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
       <ProgressTrack ref={ref} $trackColor={color} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} style={mergeStyle(style, sx, system)} {...rest}>
@@ -762,7 +762,7 @@ const ListItemButtonRoot = styled.li<{ $selected: boolean }>`
   cursor: pointer;
   border-radius: 8px;
   transition: background 0.15s;
-  background: ${({ $selected }) => ($selected ? alpha('#00FFFF', 0.1) : 'transparent')};
+  background: ${({ $selected }) => ($selected ? alpha('#8B5CF6', 0.1) : 'transparent')};
   &:hover { background: ${alpha('#FFFFFF', 0.06)}; }
 `;
 
@@ -849,7 +849,7 @@ export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
 }
 
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
-  ({ checked, defaultChecked, color = '#00FFFF', disabled = false, sx, style, onChange, ...rest }, ref) => {
+  ({ checked, defaultChecked, color = '#8B5CF6', disabled = false, sx, style, onChange, ...rest }, ref) => {
     const isControlled = checked !== undefined;
     const [internalChecked, setInternalChecked] = React.useState(defaultChecked ?? false);
     const resolvedChecked = isControlled ? checked : internalChecked;
@@ -1015,14 +1015,14 @@ const OutlinedInputRoot = styled.div<{ $focused: boolean; $disabled: boolean }>`
   display: flex;
   align-items: center;
   background: ${alpha('#0a0a1a', 0.6)};
-  border: 1px solid ${({ $focused }) => ($focused ? '#00FFFF' : alpha('#FFFFFF', 0.2))};
+  border: 1px solid ${({ $focused }) => ($focused ? '#8B5CF6' : alpha('#FFFFFF', 0.2))};
   border-radius: 8px;
   padding: 8px 12px;
   transition: border-color 0.2s;
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'text')};
   &:hover:not([aria-disabled='true']) {
-    border-color: ${({ $focused }) => ($focused ? '#00FFFF' : alpha('#FFFFFF', 0.4))};
+    border-color: ${({ $focused }) => ($focused ? '#8B5CF6' : alpha('#FFFFFF', 0.4))};
   }
   input {
     flex: 1;
@@ -1218,7 +1218,7 @@ export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
 }
 
 export const Radio = forwardRef<HTMLInputElement, RadioProps>(
-  ({ color = '#00FFFF', size = 'medium', value, sx, style, checked, onChange, name, disabled, ...rest }, ref) => {
+  ({ color = '#8B5CF6', size = 'medium', value, sx, style, checked, onChange, name, disabled, ...rest }, ref) => {
     const group = React.useContext(RadioContext);
     const resolvedChecked = checked ?? (group.value !== undefined ? group.value === value : undefined);
     const resolvedName = name ?? group.name;
@@ -1381,7 +1381,7 @@ export interface SliderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
 }
 
 export const Slider = forwardRef<HTMLDivElement, SliderProps>(
-  ({ value: controlledValue, defaultValue = 0, min = 0, max = 100, step = 1, onChange, color = '#00FFFF', size = 'medium', disabled = false, valueLabelDisplay = 'off', getAriaValueText, sx, style, ...rest }, ref) => {
+  ({ value: controlledValue, defaultValue = 0, min = 0, max = 100, step = 1, onChange, color = '#8B5CF6', size = 'medium', disabled = false, valueLabelDisplay = 'off', getAriaValueText, sx, style, ...rest }, ref) => {
     const [internalValue, setInternalValue] = React.useState(defaultValue);
     const [dragging, setDragging] = React.useState(false);
     const [hovering, setHovering] = React.useState(false);
@@ -1759,7 +1759,7 @@ const MenuPaper = styled.div<{ $open: boolean }>`
   position: fixed;
   z-index: 1300;
   background: ${alpha('#0f172a', 0.95)};
-  border: 1px solid ${alpha('#00FFFF', 0.15)};
+  border: 1px solid ${alpha('#8B5CF6', 0.15)};
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   min-width: 180px;
@@ -1810,7 +1810,7 @@ const MenuItemRoot = styled.div<{ $selected: boolean; $disabled: boolean }>`
   font-size: 0.875rem;
   color: ${({ $disabled }) => ($disabled ? alpha('#FFFFFF', 0.3) : '#FFFFFF')};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
-  background: ${({ $selected }) => ($selected ? alpha('#00FFFF', 0.1) : 'transparent')};
+  background: ${({ $selected }) => ($selected ? alpha('#8B5CF6', 0.1) : 'transparent')};
   transition: background 0.15s;
   &:hover:not([aria-disabled='true']) { background: ${alpha('#FFFFFF', 0.06)}; }
 `;
@@ -2141,8 +2141,8 @@ const SelectRoot = styled.select<{ $fullWidth: boolean; $error: boolean; $size: 
   background-repeat: no-repeat;
   background-position: right 12px center;
 
-  &:hover { border-color: ${alpha('#00FFFF', 0.5)}; }
-  &:focus { border-color: #00FFFF; box-shadow: 0 0 0 2px ${alpha('#00FFFF', 0.15)}; }
+  &:hover { border-color: ${alpha('#8B5CF6', 0.5)}; }
+  &:focus { border-color: #8B5CF6; box-shadow: 0 0 0 2px ${alpha('#8B5CF6', 0.15)}; }
 
   option {
     background: #0f172a;
@@ -2197,7 +2197,7 @@ export interface TabsProps extends React.HTMLAttributes<HTMLDivElement>, StyleSy
 }
 
 export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
-  ({ value, onChange, variant = 'standard', indicatorColor = '#00FFFF', sx, style, children, ...rest }, ref) => {
+  ({ value, onChange, variant = 'standard', indicatorColor = '#8B5CF6', sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     const childrenWithProps = Children.map(children, (child) => {
       if (!React.isValidElement(child)) return child;
@@ -2256,7 +2256,7 @@ const TabRoot = styled.button<{ $selected: boolean; $indicatorColor: string; $di
   }
 
   &:focus-visible {
-    outline: 2px solid #00FFFF;
+    outline: 2px solid #8B5CF6;
     outline-offset: -2px;
   }
 `;
@@ -2271,7 +2271,7 @@ export interface TabProps extends React.ButtonHTMLAttributes<HTMLButtonElement>,
 }
 
 export const Tab = forwardRef<HTMLButtonElement, TabProps>(
-  ({ label, icon, iconPosition = 'start', disabled = false, $selected = false, $indicatorColor = '#00FFFF', sx, style, children, ...rest }, ref) => {
+  ({ label, icon, iconPosition = 'start', disabled = false, $selected = false, $indicatorColor = '#8B5CF6', sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
       <TabRoot

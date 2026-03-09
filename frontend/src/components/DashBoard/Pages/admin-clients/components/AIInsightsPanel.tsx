@@ -179,14 +179,14 @@ const CardPanel = styled.div`
 
 const AIModelCardStyled = styled.div`
   background: ${theme.glass};
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
 
   &:hover {
     background: ${theme.glassHover};
-    border-color: rgba(0, 255, 255, 0.4);
+    border-color: rgba(139, 92, 246, 0.4);
   }
 `;
 

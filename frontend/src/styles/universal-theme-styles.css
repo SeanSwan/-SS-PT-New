@@ -18,7 +18,7 @@
 /* Default theme variables - will be overridden by JavaScript */
 :root {
   /* Fallback values for SSR or if JavaScript fails */
-  --color-primary: #00FFFF;
+  --color-primary: #8B5CF6;
   --color-primary-blue: #00A0E3;
   --color-secondary: #7851A9;
   --color-accent: #FFD700;
@@ -32,16 +32,16 @@
   --text-secondary: #E8F0FF;
   --text-muted: rgba(255, 255, 255, 0.7);
   
-  --gradient-primary: linear-gradient(135deg, #00FFFF, #00A0E3);
+  --gradient-primary: linear-gradient(135deg, #8B5CF6, #00A0E3);
   --gradient-secondary: linear-gradient(135deg, #7851A9, #7b2cbf);
-  --gradient-cosmic: linear-gradient(135deg, #00FFFF, #7851A9);
+  --gradient-cosmic: linear-gradient(135deg, #8B5CF6, #7851A9);
   
-  --shadow-primary: 0 0 20px rgba(0, 255, 255, 0.3);
+  --shadow-primary: 0 0 20px rgba(139, 92, 246, 0.3);
   --shadow-elevation: 0 15px 35px rgba(0, 0, 0, 0.5);
-  --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 255, 255, 0.3);
+  --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 92, 246, 0.3);
   
   --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-elegant: rgba(0, 255, 255, 0.2);
+  --border-elegant: rgba(139, 92, 246, 0.2);
   --border-prominent: rgba(0, 160, 227, 0.4);
 }
 

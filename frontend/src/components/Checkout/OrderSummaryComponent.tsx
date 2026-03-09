@@ -75,15 +75,15 @@ const countUp = keyframes`
 `;
 
 const pulseGlow = keyframes`
-  0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-  50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.6); }
-  100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
+  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
 `;
 
 // Styled Components with fixed syntax
 const SummaryContainer = styled(motion.div)<{ $compact: boolean }>`
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(0, 153, 255, 0.02));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(0, 153, 255, 0.02));
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: ${props => props.$compact ? '12px' : '16px'};
   padding: ${props => props.$compact ? '1rem' : '1.5rem'};
   position: relative;
@@ -99,7 +99,7 @@ const SummaryContainer = styled(motion.div)<{ $compact: boolean }>`
     background: linear-gradient(
       45deg,
       transparent 30%,
-      rgba(0, 255, 255, 0.03) 50%,
+      rgba(139, 92, 246, 0.03) 50%,
       transparent 70%
     );
     background-size: 200% 200%;
@@ -128,7 +128,7 @@ const SummaryTitle = styled.h3<{ $compact: boolean }>`
 `;
 
 const ItemCount = styled.div`
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   color: #00ffff;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
@@ -155,7 +155,7 @@ const OrderItem = styled(motion.div)<{ $compact: boolean }>`
   
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(0, 255, 255, 0.3);
+    border-color: rgba(139, 92, 246, 0.3);
   }
   
   &:last-child {
@@ -167,7 +167,7 @@ const ItemIcon = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 153, 255, 0.1));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(0, 153, 255, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,8 +203,8 @@ const ItemMeta = styled.div`
 `;
 
 const MetaTag = styled.span`
-  background: rgba(0, 255, 255, 0.1);
-  color: rgba(0, 255, 255, 0.9);
+  background: rgba(139, 92, 246, 0.1);
+  color: rgba(139, 92, 246, 0.9);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
   font-size: 0.7rem;
@@ -260,7 +260,7 @@ const SummaryRow = styled(motion.div)<{
     font-size: 1.1rem;
     font-weight: 600;
     color: #00ffff;
-    border-top: 2px solid rgba(0, 255, 255, 0.3);
+    border-top: 2px solid rgba(139, 92, 246, 0.3);
     margin-top: 0.5rem;
     padding-top: 1rem;
     animation: ${pulseGlow} 2s infinite;
@@ -322,7 +322,7 @@ const PromoInput = styled.input`
   &:focus {
     outline: none;
     border-color: #00ffff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   }
 `;
 
@@ -349,8 +349,8 @@ const PromoButton = styled.button`
 `;
 
 const SessionsSummary = styled.div`
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -413,7 +413,7 @@ const ProceedButton = styled(motion.button)`
   &:hover {
     background: linear-gradient(135deg, #00cccc, #0088cc);
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
   }
 `;
 

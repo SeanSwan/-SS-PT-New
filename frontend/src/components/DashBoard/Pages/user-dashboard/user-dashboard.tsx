@@ -248,7 +248,7 @@ const ActionButton = styled.button<{ color?: string; variant?: 'primary' | 'seco
     transform: translateY(-2px);
     ${({ variant, color }) => 
       variant === 'primary' 
-        ? `box-shadow: 0 4px 8px ${color ? `${color}40` : 'rgba(0, 255, 255, 0.3)'};`
+        ? `box-shadow: 0 4px 8px ${color ? `${color}40` : 'rgba(139, 92, 246, 0.3)'};`
         : 'background: rgba(255, 255, 255, 0.15);'
     }
   }

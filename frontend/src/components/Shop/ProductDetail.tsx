@@ -105,7 +105,7 @@ const ThemeBadge = styled.div<{ theme: string }>`
   font-size: 0.8rem;
   background: ${({ theme }) => {
     switch (theme) {
-      case 'cosmic': return 'rgba(0, 255, 255, 0.2)';
+      case 'cosmic': return 'rgba(139, 92, 246, 0.2)';
       case 'purple': return 'rgba(120, 81, 169, 0.2)';
       case 'ruby': return 'rgba(224, 36, 94, 0.2)';
       case 'emerald': return 'rgba(0, 200, 100, 0.2)';
@@ -123,7 +123,7 @@ const ThemeBadge = styled.div<{ theme: string }>`
   }};
   border: 1px solid ${({ theme }) => {
     switch (theme) {
-      case 'cosmic': return 'rgba(0, 255, 255, 0.3)';
+      case 'cosmic': return 'rgba(139, 92, 246, 0.3)';
       case 'purple': return 'rgba(120, 81, 169, 0.3)';
       case 'ruby': return 'rgba(224, 36, 94, 0.3)';
       case 'emerald': return 'rgba(0, 200, 100, 0.3)';

@@ -134,7 +134,7 @@ const TabButton = styled.button<{ $active: boolean }>`
     width: ${(p) => (p.$active ? '100%' : '0')};
     height: 2px;
     background: #00ffff;
-    box-shadow: ${(p) => (p.$active ? '0 -2px 10px rgba(0, 255, 255, 0.5)' : 'none')};
+    box-shadow: ${(p) => (p.$active ? '0 -2px 10px rgba(139, 92, 246, 0.5)' : 'none')};
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 

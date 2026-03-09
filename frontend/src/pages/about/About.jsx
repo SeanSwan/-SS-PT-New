@@ -100,7 +100,7 @@ const AboutPage = styled(motion.div)`
   /* Subtle premium background texture */
   background-image: 
     radial-gradient(rgba(120, 81, 169, 0.15) 1px, transparent 1px),
-    radial-gradient(rgba(0, 255, 255, 0.15) 1px, transparent 1px);
+    radial-gradient(rgba(139, 92, 246, 0.15) 1px, transparent 1px);
   background-size: 50px 50px;
   background-position: 0 0, 25px 25px;
   background-repeat: repeat;
@@ -127,7 +127,7 @@ const TopLeftOrb = styled.div`
   width: 400px;
   height: 400px;
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.05);
+  background: rgba(139, 92, 246, 0.05);
   filter: blur(60px);
   opacity: 0.3;
   z-index: 0;
@@ -164,7 +164,7 @@ const CenterOrb = styled.div`
   border-radius: 50%;
   background: radial-gradient(
     circle at center,
-    rgba(0, 255, 255, 0.03) 0%,
+    rgba(139, 92, 246, 0.03) 0%,
     rgba(120, 81, 169, 0.03) 50%,
     transparent 70%
   );
@@ -199,7 +199,7 @@ const NavDot = styled.button`
   height: 12px;
   border-radius: 50%;
   border: none;
-  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.2)'};
+  background: ${props => props.$active ? 'rgba(139, 92, 246, 0.8)' : 'rgba(255, 255, 255, 0.2)'};
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
@@ -212,7 +212,7 @@ const NavDot = styled.button`
   }
   
   &:focus-visible {
-    outline: 2px solid rgba(0, 255, 255, 0.8);
+    outline: 2px solid rgba(139, 92, 246, 0.8);
     outline-offset: 2px;
   }
   
@@ -246,10 +246,10 @@ const NavDot = styled.button`
       inset: -4px;
       border-radius: 50%;
       background: conic-gradient(
-        rgba(0, 255, 255, 0),
-        rgba(0, 255, 255, 0.8),
+        rgba(139, 92, 246, 0),
+        rgba(139, 92, 246, 0.8),
         rgba(120, 81, 169, 0.8),
-        rgba(0, 255, 255, 0)
+        rgba(139, 92, 246, 0)
       );
       animation: ${spin} 4s linear infinite;
       opacity: 0.6;
@@ -307,7 +307,7 @@ const ScrollToTopButton = styled(motion.button)`
     font-size: 1.5rem;
     font-weight: 300;
     color: #00ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
     transition: all 0.3s ease;
   }
   
@@ -316,12 +316,12 @@ const ScrollToTopButton = styled(motion.button)`
     
     &:after {
       transform: translateY(-3px);
-      text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+      text-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
     }
   }
   
   &:focus-visible {
-    outline: 2px solid rgba(0, 255, 255, 0.8);
+    outline: 2px solid rgba(139, 92, 246, 0.8);
     outline-offset: 2px;
   }
 
@@ -356,7 +356,7 @@ const SpinnerOuter = styled.div`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: 3px solid rgba(0, 255, 255, 0.1);
+  border: 3px solid rgba(139, 92, 246, 0.1);
   border-top-color: #00ffff;
   animation: ${spin} 1s linear infinite;
 `;
@@ -400,7 +400,7 @@ const FloatingCTABar = styled(motion.div)`
   width: 100%;
   background: rgba(10, 10, 26, 0.85);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
@@ -582,7 +582,7 @@ export default function About() {
           }
           
           ::selection {
-            background: rgba(0, 255, 255, 0.3);
+            background: rgba(139, 92, 246, 0.3);
             color: white;
           }
         `}</style>

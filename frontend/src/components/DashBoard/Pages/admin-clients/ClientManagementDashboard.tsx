@@ -48,7 +48,7 @@ const CardGrid = styled.div`
 
 const Card = styled.div`
   background: rgba(10, 12, 22, 0.75);
-  border: 1px solid rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 16px;
   padding: 1.25rem;
   display: flex;
@@ -79,7 +79,7 @@ const StatusPill = styled.div`
 
 const EmptyState = styled.div`
   background: rgba(15, 23, 42, 0.6);
-  border: 1px dashed rgba(0, 255, 255, 0.25);
+  border: 1px dashed rgba(139, 92, 246, 0.25);
   border-radius: 16px;
   padding: 1.5rem;
   color: rgba(255, 255, 255, 0.7);

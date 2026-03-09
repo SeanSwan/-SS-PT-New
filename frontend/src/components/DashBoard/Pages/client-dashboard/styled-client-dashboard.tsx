@@ -282,15 +282,15 @@ export const AchievementItem = styled(motion.div)<{ $unlocked: boolean }>`
     height: 50px;
     border-radius: 50%;
     background: ${props => props.$unlocked
-      ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2))'
+      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(120, 81, 169, 0.2))'
       : 'rgba(255, 255, 255, 0.05)'};
     display: flex;
     justify-content: center;
     align-items: center;
     margin-bottom: 0.5rem;
-    color: ${props => props.$unlocked ? 'rgba(0, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'};
-    border: 1px solid ${props => props.$unlocked ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
-    box-shadow: ${props => props.$unlocked ? '0 0 15px rgba(0, 255, 255, 0.2)' : 'none'};
+    color: ${props => props.$unlocked ? 'rgba(139, 92, 246, 0.9)' : 'rgba(255, 255, 255, 0.3)'};
+    border: 1px solid ${props => props.$unlocked ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
+    box-shadow: ${props => props.$unlocked ? '0 0 15px rgba(139, 92, 246, 0.2)' : 'none'};
   }
 
   & .achievement-name {

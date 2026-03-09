@@ -4,7 +4,7 @@
  *
  * ┌─────────────────────────────────────────────────────────┐
  * │ Architecture: Styled-components + lucide-react          │
- * │ Theme: Galaxy-Swan (Core #0a0a1a, Cyan #00FFFF,         │
+ * │ Theme: Galaxy-Swan (Core #0a0a1a, Cyan #8B5CF6,         │
  * │        Purple #7851A9)                                   │
  * │ Touch targets: min-height 44px on all buttons            │
  * │ MUI-free: All UI via styled-components + native HTML     │
@@ -129,7 +129,7 @@ const StyledInput = styled.input`
   }
 
   &:focus {
-    border-color: #00FFFF;
+    border-color: #8B5CF6;
   }
 `;
 
@@ -307,7 +307,7 @@ const StyledSelect = styled.select`
   appearance: auto;
 
   &:focus {
-    border-color: #00FFFF;
+    border-color: #8B5CF6;
   }
 
   option {

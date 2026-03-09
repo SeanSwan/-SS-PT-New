@@ -43,7 +43,7 @@ const Card = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(15px);
   border-radius: 20px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   padding: 2rem;
   margin-bottom: 2rem;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
@@ -59,7 +59,7 @@ const Card = styled(motion.div)`
     bottom: 0;
     background: radial-gradient(
       ellipse at 20% 20%,
-      rgba(0, 255, 255, 0.1) 0%,
+      rgba(139, 92, 246, 0.1) 0%,
       transparent 50%
     );
     pointer-events: none;
@@ -67,8 +67,8 @@ const Card = styled(motion.div)`
   }
 
   &:hover {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 20px 40px rgba(0, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -82,7 +82,7 @@ const CardTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 
   &::before {
     content: '✦';
@@ -179,8 +179,8 @@ const StatusLink = styled.a`
 const NAM_ScoreDisplay = styled.div`
   position: relative;
   z-index: 2;
-  background: rgba(0, 255, 255, 0.05);
-  border: 2px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.05);
+  border: 2px solid rgba(139, 92, 246, 0.3);
   border-radius: 15px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;

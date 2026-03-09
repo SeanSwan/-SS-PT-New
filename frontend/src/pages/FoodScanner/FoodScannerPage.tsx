@@ -116,7 +116,7 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 

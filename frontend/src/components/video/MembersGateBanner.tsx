@@ -83,7 +83,7 @@ const GlowOrb = styled.div`
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 255, 255, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.08), transparent 70%);
   top: -100px;
   right: -80px;
   pointer-events: none;
@@ -96,8 +96,8 @@ const IconCircle = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   color: #00ffff;
   margin-bottom: 20px;
 `;
@@ -135,7 +135,7 @@ const CTAButton = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 255, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.25);
   }
 
   &:active {

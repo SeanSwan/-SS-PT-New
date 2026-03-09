@@ -105,7 +105,7 @@ const FeatureRow = styled.div`
 const SummaryCard = styled(Card)`
   position: sticky;
   top: 2rem;
-  border-color: rgba(0, 255, 255, 0.3);
+  border-color: rgba(139, 92, 246, 0.3);
   background: linear-gradient(145deg, rgba(20, 20, 35, 0.8), rgba(10, 10, 25, 0.9));
 `;
 

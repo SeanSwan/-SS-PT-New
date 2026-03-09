@@ -48,7 +48,7 @@ const Panel = styled.div<{ $isOpen: boolean }>`
   right: 0;
   height: 85vh;
   max-height: 85vh;
-  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 20px 20px 0 0;
   transform: translateY(${({ $isOpen }) => ($isOpen ? '0' : '100%')});
 
@@ -62,7 +62,7 @@ const Panel = styled.div<{ $isOpen: boolean }>`
     max-height: 100vh;
     width: min(440px, 95vw);
     border-top: none;
-    border-left: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+    border-left: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
     border-radius: 0;
     transform: translateX(${({ $isOpen }) => ($isOpen ? '0' : '100%')});
   }
@@ -99,7 +99,7 @@ const PanelHeader = styled.div`
 `;
 
 const PanelTitle = styled.h3`
-  color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+  color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -107,8 +107,8 @@ const PanelTitle = styled.h3`
 
 const CloseBtn = styled.button`
   background: none;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.3)'};
-  color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.3)'};
+  color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   border-radius: 8px;
   width: 44px;
   height: 44px;
@@ -119,7 +119,7 @@ const CloseBtn = styled.button`
   justify-content: center;
   transition: background 0.2s;
   &:hover {
-    background: rgba(0, 255, 255, 0.1);
+    background: rgba(139, 92, 246, 0.1);
   }
 `;
 
@@ -172,7 +172,7 @@ const Slider = styled.input<{ $painColor: string }>`
   }
 
   &:focus-visible::-webkit-slider-thumb {
-    outline: 2px solid #00FFFF;
+    outline: 2px solid #8B5CF6;
     outline-offset: 4px;
   }
 `;
@@ -196,13 +196,13 @@ const Select = styled.select`
   width: 100%;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 8px;
   color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
   min-height: 44px;
   &:focus {
-    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     outline: none;
   }
 `;
@@ -211,7 +211,7 @@ const TextArea = styled.textarea`
   width: 100%;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 8px;
   color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
@@ -220,7 +220,7 @@ const TextArea = styled.textarea`
   font-family: inherit;
   box-sizing: border-box;
   &:focus {
-    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     outline: none;
   }
 `;
@@ -229,14 +229,14 @@ const Input = styled.input`
   width: 100%;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.2)'};
+  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
   border-radius: 8px;
   color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 14px;
   min-height: 44px;
   box-sizing: border-box;
   &:focus {
-    border-color: ${({ theme }) => theme.colors?.accent || '#00FFFF'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     outline: none;
   }
 `;
@@ -252,14 +252,14 @@ const Chip = styled.button<{ $active: boolean }>`
   border-radius: 16px;
   font-size: 12px;
   cursor: pointer;
-  border: 1px solid ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.15)')};
-  background: ${({ $active }) => ($active ? 'rgba(0,255,255,0.15)' : 'rgba(0,0,0,0.3)')};
-  color: ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#00FFFF') : 'rgba(255,255,255,0.6)')};
+  border: 1px solid ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#8B5CF6') : 'rgba(255,255,255,0.15)')};
+  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.15)' : 'rgba(0,0,0,0.3)')};
+  color: ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#8B5CF6') : 'rgba(255,255,255,0.6)')};
   transition: all 0.15s;
   min-height: 44px;
   &:hover {
-    border-color: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
-    color: ${({ theme }) => theme?.colors?.accent || '#00FFFF'};
+    border-color: ${({ theme }) => theme?.colors?.accent || '#8B5CF6'};
+    color: ${({ theme }) => theme?.colors?.accent || '#8B5CF6'};
   }
   &:active {
     transform: scale(0.96);
@@ -306,7 +306,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'secondary' 
   transition: all 0.2s;
 
   ${({ $variant, theme }) => {
-    const accent = theme?.colors?.accent || '#00FFFF';
+    const accent = theme?.colors?.accent || '#8B5CF6';
     switch ($variant) {
       case 'primary':
         return `
@@ -340,7 +340,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'secondary' 
 
 const Divider = styled.hr`
   border: none;
-  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(0, 255, 255, 0.1)'};
+  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.1)'};
   margin: 16px 0;
 `;
 
@@ -622,7 +622,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
               <SyndromeToggle>
                 <SyndromeBtn
                   $active={posturalSyndrome === 'none'}
-                  $color="#00FFFF"
+                  $color="#8B5CF6"
                   onClick={() => setPosturalSyndrome('none')}
                 >
                   None

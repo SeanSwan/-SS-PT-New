@@ -37,10 +37,10 @@ export const STORE_TOKENS = {
     subtle: 'rgba(255,255,255,0.08)',
     glass: 'rgba(255,255,255,0.08)',
     purple: 'rgba(120,81,169,0.3)',
-    cyan: 'rgba(0,255,255,0.2)',
+    cyan: 'rgba(139, 92, 246,0.2)',
   },
   color: {
-    cyan: '#00FFFF',
+    cyan: '#8B5CF6',
     purple: '#7851A9',
     white: '#FFFFFF',
     muted: '#A0A0B0',
@@ -256,7 +256,7 @@ export const RevenueSummaryBar = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: linear-gradient(90deg, rgba(120,81,169,0.1) 0%, rgba(0,255,255,0.1) 100%);
+  background: linear-gradient(90deg, rgba(120,81,169,0.1) 0%, rgba(139, 92, 246,0.1) 100%);
   border-radius: ${STORE_TOKENS.radius.table};
   border: 1px solid rgba(255,255,255,0.1);
   margin-bottom: 24px;
@@ -303,8 +303,8 @@ export const SwanToggleTrack = styled.span<{ $checked?: boolean }>`
   display: inline-block;
   width: 44px;
   height: 24px;
-  background: ${({ $checked }) => $checked ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)'};
-  border: 1px solid ${({ $checked }) => $checked ? '#00FFFF' : 'rgba(255,255,255,0.2)'};
+  background: ${({ $checked }) => $checked ? 'rgba(139, 92, 246,0.2)' : 'rgba(255,255,255,0.1)'};
+  border: 1px solid ${({ $checked }) => $checked ? '#8B5CF6' : 'rgba(255,255,255,0.2)'};
   border-radius: 24px;
   transition: all 0.3s ease;
   flex-shrink: 0;
@@ -317,14 +317,14 @@ export const SwanToggleTrack = styled.span<{ $checked?: boolean }>`
     border-radius: 50%;
     left: 2px;
     bottom: 2px;
-    background: ${({ $checked }) => $checked ? '#00FFFF' : '#A0A0B0'};
-    box-shadow: ${({ $checked }) => $checked ? '0 0 10px #00FFFF' : 'none'};
+    background: ${({ $checked }) => $checked ? '#8B5CF6' : '#A0A0B0'};
+    box-shadow: ${({ $checked }) => $checked ? '0 0 10px #8B5CF6' : 'none'};
     transform: translateX(${({ $checked }) => $checked ? '20px' : '0'});
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   &:focus-within {
-    outline: 2px solid #00FFFF;
+    outline: 2px solid #8B5CF6;
     outline-offset: 2px;
   }
 `;
@@ -403,11 +403,11 @@ export const StoreButton = styled.button<{ $variant?: 'primary' | 'danger' | 'gh
         `;
       default:
         return css`
-          background: linear-gradient(135deg, rgba(120,81,169,0.2), rgba(0,255,255,0.1));
+          background: linear-gradient(135deg, rgba(120,81,169,0.2), rgba(139, 92, 246,0.1));
           border: 1px solid rgba(120,81,169,0.3);
           color: white;
           &:hover {
-            background: linear-gradient(135deg, rgba(120,81,169,0.3), rgba(0,255,255,0.2));
+            background: linear-gradient(135deg, rgba(120,81,169,0.3), rgba(139, 92, 246,0.2));
             border-color: rgba(120,81,169,0.5);
             transform: translateY(-1px);
           }
@@ -468,7 +468,7 @@ export const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${STORE_TOKENS.color.cyan};
-    box-shadow: 0 0 0 3px rgba(0,255,255,0.1);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246,0.1);
   }
 `;
 
@@ -489,7 +489,7 @@ export const ViewModeTab = styled.button<{ $active?: boolean }>`
   min-height: 44px;
   border: none;
   background: ${({ $active }) => $active
-    ? 'linear-gradient(135deg, rgba(120,81,169,0.3), rgba(0,255,255,0.15))'
+    ? 'linear-gradient(135deg, rgba(120,81,169,0.3), rgba(139, 92, 246,0.15))'
     : 'rgba(255,255,255,0.02)'};
   color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255,255,255,0.5)'};
   font-weight: ${({ $active }) => $active ? 600 : 400};
@@ -516,7 +516,7 @@ export const ViewModeTab = styled.button<{ $active?: boolean }>`
       width: 100%;
       height: 2px;
       background: ${STORE_TOKENS.color.cyan};
-      box-shadow: 0 -2px 10px rgba(0,255,255,0.5);
+      box-shadow: 0 -2px 10px rgba(139, 92, 246,0.5);
     }
   `}
 `;
@@ -530,7 +530,7 @@ export const FilterPill = styled.button<{ $active?: boolean }>`
   font-weight: 600;
   min-height: 44px;
   border: 1px solid ${({ $active }) => $active ? STORE_TOKENS.color.cyan : STORE_TOKENS.border.glass};
-  background: ${({ $active }) => $active ? 'rgba(0,255,255,0.1)' : 'transparent'};
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246,0.1)' : 'transparent'};
   color: ${({ $active }) => $active ? STORE_TOKENS.color.cyan : STORE_TOKENS.color.muted};
   cursor: pointer;
   transition: all 0.2s ease;

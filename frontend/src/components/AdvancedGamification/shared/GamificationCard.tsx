@@ -20,11 +20,11 @@ const shimmerEffect = keyframes`
 
 const pulseGlow = keyframes`
   0%, 100% { 
-    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.1),
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1),
                 0 0 20px rgba(120, 81, 169, 0.1);
   }
   50% { 
-    box-shadow: 0 8px 30px rgba(0, 255, 255, 0.3),
+    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3),
                 0 0 30px rgba(120, 81, 169, 0.2);
   }
 `;
@@ -175,7 +175,7 @@ const CardContainer = styled(motion.div)<{
       case 'outlined':
         return css`
           background: ${colors.background || 'transparent'};
-          border: 2px solid ${colors.border || 'rgba(0, 255, 255, 0.3)'};
+          border: 2px solid ${colors.border || 'rgba(139, 92, 246, 0.3)'};
         `;
       case 'glass':
         return css`
@@ -205,7 +205,7 @@ const CardContainer = styled(motion.div)<{
   
   /* Border enhancement */
   ${({ $showBorder, $customColors }) => $showBorder && css`
-    border: 2px solid ${$customColors?.border || 'rgba(0, 255, 255, 0.4)'};
+    border: 2px solid ${$customColors?.border || 'rgba(139, 92, 246, 0.4)'};
   `}
   
   /* Interactive states */
@@ -225,7 +225,7 @@ const CardContainer = styled(motion.div)<{
         &:hover {
           transform: translateY(-2px);
           box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-          border-color: rgba(0, 255, 255, 0.6);
+          border-color: rgba(139, 92, 246, 0.6);
         }
         
         &:active {
@@ -240,7 +240,7 @@ const CardContainer = styled(motion.div)<{
   
   ${({ $isSelected }) => $isSelected && css`
     border-color: #00ffff;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
   `}
   
   /* Visual effects */
@@ -312,15 +312,15 @@ const IconContainer = styled.div<{ $isClickable?: boolean }>`
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   transition: all 0.3s ease;
   cursor: ${props => props.$isClickable ? 'pointer' : 'default'};
   
   ${props => props.$isClickable && css`
     &:hover {
-      background: rgba(0, 255, 255, 0.2);
-      border-color: rgba(0, 255, 255, 0.4);
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.4);
       transform: scale(1.05);
     }
   `}
@@ -388,7 +388,7 @@ const LoadingOverlay = styled(motion.div)`
 const LoadingSpinner = styled.div`
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(0, 255, 255, 0.2);
+  border: 3px solid rgba(139, 92, 246, 0.2);
   border-top: 3px solid #00ffff;
   border-radius: 50%;
   animation: spin 1s linear infinite;

@@ -60,7 +60,7 @@ const PanelTitle = styled.h5`
 const SectionTitle = styled.h6`
   font-size: 1.125rem;
   font-weight: 700;
-  color: rgba(0, 255, 255, 0.8);
+  color: rgba(139, 92, 246, 0.8);
   margin: 0 0 16px;
 `;
 
@@ -107,7 +107,7 @@ const SelectTrigger = styled.button`
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -131,14 +131,14 @@ const SelectOption = styled.button<{ $selected?: boolean }>`
   padding: 10px 16px;
   min-height: 44px;
   border: none;
-  background: ${props => props.$selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  background: ${props => props.$selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   color: ${props => props.$selected ? '#00ffff' : 'white'};
   font-size: 0.875rem;
   cursor: pointer;
   text-align: left;
   transition: background 0.15s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.08); }
+  &:hover { background: rgba(139, 92, 246, 0.08); }
 `;
 
 const StyledInput = styled.input`
@@ -153,7 +153,7 @@ const StyledInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const SmallInput = styled.input`
@@ -168,7 +168,7 @@ const SmallInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const SmallLabel = styled.span`
@@ -194,7 +194,7 @@ const AutocompleteInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
 `;
 
 const SearchIcon = styled.div`
@@ -233,7 +233,7 @@ const AutocompleteOption = styled.button`
   text-align: left;
   transition: background 0.15s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.08); }
+  &:hover { background: rgba(139, 92, 246, 0.08); }
 `;
 
 const ExerciseHeader = styled.div`
@@ -297,14 +297,14 @@ const AddSetBtn = styled.button`
   min-height: 36px;
   border-radius: 6px;
   border: none;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: #00ffff;
   font-size: 0.8125rem;
   cursor: pointer;
   margin-top: 16px;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba(0, 255, 255, 0.2); }
+  &:hover { background: rgba(139, 92, 246, 0.2); }
 `;
 
 const ExerciseStack = styled(motion.div)`
