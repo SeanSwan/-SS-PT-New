@@ -26,6 +26,9 @@ import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackend
 import { PerformanceTierProvider } from './core/perf/PerformanceTierProvider';
 import { initPerformanceMonitoring } from './core/perf/performanceMonitor';
 
+// Gamification Celebrations
+import { CelebrationProvider } from './context/CelebrationContext';
+
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
 import ThemeStatusIndicator from './components/ThemeStatusIndicator';
@@ -232,9 +235,11 @@ const App = () => {
                         <CartProvider>
                           <SessionProvider>
                             <TouchGestureProvider>
-                              <DevToolsProvider>
-                                <AppContent />
-                              </DevToolsProvider>
+                              <CelebrationProvider>
+                                <DevToolsProvider>
+                                  <AppContent />
+                                </DevToolsProvider>
+                              </CelebrationProvider>
                             </TouchGestureProvider>
                           </SessionProvider>
                         </CartProvider>

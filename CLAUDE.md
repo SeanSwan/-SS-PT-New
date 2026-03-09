@@ -3,8 +3,19 @@
 ## Project Overview
 SwanStudios (SS-PT) is a production personal training SaaS platform deployed on Render (sswanstudios.com).
 - **Stack:** React 18 + TypeScript + styled-components (frontend), Node.js + Express + Sequelize + PostgreSQL (backend)
-- **Theme:** Galaxy-Swan (cosmic gradients, glass surfaces, swan motifs)
-- **Core Tokens:** Galaxy Core `#0a0a1a`, Swan Cyan `#00FFFF`, Cosmic Purple `#7851A9`
+- **Theme:** Enchanted Apex: Crystalline Swan (frozen enchanted forest + deep-ocean luxury vault + competitive arena)
+- **RETIRED:** Galaxy-Swan theme (cosmic gradients, `#0a0a1a`, `#00FFFF`, `#7851A9`) — do NOT use these tokens for new work
+- **Active Palette:**
+  - Midnight Sapphire `#002060` (Primary — logo deep navy)
+  - Royal Depth `#003080` (Surface — logo circle background)
+  - Ice Wing `#60C0F0` (Gaming Accent — logo wing highlight)
+  - Arctic Cyan `#50A0F0` (Secondary Accent — logo bright feathers)
+  - Gilded Fern `#C6A84B` (Luxury Accent — gold contrast)
+  - Frost White `#E0ECF4` (Background — logo head highlight)
+  - Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
+  - Wing Purple `#8B5CF6` (Glow Accent — all glow buttons, hover states, accent animations)
+- **Typography:** Headings: "Plus Jakarta Sans". Drama: "Cormorant Garamond" Italic. Data: "Fira Code". UI/Gaming: "Sora"
+- **Rarity System:** Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient (sapphire→purple→cyan→gold)
 
 ## Build & Run
 - **Frontend:** `cd frontend && npm run build` (Vite)
@@ -31,7 +42,7 @@ Gemini 3.1 Pro is the Lead Design Authority for SwanStudios. Claude and Gemini w
 - `docs/ai-workflow/` - AI coordination docs, blueprints, handoff protocols
 
 ## Code Conventions
-- **No Material-UI** - All UI uses styled-components with Galaxy-Swan theme tokens
+- **No Material-UI** - All UI uses styled-components with Crystalline Swan theme tokens
 - **44px minimum touch targets** on all interactive elements (mobile-first)
 - **10-breakpoint responsive matrix:** 320px, 375px, 430px, 768px, 1024px, 1280px, 1440px, 1920px, 2560px, 3840px
 - **Blueprint-first development** - Architecture docs before code (see `docs/ai-workflow/blueprints/`)
@@ -74,7 +85,7 @@ Any AI session that involves frontend UI/UX work MUST read these documents first
 | 4 | QA + Launch | All KPIs green, no Critical/High regressions |
 
 ### Design Constraints
-- **Galaxy-Swan identity** must be preserved (dark cosmic aesthetic, cyan accents)
+- **Crystalline Swan identity** must be preserved (frozen enchanted forest + luxury vault aesthetic, Ice Wing `#60C0F0` accents, Wing Purple `#8B5CF6` glows, Midnight Sapphire `#002060` surfaces)
 - **Monetization flows are sacred** - checkout, booking, store get component-level diff thresholds (0.5%)
 - **No "AI slop"** - Avoid generic gradients, stock patterns, cookie-cutter layouts
 - **Runtime feature flag** (`useNewTheme` via `/api/feature-flags`) with localStorage cache + 1.5s timeout

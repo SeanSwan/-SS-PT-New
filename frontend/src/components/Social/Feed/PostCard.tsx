@@ -26,6 +26,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
 import styled, { keyframes } from 'styled-components';
 import SwanIcon from '../SwanIcon';
 
@@ -939,7 +940,9 @@ const AvatarEl: React.FC<{ src?: string; alt: string; fallback: string; size?: n
  * PostCard Component
  * Displays a single post in the social feed
  */
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, ...rest }) => {
+  // Celebration system
+  const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -987,7 +990,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   const userReactions = post.userReactions || [];
   const reactionCounts = post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 };
 
-  const handleReaction = async (reactionType: string) => {
+  const handleReaction = async (reactionType: string, event?: React.MouseEvent) => {
     const isActive = userReactions.includes(reactionType);
     let result: any;
 
@@ -1000,8 +1003,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
       result = await (onLike as any)(post.id);
     }
 
-    // Show point notification if points were earned
+    // Fire celebration effect at click position
     if (result && result.pointsAwarded) {
+      triggerFromResult(result, event);
       setPointsEarned(result.pointsAwarded);
       setShowPointNotification(true);
       setToastVisible(true);
@@ -1244,7 +1248,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
             <ActionButton
               $active={userReactions.includes('thumbs_up')}
               $activeColor="#60C0F0"
-              onClick={() => handleReaction('thumbs_up')}
+              onClick={(e) => handleReaction('thumbs_up', e)}
               title="Like"
               aria-label="Like post"
             >
@@ -1260,7 +1264,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
             <ActionButton
               $active={userReactions.includes('heart')}
               $activeColor="#EC4899"
-              onClick={() => handleReaction('heart')}
+              onClick={(e) => handleReaction('heart', e)}
               title="Love"
               aria-label="Love post"
             >
@@ -1276,7 +1280,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
             <ActionButton
               $active={userReactions.includes('swan')}
               $activeColor="#8B5CF6"
-              onClick={() => handleReaction('swan')}
+              onClick={(e) => handleReaction('swan', e)}
               title="Swan Elevate"
               aria-label="Swan post"
             >

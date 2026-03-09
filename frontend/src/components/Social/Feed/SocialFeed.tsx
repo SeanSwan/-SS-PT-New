@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import CelebrationToggles from '../../Celebrations/CelebrationToggles';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import PostCard from './PostCard';
@@ -525,6 +526,9 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
           </WelcomeTip>
         </WelcomeCard>
       )}
+
+      {/* Sound & Retro Mode toggles — full variant only */}
+      {variant === 'full' && <CelebrationToggles />}
     </FeedContainer>
   );
 };

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
 import styled, { keyframes } from 'styled-components';
 
 // ── CSS spinner keyframe ──────────────────────────────────────────────
@@ -513,6 +514,7 @@ const PlaceholderContent = styled.div`
 const CreatePostCard: React.FC = () => {
   const { user } = useAuth();
   const { createPost, isCreatingPost } = useSocialFeed();
+  const { triggerFromResult } = useCelebrationTriggers();
   const [postContent, setPostContent] = useState('');
   const [media, setMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -807,10 +809,9 @@ const CreatePostCard: React.FC = () => {
 
     const result = await createPost(postData);
 
-    // Show point notification if points were awarded
+    // Fire celebration effect when points are earned from posting
     if (result && result.pointsAwarded) {
-      // This would trigger a toast notification in a real implementation
-      console.log(`You earned ${result.pointsAwarded} points!`);
+      triggerFromResult(result);
     }
 
     // Reset form
