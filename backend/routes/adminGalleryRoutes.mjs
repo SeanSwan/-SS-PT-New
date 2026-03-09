@@ -32,9 +32,10 @@ router.use((req, res, next) => {
 });
 
 // Multer for photo uploads (memory storage → R2)
+// Frontend chunks into batches of 5; backend handles up to 10 per request for safety
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024, files: 50 }, // 25MB per file, 50 files max
+  limits: { fileSize: 25 * 1024 * 1024, files: 10 }, // 25MB per file, 10 files max per batch
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed'), false);
@@ -204,69 +205,79 @@ router.post('/events/:id/upload', upload.array('photos', 50), async (req, res) =
     const uploaded = [];
     const watermarkStatus = enableWatermark && isWatermarkAvailable() ? 'applied' : 'skipped';
 
+    const errors = [];
+
     for (const file of req.files) {
-      const photoNumber = nextNumber++;
-      const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
-      const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
+      try {
+        const photoNumber = nextNumber++;
+        const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+        const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
-      // Apply watermark (SwanStudios logo + sswanstudios.com) before upload
-      const processedBuffer = await applyWatermark(file.buffer, {
-        applyWatermark: enableWatermark,
-      });
+        // Apply watermark (SwanStudios logo + sswanstudios.com) before upload
+        const processedBuffer = await applyWatermark(file.buffer, {
+          applyWatermark: enableWatermark,
+        });
 
-      let url = '';
-      let thumbnailUrl = '';
+        // Release original buffer to help GC
+        file.buffer = null;
 
-      if (r2Client && R2_BUCKET) {
-        // Upload watermarked photo to R2
-        await r2Client.send(new PutObjectCommand({
-          Bucket: R2_BUCKET,
-          Key: storageKey,
-          Body: processedBuffer,
-          ContentType: 'image/jpeg',
-        }));
+        let url = '';
+        let thumbnailUrl = '';
 
-        url = R2_PUBLIC_URL
-          ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${storageKey}`
-          : `/api/serve-photo/${storageKey}`;
-        thumbnailUrl = url; // Same URL for now; can add resizing later
-      } else {
-        // Fallback: store as base64 data URI (dev only)
-        url = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`;
-        thumbnailUrl = url;
+        if (r2Client && R2_BUCKET) {
+          // Upload watermarked photo to R2
+          await r2Client.send(new PutObjectCommand({
+            Bucket: R2_BUCKET,
+            Key: storageKey,
+            Body: processedBuffer,
+            ContentType: 'image/jpeg',
+          }));
+
+          url = R2_PUBLIC_URL
+            ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${storageKey}`
+            : `/api/serve-photo/${storageKey}`;
+          thumbnailUrl = url;
+        } else {
+          url = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`;
+          thumbnailUrl = url;
+        }
+
+        const metadata = {
+          originalName: file.originalname,
+          size: file.size,
+          processedSize: processedBuffer.length,
+          mimetype: file.mimetype,
+          watermarked: enableWatermark && isWatermarkAvailable(),
+          uploadedAt: new Date().toISOString(),
+        };
+
+        const photo = await GalleryPhoto.create({
+          eventId: event.id,
+          photoNumber,
+          displayName,
+          storageKey,
+          thumbnailKey: storageKey,
+          url,
+          thumbnailUrl,
+          originalFilename: file.originalname,
+          fileSize: processedBuffer.length,
+          mimeType: 'image/jpeg',
+          metadata,
+        });
+
+        uploaded.push({
+          id: photo.id,
+          photoNumber: photo.photoNumber,
+          displayName: photo.displayName,
+          url: photo.url,
+          thumbnailUrl: photo.thumbnailUrl,
+        });
+
+        logger.info(`[AdminGallery] Uploaded ${displayName} for event ${event.slug}`);
+      } catch (photoErr) {
+        logger.error(`[AdminGallery] Failed to process photo ${file.originalname}: ${photoErr.message}`);
+        errors.push({ file: file.originalname, error: photoErr.message });
       }
-
-      // Extract basic metadata from buffer
-      const metadata = {
-        originalName: file.originalname,
-        size: file.size,
-        processedSize: processedBuffer.length,
-        mimetype: file.mimetype,
-        watermarked: enableWatermark && isWatermarkAvailable(),
-        uploadedAt: new Date().toISOString(),
-      };
-
-      const photo = await GalleryPhoto.create({
-        eventId: event.id,
-        photoNumber,
-        displayName,
-        storageKey,
-        thumbnailKey: storageKey,
-        url,
-        thumbnailUrl,
-        originalFilename: file.originalname,
-        fileSize: processedBuffer.length,
-        mimeType: 'image/jpeg',
-        metadata,
-      });
-
-      uploaded.push({
-        id: photo.id,
-        photoNumber: photo.photoNumber,
-        displayName: photo.displayName,
-        url: photo.url,
-        thumbnailUrl: photo.thumbnailUrl,
-      });
     }
 
     // Update photo count
@@ -279,10 +290,13 @@ router.post('/events/:id/upload', upload.array('photos', 50), async (req, res) =
     }
 
     return res.json({
-      success: true,
-      message: `${uploaded.length} photo(s) uploaded`,
+      success: uploaded.length > 0,
+      message: errors.length
+        ? `${uploaded.length} photo(s) uploaded, ${errors.length} failed`
+        : `${uploaded.length} photo(s) uploaded`,
       watermark: watermarkStatus,
       photos: uploaded,
+      errors: errors.length ? errors : undefined,
       totalPhotoCount: totalPhotos,
     });
   } catch (err) {

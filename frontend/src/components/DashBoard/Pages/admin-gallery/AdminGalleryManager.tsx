@@ -391,8 +391,13 @@ const AdminGalleryManager: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadStartTime, setUploadStartTime] = useState<number | null>(null);
+  const [uploadStatusMessage, setUploadStatusMessage] = useState<string>('');
+  const [uploadCompletedBatches, setUploadCompletedBatches] = useState(0);
+  const [uploadTotalBatches, setUploadTotalBatches] = useState(0);
+  const [uploadCompletedPhotos, setUploadCompletedPhotos] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => { loadStats(); loadEvents(); }, []);
   useEffect(() => {
@@ -481,11 +486,67 @@ const AdminGalleryManager: React.FC = () => {
     } catch { /* */ }
   };
 
-  const handleFileUpload = (files: FileList | File[]) => {
+  // Upload a single batch of files via XHR (returns promise)
+  const uploadBatch = (eventId: number, batch: File[], batchIndex: number, totalBatches: number, totalFiles: number, completedSoFar: number): Promise<{ success: boolean; count: number; error?: string }> => {
+    return new Promise((resolve) => {
+      const formData = new FormData();
+      batch.forEach(f => formData.append('photos', f));
+      formData.append('watermark', watermarkEnabled ? 'true' : 'false');
+
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const batchProgress = e.loaded / e.total;
+          const overallProgress = Math.round(((completedSoFar + batch.length * batchProgress) / totalFiles) * 100);
+          setUploadProgress(Math.min(overallProgress, 99));
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        xhrRef.current = null;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.success) {
+              resolve({ success: true, count: data.photos?.length ?? batch.length });
+            } else {
+              resolve({ success: false, count: 0, error: data.error || 'Server error' });
+            }
+          } catch {
+            resolve({ success: false, count: 0, error: 'Could not parse response' });
+          }
+        } else {
+          resolve({ success: false, count: 0, error: `Server returned ${xhr.status}` });
+        }
+      });
+
+      xhr.addEventListener('error', () => { xhrRef.current = null; resolve({ success: false, count: 0, error: 'Network error' }); });
+      xhr.addEventListener('abort', () => { xhrRef.current = null; resolve({ success: false, count: 0, error: 'Cancelled' }); });
+      xhr.addEventListener('timeout', () => { xhrRef.current = null; resolve({ success: false, count: 0, error: 'Timeout' }); });
+
+      const token = localStorage.getItem('token');
+      xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${eventId}/upload`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.timeout = 120000; // 2 min per batch of 5
+      xhr.send(formData);
+    });
+  };
+
+  const handleFileUpload = async (files: FileList | File[]) => {
     if (!uploadEventId || !files.length) return;
     const fileArray = Array.from(files);
+    const BATCH_SIZE = 5;
+
+    // Split into batches of 5
+    const batches: File[][] = [];
+    for (let i = 0; i < fileArray.length; i += BATCH_SIZE) {
+      batches.push(fileArray.slice(i, i + BATCH_SIZE));
+    }
 
     // Reset state
+    cancelledRef.current = false;
     setUploading(true);
     setUploadProgress(0);
     setUploadFileCount(fileArray.length);
@@ -493,71 +554,67 @@ const AdminGalleryManager: React.FC = () => {
     setUploadError(null);
     setUploadSuccess(null);
     setUploadStartTime(Date.now());
+    setUploadStatusMessage(`Starting upload of ${fileArray.length} photos in ${batches.length} batches...`);
+    setUploadCompletedBatches(0);
+    setUploadTotalBatches(batches.length);
+    setUploadCompletedPhotos(0);
 
-    const formData = new FormData();
-    fileArray.forEach(f => formData.append('photos', f));
-    formData.append('watermark', watermarkEnabled ? 'true' : 'false');
+    let totalUploaded = 0;
+    let failedBatches = 0;
+    const errors: string[] = [];
 
-    const xhr = new XMLHttpRequest();
-    xhrRef.current = xhr;
-
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        const percent = Math.round((e.loaded / e.total) * 100);
-        setUploadProgress(percent);
+    for (let i = 0; i < batches.length; i++) {
+      if (cancelledRef.current) {
+        errors.push('Upload cancelled by user');
+        break;
       }
-    });
 
-    xhr.addEventListener('load', () => {
-      xhrRef.current = null;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (data.success) {
-            const count = data.photos?.length ?? fileArray.length;
-            setUploadedPhotoCount(count);
-            setUploadSuccess(`${count} photo${count !== 1 ? 's' : ''} uploaded successfully${watermarkEnabled ? ' with watermark' : ''}!`);
-            setUploadProgress(100);
-            loadEvents();
-            loadStats();
-          } else {
-            setUploadError(data.message || 'Upload failed — server returned an error.');
-          }
-        } catch {
-          setUploadError('Upload failed — could not parse server response.');
-        }
+      const batch = batches[i];
+      const batchNum = i + 1;
+      setUploadStatusMessage(`Batch ${batchNum}/${batches.length}: Uploading ${batch.length} photos (watermarking + storing)...`);
+
+      const result = await uploadBatch(uploadEventId, batch, i, batches.length, fileArray.length, totalUploaded);
+
+      if (result.success) {
+        totalUploaded += result.count;
+        setUploadCompletedPhotos(totalUploaded);
+        setUploadCompletedBatches(batchNum);
+        setUploadStatusMessage(`Batch ${batchNum}/${batches.length} complete! ${totalUploaded}/${fileArray.length} photos done.`);
       } else {
-        setUploadError(`Upload failed — server returned ${xhr.status}. Try again or use fewer photos.`);
+        failedBatches++;
+        errors.push(`Batch ${batchNum} failed: ${result.error}`);
+        setUploadStatusMessage(`Batch ${batchNum} failed: ${result.error}. Continuing with next batch...`);
       }
-      setUploading(false);
-    });
 
-    xhr.addEventListener('error', () => {
-      xhrRef.current = null;
-      setUploadError('Upload failed — network error. Check your connection and try again.');
-      setUploading(false);
-    });
+      // Brief pause between batches to let server GC
+      if (i < batches.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
 
-    xhr.addEventListener('abort', () => {
-      xhrRef.current = null;
-      setUploadError('Upload was cancelled.');
-      setUploading(false);
-    });
+    // Final state
+    setUploadProgress(100);
+    setUploading(false);
+    xhrRef.current = null;
 
-    xhr.addEventListener('timeout', () => {
-      xhrRef.current = null;
-      setUploadError('Upload timed out. Try uploading fewer photos at a time.');
-      setUploading(false);
-    });
-
-    const token = localStorage.getItem('token');
-    xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${uploadEventId}/upload`);
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.timeout = 600000; // 10 minutes for large batches
-    xhr.send(formData);
+    if (totalUploaded > 0) {
+      setUploadedPhotoCount(totalUploaded);
+      const wm = watermarkEnabled ? ' with watermark' : '';
+      if (failedBatches === 0) {
+        setUploadSuccess(`All ${totalUploaded} photos uploaded successfully${wm}!`);
+      } else {
+        setUploadSuccess(`${totalUploaded} photos uploaded${wm}. ${failedBatches} batch(es) failed.`);
+        setUploadError(errors.join(' | '));
+      }
+      loadEvents();
+      loadStats();
+    } else {
+      setUploadError(`All batches failed: ${errors.join(' | ')}`);
+    }
   };
 
   const cancelUpload = () => {
+    cancelledRef.current = true;
     if (xhrRef.current) {
       xhrRef.current.abort();
       xhrRef.current = null;
@@ -778,7 +835,7 @@ const AdminGalleryManager: React.FC = () => {
                           <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
                           <div>Drag & drop photos here, or click to browse</div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                            JPG, PNG up to 25MB each · Max 50 at a time
+                            JPG, PNG up to 25MB each · Select up to 300 at once (uploaded in batches of 5)
                             {watermarkEnabled && ' · Watermark will be applied'}
                           </div>
                         </DropZone>
@@ -789,9 +846,7 @@ const AdminGalleryManager: React.FC = () => {
                         <ProgressBarContainer>
                           <ProgressInfo>
                             <span>
-                              {uploadProgress < 100
-                                ? `Uploading ${uploadFileCount} photo${uploadFileCount !== 1 ? 's' : ''}...`
-                                : 'Processing & watermarking on server...'}
+                              {uploadCompletedPhotos}/{uploadFileCount} photos · Batch {Math.min(uploadCompletedBatches + 1, uploadTotalBatches)}/{uploadTotalBatches}
                             </span>
                             <span style={{ fontWeight: 600, color: '#60C0F0' }}>
                               {uploadProgress}%
@@ -802,10 +857,8 @@ const AdminGalleryManager: React.FC = () => {
                             <ProgressBarFill $percent={uploadProgress} />
                           </ProgressBarTrack>
                           <ProgressInfo>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                              {uploadProgress < 100
-                                ? 'Sending files to server...'
-                                : 'Server is watermarking & saving — this may take a moment'}
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                              {uploadStatusMessage}
                             </span>
                             <ActionBtn
                               $variant="danger"
