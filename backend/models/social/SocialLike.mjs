@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import db from '../../database.mjs';
 
 const SocialLike = db.define('SocialLike', {
@@ -24,6 +24,15 @@ const SocialLike = db.define('SocialLike', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
+  // Reaction type: thumbs_up, heart, or swan
+  reactionType: {
+    type: DataTypes.STRING(16),
+    allowNull: false,
+    defaultValue: 'swan',
+    validate: {
+      isIn: [['thumbs_up', 'heart', 'swan']]
+    }
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -35,8 +44,8 @@ const SocialLike = db.define('SocialLike', {
   indexes: [
     {
       unique: true,
-      fields: ['userId', 'targetType', 'targetId'],
-      name: 'unique_like'
+      fields: ['userId', 'targetType', 'targetId', 'reactionType'],
+      name: 'unique_reaction'
     },
     {
       fields: ['targetType', 'targetId'],
@@ -46,57 +55,121 @@ const SocialLike = db.define('SocialLike', {
 });
 
 // Class methods
-SocialLike.likePost = async function(userId, postId) {
-  // Check if like already exists
-  const existingLike = await this.findOne({
+SocialLike.reactToPost = async function(userId, postId, reactionType = 'swan') {
+  // Check if this exact reaction already exists
+  const existingReaction = await this.findOne({
     where: {
       userId,
       targetType: 'post',
-      targetId: postId
+      targetId: postId,
+      reactionType
     }
   });
-  
-  if (existingLike) {
-    return existingLike;
+
+  if (existingReaction) {
+    return { reaction: existingReaction, alreadyExists: true };
   }
-  
-  // Create new like
-  const like = await this.create({
+
+  // Create new reaction
+  const reaction = await this.create({
     userId,
     targetType: 'post',
-    targetId: postId
+    targetId: postId,
+    reactionType
   });
-  
-  // Update post like count
+
+  // Update post like count (total reactions)
   await db.models.SocialPost.increment('likesCount', {
     where: { id: postId }
   });
-  
-  return like;
+
+  return { reaction, alreadyExists: false };
 };
 
-SocialLike.unlikePost = async function(userId, postId) {
-  const like = await this.findOne({
+SocialLike.removeReaction = async function(userId, postId, reactionType = 'swan') {
+  const reaction = await this.findOne({
     where: {
       userId,
       targetType: 'post',
-      targetId: postId
+      targetId: postId,
+      reactionType
     }
   });
-  
-  if (!like) {
+
+  if (!reaction) {
     return false;
   }
-  
-  // Delete the like
-  await like.destroy();
-  
+
+  await reaction.destroy();
+
   // Update post like count
   await db.models.SocialPost.decrement('likesCount', {
     where: { id: postId }
   });
-  
+
   return true;
+};
+
+// Legacy compat — used by existing code
+SocialLike.likePost = async function(userId, postId) {
+  const result = await this.reactToPost(userId, postId, 'swan');
+  return result.reaction;
+};
+
+SocialLike.unlikePost = async function(userId, postId) {
+  return this.removeReaction(userId, postId, 'swan');
+};
+
+// Get reaction breakdown for a set of post IDs
+SocialLike.getReactionCounts = async function(postIds) {
+  // Op imported at top
+  const counts = await this.findAll({
+    attributes: [
+      'targetId',
+      'reactionType',
+      [db.fn('COUNT', db.col('id')), 'count']
+    ],
+    where: {
+      targetType: 'post',
+      targetId: { [Op.in]: postIds }
+    },
+    group: ['targetId', 'reactionType'],
+    raw: true
+  });
+
+  // Build map: { postId: { thumbs_up: N, heart: N, swan: N } }
+  const result = {};
+  for (const row of counts) {
+    if (!result[row.targetId]) {
+      result[row.targetId] = { thumbs_up: 0, heart: 0, swan: 0 };
+    }
+    result[row.targetId][row.reactionType] = parseInt(row.count);
+  }
+  return result;
+};
+
+// Get user's reactions for a set of post IDs
+SocialLike.getUserReactions = async function(userId, postIds) {
+  // Op imported at top
+  const reactions = await this.findAll({
+    where: {
+      userId,
+      targetType: 'post',
+      targetId: { [Op.in]: postIds }
+    },
+    attributes: ['targetId', 'reactionType'],
+    raw: true
+  });
+
+  // Build map: { postId: ['swan', 'heart'] }
+  const result = {};
+  for (const row of reactions) {
+    if (!result[row.targetId]) {
+      result[row.targetId] = [];
+    }
+    result[row.targetId].push(row.reactionType);
+  }
+  return result;
 };
 
 SocialLike.likeComment = async function(userId, commentId) {

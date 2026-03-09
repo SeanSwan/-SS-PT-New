@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  Heart,
   MessageSquare,
   Share,
   MoreVertical,
@@ -10,7 +9,6 @@ import {
   Trophy,
   User,
   Send,
-  HeartOff,
   Camera,
   Target,
   Zap,
@@ -23,10 +21,13 @@ import {
   Music2,
   Mic2,
   Palette,
-  Gamepad2
+  Gamepad2,
+  ThumbsUp,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
+import SwanIcon from '../SwanIcon';
 
 // ─── Keyframes ──────────────────────────────────────────────────
 const pointEarnAnimation = keyframes`
@@ -45,14 +46,129 @@ const toastSlideOut = keyframes`
   to { transform: translateX(-50%) translateY(20px); opacity: 0; }
 `;
 
+// ─── Unsplash category backgrounds (free hotlink) ───────────────
+const CATEGORY_BACKGROUNDS: Record<string, string> = {
+  workout: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=60&auto=format&fit=crop',
+  transformation: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=60&auto=format&fit=crop',
+  achievement: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=60&auto=format&fit=crop',
+  challenge: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=60&auto=format&fit=crop',
+  dance: 'https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&q=60&auto=format&fit=crop',
+  music: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=60&auto=format&fit=crop',
+  art: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=60&auto=format&fit=crop',
+  gaming: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=60&auto=format&fit=crop',
+  creative: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&q=60&auto=format&fit=crop',
+};
+
+// Category gradient overlays (dark enough for text readability)
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  workout: 'linear-gradient(135deg, rgba(25,118,210,0.7) 0%, rgba(10,10,26,0.85) 100%)',
+  transformation: 'linear-gradient(135deg, rgba(233,30,99,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  achievement: 'linear-gradient(135deg, rgba(255,152,0,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  challenge: 'linear-gradient(135deg, rgba(156,39,176,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  dance: 'linear-gradient(135deg, rgba(236,72,153,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  music: 'linear-gradient(135deg, rgba(168,85,247,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  art: 'linear-gradient(135deg, rgba(245,158,11,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  gaming: 'linear-gradient(135deg, rgba(34,197,94,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  creative: 'linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  general: 'linear-gradient(135deg, rgba(120,81,169,0.5) 0%, rgba(10,10,26,0.9) 100%)',
+};
+
+// Swan watermark SVG path for posts without images
+const SWAN_PATH = 'M8 3C7 3 6 4 6 5C6 6 7 7 8 7C9 7 10 8 10 10C10 12 9 14 8 15C7 16 6 17 5 18C4 19 4 20 5 21C6 22 8 22 10 21C12 20 14 19 16 18C18 17 20 15 20 13C20 11 19 9 17 8C15 7 13 8 12 10C12 8 11 6 10 5C9 4 8.5 3 8 3Z';
+
+const breathe = keyframes`
+  0% { opacity: 0.06; transform: scale(1); }
+  50% { opacity: 0.12; transform: scale(1.02); }
+  100% { opacity: 0.06; transform: scale(1); }
+`;
+
 // ─── Styled Components ──────────────────────────────────────────
 
-const PostCardWrapper = styled.div`
-  margin-bottom: 16px;
-  border-radius: 8px;
+const slideUpFade = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const PostCardWrapper = styled.article`
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 12px;
+  background: #111122;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  background: #fff;
+
+  /* Mobile first: flush edges */
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+
+  /* Entry animation */
+  opacity: 0;
+  animation: ${slideUpFade} 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+
+  @media (min-width: 768px) {
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 24px;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 255, 0.05);
+      border-color: rgba(0, 255, 255, 0.15);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    &:hover { transform: none; }
+  }
+`;
+
+const HeroArea = styled.div<{ $bgImage?: string; $gradient: string; $hasImage: boolean }>`
+  position: relative;
+  width: 100%;
+  height: clamp(240px, 40vw, 360px);
+  background-color: #0a0a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  ${props => props.$hasImage ? `
+    background-image: ${props.$gradient}, url(${props.$bgImage});
+    background-size: cover;
+    background-position: center;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      background: linear-gradient(to bottom, rgba(17, 17, 34, 0) 0%, #111122 100%);
+      pointer-events: none;
+    }
+  ` : `
+    background: radial-gradient(circle at top right, rgba(120, 81, 169, 0.15), transparent 50%),
+                radial-gradient(circle at bottom left, rgba(0, 255, 255, 0.1), transparent 50%);
+  `}
+`;
+
+const SwanWatermark = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.05;
+  mix-blend-mode: screen;
+  animation: ${breathe} 4s ease-in-out infinite;
+  pointer-events: none;
 `;
 
 const PostHeaderRelative = styled.div`
@@ -64,6 +180,10 @@ const PostHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
+
+  @media (min-width: 768px) {
+    padding: 16px 20px;
+  }
 `;
 
 const UserInfo = styled.div`
@@ -73,18 +193,19 @@ const UserInfo = styled.div`
 `;
 
 const AvatarStyled = styled.div<{ $size?: number }>`
-  width: ${props => props.$size || 40}px;
-  height: ${props => props.$size || 40}px;
+  width: ${props => props.$size || 44}px;
+  height: ${props => props.$size || 44}px;
   border-radius: 50%;
-  background: #bdbdbd;
+  background: linear-gradient(135deg, #7851A9, #8B5CF6);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${props => (props.$size || 40) * 0.35}px;
-  font-weight: 500;
+  font-size: ${props => (props.$size || 44) * 0.35}px;
+  font-weight: 600;
   color: #fff;
   overflow: hidden;
   flex-shrink: 0;
+  border: 2px solid rgba(0, 255, 255, 0.3);
 `;
 
 const AvatarImage = styled.img`
@@ -95,11 +216,11 @@ const AvatarImage = styled.img`
 
 // Post type color map for chip borders/text
 const chipColorMap: Record<string, string> = {
-  default: '#757575',
-  primary: '#1976d2',
-  success: '#2e7d32',
-  warning: '#ed6c02',
-  secondary: '#9c27b0',
+  default: 'rgba(255,255,255,0.5)',
+  primary: '#60C0F0',
+  success: '#4ade80',
+  warning: '#fbbf24',
+  secondary: '#c084fc',
 };
 
 const PostType = styled.span<{ $type: string }>`
@@ -114,59 +235,95 @@ const PostType = styled.span<{ $type: string }>`
   color: ${props => chipColorMap[props.$type] || chipColorMap.default};
   white-space: nowrap;
   line-height: 1;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
 `;
 
 const PostContent = styled.div`
   padding: 0 16px 16px;
+
+  @media (min-width: 768px) {
+    padding: 0 20px 20px;
+  }
 `;
 
 const PostText = styled.p`
   margin: 0 0 16px 0;
   white-space: pre-wrap;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: rgba(0, 0, 0, 0.87);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #E0E0E0;
+  word-wrap: break-word;
 `;
 
 const PostMedia = styled.img`
   width: 100%;
-  max-height: 400px;
+  max-height: 450px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 8px;
 `;
 
 const StyledDivider = styled.hr`
   border: none;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin: 0;
 `;
 
 const CardActionsBar = styled.div`
   display: flex;
   align-items: center;
-  padding: 4px 8px;
-  gap: 4px;
+  padding: 8px 16px;
+  gap: 8px;
+
+  @media (min-width: 768px) {
+    padding: 12px 20px;
+  }
 `;
 
-const ActionButton = styled.button<{ $active?: boolean }>`
+const springScale = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+`;
+
+const ActionButton = styled.button<{ $active?: boolean; $activeColor?: string }>`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   text-transform: none;
-  font-weight: normal;
-  font-size: 0.875rem;
+  font-weight: 600;
+  font-size: 14px;
   min-height: 44px;
-  padding: 6px 12px;
+  min-width: 44px;
+  padding: 0 16px;
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 4px;
-  color: ${props => props.$active ? '#f44336' : 'rgba(0, 0, 0, 0.54)'};
-  transition: background-color 0.2s;
+  border-radius: 22px;
+  color: ${props => props.$active ? (props.$activeColor || '#f44336') : '#A0A0B0'};
+  transition: background 0.2s ease, color 0.2s ease;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.05);
+    color: ${props => props.$active ? (props.$activeColor || '#f44336') : '#FFFFFF'};
   }
+
+  &:active svg {
+    animation: ${springScale} 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:active svg { animation: none; }
+  }
+`;
+
+const ReactionGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const IconBtn = styled.button<{ $size?: number; $color?: string; $disabled?: boolean }>`
@@ -181,13 +338,13 @@ const IconBtn = styled.button<{ $size?: number; $color?: string; $disabled?: boo
   border: none;
   background: transparent;
   cursor: ${props => props.$disabled ? 'default' : 'pointer'};
-  color: ${props => props.$disabled ? 'rgba(0,0,0,0.26)' : (props.$color || 'rgba(0, 0, 0, 0.54)')};
+  color: ${props => props.$disabled ? 'rgba(255,255,255,0.2)' : (props.$color || 'rgba(255, 255, 255, 0.5)')};
   padding: 0;
   transition: background-color 0.2s;
   flex-shrink: 0;
 
   &:hover {
-    background: ${props => props.$disabled ? 'transparent' : 'rgba(0, 0, 0, 0.04)'};
+    background: ${props => props.$disabled ? 'transparent' : 'rgba(255, 255, 255, 0.06)'};
   }
 `;
 
@@ -210,35 +367,35 @@ const CommentInput = styled.div`
 
 const CommentBubble = styled.div`
   flex: 1;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 8px;
-  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 8px 12px;
 `;
 
 const CommentAuthor = styled.span`
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.9);
   display: block;
 `;
 
 const CommentBody = styled.span`
   font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.75);
   display: block;
 `;
 
 const CommentTime = styled.span`
   font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.54);
+  color: rgba(255, 255, 255, 0.35);
   margin-left: 8px;
   display: block;
 `;
 
 const CommentTextarea = styled.textarea`
   flex: 1;
-  border: 1px solid rgba(0, 0, 0, 0.23);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.875rem;
   font-family: inherit;
@@ -247,14 +404,16 @@ const CommentTextarea = styled.textarea`
   min-height: 36px;
   max-height: 120px;
   line-height: 1.4;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
 
   &:focus {
-    border-color: #1976d2;
-    box-shadow: 0 0 0 1px #1976d2;
+    border-color: #60C0F0;
+    box-shadow: 0 0 0 1px rgba(96, 192, 240, 0.3);
   }
 
   &::placeholder {
-    color: rgba(0, 0, 0, 0.38);
+    color: rgba(255, 255, 255, 0.3);
   }
 `;
 
@@ -277,9 +436,9 @@ const WorkoutStatsContainer = styled.div`
   gap: 12px;
   margin: 16px 0;
   padding: 16px;
-  background: rgba(25, 118, 210, 0.04);
-  border-radius: 8px;
-  border-left: 4px solid #1976d2;
+  background: rgba(96, 192, 240, 0.08);
+  border-radius: 10px;
+  border-left: 3px solid #60C0F0;
 `;
 
 const WorkoutStatItem = styled.div`
@@ -292,12 +451,12 @@ const WorkoutStatItem = styled.div`
 const StatValue = styled.span`
   font-size: 1.25rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.95);
 `;
 
 const StatLabel = styled.span`
   font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.54);
+  color: rgba(255, 255, 255, 0.5);
 `;
 
 const TransformationImageContainer = styled.div`
@@ -417,6 +576,7 @@ const PostTypeIndicator = styled.div<{ $postType: string }>`
   position: absolute;
   top: 12px;
   right: 12px;
+  pointer-events: none;
   background: ${props =>
     props.$postType === 'workout' ? 'linear-gradient(135deg, #1976d2, #42a5f5)' :
     props.$postType === 'transformation' ? 'linear-gradient(135deg, #e91e63, #f06292)' :
@@ -440,16 +600,20 @@ const PostTypeIndicator = styled.div<{ $postType: string }>`
 `;
 
 const UserName = styled.span`
-  font-size: 1rem;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.87);
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFFFFF;
   display: block;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 `;
 
 const TimeAgoText = styled.span`
-  font-size: 0.75rem;
-  color: rgba(0, 0, 0, 0.54);
+  font-size: 13px;
+  font-weight: 400;
+  color: #A0A0B0;
   display: block;
+  margin-top: 2px;
 `;
 
 const HeaderRightGroup = styled.div`
@@ -460,11 +624,12 @@ const HeaderRightGroup = styled.div`
 
 const CommentsSection = styled.div`
   padding: 16px;
+  background: rgba(0, 0, 0, 0.15);
 `;
 
 const NoCommentsText = styled.p`
   font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.54);
+  color: rgba(255, 255, 255, 0.35);
   text-align: center;
   margin: 16px 0;
 `;
@@ -482,9 +647,10 @@ const DropdownMenu = styled.div`
   right: 0;
   z-index: 100;
   min-width: 160px;
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #1a1a2e;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 4px 0;
   margin-top: 4px;
 `;
@@ -499,12 +665,12 @@ const DropdownMenuItem = styled.button`
   font-size: 0.875rem;
   font-family: inherit;
   cursor: pointer;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.8);
   min-height: 44px;
   line-height: 1.5;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.06);
   }
 `;
 
@@ -524,12 +690,13 @@ const Overlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: white;
+  background: #1a1a2e;
   border-radius: 12px;
   padding: 0;
   max-width: 500px;
   width: 90%;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 `;
 
 const ModalTitle = styled.h2`
@@ -537,7 +704,7 @@ const ModalTitle = styled.h2`
   font-weight: 500;
   margin: 0;
   padding: 16px 24px;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.95);
 `;
 
 const ModalBody = styled.div`
@@ -548,7 +715,7 @@ const ModalBodyText = styled.p`
   font-size: 1rem;
   line-height: 1.5;
   margin: 0 0 16px 0;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(255, 255, 255, 0.75);
 `;
 
 const ModalActions = styled.div`
@@ -560,18 +727,18 @@ const ModalActions = styled.div`
 
 const ModalInputReadonly = styled.input`
   width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.23);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.875rem;
   font-family: inherit;
-  background: #fafafa;
-  color: rgba(0, 0, 0, 0.87);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
   outline: none;
   box-sizing: border-box;
 
   &:focus {
-    border-color: #1976d2;
+    border-color: #60C0F0;
   }
 `;
 
@@ -582,31 +749,31 @@ const PlainButton = styled.button`
   font-size: 0.875rem;
   font-family: inherit;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 8px;
   min-height: 44px;
-  color: rgba(0, 0, 0, 0.54);
+  color: rgba(255, 255, 255, 0.5);
   transition: background-color 0.2s;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.06);
   }
 `;
 
 const ContainedButton = styled.button`
   border: none;
-  background: #1976d2;
+  background: linear-gradient(135deg, #60C0F0, #50A0F0);
   color: #fff;
   padding: 6px 16px;
   font-size: 0.875rem;
   font-family: inherit;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 8px;
   min-height: 44px;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 
   &:hover {
-    background: #1565c0;
+    box-shadow: 0 0 12px rgba(96, 192, 240, 0.4);
   }
 `;
 
@@ -722,6 +889,8 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   isLiked: boolean;
+  reactionCounts?: { thumbs_up: number; heart: number; swan: number };
+  userReactions?: string[];
   mediaUrl?: string;
   comments?: Comment[];
   workoutData?: {
@@ -751,6 +920,8 @@ interface Post {
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
+  onReact?: (postId: string, reactionType: string) => void;
+  onRemoveReaction?: (postId: string, reactionType: string) => void;
   onComment: (postId: string, content: string) => void;
 }
 
@@ -768,7 +939,7 @@ const AvatarEl: React.FC<{ src?: string; alt: string; fallback: string; size?: n
  * PostCard Component
  * Displays a single post in the social feed
  */
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment }) => {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -812,9 +983,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
     }
   }, [showPointNotification]);
 
-  // Handle enhanced like with point notification
-  const handleEnhancedLike = async () => {
-    const result = await (onLike as any)(post.id);
+  // Reaction helpers
+  const userReactions = post.userReactions || [];
+  const reactionCounts = post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 };
+
+  const handleReaction = async (reactionType: string) => {
+    const isActive = userReactions.includes(reactionType);
+    let result: any;
+
+    if (isActive && onRemoveReaction) {
+      result = await onRemoveReaction(post.id, reactionType);
+    } else if (!isActive && onReact) {
+      result = await onReact(post.id, reactionType);
+    } else {
+      // Fallback to legacy onLike
+      result = await (onLike as any)(post.id);
+    }
 
     // Show point notification if points were earned
     if (result && result.pointsAwarded) {
@@ -823,7 +1007,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
       setToastVisible(true);
       setTimeout(() => {
         setToastVisible(false);
-        // Allow animation to complete before removing from DOM
         setTimeout(() => setShowPointNotification(false), 300);
       }, 3000);
     }
@@ -852,7 +1035,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
       <WorkoutStatsContainer>
         {stats.map(({ icon: Icon, label, value, unit }) => (
           <WorkoutStatItem key={label}>
-            <Icon size={20} color="#1976d2" />
+            <Icon size={20} color="#60C0F0" />
             <StatValue>
               {value}{unit}
             </StatValue>
@@ -956,15 +1139,34 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
     setTimeout(() => setShowPointNotification(false), 300);
   };
 
+  // Determine hero image: user media > category background > none (swan watermark)
+  const hasUserMedia = !!post.mediaUrl && post.type !== 'transformation';
+  const categoryBg = CATEGORY_BACKGROUNDS[post.type];
+  const heroImage = hasUserMedia ? post.mediaUrl : categoryBg;
+  const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
+
   return (
     <>
       <PostCardWrapper>
-        <PostHeaderRelative>
+        {/* Hero Image Area — always visible */}
+        <HeroArea $bgImage={heroImage} $gradient={gradient} $hasImage={!!heroImage}>
+          {/* Swan watermark when no image at all */}
+          {!heroImage && (
+            <SwanWatermark>
+              <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d={SWAN_PATH} fill="#FFFFFF" stroke="none" />
+                <circle cx="7.5" cy="5" r="0.8" fill="#FFFFFF" />
+              </svg>
+            </SwanWatermark>
+          )}
+
           <PostTypeIndicator $postType={post.type}>
             <PostTypeIcon size={12} />
             {postTypeLabels[post.type]}
           </PostTypeIndicator>
+        </HeroArea>
 
+        <PostHeaderRelative>
           <PostHeader>
             <UserInfo>
               <AvatarEl
@@ -1024,11 +1226,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
           {/* Transformation Images */}
           {post.type === 'transformation' && renderTransformationImages()}
 
-          {/* Regular Media */}
-          {post.mediaUrl && post.type !== 'transformation' && (
-            <PostMedia src={post.mediaUrl} alt="Post image" />
-          )}
-
           {/* Try Workout Button for Workout Posts */}
           {post.type === 'workout' && (
             <CenteredFlex>
@@ -1043,13 +1240,50 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
         <StyledDivider />
 
         <CardActionsBar>
-          <ActionButton
-            $active={post.isLiked}
-            onClick={handleEnhancedLike}
-          >
-            {post.isLiked ? <Heart size={18} fill="#f44336" stroke="#f44336" /> : <Heart size={18} />}
-            {post.likesCount} {post.likesCount === 1 ? 'Like' : 'Likes'}
-          </ActionButton>
+          <ReactionGroup>
+            <ActionButton
+              $active={userReactions.includes('thumbs_up')}
+              $activeColor="#60C0F0"
+              onClick={() => handleReaction('thumbs_up')}
+              title="Like"
+              aria-label="Like post"
+            >
+              <ThumbsUp
+                size={20}
+                fill={userReactions.includes('thumbs_up') ? '#60C0F0' : 'none'}
+                stroke={userReactions.includes('thumbs_up') ? 'none' : '#60C0F0'}
+                strokeWidth={2}
+              />
+              {reactionCounts.thumbs_up > 0 && reactionCounts.thumbs_up}
+            </ActionButton>
+
+            <ActionButton
+              $active={userReactions.includes('heart')}
+              $activeColor="#EC4899"
+              onClick={() => handleReaction('heart')}
+              title="Love"
+              aria-label="Love post"
+            >
+              <Heart
+                size={20}
+                fill={userReactions.includes('heart') ? '#EC4899' : 'none'}
+                stroke={userReactions.includes('heart') ? 'none' : '#EC4899'}
+                strokeWidth={2}
+              />
+              {reactionCounts.heart > 0 && reactionCounts.heart}
+            </ActionButton>
+
+            <ActionButton
+              $active={userReactions.includes('swan')}
+              $activeColor="#8B5CF6"
+              onClick={() => handleReaction('swan')}
+              title="Swan Elevate"
+              aria-label="Swan post"
+            >
+              <SwanIcon size={20} elevated={userReactions.includes('swan')} />
+              {reactionCounts.swan > 0 && reactionCounts.swan}
+            </ActionButton>
+          </ReactionGroup>
 
           <ActionButton
             onClick={() => setShowComments(!showComments)}
@@ -1119,7 +1353,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onComment }) => {
                   rows={1}
                 />
                 <IconBtn
-                  $color="#1976d2"
+                  $color="#60C0F0"
                   $disabled={!commentText.trim()}
                   onClick={handleSubmitComment}
                   title="Send comment"

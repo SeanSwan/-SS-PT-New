@@ -31,6 +31,8 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   isLiked: boolean;
+  reactionCounts?: { thumbs_up: number; heart: number; swan: number };
+  userReactions?: string[];
   mediaUrl?: string;
   comments?: Comment[];
   workoutSessionId?: string;
@@ -265,31 +267,33 @@ export const useSocialFeed = () => {
     }
   }, [authAxios, user, toast]);
   
-  // Like a post
-  const likePost = useCallback(async (postId: string): Promise<PointResult | boolean> => {
+  // React to a post (thumbs_up, heart, or swan)
+  const reactToPost = useCallback(async (postId: string, reactionType: string = 'swan'): Promise<PointResult | boolean> => {
     if (!user) return false;
-    
+
     try {
-      const response = await authAxios.post(`/api/social/posts/${postId}/like`);
-      
-      // Update the post in the list
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === postId 
-            ? { 
-                ...post, 
-                isLiked: true, 
-                likesCount: post.likesCount + 1 
-              } 
-            : post
-        )
+      const response = await authAxios.post(`/api/social/posts/${postId}/like`, { reactionType });
+
+      // Optimistic update
+      setPosts(prevPosts =>
+        prevPosts.map(post => {
+          if (post.id !== postId) return post;
+          const newReactions = [...(post.userReactions || [])];
+          if (!newReactions.includes(reactionType)) newReactions.push(reactionType);
+          const newCounts = { ...(post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 }) };
+          newCounts[reactionType as keyof typeof newCounts] = (newCounts[reactionType as keyof typeof newCounts] || 0) + 1;
+          return {
+            ...post,
+            isLiked: true,
+            likesCount: post.likesCount + 1,
+            reactionCounts: newCounts,
+            userReactions: newReactions,
+          };
+        })
       );
-      
-      // Handle point notifications
+
       if (response.data.pointsAwarded) {
-        // Invalidate gamification profile to update point balance
         invalidateProfile();
-        
         return {
           pointsAwarded: response.data.pointsAwarded,
           newBalance: response.data.newBalance || 0,
@@ -297,40 +301,48 @@ export const useSocialFeed = () => {
           pointMessage: response.data.pointMessage
         };
       }
-      
+
       return true;
     } catch (err) {
-      console.error('Error liking post:', err);
+      console.error('Error reacting to post:', err);
       return false;
     }
   }, [authAxios, user, invalidateProfile]);
-  
-  // Unlike a post
-  const unlikePost = useCallback(async (postId: string) => {
+
+  // Remove a reaction from a post
+  const removeReaction = useCallback(async (postId: string, reactionType: string = 'swan') => {
     if (!user) return false;
-    
+
     try {
-      await authAxios.delete(`/api/social/posts/${postId}/like`);
-      
-      // Update the post in the list
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === postId 
-            ? { 
-                ...post, 
-                isLiked: false, 
-                likesCount: Math.max(0, post.likesCount - 1) 
-              } 
-            : post
-        )
+      await authAxios.delete(`/api/social/posts/${postId}/like?reactionType=${reactionType}`);
+
+      // Optimistic update
+      setPosts(prevPosts =>
+        prevPosts.map(post => {
+          if (post.id !== postId) return post;
+          const newReactions = (post.userReactions || []).filter(r => r !== reactionType);
+          const newCounts = { ...(post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 }) };
+          newCounts[reactionType as keyof typeof newCounts] = Math.max(0, (newCounts[reactionType as keyof typeof newCounts] || 0) - 1);
+          return {
+            ...post,
+            isLiked: newReactions.length > 0,
+            likesCount: Math.max(0, post.likesCount - 1),
+            reactionCounts: newCounts,
+            userReactions: newReactions,
+          };
+        })
       );
-      
+
       return true;
     } catch (err) {
-      console.error('Error unliking post:', err);
+      console.error('Error removing reaction:', err);
       return false;
     }
   }, [authAxios, user]);
+
+  // Legacy compat wrappers
+  const likePost = useCallback(async (postId: string) => reactToPost(postId, 'swan'), [reactToPost]);
+  const unlikePost = useCallback(async (postId: string) => removeReaction(postId, 'swan'), [removeReaction]);
   
   // Add a comment to a post
   const addComment = useCallback(async (postId: string, content: string) => {
@@ -418,6 +430,8 @@ export const useSocialFeed = () => {
     isCreatingPost,
     likePost,
     unlikePost,
+    reactToPost,
+    removeReaction,
     addComment,
     getPostDetails
   };

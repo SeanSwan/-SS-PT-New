@@ -322,6 +322,8 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
     isLoadingMore,
     likePost,
     unlikePost,
+    reactToPost,
+    removeReaction,
     addComment
   } = useSocialFeed();
 
@@ -477,6 +479,8 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
               key={post.id}
               post={post}
               onLike={() => post.isLiked ? unlikePost(post.id) : likePost(post.id)}
+              onReact={reactToPost}
+              onRemoveReaction={removeReaction}
               onComment={addComment}
             />
           ))}

@@ -282,7 +282,18 @@ router.get('/feed', async (req, res) => {
       commentCountMap[item.postId] = parseInt(item.count);
     });
     
-    // Check if current user has liked each post
+    // Get reaction counts and user reactions per post
+    let reactionCountsMap = {};
+    let userReactionsMap = {};
+    try {
+      reactionCountsMap = await SocialLike.getReactionCounts(postIds);
+      userReactionsMap = await SocialLike.getUserReactions(req.user.id, postIds);
+    } catch (err) {
+      // Fallback: old-style like check if reaction methods unavailable
+      console.log('Reaction methods not available, falling back to legacy:', err.message);
+    }
+
+    // Legacy fallback: check if user has liked each post
     const userLikes = await SocialLike.findAll({
       where: {
         userId: req.user.id,
@@ -291,23 +302,25 @@ router.get('/feed', async (req, res) => {
       },
       attributes: ['targetId']
     });
-    
-    // Create a set of liked post IDs for quick lookup
     const likedPostIds = new Set(userLikes.map(like => like.targetId));
-    
-    // Format posts with comment counts and like status
+
+    // Format posts with comment counts, reaction status
     const formattedPosts = posts.map(post => {
       const postObj = post.toJSON();
-      
+
       // Add comment count
       postObj.commentsCount = commentCountMap[post.id] || 0;
-      
-      // Add if user has liked this post
+
+      // Legacy compat
       postObj.isLiked = likedPostIds.has(post.id);
-      
+
+      // Reaction breakdown
+      postObj.reactionCounts = reactionCountsMap[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
+      postObj.userReactions = userReactionsMap[post.id] || [];
+
       return postObj;
     });
-    
+
     return res.status(200).json({
       success: true,
       posts: formattedPosts,
@@ -427,7 +440,16 @@ router.get('/user/:userId', async (req, res) => {
       commentCountMap[item.postId] = parseInt(item.count);
     });
     
-    // Check if current user has liked each post
+    // Get reaction counts and user reactions per post
+    let reactionCountsMap2 = {};
+    let userReactionsMap2 = {};
+    try {
+      reactionCountsMap2 = await SocialLike.getReactionCounts(postIds);
+      userReactionsMap2 = await SocialLike.getUserReactions(req.user.id, postIds);
+    } catch (err) {
+      console.log('Reaction methods fallback:', err.message);
+    }
+
     const userLikes = await SocialLike.findAll({
       where: {
         userId: req.user.id,
@@ -436,19 +458,16 @@ router.get('/user/:userId', async (req, res) => {
       },
       attributes: ['targetId']
     });
-    
-    // Create a set of liked post IDs for quick lookup
     const likedPostIds = new Set(userLikes.map(like => like.targetId));
-    
-    // Format posts with comment counts and like status
+
+    // Format posts with comment counts and reaction status
     const formattedPosts = posts.map(post => {
       const postObj = post.toJSON();
-      
-      // Add comment count
+
       postObj.commentsCount = commentCountMap[post.id] || 0;
-      
-      // Add if user has liked this post
       postObj.isLiked = likedPostIds.has(post.id);
+      postObj.reactionCounts = reactionCountsMap2[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
+      postObj.userReactions = userReactionsMap2[post.id] || [];
       
       return postObj;
     });
@@ -785,48 +804,42 @@ router.delete('/:postId', async (req, res) => {
 });
 
 /**
- * Like a post
+ * React to a post (thumbs_up, heart, or swan)
  */
 router.post('/:postId/like', async (req, res) => {
   try {
     const { postId } = req.params;
-    
-    // Find the post
-    const post = await SocialPost.findByPk(postId);
-    
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
-    
-    // Check if user already liked this post
-    const existingLike = await SocialLike.findOne({
-      where: {
-        userId: req.user.id,
-        targetType: 'post',
-        targetId: postId
-      }
-    });
-    
-    if (existingLike) {
+    const reactionType = req.body.reactionType || 'swan';
+
+    // Validate reaction type
+    if (!['thumbs_up', 'heart', 'swan'].includes(reactionType)) {
       return res.status(400).json({
         success: false,
-        message: 'You have already liked this post'
+        message: 'Invalid reaction type. Must be thumbs_up, heart, or swan.'
       });
     }
-    
-    // Create the like
-    await SocialLike.likePost(req.user.id, postId);
-    
-    // Award points to the user who liked the post
+
+    const post = await SocialPost.findByPk(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Use reactToPost which handles dedup
+    const { reaction, alreadyExists } = await SocialLike.reactToPost(req.user.id, postId, reactionType);
+
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: `You already reacted with ${reactionType}`
+      });
+    }
+
+    // Award points
     const likeGivenResult = await awardSocialPoints(req.user.id, 'post_like_given', {
       postId,
       postOwnerId: post.userId
     });
-    
-    // Award points to the post owner for receiving a like (but not if they liked their own post)
+
     let likeReceivedResult = { success: false };
     if (post.userId !== req.user.id) {
       likeReceivedResult = await awardEngagementReceivedPoints(post.userId, 'post_like_received', {
@@ -834,69 +847,63 @@ router.post('/:postId/like', async (req, res) => {
         likedByUserId: req.user.id
       });
     }
-    
+
     const responseData = {
       success: true,
-      message: 'Post liked successfully'
+      message: `Reacted with ${reactionType}`,
+      reactionType,
     };
-    
-    // Add point information if points were awarded
+
     if (likeGivenResult.success) {
       responseData.pointsAwarded = likeGivenResult.pointsAwarded;
-      responseData.pointMessage = `+${likeGivenResult.pointsAwarded} points for liking a post!`;
+      responseData.pointMessage = `+${likeGivenResult.pointsAwarded} points for reacting!`;
     }
-    
     if (likeReceivedResult.success) {
       responseData.ownerPointsAwarded = likeReceivedResult.pointsAwarded;
     }
-    
+
     return res.status(200).json(responseData);
   } catch (error) {
-    console.error('Error liking post:', error);
+    console.error('Error reacting to post:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to like post',
+      message: 'Failed to react to post',
       error: error.message
     });
   }
 });
 
 /**
- * Unlike a post
+ * Remove a reaction from a post
  */
 router.delete('/:postId/like', async (req, res) => {
   try {
     const { postId } = req.params;
-    
-    // Find the post
+    const reactionType = req.query.reactionType || req.body?.reactionType || 'swan';
+
     const post = await SocialPost.findByPk(postId);
-    
     if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
+      return res.status(404).json({ success: false, message: 'Post not found' });
     }
-    
-    // Remove the like
-    const result = await SocialLike.unlikePost(req.user.id, postId);
-    
+
+    const result = await SocialLike.removeReaction(req.user.id, postId, reactionType);
+
     if (!result) {
       return res.status(400).json({
         success: false,
-        message: 'You have not liked this post'
+        message: `No ${reactionType} reaction to remove`
       });
     }
-    
+
     return res.status(200).json({
       success: true,
-      message: 'Post unliked successfully'
+      message: `Removed ${reactionType} reaction`
     });
   } catch (error) {
-    console.error('Error unliking post:', error);
+    console.error('Error removing reaction:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to unlike post',
+      message: 'Failed to remove reaction',
       error: error.message
     });
   }

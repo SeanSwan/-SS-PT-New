@@ -476,6 +476,52 @@ const AdminGalleryManager: React.FC = () => {
     } catch { /* */ }
   };
 
+  const deleteEvent = async (eventId: number, eventName: string) => {
+    if (!window.confirm(`Delete "${eventName}" and ALL its photos? This cannot be undone.`)) return;
+    try {
+      await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      loadEvents();
+      loadStats();
+    } catch { /* */ }
+  };
+
+  const deletePhoto = async (photoId: number) => {
+    if (!window.confirm('Delete this photo? This cannot be undone.')) return;
+    try {
+      await fetch(`${API_BASE}/api/admin/gallery/photos/${photoId}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      loadEvents();
+      loadStats();
+    } catch { /* */ }
+  };
+
+  // State for viewing event photos
+  const [viewPhotosEventId, setViewPhotosEventId] = useState<number | null>(null);
+  const [eventPhotos, setEventPhotos] = useState<any[]>([]);
+
+  const loadEventPhotos = async (eventId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/photos`, { headers: getHeaders() });
+      const data = await res.json();
+      if (data.success) setEventPhotos(data.photos);
+    } catch { /* */ }
+  };
+
+  const toggleViewPhotos = (eventId: number) => {
+    if (viewPhotosEventId === eventId) {
+      setViewPhotosEventId(null);
+      setEventPhotos([]);
+    } else {
+      setViewPhotosEventId(eventId);
+      loadEventPhotos(eventId);
+    }
+  };
+
   return (
     <Wrapper>
       {/* KPI Stats */}
@@ -555,13 +601,22 @@ const AdminGalleryManager: React.FC = () => {
                       <span style={{ color: '#00ffff', cursor: 'pointer' }}>/gallery/{event.slug}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                       {event.isPublished ? 'Published' : 'Draft'}
                     </span>
                     <ToggleSwitch $on={event.isPublished} onClick={() => togglePublish(event)} />
+                    <ActionBtn onClick={() => toggleViewPhotos(event.id)}>
+                      {viewPhotosEventId === event.id ? 'Hide Photos' : 'View Photos'}
+                    </ActionBtn>
                     <ActionBtn onClick={() => setUploadEventId(uploadEventId === event.id ? null : event.id)}>
                       {uploadEventId === event.id ? 'Close' : 'Upload Photos'}
+                    </ActionBtn>
+                    <ActionBtn
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+                      onClick={() => deleteEvent(event.id, event.name)}
+                    >
+                      Delete Event
                     </ActionBtn>
                   </div>
                 </div>
@@ -611,6 +666,46 @@ const AdminGalleryManager: React.FC = () => {
                         style={{ display: 'none' }}
                         onChange={e => e.target.files && handleFileUpload(e.target.files)}
                       />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Photo Grid with Delete Buttons */}
+                <AnimatePresence>
+                  {viewPhotosEventId === event.id && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ marginTop: 16 }}>
+                      {eventPhotos.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 24, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+                          No photos uploaded yet.
+                        </div>
+                      ) : (
+                        <PhotoGrid>
+                          {eventPhotos.map((photo: any) => (
+                            <PhotoThumb key={photo.id}>
+                              <img src={photo.thumbnailUrl || photo.url} alt={photo.displayName} />
+                              <div style={{
+                                position: 'absolute', bottom: 0, left: 0, right: 0,
+                                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                                padding: '16px 6px 4px', fontSize: 10, color: 'rgba(255,255,255,0.7)',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                              }}>
+                                <span>{photo.displayName}</span>
+                                <button
+                                  onClick={() => deletePhoto(photo.id)}
+                                  style={{
+                                    background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: 4,
+                                    color: '#fff', fontSize: 10, padding: '2px 6px', cursor: 'pointer',
+                                    minHeight: 24, minWidth: 24
+                                  }}
+                                  title="Delete photo"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </PhotoThumb>
+                          ))}
+                        </PhotoGrid>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

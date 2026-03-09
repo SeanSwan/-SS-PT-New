@@ -309,6 +309,35 @@ router.get('/events/:id/photos', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/gallery/photos/:photoId
+ * Delete an individual photo from an event
+ */
+router.delete('/photos/:photoId', async (req, res) => {
+  try {
+    const photo = await GalleryPhoto.findByPk(req.params.photoId);
+    if (!photo) return res.status(404).json({ success: false, error: 'Photo not found' });
+
+    const eventId = photo.eventId;
+
+    // Delete associated enhancement requests first
+    await EnhancementRequest.destroy({ where: { photoId: photo.id } });
+
+    // Delete the photo record
+    await photo.destroy();
+
+    // Update event photo count
+    const remaining = await GalleryPhoto.count({ where: { eventId } });
+    await GalleryEvent.update({ photoCount: remaining }, { where: { id: eventId } });
+
+    logger.info(`[AdminGallery] Deleted photo ${req.params.photoId} from event ${eventId}`);
+    return res.json({ success: true, message: 'Photo deleted', remainingCount: remaining });
+  } catch (err) {
+    logger.error('[AdminGallery] Delete photo error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to delete photo' });
+  }
+});
+
 // ── Enhancement Request Queue ─────────────────────────────────────────────
 
 /**
