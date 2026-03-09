@@ -67,6 +67,9 @@ const WorkoutsWorkspace: React.FC = () => {
 
   const activeTabId = TABS.find((t) => location.pathname === t.path)?.id || 'plans';
 
+  // Tabs that don't require client selection (e.g., group class builder)
+  const clientFreeTab = activeTabId === 'bootcamp';
+
   return (
     <WorkspaceRoot>
       {/* Tab Navigation */}
@@ -87,6 +90,22 @@ const WorkoutsWorkspace: React.FC = () => {
         </TabBarInner>
       </TabBar>
 
+      {/* Client-free tabs render Outlet directly, skip client header */}
+      {clientFreeTab ? (
+        <ContentArea>
+          <WorkspaceContent
+            key="content-no-client"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Suspense fallback={<CosmicSuspenseLoader />}>
+              <Outlet />
+            </Suspense>
+          </WorkspaceContent>
+        </ContentArea>
+      ) : (
+      <>
       {/* Active Client Header / Trigger */}
       <ActiveClientHeader
         onClick={() => setIsDrawerOpen(true)}
@@ -175,6 +194,8 @@ const WorkoutsWorkspace: React.FC = () => {
         onClose={() => setIsDrawerOpen(false)}
         onSelect={handleClientSelect}
       />
+      </>
+      )}
     </WorkspaceRoot>
   );
 };
