@@ -120,6 +120,13 @@ export function buildUnifiedContext(inputs = {}) {
     dataSources.push('pain_injury_tracking');
   }
 
+  // ── Goal Progress Matching ──────────────────────────────────
+  let goalProgress = null;
+  if (clientProfile?.goals && measurementTrends) {
+    goalProgress = buildGoalProgress(clientProfile.goals, measurementTrends, progressSummary);
+    if (goalProgress) dataSources.push('goal_progress');
+  }
+
   // ── Exercise Recommendations (1RM + load) ───────────────────
   const exerciseRecommendations = buildExerciseRecommendations(
     progressContext,
@@ -160,6 +167,7 @@ export function buildUnifiedContext(inputs = {}) {
     progressSummary,
     measurementTrends,
     painConstraints,
+    goalProgress,
     exerciseRecommendations,
     safetyConstraints,
     explainability,
@@ -400,4 +408,129 @@ function determineGenerationMode({ hasProfile, hasNasm, hasTemplate, hasProgress
   if (hasTemplate) return 'template_guided';
   if (hasProgress) return 'progress_aware';
   return 'basic';
+}
+
+/**
+ * Build goal progress matching from client goals and measurement trends.
+ * Compares stated goals against actual measurement data to determine
+ * how close the client is to achieving their objectives.
+ * All PII-free — only goal type, current value, target, and progress %.
+ *
+ * @param {Object|Array|string} goals — Client's stated goals
+ * @param {Object} measurementTrends — Current measurement data
+ * @param {Object|null} progressSummary — Workout progress context
+ * @returns {Object} Goal progress analysis
+ */
+function buildGoalProgress(goals, measurementTrends, progressSummary) {
+  const goalAnalysis = {
+    goals: [],
+    overallProgressPct: 0,
+    recommendations: [],
+  };
+
+  // Parse goals (could be string, array, or object)
+  const goalList = [];
+  if (typeof goals === 'string') {
+    goalList.push(goals.toLowerCase());
+  } else if (Array.isArray(goals)) {
+    goalList.push(...goals.map(g => (typeof g === 'string' ? g : g.goal || g.name || '').toLowerCase()));
+  } else if (typeof goals === 'object' && goals !== null) {
+    if (goals.primary) goalList.push(goals.primary.toLowerCase());
+    if (goals.secondary) goalList.push(goals.secondary.toLowerCase());
+    if (goals.description) goalList.push(goals.description.toLowerCase());
+  }
+
+  if (goalList.length === 0) return null;
+
+  // Detect goal types and match to data
+  for (const goal of goalList) {
+    if (!goal) continue;
+
+    // Weight loss / fat loss goals
+    if (goal.includes('weight loss') || goal.includes('lose weight') || goal.includes('fat loss') || goal.includes('lean')) {
+      const entry = { type: 'body_composition', description: goal };
+      if (measurementTrends.currentWeight != null) {
+        entry.currentWeight = measurementTrends.currentWeight;
+        entry.weightTrend = measurementTrends.weightTrend;
+      }
+      if (measurementTrends.currentBodyFat != null) {
+        entry.currentBodyFat = measurementTrends.currentBodyFat;
+        entry.bodyFatTrend = measurementTrends.bodyFatTrend;
+      }
+      if (measurementTrends.weightTrend === 'decreasing') {
+        entry.status = 'on_track';
+        goalAnalysis.recommendations.push('Weight trending down — maintain current caloric deficit and training volume.');
+      } else if (measurementTrends.weightTrend === 'increasing') {
+        entry.status = 'off_track';
+        goalAnalysis.recommendations.push('Weight trending up despite fat loss goal — review nutrition plan and increase cardio/NEAT.');
+      } else {
+        entry.status = 'plateau';
+        goalAnalysis.recommendations.push('Weight stable — consider periodization change or nutrition adjustment to break plateau.');
+      }
+      goalAnalysis.goals.push(entry);
+    }
+
+    // Muscle gain / strength goals
+    if (goal.includes('muscle') || goal.includes('strength') || goal.includes('hypertrophy') || goal.includes('build')) {
+      const entry = { type: 'strength_hypertrophy', description: goal };
+      if (progressSummary) {
+        entry.volumeTrend = progressSummary.volumeTrend;
+        entry.avgIntensity = progressSummary.avgIntensity;
+        // Check progression curves if available
+        if (progressSummary.exerciseProgressionCurves?.length > 0) {
+          const progressing = progressSummary.exerciseProgressionCurves.filter(c => c.trend === 'progressing').length;
+          const total = progressSummary.exerciseProgressionCurves.length;
+          entry.exercisesProgressing = `${progressing}/${total}`;
+        }
+      }
+      if (measurementTrends.weightTrend === 'increasing' && measurementTrends.bodyFatTrend !== 'increasing') {
+        entry.status = 'on_track';
+        goalAnalysis.recommendations.push('Gaining weight without fat increase — lean muscle gain on track.');
+      } else if (progressSummary?.volumeTrend === 'increasing') {
+        entry.status = 'on_track';
+        goalAnalysis.recommendations.push('Training volume increasing — progressive overload working. Continue current program.');
+      } else {
+        entry.status = 'needs_attention';
+        goalAnalysis.recommendations.push('Volume not increasing — consider progressive overload adjustments or deload then reload.');
+      }
+      goalAnalysis.goals.push(entry);
+    }
+
+    // Endurance / cardio goals
+    if (goal.includes('endurance') || goal.includes('cardio') || goal.includes('stamina') || goal.includes('run')) {
+      const entry = { type: 'endurance', description: goal };
+      if (progressSummary) {
+        entry.avgDurationMin = progressSummary.avgDurationMin;
+        entry.adherenceTrend = progressSummary.adherenceTrend;
+        entry.avgSessionsPerWeek = progressSummary.avgSessionsPerWeek;
+      }
+      if (progressSummary?.adherenceTrend === 'consistent' && progressSummary?.avgSessionsPerWeek >= 3) {
+        entry.status = 'on_track';
+        goalAnalysis.recommendations.push('Training consistently — endurance improving. Consider adding interval protocols.');
+      } else {
+        entry.status = 'needs_attention';
+        goalAnalysis.recommendations.push('Training frequency below 3x/week — increase session frequency for endurance gains.');
+      }
+      goalAnalysis.goals.push(entry);
+    }
+
+    // General fitness / health
+    if (goal.includes('health') || goal.includes('fitness') || goal.includes('general') || goal.includes('tone') || goal.includes('wellness')) {
+      const entry = { type: 'general_fitness', description: goal };
+      if (progressSummary) {
+        entry.adherenceTrend = progressSummary.adherenceTrend;
+        entry.avgSessionsPerWeek = progressSummary.avgSessionsPerWeek;
+      }
+      entry.status = progressSummary?.adherenceTrend === 'consistent' ? 'on_track' : 'needs_attention';
+      goalAnalysis.goals.push(entry);
+    }
+  }
+
+  // Calculate overall progress
+  if (goalAnalysis.goals.length > 0) {
+    const onTrack = goalAnalysis.goals.filter(g => g.status === 'on_track').length;
+    goalAnalysis.overallProgressPct = Math.round((onTrack / goalAnalysis.goals.length) * 100);
+  }
+
+  return goalAnalysis.goals.length > 0 ? goalAnalysis : null;
 }

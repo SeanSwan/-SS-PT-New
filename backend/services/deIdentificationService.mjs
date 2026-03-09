@@ -22,12 +22,31 @@ import logger from '../utils/logger.mjs';
 const DIRECT_IDENTIFIER_PATHS = [
   'client.name',
   'client.preferredName',
+  'client.firstName',
+  'client.lastName',
+  'client.fullName',
   'client.contact.email',
   'client.contact.phone',
+  'client.contact.address',
+  'client.contact.city',
+  'client.contact.state',
+  'client.contact.zip',
+  'client.contact.emergencyContact',
   'client.bloodType',
+  'client.ssn',
+  'client.dateOfBirth',
+  'client.dob',
+  'client.insuranceId',
   'client.contact',         // entire contact block as fallback
   'lifestyle.occupation',
+  'lifestyle.employer',
+  'lifestyle.workplace',
   'lifestyle.stressSources',
+  'health.medications',
+  'health.surgeries',
+  'health.doctorName',
+  'health.physician',
+  'health.insuranceProvider',
 ];
 
 /**
@@ -162,14 +181,19 @@ export function deIdentify(masterPromptJson, options = {}) {
     }
   }
 
-  // 3. Strip medications (sensitive, not needed for exercise selection)
-  if (deleteNestedKey(payload, 'health.medications')) {
-    strippedFields.push('health.medications');
-  }
+  // 3. Deep PII scan: search all string values for email/phone patterns and redact
+  scanAndRedactPII(payload, strippedFields);
 
-  // 4. Strip surgeries (sensitive medical history)
-  if (deleteNestedKey(payload, 'health.surgeries')) {
-    strippedFields.push('health.surgeries');
+  // 4. Verify spirit name does not contain real name fragments
+  if (spiritName) {
+    const originalNameLower = (originalName || '').toLowerCase();
+    const spiritLower = spiritName.toLowerCase();
+    if (originalNameLower && originalNameLower.length > 2 && spiritLower.includes(originalNameLower)) {
+      logger.warn('[DeIdentification] Spirit name contains real name fragment — using generic alias');
+      setNestedValue(payload, 'client.name', 'Client');
+      setNestedValue(payload, 'client.preferredName', 'Client');
+      strippedFields.push('spirit_name_contained_real_name');
+    }
   }
 
   // 5. Fail-closed check: payload must still have meaningful training context
@@ -188,4 +212,50 @@ export function deIdentify(masterPromptJson, options = {}) {
     deIdentified: payload,
     strippedFields,
   };
+}
+
+/**
+ * Deep scan all string values in an object for PII patterns.
+ * Redacts emails, phone numbers, SSN patterns, and addresses.
+ * This is a safety net — catches PII in unexpected fields.
+ *
+ * @param {Object} obj — The payload to scan (mutated in place)
+ * @param {string[]} strippedFields — Array to log redacted field paths
+ * @param {string} [prefix=''] — Current path prefix for logging
+ */
+function scanAndRedactPII(obj, strippedFields, prefix = '') {
+  if (!obj || typeof obj !== 'object') return;
+
+  const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const PHONE_REGEX = /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+  const SSN_REGEX = /\b\d{3}-\d{2}-\d{4}\b/g;
+
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof value === 'string') {
+      let redacted = value;
+      let wasRedacted = false;
+
+      if (EMAIL_REGEX.test(redacted)) {
+        redacted = redacted.replace(EMAIL_REGEX, '[REDACTED_EMAIL]');
+        wasRedacted = true;
+      }
+      if (PHONE_REGEX.test(redacted)) {
+        redacted = redacted.replace(PHONE_REGEX, '[REDACTED_PHONE]');
+        wasRedacted = true;
+      }
+      if (SSN_REGEX.test(redacted)) {
+        redacted = redacted.replace(SSN_REGEX, '[REDACTED_SSN]');
+        wasRedacted = true;
+      }
+
+      if (wasRedacted) {
+        obj[key] = redacted;
+        strippedFields.push(`pii_scan:${path}`);
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      scanAndRedactPII(value, strippedFields, path);
+    }
+  }
 }

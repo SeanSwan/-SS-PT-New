@@ -109,6 +109,32 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
     parts.push(buildPainConstraintsSection(painConstraints));
   }
 
+  // Append per-exercise progression curves when available
+  const progressContext = serverConstraints?.progressContext;
+  if (progressContext?.exerciseProgressionCurves?.length > 0) {
+    parts.push('');
+    parts.push(buildProgressionCurvesSection(progressContext.exerciseProgressionCurves));
+  }
+
+  // Append training frequency patterns when available
+  if (progressContext?.frequencyPatterns?.preferredDays?.length > 0) {
+    parts.push('');
+    parts.push(buildFrequencyPatternsSection(progressContext.frequencyPatterns));
+  }
+
+  // Append session-level recovery/fatigue details when available
+  if (progressContext?.sessionDetails?.weeklyVolumeTrend?.length > 0) {
+    parts.push('');
+    parts.push(buildSessionDetailsSection(progressContext.sessionDetails));
+  }
+
+  // Append goal progress matching when available
+  const goalProgress = serverConstraints?.goalProgress;
+  if (goalProgress?.goals?.length > 0) {
+    parts.push('');
+    parts.push(buildGoalProgressSection(goalProgress));
+  }
+
   return parts.join('\n');
 }
 
@@ -362,4 +388,132 @@ function formatBodyRegion(region) {
     .split('_')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
+}
+
+/**
+ * Build per-exercise progression curves section for the AI prompt.
+ * Shows weight/volume trends per exercise over weeks.
+ *
+ * @param {Array} curves — Output of buildExerciseProgressionCurves()
+ * @returns {string}
+ */
+export function buildProgressionCurvesSection(curves) {
+  if (!curves || curves.length === 0) return '';
+
+  const lines = ['--- Per-Exercise Progression Curves ---'];
+  lines.push('Use these trends to apply progressive overload where progressing, and modify where plateaued or regressing.');
+  lines.push('');
+
+  for (const curve of curves) {
+    const weekData = curve.weeks.map(w => `Wk${w.week}: ${w.bestWeight}lb×${w.bestReps}`).join(' → ');
+    lines.push(`${curve.exerciseName}: ${weekData}`);
+    lines.push(`  Trend: ${curve.trend} (${curve.progressionPct > 0 ? '+' : ''}${curve.progressionPct}%)`);
+    if (curve.trend === 'plateau') {
+      lines.push('  → Consider: rep range change, tempo manipulation, or exercise variation');
+    } else if (curve.trend === 'regressing') {
+      lines.push('  → Consider: deload, reduce volume, check recovery and sleep');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build training frequency patterns section for the AI prompt.
+ *
+ * @param {Object} patterns — Output of buildFrequencyPatterns()
+ * @returns {string}
+ */
+export function buildFrequencyPatternsSection(patterns) {
+  if (!patterns) return '';
+
+  const lines = ['--- Training Frequency & Schedule Patterns ---'];
+  lines.push(`Preferred training days: ${patterns.preferredDays.join(', ')}`);
+  lines.push(`Avg rest days between sessions: ${patterns.avgRestDaysBetween}`);
+  lines.push(`Avg session duration: ${patterns.avgSessionDurationMin} min`);
+  lines.push(`Schedule consistency score: ${patterns.consistencyScore}/1.0`);
+  lines.push(`Total weeks tracked: ${patterns.totalWeeksTracked}`);
+  lines.push('');
+  lines.push('Schedule the new workout plan on the client\'s preferred days.');
+  if (patterns.avgRestDaysBetween < 1.5) {
+    lines.push('WARNING: Client may be under-recovered (avg <1.5 rest days). Ensure adequate recovery in plan.');
+  }
+  if (patterns.consistencyScore < 0.5) {
+    lines.push('NOTE: Inconsistent training schedule. Consider simpler 2-3x/week plan to improve adherence.');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build session-level recovery and fatigue section for the AI prompt.
+ *
+ * @param {Object} details — Output of buildSessionDetails()
+ * @returns {string}
+ */
+export function buildSessionDetailsSection(details) {
+  if (!details) return '';
+
+  const lines = ['--- Session Recovery & Fatigue Analysis ---'];
+  lines.push(`Recovery pattern: ${details.recoveryPattern}`);
+  lines.push(`Avg recovery days: ${details.avgRecoveryDays}`);
+  lines.push(`Fatigue indicator: ${details.fatigueIndicator}`);
+  lines.push('');
+
+  // Show last 4 weeks of volume trend
+  const recent = details.weeklyVolumeTrend.slice(-4);
+  if (recent.length > 0) {
+    lines.push('Recent weekly volume (last 4 weeks):');
+    for (const w of recent) {
+      lines.push(`  Week ${w.week}: ${w.totalVolume} lbs total, ${w.sessions} sessions, avg intensity ${w.avgIntensity}/10`);
+    }
+  }
+
+  if (details.fatigueIndicator === 'possible_overreaching') {
+    lines.push('');
+    lines.push('CAUTION: Signs of overreaching detected (intensity up, volume down).');
+    lines.push('Consider: deload week, reduced volume, or active recovery focus.');
+  } else if (details.fatigueIndicator === 'deload_detected') {
+    lines.push('');
+    lines.push('Recent deload detected — client may be ready for progressive overload phase.');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build goal progress matching section for the AI prompt.
+ *
+ * @param {Object} goalProgress — Output of buildGoalProgress()
+ * @returns {string}
+ */
+export function buildGoalProgressSection(goalProgress) {
+  if (!goalProgress || !goalProgress.goals?.length) return '';
+
+  const lines = ['--- Client Goal Progress Analysis ---'];
+  lines.push(`Overall goal alignment: ${goalProgress.overallProgressPct}% on track`);
+  lines.push('');
+
+  for (const goal of goalProgress.goals) {
+    lines.push(`Goal: ${goal.description}`);
+    lines.push(`  Type: ${goal.type} | Status: ${goal.status}`);
+    if (goal.currentWeight != null) lines.push(`  Current weight: ${goal.currentWeight} lbs (trend: ${goal.weightTrend || 'unknown'})`);
+    if (goal.currentBodyFat != null) lines.push(`  Current body fat: ${goal.currentBodyFat}% (trend: ${goal.bodyFatTrend || 'unknown'})`);
+    if (goal.volumeTrend) lines.push(`  Volume trend: ${goal.volumeTrend}`);
+    if (goal.exercisesProgressing) lines.push(`  Exercises progressing: ${goal.exercisesProgressing}`);
+    if (goal.adherenceTrend) lines.push(`  Adherence: ${goal.adherenceTrend}`);
+  }
+
+  if (goalProgress.recommendations?.length > 0) {
+    lines.push('');
+    lines.push('AI Recommendations based on goal analysis:');
+    for (const rec of goalProgress.recommendations) {
+      lines.push(`  • ${rec}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('Design the workout plan to address off-track goals and reinforce on-track goals.');
+
+  return lines.join('\n');
 }

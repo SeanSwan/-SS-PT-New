@@ -517,6 +517,9 @@ export const generateWorkoutPlan = async (req, res) => {
     if (unifiedContext.painConstraints) {
       serverConstraints.painConstraints = unifiedContext.painConstraints;
     }
+    if (unifiedContext.goalProgress) {
+      serverConstraints.goalProgress = unifiedContext.goalProgress;
+    }
 
     const payloadHash = hashPayload(safePayload);
 
