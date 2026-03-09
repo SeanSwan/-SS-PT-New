@@ -128,6 +128,11 @@ const useParallax = (range: [string, string] = ['-15%', '15%']) => {
 // GLOBAL STYLED COMPONENTS
 // ═══════════════════════════════════════════════════════
 
+const MainWrapper = styled.main`
+  position: relative;
+  background: ${({ theme }) => theme.background?.primary || '#002060'};
+`;
+
 const NoiseOverlayEl = styled.div`
   position: fixed;
   inset: 0;
@@ -170,7 +175,7 @@ const SectionEl = styled.section`
   width: 100%;
   padding: clamp(4rem, 10vw, 8rem) clamp(1rem, 5vw, 2rem);
   overflow: hidden;
-  background-color: ${({ theme }) => theme.colors?.galaxyCore || theme.colors?.deepSpace || '#002060'};
+  background-color: ${({ theme }) => theme.background?.primary || '#002060'};
 
   @media (max-width: 320px) {
     padding: 3rem 0.75rem;
@@ -303,7 +308,7 @@ const HeroSection = styled.section`
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background-color: ${({ theme }) => theme.colors?.galaxyCore || '#002060'};
+  background-color: ${({ theme }) => theme.background?.primary || '#002060'};
 `;
 
 const VideoEl = styled(motion.video)`
@@ -339,7 +344,7 @@ const HeroOverlay = styled.div`
     180deg,
     rgba(0, 32, 96, 0.3) 0%,
     rgba(0, 32, 96, 0.7) 50%,
-    ${({ theme }) => theme.colors?.galaxyCore || '#002060'} 100%
+    ${({ theme }) => theme.background?.primary || '#002060'} 100%
   );
 `;
 
@@ -1045,10 +1050,10 @@ const BeyondOverlay = styled.div`
   z-index: 1;
   background: linear-gradient(
     180deg,
-    ${({ theme }) => theme.colors?.galaxyCore || '#002060'} 0%,
-    rgba(0, 32, 96, 0.85) 30%,
-    rgba(0, 32, 96, 0.85) 70%,
-    ${({ theme }) => theme.colors?.galaxyCore || '#002060'} 100%
+    ${({ theme }) => theme.background?.primary || '#002060'} 0%,
+    ${({ theme }) => (theme.background?.primary || '#002060') + 'd9'} 30%,
+    ${({ theme }) => (theme.background?.primary || '#002060') + 'd9'} 70%,
+    ${({ theme }) => theme.background?.primary || '#002060'} 100%
   );
 `;
 
@@ -1085,7 +1090,7 @@ const SocialGrid = styled(motion.div)`
 
 const CTASection = styled.section`
   padding: clamp(4rem, 10vw, 10rem) clamp(1rem, 5vw, 2rem);
-  background: ${({ theme }) => theme.colors?.galaxyCore || '#002060'};
+  background: ${({ theme }) => theme.background?.primary || '#002060'};
   display: flex;
   justify-content: center;
 
@@ -1301,7 +1306,7 @@ const HomePageV4: React.FC = () => {
         <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-certified coaching with 25+ years experience, AI-driven programming, serving Orange County and LA." />
       </Helmet>
 
-      <main style={{ position: 'relative', background: '#002060' }}>
+      <MainWrapper>
         <NoiseOverlayEl />
 
         {/* ─── 1. HERO — "The Event Horizon" ─── */}
@@ -1817,7 +1822,7 @@ const HomePageV4: React.FC = () => {
             </CTAButtons>
           </CTAContainer>
         </CTASection>
-      </main>
+      </MainWrapper>
 
       {/* ─── ORIENTATION MODAL ─── */}
       {showOrientation && (

@@ -1054,16 +1054,6 @@ const StoreV3: React.FC = () => {
       </ContentOverlay>
 
       {/* ============================================ */}
-      {/* 4. FLOATING CART (reused component)           */}
-      {/* ============================================ */}
-      <FloatingCart
-        isAuthenticated={isAuthenticated}
-        cartItemCount={cartItemCount}
-        showPulse={showPulse}
-        onToggleCart={handleToggleCart}
-      />
-
-      {/* ============================================ */}
       {/* MODALS                                        */}
       {/* ============================================ */}
       <AnimatePresence mode="wait">

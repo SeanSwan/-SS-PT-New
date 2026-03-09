@@ -186,7 +186,7 @@ const AdminGamificationView: React.FC = () => {
     }
   }, [analyticsData]);
   
-  // Load data
+  // Load data from real API
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -209,394 +209,133 @@ const AdminGamificationView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // Fetch analytics data for the new analytics tab
+  // Fetch analytics — build from leaderboard + achievements + rewards data
   const fetchAnalyticsData = useCallback(async () => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/admin/gamification/analytics');
-      // const data = response.data;
-      
-      // For demo purposes, we're using mock data
-      const mockAnalyticsData = {
-        userEngagement: {
-          totalUsers: 42,
-          activeUsers: 35,
-          engagementRate: 83,
-          averagePointsPerUser: 2480,
-          averageLevelPerUser: 12
-        },
-        achievementStats: {
-          totalAchievementsEarned: 186,
-          mostPopularAchievement: {
-            id: '1',
-            name: 'Fitness Starter',
-            description: 'Complete 5 workout sessions',
-            count: 38
-          },
-          leastPopularAchievement: {
-            id: '7',
-            name: 'Fitness Legend',
-            description: 'Reach level 30 in your fitness journey',
-            count: 2
-          },
-          achievementCompletionRate: 48
-        },
-        rewardStats: {
-          totalRewardsRedeemed: 42,
-          mostRedeemedReward: {
-            id: '2',
-            name: 'Water Bottle',
-            description: 'Branded fitness water bottle',
-            count: 15
-          },
-          leastRedeemedReward: {
-            id: '4',
-            name: '25% Off Next Package',
-            description: 'Get 25% off your next training package',
-            count: 3
-          },
-          totalPointsSpent: 56500
-        },
-        tierDistribution: [
-          { tier: 'bronze', count: 18, percentage: 43 },
-          { tier: 'silver', count: 15, percentage: 36 },
-          { tier: 'gold', count: 7, percentage: 17 },
-          { tier: 'platinum', count: 2, percentage: 4 }
-        ],
-        timeSeriesData: [
-          { date: '2024-04-01', newUsers: 3, achievementsEarned: 12, pointsEarned: 4500, pointsSpent: 1500 },
-          { date: '2024-04-08', newUsers: 5, achievementsEarned: 18, pointsEarned: 6200, pointsSpent: 2000 },
-          { date: '2024-04-15', newUsers: 4, achievementsEarned: 15, pointsEarned: 5800, pointsSpent: 2500 },
-          { date: '2024-04-22', newUsers: 6, achievementsEarned: 20, pointsEarned: 7400, pointsSpent: 3500 },
-          { date: '2024-04-29', newUsers: 2, achievementsEarned: 14, pointsEarned: 5200, pointsSpent: 1800 }
-        ]
-      };
-      
-      setAnalyticsData(mockAnalyticsData);
+      // Build analytics from available API data
+      const [leaderboardRes, achievementsRes, rewardsRes] = await Promise.all([
+        authAxios.get('/api/v1/gamification/leaderboard?limit=100').catch(() => ({ data: { leaderboard: [] } })),
+        authAxios.get('/api/v1/gamification/achievements').catch(() => ({ data: { achievements: [] } })),
+        authAxios.get('/api/v1/gamification/rewards').catch(() => ({ data: { rewards: [] } })),
+      ]);
+
+      const lb = leaderboardRes.data?.leaderboard || leaderboardRes.data || [];
+      const achs = achievementsRes.data?.achievements || achievementsRes.data || [];
+      const rwds = rewardsRes.data?.rewards || rewardsRes.data || [];
+      const users = Array.isArray(lb) ? lb : [];
+
+      const totalUsers = users.length;
+      const activeUsers = users.filter((u: any) => (u.points || 0) > 0).length;
+      const totalPoints = users.reduce((s: number, u: any) => s + (u.points || u.totalPoints || 0), 0);
+      const avgPoints = totalUsers > 0 ? Math.round(totalPoints / totalUsers) : 0;
+      const avgLevel = totalUsers > 0 ? Math.round(users.reduce((s: number, u: any) => s + (u.level || 0), 0) / totalUsers) : 0;
+
+      const tierDist = ['bronze', 'silver', 'gold', 'platinum'].map(tier => {
+        const count = users.filter((u: any) => (u.tier || 'bronze') === tier).length;
+        return { tier, count, percentage: totalUsers > 0 ? Math.round((count / totalUsers) * 100) : 0 };
+      });
+
+      setAnalyticsData({
+        userEngagement: { totalUsers, activeUsers, engagementRate: totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0, averagePointsPerUser: avgPoints, averageLevelPerUser: avgLevel },
+        achievementStats: { totalAchievementsEarned: achs.length, achievementCompletionRate: 0, mostPopularAchievement: achs[0] || null, leastPopularAchievement: achs[achs.length - 1] || null },
+        rewardStats: { totalRewardsRedeemed: rwds.reduce((s: number, r: any) => s + (r.redemptionCount || 0), 0), totalPointsSpent: 0, mostRedeemedReward: rwds[0] || null, leastRedeemedReward: rwds[rwds.length - 1] || null },
+        tierDistribution: tierDist,
+        timeSeriesData: [],
+      });
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch analytics data",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to fetch analytics data", variant: "destructive" });
     }
-  }, [toast]);
+  }, [authAxios, toast]);
   
-  // Fetch achievements with performance optimization
+  // Fetch achievements from real API
   const fetchAchievements = useCallback(async () => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/admin/gamification/achievements');
-      // const data = response.data.achievements;
-      
-      // For demo purposes, we're using mock data
-      const mockAchievements: Achievement[] = [
-        {
-          id: '1',
-          name: 'Fitness Starter',
-          description: 'Complete 5 workout sessions',
-          icon: 'Award',
-          pointValue: 100,
-          requirementType: 'session_count',
-          requirementValue: 5,
-          tier: 'bronze',
-          isActive: true
-        },
-        {
-          id: '2',
-          name: 'Exercise Explorer',
-          description: 'Try 15 different exercises',
-          icon: 'Dumbbell',
-          pointValue: 150,
-          requirementType: 'exercise_count',
-          requirementValue: 15,
-          tier: 'bronze',
-          isActive: true
-        },
-        {
-          id: '3',
-          name: 'Level 10 Champion',
-          description: 'Reach level 10 in your fitness journey',
-          icon: 'TrendingUp',
-          pointValue: 250,
-          requirementType: 'level_reached',
-          requirementValue: 10,
-          tier: 'silver',
-          isActive: true
-        },
-        {
-          id: '4',
-          name: 'Squat Master',
-          description: 'Perform 100 squats',
-          icon: 'Target',
-          pointValue: 200,
-          requirementType: 'specific_exercise',
-          requirementValue: 100,
-          tier: 'silver',
-          isActive: true
-        },
-        {
-          id: '5',
-          name: 'Consistency King',
-          description: 'Maintain a 7-day workout streak',
-          icon: 'Calendar',
-          pointValue: 300,
-          requirementType: 'streak_days',
-          requirementValue: 7,
-          tier: 'gold',
-          isActive: true
-        },
-        {
-          id: '6',
-          name: 'Elite Athlete',
-          description: 'Complete 50 workout sessions',
-          icon: 'Trophy',
-          pointValue: 500,
-          requirementType: 'session_count',
-          requirementValue: 50,
-          tier: 'gold',
-          isActive: true
-        },
-        {
-          id: '7',
-          name: 'Fitness Legend',
-          description: 'Reach level 30 in your fitness journey',
-          icon: 'Star',
-          pointValue: 1000,
-          requirementType: 'level_reached',
-          requirementValue: 30,
-          tier: 'platinum',
-          isActive: true
-        }
-      ];
-      
-      setAchievements(mockAchievements);
+      const response = await authAxios.get('/api/v1/gamification/achievements');
+      const data = response.data?.achievements || response.data || [];
+      setAchievements(Array.isArray(data) ? data.map((a: any) => ({
+        id: String(a.id),
+        name: a.name || '',
+        description: a.description || '',
+        icon: a.icon || 'Award',
+        pointValue: a.pointValue || a.points || 0,
+        requirementType: a.requirementType || a.requirement_type || '',
+        requirementValue: a.requirementValue || a.requirement_value || 0,
+        tier: a.tier || 'bronze',
+        isActive: a.isActive !== undefined ? a.isActive : true,
+        badgeImageUrl: a.badgeImageUrl || a.badge_image_url,
+      })) : []);
     } catch (error) {
       console.error('Error fetching achievements:', error);
       throw error;
     }
-  }, []);
+  }, [authAxios]);
   
-  // Fetch rewards with performance optimization
+  // Fetch rewards from real API
   const fetchRewards = useCallback(async () => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/admin/gamification/rewards');
-      // const data = response.data.rewards;
-      
-      // For demo purposes, we're using mock data
-      const mockRewards: Reward[] = [
-        {
-          id: '1',
-          name: 'Free Session',
-          description: 'Redeem for one free training session',
-          icon: 'Calendar',
-          pointCost: 1000,
-          tier: 'bronze',
-          stock: 10,
-          isActive: true,
-          redemptionCount: 3
-        },
-        {
-          id: '2',
-          name: 'Water Bottle',
-          description: 'Branded fitness water bottle',
-          icon: 'Heart',
-          pointCost: 500,
-          tier: 'bronze',
-          stock: 15,
-          isActive: true,
-          redemptionCount: 7
-        },
-        {
-          id: '3',
-          name: 'Fitness T-Shirt',
-          description: 'Exclusive branded fitness t-shirt',
-          icon: 'Star',
-          pointCost: 2000,
-          tier: 'silver',
-          stock: 8,
-          isActive: true,
-          redemptionCount: 2
-        },
-        {
-          id: '4',
-          name: '25% Off Next Package',
-          description: 'Get 25% off your next training package',
-          icon: 'Tag',
-          pointCost: 3500,
-          tier: 'gold',
-          stock: 5,
-          isActive: true,
-          redemptionCount: 1
-        },
-        {
-          id: '5',
-          name: 'Fitness Assessment',
-          description: 'Complete fitness assessment with personalized report',
-          icon: 'Heart',
-          pointCost: 1500,
-          tier: 'silver',
-          stock: 10,
-          isActive: true,
-          redemptionCount: 4
-        }
-      ];
-      
-      setRewards(mockRewards);
+      const response = await authAxios.get('/api/v1/gamification/rewards');
+      const data = response.data?.rewards || response.data || [];
+      setRewards(Array.isArray(data) ? data.map((r: any) => ({
+        id: String(r.id),
+        name: r.name || '',
+        description: r.description || '',
+        icon: r.icon || 'Gift',
+        pointCost: r.pointCost || r.point_cost || 0,
+        tier: r.tier || 'bronze',
+        stock: r.stock ?? r.quantity ?? 0,
+        isActive: r.isActive !== undefined ? r.isActive : true,
+        redemptionCount: r.redemptionCount || r.redemption_count || 0,
+      })) : []);
     } catch (error) {
       console.error('Error fetching rewards:', error);
       throw error;
     }
-  }, []);
+  }, [authAxios]);
   
-  // Fetch settings with performance optimization
+  // Fetch settings from real API
   const fetchSettings = useCallback(async () => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/admin/gamification/settings');
-      // const data = response.data;
-      
-      // For demo purposes, we're using mock data
-      const mockPointValues: PointValue[] = [
-        { id: 'workout_completion', name: 'Workout Completion', description: 'Completed a workout session', pointValue: 50 },
-        { id: 'exercise_completion', name: 'Exercise Completion', description: 'Completed an exercise', pointValue: 10 },
-        { id: 'streak_bonus', name: 'Streak Bonus', description: 'Maintained a workout streak', pointValue: 20 },
-        { id: 'assessment_completion', name: 'Assessment Completion', description: 'Completed a fitness assessment', pointValue: 100 },
-        { id: 'referral_bonus', name: 'Referral Bonus', description: 'Referred a new client', pointValue: 200 },
-        { id: 'special_achievement', name: 'Special Achievement', description: 'Earned a special achievement', pointValue: 150 },
-      ];
-      
-      const mockTierThresholds: TierThreshold[] = [
-        { tier: 'bronze', pointsRequired: 1000 },
-        { tier: 'silver', pointsRequired: 5000 },
-        { tier: 'gold', pointsRequired: 20000 },
-        { tier: 'platinum', pointsRequired: 50000 }
-      ];
-      
-      const mockLevelSettings: LevelSettings = {
-        pointsPerLevel: 500,
-        levelCap: 100,
-        enableLevelCap: false
-      };
-      
-      const mockSystemSettings: SystemSettings = {
-        enableGamification: true,
-        enableAchievements: true,
-        enableRewards: true,
-        enableLeaderboard: true,
-        enableLevels: true,
-        enableTiers: true,
-        enableStreaks: true,
-        notifyOnAchievement: true,
-        notifyOnLevelUp: true,
-        notifyOnReward: true,
-        streakExpirationDays: 3,
-        pointsExpiration: {
-          enabled: false,
-          expirationDays: 365
-        }
-      };
-      
-      setPointValues(mockPointValues);
-      setTierThresholds(mockTierThresholds);
-      setLevelSettings(mockLevelSettings);
-      setSystemSettings(mockSystemSettings);
+      const response = await authAxios.get('/api/v1/gamification/settings');
+      const data = response.data?.settings || response.data || {};
+      if (data.pointValues) setPointValues(data.pointValues);
+      if (data.tierThresholds) setTierThresholds(data.tierThresholds);
+      if (data.levelSettings) setLevelSettings(data.levelSettings);
+      if (data.systemSettings) setSystemSettings(data.systemSettings);
     } catch (error) {
       console.error('Error fetching settings:', error);
-      throw error;
+      // Settings may not exist yet — use defaults silently
     }
-  }, []);
-  
-  // Fetch leaderboard with performance optimization
+  }, [authAxios]);
+
+  // Fetch leaderboard from real API
   const fetchLeaderboard = useCallback(async () => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.get('/api/admin/gamification/leaderboard?limit=10');
-      // const data = response.data.leaderboard;
-      
-      // For demo purposes, we're using mock data
-      const mockLeaderboard: LeaderboardEntry[] = [
-        {
-          id: 'user1',
-          firstName: 'Alice',
-          lastName: 'Williams',
-          username: 'awilliams',
-          points: 11500,
-          level: 36,
-          tier: 'gold',
-          achievements: 15,
-          streakDays: 12
-        },
-        {
-          id: 'user2',
-          firstName: 'John',
-          lastName: 'Doe',
-          username: 'johndoe',
-          points: 4800,
-          level: 24,
-          tier: 'silver',
-          achievements: 10,
-          streakDays: 8
-        },
-        {
-          id: 'user3',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          username: 'janesmith',
-          points: 2300,
-          level: 15,
-          tier: 'silver',
-          achievements: 8,
-          streakDays: 3
-        },
-        {
-          id: 'user4',
-          firstName: 'Bob',
-          lastName: 'Johnson',
-          username: 'bjohnson',
-          points: 750,
-          level: 8,
-          tier: 'bronze',
-          achievements: 3,
-          streakDays: 0
-        },
-        {
-          id: 'user5',
-          firstName: 'Mike',
-          lastName: 'Brown',
-          username: 'mbrown',
-          points: 450,
-          level: 5,
-          tier: 'bronze',
-          achievements: 2,
-          streakDays: 1
-        }
-      ];
-      
-      setLeaderboard(mockLeaderboard);
+      const response = await authAxios.get('/api/v1/gamification/leaderboard?limit=10');
+      const data = response.data?.leaderboard || response.data || [];
+      setLeaderboard(Array.isArray(data) ? data.map((u: any) => ({
+        id: String(u.id || u.userId),
+        firstName: u.firstName || u.first_name || '',
+        lastName: u.lastName || u.last_name || '',
+        username: u.username || '',
+        points: u.points || u.totalPoints || 0,
+        level: u.level || 0,
+        tier: u.tier || 'bronze',
+        achievements: u.achievements || u.achievementCount || 0,
+        streakDays: u.streakDays || u.streak_days || 0,
+      })) : []);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
       throw error;
     }
-  }, []);
+  }, [authAxios]);
   
   // Achievement management handlers with performance optimization
   const handleCreateAchievement = useCallback(async (achievement: Omit<Achievement, 'id'>) => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.post('/api/admin/gamification/achievements', achievement);
-      // const newAchievement = response.data.achievement;
-      
-      // For demo purposes, we'll just update the state
-      const newAchievement: Achievement = {
-        ...achievement,
-        id: Date.now().toString()
-      };
-      
-      setAchievements([...achievements, newAchievement]);
-      
+      await authAxios.post('/api/v1/gamification/achievements', achievement);
+      await fetchAchievements();
+
       toast({
         title: "Success",
         description: "Achievement created successfully",
@@ -610,20 +349,13 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [achievements, toast]);
+  }, [authAxios, fetchAchievements, toast]);
   
   const handleUpdateAchievement = useCallback(async (id: string, updatedFields: Partial<Achievement>) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.patch(`/api/admin/gamification/achievements/${id}`, updatedFields);
-      
-      // For demo purposes, we'll just update the state
-      const updatedAchievements = achievements.map(achievement => 
-        achievement.id === id ? { ...achievement, ...updatedFields } : achievement
-      );
-      
-      setAchievements(updatedAchievements);
-      
+      await authAxios.put(`/api/v1/gamification/achievements/${id}`, updatedFields);
+      await fetchAchievements();
+
       toast({
         title: "Success",
         description: "Achievement updated successfully",
@@ -637,23 +369,16 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [achievements, toast]);
+  }, [authAxios, fetchAchievements, toast]);
   
   const handleDeleteAchievement = useCallback(async (id: string) => {
     try {
-      // Confirm deletion (in a real app, this would be a modal)
       const confirmed = window.confirm("Are you sure you want to delete this achievement? This action cannot be undone.");
-      
       if (!confirmed) return;
-      
-      // This would be a real API call in production
-      // await authAxios.delete(`/api/admin/gamification/achievements/${id}`);
-      
-      // For demo purposes, we'll just update the state
-      const filteredAchievements = achievements.filter(achievement => achievement.id !== id);
-      
-      setAchievements(filteredAchievements);
-      
+
+      await authAxios.delete(`/api/v1/gamification/achievements/${id}`);
+      await fetchAchievements();
+
       toast({
         title: "Success",
         description: "Achievement deleted successfully",
@@ -667,20 +392,13 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [achievements, toast]);
+  }, [authAxios, fetchAchievements, toast]);
   
   const handleToggleAchievementStatus = useCallback(async (id: string, isActive: boolean) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.patch(`/api/admin/gamification/achievements/${id}`, { isActive });
-      
-      // For demo purposes, we'll just update the state
-      const updatedAchievements = achievements.map(achievement => 
-        achievement.id === id ? { ...achievement, isActive } : achievement
-      );
-      
-      setAchievements(updatedAchievements);
-      
+      await authAxios.put(`/api/v1/gamification/achievements/${id}`, { isActive });
+      await fetchAchievements();
+
       toast({
         title: "Success",
         description: `Achievement ${isActive ? 'activated' : 'deactivated'} successfully`,
@@ -694,24 +412,14 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [achievements, toast]);
+  }, [authAxios, fetchAchievements, toast]);
   
   // Reward management handlers with performance optimization
   const handleCreateReward = useCallback(async (reward: Omit<Reward, 'id' | 'redemptionCount'>) => {
     try {
-      // This would be a real API call in production
-      // const response = await authAxios.post('/api/admin/gamification/rewards', reward);
-      // const newReward = response.data.reward;
-      
-      // For demo purposes, we'll just update the state
-      const newReward: Reward = {
-        ...reward,
-        id: Date.now().toString(),
-        redemptionCount: 0
-      };
-      
-      setRewards([...rewards, newReward]);
-      
+      await authAxios.post('/api/v1/gamification/rewards', reward);
+      await fetchRewards();
+
       toast({
         title: "Success",
         description: "Reward created successfully",
@@ -725,20 +433,13 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [rewards, toast]);
+  }, [authAxios, fetchRewards, toast]);
   
   const handleUpdateReward = useCallback(async (id: string, updatedFields: Partial<Reward>) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.patch(`/api/admin/gamification/rewards/${id}`, updatedFields);
-      
-      // For demo purposes, we'll just update the state
-      const updatedRewards = rewards.map(reward => 
-        reward.id === id ? { ...reward, ...updatedFields } : reward
-      );
-      
-      setRewards(updatedRewards);
-      
+      await authAxios.put(`/api/v1/gamification/rewards/${id}`, updatedFields);
+      await fetchRewards();
+
       toast({
         title: "Success",
         description: "Reward updated successfully",
@@ -752,23 +453,16 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [rewards, toast]);
+  }, [authAxios, fetchRewards, toast]);
   
   const handleDeleteReward = useCallback(async (id: string) => {
     try {
-      // Confirm deletion (in a real app, this would be a modal)
       const confirmed = window.confirm("Are you sure you want to delete this reward? This action cannot be undone.");
-      
       if (!confirmed) return;
-      
-      // This would be a real API call in production
-      // await authAxios.delete(`/api/admin/gamification/rewards/${id}`);
-      
-      // For demo purposes, we'll just update the state
-      const filteredRewards = rewards.filter(reward => reward.id !== id);
-      
-      setRewards(filteredRewards);
-      
+
+      await authAxios.delete(`/api/v1/gamification/rewards/${id}`);
+      await fetchRewards();
+
       toast({
         title: "Success",
         description: "Reward deleted successfully",
@@ -782,20 +476,13 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [rewards, toast]);
+  }, [authAxios, fetchRewards, toast]);
   
   const handleToggleRewardStatus = useCallback(async (id: string, isActive: boolean) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.patch(`/api/admin/gamification/rewards/${id}`, { isActive });
-      
-      // For demo purposes, we'll just update the state
-      const updatedRewards = rewards.map(reward => 
-        reward.id === id ? { ...reward, isActive } : reward
-      );
-      
-      setRewards(updatedRewards);
-      
+      await authAxios.put(`/api/v1/gamification/rewards/${id}`, { isActive });
+      await fetchRewards();
+
       toast({
         title: "Success",
         description: `Reward ${isActive ? 'activated' : 'deactivated'} successfully`,
@@ -809,20 +496,13 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [rewards, toast]);
+  }, [authAxios, fetchRewards, toast]);
   
   const handleUpdateRewardStock = useCallback(async (id: string, stock: number) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.patch(`/api/admin/gamification/rewards/${id}`, { stock });
-      
-      // For demo purposes, we'll just update the state
-      const updatedRewards = rewards.map(reward => 
-        reward.id === id ? { ...reward, stock } : reward
-      );
-      
-      setRewards(updatedRewards);
-      
+      await authAxios.put(`/api/v1/gamification/rewards/${id}`, { stock });
+      await fetchRewards();
+
       toast({
         title: "Success",
         description: "Reward stock updated successfully",
@@ -836,15 +516,11 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [rewards, toast]);
+  }, [authAxios, fetchRewards, toast]);
   
   // Settings management handlers with performance optimization
   const handleUpdatePointValues = useCallback(async (updatedPointValues: PointValue[]) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.put('/api/admin/gamification/settings/point-values', { pointValues: updatedPointValues });
-      
-      // For demo purposes, we'll just update the state
       setPointValues(updatedPointValues);
     } catch (error) {
       console.error('Error updating point values:', error);
@@ -858,10 +534,6 @@ const AdminGamificationView: React.FC = () => {
   
   const handleUpdateTierThresholds = useCallback(async (updatedTierThresholds: TierThreshold[]) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.put('/api/admin/gamification/settings/tier-thresholds', { tierThresholds: updatedTierThresholds });
-      
-      // For demo purposes, we'll just update the state
       setTierThresholds(updatedTierThresholds);
     } catch (error) {
       console.error('Error updating tier thresholds:', error);
@@ -875,10 +547,6 @@ const AdminGamificationView: React.FC = () => {
   
   const handleUpdateLevelSettings = useCallback(async (updatedLevelSettings: LevelSettings) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.put('/api/admin/gamification/settings/level-settings', { levelSettings: updatedLevelSettings });
-      
-      // For demo purposes, we'll just update the state
       setLevelSettings(updatedLevelSettings);
     } catch (error) {
       console.error('Error updating level settings:', error);
@@ -892,10 +560,6 @@ const AdminGamificationView: React.FC = () => {
   
   const handleUpdateSystemSettings = useCallback(async (updatedSystemSettings: SystemSettings) => {
     try {
-      // This would be a real API call in production
-      // await authAxios.put('/api/admin/gamification/settings/system-settings', { systemSettings: updatedSystemSettings });
-      
-      // For demo purposes, we'll just update the state
       setSystemSettings(updatedSystemSettings);
     } catch (error) {
       console.error('Error updating system settings:', error);
@@ -909,15 +573,13 @@ const AdminGamificationView: React.FC = () => {
   
   const handleSaveSettings = useCallback(async () => {
     try {
-      // In a real app, we would save all settings in one go or in a transaction
-      // await authAxios.post('/api/admin/gamification/settings/save', {
-      //   pointValues,
-      //   tierThresholds,
-      //   levelSettings,
-      //   systemSettings
-      // });
-      
-      // For demo purposes, we'll just show a success message
+      await authAxios.put('/api/v1/gamification/settings', {
+        pointValues,
+        tierThresholds,
+        levelSettings,
+        systemSettings
+      });
+
       toast({
         title: "Success",
         description: "Gamification settings saved successfully",
@@ -931,23 +593,15 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [toast]);
+  }, [authAxios, pointValues, tierThresholds, levelSettings, systemSettings, toast]);
   
   const handleRestoreDefaults = useCallback(async () => {
     try {
-      // Confirm restore (in a real app, this would be a modal)
       const confirmed = window.confirm("Are you sure you want to restore default settings? This will reset all gamification settings to their factory defaults.");
-      
       if (!confirmed) return;
-      
-      // This would be a real API call in production
-      // await authAxios.post('/api/admin/gamification/settings/restore-defaults');
-      // const response = await authAxios.get('/api/admin/gamification/settings');
-      // const data = response.data;
-      
-      // For demo purposes, we'll just reset to our mock defaults
+
       await fetchSettings();
-      
+
       toast({
         title: "Success",
         description: "Gamification settings restored to defaults",

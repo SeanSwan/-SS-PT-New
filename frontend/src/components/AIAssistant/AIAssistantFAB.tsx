@@ -67,9 +67,10 @@ const FAB = styled.button`
   overflow: hidden;
 
   img {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
     filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
   }
 
@@ -89,11 +90,6 @@ const FAB = styled.button`
     right: 24px;
     width: 56px;
     height: 56px;
-
-    img {
-      width: 40px;
-      height: 40px;
-    }
   }
 
   /* Mobile: above browser chrome & Windows taskbar (80px up) */
@@ -102,11 +98,6 @@ const FAB = styled.button`
     right: 16px;
     width: 48px;
     height: 48px;
-
-    img {
-      width: 32px;
-      height: 32px;
-    }
   }
 `;
 
