@@ -24,7 +24,7 @@ interface Comment {
 interface Post {
   id: string;
   content: string;
-  type: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation';
+  type: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation' | 'creative' | 'dance' | 'music' | 'singing' | 'art' | 'gaming' | 'comedy' | 'milestone';
   visibility: 'public' | 'friends' | 'private';
   createdAt: string;
   user: User;
@@ -64,7 +64,7 @@ interface Post {
 
 interface CreatePostParams {
   content: string;
-  type?: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation' | 'creative' | 'dance' | 'music' | 'art' | 'gaming';
+  type?: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation' | 'creative' | 'dance' | 'music' | 'singing' | 'art' | 'gaming' | 'comedy';
   visibility?: 'public' | 'friends' | 'private';
   media?: File | null;
   workoutSessionId?: string;

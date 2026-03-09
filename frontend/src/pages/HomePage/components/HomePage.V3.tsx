@@ -7,7 +7,7 @@ import {
   Dumbbell, Activity, Apple, Heart, Monitor, Users,
   Target, Building2, Star, Sparkles, Clock, Award,
   TrendingUp, Music, Palette, Gamepad2, Flame, MapPin,
-  Shield, Brain, Zap, Crosshair,
+  Shield, Brain, Zap, Crosshair, Mic2, Mic, Laugh, Paintbrush,
 } from 'lucide-react';
 
 import GlowButton from '../../../components/ui/buttons/GlowButton';
@@ -181,19 +181,29 @@ const socialCategories = [
     icon: <Sparkles size={28} />,
   },
   {
-    title: 'Music & Singing',
-    description: 'Share vocal performances, covers, instrumentals, and original music. Your stage, your sound.',
-    icon: <Music size={28} />,
+    title: 'Music Production',
+    description: 'Making songs, playing instruments, producing beats, and sharing your creative process. Your studio, your sound.',
+    icon: <Mic2 size={28} />,
+  },
+  {
+    title: 'Singing',
+    description: 'Share vocal performances, covers, instrumentals, and original music. Your stage, your voice.',
+    icon: <Mic size={28} />,
   },
   {
     title: 'Art & Expression',
     description: 'Showcase artwork, digital art, photography, and creative projects. Inspire and get inspired.',
-    icon: <Palette size={28} />,
+    icon: <Paintbrush size={28} />,
   },
   {
     title: 'Gaming',
     description: 'Share your gaming builds, favorite consoles, portable setups, and streams. Gamers get fit too.',
     icon: <Gamepad2 size={28} />,
+  },
+  {
+    title: 'Comedy',
+    description: 'Standup, skits, memes, and funny content. Make the community laugh while you flex.',
+    icon: <Laugh size={28} />,
   },
   {
     title: 'Fitness Challenges',
@@ -1252,7 +1262,7 @@ const HomePageV3: React.FC = () => {
             <SectionSubtitle>
               SwanStudios isn't just a fitness platform — it's a creative social ecosystem.
               Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community
-              where fitness meets art, music, gaming, and real human connection.
+              where fitness meets art, music, singing, gaming, comedy, and real human connection.
             </SectionSubtitle>
           </ScrollReveal>
 

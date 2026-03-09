@@ -20,7 +20,7 @@ const SocialPost = db.define('SocialPost', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('general', 'workout', 'achievement', 'challenge', 'milestone', 'creative', 'dance', 'music', 'art', 'gaming'),
+    type: DataTypes.ENUM('general', 'workout', 'achievement', 'challenge', 'milestone', 'creative', 'dance', 'music', 'singing', 'art', 'gaming', 'comedy'),
     defaultValue: 'general',
     allowNull: false
   },

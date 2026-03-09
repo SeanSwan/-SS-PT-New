@@ -21,6 +21,7 @@ import {
   Target, Building2, Star, ChevronDown, Crosshair,
   Shield, Brain, Zap, Sparkles, Music, Palette,
   Gamepad2, Flame, MapPin, Award, TrendingUp, Check,
+  Mic2, Mic, Laugh, Paintbrush,
 } from 'lucide-react';
 import GlowButton from '../../../components/ui/buttons/GlowButton';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
@@ -1066,7 +1067,7 @@ const SocialGrid = styled(motion.div)`
     grid-template-columns: repeat(2, 1fr);
   }
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
   @media (min-width: 2560px) {
     max-width: 1920px;
@@ -1221,9 +1222,11 @@ const STATS = [
 
 const SOCIAL_CATEGORIES = [
   { title: 'Dance & Movement', desc: 'Post your dance videos, choreography, and freestyle sessions. From hip-hop to contemporary — move your way.', icon: Sparkles },
-  { title: 'Music & Singing', desc: 'Share vocal performances, covers, instrumentals, and original music. Your stage, your sound.', icon: Music },
-  { title: 'Art & Expression', desc: 'Showcase artwork, digital art, photography, and creative projects. Inspire and get inspired.', icon: Palette },
+  { title: 'Music Production', desc: 'Making songs, playing instruments, producing beats, and sharing your creative process. Your studio, your sound.', icon: Mic2 },
+  { title: 'Singing', desc: 'Share vocal performances, covers, instrumentals, and original music. Your stage, your voice.', icon: Mic },
+  { title: 'Art & Expression', desc: 'Showcase artwork, digital art, photography, and creative projects. Inspire and get inspired.', icon: Paintbrush },
   { title: 'Gaming', desc: 'Share your gaming builds, favorite consoles, portable setups, and streams. Gamers get fit too.', icon: Gamepad2 },
+  { title: 'Comedy', desc: 'Standup, skits, memes, and funny content. Make the community laugh while you flex.', icon: Laugh },
   { title: 'Fitness Challenges', desc: 'Community workout challenges, transformation posts, and accountability groups. Push each other forward.', icon: Flame },
   { title: 'Community Meetups', desc: 'Local events, group activities, and real-world connections. The digital community, IRL.', icon: MapPin },
 ];
@@ -1741,7 +1744,7 @@ const HomePageV4: React.FC = () => {
               <SectionSubtitle>
                 SwanStudios isn't just a fitness platform — it's a creative social ecosystem.
                 Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community
-                where fitness meets art, music, gaming, and real human connection.
+                where fitness meets art, music, singing, gaming, comedy, and real human connection.
               </SectionSubtitle>
             </SectionHeader>
             <SocialGrid

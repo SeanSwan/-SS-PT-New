@@ -24,6 +24,8 @@ import {
   Gamepad2,
   ThumbsUp,
   Heart,
+  Mic,
+  Laugh,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
@@ -54,9 +56,11 @@ const CATEGORY_BACKGROUNDS: Record<string, string> = {
   achievement: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=60&auto=format&fit=crop',
   challenge: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=60&auto=format&fit=crop',
   dance: 'https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&q=60&auto=format&fit=crop',
-  music: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=60&auto=format&fit=crop',
+  music: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=60&auto=format&fit=crop',
+  singing: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=60&auto=format&fit=crop',
   art: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=60&auto=format&fit=crop',
   gaming: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=60&auto=format&fit=crop',
+  comedy: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=800&q=60&auto=format&fit=crop',
   creative: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&q=60&auto=format&fit=crop',
 };
 
@@ -68,8 +72,10 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   challenge: 'linear-gradient(135deg, rgba(156,39,176,0.6) 0%, rgba(10,10,26,0.85) 100%)',
   dance: 'linear-gradient(135deg, rgba(236,72,153,0.6) 0%, rgba(10,10,26,0.85) 100%)',
   music: 'linear-gradient(135deg, rgba(168,85,247,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  singing: 'linear-gradient(135deg, rgba(244,114,182,0.6) 0%, rgba(10,10,26,0.85) 100%)',
   art: 'linear-gradient(135deg, rgba(245,158,11,0.6) 0%, rgba(10,10,26,0.85) 100%)',
   gaming: 'linear-gradient(135deg, rgba(34,197,94,0.6) 0%, rgba(10,10,26,0.85) 100%)',
+  comedy: 'linear-gradient(135deg, rgba(251,191,36,0.6) 0%, rgba(10,10,26,0.85) 100%)',
   creative: 'linear-gradient(135deg, rgba(139,92,246,0.6) 0%, rgba(10,10,26,0.85) 100%)',
   general: 'linear-gradient(135deg, rgba(120,81,169,0.5) 0%, rgba(10,10,26,0.9) 100%)',
 };
@@ -585,8 +591,10 @@ const PostTypeIndicator = styled.div<{ $postType: string }>`
     props.$postType === 'challenge' ? 'linear-gradient(135deg, #9c27b0, #ba68c8)' :
     props.$postType === 'dance' ? 'linear-gradient(135deg, #ec4899, #f472b6)' :
     props.$postType === 'music' ? 'linear-gradient(135deg, #a855f7, #c084fc)' :
+    props.$postType === 'singing' ? 'linear-gradient(135deg, #f472b6, #fb7185)' :
     props.$postType === 'art' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' :
     props.$postType === 'gaming' ? 'linear-gradient(135deg, #22c55e, #4ade80)' :
+    props.$postType === 'comedy' ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' :
     'linear-gradient(135deg, #757575, #9e9e9e)'
   };
   color: white;
@@ -827,8 +835,10 @@ const postTypeIcons: Record<string, React.ElementType> = {
   transformation: Camera,
   dance: Music2,
   music: Mic2,
+  singing: Mic,
   art: Palette,
   gaming: Gamepad2,
+  comedy: Laugh,
   creative: Star,
 };
 
@@ -840,9 +850,11 @@ const postTypeLabels: Record<string, string> = {
   challenge: 'Challenge',
   transformation: 'Transformation',
   dance: 'Dance',
-  music: 'Music',
+  music: 'Music Production',
+  singing: 'Singing',
   art: 'Art',
   gaming: 'Gaming',
+  comedy: 'Comedy',
   creative: 'Creative',
 };
 
@@ -855,8 +867,10 @@ const postTypeColors: Record<string, string> = {
   transformation: 'secondary',
   dance: 'secondary',
   music: 'secondary',
+  singing: 'secondary',
   art: 'warning',
   gaming: 'success',
+  comedy: 'warning',
   creative: 'primary',
 };
 

@@ -16,6 +16,8 @@ import {
   Mic2,
   Palette,
   Gamepad2,
+  Mic,
+  Laugh,
   Sparkles,
   History,
   ChevronDown,
@@ -519,7 +521,7 @@ const CreatePostCard: React.FC = () => {
   const [media, setMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('friends');
-  const [postType, setPostType] = useState<'general' | 'workout' | 'transformation' | 'achievement' | 'challenge' | 'dance' | 'music' | 'art' | 'gaming'>('general');
+  const [postType, setPostType] = useState<'general' | 'workout' | 'transformation' | 'achievement' | 'challenge' | 'dance' | 'music' | 'singing' | 'art' | 'gaming' | 'comedy'>('general');
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const createCardRef = useRef<HTMLDivElement>(null);
   const [beforeImage, setBeforeImage] = useState<File | null>(null);
@@ -634,24 +636,38 @@ const CreatePostCard: React.FC = () => {
     },
     {
       value: 'music',
-      label: 'Music',
+      label: 'Music Production',
       icon: <Mic2 size={16} />,
       points: 20,
-      description: 'Share your workout playlist or songs'
+      description: 'Making songs, playing instruments, producing beats'
+    },
+    {
+      value: 'singing',
+      label: 'Singing',
+      icon: <Mic size={16} />,
+      points: 20,
+      description: 'Vocal performances, covers, and original songs'
     },
     {
       value: 'art',
       label: 'Art',
       icon: <Palette size={16} />,
       points: 20,
-      description: 'Share fitness-inspired art or photography'
+      description: 'Share artwork, digital art, photography, and creative projects'
     },
     {
       value: 'gaming',
       label: 'Gaming',
       icon: <Gamepad2 size={16} />,
       points: 15,
-      description: 'Gaming + fitness crossover content'
+      description: 'Gaming builds, streams, and fitness crossover content'
+    },
+    {
+      value: 'comedy',
+      label: 'Comedy',
+      icon: <Laugh size={16} />,
+      points: 15,
+      description: 'Standup, skits, memes, and funny content'
     }
   ];
 
