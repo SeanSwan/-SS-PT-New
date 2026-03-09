@@ -35,6 +35,7 @@ interface GalleryStats {
   totalDonationAmount: number;
   totalReferrals: number;
   unconvertedReferrals: number;
+  storageType?: 'cloudflare-r2' | 'base64-fallback';
 }
 
 interface GalleryEvent {
@@ -378,7 +379,7 @@ const AdminGalleryManager: React.FC = () => {
 
   // Create event form
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newEvent, setNewEvent] = useState({ name: '', sport: '', location: '', password: '', description: '', eventDate: '' });
+  const [newEvent, setNewEvent] = useState({ name: '', sport: '', location: '', password: '', description: '', eventDate: '', isPublished: true });
 
   // Upload state
   const [uploadEventId, setUploadEventId] = useState<number | null>(null);
@@ -468,7 +469,7 @@ const AdminGalleryManager: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setShowCreateForm(false);
-        setNewEvent({ name: '', sport: '', location: '', password: '', description: '', eventDate: '' });
+        setNewEvent({ name: '', sport: '', location: '', password: '', description: '', eventDate: '', isPublished: true });
         loadEvents();
         loadStats();
       }
@@ -710,6 +711,30 @@ const AdminGalleryManager: React.FC = () => {
 
   return (
     <Wrapper>
+      {/* R2 Storage Warning */}
+      {stats && stats.storageType === 'base64-fallback' && (
+        <div style={{
+          padding: '12px 16px', marginBottom: 16, borderRadius: 8,
+          background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)',
+          color: '#f59e0b', fontSize: 13, lineHeight: 1.5,
+        }}>
+          <strong>Storage Warning:</strong> Cloudflare R2 is not configured. Photos are being stored as base64 in the database,
+          which causes slow uploads and database bloat. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME
+          in your Render environment variables to enable cloud storage.
+        </div>
+      )}
+
+      {/* R2 Active Indicator */}
+      {stats && stats.storageType === 'cloudflare-r2' && (
+        <div style={{
+          padding: '8px 16px', marginBottom: 16, borderRadius: 8,
+          background: 'rgba(76, 175, 80, 0.08)', border: '1px solid rgba(76, 175, 80, 0.2)',
+          color: '#4caf50', fontSize: 12,
+        }}>
+          Cloudflare R2 cloud storage active
+        </div>
+      )}
+
       {/* KPI Stats */}
       {stats && (
         <KPIGrid>
@@ -761,6 +786,17 @@ const AdminGalleryManager: React.FC = () => {
                     <Input placeholder="Location" value={newEvent.location} onChange={e => setNewEvent(p => ({ ...p, location: e.target.value }))} />
                   </FormRow>
                   <TextArea placeholder="Description (optional)" value={newEvent.description} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <ToggleSwitch $on={newEvent.isPublished} onClick={() => setNewEvent(p => ({ ...p, isPublished: !p.isPublished }))} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: newEvent.isPublished ? '#4caf50' : 'rgba(255,255,255,0.5)' }}>
+                        {newEvent.isPublished ? 'Publish Immediately' : 'Save as Draft'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                        {newEvent.isPublished ? 'Event will be visible on the public gallery page right away' : 'Event will be hidden until you publish it later'}
+                      </div>
+                    </div>
+                  </div>
                   <div style={{ marginTop: 12 }}>
                     <ActionBtn $variant="primary" onClick={createEvent}>Create Event</ActionBtn>
                   </div>

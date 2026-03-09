@@ -76,7 +76,7 @@ router.get('/events', async (req, res) => {
  */
 router.post('/events', async (req, res) => {
   try {
-    const { name, sport, eventDate, location, password, description } = req.body;
+    const { name, sport, eventDate, location, password, description, isPublished } = req.body;
 
     if (!name || !password) {
       return res.status(400).json({ success: false, error: 'Event name and password are required' });
@@ -101,7 +101,7 @@ router.post('/events', async (req, res) => {
       location: location?.trim() || null,
       passwordHash,
       description: description?.trim() || null,
-      isPublished: false,
+      isPublished: isPublished === true,
     });
 
     return res.status(201).json({
@@ -556,6 +556,13 @@ router.get('/stats', async (req, res) => {
       col: 'email',
     });
 
+    // Check R2 storage status
+    let storageType = 'base64-fallback';
+    try {
+      const { r2Configured } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) storageType = 'cloudflare-r2';
+    } catch { /* */ }
+
     return res.json({
       success: true,
       stats: {
@@ -568,6 +575,7 @@ router.get('/stats', async (req, res) => {
         totalDonationAmount: parseFloat(totalDonations) || 0,
         totalReferrals,
         unconvertedReferrals,
+        storageType,
       },
     });
   } catch (err) {
