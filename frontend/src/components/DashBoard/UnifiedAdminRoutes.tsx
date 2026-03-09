@@ -137,7 +137,6 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/video-studio" element={<Navigate to="/dashboard/content/video-studio" replace />} />
     <Route path="/video-studio/:id" element={<ParamRedirect base="/dashboard/content/video-studio" />} />
     <Route path="/exercise-management" element={<Navigate to="/dashboard/content/exercises" replace />} />
-    <Route path="/gamification" element={<Navigate to="/dashboard/gamification" replace />} />
 
     {/* Analytics workspace redirects */}
     <Route path="/analytics" element={<Navigate to="/dashboard/analytics" replace />} />
