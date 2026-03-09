@@ -59,6 +59,7 @@ const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-a
 const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
 const BodyMap = React.lazy(() => import('../BodyMap'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
+const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 
@@ -292,6 +293,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="bootcamp" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <BootcampBuilderPage />
+        </React.Suspense>
+      } />
+      <Route path="equipment" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <EquipmentManagerPage />
         </React.Suspense>
       } />
     </Route>

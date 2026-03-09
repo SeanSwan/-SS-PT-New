@@ -40,6 +40,8 @@ import {
   SWAN_CYAN,
   TextArea,
 } from './copilot-shared-styles';
+import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker';
+import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 
 type LHState =
   | 'idle'
@@ -247,6 +249,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
   const [state, setState] = useState<LHState>('idle');
   const [horizonMonths, setHorizonMonths] = useState<3 | 6 | 12>(6);
+  const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [trainerNotes, setTrainerNotes] = useState('');
   const [overrideReason, setOverrideReason] = useState('');
   const [overrideReasonRequired, setOverrideReasonRequired] = useState(false);
@@ -567,12 +570,31 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           </FormGroup>
 
           <FormGroup $fullWidth>
+            <EquipmentProfilePicker
+              selectedProfileId={equipmentProfileId}
+              onSelect={setEquipmentProfileId}
+              compact
+              label="Equipment Profile"
+            />
+          </FormGroup>
+
+          <FormGroup $fullWidth>
             <Label>Additional Notes</Label>
             <TextArea
               value={trainerNotes}
               onChange={(e) => setTrainerNotes(e.target.value)}
               placeholder="Optional context for your review process"
               rows={3}
+            />
+          </FormGroup>
+
+          <FormGroup $fullWidth>
+            <AITerminalPanel
+              context="workout_generation"
+              clientId={clientId}
+              equipmentProfileId={equipmentProfileId}
+              placeholder="Ask AI about long-horizon planning..."
+              defaultOpen={false}
             />
           </FormGroup>
 

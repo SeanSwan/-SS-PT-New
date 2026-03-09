@@ -30,13 +30,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  dailyWorkoutFormService, 
-  ExerciseEntry, 
+import {
+  dailyWorkoutFormService,
+  ExerciseEntry,
   ExerciseSet,
-  DailyWorkoutForm 
+  DailyWorkoutForm
 } from '../../services/nasmApiService';
 import { ApiService } from '../../services/api.service';
+import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
+import AITerminalPanel from '../Shared/AITerminalPanel';
 
 // ==================== INTERFACES ====================
 
@@ -659,6 +661,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
   const [sessionNotes, setSessionNotes] = useState('');
   const [overallIntensity, setOverallIntensity] = useState(5);
+  const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -923,6 +926,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {/* Equipment Profile Picker */}
+        <EquipmentProfilePicker
+          selectedProfileId={equipmentProfileId}
+          onSelect={setEquipmentProfileId}
+          label="Training Location"
+        />
+
+        {/* AI Assistant Panel */}
+        <AITerminalPanel
+          context="workout_generation"
+          clientId={clientId}
+          equipmentProfileId={equipmentProfileId}
+          placeholder="Ask AI to suggest exercises for this client..."
+        />
+
         <Header>
           <ClientInfo>
             <h2>

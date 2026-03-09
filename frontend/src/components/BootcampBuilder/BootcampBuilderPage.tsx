@@ -16,6 +16,8 @@ import type {
   ClassFormat,
   DayType,
 } from '../../hooks/useBootcampAPI';
+import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
+import AITerminalPanel from '../Shared/AITerminalPanel';
 
 // ── Styled Components ─────────────────────────────────────────────────
 
@@ -273,6 +275,7 @@ const BootcampBuilderPage: React.FC = () => {
   // Config
   const [classFormat, setClassFormat] = useState<ClassFormat>('stations_4x');
   const [dayType, setDayType] = useState<DayType>('full_body');
+  const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [targetDuration, setTargetDuration] = useState('50');
   const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
@@ -298,6 +301,7 @@ const BootcampBuilderPage: React.FC = () => {
         targetDuration: parseInt(targetDuration, 10) || 45,
         expectedParticipants: parseInt(expectedParticipants, 10) || 12,
         name: className || undefined,
+        equipmentProfileId: equipmentProfileId || undefined,
       });
       setBootcamp(result);
     } catch (err) {
@@ -376,6 +380,15 @@ const BootcampBuilderPage: React.FC = () => {
           <FormGroup>
             <Label>Class Name (optional)</Label>
             <Input type="text" placeholder="Auto-generated if empty" value={className} onChange={e => setClassName(e.target.value)} />
+          </FormGroup>
+
+          <FormGroup>
+            <EquipmentProfilePicker
+              selectedProfileId={equipmentProfileId}
+              onSelect={setEquipmentProfileId}
+              compact
+              label="Equipment Profile"
+            />
           </FormGroup>
 
           <PrimaryButton $floorMode={floorMode} onClick={handleGenerate} disabled={loading}>
@@ -542,6 +555,14 @@ const BootcampBuilderPage: React.FC = () => {
               ))}
             </>
           )}
+
+          <SectionDivider>AI Assistant</SectionDivider>
+          <AITerminalPanel
+            context="workout_generation"
+            equipmentProfileId={equipmentProfileId}
+            placeholder="Ask AI to modify this bootcamp class..."
+            defaultOpen={false}
+          />
         </Panel>
       </ThreePane>
     </PageWrapper>

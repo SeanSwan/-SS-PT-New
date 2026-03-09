@@ -27,6 +27,7 @@ import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import eventBus from './eventBus.mjs';
 import { createWorkoutAutoPost, createStreakAutoPost } from './socialAutoPost.mjs';
+import { detectCombos, sumExerciseXP } from './gamificationComboService.mjs';
 
 /**
  * Award XP for a workout completion.
@@ -36,6 +37,7 @@ import { createWorkoutAutoPost, createStreakAutoPost } from './socialAutoPost.mj
  * @param {string} params.workoutId - WorkoutSession UUID
  * @param {number} params.duration - Workout duration in minutes
  * @param {number} params.exercisesCompleted - Number of exercises
+ * @param {Array}  [params.exerciseDetails] - Exercise objects for per-exercise XP + combo detection
  * @param {Date}   [params.workoutDate] - When the workout was performed (defaults to now)
  * @param {number} [params.awardedBy] - Admin/trainer user ID who triggered the award
  * @param {Transaction} transaction - Sequelize transaction (caller manages commit/rollback)
@@ -54,6 +56,7 @@ export async function awardWorkoutXP({
   workoutId,
   duration,
   exercisesCompleted,
+  exerciseDetails,
   workoutDate,
   awardedBy,
 }, transaction) {
@@ -120,8 +123,12 @@ export async function awardWorkoutXP({
 
   let pointsToAward = settings?.pointsPerWorkout || 50;
 
-  // Bonus for exercises
-  if (exercisesCompleted && settings?.pointsPerExercise) {
+  // Per-exercise XP: use detailed exercise data when available
+  if (exerciseDetails && exerciseDetails.length > 0) {
+    const perExerciseXP = sumExerciseXP(exerciseDetails);
+    pointsToAward += perExerciseXP;
+  } else if (exercisesCompleted && settings?.pointsPerExercise) {
+    // Fallback: flat per-exercise bonus
     pointsToAward += exercisesCompleted * settings.pointsPerExercise;
   }
 
@@ -130,9 +137,20 @@ export async function awardWorkoutXP({
     pointsToAward += Math.floor((duration - 30) / 5);
   }
 
-  // Apply multiplier
+  // Apply settings multiplier
   if (settings?.pointsMultiplier) {
     pointsToAward = Math.round(pointsToAward * settings.pointsMultiplier);
+  }
+
+  // ── Combo bonus detection ────────────────────────────────────────
+  let comboResult = { combos: [], bestMultiplier: 1.0, comboBonus: 0 };
+  if (exerciseDetails && exerciseDetails.length > 0) {
+    comboResult = detectCombos(exerciseDetails);
+    if (comboResult.bestMultiplier > 1.0) {
+      const comboExtra = Math.round(pointsToAward * comboResult.comboBonus);
+      pointsToAward += comboExtra;
+      logger.info(`Combo bonus: ${comboResult.combos.map(c => c.name).join(', ')} → +${comboExtra} XP (${comboResult.bestMultiplier}x)`);
+    }
   }
 
   // ── Streak calculation ─────────────────────────────────────────────
@@ -242,12 +260,14 @@ export async function awardWorkoutXP({
       transactionType: 'earn',
       source: 'workout_completion',
       sourceId: workoutId ? String(workoutId) : null,
-      description: `Workout completed: ${duration || 'Unknown'} minutes, ${exercisesCompleted || 0} exercises`,
+      description: `Workout completed: ${duration || 'Unknown'} minutes, ${exercisesCompleted || 0} exercises${comboResult.combos.length > 0 ? ` (${comboResult.combos.map(c => c.name).join(', ')})` : ''}`,
       metadata: {
         workoutId,
         duration,
         exercisesCompleted,
         workoutDate: effectiveDate.toISOString(),
+        combos: comboResult.combos.length > 0 ? comboResult.combos : undefined,
+        comboMultiplier: comboResult.bestMultiplier > 1 ? comboResult.bestMultiplier : undefined,
       },
       awardedBy,
     },
@@ -398,6 +418,8 @@ export async function awardWorkoutXP({
     streakDays: updatedStats.streakDays,
     totalWorkouts: updatedStats.totalWorkouts,
     awardedMilestones,
+    combos: comboResult.combos,
+    comboMultiplier: comboResult.bestMultiplier,
   };
 }
 

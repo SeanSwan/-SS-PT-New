@@ -18,6 +18,7 @@ import {
   Video,
   HeartPulse,
   Users,
+  Camera,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import WorkoutClientDrawer from './WorkoutClientDrawer';
@@ -44,6 +45,7 @@ const TABS = [
   { id: 'form-analysis', label: 'Form Analysis', icon: <Video size={16} />, path: '/dashboard/workouts/form-analysis' },
   { id: 'body-map', label: 'Body Map', icon: <HeartPulse size={16} />, path: '/dashboard/workouts/body-map' },
   { id: 'bootcamp', label: 'Boot Camp', icon: <Users size={16} />, path: '/dashboard/workouts/bootcamp' },
+  { id: 'equipment', label: 'Equipment', icon: <Camera size={16} />, path: '/dashboard/workouts/equipment' },
 ];
 
 // ---- Component ----
@@ -67,8 +69,8 @@ const WorkoutsWorkspace: React.FC = () => {
 
   const activeTabId = TABS.find((t) => location.pathname === t.path)?.id || 'plans';
 
-  // Tabs that don't require client selection (e.g., group class builder)
-  const clientFreeTab = activeTabId === 'bootcamp';
+  // Tabs that don't require client selection (e.g., group class builder, equipment manager)
+  const clientFreeTab = activeTabId === 'bootcamp' || activeTabId === 'equipment';
 
   return (
     <WorkspaceRoot>
