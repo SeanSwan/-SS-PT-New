@@ -17,6 +17,7 @@ import {
   Zap,
   Video,
   HeartPulse,
+  Users,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import WorkoutClientDrawer from './WorkoutClientDrawer';
@@ -42,6 +43,7 @@ const TABS = [
   { id: 'ai', label: 'AI Protocols', icon: <Brain size={16} />, path: '/dashboard/workouts/ai' },
   { id: 'form-analysis', label: 'Form Analysis', icon: <Video size={16} />, path: '/dashboard/workouts/form-analysis' },
   { id: 'body-map', label: 'Body Map', icon: <HeartPulse size={16} />, path: '/dashboard/workouts/body-map' },
+  { id: 'bootcamp', label: 'Boot Camp', icon: <Users size={16} />, path: '/dashboard/workouts/bootcamp' },
 ];
 
 // ---- Component ----
@@ -300,7 +302,7 @@ const ClientHeaderSessions = styled.div`
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #00ffff;
+  color: #8B5CF6;
 `;
 
 const ChangeLabel = styled.span`
@@ -321,7 +323,7 @@ const SelectIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #00ffff;
+  color: #8B5CF6;
   flex-shrink: 0;
 `;
 
@@ -359,7 +361,7 @@ const EmptyOrb = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #00ffff;
+  color: #8B5CF6;
   margin-bottom: 8px;
 `;
 

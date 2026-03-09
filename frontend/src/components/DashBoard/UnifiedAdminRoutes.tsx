@@ -58,6 +58,7 @@ const MovementAnalysisListPage = React.lazy(() => import('./Pages/admin-movement
 const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisWizard'));
 const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
 const BodyMap = React.lazy(() => import('../BodyMap'));
+const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 
@@ -288,6 +289,11 @@ const UnifiedAdminRoutes: React.FC = () => (
         </React.Suspense>
       } />
       <Route path="body-map" element={<WorkoutOutletWrapper component="body-map" />} />
+      <Route path="bootcamp" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <BootcampBuilderPage />
+        </React.Suspense>
+      } />
     </Route>
 
     {/* Phase 3 consolidation: AdminGamificationView manages its own internal tabs,
