@@ -1363,11 +1363,12 @@ const GalleryPage: React.FC = () => {
             <VaultCard>
               <HeroEyebrow>SwanStudios Photography</HeroEyebrow>
               <HeroHeadline>
-                Fleeting Triumphs.
+                Every Moment.
                 <span className="drama">Immortalized.</span>
               </HeroHeadline>
               <HeroSubheadline>
-                Professional, heirloom-quality captures of your athlete's greatest moments.
+                Premium photography for life's defining moments — events, portraits,
+                fitness transformations, and everything in between.
                 Preserved securely in the SwanStudios Vault.
               </HeroSubheadline>
               <HeroButtonGroup>
@@ -1383,9 +1384,9 @@ const GalleryPage: React.FC = () => {
                 <HeroSecondaryButton
                   as="a"
                   href="/contact"
-                  aria-label="Commission a photography shoot"
+                  aria-label="Inquire about photography services"
                 >
-                  Commission a Shoot
+                  Inquire About Photography
                 </HeroSecondaryButton>
               </HeroButtonGroup>
             </VaultCard>
@@ -1403,7 +1404,7 @@ const GalleryPage: React.FC = () => {
         {/* Event Listing */}
         <ContentMax id="events-section">
           <PageTitle>Recent Events</PageTitle>
-          <PageSubtitle>Browse photos from recent games. Enter your email and event password to access.</PageSubtitle>
+          <PageSubtitle>Browse photos from recent events. Enter your email and event password to access.</PageSubtitle>
 
           {loading ? (
             <EventGrid>
@@ -1412,7 +1413,7 @@ const GalleryPage: React.FC = () => {
           ) : events.length === 0 ? (
             <SupportSection initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <SupportTitle>No events yet</SupportTitle>
-              <SupportText>Check back soon for new game photos!</SupportText>
+              <SupportText>Check back soon for new event photos!</SupportText>
             </SupportSection>
           ) : (
             <EventGrid>
@@ -1655,7 +1656,7 @@ const GalleryPage: React.FC = () => {
               >
                 <ModalCloseBtn onClick={() => setShowUpgradeModal(false)}>&#x2715;</ModalCloseBtn>
                 <ModalTitle>Enhance Your Photos</ModalTitle>
-                <ModalSubtitle>Professional AI enhancement makes your game photos pop. Choose a package:</ModalSubtitle>
+                <ModalSubtitle>Professional AI enhancement makes your photos pop. Choose a package:</ModalSubtitle>
 
                 <PricingGrid>
                   <PricingCard onClick={() => handlePurchaseCredits('single')}>
