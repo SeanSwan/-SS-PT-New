@@ -18,6 +18,7 @@ import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { processAIDataUpdates } from '../services/aiDataWriteService.mjs';
 
 const router = express.Router();
 
@@ -238,12 +239,37 @@ router.post('/conversations/:id/messages', async (req, res) => {
       title: conversation.title || generateTitle(message.trim()),
     });
 
+    // Check if the AI response contains a data update action block
+    let dataUpdateResult = null;
+    if (aiResult.content && (conversation.role === 'admin' || conversation.role === 'trainer')) {
+      try {
+        const actionMatch = aiResult.content.match(/```json\s*(\{[\s\S]*?"action"\s*:\s*"update_client_data"[\s\S]*?\})\s*```/);
+        if (actionMatch) {
+          const actionPayload = JSON.parse(actionMatch[1]);
+          const targetId = actionPayload.targetUserId || conversation.targetUserId;
+          if (targetId && actionPayload.updates) {
+            dataUpdateResult = await processAIDataUpdates(
+              targetId,
+              actionPayload.updates,
+              req.user.id,
+              sequelize
+            );
+            logger.info('[AIChatRoutes] AI data update processed for user %d: %d updates, %d errors',
+              targetId, dataUpdateResult.successful, dataUpdateResult.errors.length);
+          }
+        }
+      } catch (parseErr) {
+        logger.warn('[AIChatRoutes] Failed to parse AI data update action:', parseErr.message);
+      }
+    }
+
     return res.json({
       success: true,
       userMessage: userMsg,
       assistantMessage: assistantMsg,
       conversationId: conversation.id,
       messageCount: updatedMessages.length,
+      dataUpdateResult,
     });
   } catch (err) {
     logger.error('[AIChatRoutes] Send message error:', err.message);

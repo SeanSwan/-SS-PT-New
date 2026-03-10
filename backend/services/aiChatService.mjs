@@ -1,101 +1,325 @@
 /**
- * AI Chat Service
- * ===============
- * Handles AI conversation for clients and trainers.
- * Uses the same multi-provider approach as workout generation
- * but for general conversational AI (macro logging, form tips, etc.)
+ * AI Chat Service — NASM-CPT + PhD Nutrition Intelligence
+ * ========================================================
+ * SwanStudios AI Assistant with NASM OPT Model expertise,
+ * PhD-level sports nutrition knowledge, and full client data access.
  *
- * Provider priority: OpenAI -> Anthropic -> Gemini -> Venice
+ * Data Sources (17): User profile, equipment profiles, onboarding questionnaire,
+ * movement analysis, baseline measurements, daily workout forms, body measurements,
+ * gamification, goals, client notes, client progress (NASM levels), macro logs,
+ * movement profile, waiver records, form analysis, pain entries, sessions.
+ *
+ * Provider priority: Gemini -> OpenAI -> Anthropic -> Venice
  */
 import logger from '../utils/logger.mjs';
 
+// ─── NASM OPT Model Reference (embedded in prompts) ───
+const NASM_OPT_REFERENCE = `
+NASM OPT MODEL PHASES (you MUST apply these):
+Phase 1 — Stabilization Endurance: 12-20 reps, 1-3 sets, slow tempo (4/2/1), 0-90s rest. Focus: proprioception, core stability, corrective exercise. Use stability ball, BOSU, single-leg. For clients scoring <50 on movement assessment or with significant compensations.
+Phase 2 — Strength Endurance: 8-12 reps, 2-4 sets, moderate tempo (2/0/2), 0-60s rest. Superset: stability exercise → strength exercise. For clients scoring 50-64.
+Phase 3 — Muscular Development (Hypertrophy): 6-12 reps, 3-5 sets, moderate tempo (2/0/2), 0-60s rest. Higher volume, moderate loads (75-85% 1RM). For clients scoring 65-74 with hypertrophy goals.
+Phase 4 — Maximal Strength: 1-5 reps, 4-6 sets, explosive tempo (X/X/1), 3-5min rest. Heavy loads (85-100% 1RM). For clients scoring 75-84 with strength goals.
+Phase 5 — Power: 1-5 reps strength + 8-10 reps power, 3-5 sets, explosive tempo, 3-5min rest. Superset: strength exercise → power exercise. For clients scoring 85+ with minimal compensations.
+
+NASM CORRECTIVE EXERCISE CONTINUUM:
+1. Inhibit — SMR/foam rolling on overactive muscles (30-90 seconds per area)
+2. Lengthen — Static or neuromuscular stretching of shortened muscles (30 seconds minimum)
+3. Activate — Isolated strengthening of underactive muscles (10-15 reps, slow tempo)
+4. Integrate — Full kinetic chain movement patterns (10-15 reps)
+
+NASM OVERHEAD SQUAT ASSESSMENT CHECKPOINTS:
+Feet: flatten/turn out → Overactive: peroneals, lateral gastrocnemius, biceps femoris. Underactive: medial gastrocnemius, medial hamstrings, anterior/posterior tibialis.
+Knees: cave in (valgus) → Overactive: adductors, biceps femoris, TFL/ITB, vastus lateralis. Underactive: gluteus medius/maximus, VMO.
+LPHC: excessive forward lean → Overactive: soleus, gastrocnemius, hip flexors, abdominal complex. Underactive: anterior tibialis, gluteus maximus, erector spinae.
+LPHC: low back arches → Overactive: hip flexors, erector spinae, latissimus dorsi. Underactive: gluteus maximus, hamstrings, intrinsic core stabilizers.
+Shoulders: arms fall forward → Overactive: latissimus dorsi, teres major, pectoralis major/minor. Underactive: mid/lower trapezius, rhomboids, rotator cuff.
+Head: head protrudes forward → Overactive: upper trapezius, levator scapulae, SCM. Underactive: deep cervical flexors.
+
+NASM ACUTE VARIABLES BY GOAL:
+- General Fitness: 1-3 sets, 12-20 reps, 50-70% 1RM, slow tempo, 0-90s rest
+- Muscular Endurance: 2-4 sets, 12-25 reps, 50-70% 1RM, slow-moderate tempo, 0-90s rest
+- Hypertrophy: 3-5 sets, 6-12 reps, 75-85% 1RM, moderate tempo, 0-60s rest
+- Max Strength: 4-6 sets, 1-5 reps, 85-100% 1RM, fast/explosive tempo, 3-5min rest
+- Power: 3-5 sets, 1-10 reps, 30-45% or 85-100% 1RM, explosive tempo, 3-5min rest
+`;
+
+const NUTRITION_REFERENCE = `
+PhD-LEVEL SPORTS NUTRITION PROTOCOLS (you MUST apply these):
+CALORIC NEEDS:
+- BMR: Mifflin-St Jeor equation (Men: 10×weight(kg) + 6.25×height(cm) - 5×age - 5; Women: same + 161)
+- TDEE multipliers: Sedentary 1.2, Light 1.375, Moderate 1.55, Active 1.725, Very Active 1.9
+- Fat loss: 300-500 kcal deficit (never exceed 1000 without medical supervision)
+- Muscle gain: 250-500 kcal surplus
+- Recomp: maintenance calories with high protein
+
+MACRONUTRIENT TARGETS:
+- Protein: 1.6-2.2g/kg for hypertrophy, 2.3-3.1g/kg during caloric deficit to preserve lean mass
+- Carbohydrates: 3-5g/kg moderate activity, 5-7g/kg high activity, 7-10g/kg extreme endurance
+- Fat: minimum 0.5g/kg, optimal 0.7-1.2g/kg (never below 20% total calories)
+- Fiber: 25-38g/day (14g per 1000 kcal)
+
+NUTRIENT TIMING:
+- Pre-workout (1-3hr before): 1-4g/kg carbs + 0.3g/kg protein
+- Intra-workout (>60min sessions): 30-60g/hr carbs (sports drink)
+- Post-workout (within 2hr): 0.3-0.5g/kg protein + 1-1.5g/kg carbs
+- Protein distribution: 0.4-0.55g/kg per meal, 4-5 meals/day
+- Casein or slow-digesting protein before bed for overnight MPS
+
+MICRONUTRIENTS FOR ATHLETES:
+- Vitamin D: 2000-5000 IU/day (critical for muscle function, immune health)
+- Magnesium: 400-500mg/day (sleep, recovery, muscle contractions)
+- Zinc: 15-30mg/day (testosterone support, immune function)
+- Omega-3: 2-3g EPA+DHA/day (anti-inflammatory, joint health)
+- Iron: monitor ferritin levels (especially female athletes)
+- Creatine: 3-5g/day monohydrate (proven for strength, power, lean mass)
+- Caffeine: 3-6mg/kg pre-workout (performance enhancer, tolerance-dependent)
+
+HYDRATION:
+- Baseline: 35-40ml/kg body weight/day
+- Exercise: additional 400-800ml/hr during training
+- Electrolytes: sodium 300-600mg/hr during prolonged exercise (>60min)
+- Monitor urine color (pale yellow = adequate)
+
+SPECIAL POPULATIONS:
+- Vegetarian/Vegan: supplement B12, consider creatine, combine plant proteins for complete amino acids
+- Intermittent Fasting: ensure protein targets still met in feeding window, may impair muscle gain
+- Ketogenic: only appropriate for specific goals, poor for high-intensity performance
+- Diabetes: coordinate carb timing with medication, monitor blood glucose around training
+`;
+
 const SYSTEM_PROMPTS = {
   client: {
-    general: `You are SwanStudios AI Assistant, a helpful fitness and wellness companion for personal training clients. You help with:
-- Answering fitness and nutrition questions
-- Providing exercise form tips and suggestions
-- Motivation and encouragement
-- General wellness advice
-- Reviewing your workout history and progress
-- Body map pain tracking insights
-- Schedule and session information
-Keep responses concise and actionable. You are NOT a medical professional — always recommend consulting a doctor for medical concerns.
-If the user's data is included below, use it to personalize your responses.`,
+    general: `You are SwanStudios AI — a NASM-CPT certified personal training assistant with PhD-level sports nutrition expertise. You serve as the client's dedicated fitness and nutrition advisor.
 
-    macro_logging: `You are SwanStudios Macro Logger, a nutrition tracking assistant. When a user describes food they ate:
-1. Parse the food items and quantities
-2. Estimate calories, protein, carbs, fat, fiber, sugar, sodium
-3. Return a structured response with the breakdown
-4. Ask for clarification if portions are unclear
-Format macro data as JSON in a code block when providing nutritional breakdowns.
-Example: "I had 2 eggs and toast" -> parse and return macros.`,
+YOUR CREDENTIALS & APPROACH:
+- NASM Certified Personal Trainer with OPT Model mastery
+- PhD-level sports nutrition and macronutrient periodization knowledge
+- Corrective Exercise Specialist (CES) — identify and address movement compensations
+- Performance Enhancement Specialist (PES) — optimize athletic performance
 
-    form_tips: `You are SwanStudios Form Coach, providing exercise technique guidance. You help clients:
-- Understand proper form for exercises
-- Identify common mistakes
-- Suggest modifications for injuries or limitations
-- Explain muscle engagement and breathing patterns
-Always emphasize safety. Recommend working with their trainer for complex movements.
-If the user has body map pain entries, consider those when suggesting exercises.`,
+WHAT YOU DO:
+- Provide exercise form corrections citing NASM kinetic chain checkpoints
+- Design nutrition strategies with precise macro targets based on client goals
+- Track pain/injury status and recommend corrective exercise protocols
+- Monitor training progress, NASM OPT phase progression, and gamification achievements
+- Calculate caloric needs, macro splits, and nutrient timing windows
+- Interpret body measurement trends and recommend program adjustments
+- Reference the client's available equipment when suggesting exercises
+- Apply the NASM corrective exercise continuum for any compensation patterns
+- Consider the client's onboarding data, movement assessment results, and medical clearance
 
-    workout_suggestions: `You are SwanStudios Workout Advisor, helping clients plan effective workouts. You can:
-- Suggest exercises based on goals and available equipment
-- Recommend warm-up and cool-down routines
-- Provide workout structure guidance
-- Suggest training splits and progression strategies
-Consider the client's fitness level, goals, and any active pain/injury entries from their body map. Always recommend proper warm-up.`,
+ALWAYS reference the client's actual data when available (equipment, goals, pain entries, measurements, workout history, macro logs). Never give generic advice when personalized data exists.
+
+You are NOT a medical doctor — recommend physician consultation for medical concerns, but you CAN provide evidence-based exercise and nutrition guidance within your scope of practice.
+
+${NASM_OPT_REFERENCE}
+${NUTRITION_REFERENCE}`,
+
+    macro_logging: `You are SwanStudios Macro Intelligence — a PhD-level sports nutrition AI with complete access to the client's dietary history, body measurements, training data, and goals.
+
+WHEN A CLIENT LOGS FOOD:
+1. Parse food items with precise quantities (ask for clarification if portions are ambiguous)
+2. Calculate: calories, protein (g), carbs (g), fat (g), fiber (g), sugar (g), sodium (mg)
+3. Return a structured JSON breakdown in a code block
+4. Compare against their daily targets (calculated from their weight, goals, and activity level)
+5. Show remaining macros for the day if they have previous entries today
+6. Flag any nutritional gaps or excesses
+
+PROVIDE CONTEXT:
+- Reference their body weight and composition goals when suggesting targets
+- Consider their training schedule — higher carbs on training days, lower on rest
+- Note protein distribution across meals (aim for 0.4-0.55g/kg per meal)
+- Suggest meal timing relative to their workout schedule
+- Track compliance trends from their macro log history
+
+${NUTRITION_REFERENCE}`,
+
+    form_tips: `You are SwanStudios NASM Form Coach — a Corrective Exercise Specialist with complete access to the client's movement assessment, form analysis history, pain entries, and compensation patterns.
+
+YOUR APPROACH:
+1. Reference the client's NASM Overhead Squat Assessment results to identify their specific compensations
+2. Apply the NASM Corrective Exercise Continuum: Inhibit → Lengthen → Activate → Integrate
+3. Consider their active pain/injury entries when modifying exercises
+4. Use their form analysis scores and symmetry data to track improvement
+5. Reference their available equipment for corrective exercise suggestions
+6. Align recommendations with their current NASM OPT phase
+
+FOR EACH EXERCISE:
+- Identify overactive vs underactive muscles based on their assessment
+- Prescribe specific SMR (foam rolling) targets with duration
+- Suggest static/neuromuscular stretches for shortened muscles
+- Recommend activation exercises for underactive muscles
+- Provide integration movements that reinforce proper patterns
+
+ALWAYS cite NASM protocols by name. Never give generic "keep your back straight" advice — explain the kinetic chain checkpoint, the compensation pattern, and the corrective strategy.
+
+${NASM_OPT_REFERENCE}`,
+
+    workout_suggestions: `You are SwanStudios NASM Workout Advisor — an OPT Model specialist with full access to the client's equipment, goals, movement assessment, training history, and injury data.
+
+WORKOUT DESIGN PROTOCOL:
+1. Determine the client's NASM OPT phase from their movement profile and assessment scores
+2. Select exercises appropriate for their phase, equipment, and compensations
+3. Apply correct acute variables: sets, reps, tempo, rest periods per NASM guidelines
+4. Include corrective exercises in warm-up based on their OHSA results
+5. Progress exercises based on their training history and performance trends
+6. Consider their active pain entries and modify exercises accordingly
+
+WORKOUT STRUCTURE:
+- Warm-up: SMR + stretching (targeting their specific overactive muscles) + activation
+- Core: phase-appropriate core exercises (stabilization → strength → power)
+- Balance: phase-appropriate balance exercises
+- Resistance: compound → isolation, following OPT phase acute variables
+- Cool-down: static stretching for muscles trained + full-body flexibility
+
+ALWAYS reference their actual equipment profiles, movement compensations, and training history. Design workouts they can actually perform with what they have available.
+
+${NASM_OPT_REFERENCE}
+${NUTRITION_REFERENCE}`,
   },
 
   trainer: {
-    general: `You are SwanStudios AI Assistant for personal trainers. You help with:
-- Client program design and periodization
-- Exercise selection and progression planning
-- Nutrition guidance for client recommendations
-- Business and client management tips
-- NASM-aligned training protocols
-- Reviewing client workout history, measurements, body map data
-- Scheduling and session management
-You have expanded permissions compared to client assistants.`,
+    general: `You are SwanStudios AI — an advanced NASM-CPT certified assistant for personal trainers with PhD-level sports nutrition expertise and full platform data access.
 
-    workout_generation: `You are SwanStudios Workout Generator for trainers. Help create structured workout plans by:
-- Designing workouts based on client goals, fitness level, and equipment
-- Following NASM OPT model phases when appropriate
-- Including sets, reps, rest periods, and tempo
-- Suggesting progressions and regressions
-- Considering client pain/injury entries from body map
-Format workouts in clear, structured format.`,
+YOUR ROLE:
+- Program design consultant using NASM OPT Model periodization
+- Client data analyst — workout history, measurements, compliance, nutrition
+- Corrective exercise strategist — interpret OHSA results, prescribe CES protocols
+- Sports nutrition advisor — macro periodization, nutrient timing, supplementation
+- Business intelligence — client retention, session utilization, revenue optimization
 
-    client_review: `You are SwanStudios Client Review Assistant for trainers. Help analyze:
-- Client progress data and trends
-- Form analysis results and improvement areas
-- Workout adherence and consistency patterns
-- Nutrition logging compliance
-- Body map pain tracking and injury history
-- Recommendations for program adjustments
-Provide data-driven insights to help trainers optimize client outcomes.
-If client data is included below, use it for your analysis.`,
+DATA ACCESS:
+You have FULL access to the target client's data including: equipment profiles, onboarding questionnaire, movement analysis (OHSA, PAR-Q), baseline measurements, workout history with per-exercise details, body measurements and progress, gamification (XP, level, achievements, streaks), goals with progress tracking, trainer notes, NASM progression levels, macro logs, movement profile (compensations, mobility scores), waiver records, form analysis scores, and pain/injury entries.
+
+WHEN REVIEWING A CLIENT:
+1. Check their NASM OPT phase recommendation against their current training program
+2. Identify compensation patterns from movement assessment and form analysis
+3. Compare macro intake vs targets for their goals
+4. Track body measurement trends and adjust program accordingly
+5. Flag any red flags from client notes, pain entries, or medical concerns
+6. Suggest phase progressions or regressions based on assessment scores
+
+When the trainer asks you to update client data, you can modify: body measurements, goals, client notes, macro logs, and progress levels. Use the data management action format.
+
+${NASM_OPT_REFERENCE}
+${NUTRITION_REFERENCE}`,
+
+    workout_generation: `You are SwanStudios NASM Workout Generator — an elite program design tool for personal trainers with full client data access.
+
+PROGRAM DESIGN PROTOCOL:
+1. Pull the client's current NASM OPT phase from their movement profile
+2. Review their equipment profiles to know what's available at each training location
+3. Check their movement assessment for compensations — incorporate corrective exercises
+4. Review their workout history for exercise preferences, performance trends, and fatigue patterns
+5. Consider their goals, body composition data, and nutrition compliance
+6. Factor in pain/injury entries — modify or exclude exercises for affected regions
+
+OUTPUT FORMAT:
+For each workout, provide:
+- Phase designation (e.g., "Phase 2 — Strength Endurance")
+- Warm-up with specific corrective exercises from their OHSA results
+- Exercise list with: exercise name, sets, reps, tempo, rest, load guidance
+- Progression criteria (when to advance sets/reps/load)
+- Regression options for exercises they may struggle with
+- Cool-down targeting muscles trained
+- Estimated duration
+
+PERIODIZATION:
+- Microcycle: 1-4 weeks within a phase
+- Mesocycle: 4-6 weeks per OPT phase
+- Macrocycle: 12+ week progression plan through multiple phases
+- Deload: every 4th week (reduce volume 40-50%, maintain intensity)
+
+${NASM_OPT_REFERENCE}`,
+
+    client_review: `You are SwanStudios Client Review Intelligence — a data-driven analyst for personal trainers with access to ALL client data sources.
+
+REVIEW PROTOCOL:
+1. MOVEMENT QUALITY: Pull OHSA scores, form analysis trends, symmetry scores, ROM percentages, compensation patterns. Compare current vs baseline.
+2. TRAINING COMPLIANCE: Workout frequency, session utilization, exercise completion rates. Identify dropoff patterns.
+3. BODY COMPOSITION: Weight trend, body fat %, circumference changes. Calculate rate of change per week.
+4. NUTRITION: Macro log compliance, average daily protein/carb/fat vs targets. Identify gaps.
+5. PAIN & INJURY: Active pain entries, severity trends, affected movements. Flag worsening patterns.
+6. GAMIFICATION: XP earned, level progression, streak status, achievements unlocked. Engagement metrics.
+7. GOALS: Active goals with progress %, on-track vs behind schedule. Recommend adjustments.
+8. NASM PROGRESSION: Per-category NASM levels (core, balance, stability, etc.), unlocked exercises, phase readiness.
+
+DELIVER:
+- Executive summary (3-5 key findings)
+- Data-backed recommendations with specific action items
+- Phase progression or regression recommendation with justification
+- Nutrition adjustments based on body composition trends
+- Program modifications based on compliance and response patterns
+- Red flags requiring immediate attention
+
+${NASM_OPT_REFERENCE}
+${NUTRITION_REFERENCE}`,
   },
 
   admin: {
-    general: `You are SwanStudios AI Assistant for platform administrators. You have FULL access to help with:
-- Platform analytics and business insights
-- Client and trainer management guidance
-- Workout program design, review, and modification
-- Body map and injury tracking across all clients
-- Measurement and progress data analysis
-- Schedule management and session tracking
-- Revenue and growth strategy
-You are the most capable version of the assistant with no permission restrictions.
-When the admin asks to modify data, provide specific guidance on what to change.
-If platform data is included below, use it to provide informed responses.`,
+    general: `You are SwanStudios AI — the most powerful version of the platform's NASM-CPT certified assistant with PhD-level sports nutrition expertise and FULL read-write access to all platform data.
 
-    data_management: `You are SwanStudios Data Management Assistant for administrators. You help:
-- Review and analyze client data (workouts, measurements, pain entries, sessions)
-- Provide guidance on data corrections and modifications
-- Generate reports and summaries from platform data
-- Identify data inconsistencies or issues
-- Suggest optimizations for client programs based on data
-When data is included below, analyze it thoroughly and provide actionable insights.`,
+YOUR CAPABILITIES:
+- NASM OPT Model program design and periodization for any client
+- PhD-level sports nutrition consulting with macro periodization
+- Corrective Exercise Specialist analysis with OHSA interpretation
+- Full platform data access across ALL clients and trainers
+- Data management: update client measurements, goals, notes, progress levels, macro logs
+- Business analytics: revenue, retention, session utilization, growth metrics
+- Client onboarding review and risk assessment
+
+DATA MANAGEMENT ACTIONS:
+When asked to update client data, you can:
+- Record body measurements (weight, body fat, circumferences)
+- Update or create goals with progress tracking
+- Add client notes (observations, red flags, achievements)
+- Log macro entries from food descriptions
+- Update NASM progression levels for specific categories
+- Modify client progress scores
+
+To trigger a data update, include this action block in your response:
+\`\`\`json
+{"action": "update_client_data", "targetUserId": <id>, "updates": [
+  {"type": "body_measurement", "data": {"weight": 185, "bodyFatPercentage": 18.5, ...}},
+  {"type": "goal", "data": {"title": "...", "targetValue": ..., "category": "..."}},
+  {"type": "client_note", "data": {"noteType": "observation", "content": "...", "severity": "low"}},
+  {"type": "macro_log", "data": {"mealType": "lunch", "description": "...", "calories": ..., "protein": ..., "carbs": ..., "fat": ...}},
+  {"type": "progress_level", "data": {"category": "coreLevel", "value": 150}}
+]}
+\`\`\`
+
+${NASM_OPT_REFERENCE}
+${NUTRITION_REFERENCE}`,
+
+    data_management: `You are SwanStudios Data Intelligence — an advanced data management and analytics AI for platform administrators.
+
+FULL DATA ACCESS across all 17 data sources: user profiles, equipment profiles, onboarding questionnaires, movement analyses, baseline measurements, daily workout forms, body measurements, gamification (XP/levels/achievements), goals, client notes, NASM progression levels, macro logs, movement profiles, waiver records, form analyses, pain entries, and training sessions.
+
+ANALYSIS CAPABILITIES:
+- Cross-client comparison and benchmarking
+- Trend analysis with statistical significance
+- Anomaly detection in training and nutrition data
+- Compliance scoring across multiple dimensions
+- ROI analysis per client (sessions used vs progress made)
+- Injury pattern recognition across the client population
+
+DATA WRITE CAPABILITIES:
+Use the action block format to update any client's data:
+\`\`\`json
+{"action": "update_client_data", "targetUserId": <id>, "updates": [
+  {"type": "body_measurement", "data": {...}},
+  {"type": "goal", "data": {...}},
+  {"type": "client_note", "data": {...}},
+  {"type": "macro_log", "data": {...}},
+  {"type": "progress_level", "data": {...}}
+]}
+\`\`\`
+
+When data is included below, analyze it thoroughly. Provide specific numbers, percentages, and trends — never vague summaries.
+
+${NASM_OPT_REFERENCE}
+${NUTRITION_REFERENCE}`,
   },
 };
 
@@ -109,85 +333,373 @@ export function getSystemPrompt(role, context) {
 
 /**
  * Fetch relevant user data to enrich the AI context.
- * Returns a string summary of the user's data to append to the system prompt.
- * Pulls from: User profile, masterPromptJson, pain entries, sessions, equipment, movement analysis.
+ * Returns a comprehensive string summary of ALL client data sources.
+ *
+ * 17 DATA SOURCES:
+ *  1. User profile + masterPromptJson
+ *  2. Equipment profiles (gym, home, park, client_home)
+ *  3. Client onboarding questionnaire (goals, health risk, nutrition prefs)
+ *  4. Movement analysis (OHSA, PAR-Q, corrective strategy)
+ *  5. Baseline measurements (strength benchmarks, body comp, medical clearance)
+ *  6. Daily workout forms (exercise history with sets/reps/weight/RPE/form)
+ *  7. Body measurements (weight, body fat, circumferences, progress)
+ *  8. Gamification (XP, level, tier, achievements, streaks)
+ *  9. Active goals (with progress tracking)
+ * 10. Client notes (trainer observations, red flags)
+ * 11. Client progress (NASM category levels, unlocked exercises)
+ * 12. Daily macro logs (nutrition tracking)
+ * 13. Movement profile (mobility scores, compensation trends, NASM phase)
+ * 14. Waiver records (medical clearance, activity restrictions)
+ * 15. Form analysis history (scores, symmetry, ROM)
+ * 16. Pain/injury entries (body map)
+ * 17. Recent sessions (scheduling, attendance)
  */
 export async function enrichWithUserData(userId, role, context, sequelize) {
   try {
     const dataParts = [];
+    const startTime = Date.now();
 
-    // Fetch user profile + masterPromptJson (the richest single source)
-    try {
-      const [users] = await sequelize.query(
+    // Helper: safe query that always returns array
+    const safeQuery = async (sql, replacements) => {
+      try {
+        const result = await sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT }).catch(() => []);
+        return Array.isArray(result) ? result : [];
+      } catch { return []; }
+    };
+
+    // ── PARALLEL FETCH: Fire ALL 17 queries concurrently for speed ──
+    const includeNutrition = ['general', 'macro_logging', 'client_review', 'data_management', 'workout_suggestions'].includes(context);
+    const isAdminOrTrainer = role === 'admin' || role === 'trainer';
+
+    const [
+      users, equipment, onboarding, movement, baseline,
+      workouts, measurements, gamification, streaks, goals,
+      notes, progress, macros, movementProfile, waivers,
+      analyses, painEntries, sessions,
+    ] = await Promise.all([
+      // 1. User profile
+      safeQuery(
         `SELECT "firstName", "lastName", role, "createdAt", email, "fitnessGoal",
                 "weight", "height", "dateOfBirth", "gender", "healthConcerns",
                 "trainingExperience", "masterPromptJson", "availableSessions"
-         FROM "Users" WHERE id = :userId LIMIT 1`,
-        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
-      ).catch(() => [[]]);
-      if (users && users.length > 0) {
-        const user = users[0];
-        // Always include basic profile
-        dataParts.push(`\n--- CLIENT PROFILE ---\nName: ${user.firstName || ''} ${user.lastName || ''}\nGoal: ${user.fitnessGoal || 'Not set'}\nExperience: ${user.trainingExperience || 'Not set'}\nHealth Concerns: ${user.healthConcerns || 'None noted'}\nSessions Available: ${user.availableSessions ?? 'Unknown'}`);
+         FROM "Users" WHERE id = :userId LIMIT 1`, { userId }),
+      // 2. Equipment profiles
+      safeQuery(
+        `SELECT ep.name, ep."locationType", ep.description,
+                COALESCE(
+                  (SELECT json_agg(json_build_object('name', ei.name, 'category', ei.category, 'quantity', ei.quantity))
+                   FROM equipment_items ei WHERE ei."profileId" = ep.id AND ei."isAvailable" = true),
+                  '[]'
+                ) as items
+         FROM equipment_profiles ep
+         WHERE ep."trainerId" = :userId AND ep."isActive" = true
+         ORDER BY ep."isDefault" DESC`, { userId }),
+      // 3. Onboarding questionnaire
+      safeQuery(
+        `SELECT "primaryGoal", "trainingTier", "commitmentLevel", "healthRisk",
+                "nutritionPrefs", "responsesJson", status
+         FROM client_onboarding_questionnaires
+         WHERE "userId" = :userId AND status IN ('submitted', 'completed')
+         ORDER BY "completedAt" DESC NULLS LAST LIMIT 1`, { userId }),
+      // 4. Movement analysis
+      safeQuery(
+        `SELECT "overheadSquatAssessment", "nasmAssessmentScore", "parqScreening",
+                "posturalAssessment", "correctiveExerciseStrategy", "optPhaseRecommendation",
+                "overallMovementQualityScore", "trainerNotes", "assessmentDate",
+                "medicalClearanceRequired", "medicalClearanceDate"
+         FROM movement_analyses
+         WHERE "userId" = :userId AND status = 'completed'
+         ORDER BY "assessmentDate" DESC NULLS LAST LIMIT 1`, { userId }),
+      // 5. Baseline measurements
+      safeQuery(
+        `SELECT "takenAt", "restingHeartRate", "bloodPressureSystolic", "bloodPressureDiastolic",
+                "benchPressWeight", "benchPressReps", "squatWeight", "squatReps",
+                "deadliftWeight", "deadliftReps", "overheadPressWeight", "overheadPressReps",
+                "pullUpsReps", "bodyFatPercentage", "plankDuration",
+                "flexibilityNotes", "injuryNotes", "painLevel",
+                "nasmAssessmentScore", "overheadSquatAssessment"
+         FROM client_baseline_measurements
+         WHERE "userId" = :userId
+         ORDER BY "takenAt" DESC NULLS LAST LIMIT 1`, { userId }),
+      // 6. Recent workout forms
+      safeQuery(
+        `SELECT date, "formData", "totalPointsEarned", "estimatedDuration",
+                "trainerNotes", "clientSummary"
+         FROM daily_workout_forms
+         WHERE "clientId" = :userId AND "submittedAt" IS NOT NULL
+         ORDER BY date DESC LIMIT 10`, { userId }),
+      // 7. Body measurements
+      safeQuery(
+        `SELECT "measurementDate", weight, "weightUnit", "bodyFatPercentage",
+                "muscleMassPercentage", bmi, neck, chest, "naturalWaist",
+                hips, "rightBicep", "leftBicep", "rightThigh", "leftThigh",
+                "progressScore", notes
+         FROM body_measurements
+         WHERE "userId" = :userId
+         ORDER BY "measurementDate" DESC LIMIT 5`, { userId }),
+      // 8. Gamification (user XP/level)
+      safeQuery(
+        `SELECT u."experiencePoints", u.level, u.tier
+         FROM "Users" u WHERE u.id = :userId LIMIT 1`, { userId }),
+      // 8b. Streaks
+      safeQuery(
+        `SELECT "streakType", "currentCount", "longestCount", "isActive"
+         FROM streaks WHERE "userId" = :userId AND "isActive" = true`, { userId }),
+      // 9. Goals
+      safeQuery(
+        `SELECT title, description, category, status, priority,
+                "targetValue", "currentValue", unit, "progressPercentage",
+                deadline, "estimatedCompletionDate"
+         FROM goals
+         WHERE "userId" = :userId AND status IN ('active', 'draft')
+         ORDER BY priority DESC, "createdAt" DESC LIMIT 10`, { userId }),
+      // 10. Client notes (admin/trainer only)
+      isAdminOrTrainer ? safeQuery(
+        `SELECT "noteType", severity, content, "followUpDate", "isResolved", "createdAt"
+         FROM client_notes
+         WHERE "userId" = :userId
+         ORDER BY CASE WHEN severity = 'critical' THEN 0 WHEN severity = 'high' THEN 1 WHEN severity = 'medium' THEN 2 ELSE 3 END,
+                  "createdAt" DESC
+         LIMIT 10`, { userId }) : Promise.resolve([]),
+      // 11. Client progress (NASM levels)
+      safeQuery(
+        `SELECT "overallLevel", "experiencePoints",
+                "coreLevel", "balanceLevel", "stabilityLevel", "flexibilityLevel",
+                "calisthenicsLevel", "isolationLevel", "stabilizersLevel",
+                "injuryPreventionLevel", "injuryRecoveryLevel",
+                "glutesLevel", "hamstringsLevel", "absLevel", "chestLevel",
+                "bicepsLevel", "tricepsLevel", "shouldersLevel",
+                "squatsLevel", "lungesLevel", "planksLevel",
+                "unlockedExercises", "progressNotes", "lastAssessmentDate"
+         FROM client_progress
+         WHERE "userId" = :userId LIMIT 1`, { userId }),
+      // 12. Macro logs
+      includeNutrition ? safeQuery(
+        `SELECT date, "mealType", description, calories, protein, carbs, fat, fiber
+         FROM daily_macro_logs
+         WHERE "userId" = :userId AND date >= CURRENT_DATE - INTERVAL '2 days'
+         ORDER BY date DESC, "createdAt" DESC LIMIT 20`, { userId }) : Promise.resolve([]),
+      // 13. Movement profile
+      safeQuery(
+        `SELECT "mobilityScores", "strengthBalance", "commonCompensations",
+                "exerciseScores", "nasmPhaseRecommendation", "totalAnalyses",
+                "lastAnalysisAt"
+         FROM movement_profiles
+         WHERE "userId" = :userId LIMIT 1`, { userId }),
+      // 14. Waiver records
+      safeQuery(
+        `SELECT "activityTypes", "signedAt", status, metadata
+         FROM waiver_records
+         WHERE "userId" = :userId AND status IN ('linked', 'pending_match')
+         ORDER BY "signedAt" DESC LIMIT 1`, { userId }),
+      // 15. Form analyses
+      safeQuery(
+        `SELECT "exerciseName", "overallScore", "repCount",
+                findings->>'symmetryScore' as symmetry,
+                findings->>'rangeOfMotionPercent' as rom,
+                findings->>'fatigueDetected' as fatigue,
+                "createdAt"
+         FROM form_analyses
+         WHERE "userId" = :userId AND "analysisStatus" = 'complete'
+         ORDER BY "createdAt" DESC LIMIT 10`, { userId }),
+      // 16. Pain entries
+      safeQuery(
+        `SELECT region, pain_level, pain_type, side, description, created_at
+         FROM client_pain_entries WHERE user_id = :userId AND status = 'active'
+         ORDER BY pain_level DESC LIMIT 10`, { userId }),
+      // 17. Sessions
+      safeQuery(
+        `SELECT s."sessionDate", s.status, s.notes, s.duration
+         FROM sessions s WHERE s."userId" = :userId
+         ORDER BY s."sessionDate" DESC LIMIT 5`, { userId }),
+    ]);
 
-        // Include masterPromptJson if available (has goals, equipment, movement data)
-        if (user.masterPromptJson) {
-          const mp = typeof user.masterPromptJson === 'string'
-            ? JSON.parse(user.masterPromptJson)
-            : user.masterPromptJson;
-          if (mp.goals) {
-            dataParts.push(`\n--- CLIENT GOALS ---\nPrimary: ${mp.goals.primary || 'general_fitness'}\nSecondary: ${(mp.goals.secondary || []).join(', ') || 'None'}\nNotes: ${mp.goals.notes || 'None'}`);
-          }
-          if (mp.movementAssessment) {
-            const ma = mp.movementAssessment;
-            dataParts.push(`\n--- MOVEMENT ASSESSMENT ---\nNASM Score: ${ma.nasmScore || 'Not assessed'}\nPrimary Compensations: ${(ma.primaryCompensations || []).map(c => `${c.finding} (${c.severity})`).join(', ') || 'None'}`);
-          }
-          if (mp.equipment && mp.equipment.length > 0) {
-            dataParts.push(`\n--- AVAILABLE EQUIPMENT ---\n${mp.equipment.map(e => `${e.profileName} (${e.locationType}): ${(e.items || []).map(i => i.name).join(', ') || 'No items listed'}`).join('\n')}`);
-          }
-          if (mp.health?.injuries && mp.health.injuries.length > 0) {
-            dataParts.push(`\n--- KNOWN INJURIES/LIMITATIONS ---\n${mp.health.injuries.join(', ')}`);
-          }
+    logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
+
+    // ── PROCESS RESULTS: Build data parts from parallel query results ──
+
+    // ── 1. USER PROFILE ──
+    try {
+      if (users.length > 0) {
+        const u = users[0];
+        const age = u.dateOfBirth ? Math.floor((Date.now() - new Date(u.dateOfBirth).getTime()) / 31557600000) : null;
+        dataParts.push(`\n--- CLIENT PROFILE ---
+Name: ${u.firstName || ''} ${u.lastName || ''}
+Gender: ${u.gender || 'Not specified'}
+Age: ${age || 'Unknown'}
+Weight: ${u.weight || 'Not recorded'}
+Height: ${u.height || 'Not recorded'}
+Goal: ${u.fitnessGoal || 'Not set'}
+Experience: ${u.trainingExperience || 'Not set'}
+Health Concerns: ${u.healthConcerns || 'None noted'}
+Sessions Available: ${u.availableSessions ?? 'Unknown'}
+Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown'}`);
+
+        if (u.masterPromptJson) {
+          try {
+            const mp = typeof u.masterPromptJson === 'string' ? JSON.parse(u.masterPromptJson) : u.masterPromptJson;
+            if (mp.goals) {
+              dataParts.push(`\n--- MASTER PROMPT GOALS ---\nPrimary: ${mp.goals.primary || 'general_fitness'}\nSecondary: ${(mp.goals.secondary || []).join(', ') || 'None'}\nNotes: ${mp.goals.notes || 'None'}`);
+            }
+            if (mp.health?.injuries?.length > 0) {
+              dataParts.push(`\n--- MASTER PROMPT INJURIES ---\n${mp.health.injuries.join(', ')}`);
+            }
+          } catch { /* malformed JSON */ }
         }
       }
     } catch { /* best-effort */ }
 
-    // Fetch active pain entries (body map)
-    if (['general', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'].includes(context)) {
-      try {
-        const [painEntries] = await sequelize.query(
-          `SELECT region, pain_level, pain_type, side, description, created_at
-           FROM client_pain_entries WHERE user_id = :userId AND status = 'active'
-           ORDER BY pain_level DESC LIMIT 10`,
-          { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
-        ).catch(() => [[]]);
-        if (painEntries && painEntries.length > 0) {
-          dataParts.push(`\n--- ACTIVE PAIN/INJURY ENTRIES ---\n${JSON.stringify(painEntries, null, 1)}`);
-        }
-      } catch { /* best-effort */ }
+    // ── 2. EQUIPMENT PROFILES ──
+    try {
+      if (equipment.length > 0) {
+        const lines = equipment.map(e => {
+          const items = typeof e.items === 'string' ? JSON.parse(e.items) : e.items;
+          const itemNames = (items || []).map(i => `${i.name}${i.quantity > 1 ? ` (x${i.quantity})` : ''}`).join(', ');
+          return `${e.name} (${e.locationType}): ${itemNames || 'No equipment listed'}`;
+        });
+        dataParts.push(`\n--- AVAILABLE EQUIPMENT BY LOCATION ---\n${lines.join('\n')}`);
+      }
+    } catch { /* best-effort */ }
+
+    // ── 3. ONBOARDING ──
+    if (onboarding.length > 0) {
+      const ob = onboarding[0];
+      const np = tryParse(ob.nutritionPrefs);
+      dataParts.push(`\n--- ONBOARDING ---\nGoal: ${ob.primaryGoal || '-'} | Tier: ${ob.trainingTier || '-'} | Commitment: ${ob.commitmentLevel || '-'}/10 | Health Risk: ${ob.healthRisk || '-'}\nNutrition Prefs: ${np ? JSON.stringify(np) : 'None'}`);
     }
 
-    // Fetch recent workout sessions
-    if (['general', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'].includes(context)) {
-      try {
-        const [sessions] = await sequelize.query(
-          `SELECT s."sessionDate", s.status, s.notes, s.duration
-           FROM sessions s WHERE s."userId" = :userId
-           ORDER BY s."sessionDate" DESC LIMIT 5`,
-          { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
-        ).catch(() => [[]]);
-        if (sessions && sessions.length > 0) {
-          dataParts.push(`\n--- RECENT SESSIONS ---\n${JSON.stringify(sessions, null, 1)}`);
-        }
-      } catch { /* best-effort */ }
+    // ── 4. MOVEMENT ANALYSIS ──
+    if (movement.length > 0) {
+      const m = movement[0];
+      const ohsa = tryParse(m.overheadSquatAssessment);
+      const ohsaStr = ohsa && typeof ohsa === 'object'
+        ? Object.entries(ohsa).filter(([_, v]) => v && typeof v === 'object').map(([k, v]) => `${k}: ${v.finding || v.status || JSON.stringify(v)}`).join('; ') || 'No findings'
+        : 'Not performed';
+      dataParts.push(`\n--- NASM MOVEMENT ANALYSIS ---\nDate: ${m.assessmentDate || '?'} | Score: ${m.nasmAssessmentScore ?? '?'}/100 | Quality: ${m.overallMovementQualityScore ?? '?'}/100 | Med Clearance: ${m.medicalClearanceRequired ? 'YES' : 'No'}${m.medicalClearanceDate ? ` (${m.medicalClearanceDate})` : ''}\nOHSA: ${ohsaStr}${m.correctiveExerciseStrategy ? `\nCorrective: ${JSON.stringify(tryParse(m.correctiveExerciseStrategy))}` : ''}${m.optPhaseRecommendation ? `\nOPT Phase: ${JSON.stringify(tryParse(m.optPhaseRecommendation))}` : ''}${m.trainerNotes ? `\nNotes: ${m.trainerNotes}` : ''}`);
+    }
+
+    // ── 5. BASELINE ──
+    if (baseline.length > 0) {
+      const b = baseline[0];
+      const lift = (w, r, name) => w ? `${name}: ${w}lbs×${r}` : null;
+      const lifts = [lift(b.benchPressWeight, b.benchPressReps, 'Bench'), lift(b.squatWeight, b.squatReps, 'Squat'), lift(b.deadliftWeight, b.deadliftReps, 'DL'), lift(b.overheadPressWeight, b.overheadPressReps, 'OHP')].filter(Boolean).join(' | ');
+      dataParts.push(`\n--- BASELINE (${b.takenAt || '?'}) ---\n${lifts || 'No lifts tested'} | Pull-ups: ${b.pullUpsReps ?? '-'} | Plank: ${b.plankDuration ? `${b.plankDuration}s` : '-'} | BF: ${b.bodyFatPercentage ? `${b.bodyFatPercentage}%` : '-'} | HR: ${b.restingHeartRate || '-'} | BP: ${b.bloodPressureSystolic ? `${b.bloodPressureSystolic}/${b.bloodPressureDiastolic}` : '-'}${b.injuryNotes ? `\nInjuries: ${b.injuryNotes}` : ''}`);
+    }
+
+    // ── 6. WORKOUT HISTORY ──
+    if (workouts.length > 0) {
+      const lines = workouts.map(w => {
+        const fd = tryParse(w.formData);
+        const exs = fd?.exercises?.slice(0, 6)?.map(ex => `${ex.name || ex.exerciseName}: ${ex.sets || '?'}×${ex.reps || '?'}@${ex.weight || '?'}lbs${ex.rpe ? ` RPE${ex.rpe}` : ''}`).join(', ') || 'N/A';
+        return `${w.date}: ${exs}${w.totalPointsEarned ? ` +${w.totalPointsEarned}XP` : ''}`;
+      });
+      dataParts.push(`\n--- WORKOUT HISTORY (${workouts.length}) ---\n${lines.join('\n')}`);
+    }
+
+    // ── 7. BODY MEASUREMENTS ──
+    if (measurements.length > 0) {
+      const l = measurements[0];
+      dataParts.push(`\n--- BODY (${l.measurementDate || '?'}) ---\nWt: ${l.weight || '-'} ${l.weightUnit || 'lbs'} | BF: ${l.bodyFatPercentage || '-'}% | BMI: ${l.bmi || '-'} | Muscle: ${l.muscleMassPercentage || '-'}%\nChest: ${l.chest || '-'}" Waist: ${l.naturalWaist || '-'}" Hips: ${l.hips || '-'}" R.Bi: ${l.rightBicep || '-'}" L.Bi: ${l.leftBicep || '-'}" R.Th: ${l.rightThigh || '-'}" L.Th: ${l.leftThigh || '-'}"`);
+      if (measurements.length >= 2) {
+        const wts = measurements.filter(m => m.weight);
+        if (wts.length >= 2) dataParts.push(`Trend: ${(wts[0].weight - wts[wts.length - 1].weight) > 0 ? '+' : ''}${(wts[0].weight - wts[wts.length - 1].weight).toFixed(1)} ${l.weightUnit || 'lbs'}`);
+      }
+    }
+
+    // ── 8. GAMIFICATION ──
+    if (gamification.length > 0) {
+      const g = gamification[0];
+      let line = `\n--- GAMIFICATION ---\nXP: ${g.experiencePoints ?? 0} | Lv: ${g.level ?? 1} | Tier: ${g.tier || 'Bronze'}`;
+      if (streaks.length > 0) line += ` | Streaks: ${streaks.map(s => `${s.streakType}:${s.currentCount}d`).join(', ')}`;
+      dataParts.push(line);
+    }
+
+    // ── 9. GOALS ──
+    if (goals.length > 0) {
+      dataParts.push(`\n--- GOALS ---\n${goals.map(g => `[${(g.priority || 'med').toUpperCase()}] ${g.title}: ${g.progressPercentage ?? 0}%${g.targetValue ? ` (${g.currentValue || 0}/${g.targetValue})` : ''}${g.deadline ? ` due:${g.deadline}` : ''}`).join('\n')}`);
+    }
+
+    // ── 10. TRAINER NOTES ──
+    if (notes.length > 0) {
+      dataParts.push(`\n--- TRAINER NOTES ---\n${notes.map(n => `[${n.severity?.toUpperCase()}/${n.noteType}] ${n.content}${n.isResolved ? ' (RESOLVED)' : ''}`).join('\n')}`);
+    }
+
+    // ── 11. NASM PROGRESS LEVELS ──
+    if (progress.length > 0) {
+      const p = progress[0];
+      const lvls = Object.entries({
+        Core: p.coreLevel, Balance: p.balanceLevel, Stability: p.stabilityLevel,
+        Flex: p.flexibilityLevel, Calisthenics: p.calisthenicsLevel,
+        Glutes: p.glutesLevel, Hams: p.hamstringsLevel, Abs: p.absLevel,
+        Chest: p.chestLevel, Bi: p.bicepsLevel, Tri: p.tricepsLevel,
+        Shoulders: p.shouldersLevel, Squats: p.squatsLevel, Lunges: p.lungesLevel,
+      }).filter(([_, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(', ');
+      dataParts.push(`\n--- NASM LEVELS ---\nOverall: ${p.overallLevel || 0} | ${lvls || 'No levels yet'}`);
+      const unlocked = tryParse(p.unlockedExercises);
+      if (Array.isArray(unlocked) && unlocked.length > 0) dataParts.push(`Unlocked: ${unlocked.slice(0, 15).join(', ')}${unlocked.length > 15 ? ` +${unlocked.length - 15}` : ''}`);
+    }
+
+    // ── 12. MACRO LOGS ──
+    if (macros.length > 0) {
+      const byDate = {};
+      for (const m of macros) {
+        const d = m.date?.toISOString?.()?.split('T')[0] || String(m.date);
+        if (!byDate[d]) byDate[d] = { meals: [], t: { cal: 0, pro: 0, carb: 0, fat: 0 } };
+        byDate[d].meals.push(`${m.mealType}: ${m.description} (${m.calories || 0}cal ${m.protein || 0}P ${m.carbs || 0}C ${m.fat || 0}F)`);
+        byDate[d].t.cal += (m.calories || 0); byDate[d].t.pro += (m.protein || 0);
+        byDate[d].t.carb += (m.carbs || 0); byDate[d].t.fat += (m.fat || 0);
+      }
+      dataParts.push(`\n--- NUTRITION ---\n${Object.entries(byDate).map(([d, x]) => `${d}: ${x.meals.join('; ')} TOTAL: ${x.t.cal}cal ${x.t.pro}P ${x.t.carb}C ${x.t.fat}F`).join('\n')}`);
+    }
+
+    // ── 13. MOVEMENT PROFILE ──
+    if (movementProfile.length > 0) {
+      const mp = movementProfile[0];
+      let line = `\n--- MOVEMENT PROFILE ---\nPhase: ${mp.nasmPhaseRecommendation || '1'} | Analyses: ${mp.totalAnalyses || 0} | Last: ${mp.lastAnalysisAt || 'Never'}`;
+      const mob = tryParse(mp.mobilityScores);
+      if (mob) { const e = Object.entries(mob).filter(([_, v]) => v != null); if (e.length) line += `\nMobility: ${e.map(([k, v]) => `${k}:${v}`).join(', ')}`; }
+      const comps = tryParse(mp.commonCompensations);
+      if (Array.isArray(comps) && comps.length) line += `\nCompensations: ${comps.map(c => `${c.type || c} (freq:${c.frequency || '?'} sev:${c.avgSeverity || '?'})`).join('; ')}`;
+      const exScores = tryParse(mp.exerciseScores);
+      if (exScores) { const e = Object.entries(exScores).filter(([_, v]) => v != null); if (e.length) line += `\nForm Scores: ${e.map(([k, v]) => `${k}:${typeof v === 'object' ? v.avg : v}`).join(', ')}`; }
+      dataParts.push(line);
+    }
+
+    // ── 14. WAIVER ──
+    if (waivers.length > 0) {
+      const w = waivers[0];
+      const acts = tryParse(w.activityTypes);
+      dataParts.push(`\n--- WAIVER ---\n${w.status} | Signed: ${w.signedAt || '?'} | Activities: ${Array.isArray(acts) ? acts.join(', ') : 'All standard'}`);
+    }
+
+    // ── 15. FORM ANALYSIS ──
+    if (analyses.length > 0) {
+      dataParts.push(`\n--- FORM SCORES ---\n${analyses.map(a => `${a.exerciseName}: ${a.overallScore}/100${a.symmetry ? ` Sym:${a.symmetry}%` : ''}${a.rom ? ` ROM:${a.rom}%` : ''}${a.repCount ? ` ${a.repCount}reps` : ''}${a.fatigue === 'true' ? ' FATIGUE' : ''}`).join('\n')}`);
+    }
+
+    // ── 16. PAIN ──
+    if (painEntries.length > 0) {
+      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${p.description ? ` — ${p.description}` : ''}`).join('\n')}`);
+    }
+
+    // ── 17. SESSIONS ──
+    if (sessions.length > 0) {
+      dataParts.push(`\n--- SESSIONS ---\n${sessions.map(s => `${s.sessionDate}: ${s.status}${s.duration ? ` (${s.duration}min)` : ''}${s.notes ? ` — ${s.notes}` : ''}`).join('\n')}`);
     }
 
     if (dataParts.length === 0) return '';
-    return '\n\n=== RELEVANT USER DATA (auto-populated from platform) ===\n' + dataParts.join('\n') + '\n=== END USER DATA ===';
+    return '\n\n=== CLIENT DATA (17 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
   } catch (err) {
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';
   }
+}
+
+/** Safe JSON parse helper */
+function tryParse(val) {
+  if (val == null) return null;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return null; }
 }
 
 /**
@@ -219,7 +731,7 @@ export function buildPromptMessages(systemPrompt, conversationMessages, newMessa
  * Tries providers in order: OpenAI -> Anthropic -> Gemini
  */
 export async function sendChatMessage(messages, options = {}) {
-  const { maxTokens = 1500, temperature = 0.7 } = options;
+  const { maxTokens = 3000, temperature = 0.7 } = options;
   const providers = getAvailableProviders();
   const failoverTrace = [];
 
