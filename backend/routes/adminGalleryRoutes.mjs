@@ -36,7 +36,7 @@ router.use((req, res, next) => {
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif)$/i;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024, files: 10 }, // 25MB per file, 10 files max per batch
+  limits: { fileSize: 50 * 1024 * 1024, files: 10 }, // 50MB per file, 10 files max per batch
   fileFilter: (req, file, cb) => {
     // Accept image/* MIME types OR common image file extensions
     // (iOS/some browsers send application/octet-stream for HEIC/drag-drop files)
