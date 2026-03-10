@@ -179,6 +179,10 @@ const setupAssociations = async () => {
     const LeadModule = await import('./Lead.mjs');
     const LeadActivityModule = await import('./LeadActivity.mjs');
 
+    // AI Chat & Macro Logging Models
+    const AiConversationModule = await import('./AiConversation.mjs');
+    const DailyMacroLogModule = await import('./DailyMacroLog.mjs').catch(() => ({ default: null }));
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -341,6 +345,10 @@ const setupAssociations = async () => {
     // CRM Lead Management Models
     const Lead = LeadModule.default;
     const LeadActivity = LeadActivityModule.default;
+
+    // AI Chat & Macro Logging
+    const AiConversation = AiConversationModule.default;
+    const DailyMacroLog = DailyMacroLogModule?.default || null;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -1233,7 +1241,11 @@ const setupAssociations = async () => {
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral,
 
       // CRM Lead Management Models
-      Lead, LeadActivity
+      Lead, LeadActivity,
+
+      // AI Chat & Macro Logging Models
+      AiConversation,
+      ...(DailyMacroLog ? { DailyMacroLog } : {}),
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

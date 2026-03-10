@@ -198,26 +198,30 @@ export const createApp = async () => {
   }
 
   // ===================== SECURITY & OPTIMIZATION =====================
+  // Security headers apply in ALL environments
+  app.use(helmet({
+    contentSecurityPolicy: isProduction ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", "https://*.r2.dev", "https://*.cloudflare.com"],
+        connectSrc: ["'self'", "https://api.stripe.com", "https://ss-pt-new.onrender.com", "https://sswanstudios.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      }
+    } : false, // Disable CSP in dev (Vite HMR needs inline scripts)
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginResourcePolicy: false,
+    hidePoweredBy: true,
+    xssFilter: true,
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+  }));
+  logger.info('Security headers enabled (helmet)');
+
   if (isProduction) {
-    app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", "https://*.r2.dev"],
-          connectSrc: ["'self'", "https://api.stripe.com"],
-        }
-      },
-      crossOriginEmbedderPolicy: false,
-      crossOriginOpenerPolicy: false,  
-      crossOriginResourcePolicy: false,
-      hidePoweredBy: true,
-      xssFilter: true,
-      noSniff: true,
-      referrerPolicy: { policy: 'same-origin' }
-    }));
-    
     app.use(compression({
       level: 6,
       filter: (req, res) => {
@@ -225,8 +229,8 @@ export const createApp = async () => {
         return compression.filter(req, res);
       }
     }));
-    
-    logger.info('Production optimizations enabled: CORS-friendly helmet, compression');
+
+    logger.info('Production optimizations enabled: compression');
   }
 
   // Health check endpoints are now handled by dedicated healthRoutes

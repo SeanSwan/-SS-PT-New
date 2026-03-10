@@ -72,7 +72,13 @@ router.get('/', async (req, res) => {
     });
 
     // Transform data to meet frontend expectations
-    const activeSpecials = await AdminSpecial.getActiveSpecials();
+    // Gracefully handle missing admin_specials table (may not exist in all environments)
+    let activeSpecials = [];
+    try {
+      activeSpecials = await AdminSpecial.getActiveSpecials();
+    } catch (specialsErr) {
+      logger.warn('Could not fetch active specials (table may not exist):', specialsErr.message);
+    }
 
     const transformedItems = items.map(item => ({
       id: item.id,

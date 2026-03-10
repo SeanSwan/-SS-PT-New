@@ -4,7 +4,7 @@
  * cosmic empty state, and floating active-client header.
  */
 
-import React, { useState, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,6 +19,8 @@ import {
   HeartPulse,
   Users,
   Camera,
+  Apple,
+  ScanBarcode,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import WorkoutClientDrawer from './WorkoutClientDrawer';
@@ -46,6 +48,8 @@ const TABS = [
   { id: 'body-map', label: 'Body Map', icon: <HeartPulse size={16} />, path: '/dashboard/workouts/body-map' },
   { id: 'bootcamp', label: 'Boot Camp', icon: <Users size={16} />, path: '/dashboard/workouts/bootcamp' },
   { id: 'equipment', label: 'Equipment', icon: <Camera size={16} />, path: '/dashboard/workouts/equipment' },
+  { id: 'nutrition', label: 'Nutrition', icon: <Apple size={16} />, path: '/dashboard/workouts/nutrition' },
+  { id: 'food-scanner', label: 'Scanner', icon: <ScanBarcode size={16} />, path: '/dashboard/workouts/food-scanner' },
 ];
 
 // ---- Component ----
@@ -55,6 +59,17 @@ const WorkoutsWorkspace: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Listen for AI "Apply to Logger" navigation event
+  useEffect(() => {
+    const handler = () => {
+      if (location.pathname !== '/dashboard/workouts/logger') {
+        navigate('/dashboard/workouts/logger');
+      }
+    };
+    window.addEventListener('navigateToWorkoutLogger', handler);
+    return () => window.removeEventListener('navigateToWorkoutLogger', handler);
+  }, [navigate, location.pathname]);
 
   const handleClientSelect = useCallback((client: any) => {
     setSelectedClient({
@@ -72,7 +87,7 @@ const WorkoutsWorkspace: React.FC = () => {
   const activeTabId = TABS.find((t) => location.pathname === t.path)?.id || 'plans';
 
   // Tabs that don't require client selection (e.g., group class builder, equipment manager)
-  const clientFreeTab = activeTabId === 'bootcamp' || activeTabId === 'equipment';
+  const clientFreeTab = activeTabId === 'bootcamp' || activeTabId === 'equipment' || activeTabId === 'nutrition' || activeTabId === 'food-scanner';
 
   return (
     <WorkspaceRoot>

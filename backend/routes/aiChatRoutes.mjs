@@ -14,6 +14,7 @@
  */
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import sequelize from '../database.mjs';
@@ -50,7 +51,7 @@ const ROLE_CONTEXTS = {
  */
 router.post('/conversations', async (req, res) => {
   try {
-    const { context = 'general', title, targetUserId } = req.body;
+    const { context = 'general', title, targetUserId, responseStyle = 'both' } = req.body;
     const userRole = req.user.role || 'client';
     const allowedContexts = ROLE_CONTEXTS[userRole] || ROLE_CONTEXTS.client;
 
@@ -61,6 +62,10 @@ router.post('/conversations', async (req, res) => {
         allowedContexts,
       });
     }
+
+    // Validate response style
+    const validStyles = ['phd_only', 'simple_only', 'both'];
+    const resolvedStyle = validStyles.includes(responseStyle) ? responseStyle : 'both';
 
     // Only trainers/admins can set a target client
     const resolvedTargetUserId = (userRole === 'admin' || userRole === 'trainer') && targetUserId
@@ -76,6 +81,7 @@ router.post('/conversations', async (req, res) => {
       messages: [],
       status: 'active',
       messageCount: 0,
+      metadata: { responseStyle: resolvedStyle },
     });
 
     return res.status(201).json({
@@ -88,6 +94,7 @@ router.post('/conversations', async (req, res) => {
         status: conversation.status,
         messageCount: 0,
         createdAt: conversation.createdAt,
+        responseStyle: resolvedStyle,
       },
     });
   } catch (err) {
@@ -104,10 +111,14 @@ router.get('/conversations', async (req, res) => {
   try {
     const { status = 'active', limit = 20, offset = 0 } = req.query;
 
+    // Only allow listing active or archived conversations (not deleted)
+    const allowedStatuses = ['active', 'archived'];
+    const resolvedStatus = allowedStatuses.includes(status) ? status : 'active';
+
     const conversations = await AiConversation.findAndCountAll({
       where: {
         userId: req.user.id,
-        status,
+        status: resolvedStatus,
       },
       attributes: ['id', 'title', 'context', 'status', 'messageCount', 'lastMessageAt', 'createdAt'],
       order: [['lastMessageAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']],
@@ -169,7 +180,7 @@ router.get('/conversations/:id', async (req, res) => {
  * POST /api/ai-chat/conversations/:id/messages
  * Send a message and get AI response
  */
-router.post('/conversations/:id/messages', async (req, res) => {
+router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
   try {
     const { message } = req.body;
 
@@ -193,10 +204,16 @@ router.post('/conversations/:id/messages', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Active conversation not found' });
     }
 
+    // Guard against unbounded conversation growth
+    if (conversation.messages && conversation.messages.length >= 200) {
+      return res.status(400).json({ success: false, error: 'Conversation limit reached (100 exchanges). Please start a new conversation.' });
+    }
+
     // Build system prompt based on role + context, enriched with user data
     // For trainer/admin conversations with a target client, enrich with the CLIENT's data
     const enrichUserId = conversation.targetUserId || req.user.id;
-    let systemPrompt = getSystemPrompt(conversation.role, conversation.context);
+    const responseStyle = conversation.metadata?.responseStyle || 'both';
+    let systemPrompt = getSystemPrompt(conversation.role, conversation.context, responseStyle);
     const userDataContext = await enrichWithUserData(
       enrichUserId, conversation.role, conversation.context, sequelize
     );
@@ -246,7 +263,9 @@ router.post('/conversations/:id/messages', async (req, res) => {
         const actionMatch = aiResult.content.match(/```json\s*(\{[\s\S]*?"action"\s*:\s*"update_client_data"[\s\S]*?\})\s*```/);
         if (actionMatch) {
           const actionPayload = JSON.parse(actionMatch[1]);
-          const targetId = actionPayload.targetUserId || conversation.targetUserId;
+          // Security: Only allow data writes to the conversation's designated target user
+          // Never trust targetUserId from the AI response (prompt injection risk)
+          const targetId = conversation.targetUserId;
           if (targetId && actionPayload.updates) {
             dataUpdateResult = await processAIDataUpdates(
               targetId,

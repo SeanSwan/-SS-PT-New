@@ -140,17 +140,17 @@ const TabsContainer = styled.div`
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const TabButton = styled.button<{ active: boolean }>`
+const TabButton = styled.button<{ $active: boolean }>`
   background: transparent;
-  color: ${({ active }) => active ? 'white' : 'rgba(255, 255, 255, 0.5)'};
+  color: ${({ $active }) => $active ? 'white' : 'rgba(255, 255, 255, 0.5)'};
   border: none;
   padding: 0.8rem 1.5rem;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  border-bottom: 2px solid ${({ active }) => active ? '#60C0F0' : 'transparent'};
+  border-bottom: 2px solid ${({ $active }) => $active ? '#60C0F0' : 'transparent'};
   transition: all 0.3s ease;
-  
+
   &:hover {
     color: white;
   }
@@ -472,13 +472,13 @@ const FoodScannerPage: React.FC = () => {
       <ContentContainer>
         <TabsContainer>
           <TabButton 
-            active={activeTab === 'scan'} 
+            $active={activeTab === 'scan'}
             onClick={() => handleTabChange('scan')}
           >
             Scanner
           </TabButton>
           <TabButton 
-            active={activeTab === 'history'} 
+            $active={activeTab === 'history'}
             onClick={() => handleTabChange('history')}
             disabled={!isAuthenticated}
           >

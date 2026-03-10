@@ -46,6 +46,7 @@ interface ConversationSummary {
 }
 
 type AIContext = 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management';
+type ResponseStyle = 'phd_only' | 'simple_only' | 'both';
 
 function getHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
@@ -68,11 +69,11 @@ export function useAIChat() {
   /**
    * Create a new conversation
    */
-  const createConversation = useCallback(async (context: AIContext = 'general', title?: string, targetUserId?: number | string | null) => {
+  const createConversation = useCallback(async (context: AIContext = 'general', title?: string, targetUserId?: number | string | null, responseStyle: ResponseStyle = 'both') => {
     setLoading(true);
     setError(null);
     try {
-      const payload: Record<string, unknown> = { context, title };
+      const payload: Record<string, unknown> = { context, title, responseStyle };
       if (targetUserId) payload.targetUserId = targetUserId;
       const res = await fetch(`${API_BASE}/api/ai-chat/conversations`, {
         method: 'POST',
@@ -260,4 +261,4 @@ export function useAIChat() {
   };
 }
 
-export type { Message, Conversation, ConversationSummary, AIContext };
+export type { Message, Conversation, ConversationSummary, AIContext, ResponseStyle };

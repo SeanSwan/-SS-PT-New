@@ -344,14 +344,14 @@ const ActionButtons = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-const ActionButton = styled.button<{ primary?: boolean }>`
-  background: ${({ primary }) => primary ? 
-    'linear-gradient(135deg, #8B5CF6, #60C0F0)' : 
+const ActionButton = styled.button<{ $primary?: boolean }>`
+  background: ${({ $primary }) => $primary ?
+    'linear-gradient(135deg, #8B5CF6, #60C0F0)' :
     'rgba(60, 60, 100, 0.5)'
   };
   color: white;
-  border: ${({ primary }) => primary ? 
-    'none' : 
+  border: ${({ $primary }) => $primary ?
+    'none' :
     '1px solid rgba(255, 255, 255, 0.2)'
   };
   border-radius: 8px;
@@ -640,7 +640,7 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
         <ActionButton onClick={handleToggleFavorite}>
           {favorite ? '★ Saved' : '☆ Save'}
         </ActionButton>
-        <ActionButton primary>
+        <ActionButton $primary>
           Share
         </ActionButton>
       </ActionButtons>

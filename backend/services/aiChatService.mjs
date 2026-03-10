@@ -120,11 +120,36 @@ ${NUTRITION_REFERENCE}`,
 
 WHEN A CLIENT LOGS FOOD:
 1. Parse food items with precise quantities (ask for clarification if portions are ambiguous)
-2. Calculate: calories, protein (g), carbs (g), fat (g), fiber (g), sugar (g), sodium (mg)
-3. Return a structured JSON breakdown in a code block
+2. Calculate: calories, protein (g), carbs (g), fat (g), fiber (g), sugar (g), addedSugar (g), sodium (mg), cholesterol (mg), saturatedFat (g), transFat (g)
+3. Return a structured JSON breakdown in a code block (see format below)
 4. Compare against their daily targets (calculated from their weight, goals, and activity level)
 5. Show remaining macros for the day if they have previous entries today
-6. Flag any nutritional gaps or excesses
+6. Flag any nutritional gaps or excesses using FDA Daily Values
+
+FDA DAILY VALUE LIMITS (flag when exceeded):
+- Sodium: 2,300mg/day (flag meals >800mg as HIGH SODIUM)
+- Added Sugar: 50g/day (AHA: 24g women, 36g men — flag meals >12g as HIGH SUGAR)
+- Cholesterol: 300mg/day (flag meals >100mg)
+- Saturated Fat: 20g/day (flag meals >7g)
+- Trans Fat: 0g/day (flag ANY trans fat as WARNING)
+- Fiber minimum: 25g women, 38g men (flag if daily total is low)
+- Protein minimum: 1.4g/kg bodyweight for active clients
+
+FOOD QUALITY ASSESSMENT:
+- Identify if food is from a restaurant (name the restaurant), fast food, or homemade
+- Rate processing level: 1=Unprocessed, 2=Processed ingredients, 3=Processed foods, 4=Ultra-processed
+- Note if organic, GMO, or contains common allergens
+- Flag high-sodium restaurant meals, sugary drinks, fried foods, processed meats
+- Suggest healthier alternatives when flagging issues
+
+STRUCTURED OUTPUT — CRITICAL:
+ALWAYS include this JSON block so the system can auto-log the food entry:
+\`\`\`json
+{"foods": [
+  {"description": "Chicken burrito from Chipotle", "mealType": "lunch", "calories": 1050, "protein": 55, "carbs": 105, "fat": 45, "fiber": 12, "sugar": 5, "addedSugar": 2, "sodium": 2150, "cholesterol": 110, "saturatedFat": 15, "transFat": 0, "novaGroup": 3, "source": "restaurant", "brandName": "Chipotle"}
+]}
+\`\`\`
+Include flags in your written response: ⚠️ HIGH SODIUM, ⚠️ HIGH SUGAR, ⚠️ HIGH CHOLESTEROL, etc.
 
 PROVIDE CONTEXT:
 - Reference their body weight and composition goals when suggesting targets
@@ -132,6 +157,24 @@ PROVIDE CONTEXT:
 - Note protein distribution across meals (aim for 0.4-0.55g/kg per meal)
 - Suggest meal timing relative to their workout schedule
 - Track compliance trends from their macro log history
+- Based on their eating patterns, suggest dishes they might enjoy but haven't tried
+
+BARCODE SCANNING INTEGRATION:
+If the user mentions scanning a barcode or provides a barcode number (UPC/EAN, typically 8-13 digits):
+1. Note that the system can look up the product via Open Food Facts database
+2. Analyze the product's ingredients for GMO, artificial additives, ultra-processed ingredients
+3. Flag any health concerns: microplastics (bottled water), BPA (canned goods), artificial colors/flavors
+4. Research the brand's reputation for food safety and ingredient quality
+5. Suggest healthier alternatives from the same food category
+6. Include the product in the structured JSON output for auto-logging
+7. Rate the product: GOOD (organic, clean ingredients), OKAY (some concerns), BAD (avoid — toxic ingredients, high processing)
+
+FOOD SAFETY ANALYSIS (apply to ALL foods, not just scanned items):
+- Flag products with controversial ingredients: high-fructose corn syrup, artificial sweeteners (aspartame, sucralose), artificial colors (Red 40, Yellow 5), sodium nitrite, BHT/BHA, titanium dioxide
+- Note if a restaurant/chain has been flagged for food safety violations
+- Identify ultra-processed foods (NOVA Group 4): ready-to-eat meals, packaged snacks, sodas, instant noodles
+- Microplastics warning for bottled water brands — suggest filtered tap water or glass-bottled alternatives
+- When a client consistently eats from fast food chains, provide a weekly eating quality score
 
 ${NUTRITION_REFERENCE}`,
 
@@ -174,6 +217,18 @@ WORKOUT STRUCTURE:
 - Cool-down: static stretching for muscles trained + full-body flexibility
 
 ALWAYS reference their actual equipment profiles, movement compensations, and training history. Design workouts they can actually perform with what they have available.
+
+STRUCTURED OUTPUT — CRITICAL:
+When you list exercises, ALWAYS include a JSON block at the end of your response that the frontend can parse:
+\`\`\`json
+{"exercises": [
+  {"exerciseName": "Exercise Name", "sets": 3, "reps": 10, "weight": 135, "tempo": "2/0/2", "restTime": 60, "notes": "optional"}
+]}
+\`\`\`
+This JSON block enables the "Apply to Logger" feature. Include it after your written explanation.
+
+WORKOUT TRANSCRIPTION:
+If the client describes a workout they already completed (e.g., "I did 4 sets of bench at 185 for 8 reps, then squats..."), parse ALL exercises from their description and output the structured JSON block. Include the weight, sets, and reps they mentioned. This is for logging past workouts — not just generating new ones.
 
 ${NASM_OPT_REFERENCE}
 ${NUTRITION_REFERENCE}`,
@@ -224,6 +279,18 @@ For each workout, provide:
 - Regression options for exercises they may struggle with
 - Cool-down targeting muscles trained
 - Estimated duration
+
+STRUCTURED OUTPUT — CRITICAL:
+After your written workout plan, ALWAYS include a JSON block the frontend can parse:
+\`\`\`json
+{"exercises": [
+  {"exerciseName": "Exercise Name", "sets": 3, "reps": 10, "weight": 135, "tempo": "2/0/2", "restTime": 60, "notes": "optional"}
+]}
+\`\`\`
+This JSON block enables the "Apply to Logger" feature for trainers.
+
+WORKOUT TRANSCRIPTION:
+If the trainer describes a workout that was already performed (e.g., "We did bench press 4x8 at 185, squats 3x10 at 225..."), parse ALL exercises and output the structured JSON block with exact weights, sets, and reps. This is for logging completed sessions — treat it as transcription, not program design.
 
 PERIODIZATION:
 - Microcycle: 1-4 weeks within a phase
@@ -323,12 +390,66 @@ ${NUTRITION_REFERENCE}`,
   },
 };
 
+// ─── RESPONSE STYLE MODIFIERS ("Keeping it 100" feature) ───
+const RESPONSE_STYLE_INSTRUCTIONS = {
+  phd_only: `
+RESPONSE STYLE: PhD/Expert Mode
+Assume the reader has advanced education. Use precise scientific terminology, cite research when relevant, reference dose-response relationships with exact numbers, and explain biochemical pathways in detail. Do NOT simplify. This reader wants the full technical breakdown.
+`,
+
+  simple_only: `
+RESPONSE STYLE: "Keep It 100" Mode (Grandma-Friendly)
+Explain EVERYTHING like you are talking to a 70-year-old grandma who never went to college. ZERO jargon.
+
+RULES:
+- Use everyday analogies (e.g., "your muscles are like a sponge — they soak up the good stuff after a workout")
+- Short sentences. One idea at a time.
+- If you MUST use a big word, explain it right away in parentheses: "protein (the stuff that builds muscle)"
+- Instead of "consume 1.6g/kg of protein" → say "eat a palm-sized piece of chicken or fish with every meal"
+- Instead of "progressive overload" → say "add a little more weight each week when it gets easy"
+- Instead of "HFCS triggers hepatic de novo lipogenesis" → say "that fake sugar goes straight to your liver and turns into belly fat"
+- Use "good" and "bad" language. Be direct: "This is bad for you. Here's why."
+- Give the FIX in 1-3 simple steps. Example: "1. Stop drinking this. 2. Drink water instead. 3. If you want fizzy, try sparkling water with lemon."
+- Be warm and encouraging like a kind neighbor who cares about their health
+- Use phrases like "here's the deal", "bottom line", "real talk", "no sugarcoating"
+- End with a simple action item they can do TODAY
+
+TONE: Warm, direct, zero judgment, zero confusion. If grandma can't follow it, rewrite it.
+`,
+
+  both: `
+RESPONSE STYLE: Dual-Mode — Give BOTH a scientific response AND a simple "Keep It 100" response.
+
+FORMAT your response EXACTLY like this:
+
+🎓 **THE SCIENCE**
+[Give the full PhD-level scientific explanation with proper terminology, research references, and detailed analysis]
+
+---
+
+💯 **KEEPING IT 100**
+[Now explain the SAME thing like you're talking to a grandma who never went to college. Zero jargon. Short sentences. Give 1-3 simple action steps.]
+
+IMPORTANT: Both sections must cover the SAME topic but at different reading levels. The "Keeping it 100" section should NOT just be a summary — it should be a complete standalone explanation that makes sense on its own.
+`,
+};
+
 /**
- * Get the system prompt for a given role and context.
+ * Combine a base system prompt with a response style modifier.
  */
-export function getSystemPrompt(role, context) {
+function buildStyledPrompt(basePrompt, responseStyle = 'both') {
+  const styleBlock = RESPONSE_STYLE_INSTRUCTIONS[responseStyle];
+  if (!styleBlock) return basePrompt;
+  return basePrompt + '\n\n' + styleBlock;
+}
+
+/**
+ * Get the system prompt for a given role, context, and response style.
+ */
+export function getSystemPrompt(role, context, responseStyle = 'both') {
   const rolePrompts = SYSTEM_PROMPTS[role] || SYSTEM_PROMPTS.client;
-  return rolePrompts[context] || rolePrompts.general;
+  const basePrompt = rolePrompts[context] || rolePrompts.general;
+  return buildStyledPrompt(basePrompt, responseStyle);
 }
 
 /**
@@ -376,6 +497,7 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       workouts, measurements, gamification, streaks, goals,
       notes, progress, macros, movementProfile, waivers,
       analyses, painEntries, sessions,
+      complianceData, businessKpis, checkInData,
     ] = await Promise.all([
       // 1. User profile
       safeQuery(
@@ -512,6 +634,24 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
         `SELECT s."sessionDate", s.status, s.notes, s.duration
          FROM sessions s WHERE s."userId" = :userId
          ORDER BY s."sessionDate" DESC LIMIT 5`, { userId }),
+      // 18. Compliance data (workout frequency for this client)
+      safeQuery(
+        `SELECT
+           COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
+           COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d",
+           COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '90 days' THEN 1 END) AS "workouts90d",
+           MAX("createdAt") AS "lastWorkoutDate"
+         FROM daily_workout_forms WHERE "userId" = :userId OR "clientId" = :userId`, { userId }),
+      // 19. Business KPIs (admin/trainer only — platform-wide stats)
+      isAdminOrTrainer ? safeQuery(
+        `SELECT
+           (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "isActive" != false) AS "activeClients",
+           (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "createdAt" >= NOW() - INTERVAL '30 days') AS "newClientsThisMonth",
+           (SELECT COALESCE(SUM("totalAmount"), 0) FROM orders WHERE status IN ('completed', 'paid') AND "createdAt" >= NOW() - INTERVAL '30 days') AS "revenueThisMonth",
+           (SELECT COUNT(*) FROM daily_workout_forms WHERE "createdAt" >= NOW() - INTERVAL '7 days') AS "platformWorkouts7d"`,
+        {}) : Promise.resolve([]),
+      // 20. Check-in data placeholder (for when check-in scheduling is built out)
+      Promise.resolve([]),
     ]);
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
@@ -687,8 +827,29 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       dataParts.push(`\n--- SESSIONS ---\n${sessions.map(s => `${s.sessionDate}: ${s.status}${s.duration ? ` (${s.duration}min)` : ''}${s.notes ? ` — ${s.notes}` : ''}`).join('\n')}`);
     }
 
+    // ── 18. COMPLIANCE ──
+    if (complianceData.length > 0) {
+      const cd = complianceData[0];
+      const w7 = Number(cd.workouts7d || 0), w30 = Number(cd.workouts30d || 0), w90 = Number(cd.workouts90d || 0);
+      const comp7 = Math.min(100, Math.round((w7 / 3) * 100));
+      const comp30 = Math.min(100, Math.round((w30 / 12) * 100));
+      const lastWk = cd.lastWorkoutDate ? new Date(cd.lastWorkoutDate) : null;
+      const daysSince = lastWk ? Math.floor((Date.now() - lastWk.getTime()) / 86400000) : null;
+      let risk = 'On Track';
+      if (daysSince && daysSince > 10) risk = 'CRITICAL — no activity in ' + daysSince + ' days';
+      else if (daysSince && daysSince > 5) risk = 'WARNING — declining activity';
+      else if (comp30 < 50) risk = 'WARNING — low compliance';
+      dataParts.push(`\n--- CLIENT COMPLIANCE ---\n7-day: ${w7} workouts (${comp7}%) | 30-day: ${w30} workouts (${comp30}%) | 90-day: ${w90} workouts\nLast workout: ${daysSince != null ? daysSince + ' days ago' : 'Never'} | Risk: ${risk}`);
+    }
+
+    // ── 19. BUSINESS KPIs (admin/trainer only) ──
+    if (businessKpis.length > 0 && isAdminOrTrainer) {
+      const bk = businessKpis[0];
+      dataParts.push(`\n--- BUSINESS KPIs (Platform) ---\nActive Clients: ${bk.activeClients || 0} | New This Month: ${bk.newClientsThisMonth || 0}\nRevenue (30d): $${Number(bk.revenueThisMonth || 0).toLocaleString()} | Platform Workouts (7d): ${bk.platformWorkouts7d || 0}`);
+    }
+
     if (dataParts.length === 0) return '';
-    return '\n\n=== CLIENT DATA (17 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
+    return '\n\n=== CLIENT DATA (20 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
   } catch (err) {
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';
@@ -912,10 +1073,10 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   }));
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents,
         systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,

@@ -14,9 +14,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   X, Send, Plus, Sparkles, MessageSquare, Utensils,
   Dumbbell, Brain, ChevronLeft, Trash2, Loader2, Database,
+  ClipboardList,
 } from 'lucide-react';
-import { useAIChat, type AIContext } from '../../hooks/useAIChat';
+import { toast } from 'react-toastify';
+import { useAIChat, type AIContext, type ResponseStyle } from '../../hooks/useAIChat';
 import DictationOrb from './DictationOrb';
+import { parseAIWorkoutPlan, dispatchApplyToLogger } from '../../utils/parseAIWorkoutPlan';
 
 // ── Theme tokens ──
 const SWAN_CYAN = '#8B5CF6';
@@ -143,6 +146,42 @@ const ContextPill = styled.button<{ $active: boolean }>`
   &:hover { border-color: ${SWAN_CYAN}; color: ${SWAN_CYAN}; }
 `;
 
+// ── Response Style Selector ──
+const ResponseStyleBar = styled.div`
+  display: flex;
+  gap: 6px;
+  padding: 8px 20px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(37, 39, 66, 0.3);
+  &::-webkit-scrollbar { height: 0; }
+`;
+
+const StylePill = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid ${({ $active }) => $active ? '#60C0F0' : 'rgba(255, 255, 255, 0.1)'};
+  background: ${({ $active }) => $active ? 'rgba(96, 192, 240, 0.12)' : 'transparent'};
+  color: ${({ $active }) => $active ? '#60C0F0' : '#64748b'};
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  &:hover { border-color: #60C0F0; color: #60C0F0; }
+`;
+
+const RESPONSE_STYLES: { key: ResponseStyle; label: string; emoji: string }[] = [
+  { key: 'both', label: 'Both', emoji: '🎓💯' },
+  { key: 'phd_only', label: 'PhD Mode', emoji: '🎓' },
+  { key: 'simple_only', label: 'Keep It 100', emoji: '💯' },
+];
+
 // ── Conversation List ──
 const ConversationList = styled.div`
   flex: 1;
@@ -215,6 +254,30 @@ const MessageBubble = styled.div<{ $role: 'user' | 'assistant' }>`
   white-space: pre-wrap;
   word-break: break-word;
   animation: ${fadeIn} 0.2s ease;
+`;
+
+const ApplyToLoggerBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 36px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  color: ${SWAN_CYAN};
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+  &:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+  }
+  &:active { transform: scale(0.97); }
 `;
 
 const TypingIndicator = styled.div`
@@ -394,6 +457,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
 
   const [inputValue, setInputValue] = useState('');
   const [selectedContext, setSelectedContext] = useState<AIContext>(defaultContext);
+  const [selectedResponseStyle, setSelectedResponseStyle] = useState<ResponseStyle>('both');
   const [view, setView] = useState<'chat' | 'list'>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -438,7 +502,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     // If no active conversation, create one first
     if (!activeConversation) {
       const targetClientId = getTargetClientId();
-      const conv = await createConversation(selectedContext, undefined, targetClientId);
+      const conv = await createConversation(selectedContext, undefined, targetClientId, selectedResponseStyle);
       if (!conv) {
         setInputValue(text); // Restore input on failure
         return;
@@ -450,12 +514,12 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     if (result?.failed) {
       setInputValue(result.originalMessage || text);
     }
-  }, [inputValue, sending, activeConversation, selectedContext, createConversation, sendMessage, getTargetClientId]);
+  }, [inputValue, sending, activeConversation, selectedContext, selectedResponseStyle, createConversation, sendMessage, getTargetClientId]);
 
   const handleStartChat = useCallback(async (context: AIContext) => {
     setSelectedContext(context);
     const targetClientId = getTargetClientId();
-    const conv = await createConversation(context, undefined, targetClientId);
+    const conv = await createConversation(context, undefined, targetClientId, selectedResponseStyle);
     if (conv) {
       setView('chat');
     }
@@ -574,6 +638,18 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                 );
               })}
             </ContextBar>
+            <ResponseStyleBar>
+              {RESPONSE_STYLES.map(style => (
+                <StylePill
+                  key={style.key}
+                  $active={selectedResponseStyle === style.key}
+                  onClick={() => setSelectedResponseStyle(style.key)}
+                  title={style.key === 'both' ? 'PhD + Grandma-friendly' : style.key === 'phd_only' ? 'Expert-level detail' : 'Simple & friendly'}
+                >
+                  {style.emoji} {style.label}
+                </StylePill>
+              ))}
+            </ResponseStyleBar>
             <EmptyState>
               <EmptyIcon><Sparkles size={28} /></EmptyIcon>
               <WelcomeTitle>
@@ -608,6 +684,14 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
               })}
             </ContextBar>
 
+            {/* Response style indicator */}
+            <div style={{ padding: '6px 20px', background: 'rgba(37, 39, 66, 0.3)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              Style: <strong style={{ color: '#60C0F0' }}>
+                {RESPONSE_STYLES.find(s => s.key === selectedResponseStyle)?.emoji}{' '}
+                {RESPONSE_STYLES.find(s => s.key === selectedResponseStyle)?.label || 'Both'}
+              </strong>
+            </div>
+
             {/* Messages */}
             <MessagesArea>
               {messages.length === 0 && (
@@ -617,11 +701,30 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                   </WelcomeText>
                 </EmptyState>
               )}
-              {messages.map((msg, i) => (
-                <MessageBubble key={i} $role={msg.role}>
-                  {msg.content}
-                </MessageBubble>
-              ))}
+              {messages.map((msg, i) => {
+                // Parse exercises from ANY assistant message — user might paste workout text in any context
+                const parsedExercises = msg.role === 'assistant'
+                  ? parseAIWorkoutPlan(msg.content)
+                  : null;
+                return (
+                  <React.Fragment key={i}>
+                    <MessageBubble $role={msg.role}>
+                      {msg.content}
+                    </MessageBubble>
+                    {parsedExercises && parsedExercises.length > 0 && (
+                      <ApplyToLoggerBtn
+                        onClick={() => {
+                          dispatchApplyToLogger(parsedExercises);
+                          toast.success(`Sent ${parsedExercises.length} exercises to Workout Logger`);
+                        }}
+                      >
+                        <ClipboardList size={14} />
+                        Apply {parsedExercises.length} exercises to Logger
+                      </ApplyToLoggerBtn>
+                    )}
+                  </React.Fragment>
+                );
+              })}
               {sending && (
                 <TypingIndicator>
                   <Dot $delay={0} />
