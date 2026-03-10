@@ -638,8 +638,12 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
     setDialogOpen(false);
   };
 
-  // Helper function to get icon component
+  // Helper function to get icon component or emoji
   const getIconComponent = (iconName: string) => {
+    // If it's an emoji (not a Lucide icon name), render it directly
+    if (iconName && !iconName.match(/^[A-Z]/)) {
+      return <span style={{ fontSize: 28 }}>{iconName}</span>;
+    }
     const icon = icons.find(i => i.name === iconName);
     return icon ? icon.component : <Award />;
   };

@@ -255,12 +255,12 @@ const AdminGamificationView: React.FC = () => {
       const data = response.data?.achievements || response.data || [];
       setAchievements(Array.isArray(data) ? data.map((a: any) => ({
         id: String(a.id),
-        name: a.name || '',
+        name: a.title || a.name || '',
         description: a.description || '',
-        icon: a.icon || 'Award',
-        pointValue: a.pointValue || a.points || 0,
-        requirementType: a.requirementType || a.requirement_type || '',
-        requirementValue: a.requirementValue || a.requirement_value || 0,
+        icon: a.iconEmoji || a.icon || 'Award',
+        pointValue: a.xpReward || a.pointValue || a.points || 0,
+        requirementType: a.requirementType || a.requirement_type || a.progressUnit || '',
+        requirementValue: a.requirementValue || a.requirement_value || a.maxProgress || 0,
         tier: a.tier || 'bronze',
         isActive: a.isActive !== undefined ? a.isActive : true,
         badgeImageUrl: a.badgeImageUrl || a.badge_image_url,
