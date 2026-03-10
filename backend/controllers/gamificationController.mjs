@@ -2407,7 +2407,23 @@ const gamificationController = {
         });
       }
 
-      // Step 2: Run the Swan-themed reseed seeder (wipes + reseeds)
+      // Step 2: Ensure the tier column exists (migration may not have run)
+      try {
+        const [cols] = await db.query(
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_name = 'Achievements' AND column_name = 'tier';`
+        );
+        if (cols.length === 0) {
+          await db.query(`ALTER TABLE "Achievements" ADD COLUMN "tier" VARCHAR(50) DEFAULT 'bronze';`);
+          steps.push('Added missing tier column to Achievements table');
+        } else {
+          steps.push('tier column already exists');
+        }
+      } catch (colErr) {
+        steps.push(`tier column check/add: ${colErr.message}`);
+      }
+
+      // Step 3: Run the Swan-themed reseed seeder (wipes + reseeds)
       try {
         const { createRequire } = await import('module');
         const { fileURLToPath } = await import('url');
