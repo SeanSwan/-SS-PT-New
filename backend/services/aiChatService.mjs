@@ -501,7 +501,7 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
     ] = await Promise.all([
       // 1. User profile
       safeQuery(
-        `SELECT "firstName", "lastName", role, "createdAt", email, "fitnessGoal",
+        `SELECT role, "createdAt", "fitnessGoal",
                 "weight", "height", "dateOfBirth", "gender", "healthConcerns",
                 "trainingExperience", "masterPromptJson", "availableSessions"
          FROM "Users" WHERE id = :userId LIMIT 1`, { userId }),
@@ -659,12 +659,13 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
     // ── PROCESS RESULTS: Build data parts from parallel query results ──
 
     // ── 1. USER PROFILE ──
+    // PRIVACY: Use user ID only — no real names or emails sent to AI providers
     try {
       if (users.length > 0) {
         const u = users[0];
         const age = u.dateOfBirth ? Math.floor((Date.now() - new Date(u.dateOfBirth).getTime()) / 31557600000) : null;
         dataParts.push(`\n--- CLIENT PROFILE ---
-Name: ${u.firstName || ''} ${u.lastName || ''}
+Client ID: ${userId}
 Gender: ${u.gender || 'Not specified'}
 Age: ${age || 'Unknown'}
 Weight: ${u.weight || 'Not recorded'}
