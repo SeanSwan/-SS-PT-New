@@ -72,17 +72,35 @@ router.post('/conversations', async (req, res) => {
       ? targetUserId
       : null;
 
-    const conversation = await AiConversation.create({
+    // Build create payload — only include targetUserId if it has a value
+    // (column may not exist yet if migration hasn't run)
+    const createPayload = {
       userId: req.user.id,
       role: userRole,
       title: title || null,
       context,
-      targetUserId: resolvedTargetUserId,
       messages: [],
       status: 'active',
       messageCount: 0,
       metadata: { responseStyle: resolvedStyle },
-    });
+    };
+    if (resolvedTargetUserId) {
+      createPayload.targetUserId = resolvedTargetUserId;
+    }
+
+    let conversation;
+    try {
+      conversation = await AiConversation.create(createPayload);
+    } catch (createErr) {
+      // If targetUserId column doesn't exist yet, retry without it
+      if (createErr.message?.includes('targetUserId') || createErr.original?.code === '42703') {
+        logger.warn('[AIChatRoutes] targetUserId column missing — creating without it');
+        delete createPayload.targetUserId;
+        conversation = await AiConversation.create(createPayload);
+      } else {
+        throw createErr;
+      }
+    }
 
     return res.status(201).json({
       success: true,

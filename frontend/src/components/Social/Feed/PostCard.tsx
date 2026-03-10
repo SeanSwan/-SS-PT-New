@@ -49,20 +49,9 @@ const toastSlideOut = keyframes`
   to { transform: translateX(-50%) translateY(20px); opacity: 0; }
 `;
 
-// ─── Unsplash category backgrounds (free hotlink) ───────────────
-const CATEGORY_BACKGROUNDS: Record<string, string> = {
-  workout: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=60&auto=format&fit=crop',
-  transformation: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=60&auto=format&fit=crop',
-  achievement: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=60&auto=format&fit=crop',
-  challenge: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=60&auto=format&fit=crop',
-  dance: 'https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&q=60&auto=format&fit=crop',
-  music: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=60&auto=format&fit=crop',
-  singing: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=60&auto=format&fit=crop',
-  art: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=60&auto=format&fit=crop',
-  gaming: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=60&auto=format&fit=crop',
-  comedy: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=800&q=60&auto=format&fit=crop',
-  creative: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&q=60&auto=format&fit=crop',
-};
+// ─── Default post background: SwanStudios Logo on Midnight Sapphire ──────
+// No more generic Unsplash stock photos — brand-consistent Logo.png for all posts
+const SWAN_LOGO_URL = '/Logo.png';
 
 // Category gradient overlays (dark enough for text readability)
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -80,13 +69,11 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   general: 'linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(0,32,96,0.9) 100%)',
 };
 
-// Swan watermark SVG path for posts without images
-const SWAN_PATH = 'M8 3C7 3 6 4 6 5C6 6 7 7 8 7C9 7 10 8 10 10C10 12 9 14 8 15C7 16 6 17 5 18C4 19 4 20 5 21C6 22 8 22 10 21C12 20 14 19 16 18C18 17 20 15 20 13C20 11 19 9 17 8C15 7 13 8 12 10C12 8 11 6 10 5C9 4 8.5 3 8 3Z';
 
 const breathe = keyframes`
-  0% { opacity: 0.06; transform: scale(1); }
-  50% { opacity: 0.12; transform: scale(1.02); }
-  100% { opacity: 0.06; transform: scale(1); }
+  0% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.02); }
+  100% { opacity: 0.5; transform: scale(1); }
 `;
 
 // ─── Styled Components ──────────────────────────────────────────
@@ -172,8 +159,7 @@ const SwanWatermark = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.05;
-  mix-blend-mode: screen;
+  opacity: 0.6;
   animation: ${breathe} 4s ease-in-out infinite;
   pointer-events: none;
 `;
@@ -1157,10 +1143,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     setTimeout(() => setShowPointNotification(false), 300);
   };
 
-  // Determine hero image: user media > category background > none (swan watermark)
+  // Determine hero image: user media > SwanStudios Logo default
   const hasUserMedia = !!post.mediaUrl && post.type !== 'transformation';
-  const categoryBg = CATEGORY_BACKGROUNDS[post.type];
-  const heroImage = hasUserMedia ? post.mediaUrl : categoryBg;
+  const heroImage = hasUserMedia ? post.mediaUrl : null;
   const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
 
   return (
@@ -1168,13 +1153,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
       <PostCardWrapper>
         {/* Hero Image Area — always visible */}
         <HeroArea $bgImage={heroImage} $gradient={gradient} $hasImage={!!heroImage}>
-          {/* Swan watermark when no image at all */}
+          {/* SwanStudios Logo when no user image */}
           {!heroImage && (
             <SwanWatermark>
-              <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d={SWAN_PATH} fill="#FFFFFF" stroke="none" />
-                <circle cx="7.5" cy="5" r="0.8" fill="#FFFFFF" />
-              </svg>
+              <img src={SWAN_LOGO_URL} alt="" width="160" height="160" style={{ borderRadius: '50%', filter: 'drop-shadow(0 0 20px rgba(96, 192, 240, 0.3))' }} />
             </SwanWatermark>
           )}
 
