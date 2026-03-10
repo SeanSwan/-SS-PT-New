@@ -1172,11 +1172,6 @@ const GalleryPage: React.FC = () => {
                   loading="lazy"
                   onLoad={e => { (e.target as HTMLImageElement).style.animation = 'none'; }}
                 />
-                {/* CSS Watermark Overlay */}
-                <WatermarkOverlay>
-                  <WatermarkLogo src="/Logo.png" alt="" aria-hidden="true" />
-                  <WatermarkText>sswanstudios.com</WatermarkText>
-                </WatermarkOverlay>
                 <PhotoOverlay>
                   <PhotoLabel>{photo.displayName}</PhotoLabel>
                 </PhotoOverlay>
@@ -1258,11 +1253,6 @@ const GalleryPage: React.FC = () => {
                   src={photos[lightboxIndex].enhancedUrl || photos[lightboxIndex].url}
                   alt={photos[lightboxIndex].displayName}
                 />
-                {/* Lightbox Watermark Overlay */}
-                <WatermarkOverlay>
-                  <WatermarkLogo src="/Logo.png" alt="" aria-hidden="true" />
-                  <WatermarkText>sswanstudios.com</WatermarkText>
-                </WatermarkOverlay>
               </LightboxImageWrapper>
               <LightboxClose onClick={() => setLightboxIndex(null)}>&#x2715;</LightboxClose>
               {lightboxIndex > 0 && (
