@@ -300,8 +300,8 @@ router.post('/events/:id/upload', upload.array('photos', 50), async (req, res) =
       totalPhotoCount: totalPhotos,
     });
   } catch (err) {
-    logger.error('[AdminGallery] Upload error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to upload photos' });
+    logger.error('[AdminGallery] Upload error:', err.message, err.stack?.split('\n').slice(0, 5).join('\n'));
+    return res.status(500).json({ success: false, error: err.message || 'Failed to upload photos' });
   }
 });
 
