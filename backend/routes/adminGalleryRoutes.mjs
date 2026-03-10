@@ -444,7 +444,9 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
     const confirmed = [];
     const errors = [];
 
-    // Process ONE photo at a time to keep RAM low
+    // Process ONE photo at a time to keep RAM low (~150MB peak per file)
+    const sharp = (await import('sharp')).default;
+
     for (const photo of photos) {
       try {
         // 1. Download raw photo from R2
@@ -454,14 +456,29 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         for await (const chunk of rawObj.Body) {
           chunks.push(chunk);
         }
-        let photoBuffer = Buffer.concat(chunks);
+        let rawBuffer = Buffer.concat(chunks);
+        const rawSize = rawBuffer.length;
 
-        // 2. Watermark
+        // 2. For large files (>50MB), convert to JPEG first to reduce memory footprint
+        //    A 117MB raw/TIFF becomes ~10-20MB JPEG, making watermarking safe on 512MB RAM
+        let photoBuffer;
+        if (rawSize > 50 * 1024 * 1024) {
+          logger.info(`[AdminGallery] Large file (${(rawSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG first`);
+          photoBuffer = await sharp(rawBuffer)
+            .jpeg({ quality: 95 })
+            .toBuffer();
+          rawBuffer = null; // Free the large raw buffer immediately
+        } else {
+          photoBuffer = rawBuffer;
+          rawBuffer = null;
+        }
+
+        // 3. Watermark
         if (enableWatermark) {
           photoBuffer = await applyWatermark(photoBuffer, { applyWatermark: true });
         }
 
-        // 3. Upload watermarked version to final key
+        // 4. Upload watermarked version to final key
         await r2Client.send(new PutObjectCommand({
           Bucket: R2_BUCKET,
           Key: photo.finalKey,
@@ -469,13 +486,15 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
           ContentType: 'image/jpeg',
         }));
 
-        // 4. Delete raw staging file (best-effort)
+        const processedSize = photoBuffer.length;
+
+        // 5. Delete raw staging file (best-effort)
         try {
           const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
           await r2Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey }));
         } catch { /* non-fatal */ }
 
-        // 5. Create DB record
+        // 6. Create DB record
         const url = R2_PUBLIC_URL
           ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
           : `/api/serve-photo/${photo.finalKey}`;
@@ -489,12 +508,12 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
           url,
           thumbnailUrl: url,
           originalFilename: photo.originalName || photo.rawKey,
-          fileSize: photoBuffer.length,
+          fileSize: processedSize,
           mimeType: 'image/jpeg',
           metadata: {
             originalName: photo.originalName,
-            originalSize: photo.fileSize,
-            processedSize: photoBuffer.length,
+            originalSize: photo.fileSize || rawSize,
+            processedSize,
             watermarked: enableWatermark && isWatermarkAvailable(),
             uploadMethod: 'direct-r2',
             uploadedAt: new Date().toISOString(),
@@ -509,7 +528,7 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
           thumbnailUrl: dbPhoto.thumbnailUrl,
         });
 
-        // Release buffer for GC
+        // Release buffer and hint GC between files
         photoBuffer = null;
 
         logger.info(`[AdminGallery] Confirmed ${photo.displayName} (direct R2) for event ${event.slug}`);
@@ -517,6 +536,9 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         logger.error(`[AdminGallery] Failed to confirm ${photo.rawKey}: ${photoErr.message}`);
         errors.push({ rawKey: photo.rawKey, displayName: photo.displayName, error: photoErr.message });
       }
+
+      // Hint GC between files to reclaim memory before next large photo
+      if (global.gc) global.gc();
     }
 
     // Update photo count

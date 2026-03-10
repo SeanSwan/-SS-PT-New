@@ -994,7 +994,7 @@ const AdminGalleryManager: React.FC = () => {
                           <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
                           <div>Drag & drop photos here, or click to browse</div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                            JPG, PNG, HEIC up to 50MB each · Select up to 300 at once (direct R2 upload, batches of 20)
+                            JPG, PNG, HEIC, RAW up to 150MB each · Select up to 300 at once (direct R2 upload, batches of 20)
                             {watermarkEnabled && ' · Watermark will be applied'}
                           </div>
                         </DropZone>
