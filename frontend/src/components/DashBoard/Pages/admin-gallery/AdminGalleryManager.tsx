@@ -487,8 +487,38 @@ const AdminGalleryManager: React.FC = () => {
     } catch { /* */ }
   };
 
-  // Upload a single batch of files via XHR (returns promise)
-  const uploadBatch = (eventId: number, batch: File[], batchIndex: number, totalBatches: number, totalFiles: number, completedSoFar: number): Promise<{ success: boolean; count: number; error?: string }> => {
+  // ── Direct R2 Upload Flow ─────────────────────────────────────────────
+  // 1. Get presigned URLs from backend (tiny request)
+  // 2. Upload files directly to R2 from browser (parallel within batch)
+  // 3. Confirm with backend → watermarks one-at-a-time from R2
+  // Fallback: legacy multer upload if presign fails (R2 not configured)
+
+  const BATCH_SIZE = 20; // Direct R2 upload allows larger batches
+
+  // Upload a single file directly to R2 via presigned PUT URL
+  const uploadFileToR2 = (file: File, uploadUrl: string): Promise<{ success: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: `R2 returned ${xhr.status}` });
+        }
+      });
+      xhr.addEventListener('error', () => resolve({ success: false, error: 'Network error uploading to R2' }));
+      xhr.addEventListener('timeout', () => resolve({ success: false, error: 'R2 upload timeout' }));
+
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'image/jpeg');
+      xhr.timeout = 300000; // 5 min for large files directly to R2
+      xhr.send(file);
+    });
+  };
+
+  // Legacy upload: send files through Render (fallback if R2 presign unavailable)
+  const uploadBatchLegacy = (eventId: number, batch: File[], completedSoFar: number, totalFiles: number): Promise<{ success: boolean; count: number; error?: string }> => {
     return new Promise((resolve) => {
       const formData = new FormData();
       batch.forEach(f => formData.append('photos', f));
@@ -530,17 +560,101 @@ const AdminGalleryManager: React.FC = () => {
       const token = localStorage.getItem('token');
       xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${eventId}/upload`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.timeout = 120000; // 2 min per batch of 5
+      xhr.timeout = 120000;
       xhr.send(formData);
     });
+  };
+
+  // Direct R2 upload for a batch of files
+  const uploadBatchDirect = async (
+    eventId: number,
+    batch: File[],
+    completedSoFar: number,
+    totalFiles: number,
+  ): Promise<{ success: boolean; count: number; error?: string }> => {
+    try {
+      // Step 1: Get presigned URLs
+      const presignRes = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/presign-upload`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          files: batch.map(f => ({ name: f.name, size: f.size, type: f.type || 'image/jpeg' })),
+        }),
+      });
+
+      if (presignRes.status === 503) {
+        // R2 not configured, fall back to legacy
+        return uploadBatchLegacy(eventId, batch, completedSoFar, totalFiles);
+      }
+
+      const presignData = await presignRes.json();
+      if (!presignData.success) {
+        return { success: false, count: 0, error: presignData.error || 'Failed to get upload URLs' };
+      }
+
+      // Step 2: Upload all files to R2 in parallel
+      const uploadResults = await Promise.all(
+        presignData.uploads.map((upload: any, idx: number) => {
+          const file = batch[idx];
+          return uploadFileToR2(file, upload.uploadUrl).then(result => {
+            // Update progress as each file completes
+            const done = completedSoFar + idx + 1;
+            setUploadProgress(Math.min(Math.round((done / totalFiles) * 90), 90)); // Cap at 90% until confirm
+            return { ...result, upload };
+          });
+        }),
+      );
+
+      const successfulUploads = uploadResults.filter(r => r.success);
+      const failedUploads = uploadResults.filter(r => !r.success);
+
+      if (successfulUploads.length === 0) {
+        return { success: false, count: 0, error: 'All R2 uploads failed' };
+      }
+
+      // Step 3: Confirm uploads (triggers watermarking on backend, one-at-a-time)
+      setUploadStatusMessage(`Watermarking ${successfulUploads.length} photos...`);
+
+      const confirmRes = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/confirm-upload`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          photos: successfulUploads.map((r: any) => ({
+            rawKey: r.upload.rawKey,
+            finalKey: r.upload.finalKey,
+            photoNumber: r.upload.photoNumber,
+            displayName: r.upload.displayName,
+            originalName: batch[presignData.uploads.indexOf(r.upload)]?.name,
+            fileSize: batch[presignData.uploads.indexOf(r.upload)]?.size,
+          })),
+          watermark: watermarkEnabled,
+        }),
+      });
+
+      const confirmData = await confirmRes.json();
+
+      const totalConfirmed = confirmData.photos?.length ?? 0;
+      const totalErrors = (confirmData.errors?.length ?? 0) + failedUploads.length;
+
+      if (totalErrors > 0 && totalConfirmed > 0) {
+        return { success: true, count: totalConfirmed, error: `${totalErrors} photo(s) failed` };
+      }
+
+      return {
+        success: totalConfirmed > 0,
+        count: totalConfirmed,
+        error: totalConfirmed === 0 ? (confirmData.error || 'Confirmation failed') : undefined,
+      };
+    } catch (err: any) {
+      return { success: false, count: 0, error: err.message || 'Direct upload failed' };
+    }
   };
 
   const handleFileUpload = async (files: FileList | File[]) => {
     if (!uploadEventId || !files.length) return;
     const fileArray = Array.from(files);
-    const BATCH_SIZE = 5;
 
-    // Split into batches of 5
+    // Split into batches
     const batches: File[][] = [];
     for (let i = 0; i < fileArray.length; i += BATCH_SIZE) {
       batches.push(fileArray.slice(i, i + BATCH_SIZE));
@@ -555,7 +669,7 @@ const AdminGalleryManager: React.FC = () => {
     setUploadError(null);
     setUploadSuccess(null);
     setUploadStartTime(Date.now());
-    setUploadStatusMessage(`Starting upload of ${fileArray.length} photos in ${batches.length} batches...`);
+    setUploadStatusMessage(`Starting direct R2 upload of ${fileArray.length} photos in ${batches.length} batch(es)...`);
     setUploadCompletedBatches(0);
     setUploadTotalBatches(batches.length);
     setUploadCompletedPhotos(0);
@@ -572,24 +686,25 @@ const AdminGalleryManager: React.FC = () => {
 
       const batch = batches[i];
       const batchNum = i + 1;
-      setUploadStatusMessage(`Batch ${batchNum}/${batches.length}: Uploading ${batch.length} photos (watermarking + storing)...`);
+      setUploadStatusMessage(`Batch ${batchNum}/${batches.length}: Uploading ${batch.length} photos to R2...`);
 
-      const result = await uploadBatch(uploadEventId, batch, i, batches.length, fileArray.length, totalUploaded);
+      const result = await uploadBatchDirect(uploadEventId, batch, totalUploaded, fileArray.length);
 
       if (result.success) {
         totalUploaded += result.count;
         setUploadCompletedPhotos(totalUploaded);
         setUploadCompletedBatches(batchNum);
         setUploadStatusMessage(`Batch ${batchNum}/${batches.length} complete! ${totalUploaded}/${fileArray.length} photos done.`);
+        if (result.error) errors.push(result.error);
       } else {
         failedBatches++;
         errors.push(`Batch ${batchNum} failed: ${result.error}`);
-        setUploadStatusMessage(`Batch ${batchNum} failed: ${result.error}. Continuing with next batch...`);
+        setUploadStatusMessage(`Batch ${batchNum} failed: ${result.error}. Continuing...`);
       }
 
-      // Brief pause between batches to let server GC
+      // Brief pause between batches
       if (i < batches.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 300));
       }
     }
 
@@ -601,10 +716,10 @@ const AdminGalleryManager: React.FC = () => {
     if (totalUploaded > 0) {
       setUploadedPhotoCount(totalUploaded);
       const wm = watermarkEnabled ? ' with watermark' : '';
-      if (failedBatches === 0) {
-        setUploadSuccess(`All ${totalUploaded} photos uploaded successfully${wm}!`);
+      if (failedBatches === 0 && errors.length === 0) {
+        setUploadSuccess(`All ${totalUploaded} photos uploaded successfully${wm}! (Direct R2)`);
       } else {
-        setUploadSuccess(`${totalUploaded} photos uploaded${wm}. ${failedBatches} batch(es) failed.`);
+        setUploadSuccess(`${totalUploaded} photos uploaded${wm}. ${errors.length} issue(s).`);
         setUploadError(errors.join(' | '));
       }
       loadEvents();
@@ -879,7 +994,7 @@ const AdminGalleryManager: React.FC = () => {
                           <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
                           <div>Drag & drop photos here, or click to browse</div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                            JPG, PNG up to 25MB each · Select up to 300 at once (uploaded in batches of 5)
+                            JPG, PNG, HEIC up to 50MB each · Select up to 300 at once (direct R2 upload, batches of 20)
                             {watermarkEnabled && ' · Watermark will be applied'}
                           </div>
                         </DropZone>

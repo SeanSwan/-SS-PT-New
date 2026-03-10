@@ -9,7 +9,8 @@
 import express from 'express';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import GalleryEvent from '../models/GalleryEvent.mjs';
 import GalleryPhoto from '../models/GalleryPhoto.mjs';
 import GalleryVisitor from '../models/GalleryVisitor.mjs';
@@ -322,6 +323,224 @@ router.post('/events/:id/upload', (req, res, next) => {
   } catch (err) {
     logger.error('[AdminGallery] Upload error:', err.message, err.stack?.split('\n').slice(0, 5).join('\n'));
     return res.status(500).json({ success: false, error: err.message || 'Failed to upload photos' });
+  }
+});
+
+// ── Direct R2 Upload (Presigned URLs) ────────────────────────────────────
+// Flow: browser → R2 (direct) → confirm → Render watermarks one-at-a-time
+// This bypasses Render RAM for the upload, enabling batches of 20+ photos.
+
+/**
+ * POST /api/admin/gallery/events/:id/presign-upload
+ * Generate presigned R2 PUT URLs for direct browser-to-R2 uploads.
+ *
+ * Body: { files: [{ name: "IMG_001.jpg", size: 5242880, type: "image/jpeg" }, ...] }
+ * Returns: { uploads: [{ name, key, uploadUrl, photoNumber, displayName }, ...] }
+ */
+router.post('/events/:id/presign-upload', async (req, res) => {
+  try {
+    const event = await GalleryEvent.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    const { files } = req.body;
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ success: false, error: 'No files specified' });
+    }
+
+    if (files.length > 50) {
+      return res.status(400).json({ success: false, error: 'Maximum 50 files per presign request' });
+    }
+
+    // Check R2 availability
+    let r2Client = null;
+    const R2_BUCKET = process.env.R2_BUCKET_NAME;
+    try {
+      const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) r2Client = getR2Client();
+    } catch { /* R2 not available */ }
+
+    if (!r2Client || !R2_BUCKET) {
+      return res.status(503).json({ success: false, error: 'R2 storage not configured — use legacy upload endpoint' });
+    }
+
+    // Get current max photo number
+    const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
+    let nextNumber = (maxPhoto || 0) + 1;
+
+    const uploads = [];
+
+    for (const file of files) {
+      const photoNumber = nextNumber++;
+      const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+      // Store raw uploads in a staging prefix; watermarked versions go to final location
+      const rawKey = `gallery-raw/${event.slug}/${photoNumber}-${Date.now()}.jpg`;
+      const finalKey = `gallery/${event.slug}/${photoNumber}.jpg`;
+
+      const command = new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: rawKey,
+        ContentType: file.type || 'image/jpeg',
+      });
+
+      const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 }); // 10 min TTL
+
+      uploads.push({
+        name: file.name,
+        rawKey,
+        finalKey,
+        uploadUrl,
+        photoNumber,
+        displayName,
+      });
+    }
+
+    logger.info(`[AdminGallery] Generated ${uploads.length} presigned URLs for event ${event.slug}`);
+
+    return res.json({
+      success: true,
+      uploads,
+      eventSlug: event.slug,
+    });
+  } catch (err) {
+    logger.error('[AdminGallery] Presign error:', err.message);
+    return res.status(500).json({ success: false, error: err.message || 'Failed to generate upload URLs' });
+  }
+});
+
+/**
+ * POST /api/admin/gallery/events/:id/confirm-upload
+ * After browser uploads to R2, this endpoint:
+ *   1. Downloads the raw photo from R2 (one at a time)
+ *   2. Applies watermark with sharp
+ *   3. Re-uploads watermarked version to final R2 key
+ *   4. Creates GalleryPhoto DB record
+ *   5. Deletes raw staging file
+ *
+ * Body: { photos: [{ rawKey, finalKey, photoNumber, displayName, originalName, fileSize }], watermark: true }
+ */
+router.post('/events/:id/confirm-upload', async (req, res) => {
+  try {
+    const event = await GalleryEvent.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    const { photos, watermark: enableWatermark = true } = req.body;
+    if (!photos || !Array.isArray(photos) || photos.length === 0) {
+      return res.status(400).json({ success: false, error: 'No photos to confirm' });
+    }
+
+    let r2Client = null;
+    const R2_BUCKET = process.env.R2_BUCKET_NAME;
+    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+    try {
+      const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) r2Client = getR2Client();
+    } catch { /* */ }
+
+    if (!r2Client || !R2_BUCKET) {
+      return res.status(503).json({ success: false, error: 'R2 storage not configured' });
+    }
+
+    const watermarkStatus = enableWatermark && isWatermarkAvailable() ? 'applied' : 'skipped';
+    const confirmed = [];
+    const errors = [];
+
+    // Process ONE photo at a time to keep RAM low
+    for (const photo of photos) {
+      try {
+        // 1. Download raw photo from R2
+        const getCommand = new GetObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey });
+        const rawObj = await r2Client.send(getCommand);
+        const chunks = [];
+        for await (const chunk of rawObj.Body) {
+          chunks.push(chunk);
+        }
+        let photoBuffer = Buffer.concat(chunks);
+
+        // 2. Watermark
+        if (enableWatermark) {
+          photoBuffer = await applyWatermark(photoBuffer, { applyWatermark: true });
+        }
+
+        // 3. Upload watermarked version to final key
+        await r2Client.send(new PutObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: photo.finalKey,
+          Body: photoBuffer,
+          ContentType: 'image/jpeg',
+        }));
+
+        // 4. Delete raw staging file (best-effort)
+        try {
+          const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+          await r2Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey }));
+        } catch { /* non-fatal */ }
+
+        // 5. Create DB record
+        const url = R2_PUBLIC_URL
+          ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
+          : `/api/serve-photo/${photo.finalKey}`;
+
+        const dbPhoto = await GalleryPhoto.create({
+          eventId: event.id,
+          photoNumber: photo.photoNumber,
+          displayName: photo.displayName,
+          storageKey: photo.finalKey,
+          thumbnailKey: photo.finalKey,
+          url,
+          thumbnailUrl: url,
+          originalFilename: photo.originalName || photo.rawKey,
+          fileSize: photoBuffer.length,
+          mimeType: 'image/jpeg',
+          metadata: {
+            originalName: photo.originalName,
+            originalSize: photo.fileSize,
+            processedSize: photoBuffer.length,
+            watermarked: enableWatermark && isWatermarkAvailable(),
+            uploadMethod: 'direct-r2',
+            uploadedAt: new Date().toISOString(),
+          },
+        });
+
+        confirmed.push({
+          id: dbPhoto.id,
+          photoNumber: dbPhoto.photoNumber,
+          displayName: dbPhoto.displayName,
+          url: dbPhoto.url,
+          thumbnailUrl: dbPhoto.thumbnailUrl,
+        });
+
+        // Release buffer for GC
+        photoBuffer = null;
+
+        logger.info(`[AdminGallery] Confirmed ${photo.displayName} (direct R2) for event ${event.slug}`);
+      } catch (photoErr) {
+        logger.error(`[AdminGallery] Failed to confirm ${photo.rawKey}: ${photoErr.message}`);
+        errors.push({ rawKey: photo.rawKey, displayName: photo.displayName, error: photoErr.message });
+      }
+    }
+
+    // Update photo count
+    const totalPhotos = await GalleryPhoto.count({ where: { eventId: event.id } });
+    await event.update({ photoCount: totalPhotos });
+
+    // Set first photo as cover if none set
+    if (!event.coverPhotoId && confirmed.length > 0) {
+      await event.update({ coverPhotoId: confirmed[0].id });
+    }
+
+    return res.json({
+      success: confirmed.length > 0,
+      message: errors.length
+        ? `${confirmed.length} photo(s) confirmed, ${errors.length} failed`
+        : `${confirmed.length} photo(s) confirmed & watermarked`,
+      watermark: watermarkStatus,
+      photos: confirmed,
+      errors: errors.length ? errors : undefined,
+      totalPhotoCount: totalPhotos,
+    });
+  } catch (err) {
+    logger.error('[AdminGallery] Confirm upload error:', err.message, err.stack?.split('\n').slice(0, 5).join('\n'));
+    return res.status(500).json({ success: false, error: err.message || 'Failed to confirm uploads' });
   }
 });
 
