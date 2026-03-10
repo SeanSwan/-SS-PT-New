@@ -299,7 +299,20 @@ const AdminGamificationView: React.FC = () => {
       const response = await authAxios.get('/api/v1/gamification/settings');
       const data = response.data?.settings || response.data || {};
       if (data.pointValues) setPointValues(data.pointValues);
-      if (data.tierThresholds) setTierThresholds(data.tierThresholds);
+      if (data.tierThresholds) {
+        // API returns object {bronze: 0, silver: 1000, ...} — convert to array
+        const tt = data.tierThresholds;
+        if (Array.isArray(tt)) {
+          setTierThresholds(tt);
+        } else if (typeof tt === 'object') {
+          setTierThresholds(
+            Object.entries(tt).map(([tier, pts]) => ({
+              tier: tier as TierThreshold['tier'],
+              pointsRequired: typeof pts === 'number' ? pts : 0,
+            }))
+          );
+        }
+      }
       if (data.levelSettings) setLevelSettings(data.levelSettings);
       if (data.systemSettings) setSystemSettings(data.systemSettings);
     } catch (error) {
