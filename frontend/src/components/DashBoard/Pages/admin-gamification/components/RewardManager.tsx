@@ -569,10 +569,10 @@ const icons = [
 ];
 
 const tiers = [
-  { value: 'bronze', label: 'Bronze', color: '#CD7F32' },
-  { value: 'silver', label: 'Silver', color: '#C0C0C0' },
-  { value: 'gold', label: 'Gold', color: '#FFD700' },
-  { value: 'platinum', label: 'Platinum', color: '#E5E4E2' },
+  { value: 'bronze', label: 'Cygnus Initiate', color: '#002060' },
+  { value: 'silver', label: 'Frostwing Ascendant', color: '#60C0F0' },
+  { value: 'gold', label: 'Gilded Sovereign', color: '#C6A84B' },
+  { value: 'platinum', label: 'Amethyst Apex', color: '#8B5CF6' },
 ];
 
 /**

@@ -1,5 +1,50 @@
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
+
+// ═══════════════════════════════════════════════════════
+// Swan-Themed Tier System (Crystalline Swan Gamification)
+// Designed by Gemini 3.1 Pro — Lead Design Authority
+// ═══════════════════════════════════════════════════════
+
+export const SWAN_TIERS = {
+  bronze:   { label: 'Cygnus Initiate',      color: '#002060', bg: 'rgba(0, 32, 96, 0.20)',     glow: 'rgba(0, 32, 96, 0.4)' },
+  silver:   { label: 'Frostwing Ascendant',   color: '#60C0F0', bg: 'rgba(96, 192, 240, 0.15)',  glow: 'rgba(96, 192, 240, 0.4)' },
+  gold:     { label: 'Gilded Sovereign',      color: '#C6A84B', bg: 'rgba(198, 168, 75, 0.15)',  glow: 'rgba(198, 168, 75, 0.4)' },
+  platinum: { label: 'Amethyst Apex',         color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)',  glow: 'rgba(139, 92, 246, 0.4)' },
+} as const;
+
+// For tierLevel 5 (Crystalline Swan) — use animated gradient
+export const CRYSTALLINE_SWAN = {
+  label: 'Crystalline Swan',
+  color: '#E0ECF4',
+  bg: 'rgba(224, 236, 244, 0.10)',
+  glow: 'rgba(224, 236, 244, 0.5)',
+  gradient: 'linear-gradient(135deg, #60C0F0, #8B5CF6, #C6A84B)',
+};
+
+export type SwanTier = keyof typeof SWAN_TIERS;
+
+export function getSwanTierColor(tier: string): string {
+  return SWAN_TIERS[tier as SwanTier]?.color || '#002060';
+}
+
+export function getSwanTierBg(tier: string): string {
+  return SWAN_TIERS[tier as SwanTier]?.bg || 'rgba(0, 32, 96, 0.20)';
+}
+
+export function getSwanTierLabel(tier: string): string {
+  return SWAN_TIERS[tier as SwanTier]?.label || 'Cygnus Initiate';
+}
+
+export function getSwanTierGlow(tier: string): string {
+  return SWAN_TIERS[tier as SwanTier]?.glow || 'rgba(0, 32, 96, 0.4)';
+}
+
+// Legendary shimmer animation for Crystalline Swan tier
+const legendaryShimmer = keyframes`
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+`;
 
 // Animation variants
 export const containerVariants = {
@@ -77,7 +122,7 @@ export const AchievementGrid = motion(styled.div`
   margin-top: 24px;
 `);
 
-export const AchievementItem = motion(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const AchievementItem = motion(styled.div<{ tier: string }>`
   position: relative;
   background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
@@ -90,38 +135,29 @@ export const AchievementItem = motion(styled.div<{ tier: 'bronze' | 'silver' | '
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-top: 4px solid ${({ tier, theme }) =>
-    tier === 'bronze' ? '#CD7F32' :
-    tier === 'silver' ? '#C0C0C0' :
-    tier === 'gold' ? '#FFD700' :
-    '#E5E4E2'
-  };
+  border-top: 4px solid ${({ tier }) => getSwanTierColor(tier)};
+
+  /* Overwatch-style clipped corners for premium feel */
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
 
   &:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px ${({ tier }) => getSwanTierGlow(tier)};
+    transform: translateY(-4px) scale(1.02);
   }
 `);
 
-export const AchievementIcon = styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const AchievementIcon = styled.div<{ tier: string }>`
   width: 64px;
   height: 64px;
-  background-color: ${({ tier }) => 
-    tier === 'bronze' ? 'rgba(205, 127, 50, 0.15)' : 
-    tier === 'silver' ? 'rgba(192, 192, 192, 0.15)' : 
-    tier === 'gold' ? 'rgba(255, 215, 0, 0.15)' : 
-    'rgba(229, 228, 226, 0.15)'
-  };
+  background-color: ${({ tier }) => getSwanTierBg(tier)};
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  color: ${({ tier }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#808080' : 
-    tier === 'gold' ? '#FFD700' : 
-    '#75748C'
-  };
+  color: ${({ tier }) => getSwanTierColor(tier)};
+  box-shadow: 0 0 20px ${({ tier }) => getSwanTierGlow(tier)};
+  transition: box-shadow 0.3s ease;
 `;
 
 export const AchievementName = styled.h3`
@@ -147,26 +183,19 @@ export const AchievementReward = styled.div`
   gap: 4px;
 `;
 
-export const AchievementBadge = styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const AchievementBadge = styled.div<{ tier: string }>`
   position: absolute;
   top: 12px;
   right: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
   border-radius: 16px;
-  background-color: ${({ tier }) => 
-    tier === 'bronze' ? 'rgba(205, 127, 50, 0.15)' : 
-    tier === 'silver' ? 'rgba(192, 192, 192, 0.15)' : 
-    tier === 'gold' ? 'rgba(255, 215, 0, 0.15)' : 
-    'rgba(229, 228, 226, 0.15)'
-  };
-  color: ${({ tier }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#808080' : 
-    tier === 'gold' ? '#FFD700' : 
-    '#75748C'
-  };
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background-color: ${({ tier }) => getSwanTierBg(tier)};
+  color: ${({ tier }) => getSwanTierColor(tier)};
+  border: 1px solid ${({ tier }) => getSwanTierColor(tier)}33;
 `;
 
 export const UnlockedOverlay = styled.div`
@@ -301,7 +330,7 @@ export const RewardGrid = motion(styled.div`
   margin-top: 24px;
 `);
 
-export const RewardItem = motion(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const RewardItem = motion(styled.div<{ tier: string }>`
   position: relative;
   background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
@@ -312,15 +341,10 @@ export const RewardItem = motion(styled.div<{ tier: 'bronze' | 'silver' | 'gold'
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-left: 4px solid ${({ tier }) =>
-    tier === 'bronze' ? '#CD7F32' :
-    tier === 'silver' ? '#C0C0C0' :
-    tier === 'gold' ? '#FFD700' :
-    '#E5E4E2'
-  };
+  border-left: 4px solid ${({ tier }) => getSwanTierColor(tier)};
 
   &:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px ${({ tier }) => getSwanTierGlow(tier)};
   }
 `);
 
@@ -331,25 +355,15 @@ export const RewardHeader = styled.div`
   margin-bottom: 16px;
 `;
 
-export const RewardIcon = styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const RewardIcon = styled.div<{ tier: string }>`
   width: 48px;
   height: 48px;
-  background-color: ${({ tier }) => 
-    tier === 'bronze' ? 'rgba(205, 127, 50, 0.15)' : 
-    tier === 'silver' ? 'rgba(192, 192, 192, 0.15)' : 
-    tier === 'gold' ? 'rgba(255, 215, 0, 0.15)' : 
-    'rgba(229, 228, 226, 0.15)'
-  };
+  background-color: ${({ tier }) => getSwanTierBg(tier)};
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${({ tier }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#808080' : 
-    tier === 'gold' ? '#FFD700' : 
-    '#75748C'
-  };
+  color: ${({ tier }) => getSwanTierColor(tier)};
   flex-shrink: 0;
 `;
 
@@ -380,38 +394,26 @@ export const RewardFooter = styled.div`
   border-top: 1px solid ${({ theme }) => theme?.palette?.divider || 'rgba(255, 255, 255, 0.1)'};
 `;
 
-export const RewardPoints = styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const RewardPoints = styled.div<{ tier: string }>`
   font-size: 14px;
   font-weight: 600;
-  color: ${({ tier }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#808080' : 
-    tier === 'gold' ? '#FFD700' : 
-    '#75748C'
-  };
+  color: ${({ tier }) => getSwanTierColor(tier)};
   display: flex;
   align-items: center;
   gap: 4px;
 `;
 
-export const RewardBadge = styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const RewardBadge = styled.div<{ tier: string }>`
   position: absolute;
   top: 12px;
   right: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
   border-radius: 16px;
-  background-color: ${({ tier }) => 
-    tier === 'bronze' ? 'rgba(205, 127, 50, 0.15)' : 
-    tier === 'silver' ? 'rgba(192, 192, 192, 0.15)' : 
-    tier === 'gold' ? 'rgba(255, 215, 0, 0.15)' : 
-    'rgba(229, 228, 226, 0.15)'
-  };
-  color: ${({ tier }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#808080' : 
-    tier === 'gold' ? '#FFD700' : 
-    '#75748C'
-  };
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background-color: ${({ tier }) => getSwanTierBg(tier)};
+  color: ${({ tier }) => getSwanTierColor(tier)};
+  border: 1px solid ${({ tier }) => getSwanTierColor(tier)}33;
 `;

@@ -16,6 +16,14 @@ import {
   Activity
 } from 'lucide-react';
 
+/* Swan-themed tier name mapping */
+const SWAN_TIER_LABELS: Record<string, string> = {
+  bronze: 'Cygnus Initiate',
+  silver: 'Frostwing Ascendant',
+  gold: 'Gilded Sovereign',
+  platinum: 'Amethyst Apex',
+};
+
 /* ============================================================
  *  Galaxy-Swan theme tokens
  * ============================================================ */
@@ -728,12 +736,12 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
             <CardBody>
               <BarChartArea>
                 {data.tierDistribution.map((tier: any, index: number) => {
-                  const colors = ['#CD7F32', '#C0C0C0', '#FFD700', '#E5E4E2'];
+                  const colors = ['#002060', '#60C0F0', '#C6A84B', '#8B5CF6'];
                   return (
                     <BarColumn key={tier.tier}>
                       <Bar $height={tier.percentage * 2} $bgColor={colors[index]} />
                       <SubText style={{ display: 'block', marginTop: 8 }}>
-                        {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+                        {SWAN_TIER_LABELS[tier.tier] || tier.tier}
                       </SubText>
                       <SmallText>
                         {tier.count} users ({tier.percentage}%)
@@ -1105,10 +1113,10 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                     {data.tierDistribution.map((tier: any) => {
                       let color: string;
                       switch (tier.tier) {
-                        case 'bronze': color = '#CD7F32'; break;
-                        case 'silver': color = '#C0C0C0'; break;
-                        case 'gold': color = '#FFD700'; break;
-                        case 'platinum': color = '#E5E4E2'; break;
+                        case 'bronze': color = '#002060'; break;
+                        case 'silver': color = '#60C0F0'; break;
+                        case 'gold': color = '#C6A84B'; break;
+                        case 'platinum': color = '#8B5CF6'; break;
                         default: color = '#1976D2';
                       }
 
@@ -1118,7 +1126,7 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                             <FlexGap $gap={8}>
                               <ColorDot $color={color} />
                               <span>
-                                {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+                                {SWAN_TIER_LABELS[tier.tier] || tier.tier}
                               </span>
                             </FlexGap>
                           </StyledTd>
@@ -1182,10 +1190,10 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                     {data.tierDistribution.map((tier: any) => {
                       let color: string;
                       switch (tier.tier) {
-                        case 'bronze': color = '#CD7F32'; break;
-                        case 'silver': color = '#C0C0C0'; break;
-                        case 'gold': color = '#FFD700'; break;
-                        case 'platinum': color = '#E5E4E2'; break;
+                        case 'bronze': color = '#002060'; break;
+                        case 'silver': color = '#60C0F0'; break;
+                        case 'gold': color = '#C6A84B'; break;
+                        case 'platinum': color = '#8B5CF6'; break;
                         default: color = '#1976D2';
                       }
 
@@ -1193,7 +1201,7 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                         <FlexGap key={tier.tier} $gap={4}>
                           <ColorDot $color={color} $size={12} />
                           <SmallText>
-                            {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+                            {SWAN_TIER_LABELS[tier.tier] || tier.tier}
                           </SmallText>
                         </FlexGap>
                       );
