@@ -27,7 +27,7 @@ interface WorkspaceContainerProps {
 
 // ─── Styled Components ───────────────────────────────
 const WorkspaceWrapper = styled.div`
-  min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at top right, #120d26 0%, #002060 100%);
   padding: 24px;
   color: rgba(255, 255, 255, 0.9);
@@ -35,6 +35,10 @@ const WorkspaceWrapper = styled.div`
 
   @media (max-width: 768px) {
     padding: 12px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 8px;
   }
 
   @media (min-width: 2560px) {
@@ -61,7 +65,7 @@ const PageHeader = styled.div`
 const PageTitle = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -120,7 +124,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   border: none;
   border-radius: 0;
   background: transparent;
-  color: ${(p) => (p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.5)')};
+  color: ${(p) => (p.$active ? '#8B5CF6' : 'rgba(255, 255, 255, 0.5)')};
   font-size: 15px;
   font-weight: ${(p) => (p.$active ? 600 : 500)};
   cursor: pointer;
@@ -131,11 +135,11 @@ const TabButton = styled.button<{ $active: boolean }>`
   scroll-snap-align: start;
 
   &:hover {
-    color: ${(p) => (p.$active ? '#60C0F0' : '#FFFFFF')};
+    color: ${(p) => (p.$active ? '#A78BFA' : '#FFFFFF')};
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid #8B5CF6;
     outline-offset: -2px;
     border-radius: 4px;
   }
@@ -148,7 +152,7 @@ const TabButton = styled.button<{ $active: boolean }>`
     left: 0;
     width: ${(p) => (p.$active ? '100%' : '0')};
     height: 2px;
-    background: #60C0F0;
+    background: linear-gradient(90deg, #8B5CF6, #60C0F0);
     box-shadow: ${(p) => (p.$active ? '0 -2px 10px rgba(139, 92, 246, 0.5)' : 'none')};
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -170,8 +174,8 @@ const TabButton = styled.button<{ $active: boolean }>`
       display: none;
     }
 
-    background: ${(p) => (p.$active ? 'rgba(96, 192, 240, 0.15)' : 'transparent')};
-    border: 1px solid ${(p) => (p.$active ? 'rgba(96, 192, 240, 0.3)' : 'transparent')};
+    background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent')};
+    border: 1px solid ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.3)' : 'transparent')};
 
     svg {
       width: 16px;

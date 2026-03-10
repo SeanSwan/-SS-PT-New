@@ -84,21 +84,21 @@ const stellarGlow = keyframes`
 
 const workoutTheme = {
   colors: {
-    primary: '#3b82f6',
-    secondary: '#1e40af',
-    accent: '#06b6d4',
+    primary: '#8B5CF6',       // Wing Purple — brand accent
+    secondary: '#002060',     // Midnight Sapphire
+    accent: '#60C0F0',        // Ice Wing
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
-    background: '#0f172a',
-    surface: '#1e293b',
-    cardBg: '#334155',
-    text: '#f8fafc',
-    textSecondary: '#cbd5e1',
-    border: '#475569',
-    inputBg: '#475569',
-    buttonPrimary: '#3b82f6',
-    buttonSecondary: '#64748b'
+    background: '#0a1628',    // Deep navy aligned with Crystalline Swan
+    surface: '#1a2744',
+    cardBg: '#243352',
+    text: '#E0ECF4',          // Frost White
+    textSecondary: '#94a3b8',
+    border: '#3d5275',
+    inputBg: '#3d5275',
+    buttonPrimary: '#8B5CF6', // Wing Purple
+    buttonSecondary: '#4070C0' // Swan Lavender
   },
   spacing: {
     xs: '0.25rem',

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export const ExecutiveLayoutContainer = styled.div`
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   background: ${props => props.theme.gradients.dataFlow};
   position: relative;
@@ -49,6 +49,7 @@ export const ExecutiveMainContent = styled(motion.main)`
   @media (max-width: 768px) {
     margin-left: 0;
     padding: 16px;
+    min-height: 100dvh;
   }
 
   @media (max-width: 430px) {
@@ -57,6 +58,10 @@ export const ExecutiveMainContent = styled(motion.main)`
 
   @media (max-width: 375px) {
     padding: 8px;
+  }
+
+  @media (max-width: 320px) {
+    padding: 6px;
   }
 `;
 

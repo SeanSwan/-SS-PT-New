@@ -21,23 +21,30 @@ router.use(protect, authorize('admin', 'trainer'));
  */
 router.get('/compliance/at-risk', async (req, res) => {
   try {
-    const [clients] = await sequelize.query(`
-      SELECT
-        u.id,
-        u."firstName",
-        u."lastName",
-        u.photo,
-        u."availableSessions",
-        MAX(dwf."createdAt") AS "lastWorkoutDate",
-        COUNT(CASE WHEN dwf."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
-        COUNT(CASE WHEN dwf."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
-      FROM "Users" u
-      LEFT JOIN daily_workout_forms dwf ON dwf."clientId" = u.id
-      WHERE u.role = 'client' AND u."isActive" != false
-      GROUP BY u.id
-      ORDER BY MAX(dwf."createdAt") ASC NULLS FIRST
-      LIMIT 50
-    `);
+    let clients = [];
+    try {
+      const [rows] = await sequelize.query(`
+        SELECT
+          u.id,
+          u."firstName",
+          u."lastName",
+          u.photo,
+          u."availableSessions",
+          MAX(dwf."createdAt") AS "lastWorkoutDate",
+          COUNT(CASE WHEN dwf."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
+          COUNT(CASE WHEN dwf."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
+        FROM "Users" u
+        LEFT JOIN daily_workout_forms dwf ON dwf."clientId" = u.id
+        WHERE u.role = 'client' AND u."isActive" != false
+        GROUP BY u.id
+        ORDER BY MAX(dwf."createdAt") ASC NULLS FIRST
+        LIMIT 50
+      `);
+      clients = rows || [];
+    } catch (queryErr) {
+      logger.warn('[Compliance] at-risk query failed (table may not exist): %s', queryErr.message);
+      // Return empty if query fails — don't crash the whole endpoint
+    }
 
     const atRisk = clients.map(c => {
       const lastWorkout = c.lastWorkoutDate ? new Date(c.lastWorkoutDate) : null;
@@ -99,27 +106,47 @@ router.get('/analytics/business-kpis', async (req, res) => {
     const period = req.query.period || '30d';
     const days = period === '12m' ? 365 : period === '90d' ? 90 : 30;
 
-    const [[revData]] = await sequelize.query(`
-      SELECT
-        COALESCE(SUM(CASE WHEN "createdAt" >= NOW() - INTERVAL '${days} days' THEN "totalAmount" END), 0) AS "totalRevenue",
-        COALESCE(SUM(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN "totalAmount" END), 0) AS "mrr"
-      FROM orders WHERE status IN ('completed', 'paid')
-    `);
+    // Each query wrapped individually — if a table doesn't exist or query fails, we fallback to zero
+    let revData = { totalRevenue: 0, mrr: 0 };
+    let clientData = { activeClients: 0, newClients: 0, churnedClients: 0 };
+    let sessionData = { sessionsThisMonth: 0, sessionsLastMonth: 0 };
 
-    const [[clientData]] = await sequelize.query(`
-      SELECT
-        COUNT(CASE WHEN "isActive" != false THEN 1 END) AS "activeClients",
-        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '${days} days' AND "isActive" != false THEN 1 END) AS "newClients",
-        COUNT(CASE WHEN "isActive" = false AND "updatedAt" >= NOW() - INTERVAL '${days} days' THEN 1 END) AS "churnedClients"
-      FROM "Users" WHERE role = 'client'
-    `);
+    try {
+      const [revRows] = await sequelize.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN "createdAt" >= NOW() - INTERVAL '${days} days' THEN "totalAmount" END), 0) AS "totalRevenue",
+          COALESCE(SUM(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN "totalAmount" END), 0) AS "mrr"
+        FROM orders WHERE status IN ('completed', 'paid')
+      `);
+      if (revRows?.[0]) revData = revRows[0];
+    } catch (e) {
+      logger.warn('[BusinessKPI] Revenue query failed (table may not exist): %s', e.message);
+    }
 
-    const [[sessionData]] = await sequelize.query(`
-      SELECT
-        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "sessionsThisMonth",
-        COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '60 days' AND "createdAt" < NOW() - INTERVAL '30 days' THEN 1 END) AS "sessionsLastMonth"
-      FROM daily_workout_forms
-    `);
+    try {
+      const [clientRows] = await sequelize.query(`
+        SELECT
+          COUNT(CASE WHEN "isActive" != false THEN 1 END) AS "activeClients",
+          COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '${days} days' AND "isActive" != false THEN 1 END) AS "newClients",
+          COUNT(CASE WHEN "isActive" = false AND "updatedAt" >= NOW() - INTERVAL '${days} days' THEN 1 END) AS "churnedClients"
+        FROM "Users" WHERE role = 'client'
+      `);
+      if (clientRows?.[0]) clientData = clientRows[0];
+    } catch (e) {
+      logger.warn('[BusinessKPI] Client query failed: %s', e.message);
+    }
+
+    try {
+      const [sessionRows] = await sequelize.query(`
+        SELECT
+          COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "sessionsThisMonth",
+          COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '60 days' AND "createdAt" < NOW() - INTERVAL '30 days' THEN 1 END) AS "sessionsLastMonth"
+        FROM daily_workout_forms
+      `);
+      if (sessionRows?.[0]) sessionData = sessionRows[0];
+    } catch (e) {
+      logger.warn('[BusinessKPI] Session query failed: %s', e.message);
+    }
 
     const active = Number(clientData?.activeClients || 0);
     const newC = Number(clientData?.newClients || 0);
