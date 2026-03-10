@@ -33,12 +33,18 @@ router.use((req, res, next) => {
 
 // Multer for photo uploads (memory storage → R2)
 // Frontend chunks into batches of 5; backend handles up to 10 per request for safety
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif)$/i;
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 10 }, // 25MB per file, 10 files max per batch
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only image files are allowed'), false);
+    // Accept image/* MIME types OR common image file extensions
+    // (iOS/some browsers send application/octet-stream for HEIC/drag-drop files)
+    if (file.mimetype.startsWith('image/') || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File "${file.originalname}" rejected: unsupported type (${file.mimetype}). Only image files are allowed.`), false);
+    }
   },
 });
 
@@ -174,8 +180,22 @@ router.delete('/events/:id', async (req, res) => {
 /**
  * POST /api/admin/gallery/events/:id/upload
  * Bulk upload photos (up to 50 at a time)
+ *
+ * Multer errors (file too large, wrong type, too many files) are caught by the
+ * wrapper so they return proper JSON instead of hitting the global error handler.
  */
-router.post('/events/:id/upload', upload.array('photos', 50), async (req, res) => {
+router.post('/events/:id/upload', (req, res, next) => {
+  upload.array('photos', 50)(req, res, (err) => {
+    if (err) {
+      const message = err instanceof multer.MulterError
+        ? `Upload rejected: ${err.message}${err.field ? ` (field: ${err.field})` : ''}`
+        : err.message || 'File upload failed';
+      logger.error('[AdminGallery] Multer error:', message);
+      return res.status(400).json({ success: false, error: message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     const event = await GalleryEvent.findByPk(req.params.id);
     if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
