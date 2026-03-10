@@ -8,37 +8,24 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 
 const router = express.Router();
 
 // Apply auth middleware to all routes
 router.use(protect);
 
-// Set up multer for challenge image uploads
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    const dir = path.join(process.cwd(), 'uploads', 'challenges');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + uuidv4();
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Memory-based multer for R2 uploads (no local disk staging)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit for challenge images
   },
   fileFilter: function(req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
+    const filetypes = /jpeg|jpg|png|gif|webp/;
     const mimetype = filetypes.test(file.mimetype);
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
+
     if (mimetype && extname) {
       return cb(null, true);
     }
@@ -281,9 +268,18 @@ router.get('/:challengeId', async (req, res) => {
 
 /**
  * Create a new challenge
+ * Only trainers and admins can create challenges.
  */
 router.post('/', upload.single('image'), async (req, res) => {
   try {
+    // SECURITY: Only trainers/admins can create challenges
+    if (!['trainer', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only trainers and admins can create challenges',
+      });
+    }
+
     const {
       name,
       description,
@@ -298,7 +294,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       bonusPoints = 100,
       badgeId
     } = req.body;
-    
+
     // Validate required fields
     if (!name || !description || !goal || !unit || !startDate || !endDate) {
       return res.status(400).json({
@@ -306,29 +302,44 @@ router.post('/', upload.single('image'), async (req, res) => {
         message: 'Missing required fields'
       });
     }
-    
+
+    // SECURITY: Bounds validation on numeric inputs
+    const parsedGoal = Math.min(Math.max(parseInt(goal) || 1, 1), 100000);
+    const parsedPPU = Math.min(Math.max(parseInt(pointsPerUnit) || 10, 1), 10000);
+    const parsedBonus = Math.min(Math.max(parseInt(bonusPoints) || 100, 0), 50000);
+
     // Create challenge data
     const challengeData = {
       creatorId: req.user.id,
-      name,
-      description,
+      name: String(name).slice(0, 200),
+      description: String(description).slice(0, 2000),
       type,
       category,
-      goal: parseInt(goal),
+      goal: parsedGoal,
       unit,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       visibility,
-      pointsPerUnit: parseInt(pointsPerUnit),
-      bonusPoints: parseInt(bonusPoints),
+      pointsPerUnit: parsedPPU,
+      bonusPoints: parsedBonus,
       badgeId: badgeId || null
     };
-    
-    // Add image URL if file was uploaded
+
+    // Upload image to R2 if provided
     if (req.file) {
-      challengeData.imageUrl = `/uploads/challenges/${req.file.filename}`;
+      try {
+        const result = await uploadPhoto(req.file.buffer, {
+          userId: req.user.id,
+          category: 'challenges',
+          originalFilename: req.file.originalname,
+          contentType: req.file.mimetype,
+        });
+        challengeData.imageUrl = result.url;
+      } catch (uploadErr) {
+        console.error('R2 upload failed for challenge image:', uploadErr.message);
+      }
     }
-    
+
     // Determine status based on dates
     const now = new Date();
     if (challengeData.startDate <= now && challengeData.endDate >= now) {
@@ -338,10 +349,10 @@ router.post('/', upload.single('image'), async (req, res) => {
     } else {
       challengeData.status = 'completed';
     }
-    
+
     // Create the challenge
     const challenge = await Challenge.create(challengeData);
-    
+
     return res.status(201).json({
       success: true,
       message: 'Challenge created successfully',
@@ -349,16 +360,8 @@ router.post('/', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating challenge:', error);
-    
-    // If there was an uploaded file, delete it
-    if (req.file) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (unlinkError) {
-        console.error('Error deleting uploaded file:', unlinkError);
-      }
-    }
-    
+    // With memory storage, no temp file cleanup needed
+
     return res.status(500).json({
       success: false,
       message: 'Failed to create challenge',

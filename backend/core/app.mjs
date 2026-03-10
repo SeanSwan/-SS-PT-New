@@ -76,10 +76,12 @@ export const createApp = async () => {
       res.setHeader('Access-Control-Max-Age', '86400');
       res.setHeader('Vary', 'Origin');
       
-      // Additional debug headers
-      res.setHeader('X-Debug-CORS-Handler', 'Layer1-UltraAggressive');
-      res.setHeader('X-Debug-Origin', origin || 'no-origin');
-      res.setHeader('X-Debug-Timestamp', new Date().toISOString());
+      // Debug headers — only in development
+      if (process.env.NODE_ENV !== 'production') {
+        res.setHeader('X-Debug-CORS-Handler', 'Layer1-UltraAggressive');
+        res.setHeader('X-Debug-Origin', origin || 'no-origin');
+        res.setHeader('X-Debug-Timestamp', new Date().toISOString());
+      }
       
       logger.info(`📤 LAYER 1 - OPTIONS RESPONSE HEADERS SET:`);
       logger.info(`   - Access-Control-Allow-Origin: ${origin || '*'}`);
@@ -111,7 +113,7 @@ export const createApp = async () => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Health');
+    if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Health');
     
     res.status(204).end();
   });
@@ -124,7 +126,7 @@ export const createApp = async () => {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Login');
+    if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Login');
     
     res.status(204).end();
   });
@@ -137,7 +139,7 @@ export const createApp = async () => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-API');
+    if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-API');
     
     res.status(204).end();
   });
@@ -152,7 +154,7 @@ export const createApp = async () => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Max-Age', '86400');
-    res.setHeader('X-Debug-CORS-Handler', 'Layer3-Wildcard-Fallback');
+    if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer3-Wildcard-Fallback');
     
     res.status(204).end();
   });
