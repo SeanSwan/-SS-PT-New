@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Home,
   Users,
@@ -10,7 +10,8 @@ import {
   Zap,
   Target,
   TrendingUp,
-  Award
+  Award,
+  Play,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -18,6 +19,7 @@ import { useGamificationData } from '../../hooks/gamification/useGamificationDat
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
+const VerticalReels = lazy(() => import('../../components/Social/Reels/VerticalReels'));
 import styled from 'styled-components';
 
 // Styled components
@@ -271,7 +273,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
  * Main Social Page Component
  * Displays the social feed and provides navigation to other social features
  */
-const VALID_TABS = ['feed', 'friends', 'challenges'] as const;
+const VALID_TABS = ['feed', 'reels', 'friends', 'challenges'] as const;
 type SocialTab = typeof VALID_TABS[number];
 
 const SocialPage: React.FC = () => {
@@ -313,6 +315,12 @@ const SocialPage: React.FC = () => {
     switch (activeTab) {
       case 'feed':
         return <SocialFeed />;
+      case 'reels':
+        return (
+          <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>Loading Reels...</div>}>
+            <VerticalReels />
+          </Suspense>
+        );
       case 'friends':
         return <FriendsList />;
       case 'challenges':
@@ -336,6 +344,13 @@ const SocialPage: React.FC = () => {
             >
               <Home size={20} />
               Feed
+            </TabButton>
+            <TabButton
+              $active={activeTab === 'reels'}
+              onClick={() => handleTabChange('reels')}
+            >
+              <Play size={20} />
+              Reels
             </TabButton>
             <TabButton
               $active={activeTab === 'friends'}
@@ -412,6 +427,13 @@ const SocialPage: React.FC = () => {
                 >
                   <Home size={20} />
                   Feed
+                </MenuButton>
+                <MenuButton
+                  onClick={() => handleTabChange('reels')}
+                  $active={activeTab === 'reels'}
+                >
+                  <Play size={20} />
+                  Reels
                 </MenuButton>
                 <MenuButton
                   onClick={() => handleTabChange('friends')}
