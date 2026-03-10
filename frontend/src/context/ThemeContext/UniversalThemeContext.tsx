@@ -71,6 +71,10 @@ const crystallineDefault = {
     accentLight: '#D8C478',
     accentWarm: '#B8963A',
 
+    wingPurple: '#8B5CF6',
+    wingPurpleLight: '#A78BFA',
+    wingPurpleDeep: '#7C3AED',
+
     white: '#E0ECF4',
     silver: '#E0ECF4',
     muted: 'rgba(224, 236, 244, 0.7)',
@@ -79,9 +83,9 @@ const crystallineDefault = {
     warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #001545, #60C0F0)',
+    primary: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
     secondary: 'linear-gradient(135deg, #002060, #4070C0)',
-    cosmic: 'linear-gradient(135deg, #001545, #50A0F0)',
+    cosmic: 'linear-gradient(135deg, #8B5CF6, #50A0F0)',
     hero: 'radial-gradient(ellipse at 20% 30%, rgba(96,192,240,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(198,168,75,0.1) 0%, transparent 50%), radial-gradient(ellipse at center, #002060 0%, #001545 70%)',
     card: 'linear-gradient(135deg, rgba(0, 48, 128, 0.5), rgba(96, 192, 240, 0.08))',
     accent: 'linear-gradient(135deg, #001545, #C6A84B)',
@@ -97,7 +101,7 @@ const crystallineDefault = {
     elevation: '0 15px 35px rgba(0, 0, 0, 0.5)',
     glow: '0 0 20px currentColor',
     glass: '0 8px 32px rgba(0, 21, 69, 0.4)',
-    button: '0 4px 20px rgba(96, 192, 240, 0.3)',
+    button: '0 4px 20px rgba(139, 92, 246, 0.3)',
   },
   borders: {
     subtle: 'rgba(96, 192, 240, 0.1)',
@@ -105,7 +109,8 @@ const crystallineDefault = {
     prominent: 'rgba(80, 160, 240, 0.4)',
     glass: '1px solid rgba(96, 192, 240, 0.18)',
     card: '1px solid rgba(96, 192, 240, 0.15)',
-    focus: '2px solid #60C0F0',
+    focus: '2px solid #8B5CF6',
+    glow: '1px solid rgba(139, 92, 246, 0.2)',
   },
   background: {
     primary: '#001545',
@@ -162,6 +167,10 @@ const crystallineLight = {
     accentLight: '#D8C478',
     accentWarm: '#A88A30',
 
+    wingPurple: '#7C3AED',
+    wingPurpleLight: '#8B5CF6',
+    wingPurpleDeep: '#6D28D9',
+
     white: '#FFFFFF',
     silver: '#F0F4F8',
     muted: 'rgba(15, 23, 42, 0.5)',
@@ -170,9 +179,9 @@ const crystallineLight = {
     warning: '#D97706',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #00B4D8, #0EA5E9)',
+    primary: 'linear-gradient(135deg, #7C3AED, #00B4D8)',
     secondary: 'linear-gradient(135deg, #F4F7FB, #FFFFFF)',
-    cosmic: 'linear-gradient(135deg, #00B4D8, #0284C7)',
+    cosmic: 'linear-gradient(135deg, #7C3AED, #0284C7)',
     hero: 'linear-gradient(135deg, #00B4D8 0%, #0EA5E9 50%, #38BDF8 100%)',
     card: 'rgba(255, 255, 255, 0.7)',
     accent: 'linear-gradient(135deg, #C6A84B, #D8C478)',
@@ -188,7 +197,7 @@ const crystallineLight = {
     elevation: '0 8px 24px rgba(0, 32, 96, 0.08)',
     glow: '0 0 0 transparent',
     glass: '0 8px 32px rgba(0, 0, 0, 0.06)',
-    button: '0 2px 12px rgba(0, 180, 216, 0.3)',
+    button: '0 2px 12px rgba(124, 58, 237, 0.3)',
   },
   borders: {
     subtle: 'rgba(0, 180, 216, 0.1)',
@@ -196,7 +205,8 @@ const crystallineLight = {
     prominent: '#94A3B8',
     glass: '1px solid rgba(255, 255, 255, 0.8)',
     card: '1px solid rgba(255, 255, 255, 0.8)',
-    focus: '2px solid #00B4D8',
+    focus: '2px solid #7C3AED',
+    glow: '1px solid rgba(124, 58, 237, 0.2)',
   },
   background: {
     primary: '#F4F7FB',
@@ -254,6 +264,10 @@ const crystallineDark = {
     accentLight: '#FBBF24',
     accentWarm: '#D97706',
 
+    wingPurple: '#A78BFA',
+    wingPurpleLight: '#C4B5FD',
+    wingPurpleDeep: '#7C3AED',
+
     white: '#F1F5F9',
     silver: '#F1F5F9',
     muted: 'rgba(241, 245, 249, 0.55)',
@@ -262,9 +276,9 @@ const crystallineDark = {
     warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #030712, #22D3EE)',
+    primary: 'linear-gradient(135deg, #A78BFA, #22D3EE)',
     secondary: 'linear-gradient(135deg, #0F172A, #A78BFA)',
-    cosmic: 'linear-gradient(135deg, #030712, #06B6D4)',
+    cosmic: 'linear-gradient(135deg, #A78BFA, #06B6D4)',
     hero: 'radial-gradient(ellipse at 30% 40%, rgba(34,211,238,0.12) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(167,139,250,0.08) 0%, transparent 50%), radial-gradient(ellipse at center, #0F172A 0%, #030712 70%)',
     card: 'rgba(15, 23, 42, 0.7)',
     accent: 'linear-gradient(135deg, #030712, #F59E0B)',
@@ -280,7 +294,7 @@ const crystallineDark = {
     elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
     glow: '0 0 25px currentColor',
     glass: '0 8px 32px rgba(3, 7, 18, 0.6)',
-    button: '0 4px 20px rgba(34, 211, 238, 0.35)',
+    button: '0 4px 20px rgba(167, 139, 250, 0.35)',
   },
   borders: {
     subtle: 'rgba(34, 211, 238, 0.12)',
@@ -288,7 +302,8 @@ const crystallineDark = {
     prominent: 'rgba(34, 211, 238, 0.5)',
     glass: '1px solid rgba(34, 211, 238, 0.25)',
     card: '1px solid rgba(34, 211, 238, 0.2)',
-    focus: '2px solid #22D3EE',
+    focus: '2px solid #A78BFA',
+    glow: '1px solid rgba(167, 139, 250, 0.25)',
   },
   background: {
     primary: '#030712',
@@ -350,6 +365,10 @@ const crystallineMono = {
     accentLight: '#E0E0E0',
     accentWarm: '#999999',
 
+    wingPurple: '#CCCCCC',
+    wingPurpleLight: '#E0E0E0',
+    wingPurpleDeep: '#AAAAAA',
+
     white: '#FFFFFF',
     silver: '#E0E0E0',
     muted: 'rgba(255, 255, 255, 0.5)',
@@ -385,6 +404,7 @@ const crystallineMono = {
     glass: '1px solid rgba(255,255,255,0.06)',
     card: '1px solid rgba(255,255,255,0.1)',
     focus: '2px solid #FFFFFF',
+    glow: '1px solid rgba(255, 255, 255, 0.1)',
   },
   background: {
     primary: '#000000',
@@ -441,6 +461,10 @@ const cinematicEmber = {
     accentLight: '#D4B85A',
     accentWarm: '#B8860B',
 
+    wingPurple: '#E11D48',
+    wingPurpleLight: '#FB7185',
+    wingPurpleDeep: '#BE123C',
+
     white: '#FFF5EB',
     silver: '#F5E6D3',
     muted: 'rgba(245, 230, 211, 0.55)',
@@ -475,7 +499,8 @@ const cinematicEmber = {
     prominent: 'rgba(245, 158, 11, 0.4)',
     glass: '1px solid rgba(245, 158, 11, 0.2)',
     card: '1px solid rgba(245, 158, 11, 0.15)',
-    focus: '2px solid #F59E0B',
+    focus: '2px solid #E11D48',
+    glow: '1px solid rgba(225, 29, 72, 0.2)',
   },
   background: {
     primary: '#1A0F0A',
@@ -532,6 +557,10 @@ const frozenAurora = {
     accentLight: '#D4B85A',
     accentWarm: '#B8860B',
 
+    wingPurple: '#6366F1',
+    wingPurpleLight: '#818CF8',
+    wingPurpleDeep: '#4F46E5',
+
     white: '#1E293B',
     silver: '#334155',
     muted: 'rgba(30, 41, 59, 0.45)',
@@ -567,6 +596,7 @@ const frozenAurora = {
     glass: '1px solid rgba(99, 102, 241, 0.15)',
     card: '1px solid rgba(99, 102, 241, 0.1)',
     focus: '2px solid #6366F1',
+    glow: '1px solid rgba(99, 102, 241, 0.15)',
   },
   background: {
     primary: '#F0F4F8',

@@ -184,7 +184,7 @@ const HeroLogo = styled.img`
   width: 120px;
   border-radius: 50%;
   height: auto;
-  filter: drop-shadow(0 0 20px ${({ theme }) => theme.colors?.primary || '#60C0F0'}60);
+  filter: drop-shadow(0 0 20px ${({ theme }) => theme.colors?.accent || '#8B5CF6'}60);
   ${noMotion}
 
   @media (prefers-reduced-motion: no-preference) {
@@ -201,7 +201,7 @@ const HeroTitle = styled.h1`
   font-size: 3.5rem;
   font-weight: 700;
   color: ${({ theme }) => theme.text?.heading || '#E0ECF4'};
-  text-shadow: 0 2px 20px ${({ theme }) => theme.colors?.primary || '#60C0F0'}40;
+  text-shadow: 0 2px 20px ${({ theme }) => theme.colors?.accent || '#8B5CF6'}40;
   margin: 0;
 
   @media (max-width: 768px) {
@@ -268,16 +268,16 @@ const HeroButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
             : ''}
 
           &:hover {
-            border-color: ${theme.colors?.primary || '#60C0F0'};
+            border-color: ${theme.colors?.accent || '#8B5CF6'};
             background: ${theme.background?.elevated || 'rgba(0,48,128,0.4)'};
-            box-shadow: ${theme.shadows?.primary || '0 0 25px rgba(96,192,240,0.25)'};
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
           }
         `
       : css`
-          background: ${theme.gradients?.primary || 'linear-gradient(135deg, #001545, #60C0F0)'};
+          background: ${theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
           color: ${theme.colors?.white || '#E0ECF4'};
           border: none;
-          box-shadow: ${theme.shadows?.button || '0 4px 20px rgba(96,192,240,0.3)'};
+          box-shadow: ${theme.shadows?.button || '0 4px 20px rgba(139, 92, 246, 0.3)'};
 
           &:hover {
             transform: translateY(-2px);
@@ -286,7 +286,7 @@ const HeroButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
         `}
 
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+    outline: 2px solid ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     outline-offset: 3px;
   }
 
@@ -375,7 +375,7 @@ const SectionTitle = styled.h2`
   background: linear-gradient(
     135deg,
     ${({ theme }) => theme.text?.heading || '#E0ECF4'} 0%,
-    ${({ theme }) => theme.colors?.primary || '#60C0F0'} 100%
+    ${({ theme }) => theme.colors?.accent || '#8B5CF6'} 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -478,9 +478,9 @@ const CTAButton = styled.button`
   cursor: pointer;
   min-height: 44px;
   min-width: 44px;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #001545, #60C0F0)'};
+  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
   color: ${({ theme }) => theme.colors?.white || '#E0ECF4'};
-  box-shadow: ${({ theme }) => theme.shadows?.button || '0 4px 20px rgba(96,192,240,0.3)'};
+  box-shadow: ${({ theme }) => theme.shadows?.button || '0 4px 20px rgba(139, 92, 246, 0.3)'};
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
   ${noMotion}
@@ -491,7 +491,7 @@ const CTAButton = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+    outline: 2px solid ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     outline-offset: 3px;
   }
 
@@ -522,7 +522,7 @@ const Spinner = styled.div`
   width: 50px;
   height: 50px;
   border: 4px solid ${({ theme }) => theme.borders?.subtle || 'rgba(96,192,240,0.1)'};
-  border-left: 4px solid ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+  border-left: 4px solid ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
   border-radius: 50%;
   ${noMotion}
 
@@ -577,12 +577,12 @@ const RetryButton = styled.button`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: ${({ theme }) => theme.colors?.primary || '#60C0F0'};
-    box-shadow: ${({ theme }) => theme.shadows?.primary || '0 0 25px rgba(96,192,240,0.25)'};
+    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
   }
 
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+    outline: 2px solid ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
     outline-offset: 3px;
   }
 `;

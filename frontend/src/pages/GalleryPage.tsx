@@ -197,8 +197,8 @@ const HeroHeadline = styled.h1`
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
     font-weight: 600;
-    color: #60C0F0;
-    text-shadow: 0 0 24px rgba(96, 192, 240, 0.4);
+    color: #8B5CF6;
+    text-shadow: 0 0 24px rgba(139, 92, 246, 0.4);
     margin-top: 8px;
   }
 
@@ -398,7 +398,7 @@ const ContentMax = styled.div`
 const PageTitle = styled.h1`
   font-size: 36px;
   font-weight: 800;
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -509,7 +509,7 @@ const GateCard = styled(motion.div)`
 const GateTitle = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -567,7 +567,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   width: 100%;
   padding: 14px;
   min-height: 48px;
-  background: linear-gradient(135deg, #60C0F0 0%, #8B5CF6 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%);
   border: none;
   border-radius: 12px;
   color: #002060;
@@ -610,7 +610,7 @@ const PhotoCard = styled.div<{ $selected?: boolean }>`
       right: 8px;
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+      background: linear-gradient(135deg, #8B5CF6, #60C0F0);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -771,7 +771,7 @@ const LightboxBtn = styled.a<{ $primary?: boolean }>`
   text-decoration: none;
   border: 1px solid rgba(255,255,255,0.15);
   ${p => p.$primary
-    ? 'background: linear-gradient(135deg, #60C0F0, #8B5CF6); color: #002060; border: none;'
+    ? 'background: linear-gradient(135deg, #8B5CF6, #60C0F0); color: #002060; border: none;'
     : 'background: rgba(255,255,255,0.08); color: #fff;'}
   &:hover { opacity: 0.9; }
 `;
@@ -870,7 +870,7 @@ const ModalCard = styled(motion.div)`
 const ModalTitle = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -929,7 +929,7 @@ const PricingLabel = styled.div`
 const PricingPrice = styled.div`
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1030,7 +1030,7 @@ const SupportBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'ghost' 
   font-weight: 600;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.12);
-  ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #60C0F0, #8B5CF6); color: #002060; border: none;'}
+  ${p => p.$variant === 'primary' && 'background: linear-gradient(135deg, #8B5CF6, #60C0F0); color: #002060; border: none;'}
   ${p => p.$variant === 'secondary' && 'background: rgba(139, 92, 246, 0.1); color: #60C0F0; border-color: rgba(139, 92, 246,0.3);'}
   ${p => (!p.$variant || p.$variant === 'ghost') && 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);'}
   &:hover { opacity: 0.85; }
