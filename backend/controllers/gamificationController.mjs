@@ -2394,52 +2394,20 @@ const gamificationController = {
   debugSeedAchievements: async (req, res) => {
     const steps = [];
     try {
-      // Step 1: Check current count
+      // Step 1: Check current count — allow force reseed via ?force=true
       const currentCount = await Achievement.count();
-      if (currentCount > 0) {
+      const forceReseed = req.query.force === 'true';
+      steps.push(`Current count: ${currentCount} achievements`);
+
+      if (currentCount > 0 && !forceReseed) {
         return res.json({
           success: true,
-          message: `Already have ${currentCount} achievements — skipping seed`,
+          message: `Already have ${currentCount} achievements — use ?force=true to reseed with Swan-themed system`,
           count: currentCount
         });
       }
-      steps.push('Count checked: 0 achievements');
 
-      // Step 2: Check id column and fix if needed
-      const [idCol] = await db.query(
-        `SELECT data_type, column_default FROM information_schema.columns
-         WHERE table_name = 'Achievements' AND column_name = 'id' AND table_schema = 'public';`
-      );
-      const idType = idCol[0]?.data_type;
-      const idDefault = idCol[0]?.column_default;
-      steps.push(`id column: ${idType} (default: ${idDefault})`);
-
-      // If id is integer without a sequence, add one for auto-increment
-      if (idType === 'integer' && (!idDefault || !idDefault.includes('nextval'))) {
-        try {
-          await db.query(`CREATE SEQUENCE IF NOT EXISTS "Achievements_id_seq";`);
-          await db.query(`ALTER TABLE "Achievements" ALTER COLUMN "id" SET DEFAULT nextval('"Achievements_id_seq"');`);
-          await db.query(`ALTER SEQUENCE "Achievements_id_seq" OWNED BY "Achievements".id;`);
-          steps.push('Added auto-increment sequence to id column');
-        } catch (seqErr) {
-          steps.push(`Sequence setup failed: ${seqErr.message}`);
-          return res.json({ success: false, steps, error: seqErr.message });
-        }
-      }
-
-      // Step 3: Test minimal insert (no id — let DB auto-generate)
-      try {
-        await db.query(
-          `INSERT INTO "Achievements" (name, title, description, "createdAt", "updatedAt")
-           VALUES ('__test__', '__test__', 'Test achievement seed', NOW(), NOW());`
-        );
-        await db.query(`DELETE FROM "Achievements" WHERE name = '__test__';`);
-        steps.push('Test insert (no id): SUCCESS');
-      } catch (testErr) {
-        steps.push(`Test insert WARNING: ${testErr.message} — continuing to seeder anyway`);
-      }
-
-      // Step 4: Run seeder
+      // Step 2: Run the Swan-themed reseed seeder (wipes + reseeds)
       try {
         const { createRequire } = await import('module');
         const { fileURLToPath } = await import('url');
@@ -2447,7 +2415,7 @@ const gamificationController = {
 
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = pathMod.default.dirname(__filename);
-        const seederPath = pathMod.default.resolve(__dirname, '..', 'seeders', '20260301001000-seed-achievements.cjs');
+        const seederPath = pathMod.default.resolve(__dirname, '..', 'seeders', '20260310000001-reseed-swan-achievements.cjs');
         steps.push(`Seeder path: ${seederPath}`);
 
         const require = createRequire(import.meta.url);
@@ -2458,7 +2426,7 @@ const gamificationController = {
         await seeder.up(queryInterface, SequelizeMod.default || SequelizeMod);
 
         const finalCount = await Achievement.count();
-        steps.push(`Seeding complete: ${finalCount} achievements`);
+        steps.push(`Swan reseed complete: ${finalCount} achievements (was ${currentCount})`);
         return res.json({ success: true, count: finalCount, steps });
       } catch (seederErr) {
         steps.push(`Seeder FAILED: ${seederErr.message}`);
