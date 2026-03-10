@@ -679,30 +679,35 @@ const CreatePostCard: React.FC = () => {
     setVisibility(event.target.value as 'public' | 'friends' | 'private');
   };
 
-  // Handle file selection
+  // Handle file selection (images + videos)
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const isVideo = file.type.startsWith('video/');
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB video, 10MB image
 
       if (file.size > maxSize) {
-        alert('File size exceeds 5MB limit');
+        alert(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
         return;
       }
 
-      if (!file.type.startsWith('image/')) {
-        alert('Only image files are allowed');
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert('Only image and video files are allowed');
         return;
       }
 
       setMedia(file);
 
       // Create preview URL
-      const reader = new FileReader();
-      reader.onload = () => {
-        setMediaPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (isVideo) {
+        setMediaPreview(URL.createObjectURL(file));
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setMediaPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -1017,7 +1022,15 @@ const CreatePostCard: React.FC = () => {
 
               {mediaPreview && (
                 <MediaPreviewWrapper>
-                  <MediaPreview src={mediaPreview} alt="Upload preview" />
+                  {media?.type.startsWith('video/') ? (
+                    <video
+                      src={mediaPreview}
+                      controls
+                      style={{ width: '100%', maxHeight: '300px', borderRadius: '8px', objectFit: 'contain', background: '#000' }}
+                    />
+                  ) : (
+                    <MediaPreview src={mediaPreview} alt="Upload preview" />
+                  )}
                   <RemoveMediaButton onClick={handleRemoveMedia}>
                     <X size={16} />
                   </RemoveMediaButton>
@@ -1041,7 +1054,7 @@ const CreatePostCard: React.FC = () => {
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/mp4,video/mov,video/webm"
                         style={{ display: 'none' }}
                         onChange={handleFileSelect}
                       />
@@ -1050,7 +1063,7 @@ const CreatePostCard: React.FC = () => {
                         disabled={isCreatingPost}
                       >
                         <Image size={16} />
-                        Add Image
+                        Add Media
                       </OutlinedButton>
                     </>
                   )}

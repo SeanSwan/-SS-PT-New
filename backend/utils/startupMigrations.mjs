@@ -618,6 +618,39 @@ async function migrateAiConversationTargetUserId() {
 }
 
 /**
+ * Migration 13: Add mediaType column to SocialPosts table
+ * Tracks whether a post attachment is 'image' or 'video' for proper rendering.
+ */
+async function migrateSocialPostMediaType() {
+  try {
+    const [tables] = await sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE tablename = 'SocialPosts';`
+    );
+    if (!tables || tables.length === 0) {
+      logger.info('[Migration] SocialPosts table does not exist yet, skipping');
+      return;
+    }
+
+    const [cols] = await sequelize.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'SocialPosts' AND column_name = 'mediaType';`
+    );
+    if (cols && cols.length > 0) {
+      logger.info('[Migration] SocialPosts.mediaType already exists - no change needed');
+      return;
+    }
+
+    logger.info('[Migration] Adding mediaType to SocialPosts...');
+    await sequelize.query(
+      `ALTER TABLE "SocialPosts" ADD COLUMN "mediaType" VARCHAR(20) DEFAULT NULL;`
+    );
+    logger.info('[Migration] SocialPosts.mediaType added successfully');
+  } catch (error) {
+    logger.warn(`[Migration] SocialPosts.mediaType failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -637,6 +670,7 @@ export async function runStartupMigrations() {
     await migrateSessionRemindersSent();
     await migrateExercisesTable();
     await migrateAiConversationTargetUserId();
+    await migrateSocialPostMediaType();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;

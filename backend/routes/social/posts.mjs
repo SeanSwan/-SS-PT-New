@@ -11,6 +11,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
 import PointTransaction from '../../models/PointTransaction.mjs';
+import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 
 const router = express.Router();
 
@@ -187,35 +188,23 @@ async function awardEngagementReceivedPoints(postOwnerId, action, metadata = {})
   }
 }
 
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    const dir = path.join(process.cwd(), 'uploads', 'social');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + uuidv4();
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Set up multer with memory storage for R2 uploads (no local disk)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB limit (supports video)
   },
   fileFilter: function(req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
-    if (mimetype && extname) {
+    const imageTypes = /jpeg|jpg|png|gif|webp/;
+    const videoTypes = /mp4|mov|webm|avi/;
+    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+    const isImage = imageTypes.test(file.mimetype) || imageTypes.test(ext);
+    const isVideo = videoTypes.test(file.mimetype) || videoTypes.test(ext) || file.mimetype.startsWith('video/');
+
+    if (isImage || isVideo) {
       return cb(null, true);
     }
-    cb(new Error('Only image files are allowed'));
+    cb(new Error('Only image and video files are allowed'));
   }
 });
 
@@ -521,9 +510,25 @@ router.post('/', upload.single('media'), async (req, res) => {
       visibility
     };
     
-    // Add media URL if file was uploaded
+    // Upload media to R2 if file was provided
     if (req.file) {
-      postData.mediaUrl = `/uploads/social/${req.file.filename}`;
+      try {
+        const isVideo = req.file.mimetype.startsWith('video/');
+        const result = await uploadPhoto(req.file.buffer, {
+          userId: req.user.id,
+          category: isVideo ? 'social-videos' : 'social',
+          originalFilename: req.file.originalname,
+          contentType: req.file.mimetype,
+        });
+        postData.mediaUrl = result.url;
+        postData.mediaType = isVideo ? 'video' : 'image';
+      } catch (uploadErr) {
+        console.error('R2 upload failed for social post:', uploadErr.message);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload media file',
+        });
+      }
     }
     
     // Add reference IDs if specified
@@ -583,14 +588,8 @@ router.post('/', upload.single('media'), async (req, res) => {
   } catch (error) {
     console.error('Error creating post:', error);
     
-    // If there was an uploaded file, delete it
-    if (req.file) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (unlinkError) {
-        console.error('Error deleting uploaded file:', unlinkError);
-      }
-    }
+    // With memory storage, no temp file cleanup needed
+    // R2 upload only happens on success path above
     
     return res.status(500).json({
       success: false,
@@ -776,15 +775,16 @@ router.delete('/:postId', async (req, res) => {
       });
     }
     
-    // If post has a media file, delete it
+    // Delete media from R2 (or local disk for legacy posts)
     if (post.mediaUrl) {
       try {
-        const filePath = path.join(process.cwd(), post.mediaUrl.replace(/^\//, ''));
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
+        // Extract R2 storage key from URL
+        const storageKey = post.mediaUrl.startsWith('/api/serve-photo/')
+          ? post.mediaUrl.replace('/api/serve-photo/', '')
+          : post.mediaUrl;
+        await deletePhoto(storageKey);
       } catch (unlinkError) {
-        console.error('Error deleting post media file:', unlinkError);
+        console.error('Error deleting post media:', unlinkError);
       }
     }
     

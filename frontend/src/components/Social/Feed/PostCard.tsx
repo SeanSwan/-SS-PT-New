@@ -893,6 +893,7 @@ interface Post {
   reactionCounts?: { thumbs_up: number; heart: number; swan: number };
   userReactions?: string[];
   mediaUrl?: string;
+  mediaType?: 'image' | 'video' | null;
   comments?: Comment[];
   workoutData?: {
     duration?: string;
@@ -1143,28 +1144,46 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     setTimeout(() => setShowPointNotification(false), 300);
   };
 
-  // Determine hero image: user media > SwanStudios Logo default
+  // Determine hero image/video: user media > SwanStudios Logo default
   const hasUserMedia = !!post.mediaUrl && post.type !== 'transformation';
-  const heroImage = hasUserMedia ? post.mediaUrl : null;
+  const isVideo = post.mediaType === 'video' || (hasUserMedia && /\.(mp4|mov|webm)$/i.test(post.mediaUrl || ''));
+  const heroImage = (hasUserMedia && !isVideo) ? post.mediaUrl : null;
   const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
 
   return (
     <>
       <PostCardWrapper>
-        {/* Hero Image Area — always visible */}
-        <HeroArea $bgImage={heroImage} $gradient={gradient} $hasImage={!!heroImage}>
-          {/* SwanStudios Logo when no user image */}
-          {!heroImage && (
-            <SwanWatermark>
-              <img src={SWAN_LOGO_URL} alt="" width="160" height="160" style={{ borderRadius: '50%', filter: 'drop-shadow(0 0 20px rgba(96, 192, 240, 0.3))' }} />
-            </SwanWatermark>
-          )}
+        {/* Video posts get inline video player */}
+        {hasUserMedia && isVideo ? (
+          <div style={{ position: 'relative', background: '#000', borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
+            <video
+              src={post.mediaUrl}
+              controls
+              preload="metadata"
+              playsInline
+              style={{ width: '100%', maxHeight: '500px', objectFit: 'contain', display: 'block' }}
+            />
+            <PostTypeIndicator $postType={post.type} style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 2 }}>
+              <PostTypeIcon size={12} />
+              {postTypeLabels[post.type]}
+            </PostTypeIndicator>
+          </div>
+        ) : (
+          /* Hero Image Area — always visible */
+          <HeroArea $bgImage={heroImage} $gradient={gradient} $hasImage={!!heroImage}>
+            {/* SwanStudios Logo when no user image */}
+            {!heroImage && (
+              <SwanWatermark>
+                <img src={SWAN_LOGO_URL} alt="" width="160" height="160" style={{ borderRadius: '50%', filter: 'drop-shadow(0 0 20px rgba(96, 192, 240, 0.3))' }} />
+              </SwanWatermark>
+            )}
 
-          <PostTypeIndicator $postType={post.type}>
-            <PostTypeIcon size={12} />
-            {postTypeLabels[post.type]}
-          </PostTypeIndicator>
-        </HeroArea>
+            <PostTypeIndicator $postType={post.type}>
+              <PostTypeIcon size={12} />
+              {postTypeLabels[post.type]}
+            </PostTypeIndicator>
+          </HeroArea>
+        )}
 
         <PostHeaderRelative>
           <PostHeader>

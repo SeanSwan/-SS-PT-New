@@ -125,10 +125,16 @@ const SocialPost = db.define('SocialPost', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
-  // For attaching photos to posts
+  // For attaching photos/videos to posts
   mediaUrl: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  // 'image' or 'video' — determines rendering in PostCard
+  mediaType: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    defaultValue: null,
   },
   likesCount: {
     type: DataTypes.INTEGER,
