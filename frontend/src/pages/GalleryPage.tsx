@@ -1361,7 +1361,7 @@ const GalleryPage: React.FC = () => {
           <HeroBackground aria-hidden="true" />
           <HeroContentGrid>
             <VaultCard>
-              <HeroEyebrow>Elite Youth Sports Photography</HeroEyebrow>
+              <HeroEyebrow>SwanStudios Photography</HeroEyebrow>
               <HeroHeadline>
                 Fleeting Triumphs.
                 <span className="drama">Immortalized.</span>

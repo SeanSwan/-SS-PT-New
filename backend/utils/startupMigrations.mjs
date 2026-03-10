@@ -584,6 +584,40 @@ async function migrateExercisesTable() {
 }
 
 /**
+ * Migration 12: Add targetUserId column to ai_conversations
+ * Enables trainer/admin conversations to reference a specific client.
+ */
+async function migrateAiConversationTargetUserId() {
+  try {
+    const [tables] = await sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE tablename = 'ai_conversations';`
+    );
+    if (!tables || tables.length === 0) {
+      logger.info('[Migration] ai_conversations table does not exist yet, skipping');
+      return;
+    }
+
+    const [cols] = await sequelize.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'ai_conversations' AND column_name = 'targetUserId';`
+    );
+    if (cols && cols.length > 0) {
+      logger.info('[Migration] ai_conversations.targetUserId already exists - no change needed');
+      return;
+    }
+
+    logger.info('[Migration] Adding targetUserId to ai_conversations...');
+    await sequelize.query(
+      `ALTER TABLE ai_conversations ADD COLUMN "targetUserId" INTEGER DEFAULT NULL
+       REFERENCES "Users"(id) ON UPDATE CASCADE ON DELETE SET NULL;`
+    );
+    logger.info('[Migration] ai_conversations.targetUserId added successfully');
+  } catch (error) {
+    logger.warn(`[Migration] ai_conversations.targetUserId failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -602,6 +636,7 @@ export async function runStartupMigrations() {
     await migrateCleanupTestUsers();
     await migrateSessionRemindersSent();
     await migrateExercisesTable();
+    await migrateAiConversationTargetUserId();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;
