@@ -60,6 +60,8 @@ const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPa
 const BodyMap = React.lazy(() => import('../BodyMap'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
+const FoodIntelligenceDashboard = React.lazy(() => import('../FoodTracker/FoodIntelligenceDashboard'));
+const FoodScannerPage = React.lazy(() => import('../../pages/FoodScanner/FoodScannerPage'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 
@@ -297,6 +299,16 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="equipment" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <EquipmentManagerPage />
+        </React.Suspense>
+      } />
+      <Route path="nutrition" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <FoodIntelligenceDashboard />
+        </React.Suspense>
+      } />
+      <Route path="food-scanner" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <FoodScannerPage />
         </React.Suspense>
       } />
     </Route>

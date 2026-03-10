@@ -678,13 +678,21 @@ const AdminGalleryManager: React.FC = () => {
   const deletePhoto = async (photoId: number) => {
     if (!window.confirm('Delete this photo? This cannot be undone.')) return;
     try {
+      // Optimistic: remove from local state immediately for real-time feel
+      setEventPhotos(prev => prev.filter(p => p.id !== photoId));
+
       await fetch(`${API_BASE}/api/admin/gallery/photos/${photoId}`, {
         method: 'DELETE',
         headers: getHeaders(),
       });
       loadEvents();
       loadStats();
-    } catch { /* */ }
+      // Re-fetch photos to ensure consistency with server
+      if (viewPhotosEventId) loadEventPhotos(viewPhotosEventId);
+    } catch {
+      // If delete failed, reload to restore state
+      if (viewPhotosEventId) loadEventPhotos(viewPhotosEventId);
+    }
   };
 
   // State for viewing event photos

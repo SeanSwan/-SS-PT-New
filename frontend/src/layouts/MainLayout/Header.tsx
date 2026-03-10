@@ -475,7 +475,7 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
       <DesktopNav>
         <NavLink to="/" $active={location.pathname === '/'}>Home</NavLink>
         <NavLink to="/shop" $active={location.pathname === '/shop'}>Training</NavLink>
-        <NavLink to="/gallery" $active={location.pathname.startsWith('/gallery')}>Swan Photography</NavLink>
+        <NavLink to="/gallery" $active={location.pathname.startsWith('/gallery')}>SwanStudios Photography</NavLink>
         <NavLink to="/about" $active={location.pathname === '/about'}>About</NavLink>
         
         {/* Portals Dropdown */}
@@ -533,7 +533,7 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
           >
             <MobileNavLink to="/" onClick={() => setMobileMenuOpen(false)}>Home</MobileNavLink>
             <MobileNavLink to="/shop" onClick={() => setMobileMenuOpen(false)}>Training Packages</MobileNavLink>
-            <MobileNavLink to="/gallery" onClick={() => setMobileMenuOpen(false)}>Swan Photography</MobileNavLink>
+            <MobileNavLink to="/gallery" onClick={() => setMobileMenuOpen(false)}>SwanStudios Photography</MobileNavLink>
             <MobileNavLink to="/about" onClick={() => setMobileMenuOpen(false)}>About Us</MobileNavLink>
             <MobileNavLink to="/contact" onClick={() => setMobileMenuOpen(false)}>Contact</MobileNavLink>
             

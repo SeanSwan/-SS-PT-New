@@ -16,8 +16,11 @@ import type {
   ClassFormat,
   DayType,
 } from '../../hooks/useBootcampAPI';
+import { Download } from 'lucide-react';
+import { toast } from 'react-toastify';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 import AITerminalPanel from '../Shared/AITerminalPanel';
+import { exportBootcampPDF } from '../../services/pdfExportService';
 
 // ── Styled Components ─────────────────────────────────────────────────
 
@@ -406,15 +409,40 @@ const BootcampBuilderPage: React.FC = () => {
           <Title>Boot Camp Class Builder</Title>
           <Subtitle>AI-powered group fitness class generation with station planning and overflow management</Subtitle>
         </div>
-        <FloorModeToggle
-          $active={floorMode}
-          onClick={() => setFloorMode(!floorMode)}
-          aria-pressed={floorMode}
-          aria-label={floorMode ? 'Exit high-contrast floor mode' : 'Enable high-contrast floor mode for gym use'}
-          title="High-contrast mode optimized for outdoor/gym floor coaching on tablets"
-        >
-          {floorMode ? 'Exit Floor Mode' : 'Floor Mode'}
-        </FloorModeToggle>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {bootcamp && (
+            <FloorModeToggle
+              onClick={() => {
+                exportBootcampPDF({
+                  name: bootcamp.name,
+                  classFormat: bootcamp.classFormat,
+                  dayType: bootcamp.dayType,
+                  stationCount: bootcamp.stationCount,
+                  targetDuration: bootcamp.targetDuration,
+                  totalWorkoutMin: bootcamp.totalWorkoutMin,
+                  totalClassMin: bootcamp.totalClassMin,
+                  expectedParticipants: bootcamp.expectedParticipants,
+                  stations: bootcamp.stations,
+                  exercises: bootcamp.exercises,
+                  overflowPlan: bootcamp.overflowPlan,
+                });
+                toast.success('Bootcamp PDF exported');
+              }}
+              title="Export class plan as PDF"
+            >
+              <Download size={16} /> Export PDF
+            </FloorModeToggle>
+          )}
+          <FloorModeToggle
+            $active={floorMode}
+            onClick={() => setFloorMode(!floorMode)}
+            aria-pressed={floorMode}
+            aria-label={floorMode ? 'Exit high-contrast floor mode' : 'Enable high-contrast floor mode for gym use'}
+            title="High-contrast mode optimized for outdoor/gym floor coaching on tablets"
+          >
+            {floorMode ? 'Exit Floor Mode' : 'Floor Mode'}
+          </FloorModeToggle>
+        </div>
       </TopBar>
 
       <ThreePane>

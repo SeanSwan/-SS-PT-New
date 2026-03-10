@@ -12,6 +12,7 @@ import {
   Save,
   Shield,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import adminClientService from '../../../../../services/adminClientService';
@@ -22,6 +23,7 @@ import {
   type DegradedResponse,
   type LongHorizonPlan,
 } from '../../../../../services/aiWorkoutService';
+import { exportLongHorizonPDF } from '../../../../../services/pdfExportService';
 import {
   Badge,
   BadgeRow,
@@ -888,16 +890,26 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           />
         </FormGroup>
 
-        {auditLogId == null && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          {editedPlan && (
+            <SecondaryButton
+              onClick={() => {
+                exportLongHorizonPDF(editedPlan, clientName);
+                toast({ title: 'PDF exported', variant: 'success' });
+              }}
+            >
+              <Download size={16} /> Export PDF
+            </SecondaryButton>
+          )}
+          {auditLogId == null && (
             <PrimaryButton
               onClick={() => setState('configure_plan')}
               disabled={isSubmitting}
             >
               Regenerate
             </PrimaryButton>
-          </div>
-        )}
+          )}
+        </div>
       </>
     );
   }

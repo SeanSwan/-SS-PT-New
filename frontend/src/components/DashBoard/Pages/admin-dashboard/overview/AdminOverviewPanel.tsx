@@ -10,6 +10,9 @@ import SocialOverviewWidget from '../components/SocialOverviewWidget';
 import ModerationWidget from '../components/ModerationWidget';
 import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
 import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
+import ClientComplianceDashboard from '../components/ClientComplianceDashboard';
+import BusinessKPIDashboard from '../components/BusinessKPIDashboard';
+import AutomatedCheckInsWidget from '../components/AutomatedCheckInsWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
 import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
@@ -190,6 +193,15 @@ const AdminOverviewPanel: React.FC = () => {
       </ControlsHeader>
 
       <AdminOverviewMetrics metrics={metrics} />
+
+      {/* Business Intelligence KPI Dashboard — merged into main dashboard */}
+      <BusinessKPIDashboard />
+
+      {/* Client Compliance — "Needs Attention" system (TrueCoach-style) */}
+      <ClientComplianceDashboard />
+
+      {/* Automated Check-Ins & Habit Tracking (PT Distinction-style) */}
+      <AutomatedCheckInsWidget />
 
       {/* Upcoming Measurement Check-ins Widget */}
       <UpcomingChecksWidget />

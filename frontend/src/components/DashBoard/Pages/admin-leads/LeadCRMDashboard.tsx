@@ -1112,7 +1112,7 @@ const AddLeadModal: React.FC<{
             <label>Lead Source</label>
             <select value={form.source} onChange={e => set('source', e.target.value)}>
               <option value="walk_in">Walk-in / In Person</option>
-              <option value="gallery">Swan Photography Gallery</option>
+              <option value="gallery">SwanStudios Photography Gallery</option>
               <option value="website">Website Contact Form</option>
               <option value="referral">Client Referral</option>
               <option value="social_media">Social Media</option>

@@ -46,6 +46,318 @@ interface EnhancementCredits {
   freeUsedThisEvent: number;
 }
 
+// ── Hero Animations ──────────────────────────────────────────────────────
+const heroScaleDown = keyframes`
+  from { transform: scale(1.15); }
+  to { transform: scale(1); }
+`;
+
+const heroFadeUp = keyframes`
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const heroShine = keyframes`
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+`;
+
+// ── Hero Styled Components ───────────────────────────────────────────────
+const HeroSection = styled.section`
+  position: relative;
+  width: 100%;
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #001030;
+`;
+
+const HeroBackground = styled.div<{ $offsetY?: number }>`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -10%;
+    background: linear-gradient(
+      135deg,
+      #001030 0%,
+      #002060 25%,
+      #003080 50%,
+      #001840 75%,
+      #000a20 100%
+    );
+    background-size: 400% 400%;
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${heroScaleDown} 4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+  }
+
+  /* Sapphire Vault gradient overlay */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 30% 40%,
+      rgba(96, 192, 240, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      rgba(139, 92, 246, 0.06) 0%,
+      transparent 50%
+    );
+  }
+`;
+
+const HeroContentGrid = styled.div`
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1440px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    padding: 0 48px;
+  }
+
+  @media (min-width: 1280px) {
+    padding: 0 80px;
+  }
+`;
+
+const VaultCard = styled.div`
+  background: linear-gradient(135deg, rgba(0, 32, 96, 0.6) 0%, rgba(0, 48, 128, 0.2) 100%);
+  backdrop-filter: blur(24px) saturate(120%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-top: 1px solid rgba(96, 192, 240, 0.3);
+  border-radius: 24px;
+  padding: 40px 28px;
+  box-shadow: 0 32px 64px -16px rgba(0, 10, 30, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  max-width: 720px;
+  width: 100%;
+
+  opacity: 0;
+  animation: ${heroFadeUp} 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.4s;
+
+  @media (min-width: 768px) {
+    padding: 56px 48px;
+  }
+`;
+
+const HeroEyebrow = styled.span`
+  display: block;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #C6A84B;
+  margin-bottom: 16px;
+
+  opacity: 0;
+  animation: ${heroFadeUp} 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.55s;
+
+  @media (min-width: 768px) {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+`;
+
+const HeroHeadline = styled.h1`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #F8FAFC;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.02em;
+
+  opacity: 0;
+  animation: ${heroFadeUp} 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.7s;
+
+  .drama {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 600;
+    color: #60C0F0;
+    text-shadow: 0 0 24px rgba(96, 192, 240, 0.4);
+    margin-top: 8px;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 56px;
+  }
+
+  @media (min-width: 1280px) {
+    font-size: 72px;
+  }
+`;
+
+const HeroSubheadline = styled.p`
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.6;
+  color: rgba(248, 250, 252, 0.8);
+  margin: 0 0 40px 0;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+
+  opacity: 0;
+  animation: ${heroFadeUp} 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.85s;
+
+  @media (min-width: 768px) {
+    font-size: 18px;
+    margin-bottom: 48px;
+  }
+`;
+
+const HeroButtonGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+
+  opacity: 0;
+  animation: ${heroFadeUp} 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 1s;
+
+  @media (min-width: 430px) {
+    flex-direction: row;
+  }
+`;
+
+const HeroBaseButton = styled.button`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 32px;
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  white-space: nowrap;
+`;
+
+const HeroPrimaryButton = styled(HeroBaseButton)`
+  background: linear-gradient(135deg, #D4AF37 0%, #AA801E 100%);
+  color: #001030;
+  border: none;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-25deg);
+    animation: ${heroShine} 6s infinite;
+  }
+
+  &:hover, &:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(198, 168, 75, 0.3), 0 0 20px rgba(198, 168, 75, 0.4);
+    outline: none;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+const HeroSecondaryButton = styled(HeroBaseButton)`
+  background: rgba(96, 192, 240, 0.05);
+  color: #F8FAFC;
+  border: 1px solid rgba(96, 192, 240, 0.3);
+  backdrop-filter: blur(8px);
+
+  &:hover, &:focus-visible {
+    background: rgba(96, 192, 240, 0.15);
+    border-color: #60C0F0;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(96, 192, 240, 0.15);
+    outline: none;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+const HeroScrollIndicator = styled.div`
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: rgba(248, 250, 252, 0.4);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: color 0.3s;
+
+  opacity: 0;
+  animation: ${heroFadeUp} 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 1.5s;
+
+  &:hover {
+    color: rgba(248, 250, 252, 0.7);
+  }
+
+  &::after {
+    content: '';
+    width: 1px;
+    height: 32px;
+    background: linear-gradient(to bottom, rgba(96, 192, 240, 0.4), transparent);
+  }
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+`;
+
 // ── Animations ────────────────────────────────────────────────────────────
 const pulseGlow = keyframes`
   0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
@@ -1044,8 +1356,53 @@ const GalleryPage: React.FC = () => {
   if (!slug && !galleryToken) {
     return (
       <PageWrapper>
-        <ContentMax>
-          <PageTitle>Swan Photography</PageTitle>
+        {/* Cinematic Hero Section — Crystalline Swan Vault */}
+        <HeroSection aria-label="SwanStudios Elite Photography">
+          <HeroBackground aria-hidden="true" />
+          <HeroContentGrid>
+            <VaultCard>
+              <HeroEyebrow>Elite Youth Sports Photography</HeroEyebrow>
+              <HeroHeadline>
+                Fleeting Triumphs.
+                <span className="drama">Immortalized.</span>
+              </HeroHeadline>
+              <HeroSubheadline>
+                Professional, heirloom-quality captures of your athlete's greatest moments.
+                Preserved securely in the SwanStudios Vault.
+              </HeroSubheadline>
+              <HeroButtonGroup>
+                <HeroPrimaryButton
+                  onClick={() => {
+                    const eventsSection = document.getElementById('events-section');
+                    eventsSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  aria-label="Browse event galleries"
+                >
+                  Access Event Galleries
+                </HeroPrimaryButton>
+                <HeroSecondaryButton
+                  as="a"
+                  href="/contact"
+                  aria-label="Commission a photography shoot"
+                >
+                  Commission a Shoot
+                </HeroSecondaryButton>
+              </HeroButtonGroup>
+            </VaultCard>
+          </HeroContentGrid>
+          <HeroScrollIndicator
+            onClick={() => {
+              const eventsSection = document.getElementById('events-section');
+              eventsSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
+            EXPLORE
+          </HeroScrollIndicator>
+        </HeroSection>
+
+        {/* Event Listing */}
+        <ContentMax id="events-section">
+          <PageTitle>Recent Events</PageTitle>
           <PageSubtitle>Browse photos from recent games. Enter your email and event password to access.</PageSubtitle>
 
           {loading ? (
@@ -1094,7 +1451,7 @@ const GalleryPage: React.FC = () => {
                 exit={{ scale: 0.9, opacity: 0 }}
                 transition={{ type: 'spring', damping: 25 }}
               >
-                <GateTitle>Access Swan Photography</GateTitle>
+                <GateTitle>Access SwanStudios Photography</GateTitle>
                 <GateSubtitle>Enter your email and the event password shared by SwanStudios</GateSubtitle>
 
                 <form onSubmit={handleGateSubmit}>
@@ -1354,7 +1711,7 @@ const GalleryPage: React.FC = () => {
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', damping: 25 }}
             >
-              <GateTitle>Access Swan Photography</GateTitle>
+              <GateTitle>Access SwanStudios Photography</GateTitle>
               <GateSubtitle>Enter your email and the event password shared by SwanStudios</GateSubtitle>
               <form onSubmit={handleGateSubmit}>
                 <InputGroup>

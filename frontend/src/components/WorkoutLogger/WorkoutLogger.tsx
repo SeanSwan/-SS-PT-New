@@ -26,7 +26,7 @@ import {
   Plus, Minus, Search, Save, X, AlertTriangle, CheckCircle, 
   Activity, Dumbbell, Clock, Target, Star, BarChart3,
   User, Calendar, MessageSquare, Zap, Timer, Weight,
-  RotateCcw, ArrowLeft, ArrowRight, Info, HelpCircle
+  RotateCcw, ArrowLeft, ArrowRight, Info, HelpCircle, Download
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -39,6 +39,13 @@ import {
 import { ApiService } from '../../services/api.service';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 import AITerminalPanel from '../Shared/AITerminalPanel';
+import {
+  APPLY_WORKOUT_EVENT,
+  PENDING_WORKOUT_KEY,
+  type WorkoutPlanTransfer,
+  type WorkoutExerciseTransfer,
+} from '../../utils/parseAIWorkoutPlan';
+import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
 // ==================== INTERFACES ====================
 
@@ -797,6 +804,59 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return () => clearTimeout(timeoutId);
   }, [searchQuery, loadExercises]);
 
+  // ── AI-to-Logger prefill: listen for exercises from AI Assistant ──
+  const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
+    return incoming.map(ex => ({
+      exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      exerciseName: ex.exerciseName,
+      sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+        setNumber: i + 1,
+        weight: ex.weight || 0,
+        reps: ex.reps || 10,
+        rpe: 5,
+        tempo: ex.tempo || '',
+        restTime: ex.restTime || 60,
+        formQuality: 3,
+        notes: ex.notes || '',
+      })),
+      formRating: 3,
+      painLevel: 0,
+      performanceNotes: '',
+    }));
+  }, []);
+
+  // Listen for live custom event (AI drawer dispatches when Logger is mounted)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<WorkoutPlanTransfer>).detail;
+      if (detail?.exercises?.length) {
+        const converted = convertAIExercises(detail.exercises);
+        setExercises(prev => [...prev, ...converted]);
+        toast.success(`Applied ${converted.length} exercises from AI plan`);
+        // Clear the pending queue since we consumed it
+        try { sessionStorage.removeItem(PENDING_WORKOUT_KEY); } catch { /* ignore */ }
+      }
+    };
+    window.addEventListener(APPLY_WORKOUT_EVENT, handler);
+    return () => window.removeEventListener(APPLY_WORKOUT_EVENT, handler);
+  }, [convertAIExercises]);
+
+  // Check sessionStorage on mount for pending AI workout plan (queued before Logger was open)
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem(PENDING_WORKOUT_KEY);
+      if (pending) {
+        const plan: WorkoutPlanTransfer = JSON.parse(pending);
+        if (plan.exercises?.length) {
+          const converted = convertAIExercises(plan.exercises);
+          setExercises(prev => [...prev, ...converted]);
+          toast.success(`Loaded ${converted.length} exercises from AI plan`);
+          sessionStorage.removeItem(PENDING_WORKOUT_KEY);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, [convertAIExercises]);
+
   const loadClientData = async () => {
     try {
       const api = new ApiService();
@@ -915,6 +975,22 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
     toast.info('Exercise removed from workout');
   }, []);
+
+  const handleExportPDF = useCallback(() => {
+    if (exercises.length === 0) {
+      toast.error('Add exercises before exporting');
+      return;
+    }
+    exportWorkoutLoggerPDF({
+      clientName: client ? `${client.firstName} ${client.lastName}` : 'Client',
+      trainerName: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : undefined,
+      date: new Date().toISOString().split('T')[0],
+      exercises,
+      sessionNotes,
+      overallIntensity,
+    });
+    toast.success('PDF exported');
+  }, [exercises, client, user, sessionNotes, overallIntensity]);
 
   const handleSubmit = async () => {
     if (exercises.length === 0) {
@@ -1348,6 +1424,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           >
             <ArrowLeft size={18} />
             Cancel
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={handleExportPDF}
+            disabled={exercises.length === 0}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Download size={18} />
+            Export PDF
           </Button>
           <Button
             variant="primary"

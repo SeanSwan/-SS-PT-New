@@ -226,7 +226,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           </motion.div>
           <motion.div variants={itemVariants}>
             <MobileNavLink to="/gallery" onClick={closeMobileMenu} $isActive={isActive('/gallery')}>
-              <Camera size={20} /> Swan Photography
+              <Camera size={20} /> SwanStudios Photography
             </MobileNavLink>
           </motion.div>
           {isRoleEnabled('admin') && (
@@ -292,7 +292,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           </motion.div>
           <motion.div variants={itemVariants}>
             <MobileNavLink to="/gallery" onClick={closeMobileMenu} $isActive={isActive('/gallery')}>
-              <Camera size={20} /> Swan Photography
+              <Camera size={20} /> SwanStudios Photography
             </MobileNavLink>
           </motion.div>
           <motion.div variants={itemVariants}>

@@ -45,7 +45,10 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
       [Op.or]: [
         { name: { [Op.iLike]: `%${searchQuery}%` } },
         { description: { [Op.iLike]: `%${searchQuery}%` } },
-        { exerciseType: { [Op.iLike]: `%${searchQuery}%` } }
+        sequelize.where(
+          sequelize.cast(sequelize.col('exerciseType'), 'TEXT'),
+          { [Op.iLike]: `%${searchQuery}%` }
+        )
       ]
     };
 

@@ -11,6 +11,7 @@
  *   - client_note: Add trainer observations/red flags
  *   - macro_log: Log nutrition entries
  *   - progress_level: Update NASM category levels
+ *   - daily_workout_form: Create workout form from AI-transcribed exercise data
  */
 import logger from '../utils/logger.mjs';
 
@@ -57,6 +58,11 @@ export async function processAIDataUpdates(targetUserId, updates, performedBy, s
 
         case 'progress_level':
           await updateProgressLevel(targetUserId, update.data, sequelize);
+          results.successful++;
+          break;
+
+        case 'daily_workout_form':
+          await insertDailyWorkoutForm(targetUserId, performedBy, update.data, sequelize);
           results.successful++;
           break;
 
@@ -172,18 +178,46 @@ async function insertClientNote(userId, trainerId, data, sequelize) {
 async function insertMacroLog(userId, data, sequelize) {
   if (!data.description) throw new Error('Food description is required');
 
+  const sodium = parseFloat(data.sodium) || 0;
+  const addedSugar = parseFloat(data.addedSugar) || 0;
+  const cholesterol = parseFloat(data.cholesterol) || 0;
+  const saturatedFat = parseFloat(data.saturatedFat) || 0;
+  const transFat = parseFloat(data.transFat) || 0;
+  const novaGroup = data.novaGroup ? Math.max(1, Math.min(4, parseInt(data.novaGroup))) : null;
+
+  // Auto-calculate FDA warning flags per meal
+  const flagSodium = sodium > 800;           // >33% of 2,300mg DV
+  const flagSugar = addedSugar > 12;         // >50% AHA women's limit
+  const flagCholesterol = cholesterol > 100;  // >33% of 300mg DV
+  const flagSaturatedFat = saturatedFat > 7;  // >33% of 20g DV
+  const flagTransFat = transFat > 0;          // ANY trans fat
+  const flagProcessed = novaGroup === 4;      // Ultra-processed (NOVA 4)
+
   const replacements = {
     userId,
     date: data.date || new Date().toISOString().split('T')[0],
     mealType: data.mealType || 'snack',
     description: data.description,
-    calories: data.calories || 0,
-    protein: data.protein || 0,
-    carbs: data.carbs || 0,
-    fat: data.fat || 0,
-    fiber: data.fiber || 0,
-    sugar: data.sugar || 0,
-    sodium: data.sodium || 0,
+    calories: parseFloat(data.calories) || 0,
+    protein: parseFloat(data.protein) || 0,
+    carbs: parseFloat(data.carbs) || 0,
+    fat: parseFloat(data.fat) || 0,
+    fiber: parseFloat(data.fiber) || 0,
+    sugar: parseFloat(data.sugar) || 0,
+    sodium,
+    addedSugar: addedSugar || null,
+    saturatedFat: saturatedFat || null,
+    transFat: transFat || null,
+    cholesterol: cholesterol || null,
+    novaGroup,
+    brandName: data.brandName ? String(data.brandName).slice(0, 200) : null,
+    mealSource: data.source || data.mealSource || null,
+    flagSodium,
+    flagSugar,
+    flagCholesterol,
+    flagSaturatedFat,
+    flagTransFat,
+    flagProcessed,
     source: 'ai_chat',
     verified: false,
   };
@@ -191,9 +225,17 @@ async function insertMacroLog(userId, data, sequelize) {
   await sequelize.query(
     `INSERT INTO daily_macro_logs ("userId", date, "mealType", description,
                                    calories, protein, carbs, fat, fiber, sugar, sodium,
+                                   "addedSugar", "saturatedFat", "transFat", cholesterol,
+                                   "novaGroup", "brandName", "mealSource",
+                                   "flagSodium", "flagSugar", "flagCholesterol",
+                                   "flagSaturatedFat", "flagTransFat", "flagProcessed",
                                    source, verified, "createdAt", "updatedAt")
      VALUES (:userId, :date, :mealType, :description,
              :calories, :protein, :carbs, :fat, :fiber, :sugar, :sodium,
+             :addedSugar, :saturatedFat, :transFat, :cholesterol,
+             :novaGroup, :brandName, :mealSource,
+             :flagSodium, :flagSugar, :flagCholesterol,
+             :flagSaturatedFat, :flagTransFat, :flagProcessed,
              :source, :verified, NOW(), NOW())`,
     { replacements, type: sequelize.QueryTypes.INSERT }
   );
@@ -234,4 +276,70 @@ async function updateProgressLevel(userId, data, sequelize) {
   );
 
   logger.info('[AIDataWrite] Progress level updated for user %d: %s = %d', userId, data.category, value);
+}
+
+/**
+ * Insert a daily workout form from AI-transcribed workout data.
+ * Validates exercise structure and creates the form with proper formData JSONB.
+ */
+async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
+  if (!Array.isArray(data.exercises) || data.exercises.length === 0) {
+    throw new Error('At least one exercise is required');
+  }
+
+  // Validate and sanitize each exercise
+  const sanitizedExercises = data.exercises.slice(0, 30).map((ex, i) => {
+    const name = String(ex.exerciseName || ex.name || `Exercise ${i + 1}`).slice(0, 200);
+    const sets = Math.max(1, Math.min(20, parseInt(ex.sets) || 3));
+    const reps = Math.max(1, Math.min(100, parseInt(ex.reps) || 10));
+    const weight = Math.max(0, Math.min(2000, parseFloat(ex.weight) || 0));
+
+    return {
+      exerciseId: `ai-${Date.now()}-${i}`,
+      exerciseName: name,
+      sets: Array.from({ length: sets }, (_, j) => ({
+        setNumber: j + 1,
+        weight,
+        reps,
+        rpe: Math.max(1, Math.min(10, parseInt(ex.rpe) || 5)),
+        tempo: String(ex.tempo || '').slice(0, 20),
+        restTime: Math.max(0, Math.min(600, parseInt(ex.restTime) || 60)),
+        formQuality: 3,
+        notes: String(ex.notes || '').slice(0, 500),
+      })),
+      formRating: 3,
+      painLevel: 0,
+      performanceNotes: '',
+    };
+  });
+
+  const formDate = data.date || new Date().toISOString().split('T')[0];
+  const sessionNotes = String(data.sessionNotes || 'Logged via AI assistant').slice(0, 2000);
+  const overallIntensity = Math.max(1, Math.min(10, parseInt(data.overallIntensity) || 5));
+
+  const formData = JSON.stringify({
+    exercises: sanitizedExercises,
+    sessionNotes,
+    overallIntensity,
+    submittedBy: trainerId,
+    submittedAt: new Date().toISOString(),
+    totalSets: sanitizedExercises.reduce((sum, ex) => sum + ex.sets.length, 0),
+    source: 'ai_transcription',
+  });
+
+  await sequelize.query(
+    `INSERT INTO daily_workout_forms ("clientId", "trainerId", date, "sessionDeducted",
+                                       "formData", "totalPointsEarned", "mcpProcessed",
+                                       "submittedAt", "createdAt", "updatedAt")
+     VALUES (:clientId, :trainerId, :formDate, false,
+             :formData::jsonb, 0, false,
+             NOW(), NOW(), NOW())`,
+    {
+      replacements: { clientId, trainerId, formDate, formData },
+      type: sequelize.QueryTypes.INSERT,
+    }
+  );
+
+  logger.info('[AIDataWrite] Workout form created for client %d by trainer %d: %d exercises',
+    clientId, trainerId, sanitizedExercises.length);
 }

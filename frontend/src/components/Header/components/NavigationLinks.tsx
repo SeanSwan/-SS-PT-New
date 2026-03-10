@@ -271,7 +271,7 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
           $isActive={isActive('/gallery')}
           variants={itemVariants}
         >
-          Swan Photography
+          SwanStudios Photography
         </StyledNavLink>
 
         <StyledNavLink

@@ -83,6 +83,77 @@ DailyMacroLog.init({
     allowNull: true,
     comment: 'Sodium in milligrams',
   },
+  addedSugar: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Added sugar in grams (FDA DV: 50g/day, AHA: 24g women, 36g men)',
+  },
+  saturatedFat: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Saturated fat in grams (FDA DV: 20g/day)',
+  },
+  transFat: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Trans fat in grams (FDA: 0g recommended)',
+  },
+  cholesterol: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Cholesterol in milligrams (FDA DV: 300mg/day)',
+  },
+  novaGroup: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'NOVA food processing classification: 1=Unprocessed, 2=Processed ingredients, 3=Processed, 4=Ultra-processed',
+  },
+  brandName: {
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    comment: 'Restaurant name, brand, or "homemade"',
+  },
+  mealSource: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: 'restaurant, fast_food, homemade, packaged, meal_prep',
+  },
+  flagSodium: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Auto-flag: sodium >800mg per meal (>33% FDA DV)',
+  },
+  flagSugar: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Auto-flag: added sugar >12g per meal',
+  },
+  flagCholesterol: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Auto-flag: cholesterol >100mg per meal',
+  },
+  flagSaturatedFat: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Auto-flag: saturated fat >7g per meal',
+  },
+  flagTransFat: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Auto-flag: any trans fat present',
+  },
+  flagProcessed: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Auto-flag: NOVA group 4 (ultra-processed)',
+  },
   items: {
     type: DataTypes.JSONB,
     allowNull: true,

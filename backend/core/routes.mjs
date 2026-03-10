@@ -113,6 +113,7 @@ import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
 import adminChargeCardRoutes from '../routes/adminChargeCardRoutes.mjs';
 import adminWaiverRoutes from '../routes/adminWaiverRoutes.mjs';
 import publicWaiverRoutes from '../routes/publicWaiverRoutes.mjs';
+import adminComplianceRoutes from '../routes/adminComplianceRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -366,6 +367,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/waivers', adminWaiverRoutes);
   // 📋 Public Waiver (Phase 5W-G: QR/header waiver submission + version text retrieval)
   app.use('/api/public/waivers', publicWaiverRoutes);
+  // Client Compliance, Business KPIs, and Automated Check-Ins
+  app.use('/api/admin', adminComplianceRoutes);
 
   // ===================== DASHBOARD ROUTES =====================
   // Shared dashboard routes for all users (client, trainer, admin)
