@@ -343,14 +343,54 @@ const UploadTab: React.FC = () => {
             </ScoreDisplay>
             {grade && <GradeLabel $color={scoreColor}>{grade}</GradeLabel>}
 
-            {result.findings?.length > 0 && (
-              <FindingsList>
-                {result.findings.map((f: any, i: number) => (
-                  <FindingItem key={i} $severity={f.severity || 'info'}>
-                    {f.message || f.description || JSON.stringify(f)}
-                  </FindingItem>
-                ))}
-              </FindingsList>
+            {/* Symmetry & ROM metrics */}
+            {(result.findings?.symmetryScore != null || result.findings?.rangeOfMotionPercent != null) && (
+              <div style={{ display: 'flex', gap: 16, justifyContent: 'center', margin: '12px 0' }}>
+                {result.findings.symmetryScore != null && (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: result.findings.symmetryScore >= 85 ? '#00FF88' : result.findings.symmetryScore >= 70 ? '#FFB800' : '#FF4757' }}>
+                      {result.findings.symmetryScore}%
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)', letterSpacing: 1, textTransform: 'uppercase' as const }}>Symmetry</div>
+                  </div>
+                )}
+                {result.findings.rangeOfMotionPercent != null && (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: result.findings.rangeOfMotionPercent >= 80 ? '#00FF88' : result.findings.rangeOfMotionPercent >= 60 ? '#FFB800' : '#FF4757' }}>
+                      {result.findings.rangeOfMotionPercent}%
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)', letterSpacing: 1, textTransform: 'uppercase' as const }}>ROM</div>
+                  </div>
+                )}
+                {result.repCount != null && result.repCount > 0 && (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: '#60C0F0' }}>
+                      {result.repCount}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)', letterSpacing: 1, textTransform: 'uppercase' as const }}>Reps</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Fatigue warning */}
+            {result.findings?.fatigueDetected && (
+              <FindingItem $severity="warning" style={{ marginTop: 8 }}>
+                Fatigue detected{result.findings.fatigueOnsetRep ? ` starting at rep ${result.findings.fatigueOnsetRep}` : ''} — form degradation observed in later reps
+              </FindingItem>
+            )}
+
+            {result.findings?.compensations?.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <SectionLabel>Compensations Detected</SectionLabel>
+                <FindingsList>
+                  {result.findings.compensations.map((f: any, i: number) => (
+                    <FindingItem key={i} $severity={f.severity_score > 0.7 ? 'critical' : f.severity_score > 0.4 ? 'warning' : 'info'}>
+                      {f.type || f.message || f.description || JSON.stringify(f)}
+                    </FindingItem>
+                  ))}
+                </FindingsList>
+              </div>
             )}
 
             {result.recommendations?.length > 0 && (

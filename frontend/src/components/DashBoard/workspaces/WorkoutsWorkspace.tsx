@@ -65,6 +65,8 @@ const WorkoutsWorkspace: React.FC = () => {
       photo: client.photo,
       availableSessions: client.availableSessions,
     });
+    // Store selected client ID for AI Assistant enrichment
+    try { sessionStorage.setItem('ai_target_client_id', String(client.id)); } catch { /* ignore */ }
   }, []);
 
   const activeTabId = TABS.find((t) => location.pathname === t.path)?.id || 'plans';

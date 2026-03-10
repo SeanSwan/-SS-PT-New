@@ -422,6 +422,12 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     }
   }, [activeConversation]);
 
+  // Read target client ID from sessionStorage (set by workspace client selectors)
+  const getTargetClientId = useCallback(() => {
+    if (userRole !== 'admin' && userRole !== 'trainer') return null;
+    try { return sessionStorage.getItem('ai_target_client_id') || null; } catch { return null; }
+  }, [userRole]);
+
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
     if (!text || sending) return;
@@ -431,7 +437,8 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
 
     // If no active conversation, create one first
     if (!activeConversation) {
-      const conv = await createConversation(selectedContext);
+      const targetClientId = getTargetClientId();
+      const conv = await createConversation(selectedContext, undefined, targetClientId);
       if (!conv) {
         setInputValue(text); // Restore input on failure
         return;
@@ -443,15 +450,16 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     if (result?.failed) {
       setInputValue(result.originalMessage || text);
     }
-  }, [inputValue, sending, activeConversation, selectedContext, createConversation, sendMessage]);
+  }, [inputValue, sending, activeConversation, selectedContext, createConversation, sendMessage, getTargetClientId]);
 
   const handleStartChat = useCallback(async (context: AIContext) => {
     setSelectedContext(context);
-    const conv = await createConversation(context);
+    const targetClientId = getTargetClientId();
+    const conv = await createConversation(context, undefined, targetClientId);
     if (conv) {
       setView('chat');
     }
-  }, [createConversation]);
+  }, [createConversation, getTargetClientId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

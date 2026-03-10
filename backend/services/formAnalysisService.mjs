@@ -77,6 +77,11 @@ export async function processFormAnalysis(analysisId) {
     const result = await response.json();
     const processingDuration = Date.now() - startTime;
 
+    // Calculate symmetry score from bilateral joint angle comparison
+    const symmetryScore = calculateSymmetryScore(result.joint_angle_summary || {});
+    // Calculate range of motion percentage from angle data relative to exercise ideal ROM
+    const rangeOfMotionPercent = calculateROMPercent(result.joint_angle_summary || {}, analysis.exerciseName);
+
     // Store results
     await analysis.update({
       analysisStatus: 'complete',
@@ -90,8 +95,8 @@ export async function processFormAnalysis(analysisId) {
         fatigueDetected: result.fatigue_detected || false,
         fatigueOnsetRep: result.fatigue_onset_rep || null,
         tempoAnalysis: result.tempo_analysis || {},
-        symmetryScore: null, // calculated from bilateral comparison
-        rangeOfMotionPercent: null, // calculated from angle data
+        symmetryScore,
+        rangeOfMotionPercent,
       },
       recommendations: result.corrective_recommendations || [],
       coachingFeedback: result.coaching_feedback || {},
@@ -122,6 +127,124 @@ export async function processFormAnalysis(analysisId) {
     logger.error('[FormAnalysis] Analysis %d failed after %dms: %s', analysisId, processingDuration, error.message);
     throw error;
   }
+}
+
+/**
+ * Calculate bilateral symmetry score (0-100) from joint angle data.
+ * Compares left vs right side angles for bilateral joints.
+ * A perfect score (100) means both sides move identically.
+ */
+function calculateSymmetryScore(jointAngles) {
+  if (!jointAngles || typeof jointAngles !== 'object') return null;
+
+  const bilateralPairs = [
+    ['left_elbow', 'right_elbow'],
+    ['left_knee', 'right_knee'],
+    ['left_hip', 'right_hip'],
+    ['left_shoulder', 'right_shoulder'],
+    ['left_ankle', 'right_ankle'],
+  ];
+
+  let totalDiff = 0;
+  let pairsFound = 0;
+
+  for (const [left, right] of bilateralPairs) {
+    const leftAngle = jointAngles[left]?.avg ?? jointAngles[left]?.mean ?? null;
+    const rightAngle = jointAngles[right]?.avg ?? jointAngles[right]?.mean ?? null;
+    if (leftAngle != null && rightAngle != null) {
+      // Difference as a percentage of the larger angle (capped at 100% diff)
+      const maxAngle = Math.max(Math.abs(leftAngle), Math.abs(rightAngle), 1);
+      const diff = Math.abs(leftAngle - rightAngle) / maxAngle;
+      totalDiff += Math.min(diff, 1);
+      pairsFound++;
+    }
+  }
+
+  if (pairsFound === 0) return null;
+  // Average difference → invert to get symmetry score (0-100)
+  const avgDiff = totalDiff / pairsFound;
+  return Math.round(Math.max(0, (1 - avgDiff) * 100));
+}
+
+/**
+ * Calculate range of motion as a percentage of the ideal ROM for the exercise.
+ * Each exercise has expected joint angle ranges based on NASM standards.
+ */
+function calculateROMPercent(jointAngles, exerciseName) {
+  if (!jointAngles || typeof jointAngles !== 'object') return null;
+
+  // Ideal ROM ranges per exercise (degrees) — based on NASM OPT model
+  const idealROM = {
+    'Squat':              { primary: 'knee', min: 50, max: 90 },       // knee flexion at bottom
+    'Deadlift':           { primary: 'hip', min: 60, max: 90 },        // hip hinge angle
+    'Overhead Press':     { primary: 'shoulder', min: 150, max: 180 }, // shoulder flexion at top
+    'Bicep Curl':         { primary: 'elbow', min: 30, max: 140 },     // elbow flexion range
+    'Lunge':              { primary: 'knee', min: 70, max: 100 },      // front knee flexion
+    'Push-Up':            { primary: 'elbow', min: 70, max: 160 },     // elbow flexion range
+    'Bench Press':        { primary: 'elbow', min: 70, max: 160 },     // elbow flexion range
+    'Row':                { primary: 'elbow', min: 40, max: 130 },     // elbow flexion range
+    'Romanian Deadlift':  { primary: 'hip', min: 50, max: 80 },        // hip hinge range
+    'Hip Thrust':         { primary: 'hip', min: 70, max: 170 },       // hip extension range
+    'Pull-Up':            { primary: 'elbow', min: 40, max: 160 },     // elbow flexion range
+    'Tricep Extension':   { primary: 'elbow', min: 40, max: 160 },     // elbow extension range
+    'Lateral Raise':      { primary: 'shoulder', min: 10, max: 90 },   // shoulder abduction
+    'Front Raise':        { primary: 'shoulder', min: 10, max: 90 },   // shoulder flexion
+    'Plank':              { primary: 'hip', min: 170, max: 180 },      // hip alignment
+    'Leg Press':          { primary: 'knee', min: 60, max: 100 },      // knee flexion
+    'Calf Raise':         { primary: 'ankle', min: 80, max: 120 },     // ankle plantarflexion
+    'Face Pull':          { primary: 'shoulder', min: 60, max: 120 },  // shoulder ext rotation
+  };
+
+  const ideal = idealROM[exerciseName];
+  if (!ideal) return null;
+
+  // Find the relevant joint angles (check both sides, take average)
+  const joint = ideal.primary;
+  const leftKey = `left_${joint}`;
+  const rightKey = `right_${joint}`;
+  const centerKey = joint;
+
+  const angles = [
+    jointAngles[leftKey]?.min, jointAngles[leftKey]?.max,
+    jointAngles[rightKey]?.min, jointAngles[rightKey]?.max,
+    jointAngles[centerKey]?.min, jointAngles[centerKey]?.max,
+  ].filter(v => v != null);
+
+  if (angles.length === 0) return null;
+
+  const actualMin = Math.min(...angles);
+  const actualMax = Math.max(...angles);
+  const actualRange = actualMax - actualMin;
+  const idealRange = ideal.max - ideal.min;
+
+  if (idealRange <= 0) return null;
+  // ROM % = how much of ideal range is achieved (capped at 120% for hyperflexion)
+  return Math.round(Math.min((actualRange / idealRange) * 100, 120));
+}
+
+/**
+ * Determine NASM OPT phase recommendation based on aggregated movement profile.
+ * Phase 1: Stabilization (score < 50, many compensations)
+ * Phase 2: Strength Endurance (score 50-65)
+ * Phase 3: Hypertrophy (score 65-75)
+ * Phase 4: Maximal Strength (score 75-85)
+ * Phase 5: Power (score 85+, minimal compensations)
+ */
+function calculateNASMPhase(exerciseScores, commonCompensations) {
+  const exercises = Object.values(exerciseScores || {});
+  if (exercises.length === 0) return 1;
+
+  const avgScore = exercises.reduce((sum, ex) => sum + (ex.avg || 0), 0) / exercises.length;
+  const compensationCount = (commonCompensations || []).filter(c => c.frequency >= 2).length;
+
+  // Heavy compensations push down by 1 phase
+  const compensationPenalty = compensationCount > 5 ? 1 : compensationCount > 2 ? 0.5 : 0;
+
+  if (avgScore < 50) return 1;
+  if (avgScore < 65 - compensationPenalty * 10) return 2;
+  if (avgScore < 75 - compensationPenalty * 10) return 3;
+  if (avgScore < 85 - compensationPenalty * 10) return 4;
+  return 5;
 }
 
 /**
@@ -243,16 +366,20 @@ async function updateMovementProfile(userId, analysis) {
   });
   const trimmedTrend = trend.slice(-50);
 
+  // Calculate NASM OPT phase recommendation from aggregated data
+  const nasmPhaseRecommendation = calculateNASMPhase(exerciseScores, commonComps);
+
   await profile.update({
     exerciseScores,
     commonCompensations: commonComps,
     improvementTrend: trimmedTrend,
+    nasmPhaseRecommendation,
     totalAnalyses: (profile.totalAnalyses || 0) + 1,
     lastAnalysisAt: new Date(),
     lastAnalysisId: analysis.id,
   });
 
-  logger.info('[MovementProfile] Updated profile for user %d: totalAnalyses=%d', userId, profile.totalAnalyses + 1);
+  logger.info('[MovementProfile] Updated profile for user %d: totalAnalyses=%d, nasmPhase=%d', userId, profile.totalAnalyses + 1, nasmPhaseRecommendation);
 }
 
 /**

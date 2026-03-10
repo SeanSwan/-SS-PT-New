@@ -68,14 +68,16 @@ export function useAIChat() {
   /**
    * Create a new conversation
    */
-  const createConversation = useCallback(async (context: AIContext = 'general', title?: string) => {
+  const createConversation = useCallback(async (context: AIContext = 'general', title?: string, targetUserId?: number | string | null) => {
     setLoading(true);
     setError(null);
     try {
+      const payload: Record<string, unknown> = { context, title };
+      if (targetUserId) payload.targetUserId = targetUserId;
       const res = await fetch(`${API_BASE}/api/ai-chat/conversations`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ context, title }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to create conversation');

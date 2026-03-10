@@ -67,13 +67,13 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Create conversation when panel opens
+  // Create conversation when panel opens — pass clientId as targetUserId for AI enrichment
   useEffect(() => {
     if (isOpen && !activeConversation && !conversationStartedRef.current) {
       conversationStartedRef.current = true;
-      createConversation(context, `Workout Builder — ${context}`);
+      createConversation(context, `Workout Builder — ${context}`, clientId || null);
     }
-  }, [isOpen, activeConversation, context, createConversation]);
+  }, [isOpen, activeConversation, context, createConversation, clientId]);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();

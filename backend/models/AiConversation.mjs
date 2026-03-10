@@ -47,9 +47,17 @@ AiConversation.init({
     allowNull: false,
     defaultValue: 'general',
     validate: {
-      isIn: [['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review']],
+      isIn: [['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management']],
     },
     comment: 'Conversation context determines AI system prompt and permissions',
+  },
+  targetUserId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: { model: 'Users', key: 'id' },
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
+    comment: 'Target client ID for trainer/admin conversations (enriches AI with this client data)',
   },
   messages: {
     type: DataTypes.JSONB,

@@ -49,7 +49,7 @@ const ROLE_CONTEXTS = {
  */
 router.post('/conversations', async (req, res) => {
   try {
-    const { context = 'general', title } = req.body;
+    const { context = 'general', title, targetUserId } = req.body;
     const userRole = req.user.role || 'client';
     const allowedContexts = ROLE_CONTEXTS[userRole] || ROLE_CONTEXTS.client;
 
@@ -61,11 +61,17 @@ router.post('/conversations', async (req, res) => {
       });
     }
 
+    // Only trainers/admins can set a target client
+    const resolvedTargetUserId = (userRole === 'admin' || userRole === 'trainer') && targetUserId
+      ? targetUserId
+      : null;
+
     const conversation = await AiConversation.create({
       userId: req.user.id,
       role: userRole,
       title: title || null,
       context,
+      targetUserId: resolvedTargetUserId,
       messages: [],
       status: 'active',
       messageCount: 0,
@@ -77,6 +83,7 @@ router.post('/conversations', async (req, res) => {
         id: conversation.id,
         title: conversation.title,
         context: conversation.context,
+        targetUserId: conversation.targetUserId,
         status: conversation.status,
         messageCount: 0,
         createdAt: conversation.createdAt,
@@ -142,6 +149,7 @@ router.get('/conversations/:id', async (req, res) => {
         title: conversation.title,
         context: conversation.context,
         role: conversation.role,
+        targetUserId: conversation.targetUserId,
         status: conversation.status,
         messages: conversation.messages,
         messageCount: conversation.messageCount,
@@ -185,9 +193,11 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }
 
     // Build system prompt based on role + context, enriched with user data
+    // For trainer/admin conversations with a target client, enrich with the CLIENT's data
+    const enrichUserId = conversation.targetUserId || req.user.id;
     let systemPrompt = getSystemPrompt(conversation.role, conversation.context);
     const userDataContext = await enrichWithUserData(
-      req.user.id, conversation.role, conversation.context, sequelize
+      enrichUserId, conversation.role, conversation.context, sequelize
     );
     if (userDataContext) {
       systemPrompt += userDataContext;
