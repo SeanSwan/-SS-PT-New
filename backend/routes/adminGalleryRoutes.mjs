@@ -20,6 +20,7 @@ import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
 import PhotoVote from '../models/PhotoVote.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
+import sharp from 'sharp';
 import { applyWatermark, isWatermarkAvailable } from '../services/watermarkService.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -235,13 +236,23 @@ router.post('/events/:id/upload', (req, res, next) => {
         const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
         const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
-        // Apply watermark (SwanStudios logo + sswanstudios.com) before upload
-        const processedBuffer = await applyWatermark(file.buffer, {
-          applyWatermark: enableWatermark,
-        });
+        // Convert RAW/large files to JPEG before watermarking
+        const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
+        const isRaw = RAW_EXT.test(file.originalname || '');
+        let inputBuffer = file.buffer;
+        if (isRaw || file.size > 50 * 1024 * 1024) {
+          logger.info(`[AdminGallery] ${isRaw ? 'RAW format' : 'Large file'} (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
+          inputBuffer = await sharp(file.buffer).jpeg({ quality: 95 }).toBuffer();
+          logger.info(`[AdminGallery] Converted to JPEG: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+        }
 
         // Release original buffer to help GC
         file.buffer = null;
+
+        // Apply watermark (SwanStudios logo + sswanstudios.com) before upload
+        const processedBuffer = await applyWatermark(inputBuffer, {
+          applyWatermark: enableWatermark,
+        });
 
         let url = '';
         let thumbnailUrl = '';
