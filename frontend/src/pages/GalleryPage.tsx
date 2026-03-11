@@ -12,6 +12,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import VIPConversionModal from './gallery/VIPConversionModal';
 import PhotoFeedback from './gallery/PhotoFeedback';
+import PhotoDetailModal from './gallery/PhotoDetailModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -688,119 +689,6 @@ const WatermarkText = styled.span`
   white-space: nowrap;
 `;
 
-// ── Lightbox ──────────────────────────────────────────────────────────────
-const LightboxBackdrop = styled(motion.div)`
-  position: fixed;
-  inset: 0;
-  z-index: 300;
-  background: rgba(0, 32, 96, 0.95);
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const LightboxImageWrapper = styled.div`
-  position: relative;
-  display: inline-block;
-  max-width: 90vw;
-  max-height: 90vh;
-`;
-
-const LightboxImage = styled.img`
-  max-width: 90vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 8px;
-  display: block;
-`;
-
-const LightboxControl = styled.button<{ $position?: 'left' | 'right' }>`
-  position: fixed;
-  top: 50%;
-  ${p => p.$position === 'left' ? 'left: 16px;' : 'right: 16px;'}
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 301;
-  &:hover { background: rgba(255, 255, 255, 0.15); }
-`;
-
-const LightboxClose = styled.button`
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
-  font-size: 24px;
-  cursor: pointer;
-  z-index: 301;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  &:hover { background: rgba(255, 255, 255, 0.15); }
-`;
-
-const LightboxActions = styled.div`
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-  z-index: 301;
-`;
-
-const LightboxBtn = styled.a<{ $primary?: boolean }>`
-  padding: 12px 24px;
-  min-height: 44px;
-  border-radius: 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.15);
-  ${p => p.$primary
-    ? 'background: linear-gradient(135deg, #8B5CF6, #60C0F0); color: #002060; border: none;'
-    : 'background: rgba(255,255,255,0.08); color: #fff;'}
-  &:hover { opacity: 0.9; }
-`;
-
-const EnhanceButton = styled.button<{ $hasCredits: boolean }>`
-  padding: 12px 24px;
-  min-height: 44px;
-  min-width: 44px;
-  border-radius: 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  background: ${p => p.$hasCredits ? '#8B5CF6' : '#8B5CF6'};
-  color: ${p => p.$hasCredits ? '#002060' : '#fff'};
-  transition: opacity 0.2s;
-  &:hover { opacity: 0.85; }
-`;
-
 // ── Floating Credit Pill ──────────────────────────────────────────────────
 const CreditPill = styled(motion.div)<{ $hasCredits: boolean }>`
   position: fixed;
@@ -1299,13 +1187,6 @@ const GalleryPage: React.FC = () => {
   const totalCredits = credits.freeRemaining + credits.purchasedCredits;
   const hasCredits = credits.isVip || totalCredits > 0;
 
-  const getEnhanceButtonLabel = () => {
-    if (credits.isVip) return 'Enhance (VIP)';
-    if (credits.freeRemaining > 0) return 'Enhance (Free)';
-    if (credits.purchasedCredits > 0) return 'Enhance (1 credit)';
-    return 'Enhance ($15)';
-  };
-
   const handleEnhanceClick = async (photoId: number) => {
     if (!galleryToken) return;
 
@@ -1404,17 +1285,29 @@ const GalleryPage: React.FC = () => {
     }
   };
 
-  // Keyboard nav for lightbox
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightboxIndex(null);
-      if (e.key === 'ArrowRight' && lightboxIndex < photos.length - 1) setLightboxIndex(lightboxIndex + 1);
-      if (e.key === 'ArrowLeft' && lightboxIndex > 0) setLightboxIndex(lightboxIndex - 1);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [lightboxIndex, photos.length]);
+  const handleDownloadOriginal = async (photoId: number) => {
+    if (!galleryToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/gallery/photos/${photoId}/download`, {
+        headers: { Authorization: `Bearer ${galleryToken}` },
+      });
+      const data = await res.json();
+      if (data.success && data.downloadUrl) {
+        const link = document.createElement('a');
+        link.href = data.downloadUrl;
+        link.download = data.filename || 'photo.jpg';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch {
+      // Fallback: open the photo URL directly
+      const photo = photos.find(p => p.id === photoId);
+      if (photo) window.open(photo.url, '_blank');
+    }
+  };
 
   // Determine if we're in photo grid view (for credit pill visibility)
   const isPhotoGridView = !!galleryToken && photos.length > 0 && lightboxIndex === null;
@@ -1686,45 +1579,24 @@ const GalleryPage: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Lightbox */}
-        <AnimatePresence>
-          {lightboxIndex !== null && photos[lightboxIndex] && (
-            <LightboxBackdrop
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLightboxIndex(null)}
-            >
-              <LightboxImageWrapper onClick={e => e.stopPropagation()}>
-                <LightboxImage
-                  src={photos[lightboxIndex].enhancedUrl || photos[lightboxIndex].url}
-                  alt={photos[lightboxIndex].displayName}
-                />
-              </LightboxImageWrapper>
-              <LightboxClose onClick={() => setLightboxIndex(null)}>&#x2715;</LightboxClose>
-              {lightboxIndex > 0 && (
-                <LightboxControl $position="left" onClick={e => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}>&#x2039;</LightboxControl>
-              )}
-              {lightboxIndex < photos.length - 1 && (
-                <LightboxControl $position="right" onClick={e => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}>&#x203A;</LightboxControl>
-              )}
-              <LightboxActions onClick={e => e.stopPropagation()}>
-                <LightboxBtn href={photos[lightboxIndex].url} target="_blank" rel="noopener noreferrer">
-                  Download Free
-                </LightboxBtn>
-                <EnhanceButton
-                  $hasCredits={hasCredits}
-                  onClick={() => handleEnhanceClick(photos[lightboxIndex!].id)}
-                >
-                  {enhanceSelections.has(photos[lightboxIndex].id)
-                    ? '\u2605 Selected'
-                    : getEnhanceButtonLabel()
-                  }
-                </EnhanceButton>
-              </LightboxActions>
-            </LightboxBackdrop>
-          )}
-        </AnimatePresence>
+        {/* Photo Detail Modal (replaces simple lightbox) */}
+        <PhotoDetailModal
+          isOpen={lightboxIndex !== null && !!photos[lightboxIndex!]}
+          photo={lightboxIndex !== null ? photos[lightboxIndex] : null}
+          photoIndex={lightboxIndex ?? 0}
+          totalPhotos={photos.length}
+          credits={credits}
+          voteData={lightboxIndex !== null && photos[lightboxIndex] ? (votesMap[photos[lightboxIndex].id] || null) : null}
+          onClose={() => setLightboxIndex(null)}
+          onPrev={() => setLightboxIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}
+          onNext={() => setLightboxIndex(prev => prev !== null && prev < photos.length - 1 ? prev + 1 : prev)}
+          onDownloadOriginal={handleDownloadOriginal}
+          onRequestEnhancement={handleEnhanceClick}
+          onVote={handleVote}
+          onUpgrade={() => setShowUpgradeModal(true)}
+          downloadUrl={lightboxIndex !== null && photos[lightboxIndex] ? photos[lightboxIndex].url : ''}
+          enhancementRequested={lightboxIndex !== null && photos[lightboxIndex] ? enhanceSelections.has(photos[lightboxIndex].id) : false}
+        />
 
         {/* Upgrade Modal */}
         <AnimatePresence>
