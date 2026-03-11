@@ -31,7 +31,9 @@ import GalleryVisitor from '../models/GalleryVisitor.mjs';
 import EnhancementRequest from '../models/EnhancementRequest.mjs';
 import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
+import PhotoVote from '../models/PhotoVote.mjs';
 import { getUser } from '../models/index.mjs';
+import { Op, fn, col, literal } from 'sequelize';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -731,6 +733,139 @@ router.post('/referral', requireGalleryAccess, async (req, res) => {
     return res.status(500).json({ success: false, error: 'Failed to submit referral' });
   }
 });
+
+// ── Photo Voting (Thumbs Up / Thumbs Down) ──────────────────────────────
+
+/**
+ * POST /api/gallery/vote
+ * Cast or change a vote on a photo.
+ * Body: { photoId: number, voteType: 1 | -1 }
+ * Toggle: voting the same type again removes the vote.
+ */
+router.post('/vote', requireGalleryAccess, async (req, res) => {
+  try {
+    const { photoId, voteType } = req.body;
+    const visitorId = req.galleryAccess.visitorId;
+    const eventId = req.galleryAccess.eventId;
+
+    if (!photoId || ![1, -1].includes(voteType)) {
+      return res.status(400).json({ success: false, error: 'photoId and voteType (1 or -1) required' });
+    }
+
+    // Verify photo belongs to this event
+    const photo = await GalleryPhoto.findOne({ where: { id: photoId, eventId } });
+    if (!photo) {
+      return res.status(404).json({ success: false, error: 'Photo not found in this event' });
+    }
+
+    // Check for existing vote by this visitor
+    const existing = await PhotoVote.findOne({ where: { photoId, visitorId } });
+
+    if (existing) {
+      if (existing.voteType === voteType) {
+        // Toggle off — remove vote
+        await existing.destroy();
+        const counts = await getVoteCounts(photoId);
+        return res.json({ success: true, action: 'removed', userVote: null, ...counts });
+      }
+      // Change vote direction
+      await existing.update({ voteType });
+      const counts = await getVoteCounts(photoId);
+      return res.json({ success: true, action: 'changed', userVote: voteType, ...counts });
+    }
+
+    // New vote
+    await PhotoVote.create({ photoId, visitorId, voteType });
+    const counts = await getVoteCounts(photoId);
+    return res.json({ success: true, action: 'created', userVote: voteType, ...counts });
+  } catch (err) {
+    logger.error('[Gallery] Vote error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to record vote' });
+  }
+});
+
+/**
+ * GET /api/gallery/events/:slug/votes
+ * Get vote counts for all photos in an event + the visitor's own votes.
+ */
+router.get('/events/:slug/votes', requireGalleryAccess, async (req, res) => {
+  try {
+    if (req.galleryAccess.slug !== req.params.slug) {
+      return res.status(403).json({ success: false, error: 'Access token does not match this event' });
+    }
+
+    const eventId = req.galleryAccess.eventId;
+    const visitorId = req.galleryAccess.visitorId;
+
+    // Get all photos for this event
+    const photos = await GalleryPhoto.findAll({
+      where: { eventId },
+      attributes: ['id'],
+    });
+    const photoIds = photos.map(p => p.id);
+
+    if (photoIds.length === 0) {
+      return res.json({ success: true, votes: {} });
+    }
+
+    // Aggregate vote counts per photo
+    const voteCounts = await PhotoVote.findAll({
+      where: { photoId: photoIds },
+      attributes: [
+        'photoId',
+        [fn('SUM', literal("CASE WHEN vote_type = 1 THEN 1 ELSE 0 END")), 'thumbsUp'],
+        [fn('SUM', literal("CASE WHEN vote_type = -1 THEN 1 ELSE 0 END")), 'thumbsDown'],
+      ],
+      group: ['photoId'],
+      raw: true,
+    });
+
+    // Get this visitor's votes
+    const myVotes = await PhotoVote.findAll({
+      where: { photoId: photoIds, visitorId },
+      attributes: ['photoId', 'voteType'],
+      raw: true,
+    });
+
+    // Build response map: { photoId: { thumbsUp, thumbsDown, userVote } }
+    const votesMap = {};
+    for (const row of voteCounts) {
+      votesMap[row.photoId] = {
+        thumbsUp: parseInt(row.thumbsUp) || 0,
+        thumbsDown: parseInt(row.thumbsDown) || 0,
+        userVote: null,
+      };
+    }
+    for (const vote of myVotes) {
+      if (!votesMap[vote.photoId]) {
+        votesMap[vote.photoId] = { thumbsUp: 0, thumbsDown: 0, userVote: null };
+      }
+      votesMap[vote.photoId].userVote = vote.voteType;
+    }
+
+    return res.json({ success: true, votes: votesMap });
+  } catch (err) {
+    logger.error('[Gallery] Get votes error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load votes' });
+  }
+});
+
+/** Helper: get aggregated vote counts for a single photo */
+async function getVoteCounts(photoId) {
+  const result = await PhotoVote.findAll({
+    where: { photoId },
+    attributes: [
+      [fn('SUM', literal("CASE WHEN vote_type = 1 THEN 1 ELSE 0 END")), 'thumbsUp'],
+      [fn('SUM', literal("CASE WHEN vote_type = -1 THEN 1 ELSE 0 END")), 'thumbsDown'],
+    ],
+    raw: true,
+  });
+  const row = result[0] || {};
+  return {
+    thumbsUp: parseInt(row.thumbsUp) || 0,
+    thumbsDown: parseInt(row.thumbsDown) || 0,
+  };
+}
 
 // ── VIP PT Session Conversion ─────────────────────────────────────────────
 

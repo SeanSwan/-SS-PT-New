@@ -9,6 +9,7 @@
 import express from 'express';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
+import { Op, fn, literal, col } from 'sequelize';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import GalleryEvent from '../models/GalleryEvent.mjs';
@@ -17,6 +18,7 @@ import GalleryVisitor from '../models/GalleryVisitor.mjs';
 import EnhancementRequest from '../models/EnhancementRequest.mjs';
 import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
+import PhotoVote from '../models/PhotoVote.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { applyWatermark, isWatermarkAvailable } from '../services/watermarkService.mjs';
 import logger from '../utils/logger.mjs';
@@ -810,7 +812,6 @@ router.get('/stats', async (req, res) => {
     ]);
 
     // Unique emails (newsletter subscribers)
-    const { Op } = await import('sequelize');
     const newsletterCount = await GalleryVisitor.count({
       where: { newsletterOptIn: true },
       distinct: true,
@@ -842,6 +843,99 @@ router.get('/stats', async (req, res) => {
   } catch (err) {
     logger.error('[AdminGallery] Stats error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to load gallery stats' });
+  }
+});
+
+// ── Photo Vote Stats (Admin) ──────────────────────────────────────────────
+
+/**
+ * GET /api/admin/gallery/events/:id/vote-stats
+ * Get vote stats for all photos in an event, sorted by sentiment.
+ */
+router.get('/events/:id/vote-stats', async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id, 10);
+
+    const photos = await GalleryPhoto.findAll({
+      where: { eventId },
+      attributes: ['id', 'photoNumber', 'displayName', 'thumbnailUrl', 'url'],
+      order: [['photoNumber', 'ASC']],
+      raw: true,
+    });
+
+    if (photos.length === 0) {
+      return res.json({ success: true, photos: [], cleanup: [] });
+    }
+
+    const photoIds = photos.map(p => p.id);
+
+    // Aggregate vote counts
+    const voteCounts = await PhotoVote.findAll({
+      where: { photoId: photoIds },
+      attributes: [
+        'photoId',
+        [fn('SUM', literal("CASE WHEN vote_type = 1 THEN 1 ELSE 0 END")), 'thumbsUp'],
+        [fn('SUM', literal("CASE WHEN vote_type = -1 THEN 1 ELSE 0 END")), 'thumbsDown'],
+        [fn('COUNT', col('id')), 'totalVotes'],
+      ],
+      group: ['photoId'],
+      raw: true,
+    });
+
+    const voteMap = {};
+    for (const row of voteCounts) {
+      voteMap[row.photoId] = {
+        thumbsUp: parseInt(row.thumbsUp) || 0,
+        thumbsDown: parseInt(row.thumbsDown) || 0,
+        totalVotes: parseInt(row.totalVotes) || 0,
+      };
+    }
+
+    // Enrich photos with vote data
+    const enriched = photos.map(p => ({
+      ...p,
+      thumbsUp: voteMap[p.id]?.thumbsUp || 0,
+      thumbsDown: voteMap[p.id]?.thumbsDown || 0,
+      totalVotes: voteMap[p.id]?.totalVotes || 0,
+      sentiment: (voteMap[p.id]?.thumbsUp || 0) - (voteMap[p.id]?.thumbsDown || 0),
+    }));
+
+    // Cleanup suggestions: photos with negative sentiment (more thumbs down than up)
+    const cleanup = enriched
+      .filter(p => p.thumbsDown > 0 && p.sentiment < 0)
+      .sort((a, b) => a.sentiment - b.sentiment);
+
+    return res.json({ success: true, photos: enriched, cleanup });
+  } catch (err) {
+    logger.error('[AdminGallery] Vote stats error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load vote stats' });
+  }
+});
+
+/**
+ * DELETE /api/admin/gallery/photos/bulk-delete
+ * Bulk delete photos (from cleanup suggestions).
+ * Body: { photoIds: number[] }
+ */
+router.delete('/photos/bulk-delete', async (req, res) => {
+  try {
+    const { photoIds } = req.body;
+    if (!Array.isArray(photoIds) || photoIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'photoIds array required' });
+    }
+
+    // Delete votes first (cascade may handle this, but be explicit)
+    await PhotoVote.destroy({ where: { photoId: photoIds } });
+    // Delete enhancement requests
+    await EnhancementRequest.destroy({ where: { photoId: photoIds } });
+    // Delete photos
+    const deleted = await GalleryPhoto.destroy({ where: { id: photoIds } });
+
+    logger.info(`[AdminGallery] Bulk deleted ${deleted} photos: ${photoIds.join(', ')}`);
+    return res.json({ success: true, deleted });
+  } catch (err) {
+    logger.error('[AdminGallery] Bulk delete error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to delete photos' });
   }
 });
 

@@ -87,6 +87,7 @@ const TABLE_CREATION_ORDER = [
   'gallery_enhancement_requests', // EnhancementRequest — depends on gallery_visitors, gallery_photos
   'gallery_donations',           // GalleryDonation — depends on gallery_visitors, gallery_events
   'gallery_referrals',           // GalleryReferral — depends on gallery_visitors, gallery_events
+  'gallery_photo_votes',         // PhotoVote — depends on gallery_photos, gallery_visitors
 
   // PHASE 12: CRM Lead Management (leads first, then activities)
   'leads',                       // Lead — depends on Users, gallery_visitors

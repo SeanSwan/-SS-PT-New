@@ -11,6 +11,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import VIPConversionModal from './gallery/VIPConversionModal';
+import PhotoFeedback from './gallery/PhotoFeedback';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -44,6 +45,12 @@ interface EnhancementCredits {
   purchasedCredits: number;
   isVip: boolean;
   freeUsedThisEvent: number;
+}
+
+interface PhotoVoteData {
+  thumbsUp: number;
+  thumbsDown: number;
+  userVote: 1 | -1 | null;
 }
 
 // ── Hero Animations ──────────────────────────────────────────────────────
@@ -607,7 +614,7 @@ const PhotoCard = styled.div<{ $selected?: boolean }>`
       content: '\u2605';
       position: absolute;
       top: 8px;
-      right: 8px;
+      left: 8px;
       width: 32px;
       height: 32px;
       background: linear-gradient(135deg, #8B5CF6, #60C0F0);
@@ -1096,6 +1103,10 @@ const GalleryPage: React.FC = () => {
   const [gateLoading, setGateLoading] = useState(false);
   const [gateError, setGateError] = useState('');
 
+  // Photo voting state
+  const [votesMap, setVotesMap] = useState<Record<number, PhotoVoteData>>({});
+  const [hoveredPhotoId, setHoveredPhotoId] = useState<number | null>(null);
+
   // Load events on mount + check for VIP success return
   useEffect(() => {
     loadEvents();
@@ -1174,13 +1185,78 @@ const GalleryPage: React.FC = () => {
         headers: { Authorization: `Bearer ${galleryToken}` },
       });
       const data = await res.json();
-      if (data.success) setPhotos(data.photos);
+      if (data.success) {
+        setPhotos(data.photos);
+        // Fetch votes after photos load
+        loadVotes(eventSlug);
+      }
     } catch {
       setError('Failed to load photos');
     } finally {
       setLoading(false);
     }
   };
+
+  const loadVotes = async (eventSlug: string) => {
+    if (!galleryToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/gallery/events/${eventSlug}/votes`, {
+        headers: { Authorization: `Bearer ${galleryToken}` },
+      });
+      const data = await res.json();
+      if (data.success) setVotesMap(data.votes || {});
+    } catch {
+      // Non-critical — votes just won't show
+    }
+  };
+
+  const handleVote = useCallback(async (photoId: number, voteType: 1 | -1) => {
+    if (!galleryToken) return;
+
+    const prev = votesMap[photoId] || { thumbsUp: 0, thumbsDown: 0, userVote: null };
+
+    // Optimistic update
+    const isToggleOff = prev.userVote === voteType;
+    const optimistic: PhotoVoteData = isToggleOff
+      ? {
+          thumbsUp: prev.thumbsUp - (voteType === 1 ? 1 : 0),
+          thumbsDown: prev.thumbsDown - (voteType === -1 ? 1 : 0),
+          userVote: null,
+        }
+      : {
+          thumbsUp: prev.thumbsUp + (voteType === 1 ? 1 : 0) - (prev.userVote === 1 ? 1 : 0),
+          thumbsDown: prev.thumbsDown + (voteType === -1 ? 1 : 0) - (prev.userVote === -1 ? 1 : 0),
+          userVote: voteType,
+        };
+
+    setVotesMap(m => ({ ...m, [photoId]: optimistic }));
+
+    try {
+      const res = await fetch(`${API_BASE}/api/gallery/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${galleryToken}`,
+        },
+        body: JSON.stringify({ photoId, voteType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Use server-confirmed counts
+        setVotesMap(m => ({
+          ...m,
+          [photoId]: {
+            thumbsUp: data.thumbsUp,
+            thumbsDown: data.thumbsDown,
+            userVote: data.userVote,
+          },
+        }));
+      }
+    } catch {
+      // Revert on failure
+      setVotesMap(m => ({ ...m, [photoId]: prev }));
+    }
+  }, [galleryToken, votesMap]);
 
   const handleEventClick = (event: GalleryEventSummary) => {
     setSelectedEvent(event);
@@ -1518,23 +1594,36 @@ const GalleryPage: React.FC = () => {
           </EventGrid>
         ) : (
           <GridWrapper>
-            {photos.map(photo => (
-              <PhotoCard
-                key={photo.id}
-                $selected={enhanceSelections.has(photo.id)}
-                onClick={() => setLightboxIndex(photos.indexOf(photo))}
-              >
-                <PhotoImg
-                  src={photo.thumbnailUrl || photo.url}
-                  alt={photo.displayName}
-                  loading="lazy"
-                  onLoad={e => { (e.target as HTMLImageElement).style.animation = 'none'; }}
-                />
-                <PhotoOverlay>
-                  <PhotoLabel>{photo.displayName}</PhotoLabel>
-                </PhotoOverlay>
-              </PhotoCard>
-            ))}
+            {photos.map(photo => {
+              const voteData = votesMap[photo.id];
+              return (
+                <PhotoCard
+                  key={photo.id}
+                  $selected={enhanceSelections.has(photo.id)}
+                  onClick={() => setLightboxIndex(photos.indexOf(photo))}
+                  onMouseEnter={() => setHoveredPhotoId(photo.id)}
+                  onMouseLeave={() => setHoveredPhotoId(null)}
+                >
+                  <PhotoImg
+                    src={photo.thumbnailUrl || photo.url}
+                    alt={photo.displayName}
+                    loading="lazy"
+                    onLoad={e => { (e.target as HTMLImageElement).style.animation = 'none'; }}
+                  />
+                  <PhotoFeedback
+                    photoId={photo.id}
+                    thumbsUp={voteData?.thumbsUp || 0}
+                    thumbsDown={voteData?.thumbsDown || 0}
+                    userVote={voteData?.userVote || null}
+                    onVote={handleVote}
+                    isHovered={hoveredPhotoId === photo.id}
+                  />
+                  <PhotoOverlay>
+                    <PhotoLabel>{photo.displayName}</PhotoLabel>
+                  </PhotoOverlay>
+                </PhotoCard>
+              );
+            })}
           </GridWrapper>
         )}
 

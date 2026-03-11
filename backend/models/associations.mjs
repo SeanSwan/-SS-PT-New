@@ -174,6 +174,7 @@ const setupAssociations = async () => {
     const EnhancementRequestModule = await import('./EnhancementRequest.mjs');
     const GalleryDonationModule = await import('./GalleryDonation.mjs');
     const GalleryReferralModule = await import('./GalleryReferral.mjs');
+    const PhotoVoteModule = await import('./PhotoVote.mjs');
 
     // CRM Lead Management Models
     const LeadModule = await import('./Lead.mjs');
@@ -341,6 +342,7 @@ const setupAssociations = async () => {
     const EnhancementRequest = EnhancementRequestModule.default;
     const GalleryDonation = GalleryDonationModule.default;
     const GalleryReferral = GalleryReferralModule.default;
+    const PhotoVote = PhotoVoteModule.default;
 
     // CRM Lead Management Models
     const Lead = LeadModule.default;
@@ -1049,11 +1051,13 @@ const setupAssociations = async () => {
 
     GalleryPhoto.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
     GalleryPhoto.hasMany(EnhancementRequest, { foreignKey: 'photoId', as: 'enhancementRequests' });
+    GalleryPhoto.hasMany(PhotoVote, { foreignKey: 'photoId', as: 'votes' });
 
     GalleryVisitor.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
     GalleryVisitor.hasMany(EnhancementRequest, { foreignKey: 'visitorId', as: 'enhancementRequests' });
     GalleryVisitor.hasMany(GalleryDonation, { foreignKey: 'visitorId', as: 'donations' });
     GalleryVisitor.hasMany(GalleryReferral, { foreignKey: 'visitorId', as: 'referrals' });
+    GalleryVisitor.hasMany(PhotoVote, { foreignKey: 'visitorId', as: 'votes' });
 
     EnhancementRequest.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
     EnhancementRequest.belongsTo(GalleryPhoto, { foreignKey: 'photoId', as: 'photo' });
@@ -1063,6 +1067,9 @@ const setupAssociations = async () => {
 
     GalleryReferral.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
     GalleryReferral.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+
+    PhotoVote.belongsTo(GalleryPhoto, { foreignKey: 'photoId', as: 'photo' });
+    PhotoVote.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
     console.log('✅ Photo Gallery & Lead Generation models integrated');
 
     // ── CRM Lead Management Associations ─────────────────
@@ -1238,7 +1245,7 @@ const setupAssociations = async () => {
       ExerciseTrend,
 
       // Photo Gallery & Lead Generation Models
-      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral,
+      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote,
 
       // CRM Lead Management Models
       Lead, LeadActivity,

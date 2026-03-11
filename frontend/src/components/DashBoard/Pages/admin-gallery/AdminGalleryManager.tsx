@@ -813,6 +813,8 @@ const AdminGalleryManager: React.FC = () => {
   // State for viewing event photos
   const [viewPhotosEventId, setViewPhotosEventId] = useState<number | null>(null);
   const [eventPhotos, setEventPhotos] = useState<any[]>([]);
+  const [voteStats, setVoteStats] = useState<any[]>([]);
+  const [cleanupSuggestions, setCleanupSuggestions] = useState<any[]>([]);
 
   const loadEventPhotos = async (eventId: number) => {
     try {
@@ -820,12 +822,40 @@ const AdminGalleryManager: React.FC = () => {
       const data = await res.json();
       if (data.success) setEventPhotos(data.photos);
     } catch { /* */ }
+    // Also load vote stats
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/vote-stats`, { headers: getHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setVoteStats(data.photos || []);
+        setCleanupSuggestions(data.cleanup || []);
+      }
+    } catch { /* */ }
+  };
+
+  const handleBulkDelete = async (photoIds: number[]) => {
+    if (!window.confirm(`Delete ${photoIds.length} photo(s) with negative feedback? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/photos/bulk-delete`, {
+        method: 'DELETE',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEventPhotos(prev => prev.filter(p => !photoIds.includes(p.id)));
+        setCleanupSuggestions(prev => prev.filter(p => !photoIds.includes(p.id)));
+        setVoteStats(prev => prev.filter(p => !photoIds.includes(p.id)));
+      }
+    } catch { /* */ }
   };
 
   const toggleViewPhotos = (eventId: number) => {
     if (viewPhotosEventId === eventId) {
       setViewPhotosEventId(null);
       setEventPhotos([]);
+      setVoteStats([]);
+      setCleanupSuggestions([]);
     } else {
       setViewPhotosEventId(eventId);
       loadEventPhotos(eventId);
@@ -1068,40 +1098,94 @@ const AdminGalleryManager: React.FC = () => {
                   )}
                 </AnimatePresence>
 
-                {/* Photo Grid with Delete Buttons */}
+                {/* Photo Grid with Delete Buttons + Vote Stats */}
                 <AnimatePresence>
                   {viewPhotosEventId === event.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ marginTop: 16 }}>
+
+                      {/* Cleanup Suggestions Panel */}
+                      {cleanupSuggestions.length > 0 && (
+                        <div style={{
+                          width: '100%', padding: 16, marginBottom: 16, borderRadius: 12,
+                          background: 'linear-gradient(180deg, rgba(0,16,64,0.8) 0%, rgba(0,16,64,0.4) 100%)',
+                          border: '1px solid rgba(255,94,126,0.3)', borderTop: '2px solid #FF5E7E',
+                          backdropFilter: 'blur(16px)',
+                          display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                        }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <span style={{ color: '#FF5E7E', fontSize: 18 }}>&#x26A0;</span>
+                              <span style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>Cleanup Suggestions</span>
+                            </div>
+                            <div style={{ fontSize: 13, color: '#8A8A9D' }}>
+                              {cleanupSuggestions.length} photo(s) have more thumbs-down than thumbs-up
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleBulkDelete(cleanupSuggestions.map((p: any) => p.id))}
+                            style={{
+                              height: 44, padding: '0 20px', background: 'rgba(255,94,126,0.1)',
+                              color: '#FF5E7E', border: '1px solid rgba(255,94,126,0.3)',
+                              borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 8,
+                            }}
+                          >
+                            Delete {cleanupSuggestions.length} Unpopular Photo(s)
+                          </button>
+                        </div>
+                      )}
+
                       {eventPhotos.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 24, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                           No photos uploaded yet.
                         </div>
                       ) : (
                         <PhotoGrid>
-                          {eventPhotos.map((photo: any) => (
-                            <PhotoThumb key={photo.id}>
-                              <img src={photo.thumbnailUrl || photo.url} alt={photo.displayName} />
-                              <div style={{
-                                position: 'absolute', bottom: 0, left: 0, right: 0,
-                                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                                padding: '16px 6px 4px', fontSize: 10, color: 'rgba(255,255,255,0.7)',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                              }}>
-                                <span>{photo.displayName}</span>
-                                <button
-                                  onClick={() => deletePhoto(photo.id)}
-                                  style={{
-                                    background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: 4,
-                                    color: '#fff', fontSize: 10, padding: '2px 6px', cursor: 'pointer',
-                                    minHeight: 24, minWidth: 24
-                                  }}
-                                  title="Delete photo"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </PhotoThumb>
-                          ))}
+                          {eventPhotos.map((photo: any) => {
+                            const vs = voteStats.find((v: any) => v.id === photo.id);
+                            const thumbsUp = vs?.thumbsUp || 0;
+                            const thumbsDown = vs?.thumbsDown || 0;
+                            const sentiment = thumbsUp - thumbsDown;
+                            const sentimentType = sentiment > 0 ? 'positive' : sentiment < 0 ? 'negative' : 'neutral';
+                            return (
+                              <PhotoThumb key={photo.id}>
+                                <img src={photo.thumbnailUrl || photo.url} alt={photo.displayName} />
+                                {/* Vote stat badge (admin) */}
+                                {(thumbsUp > 0 || thumbsDown > 0) && (
+                                  <div style={{
+                                    position: 'absolute', top: 6, right: 6, display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: '3px 8px', background: 'rgba(0,16,64,0.85)', backdropFilter: 'blur(8px)',
+                                    borderRadius: 6, fontSize: 12, fontWeight: 600,
+                                    border: `1px solid ${sentimentType === 'positive' ? 'rgba(96,192,240,0.3)' : sentimentType === 'negative' ? 'rgba(255,94,126,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                                    color: sentimentType === 'positive' ? '#60C0F0' : sentimentType === 'negative' ? '#FF5E7E' : '#fff',
+                                  }}>
+                                    <span>{thumbsUp > 0 ? `+${thumbsUp}` : ''}</span>
+                                    {thumbsUp > 0 && thumbsDown > 0 && <span>/</span>}
+                                    <span>{thumbsDown > 0 ? `-${thumbsDown}` : ''}</span>
+                                  </div>
+                                )}
+                                <div style={{
+                                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                                  background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                                  padding: '16px 6px 4px', fontSize: 10, color: 'rgba(255,255,255,0.7)',
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                }}>
+                                  <span>{photo.displayName}</span>
+                                  <button
+                                    onClick={() => deletePhoto(photo.id)}
+                                    style={{
+                                      background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: 4,
+                                      color: '#fff', fontSize: 10, padding: '2px 6px', cursor: 'pointer',
+                                      minHeight: 24, minWidth: 24
+                                    }}
+                                    title="Delete photo"
+                                  >
+                                    &#x2715;
+                                  </button>
+                                </div>
+                              </PhotoThumb>
+                            );
+                          })}
                         </PhotoGrid>
                       )}
                     </motion.div>
