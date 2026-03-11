@@ -538,11 +538,11 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         const fileSizeBytes = photo.fileSize || 0;
         const isLargeFile = fileSizeBytes > 50 * 1024 * 1024; // >50MB
 
-        // ── Large/RAW files: use R2 CopyObject (zero download, no OOM risk) ──
+        // ── Large/RAW files: CopyObject instantly, then convert+watermark in background ──
         if (isRawFormat || isLargeFile) {
-          logger.info(`[AdminGallery] Large/RAW file (${(fileSizeBytes / 1024 / 1024).toFixed(1)}MB) — using R2 copy (no server download)`);
+          logger.info(`[AdminGallery] Large/RAW file (${(fileSizeBytes / 1024 / 1024).toFixed(1)}MB) — copy now, process in background`);
 
-          // Copy from staging key to final key within R2 (server-side copy, no download)
+          // Copy from staging key to final key within R2 (instant, no download)
           await r2Client.send(new CopyObjectCommand({
             Bucket: R2_BUCKET,
             CopySource: `${R2_BUCKET}/${photo.rawKey}`,
@@ -554,7 +554,7 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
             await r2Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey }));
           } catch { /* non-fatal */ }
 
-          // Create DB record (no watermark for RAW/large — stored as original)
+          // Create DB record immediately (photo visible right away)
           const url = R2_PUBLIC_URL
             ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
             : `/api/serve-photo/${photo.finalKey}`;
@@ -573,10 +573,9 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
             metadata: {
               originalName: photo.originalName,
               originalSize: fileSizeBytes,
-              processedSize: fileSizeBytes,
               watermarked: false,
-              needsProcessing: true,
-              uploadMethod: 'direct-r2-copy',
+              processing: true,
+              uploadMethod: 'direct-r2-background',
               uploadedAt: new Date().toISOString(),
             },
           });
@@ -589,7 +588,74 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
             thumbnailUrl: dbPhoto.thumbnailUrl,
           });
 
-          logger.info(`[AdminGallery] Confirmed ${photo.displayName} via R2 copy (no watermark) for event ${event.slug}`);
+          // ── Background: download, convert RAW→JPEG, watermark, replace in R2 ──
+          const bgPhotoId = dbPhoto.id;
+          const bgFinalKey = photo.finalKey;
+          const bgOrigName = photo.originalName || photo.rawKey;
+          const bgEnableWatermark = enableWatermark;
+
+          setImmediate(async () => {
+            try {
+              logger.info(`[AdminGallery/BG] Starting background processing for ${bgOrigName}`);
+
+              // Download from R2
+              const getCmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: bgFinalKey });
+              const obj = await r2Client.send(getCmd);
+              const dlChunks = [];
+              for await (const chunk of obj.Body) dlChunks.push(chunk);
+              let rawBuf = Buffer.concat(dlChunks);
+              logger.info(`[AdminGallery/BG] Downloaded ${(rawBuf.length / 1024 / 1024).toFixed(1)}MB`);
+
+              // Convert RAW → JPEG (resize to 4000px max to keep memory safe)
+              let jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
+                .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 92 })
+                .toBuffer();
+              rawBuf = null; // free
+              logger.info(`[AdminGallery/BG] Converted to JPEG: ${(jpegBuf.length / 1024 / 1024).toFixed(1)}MB`);
+
+              // Watermark
+              if (bgEnableWatermark) {
+                jpegBuf = await applyWatermark(jpegBuf, { applyWatermark: true });
+                logger.info(`[AdminGallery/BG] Watermark applied`);
+              }
+
+              // Re-upload processed version to same final key
+              await r2Client.send(new PutObjectCommand({
+                Bucket: R2_BUCKET,
+                Key: bgFinalKey,
+                Body: jpegBuf,
+                ContentType: 'image/jpeg',
+              }));
+
+              // Update DB record
+              const processedSize = jpegBuf.length;
+              jpegBuf = null;
+              await GalleryPhoto.update(
+                {
+                  fileSize: processedSize,
+                  mimeType: 'image/jpeg',
+                  metadata: {
+                    originalName: bgOrigName,
+                    originalSize: fileSizeBytes,
+                    processedSize,
+                    watermarked: bgEnableWatermark && isWatermarkAvailable(),
+                    processing: false,
+                    uploadMethod: 'direct-r2-background',
+                    processedAt: new Date().toISOString(),
+                  },
+                },
+                { where: { id: bgPhotoId } }
+              );
+
+              logger.info(`[AdminGallery/BG] ✅ Background processing complete for photo ${bgPhotoId}`);
+            } catch (bgErr) {
+              logger.error(`[AdminGallery/BG] ❌ Background processing failed for photo ${bgPhotoId}: ${bgErr.message}`);
+              // Photo still exists in R2 as raw — admin can retry later
+            }
+          });
+
+          logger.info(`[AdminGallery] Confirmed ${photo.displayName} — background processing queued`);
           continue;
         }
 
