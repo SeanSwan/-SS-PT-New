@@ -529,8 +529,71 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
     // Process ONE photo at a time to keep RAM low (~150MB peak per file)
     const sharp = (await import('sharp')).default;
 
+    const { CopyObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+
     for (const photo of photos) {
       try {
+        const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
+        const isRawFormat = RAW_EXTENSIONS.test(photo.originalName || photo.rawKey);
+        const fileSizeBytes = photo.fileSize || 0;
+        const isLargeFile = fileSizeBytes > 50 * 1024 * 1024; // >50MB
+
+        // ── Large/RAW files: use R2 CopyObject (zero download, no OOM risk) ──
+        if (isRawFormat || isLargeFile) {
+          logger.info(`[AdminGallery] Large/RAW file (${(fileSizeBytes / 1024 / 1024).toFixed(1)}MB) — using R2 copy (no server download)`);
+
+          // Copy from staging key to final key within R2 (server-side copy, no download)
+          await r2Client.send(new CopyObjectCommand({
+            Bucket: R2_BUCKET,
+            CopySource: `${R2_BUCKET}/${photo.rawKey}`,
+            Key: photo.finalKey,
+          }));
+
+          // Delete staging file (best-effort)
+          try {
+            await r2Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey }));
+          } catch { /* non-fatal */ }
+
+          // Create DB record (no watermark for RAW/large — stored as original)
+          const url = R2_PUBLIC_URL
+            ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
+            : `/api/serve-photo/${photo.finalKey}`;
+
+          const dbPhoto = await GalleryPhoto.create({
+            eventId: event.id,
+            photoNumber: photo.photoNumber,
+            displayName: photo.displayName,
+            storageKey: photo.finalKey,
+            thumbnailKey: photo.finalKey,
+            url,
+            thumbnailUrl: url,
+            originalFilename: photo.originalName || photo.rawKey,
+            fileSize: fileSizeBytes,
+            mimeType: isRawFormat ? 'image/x-raw' : 'image/jpeg',
+            metadata: {
+              originalName: photo.originalName,
+              originalSize: fileSizeBytes,
+              processedSize: fileSizeBytes,
+              watermarked: false,
+              needsProcessing: true,
+              uploadMethod: 'direct-r2-copy',
+              uploadedAt: new Date().toISOString(),
+            },
+          });
+
+          confirmed.push({
+            id: dbPhoto.id,
+            photoNumber: dbPhoto.photoNumber,
+            displayName: dbPhoto.displayName,
+            url: dbPhoto.url,
+            thumbnailUrl: dbPhoto.thumbnailUrl,
+          });
+
+          logger.info(`[AdminGallery] Confirmed ${photo.displayName} via R2 copy (no watermark) for event ${event.slug}`);
+          continue;
+        }
+
+        // ── Normal-sized files: download, watermark, re-upload ──
         // 1. Download raw photo from R2
         const getCommand = new GetObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey });
         const rawObj = await r2Client.send(getCommand);
@@ -541,31 +604,15 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         let rawBuffer = Buffer.concat(chunks);
         const rawSize = rawBuffer.length;
 
-        // 2. Convert to JPEG: always for camera RAW formats, or for large files (>50MB)
-        //    Resize to max 4000px during conversion to keep memory under 200MB
-        //    (a 61MP RAW needs ~1.4GB to fully decode — resize avoids full decode)
-        const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
-        const isRawFormat = RAW_EXTENSIONS.test(photo.originalName || photo.rawKey);
-        let photoBuffer;
-        if (rawSize > 50 * 1024 * 1024 || isRawFormat) {
-          logger.info(`[AdminGallery] ${isRawFormat ? 'RAW format' : 'Large file'} (${(rawSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG with resize`);
-          photoBuffer = await sharp(rawBuffer, { limitInputPixels: false })
-            .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 92 })
-            .toBuffer();
-          rawBuffer = null; // Free the large raw buffer immediately
-          logger.info(`[AdminGallery] Converted to JPEG: ${(photoBuffer.length / 1024 / 1024).toFixed(1)}MB`);
-        } else {
-          photoBuffer = rawBuffer;
-          rawBuffer = null;
-        }
+        let photoBuffer = rawBuffer;
+        rawBuffer = null;
 
-        // 3. Watermark
+        // 2. Watermark
         if (enableWatermark) {
           photoBuffer = await applyWatermark(photoBuffer, { applyWatermark: true });
         }
 
-        // 4. Upload watermarked version to final key
+        // 3. Upload watermarked version to final key
         await r2Client.send(new PutObjectCommand({
           Bucket: R2_BUCKET,
           Key: photo.finalKey,
@@ -575,13 +622,12 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
 
         const processedSize = photoBuffer.length;
 
-        // 5. Delete raw staging file (best-effort)
+        // 4. Delete raw staging file (best-effort)
         try {
-          const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
           await r2Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey }));
         } catch { /* non-fatal */ }
 
-        // 6. Create DB record
+        // 5. Create DB record
         const url = R2_PUBLIC_URL
           ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
           : `/api/serve-photo/${photo.finalKey}`;
