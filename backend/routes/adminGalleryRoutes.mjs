@@ -388,13 +388,19 @@ router.post('/events/:id/presign-upload', async (req, res) => {
       const rawKey = `gallery-raw/${event.slug}/${photoNumber}-${Date.now()}.jpg`;
       const finalKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
+      // Use the browser's content type (application/octet-stream for RAW files)
+      // Don't force image/jpeg — it must match what the browser sends in the PUT
+      const contentType = file.type || 'application/octet-stream';
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET,
         Key: rawKey,
-        ContentType: file.type || 'image/jpeg',
+        ContentType: contentType,
       });
 
-      const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 }); // 10 min TTL
+      const uploadUrl = await getSignedUrl(r2Client, command, {
+        expiresIn: 600, // 10 min TTL
+        unhoistableHeaders: new Set(['content-type']), // Don't sign Content-Type — let browser set it freely
+      });
 
       uploads.push({
         name: file.name,
@@ -434,6 +440,48 @@ router.get('/r2-cors-check', async (req, res) => {
     const result = await client.send(new GetBucketCorsCommand({ Bucket: process.env.R2_BUCKET_NAME }));
     return res.json({ success: true, corsRules: result.CORSRules || [] });
   } catch (err) {
+    return res.json({ success: false, error: err.message, code: err.Code || err.name });
+  }
+});
+
+/**
+ * POST /api/admin/gallery/setup-r2-cors
+ * Apply CORS rules to R2 bucket so browser can upload directly via presigned URLs.
+ */
+router.post('/setup-r2-cors', async (req, res) => {
+  try {
+    const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) {
+      return res.status(503).json({ success: false, error: 'R2 not configured' });
+    }
+    const { PutBucketCorsCommand } = await import('@aws-sdk/client-s3');
+    const client = getR2Client();
+
+    const corsRules = {
+      Bucket: process.env.R2_BUCKET_NAME,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedOrigins: [
+              'https://sswanstudios.com',
+              'https://www.sswanstudios.com',
+              'http://localhost:5173',
+              'http://localhost:3000',
+            ],
+            AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
+            AllowedHeaders: ['*'],
+            ExposeHeaders: ['ETag', 'Content-Length', 'Content-Type', 'x-amz-request-id'],
+            MaxAgeSeconds: 86400,
+          },
+        ],
+      },
+    };
+
+    await client.send(new PutBucketCorsCommand(corsRules));
+    logger.info('[AdminGallery] R2 CORS rules applied successfully');
+    return res.json({ success: true, message: 'R2 CORS rules applied successfully' });
+  } catch (err) {
+    logger.error('[AdminGallery] Failed to apply R2 CORS:', err.message);
     return res.json({ success: false, error: err.message, code: err.Code || err.name });
   }
 });

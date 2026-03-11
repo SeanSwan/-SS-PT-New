@@ -494,10 +494,10 @@ const AdminGalleryManager: React.FC = () => {
   // Fallback: legacy multer upload if presign fails (R2 not configured)
 
   // R2 direct upload disabled — CORS not yet configured on R2 bucket.
-  // All uploads go through the backend server (legacy path).
-  // Re-enable R2 by setting this to true once CORS is fixed.
-  const USE_R2_DIRECT = false;
-  const BATCH_SIZE = USE_R2_DIRECT ? 20 : 5; // Legacy path: smaller batches to avoid OOM
+  // Direct R2 upload via presigned URLs — bypasses server memory limits for large files (RAW, HEIC).
+  // Falls back to legacy server upload if R2 CORS fails or R2 not configured.
+  const USE_R2_DIRECT = true;
+  const BATCH_SIZE = USE_R2_DIRECT ? 20 : 5;
 
   // Upload a single file directly to R2 via presigned PUT URL
   const uploadFileToR2 = (file: File, uploadUrl: string): Promise<{ success: boolean; error?: string }> => {
@@ -515,11 +515,10 @@ const AdminGalleryManager: React.FC = () => {
       xhr.addEventListener('timeout', () => resolve({ success: false, error: 'R2 upload timeout' }));
 
       xhr.open('PUT', uploadUrl);
-      // Content-Type is already encoded in the presigned URL signature.
-      // Only set it if the file has a known type to avoid CORS preflight mismatch.
-      const ct = file.type || 'image/jpeg';
-      xhr.setRequestHeader('Content-Type', ct);
-      xhr.timeout = 300000; // 5 min for large files directly to R2
+      // Do NOT set Content-Type header — it's not signed in the presigned URL
+      // and setting custom headers triggers a CORS preflight that R2 may reject.
+      // The browser will send the file's native MIME type automatically.
+      xhr.timeout = 600000; // 10 min for large RAW files (118MB+)
       xhr.send(file);
     });
   };

@@ -68,6 +68,10 @@ export function getR2Client() {
       accessKeyId: R2_ACCESS_KEY_ID,
       secretAccessKey: R2_SECRET_ACCESS_KEY,
     },
+    // Disable automatic checksums — R2 doesn't fully support them
+    // and they add x-amz-checksum-* headers that break CORS preflight
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   });
 
   logger.info('[R2StorageService] S3Client initialised for R2 bucket: %s', R2_BUCKET_NAME);
