@@ -515,12 +515,59 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
     const rawSizeMB = (rawBuf.length / 1024 / 1024).toFixed(1);
 
     // Step 2: Convert to JPEG
+    // Sharp doesn't support camera RAW (ARW/CR2/NEF) — use dcraw first if needed
     const step2Start = Date.now();
-    let jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
-      .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 92 })
-      .toBuffer();
-    rawBuf = null;
+    const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
+    const isRawFormat = RAW_EXTENSIONS.test(photo.originalFilename || photo.storageKey);
+    let jpegBuf;
+
+    if (isRawFormat) {
+      // Use dcraw to convert RAW → TIFF, then sharp for resize + JPEG
+      const fs = await import('fs');
+      const os = await import('os');
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      const dcraw = (await import('dcrawr')).default || (await import('dcrawr'));
+      const dcrawPath = typeof dcraw === 'string' ? dcraw : dcraw.path || dcraw;
+
+      const tmpDir = os.default?.tmpdir?.() || os.tmpdir();
+      const tmpRaw = `${tmpDir}/reprocess_${photo.id}.arw`;
+      const tmpTiff = `${tmpDir}/reprocess_${photo.id}.tiff`;
+
+      // Write RAW to temp file
+      (fs.default || fs).writeFileSync(tmpRaw, rawBuf);
+      rawBuf = null;
+
+      // dcraw -T (TIFF output) -w (camera white balance) -o 1 (sRGB)
+      try {
+        await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tmpRaw], { timeout: 120000 });
+      } catch (dcrawErr) {
+        // Clean up temp files
+        try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
+        try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
+        throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
+      }
+
+      // Read TIFF output and pipe through sharp
+      const tiffBuf = (fs.default || fs).readFileSync(tmpTiff);
+      jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
+        .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 92 })
+        .toBuffer();
+
+      // Clean up temp files
+      try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
+      try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
+    } else {
+      // Standard image — sharp can handle it directly
+      jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
+        .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 92 })
+        .toBuffer();
+      rawBuf = null;
+    }
+
     const convertMs = Date.now() - step2Start;
     const jpegSizeMB = (jpegBuf.length / 1024 / 1024).toFixed(1);
 
@@ -676,12 +723,44 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
               let rawBuf = Buffer.concat(dlChunks);
               logger.info(`[AdminGallery/BG] Downloaded ${(rawBuf.length / 1024 / 1024).toFixed(1)}MB`);
 
-              // Convert RAW → JPEG (resize to 4000px max to keep memory safe)
-              let jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
-                .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-                .jpeg({ quality: 92 })
-                .toBuffer();
-              rawBuf = null; // free
+              // Convert RAW → JPEG using dcraw (sharp can't decode camera RAW)
+              const RAW_EXT_BG = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
+              const isCameraRaw = RAW_EXT_BG.test(bgOrigName);
+              let jpegBuf;
+
+              if (isCameraRaw) {
+                const fs = await import('fs');
+                const os = await import('os');
+                const { execFile } = await import('child_process');
+                const { promisify } = await import('util');
+                const execFileAsync = promisify(execFile);
+                const dcraw = (await import('dcrawr')).default || (await import('dcrawr'));
+                const dcrawPath = typeof dcraw === 'string' ? dcraw : dcraw.path || dcraw;
+
+                const tmpDir = os.default?.tmpdir?.() || os.tmpdir();
+                const tmpRaw = `${tmpDir}/bg_${bgPhotoId}.arw`;
+                const tmpTiff = `${tmpDir}/bg_${bgPhotoId}.tiff`;
+
+                (fs.default || fs).writeFileSync(tmpRaw, rawBuf);
+                rawBuf = null;
+
+                await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tmpRaw], { timeout: 120000 });
+
+                const tiffBuf = (fs.default || fs).readFileSync(tmpTiff);
+                jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
+                  .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+                  .jpeg({ quality: 92 })
+                  .toBuffer();
+
+                try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
+                try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
+              } else {
+                jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
+                  .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+                  .jpeg({ quality: 92 })
+                  .toBuffer();
+                rawBuf = null;
+              }
               logger.info(`[AdminGallery/BG] Converted to JPEG: ${(jpegBuf.length / 1024 / 1024).toFixed(1)}MB`);
 
               // Watermark
