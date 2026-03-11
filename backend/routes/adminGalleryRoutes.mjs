@@ -36,14 +36,13 @@ router.use((req, res, next) => {
 
 // Multer for photo uploads (memory storage → R2)
 // Frontend chunks into batches of 5; backend handles up to 10 per request for safety
-const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif)$/i;
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif|arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024, files: 10 }, // 50MB per file, 10 files max per batch
+  limits: { fileSize: 150 * 1024 * 1024, files: 10 }, // 150MB per file (RAW files), 10 files max per batch
   fileFilter: (req, file, cb) => {
-    // Accept image/* MIME types OR common image file extensions
-    // (iOS/some browsers send application/octet-stream for HEIC/drag-drop files)
-    if (file.mimetype.startsWith('image/') || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
+    // Accept image/* MIME types, application/octet-stream (RAW/HEIC), OR common image/RAW file extensions
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
       cb(null, true);
     } else {
       cb(new Error(`File "${file.originalname}" rejected: unsupported type (${file.mimetype}). Only image files are allowed.`), false);
@@ -461,11 +460,13 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         let rawBuffer = Buffer.concat(chunks);
         const rawSize = rawBuffer.length;
 
-        // 2. For large files (>50MB), convert to JPEG first to reduce memory footprint
-        //    A 117MB raw/TIFF becomes ~10-20MB JPEG, making watermarking safe on 512MB RAM
+        // 2. Convert to JPEG: always for camera RAW formats, or for large files (>50MB)
+        //    A 120MB ARW/CR2 becomes ~10-20MB JPEG, making watermarking safe on 512MB RAM
+        const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
+        const isRawFormat = RAW_EXTENSIONS.test(photo.originalName || photo.rawKey);
         let photoBuffer;
-        if (rawSize > 50 * 1024 * 1024) {
-          logger.info(`[AdminGallery] Large file (${(rawSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG first`);
+        if (rawSize > 50 * 1024 * 1024 || isRawFormat) {
+          logger.info(`[AdminGallery] ${isRawFormat ? 'RAW format' : 'Large file'} (${(rawSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG first`);
           photoBuffer = await sharp(rawBuffer)
             .jpeg({ quality: 95 })
             .toBuffer();

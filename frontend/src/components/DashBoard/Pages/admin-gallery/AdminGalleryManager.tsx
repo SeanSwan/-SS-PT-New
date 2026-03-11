@@ -1090,7 +1090,7 @@ const AdminGalleryManager: React.FC = () => {
                         ref={fileInputRef}
                         type="file"
                         multiple
-                        accept="image/*"
+                        accept="image/*,.arw,.cr2,.cr3,.nef,.nrw,.orf,.raf,.rw2,.pef,.srw,.dng,.raw"
                         style={{ display: 'none' }}
                         onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ''; }}
                       />
