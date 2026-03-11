@@ -24,17 +24,11 @@ function run(cmd, args, cwd) {
 }
 
 async function start() {
-  // Run pending migrations (idempotent — skips already-applied)
+  // Run pending migrations (safe — auto-skips already-applied)
   if (process.env.DATABASE_URL) {
-    console.log('\nRunning database migrations...');
+    console.log('\nRunning safe database migrations...');
     try {
-      await run('npx', [
-        'sequelize-cli', 'db:migrate',
-        '--config', 'config/config.cjs',
-        '--migrations-path', 'migrations',
-        '--models-path', 'models',
-        '--env', 'production'
-      ]);
+      await run('node', ['scripts/safe-migrate.mjs', 'production']);
       console.log('Migrations completed successfully');
 
       // Run achievement seeder (idempotent — skips if data exists)
