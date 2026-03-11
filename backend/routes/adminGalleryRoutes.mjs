@@ -490,6 +490,76 @@ router.post('/setup-r2-cors', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/gallery/reprocess-photo/:photoId
+ * Manually trigger RAW→JPEG conversion + watermark for a photo.
+ * Used when background processing fails or needs to be retried.
+ */
+router.post('/reprocess-photo/:photoId', async (req, res) => {
+  try {
+    const photo = await GalleryPhoto.findByPk(req.params.photoId);
+    if (!photo) return res.status(404).json({ success: false, error: 'Photo not found' });
+
+    const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) return res.status(503).json({ success: false, error: 'R2 not configured' });
+    const r2Client = getR2Client();
+    const R2_BUCKET = process.env.R2_BUCKET_NAME;
+
+    // Step 1: Download from R2
+    const step1Start = Date.now();
+    const getCmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: photo.storageKey });
+    const obj = await r2Client.send(getCmd);
+    const chunks = [];
+    for await (const chunk of obj.Body) chunks.push(chunk);
+    let rawBuf = Buffer.concat(chunks);
+    const downloadMs = Date.now() - step1Start;
+    const rawSizeMB = (rawBuf.length / 1024 / 1024).toFixed(1);
+
+    // Step 2: Convert to JPEG
+    const step2Start = Date.now();
+    let jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
+      .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+    rawBuf = null;
+    const convertMs = Date.now() - step2Start;
+    const jpegSizeMB = (jpegBuf.length / 1024 / 1024).toFixed(1);
+
+    // Step 3: Watermark
+    const step3Start = Date.now();
+    jpegBuf = await applyWatermark(jpegBuf, { applyWatermark: true });
+    const watermarkMs = Date.now() - step3Start;
+    const finalSizeMB = (jpegBuf.length / 1024 / 1024).toFixed(1);
+
+    // Step 4: Re-upload
+    const step4Start = Date.now();
+    await r2Client.send(new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: photo.storageKey,
+      Body: jpegBuf,
+      ContentType: 'image/jpeg',
+    }));
+    const uploadMs = Date.now() - step4Start;
+
+    // Step 5: Update DB
+    await photo.update({
+      fileSize: jpegBuf.length,
+      mimeType: 'image/jpeg',
+    });
+    jpegBuf = null;
+
+    return res.json({
+      success: true,
+      photoId: photo.id,
+      timing: { downloadMs, convertMs, watermarkMs, uploadMs, totalMs: downloadMs + convertMs + watermarkMs + uploadMs },
+      sizes: { rawMB: rawSizeMB, jpegMB: jpegSizeMB, finalMB: finalSizeMB },
+    });
+  } catch (err) {
+    logger.error('[AdminGallery] Reprocess failed:', err.message, err.stack?.split('\n').slice(0, 3).join('\n'));
+    return res.status(500).json({ success: false, error: err.message, stack: err.stack?.split('\n').slice(0, 3) });
+  }
+});
+
+/**
  * POST /api/admin/gallery/events/:id/confirm-upload
  * After browser uploads to R2, this endpoint:
  *   1. Downloads the raw photo from R2 (one at a time)
