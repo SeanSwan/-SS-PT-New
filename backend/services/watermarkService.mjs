@@ -44,7 +44,7 @@ try {
  * @param {Buffer} photoBuffer - Original photo file buffer
  * @param {Object} [options]
  * @param {boolean} [options.applyWatermark=true] - Whether to apply the watermark
- * @param {number}  [options.logoScale=0.12] - Logo width as fraction of photo width (default 12%)
+ * @param {number}  [options.logoScale=0.08] - Logo width as fraction of photo width (default 8%)
  * @param {number}  [options.opacity=0.7] - Watermark opacity (0-1)
  * @param {number}  [options.padding=20] - Pixels from bottom-right corner
  * @returns {Promise<Buffer>} Watermarked (or original) photo buffer
@@ -52,7 +52,7 @@ try {
 export async function applyWatermark(photoBuffer, options = {}) {
   const {
     applyWatermark: shouldApply = true,
-    logoScale = 0.12,
+    logoScale = 0.08,
     opacity = 0.7,
     padding = 20,
   } = options;
@@ -93,8 +93,9 @@ export async function applyWatermark(photoBuffer, options = {}) {
       .toBuffer();
 
     // Create "sswanstudios.com" text as SVG
-    const textFontSize = Math.max(12, Math.round(logoWidth * 0.16));
-    const textWidth = logoWidth + 40; // Slightly wider than logo
+    // Text needs to be wide enough to fit the full URL — approx 10 chars * 0.6em each
+    const textFontSize = Math.max(12, Math.round(logoWidth * 0.18));
+    const textWidth = Math.max(logoWidth + 40, Math.round(textFontSize * 10.5));
     const textHeight = Math.round(textFontSize * 1.8);
 
     const textSvg = Buffer.from(`
@@ -110,10 +111,11 @@ export async function applyWatermark(photoBuffer, options = {}) {
     const textGap = Math.round(textFontSize * 0.3);
     const totalWatermarkHeight = logoHeight + textGap + textHeight;
 
-    // Position: bottom-right with padding
+    // Position: bottom-right with padding, center text under logo
     const logoLeft = photoWidth - logoWidth - padding;
+    const logoCenterX = logoLeft + Math.round(logoWidth / 2);
     const logoTop = photoHeight - totalWatermarkHeight - padding;
-    const textLeft = photoWidth - Math.round(textWidth / 2) - Math.round(logoWidth / 2) - padding;
+    const textLeft = Math.max(0, logoCenterX - Math.round(textWidth / 2));
     const textTop = logoTop + logoHeight + textGap;
 
     // Composite logo + text onto photo
