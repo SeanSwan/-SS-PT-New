@@ -222,8 +222,8 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('[Gallery] Access gate error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to verify access' });
+    logger.error('[Gallery] Access gate error:', err.message, err.stack);
+    return res.status(500).json({ success: false, error: 'Failed to verify access', debug: err.message });
   }
 });
 
