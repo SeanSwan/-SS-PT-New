@@ -511,7 +511,10 @@ const AdminGalleryManager: React.FC = () => {
       xhr.addEventListener('timeout', () => resolve({ success: false, error: 'R2 upload timeout' }));
 
       xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type || 'image/jpeg');
+      // Content-Type is already encoded in the presigned URL signature.
+      // Only set it if the file has a known type to avoid CORS preflight mismatch.
+      const ct = file.type || 'image/jpeg';
+      xhr.setRequestHeader('Content-Type', ct);
       xhr.timeout = 300000; // 5 min for large files directly to R2
       xhr.send(file);
     });
@@ -560,7 +563,7 @@ const AdminGalleryManager: React.FC = () => {
       const token = localStorage.getItem('token');
       xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${eventId}/upload`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.timeout = 120000;
+      xhr.timeout = 600000; // 10 min — RAW files can be 120MB+
       xhr.send(formData);
     });
   };
@@ -609,7 +612,21 @@ const AdminGalleryManager: React.FC = () => {
       const failedUploads = uploadResults.filter(r => !r.success);
 
       if (successfulUploads.length === 0) {
-        return { success: false, count: 0, error: 'All R2 uploads failed' };
+        // All R2 direct uploads failed (likely CORS) — fall back to legacy upload through backend
+        console.warn('[Gallery] All R2 direct uploads failed, falling back to legacy upload');
+        setUploadStatusMessage('R2 direct upload unavailable, uploading through server...');
+        // Legacy path accepts max 5 files per batch; split if needed
+        const LEGACY_BATCH = 5;
+        let legacyUploaded = 0;
+        for (let li = 0; li < batch.length; li += LEGACY_BATCH) {
+          const legacyBatch = batch.slice(li, li + LEGACY_BATCH);
+          const legacyResult = await uploadBatchLegacy(eventId, legacyBatch, completedSoFar + legacyUploaded, totalFiles);
+          if (legacyResult.success) legacyUploaded += legacyResult.count;
+          if (!legacyResult.success) {
+            return { success: legacyUploaded > 0, count: legacyUploaded, error: legacyResult.error };
+          }
+        }
+        return { success: legacyUploaded > 0, count: legacyUploaded };
       }
 
       // Step 3: Confirm uploads (triggers watermarking on backend, one-at-a-time)
@@ -646,7 +663,20 @@ const AdminGalleryManager: React.FC = () => {
         error: totalConfirmed === 0 ? (confirmData.error || 'Confirmation failed') : undefined,
       };
     } catch (err: any) {
-      return { success: false, count: 0, error: err.message || 'Direct upload failed' };
+      // Network or presign error — fall back to legacy upload through backend
+      console.warn('[Gallery] R2 upload flow error, falling back to legacy:', err.message);
+      setUploadStatusMessage('Uploading through server...');
+      const LEGACY_BATCH = 5;
+      let legacyUploaded = 0;
+      for (let li = 0; li < batch.length; li += LEGACY_BATCH) {
+        const legacyBatch = batch.slice(li, li + LEGACY_BATCH);
+        const legacyResult = await uploadBatchLegacy(eventId, legacyBatch, completedSoFar + legacyUploaded, totalFiles);
+        if (legacyResult.success) legacyUploaded += legacyResult.count;
+        if (!legacyResult.success) {
+          return { success: legacyUploaded > 0, count: legacyUploaded, error: legacyResult.error };
+        }
+      }
+      return { success: legacyUploaded > 0, count: legacyUploaded };
     }
   };
 

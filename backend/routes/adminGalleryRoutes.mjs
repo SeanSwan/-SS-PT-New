@@ -39,7 +39,7 @@ router.use((req, res, next) => {
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif|arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 150 * 1024 * 1024, files: 10 }, // 150MB per file (RAW files), 10 files max per batch
+  limits: { fileSize: 150 * 1024 * 1024, files: 5 }, // 150MB per file (RAW files), 5 files max per legacy batch
   fileFilter: (req, file, cb) => {
     // Accept image/* MIME types, application/octet-stream (RAW/HEIC), OR common image/RAW file extensions
     if (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
@@ -405,6 +405,25 @@ router.post('/events/:id/presign-upload', async (req, res) => {
   } catch (err) {
     logger.error('[AdminGallery] Presign error:', err.message);
     return res.status(500).json({ success: false, error: err.message || 'Failed to generate upload URLs' });
+  }
+});
+
+/**
+ * GET /api/admin/gallery/r2-cors-check
+ * Diagnostic: tests R2 CORS configuration by checking bucket CORS rules.
+ */
+router.get('/r2-cors-check', async (req, res) => {
+  try {
+    const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) {
+      return res.json({ success: false, error: 'R2 not configured' });
+    }
+    const { GetBucketCorsCommand } = await import('@aws-sdk/client-s3');
+    const client = getR2Client();
+    const result = await client.send(new GetBucketCorsCommand({ Bucket: process.env.R2_BUCKET_NAME }));
+    return res.json({ success: true, corsRules: result.CORSRules || [] });
+  } catch (err) {
+    return res.json({ success: false, error: err.message, code: err.Code || err.name });
   }
 });
 
