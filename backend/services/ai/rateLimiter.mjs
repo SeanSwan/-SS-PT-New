@@ -10,9 +10,9 @@ import logger from '../../utils/logger.mjs';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
-const PER_USER_PER_MINUTE = 10;
-const PER_USER_PER_HOUR = 20;
-const GLOBAL_PER_MINUTE = 30;
+const PER_USER_PER_MINUTE = 15;
+const PER_USER_PER_HOUR = 60;
+const GLOBAL_PER_MINUTE = 60;
 const WINDOW_MINUTE_MS = 60 * 1000;
 const WINDOW_HOUR_MS = 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Prune stale entries every 5 min
