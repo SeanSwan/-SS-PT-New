@@ -1187,6 +1187,40 @@ const GalleryPage: React.FC = () => {
   const totalCredits = credits.freeRemaining + credits.purchasedCredits;
   const hasCredits = credits.isVip || totalCredits > 0;
 
+  // ── Browser back button: close photo modal instead of navigating away ──
+  const closingViaBack = useRef(false);
+
+  const openPhotoModal = useCallback((index: number) => {
+    setLightboxIndex(index);
+    window.history.pushState({ galleryPhoto: index }, '');
+  }, []);
+
+  const closePhotoModal = useCallback(() => {
+    if (lightboxIndex === null) return;
+    setLightboxIndex(null);
+    // Pop the history entry we pushed — guard against popstate re-entry
+    if (window.history.state?.galleryPhoto !== undefined) {
+      closingViaBack.current = true;
+      window.history.back();
+    }
+  }, [lightboxIndex]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      // If we triggered this via closePhotoModal, skip (already handled)
+      if (closingViaBack.current) {
+        closingViaBack.current = false;
+        return;
+      }
+      // User pressed browser back — close modal without extra history.back()
+      if (lightboxIndex !== null) {
+        setLightboxIndex(null);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [lightboxIndex]);
+
   const handleEnhanceClick = async (photoId: number) => {
     if (!galleryToken) return;
 
@@ -1493,7 +1527,7 @@ const GalleryPage: React.FC = () => {
                 <PhotoCard
                   key={photo.id}
                   $selected={enhanceSelections.has(photo.id)}
-                  onClick={() => setLightboxIndex(photos.indexOf(photo))}
+                  onClick={() => openPhotoModal(photos.indexOf(photo))}
                   onMouseEnter={() => setHoveredPhotoId(photo.id)}
                   onMouseLeave={() => setHoveredPhotoId(null)}
                 >
@@ -1587,7 +1621,7 @@ const GalleryPage: React.FC = () => {
           totalPhotos={photos.length}
           credits={credits}
           voteData={lightboxIndex !== null && photos[lightboxIndex] ? (votesMap[photos[lightboxIndex].id] || null) : null}
-          onClose={() => setLightboxIndex(null)}
+          onClose={closePhotoModal}
           onPrev={() => setLightboxIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}
           onNext={() => setLightboxIndex(prev => prev !== null && prev < photos.length - 1 ? prev + 1 : prev)}
           onDownloadOriginal={handleDownloadOriginal}
