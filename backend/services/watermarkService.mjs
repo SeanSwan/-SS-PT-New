@@ -93,9 +93,9 @@ export async function applyWatermark(photoBuffer, options = {}) {
       .toBuffer();
 
     // Create "sswanstudios.com" text as SVG
-    // Text needs to be wide enough to fit the full URL — approx 10 chars * 0.6em each
+    // "sswanstudios.com" = 16 chars — need ~0.65em per char + padding
     const textFontSize = Math.max(12, Math.round(logoWidth * 0.18));
-    const textWidth = Math.max(logoWidth + 40, Math.round(textFontSize * 10.5));
+    const textWidth = Math.max(logoWidth + 60, Math.round(textFontSize * 13));
     const textHeight = Math.round(textFontSize * 1.8);
 
     const textSvg = Buffer.from(`
