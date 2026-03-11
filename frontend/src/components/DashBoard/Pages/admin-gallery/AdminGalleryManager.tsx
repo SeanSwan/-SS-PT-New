@@ -493,7 +493,11 @@ const AdminGalleryManager: React.FC = () => {
   // 3. Confirm with backend → watermarks one-at-a-time from R2
   // Fallback: legacy multer upload if presign fails (R2 not configured)
 
-  const BATCH_SIZE = 20; // Direct R2 upload allows larger batches
+  // R2 direct upload disabled — CORS not yet configured on R2 bucket.
+  // All uploads go through the backend server (legacy path).
+  // Re-enable R2 by setting this to true once CORS is fixed.
+  const USE_R2_DIRECT = false;
+  const BATCH_SIZE = USE_R2_DIRECT ? 20 : 5; // Legacy path: smaller batches to avoid OOM
 
   // Upload a single file directly to R2 via presigned PUT URL
   const uploadFileToR2 = (file: File, uploadUrl: string): Promise<{ success: boolean; error?: string }> => {
@@ -699,7 +703,7 @@ const AdminGalleryManager: React.FC = () => {
     setUploadError(null);
     setUploadSuccess(null);
     setUploadStartTime(Date.now());
-    setUploadStatusMessage(`Starting direct R2 upload of ${fileArray.length} photos in ${batches.length} batch(es)...`);
+    setUploadStatusMessage(`Uploading ${fileArray.length} photos in ${batches.length} batch(es)...`);
     setUploadCompletedBatches(0);
     setUploadTotalBatches(batches.length);
     setUploadCompletedPhotos(0);
@@ -716,9 +720,11 @@ const AdminGalleryManager: React.FC = () => {
 
       const batch = batches[i];
       const batchNum = i + 1;
-      setUploadStatusMessage(`Batch ${batchNum}/${batches.length}: Uploading ${batch.length} photos to R2...`);
+      setUploadStatusMessage(`Batch ${batchNum}/${batches.length}: Uploading ${batch.length} photos...`);
 
-      const result = await uploadBatchDirect(uploadEventId, batch, totalUploaded, fileArray.length);
+      const result = USE_R2_DIRECT
+        ? await uploadBatchDirect(uploadEventId, batch, totalUploaded, fileArray.length)
+        : await uploadBatchLegacy(uploadEventId, batch, totalUploaded, fileArray.length);
 
       if (result.success) {
         totalUploaded += result.count;
