@@ -126,10 +126,21 @@ const ContentTabs = styled.div`
   gap: 0.5rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid ${props => props.theme.borders?.subtle || 'rgba(255, 255, 255, 0.1)'};
-  
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
   @media (max-width: 768px) {
-    flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: 4px;
+    border-bottom: none;
+    background: rgba(0, 32, 96, 0.3);
+    border-radius: 12px;
+    padding: 6px 8px;
   }
 `;
 
@@ -167,10 +178,30 @@ const TabButton = styled(motion.button)<{ active?: boolean }>`
   &:hover {
     color: ${props => props.theme.colors?.primary || '#8B5CF6'};
   }
-  
+
   @media (max-width: 768px) {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    padding: 8px 14px;
+    font-size: 12px;
+    border-radius: 18px;
+    min-height: 36px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    scroll-snap-align: start;
+
+    &::after {
+      display: none;
+    }
+
+    background: ${props =>
+      props.active
+        ? 'rgba(139, 92, 246, 0.15)'
+        : 'transparent'
+    };
+    border: 1px solid ${props =>
+      props.active
+        ? 'rgba(139, 92, 246, 0.3)'
+        : 'transparent'
+    };
   }
 `;
 
@@ -300,16 +331,25 @@ const ContentActions = styled.div`
   justify-content: space-between;
   opacity: 0;
   transition: opacity 0.3s ease;
-  
+
+  @media (hover: none) and (pointer: coarse) {
+    opacity: 1;
+  }
+
   button {
     background: none;
     border: none;
     color: ${props => props.theme.text?.secondary || '#E8F0FF'};
     cursor: pointer;
     padding: 0.5rem;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 6px;
     transition: all 0.3s ease;
-    
+
     &:hover {
       background: ${props => props.theme.background?.elevated || 'rgba(50, 50, 80, 0.4)'};
       color: ${props => props.theme.colors?.primary || '#8B5CF6'};

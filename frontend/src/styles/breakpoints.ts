@@ -6,37 +6,47 @@
  * This helps ensure consistent responsive behavior across all components.
  */
 
-// Device breakpoints (in pixels)
+// Device breakpoints (in pixels) — 10-breakpoint matrix
 export const size = {
-  xs: '375px',    // Extra small devices (phones)
-  sm: '576px',    // Small devices (phones)
+  xxs: '320px',   // Tiny phones (iPhone SE 1st gen, Galaxy Fold)
+  xs: '375px',    // Extra small devices (iPhone SE, small phones)
+  s: '430px',     // Small-medium phones (iPhone Pro Max, large phones)
+  sm: '576px',    // Small devices (phones in landscape)
   md: '768px',    // Medium devices (tablets)
   lg: '1024px',   // Large devices (laptops/desktops)
   xl: '1280px',   // Extra large devices (large desktops)
   xxl: '1440px',  // Ultra large devices (wide screens)
-  xxxl: '1920px'  // Extreme large devices (ultra-wide screens)
+  xxxl: '1920px', // Full HD displays
+  ultra: '2560px', // 4K / QHD displays
+  max: '3840px'   // Ultra-wide / 4K displays
 };
 
 // Media query helper functions
 export const device = {
   // Min-width queries (mobile-first approach)
+  xxs: `@media (min-width: ${size.xxs})`,
   xs: `@media (min-width: ${size.xs})`,
+  s: `@media (min-width: ${size.s})`,
   sm: `@media (min-width: ${size.sm})`,
   md: `@media (min-width: ${size.md})`,
   lg: `@media (min-width: ${size.lg})`,
   xl: `@media (min-width: ${size.xl})`,
   xxl: `@media (min-width: ${size.xxl})`,
   xxxl: `@media (min-width: ${size.xxxl})`,
-  
+  ultra: `@media (min-width: ${size.ultra})`,
+  max: `@media (min-width: ${size.max})`,
+
   // Max-width queries (for specific overrides)
+  maxXxs: `@media (max-width: ${size.xxs})`,
   maxXs: `@media (max-width: ${size.xs})`,
+  maxS: `@media (max-width: ${size.s})`,
   maxSm: `@media (max-width: ${size.sm})`,
   maxMd: `@media (max-width: ${size.md})`,
   maxLg: `@media (max-width: ${size.lg})`,
   maxXl: `@media (max-width: ${size.xl})`,
   maxXxl: `@media (max-width: ${size.xxl})`,
   maxXxxl: `@media (max-width: ${size.xxxl})`,
-  
+
   // Range queries (between two breakpoints)
   xsToSm: `@media (min-width: ${size.xs}) and (max-width: ${size.sm})`,
   smToMd: `@media (min-width: ${size.sm}) and (max-width: ${size.md})`,

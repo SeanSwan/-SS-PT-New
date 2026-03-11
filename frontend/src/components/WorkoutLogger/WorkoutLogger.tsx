@@ -432,6 +432,7 @@ const TextInput = styled.input`
   border-radius: ${workoutTheme.borderRadius.sm};
   color: ${workoutTheme.colors.text};
   font-size: 0.9rem;
+  min-height: 44px;
 
   &:focus {
     outline: none;
@@ -440,6 +441,10 @@ const TextInput = styled.input`
 
   &::placeholder {
     color: ${workoutTheme.colors.textSecondary};
+  }
+
+  @media (max-width: 430px) {
+    font-size: 16px;
   }
 `;
 
