@@ -16,6 +16,7 @@ import AutomatedCheckInsWidget from '../components/AutomatedCheckInsWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
 import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
+import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './AdminOverview.types';
 
 const AdminOverviewPanel: React.FC = () => {
@@ -209,6 +210,7 @@ const AdminOverviewPanel: React.FC = () => {
       {/* Cancelled Sessions Widget - Shows late cancellations with charge options */}
       <CancelledSessionsWidget maxItems={10} showChargeButtons={true} />
 
+      <VisitorGeoWidget />
       <AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} />
       <AdminQuickActions actions={quickActions} />
     </div>

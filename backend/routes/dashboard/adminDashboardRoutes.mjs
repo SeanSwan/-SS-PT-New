@@ -320,4 +320,83 @@ router.get('/health', protect, adminOnly, async (req, res) => {
   }
 });
 
+// ── Visitor Geo Map ──────────────────────────────────────────────────────
+
+/**
+ * GET /api/dashboard/visitor-geo
+ * Returns geo-aggregated visitor data from user login IPs.
+ * Uses ip-api.com (free tier, 45 req/min) with 24h caching.
+ */
+router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
+  try {
+    const { lookupGeo } = await import('../../services/geoIpService.mjs');
+    const models = getAllModels();
+    const User = models.User;
+    if (!User) {
+      return res.status(500).json({ success: false, error: 'User model not found' });
+    }
+
+    // Get all users with login IPs (last 90 days active)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const users = await User.findAll({
+      where: {
+        lastLoginIP: { [Op.ne]: null },
+        lastActive: { [Op.gte]: ninetyDaysAgo },
+      },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'lastLoginIP', 'lastActive', 'lastLogin'],
+      order: [['lastActive', 'DESC']],
+      raw: true,
+    });
+
+    // Geo-lookup each unique IP (cached, fast for repeat IPs)
+    const ipSet = new Map(); // ip -> geo data
+    const results = [];
+
+    for (const user of users) {
+      const ip = user.lastLoginIP;
+      if (!ipSet.has(ip)) {
+        const geo = await lookupGeo(ip);
+        ipSet.set(ip, geo);
+      }
+      const geo = ipSet.get(ip);
+      results.push({
+        userId: user.id,
+        name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+        role: user.role,
+        lastActive: user.lastActive,
+        lastLogin: user.lastLogin,
+        ip,
+        ...(geo || { country: 'Unknown', countryCode: null, region: null, city: null, lat: null, lon: null }),
+      });
+    }
+
+    // Aggregate by country and city
+    const countryMap = {};
+    const cityMap = {};
+    for (const r of results) {
+      const cc = r.countryCode || 'XX';
+      const country = r.country || 'Unknown';
+      const city = r.city || 'Unknown';
+      countryMap[cc] = countryMap[cc] || { country, countryCode: cc, count: 0 };
+      countryMap[cc].count++;
+      const cityKey = `${city}, ${country}`;
+      cityMap[cityKey] = cityMap[cityKey] || { city, country, countryCode: cc, lat: r.lat, lon: r.lon, count: 0 };
+      cityMap[cityKey].count++;
+    }
+
+    return res.json({
+      success: true,
+      totalVisitors: results.length,
+      visitors: results,
+      byCountry: Object.values(countryMap).sort((a, b) => b.count - a.count),
+      byCity: Object.values(cityMap).sort((a, b) => b.count - a.count).slice(0, 20),
+    });
+  } catch (err) {
+    logger.error('[AdminDashboard] Visitor geo error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to fetch visitor geo data' });
+  }
+});
+
 export default router;
