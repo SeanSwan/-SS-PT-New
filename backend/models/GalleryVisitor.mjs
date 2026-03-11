@@ -18,13 +18,6 @@ GalleryVisitor.init(
     isVip: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: 'is_vip' },
     freeEnhancementsUsed: { type: DataTypes.JSONB, allowNull: false, defaultValue: {}, field: 'free_enhancements_used' },
     userId: { type: DataTypes.INTEGER, allowNull: true, field: 'user_id', comment: 'Links gallery visitor to a SwanStudios user account (VIP conversion)' },
-    ipAddress: { type: DataTypes.STRING(45), allowNull: true, field: 'ip_address' },
-    country: { type: DataTypes.STRING(100), allowNull: true },
-    countryCode: { type: DataTypes.STRING(2), allowNull: true, field: 'country_code' },
-    region: { type: DataTypes.STRING(100), allowNull: true },
-    city: { type: DataTypes.STRING(100), allowNull: true },
-    lat: { type: DataTypes.FLOAT, allowNull: true },
-    lon: { type: DataTypes.FLOAT, allowNull: true },
   },
   {
     sequelize,

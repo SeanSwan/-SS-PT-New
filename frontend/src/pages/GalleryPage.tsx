@@ -1167,7 +1167,7 @@ const GalleryPage: React.FC = () => {
       const data = await res.json();
 
       if (!data.success) {
-        setGateError(data.debug ? `${data.error} (${data.debug})` : (data.error || 'Access denied'));
+        setGateError(data.error || 'Access denied');
         return;
       }
 
