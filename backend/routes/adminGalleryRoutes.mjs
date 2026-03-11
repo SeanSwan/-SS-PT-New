@@ -242,7 +242,10 @@ router.post('/events/:id/upload', (req, res, next) => {
         let inputBuffer = file.buffer;
         if (isRaw || file.size > 50 * 1024 * 1024) {
           logger.info(`[AdminGallery] ${isRaw ? 'RAW format' : 'Large file'} (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
-          inputBuffer = await sharp(file.buffer).jpeg({ quality: 95 }).toBuffer();
+          inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
+            .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 92 })
+            .toBuffer();
           logger.info(`[AdminGallery] Converted to JPEG: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
         }
 
@@ -539,16 +542,19 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         const rawSize = rawBuffer.length;
 
         // 2. Convert to JPEG: always for camera RAW formats, or for large files (>50MB)
-        //    A 120MB ARW/CR2 becomes ~10-20MB JPEG, making watermarking safe on 512MB RAM
+        //    Resize to max 4000px during conversion to keep memory under 200MB
+        //    (a 61MP RAW needs ~1.4GB to fully decode — resize avoids full decode)
         const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
         const isRawFormat = RAW_EXTENSIONS.test(photo.originalName || photo.rawKey);
         let photoBuffer;
         if (rawSize > 50 * 1024 * 1024 || isRawFormat) {
-          logger.info(`[AdminGallery] ${isRawFormat ? 'RAW format' : 'Large file'} (${(rawSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG first`);
-          photoBuffer = await sharp(rawBuffer)
-            .jpeg({ quality: 95 })
+          logger.info(`[AdminGallery] ${isRawFormat ? 'RAW format' : 'Large file'} (${(rawSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG with resize`);
+          photoBuffer = await sharp(rawBuffer, { limitInputPixels: false })
+            .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 92 })
             .toBuffer();
           rawBuffer = null; // Free the large raw buffer immediately
+          logger.info(`[AdminGallery] Converted to JPEG: ${(photoBuffer.length / 1024 / 1024).toFixed(1)}MB`);
         } else {
           photoBuffer = rawBuffer;
           rawBuffer = null;
