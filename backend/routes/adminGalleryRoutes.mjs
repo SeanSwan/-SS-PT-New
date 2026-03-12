@@ -41,7 +41,7 @@ router.use((req, res, next) => {
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif|arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 150 * 1024 * 1024, files: 5 }, // 150MB per file (RAW files), 5 files max per legacy batch
+  limits: { fileSize: 150 * 1024 * 1024, files: 2 }, // 150MB per file (RAW files), 2 files max to avoid OOM on 512MB Render
   fileFilter: (req, file, cb) => {
     // Accept image/* MIME types, application/octet-stream (RAW/HEIC), OR common image/RAW file extensions
     if (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
@@ -314,6 +314,10 @@ router.post('/events/:id/upload', (req, res, next) => {
       } catch (photoErr) {
         logger.error(`[AdminGallery] Failed to process photo ${file.originalname}: ${photoErr.message}`);
         errors.push({ file: file.originalname, error: photoErr.message });
+      } finally {
+        // Release buffers between files to prevent OOM on Render's 512MB plan
+        file.buffer = null;
+        if (global.gc) global.gc();
       }
     }
 

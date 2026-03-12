@@ -55,9 +55,9 @@ async function start() {
     }
   }
 
-  // Start the main server
+  // Start the main server with increased heap + GC access for photo processing
   console.log('\nStarting Application Server...');
-  const serverProcess = spawn('node', ['server.mjs'], {
+  const serverProcess = spawn('node', ['--max-old-space-size=1024', '--expose-gc', 'server.mjs'], {
     stdio: 'inherit',
     env: process.env
   });

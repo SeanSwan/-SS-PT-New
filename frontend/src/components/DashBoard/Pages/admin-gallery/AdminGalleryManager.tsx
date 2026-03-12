@@ -751,7 +751,9 @@ const AdminGalleryManager: React.FC = () => {
   // Direct R2 upload via presigned URLs — bypasses server memory limits for large files (RAW, HEIC).
   // Falls back to legacy server upload if R2 CORS fails or R2 not configured.
   const USE_R2_DIRECT = true;
-  const BATCH_SIZE = USE_R2_DIRECT ? 20 : 5;
+  // R2 direct: large batches OK (browser → R2 directly, no server memory).
+  // Legacy: send only 2 at a time to avoid OOM on Render's 512MB starter plan.
+  const BATCH_SIZE = USE_R2_DIRECT ? 20 : 2;
 
   // Upload a single file directly to R2 via presigned PUT URL
   const uploadFileToR2 = (file: File, uploadUrl: string): Promise<{ success: boolean; error?: string }> => {
@@ -873,7 +875,7 @@ const AdminGalleryManager: React.FC = () => {
         console.warn('[Gallery] All R2 direct uploads failed, falling back to legacy upload');
         setUploadStatusMessage('R2 direct upload unavailable, uploading through server...');
         // Legacy path accepts max 5 files per batch; split if needed
-        const LEGACY_BATCH = 5;
+        const LEGACY_BATCH = 1;
         let legacyUploaded = 0;
         for (let li = 0; li < batch.length; li += LEGACY_BATCH) {
           const legacyBatch = batch.slice(li, li + LEGACY_BATCH);
@@ -923,7 +925,7 @@ const AdminGalleryManager: React.FC = () => {
       // Network or presign error — fall back to legacy upload through backend
       console.warn('[Gallery] R2 upload flow error, falling back to legacy:', err.message);
       setUploadStatusMessage('Uploading through server...');
-      const LEGACY_BATCH = 5;
+      const LEGACY_BATCH = 1;
       let legacyUploaded = 0;
       for (let li = 0; li < batch.length; li += LEGACY_BATCH) {
         const legacyBatch = batch.slice(li, li + LEGACY_BATCH);
@@ -991,9 +993,10 @@ const AdminGalleryManager: React.FC = () => {
         setUploadStatusMessage(`Batch ${batchNum} failed: ${result.error}. Continuing...`);
       }
 
-      // Brief pause between batches
+      // Pause between batches to let server GC and release memory
       if (i < batches.length - 1) {
-        await new Promise(r => setTimeout(r, 300));
+        setUploadStatusMessage(`Waiting for server to process... (${totalUploaded}/${fileArray.length} done)`);
+        await new Promise(r => setTimeout(r, 2000));
       }
     }
 
