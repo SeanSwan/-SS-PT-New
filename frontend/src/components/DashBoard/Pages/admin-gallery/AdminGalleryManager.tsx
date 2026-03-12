@@ -898,6 +898,10 @@ const AdminGalleryManager: React.FC = () => {
         setFileStatuses(prev => prev.map((fs, idx) =>
           idx === i ? { ...fs, status: 'done', displayName: result.photo?.displayName } : fs
         ));
+        // Push completed photo to grid immediately so progress is visible
+        if (result.photo) {
+          setEventPhotos(prev => [...prev, result.photo]);
+        }
         setUploadStatusMessage(`${totalUploaded}/${fileArray.length} done — ${file.name} uploaded as ${result.photo?.displayName || '?'}`);
       } else {
         errors.push(`${file.name}: ${result.error}`);
