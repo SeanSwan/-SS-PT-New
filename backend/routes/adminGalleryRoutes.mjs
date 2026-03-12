@@ -1228,8 +1228,8 @@ router.delete('/photos/:photoId', async (req, res) => {
     logger.info(`[AdminGallery] Deleted photo ${req.params.photoId} from event ${eventId}`);
     return res.json({ success: true, message: 'Photo deleted', remainingCount: remaining });
   } catch (err) {
-    logger.error('[AdminGallery] Delete photo error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to delete photo' });
+    logger.error('[AdminGallery] Delete photo error:', err.message, err.stack);
+    return res.status(500).json({ success: false, error: `Failed to delete photo: ${err.message}` });
   }
 });
 
