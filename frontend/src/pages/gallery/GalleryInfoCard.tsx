@@ -411,8 +411,9 @@ const GalleryInfoCard: React.FC<GalleryInfoCardProps> = ({
                   Unlock Unlimited Enhancements
                 </UpsellHighlightTitle>
                 <UpsellHighlightText>
-                  $175 Personal Training Introduction Package — includes unlimited
-                  gallery enhancements for all your events, plus a complimentary
+                  First 5 clients unlock unlimited enhancements — $175 Personal
+                  Training Introduction Package includes unlimited gallery
+                  enhancements for all your events, plus a complimentary
                   orientation session on your first visit.
                 </UpsellHighlightText>
               </UpsellHighlight>

@@ -1042,6 +1042,10 @@ const GalleryPage: React.FC = () => {
   const [showSupport, setShowSupport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Progressive photo loading — show PHOTOS_PER_BATCH at a time, load more on scroll
+  const PHOTOS_PER_BATCH = 7;
+  const [visiblePhotoCount, setVisiblePhotoCount] = useState(PHOTOS_PER_BATCH);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Enhancement credit state
   const [credits, setCredits] = useState<EnhancementCredits>({ freeRemaining: 3, purchasedCredits: 0, isVip: false, freeUsedThisEvent: 0 });
@@ -1055,6 +1059,26 @@ const GalleryPage: React.FC = () => {
   const [showWelcomeToast, setShowWelcomeToast] = useState(false);
   const [toastExiting, setToastExiting] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Progressive photo loading — IntersectionObserver loads more rows as user scrolls
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisiblePhotoCount(prev => Math.min(prev + PHOTOS_PER_BATCH, photos.length));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [photos.length, visiblePhotoCount]);
+
+  // Reset visible count when photos change (new event selected)
+  useEffect(() => {
+    setVisiblePhotoCount(PHOTOS_PER_BATCH);
+  }, [selectedEvent]);
 
   // Gate form state
   const [email, setEmail] = useState('');
@@ -1663,14 +1687,15 @@ const GalleryPage: React.FC = () => {
             {[1,2,3,4,5,6].map(i => <LoadingShimmer key={i} />)}
           </EventGrid>
         ) : (
+          <>
           <GridWrapper>
-            {photos.map(photo => {
+            {photos.slice(0, visiblePhotoCount).map((photo, index) => {
               const voteData = votesMap[photo.id];
               return (
                 <PhotoCardWrapper key={photo.id}>
                   <PhotoCard
                     $selected={enhanceSelections.has(photo.id)}
-                    onClick={() => openPhotoModal(photos.indexOf(photo))}
+                    onClick={() => openPhotoModal(index)}
                     onMouseEnter={() => setHoveredPhotoId(photo.id)}
                     onMouseLeave={() => setHoveredPhotoId(null)}
                   >
@@ -1710,6 +1735,11 @@ const GalleryPage: React.FC = () => {
               );
             })}
           </GridWrapper>
+          {/* Sentinel for loading more photos as user scrolls */}
+          {visiblePhotoCount < photos.length && (
+            <div ref={loadMoreRef} style={{ height: 1, width: '100%' }} />
+          )}
+          </>
         )}
 
         {/* Floating Credit Pill — only in photo grid view */}

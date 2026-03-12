@@ -605,6 +605,7 @@ const AdminGalleryManager: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const cancelledRef = useRef(false);
+  const failedFilesRef = useRef<File[]>([]);
 
   useEffect(() => { loadStats(); loadEvents(); loadMessagesUnreadCount(); }, []);
   useEffect(() => {
@@ -856,6 +857,7 @@ const AdminGalleryManager: React.FC = () => {
 
     // Reset state
     cancelledRef.current = false;
+    failedFilesRef.current = [];
     setUploading(true);
     setUploadProgress(0);
     setUploadFileCount(fileArray.length);
@@ -905,6 +907,7 @@ const AdminGalleryManager: React.FC = () => {
         setUploadStatusMessage(`${totalUploaded}/${fileArray.length} done — ${file.name} uploaded as ${result.photo?.displayName || '?'}`);
       } else {
         errors.push(`${file.name}: ${result.error}`);
+        failedFilesRef.current.push(file);
         setFileStatuses(prev => prev.map((fs, idx) =>
           idx === i ? { ...fs, status: 'error', error: result.error } : fs
         ));
@@ -944,6 +947,15 @@ const AdminGalleryManager: React.FC = () => {
       xhrRef.current.abort();
       xhrRef.current = null;
     }
+  };
+
+  const retryFailedUploads = () => {
+    const failed = failedFilesRef.current;
+    if (failed.length === 0 || !uploadEventId) return;
+    // Clear previous results and re-upload just the failed files
+    setUploadSuccess(null);
+    setUploadError(null);
+    handleFileUpload(failed);
   };
 
   const getElapsedTime = (): string => {
@@ -1428,12 +1440,22 @@ const AdminGalleryManager: React.FC = () => {
                       {uploadError && !uploading && (
                         <Notification $type="error">
                           <span>✕</span> {uploadError}
-                          <ActionBtn
-                            onClick={() => setUploadError(null)}
-                            style={{ marginLeft: 'auto', padding: '2px 10px', minHeight: 28, fontSize: 11 }}
-                          >
-                            Dismiss
-                          </ActionBtn>
+                          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                            {failedFilesRef.current.length > 0 && (
+                              <ActionBtn
+                                onClick={retryFailedUploads}
+                                style={{ padding: '2px 10px', minHeight: 28, fontSize: 11, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)' }}
+                              >
+                                Retry {failedFilesRef.current.length} Failed
+                              </ActionBtn>
+                            )}
+                            <ActionBtn
+                              onClick={() => setUploadError(null)}
+                              style={{ padding: '2px 10px', minHeight: 28, fontSize: 11 }}
+                            >
+                              Dismiss
+                            </ActionBtn>
+                          </div>
                         </Notification>
                       )}
 
