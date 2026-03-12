@@ -1619,9 +1619,14 @@ const GalleryPage: React.FC = () => {
             onOpenMessage={() => setShowMessageModal(true)}
             onOpenDonation={() => setShowDonationModal(true)}
             onOpenVip={() => {
-              // If user is already logged in, go to store; otherwise signup
+              // Logged in → show VIP modal (not store — don't scare with big packages)
+              // Not logged in → signup first
               const token = localStorage.getItem('token');
-              navigate(token ? '/store' : '/signup');
+              if (token) {
+                setShowVipModal(true);
+              } else {
+                navigate('/signup');
+              }
             }}
             freeCredits={credits.freeRemaining}
           />
