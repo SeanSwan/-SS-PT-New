@@ -216,6 +216,7 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
         eventDate: event.eventDate,
         location: event.location,
         photoCount: event.photoCount,
+        description: event.description || null,
       },
       visitor: {
         id: visitor.id,
