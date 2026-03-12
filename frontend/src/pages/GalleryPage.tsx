@@ -15,6 +15,7 @@ import PhotoFeedback from './gallery/PhotoFeedback';
 import PhotoDetailModal from './gallery/PhotoDetailModal';
 import GalleryInfoCard from './gallery/GalleryInfoCard';
 import MessageModal from './gallery/MessageModal';
+import DonationModal from './gallery/DonationModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -978,6 +979,7 @@ const GalleryPage: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null);
 
   // Welcome toast state
@@ -1522,7 +1524,7 @@ const GalleryPage: React.FC = () => {
         {selectedEvent && !loading && photos.length > 0 && (
           <GalleryInfoCard
             onOpenMessage={() => setShowMessageModal(true)}
-            onOpenDonation={() => { /* TODO: donation modal */ }}
+            onOpenDonation={() => setShowDonationModal(true)}
             onOpenVip={() => setShowVipModal(true)}
             freeCredits={credits.freeRemaining}
           />
@@ -1713,6 +1715,14 @@ const GalleryPage: React.FC = () => {
         <MessageModal
           isOpen={showMessageModal}
           onClose={() => setShowMessageModal(false)}
+          email={email}
+          galleryToken={galleryToken || ''}
+          eventSlug={selectedEvent?.slug || slug || gateSlug || ''}
+        />
+
+        <DonationModal
+          isOpen={showDonationModal}
+          onClose={() => setShowDonationModal(false)}
           email={email}
           galleryToken={galleryToken || ''}
           eventSlug={selectedEvent?.slug || slug || gateSlug || ''}
