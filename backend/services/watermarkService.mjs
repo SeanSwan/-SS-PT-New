@@ -115,7 +115,10 @@ export async function applyWatermark(photoBuffer, options = {}) {
     const logoLeft = photoWidth - logoWidth - padding;
     const logoCenterX = logoLeft + Math.round(logoWidth / 2);
     const logoTop = photoHeight - totalWatermarkHeight - padding;
-    const textLeft = Math.max(0, logoCenterX - Math.round(textWidth / 2));
+    // Center text under logo, but clamp so it doesn't extend past the photo edge
+    const textLeftCentered = logoCenterX - Math.round(textWidth / 2);
+    const textLeftMax = photoWidth - textWidth - padding;
+    const textLeft = Math.max(0, Math.min(textLeftCentered, textLeftMax));
     const textTop = logoTop + logoHeight + textGap;
 
     // Composite logo + text onto photo
