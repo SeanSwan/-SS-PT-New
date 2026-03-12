@@ -31,6 +31,7 @@ import {
   Plus,
   Activity
 } from 'lucide-react';
+import ClientProgressCharts from '../../../../ClientProgressCharts/ClientProgressCharts';
 import {
   LineChart,
   Line,
@@ -1240,6 +1241,15 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
       )}
 
       {viewMode === 'measurements' && renderMeasurements()}
+
+      {/* Advanced Progress Charts */}
+      <SpacerV $size={32} />
+      <ClientProgressCharts
+        clientId={clientId ? Number(clientId) : undefined}
+        isTrainerView={false}
+        showControls={true}
+        defaultTimeRange="30d"
+      />
     </DashboardWrapper>
   );
 };

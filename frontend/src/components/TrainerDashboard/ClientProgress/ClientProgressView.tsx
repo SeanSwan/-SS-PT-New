@@ -5,6 +5,7 @@ import { Activity, Calendar, Target, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useClientProgress, ProgressMeasurement } from '../../UniversalMasterSchedule/hooks/useClientProgress';
 import theme from '../../../theme/tokens';
+import ClientProgressCharts from '../../ClientProgressCharts/ClientProgressCharts';
 
 const Page = styled.div`
   padding: ${theme.spacing.xl};
@@ -378,6 +379,14 @@ const ClientProgressView: React.FC = () => {
               their NASM assessments.
             </EmptyState>
           </Section>
+
+          {/* Advanced Progress Charts */}
+          <ClientProgressCharts
+            clientId={resolvedClientId}
+            isTrainerView={true}
+            showControls={true}
+            defaultTimeRange="30d"
+          />
         </>
       )}
     </Page>
