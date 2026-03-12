@@ -43,7 +43,10 @@ import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
-const GALLERY_JWT_SECRET = process.env.JWT_SECRET || 'gallery-fallback-secret';
+const GALLERY_JWT_SECRET = process.env.JWT_SECRET;
+if (!GALLERY_JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is required for gallery routes');
+}
 const GALLERY_TOKEN_TTL = '24h';
 
 // Rate limiter for access endpoint (prevent brute-force password guessing)
@@ -97,27 +100,42 @@ router.get('/events', async (req, res) => {
       where: { isPublished: true },
       attributes: ['id', 'name', 'slug', 'sport', 'eventDate', 'location', 'photoCount', 'description', 'coverPhotoId', 'createdAt'],
       order: [['eventDate', 'DESC'], ['createdAt', 'DESC']],
+      include: [{
+        model: GalleryPhoto,
+        as: 'coverPhoto',
+        attributes: ['thumbnailUrl', 'url'],
+        required: false,
+      }],
     });
 
-    // Fetch cover photo URLs
-    const eventsWithCovers = await Promise.all(events.map(async (event) => {
-      const plain = event.toJSON();
-      if (plain.coverPhotoId) {
-        const coverPhoto = await GalleryPhoto.findByPk(plain.coverPhotoId, {
-          attributes: ['thumbnailUrl', 'url'],
-        });
-        plain.coverPhotoUrl = coverPhoto?.thumbnailUrl || coverPhoto?.url || null;
-      } else {
-        // Use first photo as cover
-        const firstPhoto = await GalleryPhoto.findOne({
-          where: { eventId: plain.id },
-          attributes: ['thumbnailUrl', 'url'],
-          order: [['photoNumber', 'ASC']],
-        });
-        plain.coverPhotoUrl = firstPhoto?.thumbnailUrl || firstPhoto?.url || null;
+    // For events without a coverPhotoId, batch-fetch first photos (2 queries total, not N+1)
+    const eventsMissingCover = events.filter(e => !e.coverPhotoId);
+    const fallbackCovers = {};
+    if (eventsMissingCover.length > 0) {
+      const eventIds = eventsMissingCover.map(e => e.id);
+      const firstPhotos = await GalleryPhoto.findAll({
+        where: { eventId: eventIds },
+        attributes: ['eventId', 'thumbnailUrl', 'url'],
+        order: [['photoNumber', 'ASC']],
+      });
+      for (const photo of firstPhotos) {
+        if (!fallbackCovers[photo.eventId]) {
+          fallbackCovers[photo.eventId] = photo;
+        }
       }
+    }
+
+    const eventsWithCovers = events.map(event => {
+      const plain = event.toJSON();
+      if (plain.coverPhoto) {
+        plain.coverPhotoUrl = plain.coverPhoto.thumbnailUrl || plain.coverPhoto.url || null;
+      } else {
+        const fb = fallbackCovers[plain.id];
+        plain.coverPhotoUrl = fb?.thumbnailUrl || fb?.url || null;
+      }
+      delete plain.coverPhoto;
       return plain;
-    }));
+    });
 
     return res.json({ success: true, events: eventsWithCovers });
   } catch (err) {
@@ -459,7 +477,11 @@ router.post('/enhancement-request', requireGalleryAccess, async (req, res) => {
       await visitor.update({ freeEnhancementsUsed: updatedFreeUsed });
     }
     if (creditsToUse > 0) {
-      await visitor.update({ enhancementCredits: visitor.enhancementCredits - creditsToUse });
+      // Atomic decrement to prevent race conditions with concurrent requests
+      await GalleryVisitor.decrement('enhancementCredits', {
+        by: creditsToUse,
+        where: { id: visitorId, enhancementCredits: { [Op.gte]: creditsToUse } },
+      });
     }
 
     // Reload visitor for accurate credit status
@@ -586,18 +608,10 @@ router.post('/purchase-credits', requireGalleryAccess, async (req, res) => {
       },
     });
 
-    // Apply credits immediately (Stripe webhook can reconcile later if payment fails)
-    // For production, move this to a webhook handler for checkout.session.completed
-    const visitor = await GalleryVisitor.findByPk(visitorId);
-    if (visitor) {
-      if (pkg === 'vip') {
-        await visitor.update({ isVip: true });
-      } else {
-        await visitor.update({ enhancementCredits: visitor.enhancementCredits + pricing.credits });
-      }
-    }
+    // Credits are applied via the Stripe webhook handler (checkout.session.completed)
+    // — NOT here — to prevent fraud from cancelled checkouts.
 
-    return res.json({ success: true, checkoutUrl: session.url });
+    return res.json({ success: true, checkoutUrl: session.url, sessionId: session.id });
   } catch (err) {
     logger.error('[Gallery] Purchase credits error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to create checkout session' });
@@ -1555,6 +1569,93 @@ router.post('/recalculate-lead-scores', async (req, res) => {
     logger.error('[Gallery:CRM] Lead score recalculation error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to recalculate lead scores' });
   }
+});
+
+// ── Stripe Webhook — Credit Fulfillment ──────────────────────────────────
+
+/**
+ * POST /api/gallery/webhook
+ * Stripe webhook for checkout.session.completed — applies credits/VIP ONLY after payment succeeds.
+ * Must be registered in Stripe dashboard for checkout.session.completed events.
+ */
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    logger.error('[Gallery Webhook] STRIPE_WEBHOOK_SECRET not configured');
+    return res.status(500).send('Webhook secret not configured');
+  }
+
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).send('Missing stripe-signature header');
+  }
+
+  let event;
+  try {
+    const { default: Stripe } = await import('stripe');
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    logger.error(`[Gallery Webhook] Signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const meta = session.metadata || {};
+
+    // Only handle gallery credit purchases
+    if (meta.type === 'gallery_credits') {
+      try {
+        const visitorId = parseInt(meta.visitorId);
+        const pkg = meta.package;
+        const credits = parseInt(meta.credits) || 0;
+
+        const visitor = await GalleryVisitor.findByPk(visitorId);
+        if (!visitor) {
+          logger.error(`[Gallery Webhook] Visitor ${visitorId} not found for session ${session.id}`);
+          return res.json({ received: true });
+        }
+
+        if (pkg === 'vip') {
+          await visitor.update({ isVip: true });
+          logger.info(`[Gallery Webhook] VIP activated for visitor ${visitorId}`);
+        } else if (credits > 0) {
+          // Atomic increment to prevent race conditions
+          await GalleryVisitor.increment('enhancementCredits', {
+            by: credits,
+            where: { id: visitorId },
+          });
+          logger.info(`[Gallery Webhook] +${credits} credits for visitor ${visitorId}`);
+        }
+
+        // Bump lead score for purchase (+10)
+        try {
+          const lead = await Lead.findOne({ where: { galleryVisitorId: visitorId } });
+          if (lead) {
+            const newScore = Math.min(100, (lead.score || 0) + 10);
+            await lead.update({ score: newScore });
+            await LeadActivity.create({
+              leadId: lead.id,
+              type: 'score_changed',
+              performedByAI: true,
+              title: `Lead score +10 (credit purchase: ${pkg})`,
+              description: `Purchased ${pkg} package via Stripe (session ${session.id})`,
+              metadata: { previousScore: lead.score, newScore, reason: 'credit_purchase', package: pkg },
+            });
+          }
+        } catch (scoreErr) {
+          logger.warn(`[Gallery Webhook] Lead score bump failed: ${scoreErr.message}`);
+        }
+      } catch (fulfillErr) {
+        logger.error(`[Gallery Webhook] Fulfillment error: ${fulfillErr.message}`);
+        // Return 500 so Stripe retries
+        return res.status(500).send('Fulfillment error');
+      }
+    }
+  }
+
+  return res.json({ received: true });
 });
 
 export default router;
