@@ -258,7 +258,11 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     // Get next photo number
     const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
     const photoNumber = (maxPhoto || 0) + 1;
-    const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+    // Use original filename (without extension) so owner can look up source files
+    const originalBaseName = file.originalname
+      ? file.originalname.replace(/\.[^.]+$/, '')
+      : `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+    const displayName = originalBaseName;
     const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
     // Detect RAW format
@@ -483,7 +487,11 @@ router.post('/events/:id/upload', (req, res, next) => {
     for (const file of req.files) {
       try {
         const photoNumber = nextNumber++;
-        const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+        // Use original filename (without extension) so owner can look up source files
+        const originalBaseName = file.originalname
+          ? file.originalname.replace(/\.[^.]+$/, '')
+          : `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+        const displayName = originalBaseName;
         const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
         // Convert RAW/large files to JPEG before watermarking
@@ -663,7 +671,11 @@ router.post('/events/:id/presign-upload', async (req, res) => {
 
     for (const file of files) {
       const photoNumber = nextNumber++;
-      const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+      // Use original filename (without extension) so owner can look up source files
+      const originalBaseName = file.name
+        ? file.name.replace(/\.[^.]+$/, '')
+        : `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+      const displayName = originalBaseName;
       // Store raw uploads in a staging prefix; watermarked versions go to final location
       const rawKey = `gallery-raw/${event.slug}/${photoNumber}-${Date.now()}.jpg`;
       const finalKey = `gallery/${event.slug}/${photoNumber}.jpg`;
