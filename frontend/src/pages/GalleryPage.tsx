@@ -1237,7 +1237,12 @@ const GalleryPage: React.FC = () => {
       }
 
       setGalleryToken(data.token);
-      setSelectedEvent(prev => prev || data.event);
+      // Merge access gate event with events list data (which includes description)
+      setSelectedEvent(prev => {
+        if (prev) return prev;
+        const listed = events.find(ev => ev.slug === data.event.slug);
+        return listed ? { ...data.event, ...listed } : data.event;
+      });
       setShowGate(false);
       loadPhotos(gateSlug);
       // Show welcome toast on first access
