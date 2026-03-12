@@ -239,21 +239,64 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     const originalSize = file.size;
 
     if (isRaw || file.size > 50 * 1024 * 1024) {
-      logger.info(`[AdminGallery:Single] ${isRaw ? 'RAW' : 'Large'} file (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
+      logger.info(`[AdminGallery:Single] ${isRaw ? 'RAW' : 'Large'} file (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to full-res Q95 JPEG`);
       try {
         inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
           .jpeg({ quality: 95 })
           .toBuffer();
-        logger.info(`[AdminGallery:Single] Converted: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+        logger.info(`[AdminGallery:Single] Converted via sharp: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
       } catch (convErr) {
-        logger.error(`[AdminGallery:Single] RAW conversion FAILED for ${file.originalname}: ${convErr.message}`);
-        file.buffer = null;
-        if (global.gc) global.gc();
-        return res.status(422).json({
-          success: false,
-          error: `RAW conversion failed for ${file.originalname}: ${convErr.message}`,
-          hint: 'Try converting this file to JPEG before uploading.',
-        });
+        // Sharp can't decode this format (e.g. Sony ARW) — try dcraw fallback
+        if (convErr.message.includes('unsupported image format')) {
+          logger.info(`[AdminGallery:Single] Sharp can't decode — trying dcraw fallback for ${file.originalname}`);
+          try {
+            const { execFileSync } = await import('child_process');
+            const { writeFileSync, readFileSync, unlinkSync, existsSync } = await import('fs');
+            const { tmpdir } = await import('os');
+            const { join, dirname } = await import('path');
+            const { fileURLToPath } = await import('url');
+            const __dir = dirname(fileURLToPath(import.meta.url));
+            // Find dcraw binary
+            const dcrawPaths = [
+              join(__dir, '..', 'node_modules', 'dcraw-vendored-linux', 'dcraw'),
+              join(__dir, '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe'),
+            ];
+            const dcrawBin = dcrawPaths.find(p => existsSync(p));
+            if (!dcrawBin) throw new Error('dcraw binary not found — install dcraw-vendored-linux or dcraw-vendored-win32');
+            const tempRaw = join(tmpdir(), `upload-${Date.now()}.arw`);
+            writeFileSync(tempRaw, file.buffer);
+            file.buffer = null; // Free RAM before dcraw runs
+            if (global.gc) global.gc();
+            execFileSync(dcrawBin, ['-T', '-w', '-q', '3', '-o', '1', tempRaw], { timeout: 120000, stdio: ['pipe', 'pipe', 'pipe'] });
+            const tiffPath = tempRaw.replace(/\.[^.]+$/, '.tiff');
+            const tiffBuffer = readFileSync(tiffPath);
+            logger.info(`[AdminGallery:Single] dcraw produced ${(tiffBuffer.length / 1024 / 1024).toFixed(1)}MB TIFF`);
+            inputBuffer = await sharp(tiffBuffer, { limitInputPixels: false })
+              .jpeg({ quality: 95 })
+              .toBuffer();
+            logger.info(`[AdminGallery:Single] Converted via dcraw→sharp: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB JPEG`);
+            try { unlinkSync(tempRaw); } catch {}
+            try { unlinkSync(tiffPath); } catch {}
+          } catch (dcrawErr) {
+            logger.error(`[AdminGallery:Single] dcraw fallback FAILED: ${dcrawErr.message}`);
+            file.buffer = null;
+            if (global.gc) global.gc();
+            return res.status(422).json({
+              success: false,
+              error: `RAW conversion failed for ${file.originalname}: ${dcrawErr.message}`,
+              hint: 'Try converting this file to JPEG before uploading.',
+            });
+          }
+        } else {
+          logger.error(`[AdminGallery:Single] RAW conversion FAILED for ${file.originalname}: ${convErr.message}`);
+          file.buffer = null;
+          if (global.gc) global.gc();
+          return res.status(422).json({
+            success: false,
+            error: `RAW conversion failed for ${file.originalname}: ${convErr.message}`,
+            hint: 'Try converting this file to JPEG before uploading.',
+          });
+        }
       }
     }
 
