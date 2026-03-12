@@ -1158,6 +1158,19 @@ const GalleryPage: React.FC = () => {
         setPhotos(data.photos);
         // Fetch votes after photos load
         loadVotes(eventSlug);
+        // Ensure selectedEvent is populated (needed when navigating directly with cached token)
+        setSelectedEvent(prev => {
+          if (prev) return prev;
+          // Try to find event from already-loaded events list
+          const listed = events.find(ev => ev.slug === eventSlug);
+          if (listed) return listed;
+          // Fetch event details if not available yet
+          fetch(`${API_BASE}/api/gallery/events/${eventSlug}`)
+            .then(r => r.json())
+            .then(d => { if (d.success && d.event) setSelectedEvent(d.event); })
+            .catch(() => {});
+          return prev;
+        });
       }
     } catch {
       setError('Failed to load photos');
