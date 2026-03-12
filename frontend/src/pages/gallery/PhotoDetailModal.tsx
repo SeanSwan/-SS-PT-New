@@ -245,6 +245,13 @@ const OptionBadge = styled.span<{ $color: string }>`
   width: fit-content;
 `;
 
+const OptionMeta = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(224, 236, 244, 0.7);
+`;
+
 const OptionDesc = styled.span`
   font-size: 0.85rem;
   color: rgba(224, 236, 244, 0.6);
