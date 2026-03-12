@@ -371,9 +371,13 @@ interface PhotoDetailModalProps {
   onUpgrade: () => void;
   downloadUrl: string;
   enhancementRequested?: boolean;
+  galleryToken?: string;
 }
 
 // ── Component ────────────────────────────────────────────────────────────
+const PrintStore = React.lazy(() => import('./PrintStore'));
+const FormAnalysisOverlay = React.lazy(() => import('./FormAnalysisOverlay'));
+
 const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   isOpen,
   photo,
@@ -390,10 +394,13 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   onUpgrade,
   downloadUrl,
   enhancementRequested,
+  galleryToken,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
+  const [showPrintStore, setShowPrintStore] = React.useState(false);
+  const [showFormAnalysis, setShowFormAnalysis] = React.useState(false);
 
   // Reset image loaded state when photo changes
   useEffect(() => {
@@ -591,6 +598,42 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 )}
               </AnimatePresence>
 
+              {/* Print-on-Demand Option */}
+              <OptionCard
+                onClick={() => setShowPrintStore(true)}
+                aria-label="Order a premium print of this photo"
+                style={{ borderColor: 'rgba(198, 168, 75, 0.3)' }}
+              >
+                <OptionIcon style={{ background: `linear-gradient(135deg, rgba(198,168,75,0.2), rgba(198,168,75,0.05))`, borderColor: 'rgba(198,168,75,0.3)' }}>
+                  <span style={{ fontSize: '1.5rem' }}>🖼️</span>
+                </OptionIcon>
+                <OptionContent>
+                  <OptionTitle style={{ color: GILDED }}>Order Print</OptionTitle>
+                  <OptionMeta style={{ color: 'rgba(198,168,75,0.8)' }}>From $24.99</OptionMeta>
+                  <OptionDesc>
+                    Premium fine art prints, canvas, and metal — delivered to your door.
+                  </OptionDesc>
+                </OptionContent>
+              </OptionCard>
+
+              {/* AI Form Analysis Option */}
+              <OptionCard
+                onClick={() => setShowFormAnalysis(true)}
+                aria-label="Analyze exercise form with AI"
+                style={{ borderColor: 'rgba(139, 92, 246, 0.3)' }}
+              >
+                <OptionIcon style={{ background: `linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.05))`, borderColor: 'rgba(139,92,246,0.3)' }}>
+                  <span style={{ fontSize: '1.5rem' }}>🔬</span>
+                </OptionIcon>
+                <OptionContent>
+                  <OptionTitle style={{ color: WING_PURPLE }}>Analyze Form</OptionTitle>
+                  <OptionMeta style={{ color: 'rgba(139,92,246,0.8)' }}>NASM-Certified AI</OptionMeta>
+                  <OptionDesc>
+                    AI-powered form analysis — pose estimation, joint angles, and correction feedback.
+                  </OptionDesc>
+                </OptionContent>
+              </OptionCard>
+
               <Divider />
 
               {/* Direct download link as fallback */}
@@ -627,6 +670,33 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
               </a>
             </ControlsPanel>
           </ModalContainer>
+
+          {/* Print Store Overlay */}
+          <AnimatePresence>
+            {showPrintStore && photo && galleryToken && (
+              <React.Suspense fallback={null}>
+                <PrintStore
+                  photoId={photo.id}
+                  photoUrl={photo.url}
+                  photoName={photo.displayName}
+                  galleryToken={galleryToken}
+                  onClose={() => setShowPrintStore(false)}
+                />
+              </React.Suspense>
+            )}
+          </AnimatePresence>
+
+          {/* AI Form Analysis Overlay */}
+          {showFormAnalysis && photo && galleryToken && (
+            <React.Suspense fallback={null}>
+              <FormAnalysisOverlay
+                photoId={photo.id}
+                photoUrl={photo.url}
+                galleryToken={galleryToken}
+                onClose={() => setShowFormAnalysis(false)}
+              />
+            </React.Suspense>
+          )}
         </Backdrop>
       )}
     </AnimatePresence>

@@ -33,6 +33,10 @@ import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
 import PhotoVote from '../models/PhotoVote.mjs';
 import GalleryMessage from '../models/GalleryMessage.mjs';
+import Lead from '../models/Lead.mjs';
+import LeadActivity from '../models/LeadActivity.mjs';
+import PrintOrder from '../models/PrintOrder.mjs';
+import { analyzeForm } from '../services/formAnalysisService.mjs';
 import { getUser } from '../models/index.mjs';
 import { Op, fn, col, literal } from 'sequelize';
 import logger from '../utils/logger.mjs';
@@ -191,6 +195,41 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
         source: 'gallery',
       },
     });
+
+    // ── Auto-create Lead from gallery visitor (CRM funnel) ──
+    try {
+      const [lead, leadCreated] = await Lead.findOrCreate({
+        where: { email: cleanEmail },
+        defaults: {
+          email: cleanEmail,
+          firstName: visitor.firstName || firstName?.trim() || null,
+          lastName: visitor.lastName || lastName?.trim() || null,
+          phone: visitor.phone || phone?.trim() || null,
+          source: 'gallery',
+          sourceDetail: `${event.name} (${event.slug})`,
+          status: 'new',
+          score: 10, // Base score for gallery access
+          galleryVisitorId: visitor.id,
+        },
+      });
+      if (leadCreated) {
+        await LeadActivity.create({
+          leadId: lead.id,
+          type: 'status_change',
+          performedByAI: true,
+          title: 'Lead auto-created from gallery access',
+          description: `Visitor registered for event "${event.name}"`,
+          metadata: { from: null, to: 'new', eventSlug: event.slug },
+        });
+        logger.info(`[Gallery:CRM] Auto-created lead id=${lead.id} from visitor=${visitor.id}`);
+      } else if (!lead.galleryVisitorId) {
+        // Link existing lead to this visitor
+        await lead.update({ galleryVisitorId: visitor.id });
+      }
+    } catch (leadErr) {
+      // Non-blocking — don't fail access if lead creation fails
+      logger.warn(`[Gallery:CRM] Lead auto-create failed for ${cleanEmail}: ${leadErr.message}`);
+    }
 
     // Issue gallery access token (24h)
     const galleryToken = jwt.sign(
@@ -425,6 +464,26 @@ router.post('/enhancement-request', requireGalleryAccess, async (req, res) => {
 
     // Reload visitor for accurate credit status
     await visitor.reload();
+
+    // ── Bump lead score on enhancement request (high-intent signal) ──
+    try {
+      const lead = await Lead.findOne({ where: { email: req.galleryAccess.email } });
+      if (lead) {
+        const scoreBoost = created.length * 5; // +5 per enhancement
+        const newScore = Math.min(100, (lead.score || 0) + scoreBoost);
+        await lead.update({ score: newScore });
+        await LeadActivity.create({
+          leadId: lead.id,
+          type: 'score_changed',
+          performedByAI: true,
+          title: `Lead score +${scoreBoost} (enhancement request)`,
+          description: `Requested ${created.length} enhancement(s) for event "${req.galleryAccess.slug}"`,
+          metadata: { previousScore: lead.score, newScore, reason: 'enhancement_request' },
+        });
+      }
+    } catch (scoreErr) {
+      logger.warn(`[Gallery:CRM] Lead score bump failed: ${scoreErr.message}`);
+    }
 
     return res.json({
       success: true,
@@ -721,6 +780,25 @@ router.post('/referral', requireGalleryAccess, async (req, res) => {
     const visitor = await GalleryVisitor.findByPk(visitorId);
     if (visitor) {
       await visitor.update({ enhancementCredits: visitor.enhancementCredits + 5 });
+    }
+
+    // ── Bump lead score on referral (high-trust signal) ──
+    try {
+      const lead = await Lead.findOne({ where: { email: req.galleryAccess.email } });
+      if (lead) {
+        const newScore = Math.min(100, (lead.score || 0) + 15);
+        await lead.update({ score: newScore });
+        await LeadActivity.create({
+          leadId: lead.id,
+          type: 'score_changed',
+          performedByAI: true,
+          title: 'Lead score +15 (referral submitted)',
+          description: `Referred "${referralName.trim()}" from event "${req.galleryAccess.slug}"`,
+          metadata: { previousScore: lead.score, newScore, reason: 'referral' },
+        });
+      }
+    } catch (scoreErr) {
+      logger.warn(`[Gallery:CRM] Lead score bump (referral) failed: ${scoreErr.message}`);
     }
 
     return res.json({
@@ -1224,6 +1302,258 @@ router.post('/message', requireGalleryAccess, messageLimiter, async (req, res) =
   } catch (err) {
     logger.error('[Gallery] Message error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to send message' });
+  }
+});
+
+// ── Print-on-Demand ──────────────────────────────────────────────────────
+
+/** Product catalog with pricing + commission rates */
+const PRINT_PRODUCTS = {
+  print:     { label: 'Fine Art Print',  sizes: { '8x10': 29.99, '11x14': 44.99, '16x20': 59.99, '24x36': 89.99 }, commission: 0.20 },
+  canvas:    { label: 'Gallery Canvas',  sizes: { '12x16': 79.99, '16x20': 109.99, '24x36': 159.99 }, commission: 0.18 },
+  metal:     { label: 'Metal Print',     sizes: { '8x10': 49.99, '12x16': 79.99, '16x20': 119.99, '24x36': 179.99 }, commission: 0.18 },
+  poster:    { label: 'Premium Poster',  sizes: { '12x18': 24.99, '18x24': 34.99, '24x36': 49.99 }, commission: 0.20 },
+  photobook: { label: 'Photo Book',      sizes: { '8x8': 49.99, '10x10': 69.99, '12x12': 89.99 }, commission: 0.15 },
+};
+
+/**
+ * GET /api/gallery/print-products
+ * Returns available print products and pricing
+ */
+router.get('/print-products', (_req, res) => {
+  const products = Object.entries(PRINT_PRODUCTS).map(([type, config]) => ({
+    type,
+    label: config.label,
+    sizes: Object.entries(config.sizes).map(([size, price]) => ({ size, price })),
+  }));
+  return res.json({ success: true, products });
+});
+
+/**
+ * POST /api/gallery/print-order
+ * Create a print order → Stripe checkout
+ */
+router.post('/print-order', requireGalleryAccess, async (req, res) => {
+  try {
+    const { photoId, productType, size, quantity, cropData } = req.body;
+    const visitorId = req.galleryAccess.visitorId;
+    const eventId = req.galleryAccess.eventId;
+
+    // Validate product
+    const product = PRINT_PRODUCTS[productType];
+    if (!product) {
+      return res.status(400).json({ success: false, error: 'Invalid product type' });
+    }
+    const unitPrice = product.sizes[size];
+    if (!unitPrice) {
+      return res.status(400).json({ success: false, error: `Invalid size "${size}" for ${product.label}` });
+    }
+    const qty = Math.max(1, Math.min(10, parseInt(quantity) || 1));
+
+    // Verify photo belongs to this event
+    const photo = await GalleryPhoto.findOne({ where: { id: photoId, eventId } });
+    if (!photo) {
+      return res.status(404).json({ success: false, error: 'Photo not found in this event' });
+    }
+
+    const totalPrice = (unitPrice * qty).toFixed(2);
+    const commission = (totalPrice * product.commission).toFixed(2);
+
+    // Create order record
+    const order = await PrintOrder.create({
+      visitorId,
+      photoId,
+      eventId,
+      productType,
+      size,
+      quantity: qty,
+      cropData: cropData || null,
+      priceUsd: totalPrice,
+      commissionUsd: commission,
+      status: 'pending',
+    });
+
+    // Create Stripe Checkout session
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
+
+    const { default: Stripe } = await import('stripe');
+    const stripe = new Stripe(stripeKey);
+
+    const baseUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `${product.label} — ${size}`,
+            description: `${photo.displayName || 'Gallery Photo'} printed on ${product.label}`,
+          },
+          unit_amount: Math.round(unitPrice * 100),
+        },
+        quantity: qty,
+      }],
+      success_url: `${baseUrl}/gallery?print=success&orderId=${order.id}`,
+      cancel_url: `${baseUrl}/gallery?print=cancelled`,
+      metadata: {
+        type: 'print_order',
+        orderId: String(order.id),
+        visitorId: String(visitorId),
+        photoId: String(photoId),
+      },
+    });
+
+    await order.update({ stripeSessionId: session.id });
+
+    // Bump lead score (+10 for print interest)
+    try {
+      const lead = await Lead.findOne({ where: { email: req.galleryAccess.email } });
+      if (lead) {
+        const newScore = Math.min(100, (lead.score || 0) + 10);
+        await lead.update({ score: newScore });
+        await LeadActivity.create({
+          leadId: lead.id,
+          type: 'score_changed',
+          performedByAI: true,
+          title: 'Lead score +10 (print order placed)',
+          description: `Ordered ${product.label} ${size} for "${photo.displayName}"`,
+          metadata: { previousScore: lead.score, newScore, reason: 'print_order' },
+        });
+      }
+    } catch (scoreErr) {
+      logger.warn(`[Gallery:CRM] Lead score bump (print) failed: ${scoreErr.message}`);
+    }
+
+    return res.json({
+      success: true,
+      checkoutUrl: session.url,
+      orderId: order.id,
+      total: totalPrice,
+      commission,
+    });
+  } catch (err) {
+    logger.error('[Gallery] Print order error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to create print order' });
+  }
+});
+
+/**
+ * GET /api/gallery/print-orders
+ * Get visitor's print order history
+ */
+router.get('/print-orders', requireGalleryAccess, async (req, res) => {
+  try {
+    const orders = await PrintOrder.findAll({
+      where: { visitorId: req.galleryAccess.visitorId },
+      order: [['createdAt', 'DESC']],
+    });
+    return res.json({ success: true, orders });
+  } catch (err) {
+    logger.error('[Gallery] Print orders fetch error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to fetch orders' });
+  }
+});
+
+// ── AI Form Analysis ────────────────────────────────────────────────────
+
+/** Rate limiter: 10 analyses per 15 min per IP (per Security brain guidance) */
+const formAnalysisLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: 'Too many analysis requests. Please try again later.' },
+});
+
+/**
+ * POST /api/gallery/analyze-form
+ * Analyze exercise form from a gallery photo
+ * Body: { photoId: number }
+ */
+router.post('/analyze-form', requireGalleryAccess, formAnalysisLimiter, async (req, res) => {
+  try {
+    const { photoId } = req.body;
+    const eventId = req.galleryAccess.eventId;
+
+    if (!photoId) {
+      return res.status(400).json({ success: false, error: 'photoId is required' });
+    }
+
+    const photo = await GalleryPhoto.findOne({ where: { id: photoId, eventId } });
+    if (!photo) {
+      return res.status(404).json({ success: false, error: 'Photo not found' });
+    }
+
+    // Fetch the photo from R2 for analysis
+    const photoUrl = photo.url;
+    const imageResponse = await fetch(photoUrl);
+    if (!imageResponse.ok) {
+      return res.status(502).json({ success: false, error: 'Failed to fetch photo for analysis' });
+    }
+
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    const result = await analyzeForm(imageBuffer);
+
+    return res.json(result);
+  } catch (err) {
+    logger.error('[Gallery] Form analysis error:', err.message);
+    return res.status(500).json({ success: false, error: 'Form analysis failed' });
+  }
+});
+
+// ── Lead Engagement Score (Admin) ─────────────────────────────────────────
+
+/**
+ * POST /api/gallery/recalculate-lead-scores
+ * Batch recalculate lead scores based on gallery engagement.
+ * Scoring formula:
+ *   +10  Gallery access (base)
+ *   +5   Per enhancement request
+ *   +15  Per referral submitted
+ *   +20  Per donation made
+ *   +25  VIP conversion
+ *   +10  Per message sent
+ *   +2   Per photo vote
+ * Max score: 100
+ */
+router.post('/recalculate-lead-scores', async (req, res) => {
+  try {
+    const leads = await Lead.findAll({ where: { source: 'gallery', galleryVisitorId: { [Op.ne]: null } } });
+    let updated = 0;
+
+    for (const lead of leads) {
+      const visitor = await GalleryVisitor.findByPk(lead.galleryVisitorId);
+      if (!visitor) continue;
+
+      const [enhancements, referrals, donations, messages, votes] = await Promise.all([
+        EnhancementRequest.count({ where: { visitorId: visitor.id } }),
+        GalleryReferral.count({ where: { visitorId: visitor.id } }),
+        GalleryDonation.count({ where: { visitorId: visitor.id } }),
+        GalleryMessage.count({ where: { visitorId: visitor.id } }),
+        PhotoVote.count({ where: { visitorId: visitor.id } }),
+      ]);
+
+      let score = 10; // base gallery access
+      score += enhancements * 5;
+      score += referrals * 15;
+      score += donations * 20;
+      score += visitor.isVip ? 25 : 0;
+      score += messages * 10;
+      score += votes * 2;
+      score = Math.min(100, score);
+
+      if (score !== lead.score) {
+        await lead.update({ score });
+        updated++;
+      }
+    }
+
+    return res.json({ success: true, leadsProcessed: leads.length, leadsUpdated: updated });
+  } catch (err) {
+    logger.error('[Gallery:CRM] Lead score recalculation error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to recalculate lead scores' });
   }
 });
 

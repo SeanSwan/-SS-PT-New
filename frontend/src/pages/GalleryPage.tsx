@@ -1818,6 +1818,7 @@ const GalleryPage: React.FC = () => {
           onUpgrade={() => setShowUpgradeModal(true)}
           downloadUrl={lightboxIndex !== null && photos[lightboxIndex] ? photos[lightboxIndex].url : ''}
           enhancementRequested={lightboxIndex !== null && photos[lightboxIndex] ? enhanceSelections.has(photos[lightboxIndex].id) : false}
+          galleryToken={galleryToken || undefined}
         />
 
         {/* Upgrade Modal */}
