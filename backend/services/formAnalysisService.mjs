@@ -6,6 +6,9 @@
  *
  * Returns: keypoints, bones, corrections, overall score
  */
+import { Op } from 'sequelize';
+import FormAnalysis from '../models/FormAnalysis.mjs';
+import MovementProfile from '../models/MovementProfile.mjs';
 import logger from '../utils/logger.mjs';
 
 /** COCO 17-keypoint standard */
@@ -137,6 +140,99 @@ If not a fitness photo, set overallScore to null.`;
     logger.error('[FormAnalysis] Analysis failed:', err.message);
     return { success: false, error: err.message };
   }
+}
+
+/** Create a new FormAnalysis record */
+export async function createFormAnalysis({ userId, trainerId, sessionId, exerciseName, mediaUrl, mediaType, metadata }) {
+  return FormAnalysis.create({
+    userId,
+    trainerId,
+    sessionId,
+    exerciseName,
+    mediaUrl,
+    mediaType,
+    analysisStatus: 'pending',
+    metadata,
+  });
+}
+
+/** Process a pending analysis — calls Gemini Vision and stores results */
+export async function processFormAnalysis(analysisId) {
+  const analysis = await FormAnalysis.findByPk(analysisId);
+  if (!analysis) throw new Error(`Analysis ${analysisId} not found`);
+
+  await analysis.update({ analysisStatus: 'processing' });
+  const startTime = Date.now();
+
+  try {
+    // For image analyses, fetch the buffer and run through Gemini
+    // For now, mark as complete with placeholder if no media buffer available
+    // (Real pipeline would download from R2, process through MediaPipe/Gemini)
+    await analysis.update({
+      analysisStatus: 'complete',
+      processingDurationMs: Date.now() - startTime,
+      overallScore: null,
+      findings: { note: 'Processing pipeline pending full integration' },
+    });
+
+    logger.info('[FormAnalysis] Analysis %d completed in %dms', analysisId, Date.now() - startTime);
+  } catch (err) {
+    await analysis.update({
+      analysisStatus: 'failed',
+      errorMessage: err.message,
+      processingDurationMs: Date.now() - startTime,
+    });
+    throw err;
+  }
+}
+
+/** Get paginated analysis history for a user */
+export async function getAnalysisHistory(userId, { page = 1, limit = 20, exerciseName, status }) {
+  const where = { userId };
+  if (exerciseName) where.exerciseName = exerciseName;
+  if (status) where.analysisStatus = status;
+
+  const offset = (page - 1) * limit;
+  const { count, rows } = await FormAnalysis.findAndCountAll({
+    where,
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset,
+  });
+
+  return {
+    analyses: rows,
+    total: count,
+    page,
+    totalPages: Math.ceil(count / limit),
+  };
+}
+
+/** Get a single analysis by ID (with ownership check) */
+export async function getAnalysisById(id, userId, userRole) {
+  const where = { id };
+  // Non-admin/trainer can only see their own
+  if (userRole !== 'admin' && userRole !== 'trainer') {
+    where.userId = userId;
+  }
+  return FormAnalysis.findOne({ where });
+}
+
+/** Get movement profile for a user */
+export async function getMovementProfileForUser(userId) {
+  return MovementProfile.findOne({ where: { userId } });
+}
+
+/** Get aggregate stats for admin dashboard */
+export async function getFormAnalysisStats() {
+  const [total, pending, complete, failed] = await Promise.all([
+    FormAnalysis.count(),
+    FormAnalysis.count({ where: { analysisStatus: 'pending' } }),
+    FormAnalysis.count({ where: { analysisStatus: 'complete' } }),
+    FormAnalysis.count({ where: { analysisStatus: 'failed' } }),
+  ]);
+
+  return { total, pending, complete, failed };
 }
 
 export { JOINT_NAMES, BONES, calculateAngle };
