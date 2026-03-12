@@ -43,6 +43,7 @@ interface GalleryPhoto {
   height: number | null;
   enhancedUrl: string | null;
   enhancementRequestCount: number;
+  sourceType?: 'raw' | 'jpeg';
 }
 
 interface EnhancementCredits {
@@ -1060,6 +1061,14 @@ const GalleryPage: React.FC = () => {
   const [toastExiting, setToastExiting] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Resilience: AbortController for fetch cleanup on unmount/navigation
+  const photosAbortRef = useRef<AbortController | null>(null);
+  const eventsAbortRef = useRef<AbortController | null>(null);
+  // React-friendly image reload trigger (increment to force re-render of failed images)
+  const [imageReloadKey, setImageReloadKey] = useState(0);
+  // Track which photo IDs have failed loading (for retry logic)
+  const [failedImageIds, setFailedImageIds] = useState<Set<number>>(new Set());
+
   // Progressive photo loading — IntersectionObserver loads more rows as user scrolls
   useEffect(() => {
     if (!loadMoreRef.current) return;
@@ -1154,52 +1163,100 @@ const GalleryPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      // Cleanup: abort any in-flight fetch requests on unmount
+      photosAbortRef.current?.abort();
+      eventsAbortRef.current?.abort();
     };
   }, []);
 
+  // Visibility API: when user returns to tab, retry any failed images
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && failedImageIds.size > 0) {
+        // Increment reload key to trigger React re-render of failed images
+        setImageReloadKey(prev => prev + 1);
+        setFailedImageIds(new Set());
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [failedImageIds.size]);
+
   const loadEvents = async () => {
+    eventsAbortRef.current?.abort();
+    const controller = new AbortController();
+    eventsAbortRef.current = controller;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/gallery/events`);
+      const res = await fetch(`${API_BASE}/api/gallery/events`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       const data = await res.json();
       if (data.success) setEvents(data.events);
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       setError('Failed to load events');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
   const loadPhotos = async (eventSlug: string) => {
     if (!galleryToken) return;
+    // Cancel any in-flight photo request
+    photosAbortRef.current?.abort();
+    const controller = new AbortController();
+    photosAbortRef.current = controller;
+
+    // Restore cached photos immediately (show stale while fetching fresh)
+    try {
+      const cached = sessionStorage.getItem(`gallery-photos-${eventSlug}`);
+      if (cached) {
+        const { photos: cachedPhotos, timestamp } = JSON.parse(cached);
+        // Use cache if < 5 minutes old
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setPhotos(cachedPhotos);
+        }
+      }
+    } catch { /* cache parse failed, ignore */ }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/gallery/events/${eventSlug}/photos`, {
         headers: { Authorization: `Bearer ${galleryToken}` },
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       const data = await res.json();
       if (data.success) {
         setPhotos(data.photos);
+        setFailedImageIds(new Set()); // Reset failed images on fresh load
+        // Cache photos in sessionStorage for navigation resilience
+        try {
+          sessionStorage.setItem(`gallery-photos-${eventSlug}`, JSON.stringify({
+            photos: data.photos,
+            timestamp: Date.now(),
+          }));
+        } catch { /* sessionStorage full, ignore */ }
         // Fetch votes after photos load
         loadVotes(eventSlug);
         // Ensure selectedEvent is populated (needed when navigating directly with cached token)
         setSelectedEvent(prev => {
           if (prev) return prev;
-          // Try to find event from already-loaded events list
           const listed = events.find(ev => ev.slug === eventSlug);
           if (listed) return listed;
-          // Fetch event details if not available yet
-          fetch(`${API_BASE}/api/gallery/events/${eventSlug}`)
+          // Fetch event details if not available yet (also use abort signal)
+          fetch(`${API_BASE}/api/gallery/events/${eventSlug}`, { signal: controller.signal })
             .then(r => r.json())
-            .then(d => { if (d.success && d.event) setSelectedEvent(d.event); })
+            .then(d => { if (d.success && d.event && !controller.signal.aborted) setSelectedEvent(d.event); })
             .catch(() => {});
           return prev;
         });
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       setError('Failed to load photos');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
@@ -1700,10 +1757,33 @@ const GalleryPage: React.FC = () => {
                     onMouseLeave={() => setHoveredPhotoId(null)}
                   >
                     <PhotoImg
-                      src={photo.thumbnailUrl || photo.url}
-                      alt={photo.displayName}
+                      key={`${photo.id}-${imageReloadKey}`}
+                      src={
+                        failedImageIds.has(photo.id)
+                          ? `${photo.thumbnailUrl || photo.url}${(photo.thumbnailUrl || photo.url).includes('?') ? '&' : '?'}retry=${imageReloadKey}`
+                          : (photo.thumbnailUrl || photo.url)
+                      }
+                      alt={photo.displayName || `Photo ${photo.photoNumber}`}
                       loading="lazy"
-                      onLoad={e => { (e.target as HTMLImageElement).style.animation = 'none'; }}
+                      onLoad={e => {
+                        (e.target as HTMLImageElement).style.animation = 'none';
+                        // Clear from failed set if it was retried successfully
+                        if (failedImageIds.has(photo.id)) {
+                          setFailedImageIds(prev => { const next = new Set(prev); next.delete(photo.id); return next; });
+                        }
+                      }}
+                      onError={e => {
+                        const img = e.target as HTMLImageElement;
+                        // If thumbnail failed, try the full URL
+                        if (photo.thumbnailUrl && img.src.includes(photo.thumbnailUrl.split('?')[0])) {
+                          img.src = photo.url;
+                          return;
+                        }
+                        // Track this image as failed for tab-switch retry
+                        setFailedImageIds(prev => new Set(prev).add(photo.id));
+                        // Set low opacity to indicate failed state
+                        img.style.opacity = '0.3';
+                      }}
                     />
                     <PhotoFeedback
                       photoId={photo.id}

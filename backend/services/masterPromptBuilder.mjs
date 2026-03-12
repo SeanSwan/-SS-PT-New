@@ -1,5 +1,5 @@
 /**
- * Master Prompt Builder Service v4.0
+ * Master Prompt Builder Service v5.0
  * ===================================
  * Auto-builds a masterPromptJson from existing user data when none exists.
  * Pulls from: User, WaiverRecord, MovementAnalysis, EquipmentProfile, WorkoutSession,
@@ -45,6 +45,85 @@ function calculateWeeklyAverage(sessions) {
   const latest = new Date(Math.max(...dates));
   const weeks = Math.max(1, daysBetween(earliest, latest) / 7);
   return Math.round((dates.length / weeks) * 10) / 10;
+}
+
+/**
+ * Summarize ALL workout sessions into a compact format for AI context.
+ * Provides exercise frequency, volume trends by month, and personal records.
+ */
+function summarizeFullHistory(sessions) {
+  if (!sessions || sessions.length === 0) return null;
+
+  const exerciseFrequency = {};
+  const exercisePRs = {};
+  const monthlyVolume = {};
+  const categoryCounts = {};
+  let totalVolume = 0;
+  let totalSets = 0;
+  let totalReps = 0;
+
+  for (const session of sessions) {
+    // Monthly volume tracking
+    const monthKey = session.date ? session.date.substring(0, 7) : 'unknown';
+    if (!monthlyVolume[monthKey]) monthlyVolume[monthKey] = { sessions: 0, volume: 0 };
+    monthlyVolume[monthKey].sessions++;
+
+    for (const log of (session.logs || [])) {
+      const name = log.exerciseName || log.exercise || 'Unknown';
+      const weight = parseFloat(log.weight) || 0;
+      const reps = parseInt(log.reps) || 0;
+      const sets = parseInt(log.sets) || 1;
+      const volume = weight * reps * sets;
+      const category = log.nasmCategory || log.category || 'General';
+
+      // Exercise frequency
+      exerciseFrequency[name] = (exerciseFrequency[name] || 0) + 1;
+
+      // Personal records (estimated 1RM via Epley)
+      if (weight > 0 && reps > 0) {
+        const est1RM = Math.round(weight * (1 + reps / 30));
+        if (!exercisePRs[name] || est1RM > exercisePRs[name].est1RM) {
+          exercisePRs[name] = { est1RM, weight, reps, date: session.date };
+        }
+      }
+
+      // Category distribution
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+
+      // Totals
+      totalVolume += volume;
+      totalSets += sets;
+      totalReps += reps;
+      monthlyVolume[monthKey].volume += volume;
+    }
+  }
+
+  // Sort exercises by frequency (most trained first)
+  const topExercises = Object.entries(exerciseFrequency)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([name, count]) => ({ name, count, pr: exercisePRs[name] || null }));
+
+  // Monthly trends (chronological)
+  const monthlyTrends = Object.entries(monthlyVolume)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, data]) => ({ month, ...data }));
+
+  return {
+    totalSessions: sessions.length,
+    totalVolume: Math.round(totalVolume),
+    totalSets,
+    totalReps,
+    topExercises,
+    categoryDistribution: categoryCounts,
+    monthlyTrends,
+    personalRecords: Object.entries(exercisePRs)
+      .sort((a, b) => b[1].est1RM - a[1].est1RM)
+      .slice(0, 15)
+      .map(([name, pr]) => ({ exercise: name, ...pr })),
+    firstSessionDate: sessions[sessions.length - 1]?.date || null,
+    lastSessionDate: sessions[0]?.date || null,
+  };
 }
 
 // ── Main Builder ──────────────────────────────────────────────────────────────
@@ -103,10 +182,10 @@ export async function buildMasterPromptFromUserData(targetUser) {
       limit: 10,
     }).catch(() => []) ?? [],
 
+    // Fetch ALL workout sessions — no limit, AI needs full history for best plans
     WorkoutSession?.findAll({
       where: { userId },
       order: [['date', 'DESC']],
-      limit: 30,
       include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
     }).catch(() => []) ?? [],
 
@@ -120,38 +199,34 @@ export async function buildMasterPromptFromUserData(targetUser) {
       order: [['createdAt', 'DESC']],
     }).catch(() => null) ?? null,
 
-    // v4.0: Active pain entries sorted by severity
+    // ALL pain entries sorted by severity — no limits, AI needs full picture
     ClientPainEntry?.findAll({
       where: { userId },
       order: [['painLevel', 'DESC']],
-      limit: 10,
     }).catch(() => []) ?? [],
 
-    // v4.0: Last 5 body measurements for trend tracking
+    // ALL body measurements for complete trend tracking
     BodyMeasurement?.findAll({
       where: { userId },
       order: [['measuredAt', 'DESC']],
-      limit: 5,
     }).catch(() => []) ?? [],
 
-    // v4.0: High/critical severity trainer notes
+    // ALL high/critical severity trainer notes
     ClientNote?.findAll({
       where: { userId, severity: ['critical', 'high'] },
       order: [['createdAt', 'DESC']],
-      limit: 5,
     }).catch(() => []) ?? [],
 
-    // v4.0: Active goals with progress
+    // ALL active goals with progress
     Goal?.findAll({
       where: { userId, status: ['active', 'in_progress'] },
       order: [['createdAt', 'DESC']],
-      limit: 5,
     }).catch(() => []) ?? [],
   ]);
 
   // Build the master prompt JSON (v4.0 schema)
   const masterPrompt = {
-    version: '4.0',
+    version: '5.0',
     generatedAt: new Date().toISOString(),
     autoGenerated: true,
 
@@ -216,15 +291,26 @@ export async function buildMasterPromptFromUserData(targetUser) {
         }))
       : [{ profileName: 'Default', locationType: 'gym', items: [] }],
 
-    // Training history summary
+    // v5.0: Complete training history — detailed recent + summarized historical
     trainingHistory: {
       totalSessions: recentSessions.length,
-      recentWorkouts: recentSessions.slice(0, 5).map(s => ({
+      // Last 30 sessions with FULL detail (exercises, sets, reps, weight, form)
+      detailedRecent: recentSessions.slice(0, 30).map(s => ({
         date: s.date,
         type: s.sessionType || s.type || 'general',
         duration: s.duration || null,
-        exerciseCount: (s.logs || []).length,
+        exercises: (s.logs || []).map(log => ({
+          name: log.exerciseName || log.exercise,
+          sets: log.sets,
+          reps: log.reps,
+          weight: log.weight,
+          formRating: log.formRating,
+          rpe: log.rpe,
+          category: log.nasmCategory || log.category,
+        })),
       })),
+      // Full history summarized — exercise frequency, volume trends, PRs
+      historicalSummary: summarizeFullHistory(recentSessions),
     },
 
     // Baseline measurements
@@ -295,7 +381,7 @@ export async function buildMasterPromptFromUserData(targetUser) {
     },
   };
 
-  logger.info('Auto-generated masterPromptJson v4.0 from user data', {
+  logger.info('Auto-generated masterPromptJson v5.0 from user data', {
     userId,
     hasWaiver: !!waiver,
     hasMovementAnalysis: !!movementAnalysis,

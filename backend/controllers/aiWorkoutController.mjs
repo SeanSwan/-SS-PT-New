@@ -448,10 +448,10 @@ export const generateWorkoutPlan = async (req, res) => {
     let progressContext = null;
     if (WorkoutSession) {
       try {
+        // Fetch ALL workout sessions — no limit, AI needs complete history
         const recentSessions = await WorkoutSession.findAll({
           where: { userId: targetUserId },
           order: [['date', 'DESC']],
-          limit: 30,
           include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
         });
 
@@ -474,10 +474,10 @@ export const generateWorkoutPlan = async (req, res) => {
     let measurementContext = null;
     if (BodyMeasurement) {
       try {
+        // Fetch ALL body measurements — full trend data for AI
         const recentMeasurements = await BodyMeasurement.findAll({
           where: { userId: targetUserId },
           order: [['measurementDate', 'DESC']],
-          limit: 5,
         });
         if (recentMeasurements && recentMeasurements.length > 0) {
           measurementContext = buildMeasurementContext(recentMeasurements);
