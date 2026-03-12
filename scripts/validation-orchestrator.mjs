@@ -206,7 +206,7 @@ function formatCodeBundle(files) {
 
 function buildValidatorTracks(codeBundle, fileList) {
   const fileNames = fileList.map(f => f.path).join(', ');
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Galaxy-Swan dark cosmic theme. Production: sswanstudios.com. Files: ${fileNames}`;
+  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Glow Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
 
   const tracks = [
     {
@@ -297,7 +297,7 @@ ${codeBundle}`,
 
 Based on the code and features visible:
 1. **Feature gap analysis** — what features do competitors (Trainerize, TrueCoach, My PT Hub, Future, Caliber) have that are missing?
-2. **Differentiation strengths** — what unique value does this codebase deliver? (NASM AI integration, pain-aware training, Galaxy-Swan UX)
+2. **Differentiation strengths** — what unique value does this codebase deliver? (NASM AI integration, pain-aware training, Crystalline Swan UX)
 3. **Monetization opportunities** — pricing model improvements, upsell vectors, conversion optimization
 4. **Market positioning** — how does the tech stack and feature set compare to industry leaders?
 5. **Growth blockers** — technical or UX issues that would prevent scaling to 10K+ users
@@ -323,7 +323,7 @@ Analyze the code for:
 1. **Persona alignment** — does the UI/UX speak to each persona? Language, imagery, value props
 2. **Onboarding friction** — how easy is it for a new user to understand and start using the platform?
 3. **Trust signals** — certifications, testimonials, social proof — are they prominent enough?
-4. **Emotional design** — does the Galaxy-Swan theme create the right emotional response? (premium, trustworthy, motivating)
+4. **Emotional design** — does the Crystalline Swan theme create the right emotional response? (premium, trustworthy, motivating)
 5. **Retention hooks** — gamification, progress tracking, community features — what's strong, what's missing?
 6. **Accessibility for target demographics** — font sizes for 40+ users, mobile-first for busy professionals
 
@@ -418,7 +418,8 @@ Analyze this code with YOUR design vision. Be original. Be opinionated. Design f
 
 1. **Design Vision & Direction** — What should this look like? What's the design philosophy?
    - Does the current implementation match a premium fitness SaaS aesthetic?
-   - Galaxy-Swan token usage (#0a0a1a, #00FFFF, #7851A9) — maximized or wasted?
+   - Crystalline Swan token usage (Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6) — maximized or wasted?
+   - RETIRED Galaxy-Swan tokens (#0a0a1a, #00FFFF, #7851A9) — flag any remaining usage as tech debt
    - What parallax effects, micro-animations, or visual storytelling would elevate this?
    - Design inspiration from top-tier apps (Apple Fitness+, Peloton, Nike Training Club)
 
@@ -1076,7 +1077,7 @@ ${mediums.length > 0 ? mediums.slice(0, 15).join('\n') : 'None found.'}
 6. Implement the fixes in order of priority
 
 Files reviewed: ${fileNames}
-Project: SwanStudios (React + TypeScript + styled-components, Galaxy-Swan theme)
+Project: SwanStudios (React + TypeScript + styled-components, Crystalline Swan theme)
 `;
 }
 
