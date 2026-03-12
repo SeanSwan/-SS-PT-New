@@ -424,6 +424,46 @@ const PageSubtitle = styled.p`
   margin: 0 0 32px;
 `;
 
+const PhotographerNote = styled.blockquote`
+  position: relative;
+  margin: -16px 0 28px;
+  padding: 16px 20px 16px 24px;
+  background: rgba(198, 168, 75, 0.04);
+  border-left: 3px solid rgba(198, 168, 75, 0.4);
+  border-radius: 0 12px 12px 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+
+  &::before {
+    content: '"';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 28px;
+    color: rgba(198, 168, 75, 0.3);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    line-height: 1;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+    padding: 12px 16px 12px 20px;
+  }
+`;
+
+const PhotographerAttribution = styled.div`
+  margin-top: 8px;
+  font-family: 'Sora', system-ui, sans-serif;
+  font-style: normal;
+  font-size: 12px;
+  color: rgba(198, 168, 75, 0.6);
+  font-weight: 500;
+`;
+
 // ── Event Cards ───────────────────────────────────────────────────────────
 const EventGrid = styled.div`
   display: grid;
@@ -1551,6 +1591,12 @@ const GalleryPage: React.FC = () => {
               {selectedEvent.location && ` \u00B7 ${selectedEvent.location}`}
               {` \u00B7 ${photos.length} photos \u00B7 All free to download`}
             </PageSubtitle>
+            {selectedEvent.description && (
+              <PhotographerNote>
+                {selectedEvent.description}
+                <PhotographerAttribution>— Sean Swan, SwanStudios</PhotographerAttribution>
+              </PhotographerNote>
+            )}
           </>
         )}
 

@@ -563,6 +563,11 @@ const AdminGalleryManager: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: '', sport: '', location: '', password: '', description: '', eventDate: '', isPublished: true });
 
+  // Event message editor
+  const [messageEventId, setMessageEventId] = useState<number | null>(null);
+  const [messageText, setMessageText] = useState('');
+  const [messageSaving, setMessageSaving] = useState(false);
+
   // Upload state
   const [uploadEventId, setUploadEventId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -712,6 +717,28 @@ const AdminGalleryManager: React.FC = () => {
       });
       loadEvents();
     } catch { /* */ }
+  };
+
+  const openMessageEditor = (event: GalleryEvent) => {
+    setMessageEventId(event.id);
+    setMessageText(event.description || '');
+  };
+
+  const saveEventMessage = async () => {
+    if (messageEventId === null) return;
+    setMessageSaving(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/gallery/events/${messageEventId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ description: messageText.trim() || null }),
+      });
+      loadEvents();
+      setMessageEventId(null);
+      setMessageText('');
+    } catch { /* */ } finally {
+      setMessageSaving(false);
+    }
   };
 
   // ── Direct R2 Upload Flow ─────────────────────────────────────────────
@@ -1254,6 +1281,12 @@ const AdminGalleryManager: React.FC = () => {
                       {uploadEventId === event.id ? 'Close' : 'Upload Photos'}
                     </ActionBtn>
                     <ActionBtn
+                      style={{ background: event.description ? 'rgba(96,192,240,0.15)' : 'rgba(198,168,75,0.15)', color: event.description ? '#60C0F0' : '#C6A84B', borderColor: event.description ? 'rgba(96,192,240,0.3)' : 'rgba(198,168,75,0.3)' }}
+                      onClick={() => messageEventId === event.id ? setMessageEventId(null) : openMessageEditor(event)}
+                    >
+                      {messageEventId === event.id ? 'Close' : event.description ? '✏ Edit Note' : '💬 Add Note'}
+                    </ActionBtn>
+                    <ActionBtn
                       style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
                       onClick={() => deleteEvent(event.id, event.name)}
                     >
@@ -1261,6 +1294,54 @@ const AdminGalleryManager: React.FC = () => {
                     </ActionBtn>
                   </div>
                 </div>
+
+                {/* Photographer's Note Editor */}
+                <AnimatePresence>
+                  {messageEventId === event.id && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ marginTop: 12 }}>
+                      <div style={{
+                        padding: 16, borderRadius: 12,
+                        background: 'rgba(198, 168, 75, 0.05)',
+                        border: '1px solid rgba(198, 168, 75, 0.2)',
+                      }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#C6A84B', marginBottom: 8 }}>
+                          Photographer's Note
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                          This message will be displayed to visitors viewing this gallery.
+                        </div>
+                        <TextArea
+                          placeholder="Share your thoughts about this batch of photos..."
+                          value={messageText}
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessageText(e.target.value)}
+                          style={{ minHeight: 80, marginBottom: 8 }}
+                        />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <ActionBtn $variant="primary" onClick={saveEventMessage} style={{ opacity: messageSaving ? 0.6 : 1 }}>
+                            {messageSaving ? 'Saving...' : 'Save Note'}
+                          </ActionBtn>
+                          {event.description && (
+                            <ActionBtn onClick={() => { setMessageText(''); }} style={{ color: 'rgba(255,255,255,0.4)' }}>
+                              Clear
+                            </ActionBtn>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Show current note preview */}
+                {event.description && messageEventId !== event.id && (
+                  <div style={{
+                    marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                    background: 'rgba(198, 168, 75, 0.04)', border: '1px solid rgba(198, 168, 75, 0.1)',
+                    fontSize: 12, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic',
+                    whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden',
+                  }}>
+                    📝 {event.description.length > 120 ? event.description.slice(0, 120) + '...' : event.description}
+                  </div>
+                )}
 
                 {/* Upload Area */}
                 <AnimatePresence>
