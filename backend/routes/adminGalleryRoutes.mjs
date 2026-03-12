@@ -10,6 +10,7 @@ import express from 'express';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { Op, fn, literal, col } from 'sequelize';
+import sequelize from '../database.mjs';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import GalleryEvent from '../models/GalleryEvent.mjs';
@@ -1209,20 +1210,32 @@ router.get('/events/:id/photos', async (req, res) => {
  */
 router.delete('/photos/:photoId', async (req, res) => {
   try {
-    const photo = await GalleryPhoto.findByPk(req.params.photoId);
-    if (!photo) return res.status(404).json({ success: false, error: 'Photo not found' });
+    // Use raw SQL to avoid Sequelize referencing columns not yet migrated (e.g. source_type)
+    const [rows] = await sequelize.query(
+      'SELECT id, event_id FROM gallery_photos WHERE id = :photoId',
+      { replacements: { photoId: req.params.photoId } }
+    );
+    const photoRow = rows?.[0];
+    if (!photoRow) return res.status(404).json({ success: false, error: 'Photo not found' });
 
-    const eventId = photo.eventId;
+    const photoId = photoRow.id;
+    const eventId = photoRow.event_id;
 
     // Delete associated records first (FK constraints)
-    await EnhancementRequest.destroy({ where: { photoId: photo.id } });
-    await PhotoVote.destroy({ where: { photoId: photo.id } });
+    await EnhancementRequest.destroy({ where: { photoId } });
+    await PhotoVote.destroy({ where: { photoId } });
 
     // Delete the photo record
-    await photo.destroy();
+    await sequelize.query('DELETE FROM gallery_photos WHERE id = :photoId', {
+      replacements: { photoId },
+    });
 
     // Update event photo count
-    const remaining = await GalleryPhoto.count({ where: { eventId } });
+    const [[countRow]] = await sequelize.query(
+      'SELECT COUNT(*) as count FROM gallery_photos WHERE event_id = :eventId',
+      { replacements: { eventId } }
+    );
+    const remaining = parseInt(countRow.count, 10);
     await GalleryEvent.update({ photoCount: remaining }, { where: { id: eventId } });
 
     logger.info(`[AdminGallery] Deleted photo ${req.params.photoId} from event ${eventId}`);
