@@ -401,7 +401,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   galleryToken,
   eventSlug,
 }) => {
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(10);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('stripe');
   const [note, setNote] = useState('');
@@ -464,7 +464,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   }, [feedback, method, onClose]);
 
   const resetForm = () => {
-    setSelectedAmount(10);
+    setSelectedAmount(null);
     setCustomAmount('');
     setMethod('stripe');
     setNote('');
@@ -581,28 +581,17 @@ const DonationModal: React.FC<DonationModalProps> = ({
           Your generosity helps us keep capturing these moments. Every contribution, big or small, is deeply appreciated.
         </ModalSubtitle>
 
-        {/* Amount Selection */}
-        <SectionLabel>Choose an amount</SectionLabel>
-        <AmountGrid>
-          {PRESET_AMOUNTS.map(amt => (
-            <AmountButton
-              key={amt}
-              $active={selectedAmount === amt && !customAmount}
-              onClick={() => handlePresetClick(amt)}
-            >
-              ${amt}
-            </AmountButton>
-          ))}
-        </AmountGrid>
-
+        {/* Amount Input */}
+        <SectionLabel>Enter amount</SectionLabel>
         <CustomAmountRow>
           <DollarPrefix>$</DollarPrefix>
           <CustomAmountInput
             type="text"
             inputMode="decimal"
-            placeholder="Custom amount"
+            placeholder="Enter any amount"
             value={customAmount}
             onChange={e => handleCustomChange(e.target.value)}
+            autoFocus
           />
         </CustomAmountRow>
 

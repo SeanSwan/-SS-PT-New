@@ -1025,7 +1025,13 @@ const GalleryPage: React.FC = () => {
   const [events, setEvents] = useState<GalleryEventSummary[]>([]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<GalleryEventSummary | null>(null);
-  const [galleryToken, setGalleryToken] = useState<string | null>(null);
+  const [galleryToken, setGalleryToken] = useState<string | null>(() => {
+    // Restore gallery session on back-button navigation
+    try {
+      const saved = sessionStorage.getItem(`gallery-token-${slug || ''}`);
+      return saved || null;
+    } catch { return null; }
+  });
   const [showGate, setShowGate] = useState(false);
   const [gateSlug, setGateSlug] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -1237,6 +1243,8 @@ const GalleryPage: React.FC = () => {
       }
 
       setGalleryToken(data.token);
+      // Persist token so back-button navigation doesn't require re-login
+      try { sessionStorage.setItem(`gallery-token-${gateSlug}`, data.token); } catch {}
       // Merge access gate event with events list data (which includes description)
       setSelectedEvent(prev => {
         if (prev) return prev;
@@ -1584,7 +1592,7 @@ const GalleryPage: React.FC = () => {
   return (
     <PageWrapper>
       <ContentMax>
-        <BackButton onClick={() => { setGalleryToken(null); setPhotos([]); setSelectedEvent(null); navigate('/gallery', { replace: true }); }}>
+        <BackButton onClick={() => { setGalleryToken(null); try { sessionStorage.removeItem(`gallery-token-${slug || gateSlug}`); } catch {} setPhotos([]); setSelectedEvent(null); navigate('/gallery', { replace: true }); }}>
           &larr; Back to Events
         </BackButton>
 
@@ -1610,7 +1618,7 @@ const GalleryPage: React.FC = () => {
           <GalleryInfoCard
             onOpenMessage={() => setShowMessageModal(true)}
             onOpenDonation={() => setShowDonationModal(true)}
-            onOpenVip={() => setShowVipModal(true)}
+            onOpenVip={() => navigate('/signup')}
             freeCredits={credits.freeRemaining}
           />
         )}
