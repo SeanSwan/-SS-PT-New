@@ -28,6 +28,35 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
+import { execFileSync } from 'child_process';
+import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Try to find dcraw binary (vendored or system)
+function findDcraw() {
+  // Check vendored win32 binary
+  const vendoredWin = join(__dirname, '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe');
+  if (existsSync(vendoredWin)) return vendoredWin;
+  // Check vendored linux binary
+  const vendoredLinux = join(__dirname, '..', 'node_modules', 'dcraw-vendored-linux', 'dcraw');
+  if (existsSync(vendoredLinux)) return vendoredLinux;
+  // Check system dcraw
+  try { execFileSync('dcraw', [], { stdio: 'ignore' }); return 'dcraw'; } catch { /* not found */ }
+  return null;
+}
+
+const DCRAW_PATH = findDcraw();
+if (DCRAW_PATH) {
+  console.log(`dcraw found: ${DCRAW_PATH}`);
+} else {
+  console.log('dcraw not found — will try sharp only (may fail for RAW formats)');
+}
 
 // ── Parse CLI args ───────────────────────────────────────────────────────────
 
@@ -225,10 +254,49 @@ async function main() {
       const rawBuffer = await downloadR2Object(storage_key);
       console.log(`  → Downloaded. Converting RAW → JPEG (quality ${JPEG_QUALITY}, max ${MAX_DIMENSION}px)...`);
 
-      const jpegBuffer = await sharp(rawBuffer, { limitInputPixels: false })
-        .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: JPEG_QUALITY })
-        .toBuffer();
+      let jpegBuffer;
+      try {
+        // Try sharp directly first (handles TIFF, PNG, WebP, etc.)
+        jpegBuffer = await sharp(rawBuffer, { limitInputPixels: false })
+          .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: JPEG_QUALITY })
+          .toBuffer();
+      } catch (sharpErr) {
+        if (!sharpErr.message.includes('unsupported image format') || !DCRAW_PATH) {
+          throw sharpErr;
+        }
+        // Fallback: use dcraw to convert RAW → TIFF, then sharp TIFF → JPEG
+        console.log(`  → Sharp can't decode this format, using dcraw fallback...`);
+        const tempRaw = join(tmpdir(), `repair-${id}.arw`);
+        const tempTiff = join(tmpdir(), `repair-${id}.tiff`);
+        try {
+          writeFileSync(tempRaw, rawBuffer);
+          // dcraw -T (TIFF output) -w (camera white balance) -q 3 (high quality) -o 1 (sRGB)
+          // -c outputs to stdout, but we'll use file output for reliability
+          execFileSync(DCRAW_PATH, ['-T', '-w', '-q', '3', '-o', '1', tempRaw], {
+            timeout: 120000,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+          // dcraw creates output alongside input with .tiff extension
+          const dcrawOutput = tempRaw.replace(/\.[^.]+$/, '.tiff');
+          const tiffPath = existsSync(dcrawOutput) ? dcrawOutput : tempTiff;
+          const tiffBuffer = readFileSync(tiffPath);
+          console.log(`  → dcraw produced ${formatSize(tiffBuffer.length)} TIFF, converting to JPEG...`);
+          jpegBuffer = await sharp(tiffBuffer, { limitInputPixels: false })
+            .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: JPEG_QUALITY })
+            .toBuffer();
+          // Clean up temp files
+          try { unlinkSync(tempRaw); } catch {}
+          try { unlinkSync(dcrawOutput); } catch {}
+          try { unlinkSync(tempTiff); } catch {}
+        } catch (dcrawErr) {
+          // Clean up on error too
+          try { unlinkSync(tempRaw); } catch {}
+          try { unlinkSync(tempRaw.replace(/\.[^.]+$/, '.tiff')); } catch {}
+          throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
+        }
+      }
 
       console.log(`  → Converted: ${formatSize(rawBuffer.length)} → ${formatSize(jpegBuffer.length)}`);
 
