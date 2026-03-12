@@ -1671,9 +1671,15 @@ router.post('/repair-raw-photos', async (req, res) => {
     const client = getR2Client();
     const bucketName = process.env.R2_BUCKET_NAME;
 
+    const photoId = req.query.photo ? parseInt(req.query.photo, 10) : null;
+
     // Find photos to check
     const whereClause = [];
     const replacements = {};
+    if (photoId) {
+      whereClause.push('gp.id = :photoId');
+      replacements.photoId = photoId;
+    }
     if (eventSlug) {
       whereClause.push('ge.slug = :slug');
       replacements.slug = eventSlug;
@@ -1718,46 +1724,53 @@ router.post('/repair-raw-photos', async (req, res) => {
           continue;
         }
 
-        // Download, convert, re-upload
-        logger.info(`[RepairRAW] Downloading ${storage_key} (${(r2Size / 1024 / 1024).toFixed(1)}MB)...`);
+        // Download to temp file (streaming to disk to avoid OOM on 120MB+ RAW files)
+        const tempRawPath = join(tmpdir(), `repair-${id}.raw`);
+        const tempJpegPath = join(tmpdir(), `repair-${id}.jpg`);
+        logger.info(`[RepairRAW] Streaming ${storage_key} (${(r2Size / 1024 / 1024).toFixed(1)}MB) to disk...`);
         const getResp = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: storage_key }));
-        const chunks = [];
-        for await (const chunk of getResp.Body) chunks.push(chunk);
-        const rawBuffer = Buffer.concat(chunks);
+        const { createWriteStream } = await import('fs');
+        const { pipeline } = await import('stream/promises');
+        await pipeline(getResp.Body, createWriteStream(tempRawPath));
+        logger.info(`[RepairRAW] Downloaded to ${tempRawPath}`);
 
-        // Convert to JPEG via sharp
+        // Convert to JPEG via sharp (from file → file, minimal memory)
         let jpegBuffer;
         try {
-          jpegBuffer = await sharp(rawBuffer, { limitInputPixels: false })
-            .jpeg({ quality: 95 })
-            .toBuffer();
-        } catch (sharpErr) {
-          // Try dcraw fallback for true RAW formats
+          // First try dcraw (better RAW support) then fall back to sharp
           const dcrawPaths = [
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe'),
             join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-linux', 'dcraw'),
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe'),
           ];
           const dcrawPath = dcrawPaths.find(p => existsSync(p));
-          if (!dcrawPath) throw new Error(`Sharp can't decode and dcraw not found: ${sharpErr.message}`);
-
-          const tempRaw = join(tmpdir(), `repair-${id}.arw`);
-          const { writeFileSync: writeSync } = await import('fs');
-          writeSync(tempRaw, rawBuffer);
-          try {
-            // Ensure executable on Linux
+          if (dcrawPath) {
+            logger.info(`[RepairRAW] Using dcraw: ${dcrawPath}`);
             try { chmodSync(dcrawPath, 0o755); } catch {}
-            execFileSync(dcrawPath, ['-T', '-w', '-q', '3', '-o', '1', tempRaw], { timeout: 120000 });
-            const tiffPath = tempRaw.replace(/\.[^.]+$/, '.tiff');
-            const tiffBuffer = readFileSync(tiffPath);
-            jpegBuffer = await sharp(tiffBuffer, { limitInputPixels: false }).jpeg({ quality: 95 }).toBuffer();
-            try { unlinkSync(tempRaw); } catch {}
-            try { unlinkSync(tiffPath); } catch {}
-          } catch (dcErr) {
-            try { unlinkSync(tempRaw); } catch {}
-            try { unlinkSync(tempRaw.replace(/\.[^.]+$/, '.tiff')); } catch {}
-            throw new Error(`dcraw conversion failed: ${dcErr.message}`);
+            execFileSync(dcrawPath, ['-T', '-w', '-q', '3', '-o', '1', tempRawPath], { timeout: 180000 });
+            const tiffPath = tempRawPath.replace(/\.[^.]+$/, '.tiff');
+            if (existsSync(tiffPath)) {
+              // Convert TIFF → JPEG via sharp (file-to-file)
+              jpegBuffer = await sharp(tiffPath, { limitInputPixels: false })
+                .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 92 })
+                .toBuffer();
+              try { unlinkSync(tiffPath); } catch {}
+            } else {
+              throw new Error('dcraw produced no TIFF output');
+            }
+          } else {
+            // Try sharp directly (handles some RAW via libvips)
+            jpegBuffer = await sharp(tempRawPath, { limitInputPixels: false })
+              .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+              .jpeg({ quality: 92 })
+              .toBuffer();
           }
+        } catch (convErr) {
+          try { unlinkSync(tempRawPath); } catch {}
+          throw new Error(`Conversion failed: ${convErr.message}`);
         }
+        // Clean up temp raw file
+        try { unlinkSync(tempRawPath); } catch {}
 
         // Re-upload converted JPEG
         await client.send(new PutObjectCommand({
