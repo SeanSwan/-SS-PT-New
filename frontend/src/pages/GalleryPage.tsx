@@ -7,7 +7,8 @@
  * - Enhancement credit system with watermark overlay (CSS-only, downloads stay clean)
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import VIPConversionModal from './gallery/VIPConversionModal';
@@ -1020,6 +1021,8 @@ const LoadingShimmer = styled.div`
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authUser = useSelector((state: any) => state.auth?.user);
 
   // State
   const [events, setEvents] = useState<GalleryEventSummary[]>([]);
@@ -1066,12 +1069,19 @@ const GalleryPage: React.FC = () => {
   const [votesMap, setVotesMap] = useState<Record<number, PhotoVoteData>>({});
   const [hoveredPhotoId, setHoveredPhotoId] = useState<number | null>(null);
 
-  // Load events on mount + check for VIP success return
+  // Load events on mount + check for VIP success return + signup redirect
   useEffect(() => {
     loadEvents();
     const params = new URLSearchParams(window.location.search);
     if (params.get('vip') === 'success') {
       setShowVipModal(true);
+    }
+    // If redirected back from signup, auto-open VIP modal for new client
+    const state = location.state as any;
+    if (state?.showVipModal) {
+      setShowVipModal(true);
+      // Clean up state so refresh doesn't re-trigger
+      window.history.replaceState({}, document.title);
     }
   }, []);
 
@@ -1619,13 +1629,16 @@ const GalleryPage: React.FC = () => {
             onOpenMessage={() => setShowMessageModal(true)}
             onOpenDonation={() => setShowDonationModal(true)}
             onOpenVip={() => {
-              // Logged in → show VIP modal (not store — don't scare with big packages)
-              // Not logged in → signup first
               const token = localStorage.getItem('token');
-              if (token) {
-                setShowVipModal(true);
+              if (!token) {
+                // Not logged in → signup, then redirect back here with VIP modal
+                navigate('/signup', { state: { returnTo: `/gallery/${slug}`, showVipModal: true } });
+              } else if (authUser?.availableSessions && authUser.availableSessions > 0) {
+                // Existing client with sessions → straight to store
+                navigate('/store');
               } else {
-                navigate('/signup');
+                // New client (signed up but no sessions yet) → VIP modal funnel
+                setShowVipModal(true);
               }
             }}
             freeCredits={credits.freeRemaining}

@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, Variants } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
@@ -568,6 +568,7 @@ const InputFieldWithToggle = styled.div`
  */
 const OptimizedSignupModal: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuth();
   const { theme } = useUniversalTheme();
   const controls = useAnimation();
@@ -862,11 +863,20 @@ const OptimizedSignupModal: React.FC = () => {
       
       if (result.success) {
         console.log('✅ Registration successful, user logged in:', result.user);
+
+        // If signup was triggered from gallery funnel, redirect back to gallery with VIP modal
+        const navState = location.state as any;
+        if (navState?.returnTo && navState?.showVipModal) {
+          console.log('📦 Gallery funnel: redirecting back to', navState.returnTo, 'with VIP modal');
+          navigate(navState.returnTo, { state: { showVipModal: true }, replace: true });
+          return;
+        }
+
         // AuthContext handles login automatically, redirect to appropriate dashboard
         const userRole = result.user?.role || 'user';
-        
+
         console.log('📦 Redirecting to dashboard for role:', userRole);
-        
+
         switch (userRole) {
           case 'admin':
             navigate('/dashboard');

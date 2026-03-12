@@ -315,6 +315,8 @@ const sanitizeUser = (user) => {
   if (user.trainingExperience) sanitized.trainingExperience = user.trainingExperience;
   if (user.specialties) sanitized.specialties = user.specialties;
   if (user.lastActive) sanitized.lastActive = user.lastActive;
+  // Include session count so frontend can route gallery funnel correctly
+  if (user.availableSessions !== undefined) sanitized.availableSessions = user.availableSessions;
 
   return sanitized;
 };
