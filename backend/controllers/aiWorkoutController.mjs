@@ -242,6 +242,7 @@ export const generateWorkoutPlan = async (req, res) => {
   const requesterId = req.user?.id;
   let auditLog = null;
   let eligibilityOverride = null;
+  let rateLimitAcquired = false;
 
   try {
     const { userId: rawUserId, masterPromptJson, mode } = req.body || {};
@@ -255,15 +256,13 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     }
 
-    const parsedUserId = Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : null;
-    const targetUserId = Number.isInteger(rawUserId)
-      ? rawUserId
-      : Number.isInteger(parsedUserId)
-        ? parsedUserId
-        : requesterRole === 'client'
-          ? requesterId
-          : null;
+    // Rate limiter middleware already acquired the lock for this requesterId
+    rateLimitAcquired = true;
 
+    const parsed = Number(rawUserId);
+    const targetUserId = (Number.isInteger(parsed) && parsed > 0) ? parsed
+      : (requesterRole === 'client') ? requesterId
+      : null;
     if (!targetUserId) {
       return res.status(400).json({
         success: false,
@@ -632,7 +631,7 @@ export const generateWorkoutPlan = async (req, res) => {
     if (!validation.ok) {
       const statusMap = {
         pii_leak: 422,
-        parse_error: 502,
+        parse_error: 503,
         validation_error: 422,
       };
       const codeMap = {
@@ -765,6 +764,15 @@ export const generateWorkoutPlan = async (req, res) => {
         );
 
         const exercises = Array.isArray(day.exercises) ? day.exercises : [];
+        const MAX_EXERCISES_PER_DAY = 50;
+        if (exercises.length > MAX_EXERCISES_PER_DAY) {
+          await transaction.rollback();
+          return res.status(422).json({
+            success: false,
+            message: `Day ${dayNumber} has ${exercises.length} exercises, which exceeds the maximum of ${MAX_EXERCISES_PER_DAY}`,
+            code: 'EXERCISE_LIMIT_EXCEEDED',
+          });
+        }
         for (let j = 0; j < exercises.length; j += 1) {
           const exercise = exercises[j] || {};
           const exerciseName = exercise.name ? String(exercise.name) : '';
@@ -885,8 +893,8 @@ export const generateWorkoutPlan = async (req, res) => {
       message: error.message || 'Failed to generate workout plan',
     });
   } finally {
-    // Always release the concurrent rate-limit lock
-    if (requesterId) {
+    // Only release if the rate limiter actually acquired a lock for this request
+    if (rateLimitAcquired && requesterId) {
       releaseConcurrent(requesterId);
     }
   }

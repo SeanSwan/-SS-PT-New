@@ -325,13 +325,15 @@ class UnifiedSessionService {
    * @param {Object} options - Broadcasting options
    */
   async broadcastSessionCreated(sessionData, options = {}) {
-    if (!this.enableRealTimeEvents) return;
-    
+    if (!this.enableRealTimeEvents) return { success: false, reason: 'disabled' };
+
     try {
       await realTimeScheduleService.broadcastSessionCreated(sessionData, options);
       logger.debug(`[UnifiedSessionService] Broadcasted session created: ${sessionData.id}`);
+      return { success: true };
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Failed to broadcast session created:`, error.message);
+      logger.error(`[UnifiedSessionService] Failed to broadcast session created:`, error.message);
+      return { success: false, reason: error.message };
     }
   }
 
@@ -342,13 +344,15 @@ class UnifiedSessionService {
    * @param {Object} options - Broadcasting options
    */
   async broadcastSessionUpdated(sessionData, changes, options = {}) {
-    if (!this.enableRealTimeEvents) return;
-    
+    if (!this.enableRealTimeEvents) return { success: false, reason: 'disabled' };
+
     try {
       await realTimeScheduleService.broadcastSessionUpdated(sessionData, changes, options);
       logger.debug(`[UnifiedSessionService] Broadcasted session updated: ${sessionData.id}`);
+      return { success: true };
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Failed to broadcast session updated:`, error.message);
+      logger.error(`[UnifiedSessionService] Failed to broadcast session updated:`, error.message);
+      return { success: false, reason: error.message };
     }
   }
 
@@ -359,13 +363,15 @@ class UnifiedSessionService {
    * @param {Object} options - Broadcasting options
    */
   async broadcastSessionBooked(sessionData, clientData, options = {}) {
-    if (!this.enableRealTimeEvents) return;
-    
+    if (!this.enableRealTimeEvents) return { success: false, reason: 'disabled' };
+
     try {
       await realTimeScheduleService.broadcastSessionBooked(sessionData, clientData, options);
       logger.debug(`[UnifiedSessionService] Broadcasted session booked: ${sessionData.id}`);
+      return { success: true };
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Failed to broadcast session booked:`, error.message);
+      logger.error(`[UnifiedSessionService] Failed to broadcast session booked:`, error.message);
+      return { success: false, reason: error.message };
     }
   }
 
@@ -377,13 +383,15 @@ class UnifiedSessionService {
    * @param {Object} options - Broadcasting options
    */
   async broadcastSessionCancelled(sessionData, reason, cancelledBy, options = {}) {
-    if (!this.enableRealTimeEvents) return;
-    
+    if (!this.enableRealTimeEvents) return { success: false, reason: 'disabled' };
+
     try {
       await realTimeScheduleService.broadcastSessionCancelled(sessionData, reason, cancelledBy, options);
       logger.debug(`[UnifiedSessionService] Broadcasted session cancelled: ${sessionData.id}`);
+      return { success: true };
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Failed to broadcast session cancelled:`, error.message);
+      logger.error(`[UnifiedSessionService] Failed to broadcast session cancelled:`, error.message);
+      return { success: false, reason: error.message };
     }
   }
 
@@ -394,13 +402,15 @@ class UnifiedSessionService {
    * @param {Object} options - Broadcasting options
    */
   async broadcastSessionCompleted(sessionData, completionData, options = {}) {
-    if (!this.enableRealTimeEvents) return;
-    
+    if (!this.enableRealTimeEvents) return { success: false, reason: 'disabled' };
+
     try {
       await realTimeScheduleService.broadcastSessionCompleted(sessionData, completionData, options);
       logger.debug(`[UnifiedSessionService] Broadcasted session completed: ${sessionData.id}`);
+      return { success: true };
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Failed to broadcast session completed:`, error.message);
+      logger.error(`[UnifiedSessionService] Failed to broadcast session completed:`, error.message);
+      return { success: false, reason: error.message };
     }
   }
 
@@ -410,13 +420,15 @@ class UnifiedSessionService {
    * @param {Object} options - Broadcasting options
    */
   async broadcastScheduleConflict(conflictData, options = {}) {
-    if (!this.enableRealTimeEvents) return;
-    
+    if (!this.enableRealTimeEvents) return { success: false, reason: 'disabled' };
+
     try {
       await realTimeScheduleService.broadcastScheduleConflict(conflictData, options);
       logger.debug(`[UnifiedSessionService] Broadcasted schedule conflict`);
+      return { success: true };
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Failed to broadcast schedule conflict:`, error.message);
+      logger.error(`[UnifiedSessionService] Failed to broadcast schedule conflict:`, error.message);
+      return { success: false, reason: error.message };
     }
   }
 
@@ -514,7 +526,7 @@ class UnifiedSessionService {
       }
 
     } catch (error) {
-      logger.warn(`[UnifiedSessionService] Error detecting conflicts:`, error.message);
+      logger.error(`[UnifiedSessionService] Error detecting conflicts:`, error.message);
     }
   }
 
@@ -691,12 +703,15 @@ class UnifiedSessionService {
       }
       
       // **CRITICAL: Role-based access control**
-      if (
-        user.role !== 'admin' && 
-        user.role !== 'trainer' && 
-        session.userId !== user.id &&
-        session.status !== 'available'
-      ) {
+      // Admins can view any session.
+      // Trainers can view their own assigned sessions OR available sessions (for scheduling).
+      // Clients can view their own sessions OR available sessions (for booking).
+      const isAdmin = user.role === 'admin';
+      const isOwnSession = session.userId === user.id;
+      const isTrainerSession = user.role === 'trainer' && session.trainerId === user.id;
+      const isAvailable = session.status === 'available';
+
+      if (!isAdmin && !isOwnSession && !isTrainerSession && !isAvailable) {
         throw new Error('You do not have permission to view this session');
       }
       
@@ -746,18 +761,30 @@ class UnifiedSessionService {
       throw new Error('Invalid request: sessions must be a non-empty array');
     }
 
-    const transaction = await sequelize.transaction();
+    // Input validation guards
+    for (const session of sessions) {
+      if (!session.start) {
+        throw new Error('Each session must include a start time');
+      }
+
+      if (session.duration !== undefined) {
+        const dur = Number(session.duration);
+        if (!Number.isFinite(dur) || dur < 1 || dur > 480) {
+          throw new Error('Session duration must be between 1 and 480 minutes');
+        }
+      }
+
+      if (session.location !== undefined && session.location !== null) {
+        if (typeof session.location !== 'string' || session.location.length > 200) {
+          throw new Error('Session location must be a string of 200 characters or fewer');
+        }
+      }
+    }
+
+    let transaction;
 
     try {
-      // Validate each session
-      for (const session of sessions) {
-        if (!session.start) {
-          throw new Error('Each session must include a start time');
-        }
-        
-        // Past-date check removed: only admins reach this method (line 698
-        // guard), and admins need to backfill sessions freely.
-      }
+      transaction = await sequelize.transaction();
 
       // Resolve sessionType names to IDs (batch-unique names to minimize DB queries)
       const uniqueTypeNames = [...new Set(sessions.map(s => s.sessionType || 'Standard Training').filter(n => n !== 'Blocked Time'))];
@@ -884,7 +911,11 @@ class UnifiedSessionService {
 
       return formattedSessions;
     } catch (error) {
-      await transaction.rollback();
+      if (transaction) {
+        try { await transaction.rollback(); } catch (rollbackErr) {
+          logger.error(`[UnifiedSessionService] Rollback failed for createAvailableSessions:`, rollbackErr.message);
+        }
+      }
       logger.error(`[UnifiedSessionService] Error creating available sessions:`, error);
       throw new Error(`Failed to create sessions: ${error.message}`);
     }
@@ -937,11 +968,12 @@ class UnifiedSessionService {
       }
     }
 
-    const transaction = await sequelize.transaction();
+    let transaction;
 
     try {
+      transaction = await sequelize.transaction();
       const start = new Date(startDate);
-      
+
       if (isNaN(start.getTime())) {
         throw new Error('Invalid date format');
       }
@@ -1078,7 +1110,11 @@ class UnifiedSessionService {
         sessions: createdSessions.slice(0, 5) // Return sample for response size management
       };
     } catch (error) {
-      await transaction.rollback();
+      if (transaction) {
+        try { await transaction.rollback(); } catch (rollbackErr) {
+          logger.error(`[UnifiedSessionService] Rollback failed for createRecurringSessions:`, rollbackErr.message);
+        }
+      }
       logger.error(`[UnifiedSessionService] Error creating recurring sessions:`, error);
       throw new Error(`Failed to create recurring sessions: ${error.message}`);
     }
@@ -1113,9 +1149,10 @@ class UnifiedSessionService {
     const recurringGroupId = dates.length > 1 ? uuidv4() : null;
     const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : false;
 
-    const transaction = await sequelize.transaction();
+    let transaction;
 
     try {
+      transaction = await sequelize.transaction();
       const sessions = dates.map((occurrence) => {
         const endDate = new Date(occurrence);
         endDate.setMinutes(endDate.getMinutes() + (duration || 60));
@@ -1149,7 +1186,11 @@ class UnifiedSessionService {
         sessions: createdSessions.slice(0, 5)
       };
     } catch (error) {
-      await transaction.rollback();
+      if (transaction) {
+        try { await transaction.rollback(); } catch (rollbackErr) {
+          logger.error(`[UnifiedSessionService] Rollback failed for createBlockedSessions:`, rollbackErr.message);
+        }
+      }
       logger.error(`[UnifiedSessionService] Error creating blocked sessions:`, error);
       throw new Error(`Failed to create blocked sessions: ${error.message}`);
     }

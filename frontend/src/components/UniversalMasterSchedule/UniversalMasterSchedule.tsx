@@ -142,9 +142,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   // First: filter by admin scope (my vs global)
   const scopedSessions = useMemo(() => {
     if (mode === 'admin' && adminViewScope === 'my' && userId) {
+      const normalizedUserId = String(userId);
       return sessions.filter((s: any) =>
-        s.trainerId === userId ||
-        s.trainerId?.toString() === userId?.toString()
+        String(s.trainerId) === normalizedUserId
       );
     }
     return sessions;
@@ -155,26 +155,19 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     if (!statusFilter || statusFilter === 'total') return scopedSessions;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const isUpcoming = (s: any) => {
+    const isUpcoming = (s: any): boolean => {
       const date = s.sessionDate || s.start || s.startTime;
       if (!date) return true;
       return new Date(date) >= startOfToday;
     };
-    if (statusFilter === 'scheduled') {
-      return scopedSessions.filter((s: any) =>
-        (s.status === 'scheduled' || s.status === 'confirmed') && isUpcoming(s)
-      );
-    }
-    if (statusFilter === 'available') {
-      return scopedSessions.filter((s: any) => s.status === 'available' && isUpcoming(s));
-    }
-    if (statusFilter === 'other') {
-      const KNOWN_STATUSES = ['available', 'scheduled', 'confirmed', 'completed'];
-      return scopedSessions.filter((s: any) =>
-        !s.status || !KNOWN_STATUSES.includes(s.status)
-      );
-    }
-    return scopedSessions.filter((s: any) => s.status === statusFilter);
+    const KNOWN_STATUSES = ['available', 'scheduled', 'confirmed', 'completed'];
+    const filters: Record<string, (s: any) => boolean> = {
+      scheduled: (s) => (s.status === 'scheduled' || s.status === 'confirmed') && isUpcoming(s),
+      available: (s) => s.status === 'available' && isUpcoming(s),
+      other: (s) => !s.status || !KNOWN_STATUSES.includes(s.status),
+    };
+    const filterFn = filters[statusFilter] || ((s: any) => s.status === statusFilter);
+    return scopedSessions.filter(filterFn);
   }, [scopedSessions, statusFilter]);
 
   // Redux: Layout & Density
@@ -205,6 +198,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const handleToggleTrainerExpand = useCallback((trainerId: string | number) => {
     dispatch(toggleTrainerExpand(trainerId));
   }, [dispatch]);
+
+  // Loading states for async operations
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [isQuickBooking, setIsQuickBooking] = useState(false);
 
   // Local UI State
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -377,49 +374,35 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   // Handlers
   const handleCreateSession = async () => {
+    if (!formData.sessionDate) {
+      warning('Please select a date and time.');
+      return;
+    }
+
+    const startDate = new Date(formData.sessionDate);
+
+    // Validate date is in the future (admin can bypass this check)
+    const now = new Date();
+    if (startDate < now && mode !== 'admin') {
+      warning('Cannot create sessions in the past. Please select a future date and time.');
+      return;
+    }
+
+    setIsCreatingSession(true);
     try {
-      if (!formData.sessionDate) {
-        warning('Please select a date and time.');
-        return;
-      }
-
-      const startDate = new Date(formData.sessionDate);
-
-      // Validate date is in the future (admin can bypass this check)
-      const now = new Date();
-      if (startDate < now && mode !== 'admin') {
-        warning('Cannot create sessions in the past. Please select a future date and time.');
-        return;
-      }
-
       const endDate = new Date(startDate.getTime() + formData.duration * 60000);
 
-      const sessionData = {
-        sessionDate: startDate.toISOString(),
-        startTime: startDate.toISOString(),
-        endTime: endDate.toISOString(),
-        duration: formData.duration,
-        location: formData.location,
-        notes: formData.notes,
-        trainerId: formData.trainerId || null,
-        userId: formData.clientId || null,
-        clientName: useManualClient ? formData.manualClientName : undefined,
-        notifyClient: formData.notifyClient,
-        status: 'available'
-      };
-
       const result = await universalMasterScheduleService.createAvailableSessions([{
-        start: sessionData.startTime,
-        duration: sessionData.duration,
-        trainerId: sessionData.trainerId?.toString(),
+        start: startDate.toISOString(),
+        duration: formData.duration,
+        trainerId: (formData.trainerId || null)?.toString(),
         userId: formData.clientId?.toString(),
         clientName: useManualClient ? formData.manualClientName : undefined,
-        location: sessionData.location,
-        notes: sessionData.notes,
+        location: formData.location,
+        notes: formData.notes,
         notifyClient: formData.notifyClient
       }]);
 
-      // Check for sessions array OR data object (backend returns both now)
       if (result.sessions || result) {
         success('Session created successfully!');
         setShowCreateDialog(false);
@@ -435,23 +418,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           manualClientName: ''
         });
         setUseManualClient(false);
-        // Clear any status filter that might hide the new 'available' session
         if (statusFilter && statusFilter !== 'total') {
           setStatusFilter(null);
         }
-        // Stay on current view (My Schedule / Global) — default trainer
-        // is now the admin's own ID so it shows correctly on "My Schedule"
         refreshData(true);
       } else {
         toastError('Session may have been created but could not be confirmed. Please refresh.');
       }
     } catch (error: any) {
       console.error('Error creating session:', error);
-      // Show actual server error message if available
       const errorMessage = error?.response?.data?.message
         || error?.message
         || 'Error creating session. Please try again.';
       toastError(errorMessage);
+    } finally {
+      setIsCreatingSession(false);
     }
   };
 
@@ -639,22 +620,29 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const handleQuickBookConfirm = useCallback(async (clientId: string | number) => {
     if (!quickBookSlot) return;
-    const slotDate = quickBookSlot.date;
-    const endDate = new Date(slotDate.getTime() + quickBookSlot.duration * 60000);
-    await universalMasterScheduleService.createAvailableSessions([{
-      start: slotDate.toISOString(),
-      duration: quickBookSlot.duration,
-      trainerId: quickBookSlot.trainerId?.toString(),
-      userId: clientId.toString(),
-      location: quickBookSlot.location,
-      notifyClient: true,
-    }]);
-    success('Session booked!');
-    setShowQuickBookDrawer(false);
-    setQuickBookSlot(null);
-    refreshData(true);
-    if (mode === 'client') refetchCredits();
-  }, [quickBookSlot, refreshData, mode, refetchCredits]);
+    setIsQuickBooking(true);
+    try {
+      const slotDate = quickBookSlot.date;
+      await universalMasterScheduleService.createAvailableSessions([{
+        start: slotDate.toISOString(),
+        duration: quickBookSlot.duration,
+        trainerId: quickBookSlot.trainerId?.toString(),
+        userId: clientId.toString(),
+        location: quickBookSlot.location,
+        notifyClient: true,
+      }]);
+      success('Session booked!');
+      setShowQuickBookDrawer(false);
+      setQuickBookSlot(null);
+      refreshData(true);
+      if (mode === 'client') refetchCredits();
+    } catch (error: any) {
+      console.error('Quick book failed:', error);
+      toastError(error?.response?.data?.message || error?.message || 'Failed to book session.');
+    } finally {
+      setIsQuickBooking(false);
+    }
+  }, [quickBookSlot, refreshData, mode, refetchCredits, success, toastError]);
 
   const handleOpenConflictPanel = useCallback((
     nextConflicts: Conflict[],
@@ -693,6 +681,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     [sessions]
   );
 
+  // Memoized motion props to avoid re-creating objects on every render
+  const motionStyle = useMemo(() => ({
+    display: 'flex' as const,
+    flexDirection: 'column' as const,
+    flex: 1,
+    height: '100%'
+  }), []);
+
   if (dataLoading.sessions && sessions.length === 0) {
     return <Spinner size={60} text="Loading Schedule..." fullscreen />;
   }
@@ -704,7 +700,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}
+        style={motionStyle}
       >
       <ScheduleHeader
         mode={mode}
@@ -908,7 +904,7 @@ const ScheduleContainer = styled.div`
     radial-gradient(circle at 85% 15%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
   background-attachment: fixed;
-  color: #f0f0ff;
+  color: #E0ECF4; /* Frost White */
 
   overflow-x: hidden;
   overflow-y: auto;
@@ -916,22 +912,22 @@ const ScheduleContainer = styled.div`
   overscroll-behavior: contain;
   will-change: scroll-position;
 
-  /* Premium Custom Scrollbar */
+  /* Premium Custom Scrollbar — Crystalline Swan palette */
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
   &::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.8);
+    background: rgba(0, 32, 96, 0.8); /* Midnight Sapphire */
     border-radius: 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(30, 40, 70, 0.8);
+    background: rgba(0, 48, 128, 0.8); /* Royal Depth */
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(224, 236, 244, 0.1); /* Frost White */
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 200, 255, 0.5);
+    background: rgba(96, 192, 240, 0.5); /* Ice Wing */
   }
 
   /* 10-Point Responsive Shell Chrome */

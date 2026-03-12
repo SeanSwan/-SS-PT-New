@@ -77,9 +77,9 @@ interface Client {
 // ==================== STYLED COMPONENTS ====================
 
 const stellarGlow = keyframes`
-  0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.4); }
-  100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
+  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), 0 0 30px rgba(139, 92, 246, 0.4); }
+  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
 `;
 
 const workoutTheme = {
@@ -94,7 +94,7 @@ const workoutTheme = {
     surface: '#1a2744',
     cardBg: '#243352',
     text: '#E0ECF4',          // Frost White
-    textSecondary: '#94a3b8',
+    textSecondary: '#b8c9db', /* Boosted contrast — meets WCAG AA on dark surfaces */
     border: '#3d5275',
     inputBg: '#3d5275',
     buttonPrimary: '#8B5CF6', // Wing Purple
@@ -121,7 +121,7 @@ const WorkoutLoggerContainer = styled(motion.div)`
   background: linear-gradient(135deg, ${workoutTheme.colors.background} 0%, #1a202c 100%);
   padding: ${workoutTheme.spacing.lg};
   color: ${workoutTheme.colors.text};
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Sora', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 
   @media (max-width: 768px) {
     padding: ${workoutTheme.spacing.md};
@@ -457,17 +457,17 @@ const StarButton = styled.button<{ filled: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  min-width: 28px;
-  min-height: 28px;
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     fill: ${props => props.filled ? workoutTheme.colors.warning : 'none'};
     stroke: ${workoutTheme.colors.warning};
   }
@@ -477,15 +477,10 @@ const StarButton = styled.button<{ filled: boolean }>`
     transform: scale(1.1);
   }
 
-  @media (max-width: 430px) {
-    min-width: 36px;
-    min-height: 36px;
-    padding: 6px;
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
+  &:focus-visible {
+    outline: 2px solid ${workoutTheme.colors.primary};
+    outline-offset: 2px;
+    border-radius: ${workoutTheme.borderRadius.sm};
   }
 `;
 
@@ -553,8 +548,8 @@ const RemoveSetButton = styled.button`
   color: ${workoutTheme.colors.error};
   cursor: pointer;
   padding: ${workoutTheme.spacing.xs};
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -564,19 +559,14 @@ const RemoveSetButton = styled.button`
     background: ${workoutTheme.colors.error}40;
   }
 
-  svg {
-    width: 14px;
-    height: 14px;
+  &:focus-visible {
+    outline: 2px solid ${workoutTheme.colors.error};
+    outline-offset: 2px;
   }
 
-  @media (max-width: 430px) {
-    min-width: 44px;
-    min-height: 44px;
-
-    svg {
-      width: 18px;
-      height: 18px;
-    }
+  svg {
+    width: 18px;
+    height: 18px;
   }
 `;
 
@@ -1124,6 +1114,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             <SearchInput
               type="text"
               placeholder="Search exercises by name, type, or muscle group..."
+              aria-label="Search exercises"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setShowExerciseSearch(true)}
@@ -1231,6 +1222,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                               key={rating}
                               filled={rating <= exercise.formRating}
                               onClick={() => updateExercise(exerciseIndex, 'formRating', rating)}
+                              aria-label={`Set form rating to ${rating} stars`}
+                              aria-pressed={rating === exercise.formRating}
                             >
                               <Star size={16} />
                             </StarButton>
@@ -1254,6 +1247,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                     </RatingGroup>
                     <button
                       onClick={() => removeExercise(exerciseIndex)}
+                      aria-label={`Remove ${exercise.exerciseName}`}
                       style={{
                         background: `${workoutTheme.colors.error}20`,
                         border: `1px solid ${workoutTheme.colors.error}`,
@@ -1261,10 +1255,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                         color: workoutTheme.colors.error,
                         cursor: 'pointer',
                         padding: workoutTheme.spacing.sm,
-                        alignSelf: 'flex-start'
+                        alignSelf: 'flex-start',
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
                     >
-                      <X size={16} />
+                      <X size={18} />
                     </button>
                   </ExerciseRatings>
                 </ExerciseHeader>
@@ -1288,12 +1287,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                         value={set.weight || ''}
                         onChange={(e) => updateSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
                         placeholder="0"
+                        aria-label={`Set ${set.setNumber} weight in lbs`}
                       />
                       <NumberInput
                         type="number"
                         value={set.reps || ''}
                         onChange={(e) => updateSet(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
                         placeholder="0"
+                        aria-label={`Set ${set.setNumber} reps`}
                       />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <SliderInput
@@ -1312,8 +1313,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                               key={rating}
                               filled={rating <= set.formQuality}
                               onClick={() => updateSet(exerciseIndex, setIndex, 'formQuality', rating)}
+                              aria-label={`Set ${set.setNumber} form quality: ${rating} stars`}
+                              aria-pressed={rating === set.formQuality}
                             >
-                              <Star size={12} />
+                              <Star size={16} />
                             </StarButton>
                           ))}
                         </StarRating>
@@ -1323,17 +1326,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                         value={set.restTime || ''}
                         onChange={(e) => updateSet(exerciseIndex, setIndex, 'restTime', parseInt(e.target.value) || 60)}
                         placeholder="60"
+                        aria-label={`Set ${set.setNumber} rest time in seconds`}
                       />
                       <TextInput
                         value={set.notes || ''}
                         onChange={(e) => updateSet(exerciseIndex, setIndex, 'notes', e.target.value)}
                         placeholder="Form notes..."
+                        aria-label={`Set ${set.setNumber} notes`}
                       />
                       <RemoveSetButton
                         onClick={() => removeSet(exerciseIndex, setIndex)}
                         disabled={exercise.sets.length <= 1}
+                        aria-label={`Remove set ${set.setNumber}`}
                       >
-                        <Minus size={14} />
+                        <Minus size={16} />
                       </RemoveSetButton>
                     </SetRow>
                   ))}

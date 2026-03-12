@@ -13,21 +13,22 @@ import {
 } from 'lucide-react';
 import GlowButton from '../../../ui/GlowButton';
 import axios from 'axios';
+import { useAuth } from '../../../../context/AuthContext';
 
-/* ──────────────────── Theme tokens ──────────────────── */
+/* ──────────────────── Theme tokens — Crystalline Swan ──────────────────── */
 const T = {
-  bg: 'rgba(15,23,42,0.95)',
-  surface: 'rgba(30,30,60,0.85)',
-  border: 'rgba(14,165,233,0.2)',
-  text: '#e2e8f0',
-  textMuted: '#94a3b8',
-  accent: '#0ea5e9',
-  cyan: '#60C0F0',
+  bg: 'rgba(0,32,96,0.95)',           /* Midnight Sapphire */
+  surface: 'rgba(0,48,128,0.85)',     /* Royal Depth */
+  border: 'rgba(96,192,240,0.2)',     /* Ice Wing */
+  text: '#E0ECF4',                     /* Frost White */
+  textMuted: '#b8c9db',               /* Boosted contrast secondary */
+  accent: '#60C0F0',                   /* Ice Wing */
+  cyan: '#60C0F0',                     /* Ice Wing */
   green: '#4caf50',
   red: '#f44336',
-  orange: '#ff9800',
-  panelBg: 'rgba(45,45,66,0.80)',
-  deepBg: 'rgba(13,13,26,0.95)',
+  orange: '#f59e0b',
+  panelBg: 'rgba(0,48,128,0.80)',     /* Royal Depth */
+  deepBg: 'rgba(0,32,96,0.95)',       /* Midnight Sapphire */
 } as const;
 
 /* ──────────────────── Animations ──────────────────── */
@@ -373,6 +374,8 @@ const ScrollArea = styled.div<{ $maxH?: string }>`
  * - Custom endpoint testing
  */
 const DiagnosticsDashboard: React.FC = () => {
+  const { user } = useAuth();
+
   // State for tab management
   const [activeTab, setActiveTab] = useState(0);
 
@@ -699,21 +702,31 @@ const DiagnosticsDashboard: React.FC = () => {
     }
   };
 
-  // Test an arbitrary endpoint
+  // Test an endpoint (restricted to safe API paths to prevent SSRF)
+  const ALLOWED_ENDPOINT_PREFIXES = ['/api/debug/', '/api/status/', '/api/health', '/api/admin/'];
   const testEndpoint = async () => {
     if (!testEndpointUrl) return;
 
     setTestEndpointResult(null);
     setTestEndpointError(null);
-    debugLog(`Testing custom endpoint: ${testEndpointUrl}`);
+
+    // Security: Only allow whitelisted API path prefixes
+    const isAllowed = ALLOWED_ENDPOINT_PREFIXES.some(prefix => testEndpointUrl.startsWith(prefix));
+    if (!isAllowed) {
+      setTestEndpointError(`Endpoint must start with one of: ${ALLOWED_ENDPOINT_PREFIXES.join(', ')}`);
+      debugLog(`Blocked unauthorized endpoint test: ${testEndpointUrl}`);
+      return;
+    }
+
+    debugLog(`Testing endpoint: ${testEndpointUrl}`);
 
     try {
       const response = await axios.get(testEndpointUrl);
       setTestEndpointResult(response.data);
-      debugLog(`Custom endpoint test successful: ${testEndpointUrl}`);
+      debugLog(`Endpoint test successful: ${testEndpointUrl}`);
     } catch (error) {
       setTestEndpointError(error instanceof Error ? error.message : 'Unknown error');
-      debugLog(`Custom endpoint error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      debugLog(`Endpoint error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -725,6 +738,19 @@ const DiagnosticsDashboard: React.FC = () => {
 
   /* ── Tab labels ── */
   const tabLabels = ['System Status', 'Purchase Flow', 'Data Flow', 'MCP Server', 'Debug Tools'];
+
+  // Auth guard — admin only (placed after hooks to respect Rules of Hooks)
+  if (user?.role !== 'admin') {
+    return (
+      <PageWrapper>
+        <GlassPanel style={{ textAlign: 'center', padding: '3rem' }}>
+          <AlertTriangle size={48} color={T.orange} />
+          <Heading5 style={{ marginTop: '1rem' }}>Access Denied</Heading5>
+          <BodyText>This diagnostic tool is restricted to administrators only.</BodyText>
+        </GlassPanel>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
