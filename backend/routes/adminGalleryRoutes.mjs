@@ -1725,8 +1725,8 @@ router.post('/repair-raw-photos', async (req, res) => {
         }
 
         // Download to temp file (streaming to disk to avoid OOM on 120MB+ RAW files)
-        const tempRawPath = join(tmpdir(), `repair-${id}.raw`);
-        const tempJpegPath = join(tmpdir(), `repair-${id}.jpg`);
+        // Use .arw extension so dcraw can identify Sony RAW format
+        const tempRawPath = join(tmpdir(), `repair-${id}.arw`);
         logger.info(`[RepairRAW] Streaming ${storage_key} (${(r2Size / 1024 / 1024).toFixed(1)}MB) to disk...`);
         const getResp = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: storage_key }));
         const { createWriteStream } = await import('fs');
@@ -1734,41 +1734,50 @@ router.post('/repair-raw-photos', async (req, res) => {
         await pipeline(getResp.Body, createWriteStream(tempRawPath));
         logger.info(`[RepairRAW] Downloaded to ${tempRawPath}`);
 
-        // Convert to JPEG via sharp (from file → file, minimal memory)
+        // Convert to JPEG — try dcraw first, then sharp as fallback
         let jpegBuffer;
-        try {
-          // First try dcraw (better RAW support) then fall back to sharp
-          const dcrawPaths = [
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-linux', 'dcraw'),
-            join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe'),
-          ];
-          const dcrawPath = dcrawPaths.find(p => existsSync(p));
-          if (dcrawPath) {
-            logger.info(`[RepairRAW] Using dcraw: ${dcrawPath}`);
+        const dcrawPaths = [
+          join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-linux', 'dcraw'),
+          join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe'),
+        ];
+        const dcrawPath = dcrawPaths.find(p => existsSync(p));
+        let dcrawWorked = false;
+
+        if (dcrawPath) {
+          try {
+            logger.info(`[RepairRAW] Trying dcraw: ${dcrawPath}`);
             try { chmodSync(dcrawPath, 0o755); } catch {}
             execFileSync(dcrawPath, ['-T', '-w', '-q', '3', '-o', '1', tempRawPath], { timeout: 180000 });
             const tiffPath = tempRawPath.replace(/\.[^.]+$/, '.tiff');
             if (existsSync(tiffPath)) {
-              // Convert TIFF → JPEG via sharp (file-to-file)
               jpegBuffer = await sharp(tiffPath, { limitInputPixels: false })
                 .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
                 .jpeg({ quality: 92 })
                 .toBuffer();
               try { unlinkSync(tiffPath); } catch {}
-            } else {
-              throw new Error('dcraw produced no TIFF output');
+              dcrawWorked = true;
             }
-          } else {
-            // Try sharp directly (handles some RAW via libvips)
+          } catch (dcErr) {
+            logger.warn(`[RepairRAW] dcraw failed for photo ${id}: ${dcErr.message}, trying sharp...`);
+            // Clean up any tiff
+            try { unlinkSync(tempRawPath.replace(/\.[^.]+$/, '.tiff')); } catch {}
+          }
+        }
+
+        if (!dcrawWorked) {
+          try {
+            // Sharp fallback — libvips can handle some RAW formats
+            logger.info(`[RepairRAW] Trying sharp directly on ${tempRawPath}`);
             jpegBuffer = await sharp(tempRawPath, { limitInputPixels: false })
               .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
               .jpeg({ quality: 92 })
               .toBuffer();
+          } catch (sharpErr) {
+            try { unlinkSync(tempRawPath); } catch {}
+            throw new Error(`Both dcraw and sharp failed. dcraw may not support this RAW format. sharp: ${sharpErr.message}`);
           }
-        } catch (convErr) {
-          try { unlinkSync(tempRawPath); } catch {}
-          throw new Error(`Conversion failed: ${convErr.message}`);
         }
+
         // Clean up temp raw file
         try { unlinkSync(tempRawPath); } catch {}
 
