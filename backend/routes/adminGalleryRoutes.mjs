@@ -242,8 +242,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       logger.info(`[AdminGallery:Single] ${isRaw ? 'RAW' : 'Large'} file (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
       try {
         inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
-          .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality: 92 })
+          .jpeg({ quality: 95 })
           .toBuffer();
         logger.info(`[AdminGallery:Single] Converted: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
       } catch (convErr) {
@@ -414,8 +413,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           logger.info(`[AdminGallery] ${isRaw ? 'RAW format' : 'Large file'} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
           try {
             inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
-              .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-              .jpeg({ quality: 92 })
+              .jpeg({ quality: 95 })
               .toBuffer();
           } catch (conversionErr) {
             logger.error(`[AdminGallery] JPEG conversion FAILED for ${file.originalname}: ${conversionErr.message}`);
@@ -717,8 +715,7 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
     try {
       // Try sharp directly — works if file is already JPEG/PNG/WebP/TIFF
       jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
-        .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 92 })
+        .jpeg({ quality: 95 })
         .toBuffer();
       rawBuf = null;
       logger.info('[Reprocess] Sharp handled file directly');
@@ -753,8 +750,7 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
       // Read TIFF output and pipe through sharp
       const tiffBuf = (fs.default || fs).readFileSync(tmpTiff);
       jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
-        .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 92 })
+        .jpeg({ quality: 95 })
         .toBuffer();
 
       // Clean up temp files
@@ -942,16 +938,14 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
 
                 const tiffBuf = (fs.default || fs).readFileSync(tmpTiff);
                 jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
-                  .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-                  .jpeg({ quality: 92 })
+                  .jpeg({ quality: 95 })
                   .toBuffer();
 
                 try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
                 try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
               } else {
                 jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
-                  .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-                  .jpeg({ quality: 92 })
+                  .jpeg({ quality: 95 })
                   .toBuffer();
                 rawBuf = null;
               }

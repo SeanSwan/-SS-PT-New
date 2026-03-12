@@ -71,8 +71,8 @@ const singlePhotoId = args.includes('--photo')
   : null;
 
 const THRESHOLD_BYTES = thresholdMB * 1024 * 1024;
-const JPEG_QUALITY = 92;
-const MAX_DIMENSION = 4000;
+const JPEG_QUALITY = 95;
+const MAX_DIMENSION = null; // Full resolution — no downscale
 
 console.log('╔══════════════════════════════════════════════════════════════╗');
 console.log('║           GALLERY RAW PHOTO REPAIR SCRIPT                  ║');
@@ -252,15 +252,14 @@ async function main() {
       // ── REPAIR ──
       console.log(`  → Downloading ${formatSize(r2Size)} from R2...`);
       const rawBuffer = await downloadR2Object(storage_key);
-      console.log(`  → Downloaded. Converting RAW → JPEG (quality ${JPEG_QUALITY}, max ${MAX_DIMENSION}px)...`);
+      console.log(`  → Downloaded. Converting RAW → JPEG (quality ${JPEG_QUALITY}, ${MAX_DIMENSION ? 'max ' + MAX_DIMENSION + 'px' : 'full resolution'})...`);
 
       let jpegBuffer;
       try {
         // Try sharp directly first (handles TIFF, PNG, WebP, etc.)
-        jpegBuffer = await sharp(rawBuffer, { limitInputPixels: false })
-          .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality: JPEG_QUALITY })
-          .toBuffer();
+        let pipeline = sharp(rawBuffer, { limitInputPixels: false });
+        if (MAX_DIMENSION) pipeline = pipeline.resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true });
+        jpegBuffer = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
       } catch (sharpErr) {
         if (!sharpErr.message.includes('unsupported image format') || !DCRAW_PATH) {
           throw sharpErr;
@@ -282,10 +281,9 @@ async function main() {
           const tiffPath = existsSync(dcrawOutput) ? dcrawOutput : tempTiff;
           const tiffBuffer = readFileSync(tiffPath);
           console.log(`  → dcraw produced ${formatSize(tiffBuffer.length)} TIFF, converting to JPEG...`);
-          jpegBuffer = await sharp(tiffBuffer, { limitInputPixels: false })
-            .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: JPEG_QUALITY })
-            .toBuffer();
+          let tiffPipeline = sharp(tiffBuffer, { limitInputPixels: false });
+          if (MAX_DIMENSION) tiffPipeline = tiffPipeline.resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true });
+          jpegBuffer = await tiffPipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
           // Clean up temp files
           try { unlinkSync(tempRaw); } catch {}
           try { unlinkSync(dcrawOutput); } catch {}
