@@ -335,9 +335,15 @@ const DropZone = styled.div<{ $dragging?: boolean }>`
 
 const PhotoGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
   margin-top: 16px;
+`;
+
+const PhotoThumbWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
 const PhotoThumb = styled.div`
@@ -345,7 +351,72 @@ const PhotoThumb = styled.div`
   border-radius: 8px;
   overflow: hidden;
   position: relative;
-  img { width: 100%; height: 100%; object-fit: cover; }
+  cursor: pointer;
+  img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+  &:hover img { transform: scale(1.03); }
+`;
+
+const PhotoThumbName = styled.div`
+  text-align: center;
+  color: #fff;
+  font-family: 'Sora', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+`;
+
+const LightboxOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: pointer;
+`;
+
+const LightboxImage = styled.img`
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+`;
+
+const LightboxCaption = styled.div`
+  color: #fff;
+  font-family: 'Sora', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 12px;
+  text-align: center;
+`;
+
+const LightboxClose = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: rgba(255, 255, 255, 0.2); }
 `;
 
 const ToggleSwitch = styled.button<{ $on: boolean }>`
@@ -507,6 +578,7 @@ const AdminGalleryManager: React.FC = () => {
   const [uploadCompletedBatches, setUploadCompletedBatches] = useState(0);
   const [uploadTotalBatches, setUploadTotalBatches] = useState(0);
   const [uploadCompletedPhotos, setUploadCompletedPhotos] = useState(0);
+  const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; displayName: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const cancelledRef = useRef(false);
@@ -1053,6 +1125,7 @@ const AdminGalleryManager: React.FC = () => {
   };
 
   return (
+    <>
     <Wrapper>
       {/* R2 Storage Warning */}
       {stats && stats.storageType === 'base64-fallback' && (
@@ -1341,42 +1414,42 @@ const AdminGalleryManager: React.FC = () => {
                             const sentiment = thumbsUp - thumbsDown;
                             const sentimentType = sentiment > 0 ? 'positive' : sentiment < 0 ? 'negative' : 'neutral';
                             return (
-                              <PhotoThumb key={photo.id}>
-                                <img src={photo.thumbnailUrl || photo.url} alt={photo.displayName} />
-                                {/* Vote stat badge (admin) */}
-                                {(thumbsUp > 0 || thumbsDown > 0) && (
+                              <PhotoThumbWrapper key={photo.id}>
+                                <PhotoThumb onClick={() => setLightboxPhoto({ url: photo.url, displayName: photo.displayName })}>
+                                  <img src={photo.thumbnailUrl || photo.url} alt={photo.displayName} />
+                                  {/* Vote stat badge (admin) */}
+                                  {(thumbsUp > 0 || thumbsDown > 0) && (
+                                    <div style={{
+                                      position: 'absolute', top: 6, right: 6, display: 'flex', alignItems: 'center', gap: 6,
+                                      padding: '3px 8px', background: 'rgba(0,16,64,0.85)', backdropFilter: 'blur(8px)',
+                                      borderRadius: 6, fontSize: 12, fontWeight: 600,
+                                      border: `1px solid ${sentimentType === 'positive' ? 'rgba(96,192,240,0.3)' : sentimentType === 'negative' ? 'rgba(255,94,126,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                                      color: sentimentType === 'positive' ? '#60C0F0' : sentimentType === 'negative' ? '#FF5E7E' : '#fff',
+                                    }}>
+                                      <span>{thumbsUp > 0 ? `+${thumbsUp}` : ''}</span>
+                                      {thumbsUp > 0 && thumbsDown > 0 && <span>/</span>}
+                                      <span>{thumbsDown > 0 ? `-${thumbsDown}` : ''}</span>
+                                    </div>
+                                  )}
                                   <div style={{
-                                    position: 'absolute', top: 6, right: 6, display: 'flex', alignItems: 'center', gap: 6,
-                                    padding: '3px 8px', background: 'rgba(0,16,64,0.85)', backdropFilter: 'blur(8px)',
-                                    borderRadius: 6, fontSize: 12, fontWeight: 600,
-                                    border: `1px solid ${sentimentType === 'positive' ? 'rgba(96,192,240,0.3)' : sentimentType === 'negative' ? 'rgba(255,94,126,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                                    color: sentimentType === 'positive' ? '#60C0F0' : sentimentType === 'negative' ? '#FF5E7E' : '#fff',
+                                    position: 'absolute', bottom: 0, right: 0,
+                                    padding: '4px',
                                   }}>
-                                    <span>{thumbsUp > 0 ? `+${thumbsUp}` : ''}</span>
-                                    {thumbsUp > 0 && thumbsDown > 0 && <span>/</span>}
-                                    <span>{thumbsDown > 0 ? `-${thumbsDown}` : ''}</span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id); }}
+                                      style={{
+                                        background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: 4,
+                                        color: '#fff', fontSize: 10, padding: '2px 6px', cursor: 'pointer',
+                                        minHeight: 24, minWidth: 24
+                                      }}
+                                      title="Delete photo"
+                                    >
+                                      &#x2715;
+                                    </button>
                                   </div>
-                                )}
-                                <div style={{
-                                  position: 'absolute', bottom: 0, left: 0, right: 0,
-                                  background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                                  padding: '16px 6px 4px', fontSize: 10, color: 'rgba(255,255,255,0.7)',
-                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                                }}>
-                                  <span>{photo.displayName}</span>
-                                  <button
-                                    onClick={() => deletePhoto(photo.id)}
-                                    style={{
-                                      background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: 4,
-                                      color: '#fff', fontSize: 10, padding: '2px 6px', cursor: 'pointer',
-                                      minHeight: 24, minWidth: 24
-                                    }}
-                                    title="Delete photo"
-                                  >
-                                    &#x2715;
-                                  </button>
-                                </div>
-                              </PhotoThumb>
+                                </PhotoThumb>
+                                <PhotoThumbName title={photo.displayName}>{photo.displayName}</PhotoThumbName>
+                              </PhotoThumbWrapper>
                             );
                           })}
                         </PhotoGrid>
@@ -1573,6 +1646,22 @@ const AdminGalleryManager: React.FC = () => {
         </GlassCard>
       )}
     </Wrapper>
+
+      {/* Photo Lightbox */}
+      {lightboxPhoto && (
+        <LightboxOverlay onClick={() => setLightboxPhoto(null)}>
+          <LightboxClose onClick={() => setLightboxPhoto(null)} aria-label="Close lightbox">
+            &#x2715;
+          </LightboxClose>
+          <LightboxImage
+            src={lightboxPhoto.url}
+            alt={lightboxPhoto.displayName}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <LightboxCaption>{lightboxPhoto.displayName}</LightboxCaption>
+        </LightboxOverlay>
+      )}
+    </>
   );
 };
 

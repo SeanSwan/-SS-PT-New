@@ -604,7 +604,13 @@ const GridWrapper = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
-  @media (max-width: 480px) { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  @media (max-width: 480px) { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+`;
+
+const PhotoCardWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 `;
 
 const PhotoCard = styled.div<{ $selected?: boolean }>`
@@ -660,6 +666,20 @@ const PhotoLabel = styled.span`
   color: #fff;
   font-size: 13px;
   font-weight: 600;
+`;
+
+const PhotoFilename = styled.div`
+  text-align: center;
+  color: #fff;
+  font-family: 'Sora', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @media (max-width: 480px) { font-size: 10px; }
 `;
 
 // ── Watermark Overlay (CSS-only, not on downloads) ────────────────────────
@@ -1332,14 +1352,28 @@ const GalleryPage: React.FC = () => {
       });
       const data = await res.json();
       if (data.success && data.downloadUrl) {
-        const link = document.createElement('a');
-        link.href = data.downloadUrl;
-        link.download = data.filename || 'photo.jpg';
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const filename = data.filename || 'photo.jpg';
+        // Fetch as blob to force browser download manager (cross-origin URLs open in new tab otherwise)
+        try {
+          const blobRes = await fetch(data.downloadUrl);
+          const blob = await blobRes.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        } catch {
+          // Blob fetch failed (CORS), fall back to direct link
+          const link = document.createElement('a');
+          link.href = data.downloadUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       }
     } catch {
       // Fallback: open the photo URL directly
@@ -1539,31 +1573,33 @@ const GalleryPage: React.FC = () => {
             {photos.map(photo => {
               const voteData = votesMap[photo.id];
               return (
-                <PhotoCard
-                  key={photo.id}
-                  $selected={enhanceSelections.has(photo.id)}
-                  onClick={() => openPhotoModal(photos.indexOf(photo))}
-                  onMouseEnter={() => setHoveredPhotoId(photo.id)}
-                  onMouseLeave={() => setHoveredPhotoId(null)}
-                >
-                  <PhotoImg
-                    src={photo.thumbnailUrl || photo.url}
-                    alt={photo.displayName}
-                    loading="lazy"
-                    onLoad={e => { (e.target as HTMLImageElement).style.animation = 'none'; }}
-                  />
-                  <PhotoFeedback
-                    photoId={photo.id}
-                    thumbsUp={voteData?.thumbsUp || 0}
-                    thumbsDown={voteData?.thumbsDown || 0}
-                    userVote={voteData?.userVote || null}
-                    onVote={handleVote}
-                    isHovered={hoveredPhotoId === photo.id}
-                  />
-                  <PhotoOverlay>
-                    <PhotoLabel>{photo.displayName}</PhotoLabel>
-                  </PhotoOverlay>
-                </PhotoCard>
+                <PhotoCardWrapper key={photo.id}>
+                  <PhotoCard
+                    $selected={enhanceSelections.has(photo.id)}
+                    onClick={() => openPhotoModal(photos.indexOf(photo))}
+                    onMouseEnter={() => setHoveredPhotoId(photo.id)}
+                    onMouseLeave={() => setHoveredPhotoId(null)}
+                  >
+                    <PhotoImg
+                      src={photo.thumbnailUrl || photo.url}
+                      alt={photo.displayName}
+                      loading="lazy"
+                      onLoad={e => { (e.target as HTMLImageElement).style.animation = 'none'; }}
+                    />
+                    <PhotoFeedback
+                      photoId={photo.id}
+                      thumbsUp={voteData?.thumbsUp || 0}
+                      thumbsDown={voteData?.thumbsDown || 0}
+                      userVote={voteData?.userVote || null}
+                      onVote={handleVote}
+                      isHovered={hoveredPhotoId === photo.id}
+                    />
+                    <PhotoOverlay>
+                      <PhotoLabel>{photo.displayName}</PhotoLabel>
+                    </PhotoOverlay>
+                  </PhotoCard>
+                  <PhotoFilename>{photo.displayName}</PhotoFilename>
+                </PhotoCardWrapper>
               );
             })}
           </GridWrapper>

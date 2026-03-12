@@ -596,9 +596,23 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
               {/* Direct download link as fallback */}
               <a
                 href={downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    const res = await fetch(downloadUrl);
+                    const blob = await res.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = photo.displayName + '.jpg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                  } catch {
+                    window.open(downloadUrl, '_blank');
+                  }
+                }}
                 style={{
                   color: 'rgba(224, 236, 244, 0.4)',
                   fontSize: '0.8rem',
@@ -606,6 +620,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                   textAlign: 'center',
                   padding: '8px',
                   display: 'block',
+                  cursor: 'pointer',
                 }}
               >
                 Direct download link
