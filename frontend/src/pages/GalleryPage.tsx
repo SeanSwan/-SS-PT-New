@@ -1618,7 +1618,11 @@ const GalleryPage: React.FC = () => {
           <GalleryInfoCard
             onOpenMessage={() => setShowMessageModal(true)}
             onOpenDonation={() => setShowDonationModal(true)}
-            onOpenVip={() => navigate('/signup')}
+            onOpenVip={() => {
+              // If user is already logged in, go to store; otherwise signup
+              const token = localStorage.getItem('token');
+              navigate(token ? '/store' : '/signup');
+            }}
             freeCredits={credits.freeRemaining}
           />
         )}
