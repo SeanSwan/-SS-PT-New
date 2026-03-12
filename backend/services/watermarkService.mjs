@@ -92,8 +92,7 @@ export async function applyWatermark(photoBuffer, options = {}) {
       }])
       .toBuffer();
 
-    // Create "sswanstudios.com" text as SVG
-    // "sswanstudios.com" = 16 chars — need ~0.65em per char + padding
+    // Create "sswanstudios.com" text as SVG — right-aligned to match logo right edge
     const textFontSize = Math.max(12, Math.round(logoWidth * 0.18));
     const textWidth = Math.max(logoWidth + 60, Math.round(textFontSize * 13));
     const textHeight = Math.round(textFontSize * 1.8);
@@ -103,7 +102,7 @@ export async function applyWatermark(photoBuffer, options = {}) {
         <style>
           .url { fill: white; font-family: Arial, Helvetica, sans-serif; font-size: ${textFontSize}px; font-weight: bold; }
         </style>
-        <text x="50%" y="60%" text-anchor="middle" class="url" opacity="${opacity}">sswanstudios.com</text>
+        <text x="${textWidth - 2}" y="60%" text-anchor="end" class="url" opacity="${opacity}">sswanstudios.com</text>
       </svg>
     `);
 
@@ -111,14 +110,11 @@ export async function applyWatermark(photoBuffer, options = {}) {
     const textGap = Math.round(textFontSize * 0.3);
     const totalWatermarkHeight = logoHeight + textGap + textHeight;
 
-    // Position: bottom-right with padding, center text under logo
+    // Position: bottom-right with padding
     const logoLeft = photoWidth - logoWidth - padding;
-    const logoCenterX = logoLeft + Math.round(logoWidth / 2);
     const logoTop = photoHeight - totalWatermarkHeight - padding;
-    // Center text under logo, but clamp so it doesn't extend past the photo edge
-    const textLeftCentered = logoCenterX - Math.round(textWidth / 2);
-    const textLeftMax = photoWidth - textWidth - padding;
-    const textLeft = Math.max(0, Math.min(textLeftCentered, textLeftMax));
+    // Right-align text so its right edge matches the logo's right edge (photoWidth - padding)
+    const textLeft = Math.max(0, photoWidth - textWidth - padding);
     const textTop = logoTop + logoHeight + textGap;
 
     // Composite logo + text onto photo
