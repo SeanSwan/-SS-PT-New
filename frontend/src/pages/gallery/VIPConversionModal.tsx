@@ -540,10 +540,13 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
   galleryToken,
   onVipActivated,
 }) => {
-  // Determine initial step from URL
+  // Determine initial step — skip account creation if user is already logged in
   const getInitialStep = (): Step => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('vip') === 'success') return 'success';
+    // If user already has a SwanStudios auth token, skip straight to checkout
+    const existingToken = localStorage.getItem('token');
+    if (existingToken) return 'checkout';
     return 'account';
   };
 
@@ -557,8 +560,8 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
   const [firstNameValue, setFirstNameValue] = useState('');
   const [lastNameValue, setLastNameValue] = useState('');
 
-  // Auth state
-  const [userToken, setUserToken] = useState<string | null>(null);
+  // Auth state — pre-populate from localStorage if already logged in
+  const [userToken, setUserToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [userId, setUserId] = useState<string | null>(null);
 
   // UI state
@@ -581,6 +584,16 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         }
       } catch { /* non-critical */ }
     })();
+  }, [isOpen]);
+
+  // Re-evaluate step when modal opens (token may have changed since init)
+  useEffect(() => {
+    if (!isOpen) return;
+    const existingToken = localStorage.getItem('token');
+    if (existingToken && step === 'account') {
+      setUserToken(existingToken);
+      setStep('checkout');
+    }
   }, [isOpen]);
 
   // Check for ?vip=success on mount
@@ -658,9 +671,10 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
+          // Gallery token for requireGalleryAccess middleware
+          Authorization: `Bearer ${galleryToken}`,
         },
-        body: JSON.stringify({ eventSlug }),
+        body: JSON.stringify({ eventSlug, userToken }),
       });
 
       const data = await res.json();

@@ -1214,8 +1214,9 @@ router.delete('/photos/:photoId', async (req, res) => {
 
     const eventId = photo.eventId;
 
-    // Delete associated enhancement requests first
+    // Delete associated records first (FK constraints)
     await EnhancementRequest.destroy({ where: { photoId: photo.id } });
+    await PhotoVote.destroy({ where: { photoId: photo.id } });
 
     // Delete the photo record
     await photo.destroy();

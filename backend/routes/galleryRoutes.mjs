@@ -1019,12 +1019,22 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
  */
 router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
   try {
-    const { userId } = req.body;
+    let { userId, userToken } = req.body;
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
 
+    // Extract userId from userToken if not provided directly
+    if (!userId && userToken) {
+      try {
+        const decoded = jwt.verify(userToken, process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (tokenErr) {
+        logger.warn('[Gallery VIP] Invalid userToken in checkout:', tokenErr.message);
+      }
+    }
+
     if (!userId) {
-      return res.status(400).json({ success: false, error: 'userId is required' });
+      return res.status(400).json({ success: false, error: 'userId is required — please log in first' });
     }
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
