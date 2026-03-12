@@ -1116,7 +1116,7 @@ router.get('/events/:id/photos', async (req, res) => {
   try {
     const photos = await GalleryPhoto.findAll({
       where: { eventId: req.params.id },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'sourceType', 'createdAt'],
+      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'createdAt'],
       order: [['photoNumber', 'ASC']],
     });
     return res.json({ success: true, photos });
