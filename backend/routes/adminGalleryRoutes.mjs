@@ -324,21 +324,41 @@ router.post('/events/:id/upload-single', (req, res, next) => {
           });
         }
       } else {
-        // ── Standard image (JPEG/PNG/etc): sharp reads from disk directly ──
-        logger.info(`[AdminGallery:Single] Standard file ${file.originalname} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — converting to Q95 JPEG`);
-        try {
-          inputBuffer = await sharp(uploadedPath, { limitInputPixels: false })
-            .jpeg({ quality: 95 })
-            .toBuffer();
-          logger.info(`[AdminGallery:Single] Converted: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB JPEG`);
-        } catch (sharpErr) {
-          logger.error(`[AdminGallery:Single] sharp conversion failed for ${file.originalname}: ${sharpErr.message}`);
-          cleanupTemp(uploadedPath);
-          return res.status(422).json({
-            success: false,
-            error: `Image conversion failed for ${file.originalname}: ${sharpErr.message}`,
-            hint: 'The file may be corrupted or in an unsupported format.',
-          });
+        // ── Standard image (JPEG/PNG/etc) ──
+        const ext = extname(file.originalname || '').toLowerCase();
+        const isJpeg = ext === '.jpg' || ext === '.jpeg';
+
+        if (isJpeg) {
+          // JPEG files: read directly without re-encoding — just watermark
+          logger.info(`[AdminGallery:Single] JPEG file ${file.originalname} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — skipping re-encode, watermark only`);
+          try {
+            inputBuffer = readFileSync(uploadedPath);
+            logger.info(`[AdminGallery:Single] Read JPEG buffer: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+          } catch (readErr) {
+            logger.error(`[AdminGallery:Single] Failed to read JPEG ${file.originalname}: ${readErr.message}`);
+            cleanupTemp(uploadedPath);
+            return res.status(422).json({
+              success: false,
+              error: `Failed to read file ${file.originalname}: ${readErr.message}`,
+            });
+          }
+        } else {
+          // Non-JPEG (PNG, WebP, etc.): convert to JPEG via sharp
+          logger.info(`[AdminGallery:Single] Non-JPEG file ${file.originalname} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — converting to Q95 JPEG`);
+          try {
+            inputBuffer = await sharp(uploadedPath, { limitInputPixels: false })
+              .jpeg({ quality: 95 })
+              .toBuffer();
+            logger.info(`[AdminGallery:Single] Converted: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB JPEG`);
+          } catch (sharpErr) {
+            logger.error(`[AdminGallery:Single] sharp conversion failed for ${file.originalname}: ${sharpErr.message}`);
+            cleanupTemp(uploadedPath);
+            return res.status(422).json({
+              success: false,
+              error: `Image conversion failed for ${file.originalname}: ${sharpErr.message}`,
+              hint: 'The file may be corrupted or in an unsupported format.',
+            });
+          }
         }
         cleanupTemp(uploadedPath);
       }

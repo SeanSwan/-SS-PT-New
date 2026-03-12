@@ -766,8 +766,8 @@ const AdminGalleryManager: React.FC = () => {
 
   // Upload mode limits
   const UPLOAD_LIMITS = {
-    raw: { maxFiles: 500, maxSizeMB: 150, label: 'RAW', desc: 'Camera RAW files (ARW, CR2, NEF, etc.) — converted to full-res Q95 JPEG server-side' },
-    jpeg: { maxFiles: 500, maxSizeMB: 50, label: 'HQ JPEG', desc: 'High-quality JPEG/PNG files — minimal processing, faster uploads' },
+    raw: { maxFiles: 500, maxSizeMB: 150, label: 'RAW → JPEG', desc: 'Camera RAW files (ARW, CR2, NEF, etc.) — converts to full-res Q95 JPEG + watermark (uses more server power)' },
+    jpeg: { maxFiles: 500, maxSizeMB: 50, label: 'JPEG (watermark only)', desc: 'Already high-quality JPEGs — watermark applied, no conversion needed, fast uploads' },
   };
 
   // Upload a single file via the dedicated single-file endpoint
