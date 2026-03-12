@@ -574,7 +574,20 @@ const AdminGalleryManager: React.FC = () => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/gallery/messages`, { headers: getHeaders() });
       const data = await res.json();
-      if (data.success) setMessages(data.messages || []);
+      if (data.success) {
+        // Map nested backend response to flat GalleryMessage interface
+        const mapped = (data.messages || []).map((m: any) => ({
+          id: m.id,
+          visitorName: m.firstName || m.visitor?.firstName || '—',
+          visitorEmail: m.email || m.visitor?.email || '—',
+          visitorPhone: m.phone || null,
+          eventName: m.event?.name || null,
+          message: m.message,
+          isRead: m.isRead,
+          createdAt: m.createdAt,
+        }));
+        setMessages(mapped);
+      }
     } catch { /* */ }
   };
 
