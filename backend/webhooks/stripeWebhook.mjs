@@ -5,6 +5,9 @@ import ShoppingCart from '../models/ShoppingCart.mjs';
 import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
+import GalleryVisitor from '../models/GalleryVisitor.mjs';
+import Lead from '../models/Lead.mjs';
+import LeadActivity from '../models/LeadActivity.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import { upgradeToClient } from '../services/roleService.mjs';
@@ -62,11 +65,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'checkout.session.completed': {
         const session = event.data.object;
 
-        // Extract cart ID from metadata
+        // ── Gallery Credit / VIP Fulfillment ──────────────────────────
+        if (session.metadata?.type === 'gallery_credits') {
+          await fulfillGalleryCredits(session);
+          break;
+        }
+
+        // ── Cart / Store Fulfillment ──────────────────────────────────
         const cartId = session.metadata?.cartId;
 
         if (!cartId) {
-          logger.error('No cartId found in session metadata');
+          logger.warn('[Webhook] checkout.session.completed with no cartId or gallery_credits — ignoring');
           break;
         }
 
@@ -79,7 +88,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         }
 
         // IDEMPOTENCY CHECK: Skip if sessions already granted
-        // This prevents double-grants if verify-session already processed this order
         if (cart.sessionsGranted === true) {
           logger.info(`[Webhook] Idempotency: Cart ${cartId} already has sessions granted - skipping`);
           console.log(`⚠️ [Webhook] Sessions already granted for cart ${cartId} - idempotent skip`);
@@ -432,6 +440,59 @@ async function createOrderRecord(cart) {
   } catch (error) {
     logger.error(`Error creating order record: ${error.message}`);
     // Log but don't throw to avoid blocking the purchase flow
+  }
+}
+
+/**
+ * Fulfill gallery credit purchase or VIP activation after Stripe payment confirmed.
+ * Called from the checkout.session.completed handler when metadata.type === 'gallery_credits'.
+ */
+async function fulfillGalleryCredits(session) {
+  const meta = session.metadata || {};
+  const visitorId = parseInt(meta.visitorId);
+  const pkg = meta.package;
+  const credits = parseInt(meta.credits) || 0;
+
+  if (!visitorId) {
+    logger.error(`[Gallery Webhook] No visitorId in session ${session.id}`);
+    return;
+  }
+
+  const visitor = await GalleryVisitor.findByPk(visitorId);
+  if (!visitor) {
+    logger.error(`[Gallery Webhook] Visitor ${visitorId} not found for session ${session.id}`);
+    return;
+  }
+
+  if (pkg === 'vip') {
+    await visitor.update({ isVip: true });
+    logger.info(`[Gallery Webhook] VIP activated for visitor ${visitorId}`);
+  } else if (credits > 0) {
+    // Atomic increment — safe against concurrent webhooks
+    await GalleryVisitor.increment('enhancementCredits', {
+      by: credits,
+      where: { id: visitorId },
+    });
+    logger.info(`[Gallery Webhook] +${credits} credits for visitor ${visitorId}`);
+  }
+
+  // Bump lead score (+10 for purchase)
+  try {
+    const lead = await Lead.findOne({ where: { galleryVisitorId: visitorId } });
+    if (lead) {
+      const newScore = Math.min(100, (lead.score || 0) + 10);
+      await lead.update({ score: newScore });
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'score_changed',
+        performedByAI: true,
+        title: `Lead score +10 (credit purchase: ${pkg})`,
+        description: `Purchased ${pkg} package via Stripe (session ${session.id})`,
+        metadata: { previousScore: lead.score, newScore, reason: 'credit_purchase', package: pkg },
+      });
+    }
+  } catch (scoreErr) {
+    logger.warn(`[Gallery Webhook] Lead score bump failed: ${scoreErr.message}`);
   }
 }
 
