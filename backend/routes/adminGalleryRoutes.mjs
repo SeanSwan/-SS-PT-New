@@ -11,7 +11,7 @@ import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { Op, fn, literal, col } from 'sequelize';
 import sequelize from '../database.mjs';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import GalleryEvent from '../models/GalleryEvent.mjs';
 import GalleryPhoto from '../models/GalleryPhoto.mjs';
@@ -1649,6 +1649,172 @@ router.patch('/messages/:id/read', async (req, res) => {
   } catch (err) {
     logger.error('[AdminGallery] Mark read error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to mark message as read' });
+  }
+});
+
+// ─── Repair RAW Photos ───────────────────────────────────────────────────────
+// POST /admin/gallery/repair-raw-photos
+// Downloads oversized R2 objects (likely RAW ARW), converts to JPEG via sharp,
+// re-uploads, and updates the DB. Requires admin auth.
+// Query params: ?event=slug&execute=true&threshold=10
+router.post('/repair-raw-photos', async (req, res) => {
+  try {
+    const eventSlug = req.query.event || null;
+    const execute = req.query.execute === 'true';
+    const thresholdMB = parseFloat(req.query.threshold) || 10;
+    const thresholdBytes = thresholdMB * 1024 * 1024;
+
+    const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) {
+      return res.status(503).json({ success: false, error: 'R2 not configured' });
+    }
+    const client = getR2Client();
+    const bucketName = process.env.R2_BUCKET_NAME;
+
+    // Find photos to check
+    const whereClause = [];
+    const replacements = {};
+    if (eventSlug) {
+      whereClause.push('ge.slug = :slug');
+      replacements.slug = eventSlug;
+    }
+    const whereSQL = whereClause.length > 0 ? 'WHERE ' + whereClause.join(' AND ') : '';
+
+    const [photos] = await sequelize.query(`
+      SELECT gp.id, gp.storage_key, gp.display_name, gp.file_size, gp.url,
+             gp.photo_number, gp.event_id, ge.slug AS event_slug
+      FROM gallery_photos gp
+      JOIN gallery_events ge ON ge.id = gp.event_id
+      ${whereSQL}
+      ORDER BY ge.slug, gp.photo_number
+    `, { replacements });
+
+    const results = [];
+
+    for (const photo of photos) {
+      const { id, storage_key, display_name } = photo;
+      try {
+        // Check actual R2 object size via HEAD
+        let r2Size = null;
+        try {
+          const head = await client.send(new HeadObjectCommand({ Bucket: bucketName, Key: storage_key }));
+          r2Size = head.ContentLength;
+        } catch (headErr) {
+          if (headErr.name === 'NotFound' || headErr.$metadata?.httpStatusCode === 404) {
+            results.push({ id, display_name, storage_key, status: 'missing' });
+            continue;
+          }
+          throw headErr;
+        }
+
+        if (r2Size < thresholdBytes) {
+          results.push({ id, display_name, storage_key, status: 'ok', r2Size });
+          continue;
+        }
+
+        // Oversized — likely RAW
+        if (!execute) {
+          results.push({ id, display_name, storage_key, status: 'broken', r2Size, action: 'would_repair' });
+          continue;
+        }
+
+        // Download, convert, re-upload
+        logger.info(`[RepairRAW] Downloading ${storage_key} (${(r2Size / 1024 / 1024).toFixed(1)}MB)...`);
+        const getResp = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: storage_key }));
+        const chunks = [];
+        for await (const chunk of getResp.Body) chunks.push(chunk);
+        const rawBuffer = Buffer.concat(chunks);
+
+        // Convert to JPEG via sharp
+        let jpegBuffer;
+        try {
+          jpegBuffer = await sharp(rawBuffer, { limitInputPixels: false })
+            .jpeg({ quality: 95 })
+            .toBuffer();
+        } catch (sharpErr) {
+          // Try dcraw fallback for true RAW formats
+          const dcrawPaths = [
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-win32', 'dcraw.exe'),
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'dcraw-vendored-linux', 'dcraw'),
+          ];
+          const dcrawPath = dcrawPaths.find(p => existsSync(p));
+          if (!dcrawPath) throw new Error(`Sharp can't decode and dcraw not found: ${sharpErr.message}`);
+
+          const tempRaw = join(tmpdir(), `repair-${id}.arw`);
+          const { writeFileSync: writeSync } = await import('fs');
+          writeSync(tempRaw, rawBuffer);
+          try {
+            // Ensure executable on Linux
+            try { chmodSync(dcrawPath, 0o755); } catch {}
+            execFileSync(dcrawPath, ['-T', '-w', '-q', '3', '-o', '1', tempRaw], { timeout: 120000 });
+            const tiffPath = tempRaw.replace(/\.[^.]+$/, '.tiff');
+            const tiffBuffer = readFileSync(tiffPath);
+            jpegBuffer = await sharp(tiffBuffer, { limitInputPixels: false }).jpeg({ quality: 95 }).toBuffer();
+            try { unlinkSync(tempRaw); } catch {}
+            try { unlinkSync(tiffPath); } catch {}
+          } catch (dcErr) {
+            try { unlinkSync(tempRaw); } catch {}
+            try { unlinkSync(tempRaw.replace(/\.[^.]+$/, '.tiff')); } catch {}
+            throw new Error(`dcraw conversion failed: ${dcErr.message}`);
+          }
+        }
+
+        // Re-upload converted JPEG
+        await client.send(new PutObjectCommand({
+          Bucket: bucketName,
+          Key: storage_key,
+          Body: jpegBuffer,
+          ContentType: 'image/jpeg',
+        }));
+
+        // Update DB record
+        await sequelize.query(`
+          UPDATE gallery_photos
+          SET file_size = :fileSize,
+              mime_type = 'image/jpeg',
+              metadata = jsonb_set(
+                COALESCE(metadata, '{}'),
+                '{repaired}',
+                :repairMeta::jsonb
+              ),
+              updated_at = NOW()
+          WHERE id = :id
+        `, {
+          replacements: {
+            id,
+            fileSize: jpegBuffer.length,
+            repairMeta: JSON.stringify({
+              repairedAt: new Date().toISOString(),
+              originalR2Size: r2Size,
+              convertedSize: jpegBuffer.length,
+              reason: 'RAW file stored without JPEG conversion',
+            }),
+          },
+        });
+
+        logger.info(`[RepairRAW] Repaired photo ${id}: ${(r2Size / 1024 / 1024).toFixed(1)}MB → ${(jpegBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+        results.push({ id, display_name, storage_key, status: 'repaired', originalSize: r2Size, newSize: jpegBuffer.length });
+
+      } catch (err) {
+        logger.error(`[RepairRAW] Error on photo ${id}: ${err.message}`);
+        results.push({ id, display_name, storage_key, status: 'error', error: err.message });
+      }
+    }
+
+    const summary = {
+      total: photos.length,
+      ok: results.filter(r => r.status === 'ok').length,
+      broken: results.filter(r => r.status === 'broken').length,
+      repaired: results.filter(r => r.status === 'repaired').length,
+      missing: results.filter(r => r.status === 'missing').length,
+      errors: results.filter(r => r.status === 'error').length,
+      mode: execute ? 'execute' : 'dry-run',
+    };
+
+    return res.json({ success: true, summary, results });
+  } catch (err) {
+    logger.error('[RepairRAW] Repair endpoint error:', err.message, err.stack);
+    return res.status(500).json({ success: false, error: `Repair failed: ${err.message}` });
   }
 });
 

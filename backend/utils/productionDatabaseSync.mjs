@@ -82,6 +82,89 @@ const createMissingTables = async () => {
 };
 
 /**
+ * Add missing columns that migrations may not have applied in production.
+ * Each entry is checked individually — if the column already exists, it's skipped.
+ */
+const MISSING_COLUMNS = [
+  // gallery_photos.source_type — added in 20260311000000 migration
+  {
+    table: 'gallery_photos',
+    column: 'source_type',
+    sql: `ALTER TABLE "gallery_photos" ADD COLUMN "source_type" VARCHAR(20) NOT NULL DEFAULT 'jpeg';`,
+  },
+  // gallery_visitors geo columns — added in 20260311000100 migration
+  {
+    table: 'gallery_visitors',
+    column: 'country',
+    sql: `ALTER TABLE "gallery_visitors" ADD COLUMN "country" VARCHAR(100);`,
+  },
+  {
+    table: 'gallery_visitors',
+    column: 'city',
+    sql: `ALTER TABLE "gallery_visitors" ADD COLUMN "city" VARCHAR(100);`,
+  },
+  {
+    table: 'gallery_visitors',
+    column: 'region',
+    sql: `ALTER TABLE "gallery_visitors" ADD COLUMN "region" VARCHAR(100);`,
+  },
+  {
+    table: 'gallery_visitors',
+    column: 'latitude',
+    sql: `ALTER TABLE "gallery_visitors" ADD COLUMN "latitude" DOUBLE PRECISION;`,
+  },
+  {
+    table: 'gallery_visitors',
+    column: 'longitude',
+    sql: `ALTER TABLE "gallery_visitors" ADD COLUMN "longitude" DOUBLE PRECISION;`,
+  },
+];
+
+const addMissingColumns = async () => {
+  const added = [];
+  const skipped = [];
+  const errors = [];
+
+  for (const { table, column, sql } of MISSING_COLUMNS) {
+    try {
+      // Check whether the table exists first
+      const [tableRows] = await sequelize.query(
+        `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '${table}';`
+      );
+      if (tableRows.length === 0) {
+        skipped.push(`${table}.${column} (table does not exist yet)`);
+        continue;
+      }
+
+      // Check whether the column already exists
+      const [colRows] = await sequelize.query(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${table}' AND column_name = '${column}';`
+      );
+      if (colRows.length > 0) {
+        skipped.push(`${table}.${column}`);
+        continue;
+      }
+
+      // Column is missing — add it
+      await sequelize.query(sql);
+      added.push(`${table}.${column}`);
+      logger.info(`  ✅ Added missing column: ${table}.${column}`);
+    } catch (err) {
+      // "already exists" is fine — treat as skipped
+      if (err.message && err.message.includes('already exists')) {
+        skipped.push(`${table}.${column}`);
+      } else {
+        errors.push({ table, column, error: err.message });
+        logger.warn(`  ⚠️  Failed to add column ${table}.${column}: ${err.message}`);
+      }
+    }
+  }
+
+  logger.info(`🔧 Missing-column check: ${added.length} added, ${skipped.length} already present, ${errors.length} errors`);
+  return { added, skipped, errors };
+};
+
+/**
  * Sync indexes and foreign keys safely
  * ENHANCED: Better error handling for constraint creation with detailed categorization
  */
@@ -139,15 +222,19 @@ export const syncDatabaseSafely = async () => {
     
     // Step 1: Create missing tables
     const tableResult = await createMissingTables();
-    
-    // Step 2: Sync indexes and constraints (safer approach)
+
+    // Step 2: Add missing columns that migrations may not have applied
+    const columnResult = await addMissingColumns();
+
+    // Step 3: Sync indexes and constraints (safer approach)
     const constraintResult = await syncIndexesAndConstraints();
     
     // Enhanced Summary with detailed error categorization
     const summary = {
-      success: tableResult.success && constraintResult.success,
+      success: tableResult.success && constraintResult.success && columnResult.errors.length === 0,
       tablesCreated: tableResult.createdCount || 0,
       tablesExisting: tableResult.existingCount || 0,
+      columnsAdded: columnResult.added.length,
       missingTables: tableResult.missingTables || [],
       errors: [],
       warnings: [],
@@ -155,9 +242,17 @@ export const syncDatabaseSafely = async () => {
         foreignKeyErrors: 0,
         missingParentTables: 0,
         constraintErrors: 0,
-        creationErrors: 0
+        creationErrors: 0,
+        columnErrors: columnResult.errors.length
       }
     };
+
+    // Add column errors/warnings to summary
+    if (columnResult.errors.length > 0) {
+      columnResult.errors.forEach(e => {
+        summary.errors.push(`Column add error ${e.table}.${e.column}: ${e.error}`);
+      });
+    }
     
     // Categorize table creation errors
     if (tableResult.errors && tableResult.errors.length > 0) {
@@ -191,7 +286,7 @@ export const syncDatabaseSafely = async () => {
     // Enhanced reporting
     if (summary.success) {
       logger.info('🎉 ENHANCED: Production-safe database sync completed successfully!');
-      logger.info(`📊 Summary: ${summary.tablesCreated} tables created, ${summary.tablesExisting} existing`);
+      logger.info(`📊 Summary: ${summary.tablesCreated} tables created, ${summary.tablesExisting} existing, ${summary.columnsAdded} columns added`);
       
       if (summary.warnings.length > 0) {
         logger.info('ℹ️  Non-critical warnings:');
