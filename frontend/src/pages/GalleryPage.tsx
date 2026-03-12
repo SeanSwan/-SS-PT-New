@@ -1649,7 +1649,20 @@ const GalleryPage: React.FC = () => {
                       <PhotoLabel>{photo.displayName}</PhotoLabel>
                     </PhotoOverlay>
                   </PhotoCard>
-                  <PhotoFilename>{photo.displayName}</PhotoFilename>
+                  <PhotoFilename>
+                    {photo.displayName}
+                    {photo.sourceType && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 9, fontWeight: 700, padding: '1px 5px',
+                        borderRadius: 4, verticalAlign: 'middle',
+                        background: photo.sourceType === 'raw' ? 'rgba(139,92,246,0.2)' : 'rgba(96,192,240,0.2)',
+                        color: photo.sourceType === 'raw' ? '#8B5CF6' : '#60C0F0',
+                        border: `1px solid ${photo.sourceType === 'raw' ? 'rgba(139,92,246,0.3)' : 'rgba(96,192,240,0.3)'}`,
+                      }}>
+                        {photo.sourceType === 'raw' ? 'RAW' : 'HQ JPEG'}
+                      </span>
+                    )}
+                  </PhotoFilename>
                 </PhotoCardWrapper>
               );
             })}

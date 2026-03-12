@@ -1,421 +1,118 @@
-# Gemini 3.1 Pro — Design Spec Generation
+# Gemini 3.1 Pro — Plan Review
 
-> **Generated:** 3/11/2026, 6:28:10 PM
-> **Mode:** design
-> **Duration:** 60.1s
-> **Tokens:** 1193 in / 4807 out
+> **Generated:** 3/11/2026, 9:36:28 PM
+> **Mode:** plan
+> **Duration:** 37.3s
+> **Tokens:** 1154 in / 2208 out
 
 ---
 
 ## Input
 
-Gallery Info Card & Visitor Message System for SwanStudios Photography Gallery
+Gallery Upload Queue System Improvements for SwanStudios:
 
-CONTEXT: After visitors enter their email + event password and access the photo gallery, we need an ultra mobile-responsive info card at the top (before the photo grid) that:
+CONTEXT: SwanStudios gallery runs on Render starter plan (512MB RAM). RAW photo uploads (ARW files ~120MB each) cause OOM crashes. Current batch upload of 5 files loads all into multer memory simultaneously. Sharp RAW→JPEG conversion is CPU/memory intensive. R2 direct upload has broken CORS, so all uploads go through server proxy (legacy path).
 
-1. CARD CONTENT (polite, professional tone):
-   - Explains photos are professional RAW files converted to high-quality JPEG
-   - If they want the original RAW files, they can request them for FREE
-   - ALL photos are FREE to download - as many 
+PROBLEMS SOLVED:
+1. Reduced batch to 2 files, but still fails on RAW
+2. Added --max-old-space
 
 ---
 
 ## Gemini 3.1 Pro Response
 
-Hello Claude. As the Lead UI/UX Design Authority for SwanStudios, I have architected the design specification for the **Gallery Info Card, Visitor Message System, and Admin Messages Table**. 
+Claude, excellent backend triage. You’ve correctly identified the bottleneck: Render’s 512MB RAM limit cannot handle concurrent 120MB RAW file processing. Moving to a strict sequential queue is the right architectural move. 
 
-This feature sits at a critical intersection of client delight (free high-quality photos) and business conversion (PT package upsell). It must feel like an exclusive, white-glove concierge service—never like a discount storefront. We are leveraging the **Crystalline Swan** sub-theme against our **Galaxy Core** foundation to create a deep, glassmorphic, and highly polished experience.
+However, as the Lead UI/UX Design Authority, I need to ensure this technical pivot doesn't degrade the premium SwanStudios experience. A long, sequential upload process for 20+ RAW files means the user will be waiting. **We must design for the wait.** We cannot have a generic, blocking loading spinner. This needs to feel like a high-end "Command Center" operation.
 
-Here is your comprehensive design and implementation specification. Review it carefully, and let's build this to perfection.
+Here are my answers to your architectural questions, followed by my strict design directives.
 
----
-
-### 1. Visual Design Specifications
-
-**Color Palette (Crystalline Swan + Galaxy Core)**
-*   **Surface Base:** `rgba(0, 32, 96, 0.25)` (Midnight Sapphire, alpha-adjusted for glass)
-*   **Surface Highlight:** `rgba(96, 192, 240, 0.1)` (Ice Wing, for gradients)
-*   **Borders:** `rgba(255, 255, 255, 0.08)` with a top-edge highlight of `rgba(96, 192, 240, 0.2)`
-*   **Primary Action (Ice Wing):** `#60C0F0`
-*   **Premium Upsell (Wing Purple):** `#8B5CF6`
-*   **Donation Accent (Gilded Fern):** `#C6A84B`
-*   **Text Primary:** `#FFFFFF`
-*   **Text Secondary:** `#A0AABF` (Muted Galaxy)
-
-**Typography**
-*   **Headings (Plus Jakarta Sans):** Tracking `-0.02em`. Weights: 600 (Semibold), 700 (Bold).
-*   **Body/UI (Sora):** Tracking `0.01em`. Weights: 300 (Light), 400 (Regular), 500 (Medium).
-*   **Line Heights:** `1.2` for Headings, `1.6` for Body.
-
-**Glassmorphism Specs**
-*   **Backdrop Blur:** `blur(24px)`
-*   **Box Shadow:** `0 8px 32px rgba(10, 10, 26, 0.4)` (Galaxy Core shadow)
-*   **Inner Shadow (Depth):** `inset 0 1px 0 rgba(255, 255, 255, 0.1)`
-
-**Layout & Spacing**
-*   **Base Unit:** 8px.
-*   **Card Padding:** 24px (Mobile) → 32px (Tablet) → 40px (Desktop).
-*   **Border Radius:** 24px for the main card, 12px for internal modules, 100px (pill) for primary buttons.
+### Answers to Your Questions (UX & Architecture Perspective)
+*   **Chunked/Resumable Uploads (tus):** **YES.** If a trainer is uploading a 120MB RAW file on a spotty gym Wi-Fi and it fails at 95%, restarting is a catastrophic UX failure. Implement chunked uploads.
+*   **WebSockets vs Polling:** **YES to WebSockets.** Because Sharp conversion (Processing) happens *after* the network upload, a standard HTTP response isn't enough. We need real-time events (`upload_complete` -> `processing_started` -> `processing_complete`) to drive the UI animations.
+*   **24h JWT:** **REJECTED.** Extending an admin token to 24h is a security risk. Instead, implement a **Silent Token Refresh** in the background. As long as the upload queue is active and the WebSocket is connected, the client should request a token extension.
+*   **Error Recovery:** Granular retry is mandatory. If File 4 fails, the queue should automatically pause, flag File 4, and proceed to File 5, allowing the user to click a specific "Retry" button on File 4 later.
 
 ---
 
-### 2. Responsive Behavior (10 Breakpoints)
+### 1. Design Gaps in Your Plan
 
-*   **Mobile (320px, 375px, 430px):** 
-    *   1-column layout. Elements stack vertically.
-    *   The card is fully expanded on first load. When collapsed, it shrinks to a sticky 64px high glass bar at the top of the viewport with a "Gallery Info & Actions" title and a chevron.
-    *   All interactive elements enforce a strict `min-height: 44px` and `min-width: 44px`.
-*   **Tablet (768px, 1024px):** 
-    *   2-column CSS Grid. 
-    *   Column 1: Freebies & Info. Column 2: PT Upsell & Actions.
-*   **Desktop (1280px, 1440px, 1920px):** 
-    *   3-column CSS Grid (`grid-template-columns: 1fr 1.2fr 1fr`).
-    *   Column 1: Photography Info (RAWs, Downloads).
-    *   Column 2: The Premium Upsell (Highlighted with Wing Purple subtle glow).
-    *   Column 3: Actions (Send Note, Donate).
-    *   Max-width capped at `1200px` to maintain optimal reading line lengths.
-*   **Ultra-Wide (2560px, 3840px):** 
-    *   Typography scales up by `1.125rem` base. Card remains centered with `1200px` max-width.
+*   **Blocking vs. Non-Blocking UI:** Your plan implies the user stays on an upload screen. **Gap:** The upload queue must be a *global, non-blocking floating widget* (or bottom sheet on mobile). The trainer should be able to start a 20-file RAW upload and navigate away to manage client workouts while it runs in the background.
+*   **State Granularity:** "Processing" is too vague. We need distinct visual states for: *Queued, Uploading (Network), Processing (CPU/Sharp), Success, and Error.*
+*   **Mobile Responsiveness:** A complex list of 40 files will overwhelm a 320px/375px screen. We need a collapsed "Mini Progress" state that expands into a full sheet.
+*   **Accessibility (a11y):** Screen readers need to know when a batch finishes without the user looking at the screen. We need an `aria-live="polite"` region announcing "File 3 of 20 complete."
 
----
+### 2. Enhancement Opportunities (The Premium Feel)
 
-### 3. Animations & Interactions
+*   **The RAW vs JPEG Toggle:** Reject standard radio buttons. We will use a premium, iOS-style Segmented Control with a glassmorphic sliding pill.
+*   **Processing Animation:** When a file enters the "Processing" phase (Sharp conversion), the progress bar should transition from a linear fill to an infinite cosmic pulse (using our Cosmic Purple `#7851A9`) to indicate server-side work.
+*   **Micro-interactions:** Use Framer Motion for the queue list. When a file finishes, it shouldn't just snap to "Done". It should glow Swan Cyan, shrink slightly, and slide to a "Completed" accordion at the bottom of the list, keeping the active uploads at the top.
 
-*   **Easing Curve (The "Swan Glide"):** `cubic-bezier(0.16, 1, 0.3, 1)` - used for all transforms and opacities.
-*   **Card Entry:** `FadeInUp` - 0.6s duration, 0.2s delay. Starts at `translateY(20px)` and `opacity: 0`.
-*   **Collapse/Expand:** Animate `max-height` from `1000px` to `64px` over 0.5s using the Swan Glide. Fade out internal content over 0.2s.
-*   **Premium Upsell Shimmer:** A continuous, slow linear gradient translation across the PT package card to draw the eye without being distracting (12s duration, infinite).
-*   **Button Hover:** `transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 16px rgba(96, 192, 240, 0.2);` transition: 0.3s.
+### 3. Architecture Recommendations
+
+*   **State Management:** Use a robust context or Zustand store for the `UploadQueue`. It must persist across route changes within the admin dashboard.
+*   **Component Structure:**
+    *   `GlobalUploadManager` (Invisible logic wrapper)
+    *   `UploadWidget` (Floating glass panel)
+    *   `UploadModeToggle` (Segmented control)
+    *   `QueueList` (Framer Motion `<AnimatePresence>`)
+    *   `QueueItem` (Individual file row)
+*   **Animation Approach:** Use Framer Motion for layout changes (reordering the list) and pure CSS for high-performance continuous animations (progress bars, pulsing glows).
 
 ---
 
-### 4. Accessibility (A11y)
+### 4. Implementation Directives for Claude (Strict Specs)
 
-*   **Focus States:** `&:focus-visible { outline: 2px solid #60C0F0; outline-offset: 4px; }`
-*   **Roles:** 
-    *   Collapse toggle: `aria-expanded="true/false"`, `aria-controls="gallery-info-content"`.
-    *   Message Modal: `role="dialog"`, `aria-modal="true"`, `aria-labelledby="modal-title"`.
-*   **Motion:** Wrap all keyframes in `@media (prefers-reduced-motion: no-preference)`.
+Claude, build the UI exactly to these specifications. No MUI, no generic components.
 
----
+**A. The Upload Widget (Container)**
+*   **Desktop (1024px+):** Fixed bottom-right. `width: 380px; max-height: 600px;`
+*   **Mobile (320px - 768px):** Fixed bottom sheet. `width: 100%; border-radius: 24px 24px 0 0;`
+*   **Surface:** Premium Glassmorphism.
+    *   `background: rgba(10, 10, 26, 0.75);` (Galaxy Core with opacity)
+    *   `backdrop-filter: blur(24px);`
+    *   `border: 1px solid rgba(0, 255, 255, 0.15);` (Subtle Swan Cyan border)
+    *   `box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px inset rgba(255, 255, 255, 0.05);`
 
-### 5. `styled-components` Implementation Code
+**B. RAW vs HQ JPEG Toggle (Segmented Control)**
+*   **Dimensions:** `height: 44px;` (Strict touch target), `border-radius: 12px;`
+*   **Background:** `rgba(255, 255, 255, 0.05)`
+*   **Active Pill:** `background: linear-gradient(135deg, #7851A9 0%, #0a0a1a 100%);` (Cosmic Purple gradient for RAW), or `linear-gradient(135deg, #00FFFF 0%, #0a0a1a 100%);` (Swan Cyan for JPEG).
+*   **Animation:** `transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);`
 
-Claude, use the following code as your exact foundation. Do not deviate from these CSS values.
+**C. Queue Item (Individual File Row)**
+*   **Layout:** Flexbox. Thumbnail (left), Filename/Status (center), Action/Progress (right).
+*   **Height:** `min-height: 64px;` (Comfortable spacing).
+*   **Typography:** Filename: `font-size: 14px; font-weight: 500; color: #FFFFFF;`. Status: `font-size: 12px; font-weight: 400; color: rgba(255, 255, 255, 0.6);`
+*   **State Colors & Animations:**
+    *   *Queued:* `color: rgba(255, 255, 255, 0.4);`
+    *   *Uploading (Network):* Progress bar fills with Swan Cyan `#00FFFF`.
+    *   *Processing (Sharp CPU):* Progress bar becomes indeterminate. `background: linear-gradient(90deg, transparent, #7851A9, transparent); background-size: 200% 100%; animation: shimmer 1.5s infinite linear;`
+    *   *Success:* Icon changes to a checkmark. `color: #00FF9D;` (Neon Mint).
+    *   *Error:* Icon changes to a retry arrow. `color: #FF3366;` (Neon Rose).
 
-#### A. The Gallery Info Card (User Facing)
+**D. Photo Type Badges (Gallery View)**
+*   For the admin and client views, the `sourceType` badge must be elegant, not distracting.
+*   **Position:** Top-right of the image thumbnail. `margin: 8px;`
+*   **Style:** `padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; backdrop-filter: blur(8px);`
+*   **RAW Badge:** `background: rgba(120, 81, 169, 0.3); border: 1px solid rgba(120, 81, 169, 0.5); color: #E6D5FF;`
+*   **JPEG Badge:** `background: rgba(0, 255, 255, 0.15); border: 1px solid rgba(0, 255, 255, 0.3); color: #E0FFFF;`
 
-```typescript
-import styled, { keyframes, css } from 'styled-components';
+### 5. Verdict
 
-// --- Animations ---
-const fadeInUp = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
+**APPROVED WITH MODIFICATIONS.**
 
-const shimmer = keyframes`
-  0% { background-position: 200% center; }
-  100% { background-position: -200% center; }
-`;
+Your backend strategy to save the Render server from OOM crashes is sound. Proceed with the single-file endpoint, sequential queue, and the repair script. 
 
-// --- Components ---
-export const CardContainer = styled.section<{ $isCollapsed: boolean }>`
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto 32px auto;
-  background: linear-gradient(145deg, rgba(0, 32, 96, 0.3) 0%, rgba(10, 10, 26, 0.6) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(10, 10, 26, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: ${fadeInUp} 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+However, you must implement the chunked uploads (tus), WebSockets for processing state, and the non-blocking global UI widget exactly as I have specified above. Do not use a 24h JWT; implement the silent refresh.
 
-  ${({ $isCollapsed }) => $isCollapsed && css`
-    max-height: 72px;
-    cursor: pointer;
-    &:hover { background: rgba(0, 32, 96, 0.4); }
-  `}
+**Next Steps for You (Claude):**
+1. Setup the tus protocol and WebSocket infrastructure first.
+2. Build the `GlobalUploadManager` context.
+3. Implement the UI components using my exact CSS tokens and Framer Motion directives.
+4. Ping me when the RAW vs JPEG toggle and the Processing shimmer animation are ready for visual review. 
 
-  @media (max-width: 768px) {
-    border-radius: 16px;
-    ${({ $isCollapsed }) => $isCollapsed && css`
-      position: sticky;
-      top: 16px;
-      z-index: 50;
-    `}
-  }
-`;
-
-export const CardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px 32px;
-  
-  @media (max-width: 768px) { padding: 16px 20px; }
-`;
-
-export const CardTitle = styled.h2`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 600;
-  font-size: 1.25rem;
-  color: #FFFFFF;
-  letter-spacing: -0.02em;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-export const ContentGrid = styled.div<{ $isCollapsed: boolean }>`
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
-  gap: 24px;
-  padding: 0 32px 32px 32px;
-  opacity: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 1)};
-  transition: opacity 0.3s ease;
-  pointer-events: ${({ $isCollapsed }) => ($isCollapsed ? 'none' : 'auto')};
-
-  @media (max-width: 1024px) { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 768px) { 
-    grid-template-columns: 1fr; 
-    padding: 0 20px 24px 20px;
-  }
-`;
-
-export const InfoModule = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-export const UpsellModule = styled(InfoModule)`
-  background: linear-gradient(145deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 16px;
-  padding: 20px;
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), transparent);
-    background-size: 200% auto;
-    animation: ${shimmer} 8s linear infinite;
-  }
-`;
-
-export const TextBody = styled.p`
-  font-family: 'Sora', sans-serif;
-  font-size: 0.875rem;
-  color: #A0AABF;
-  line-height: 1.6;
-  margin: 0;
-
-  strong { color: #FFFFFF; font-weight: 500; }
-`;
-
-// --- Buttons ---
-const BaseButton = styled.button`
-  font-family: 'Sora', sans-serif;
-  font-weight: 500;
-  font-size: 0.875rem;
-  min-height: 44px;
-  padding: 0 24px;
-  border-radius: 100px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  
-  &:focus-visible {
-    outline: 2px solid #60C0F0;
-    outline-offset: 4px;
-  }
-`;
-
-export const PrimaryButton = styled(BaseButton)`
-  background: #60C0F0;
-  color: #002060;
-  border: none;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(96, 192, 240, 0.3);
-  }
-`;
-
-export const PremiumButton = styled(BaseButton)`
-  background: rgba(139, 92, 246, 0.15);
-  color: #E2D4F8;
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  width: 100%;
-  
-  &:hover {
-    background: rgba(139, 92, 246, 0.25);
-    border-color: #8B5CF6;
-    transform: translateY(-2px);
-  }
-`;
-
-export const GhostButton = styled(BaseButton)`
-  background: transparent;
-  color: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: #FFFFFF;
-  }
-`;
-```
-
-#### B. The Message Form Modal (User Facing)
-
-```typescript
-export const ModalOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 10, 26, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-`;
-
-export const ModalContent = styled.div`
-  background: #0a0a1a;
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 24px;
-  width: 100%;
-  max-width: 480px;
-  padding: 32px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
-  animation: ${fadeInUp} 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-`;
-
-export const FormGroup = styled.div`
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-export const Label = styled.label`
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-  color: #A0AABF;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-export const Input = styled.input`
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 0 16px;
-  min-height: 48px;
-  color: #FFFFFF;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #60C0F0;
-    background: rgba(96, 192, 240, 0.05);
-  }
-
-  &:disabled {
-    color: #A0AABF;
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-`;
-
-export const TextArea = styled(Input).attrs({ as: 'textarea' })`
-  padding: 16px;
-  min-height: 120px;
-  resize: vertical;
-`;
-```
-
-#### C. Admin Messages Table (Admin Facing)
-
-```typescript
-export const TableContainer = styled.div`
-  width: 100%;
-  background: #0a0a1a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
-export const StyledTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  min-width: 800px;
-`;
-
-export const Th = styled.th`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #A0AABF;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-`;
-
-export const Td = styled.td`
-  font-family: 'Sora', sans-serif;
-  font-size: 0.875rem;
-  color: #FFFFFF;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  vertical-align: top;
-  
-  /* Truncate long messages */
-  &.message-cell {
-    max-width: 300px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-`;
-
-export const ContactSubtext = styled.div`
-  font-size: 0.75rem;
-  color: #A0AABF;
-  margin-top: 4px;
-`;
-```
-
----
-
-### Implementation Directives for Claude:
-
-1.  **Component Architecture:** Break this down into `GalleryInfoCard.tsx`, `MessageModal.tsx`, and `AdminMessagesTable.tsx`. Keep state management for the modal at the parent Gallery level to prevent unmounting issues.
-2.  **Copywriting:** Use the exact copy logic I outlined. For the upsell, use: *"Unlock Unlimited Enhancements. As a special courtesy, unlimited gallery enhancements are included with our $75 Personal Training Introduction Package (includes complimentary orientation)."*
-3.  **Icons:** Integrate `lucide-react` icons (e.g., `ChevronUp`, `ChevronDown`, `Mail`, `Sparkles`, `Download`, `Heart`) to accompany the text in the modules and buttons. Size them at `18px`.
-4.  **Form Handling:** Ensure the email field in the `MessageModal` is pre-populated from the user's session and set to `disabled`. 
-
-Review these specifications. If you see any technical blockers regarding the React 18 / styled-components integration, notify me. Otherwise, proceed with the implementation.
+Let's build this. Make it flawless.
 
 ---
 

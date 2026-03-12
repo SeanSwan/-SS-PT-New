@@ -22,6 +22,7 @@ GalleryPhoto.init(
     enhancedStorageKey: { type: DataTypes.STRING(500), allowNull: true, field: 'enhanced_storage_key' },
     enhancedUrl: { type: DataTypes.TEXT, allowNull: true, field: 'enhanced_url' },
     enhancementRequestCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, field: 'enhancement_request_count' },
+    sourceType: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'jpeg', field: 'source_type' },
   },
   {
     sequelize,

@@ -179,7 +179,173 @@ router.delete('/events/:id', async (req, res) => {
   }
 });
 
-// ── Photo Upload ──────────────────────────────────────────────────────────
+// ── Single-File Upload (Memory-Safe) ──────────────────────────────────────
+
+// Separate multer instance: exactly 1 file, 150MB max
+const uploadSingle = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 150 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File "${file.originalname}" rejected: unsupported type (${file.mimetype}).`), false);
+    }
+  },
+});
+
+/**
+ * POST /api/admin/gallery/events/:id/upload-single
+ * Upload exactly ONE photo at a time. Frontend calls this in a sequential loop.
+ * This keeps server RAM usage under ~200MB per file even for 120MB RAW files.
+ *
+ * Body (multipart): photo (single file), watermark ("true"/"false"), sourceType ("raw"/"jpeg")
+ * Returns: { success, photo: { id, photoNumber, displayName, url, sourceType } }
+ */
+router.post('/events/:id/upload-single', (req, res, next) => {
+  uploadSingle.single('photo')(req, res, (err) => {
+    if (err) {
+      const message = err instanceof multer.MulterError
+        ? `Upload rejected: ${err.message}`
+        : err.message || 'File upload failed';
+      logger.error('[AdminGallery] Single upload multer error:', message);
+      return res.status(400).json({ success: false, error: message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const event = await GalleryEvent.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, error: 'No photo uploaded' });
+
+    const enableWatermark = req.body.watermark !== 'false';
+    const sourceType = req.body.sourceType || 'jpeg';
+
+    // Get next photo number
+    const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
+    const photoNumber = (maxPhoto || 0) + 1;
+    const displayName = `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
+    const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
+
+    // Detect RAW format
+    const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
+    const isRaw = RAW_EXT.test(file.originalname || '');
+
+    // Convert RAW/large files to JPEG
+    let inputBuffer = file.buffer;
+    const originalSize = file.size;
+
+    if (isRaw || file.size > 50 * 1024 * 1024) {
+      logger.info(`[AdminGallery:Single] ${isRaw ? 'RAW' : 'Large'} file (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
+      try {
+        inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
+          .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 92 })
+          .toBuffer();
+        logger.info(`[AdminGallery:Single] Converted: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+      } catch (convErr) {
+        logger.error(`[AdminGallery:Single] RAW conversion FAILED for ${file.originalname}: ${convErr.message}`);
+        file.buffer = null;
+        if (global.gc) global.gc();
+        return res.status(422).json({
+          success: false,
+          error: `RAW conversion failed for ${file.originalname}: ${convErr.message}`,
+          hint: 'Try converting this file to JPEG before uploading.',
+        });
+      }
+    }
+
+    // Release original buffer immediately
+    file.buffer = null;
+
+    // Apply watermark
+    const processedBuffer = await applyWatermark(inputBuffer, { applyWatermark: enableWatermark });
+    inputBuffer = null;
+
+    // Upload to R2
+    let r2Client = null;
+    const R2_BUCKET = process.env.R2_BUCKET_NAME;
+    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+    try {
+      const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+      if (r2Configured) r2Client = getR2Client();
+    } catch { /* R2 not available */ }
+
+    let url = '';
+    if (r2Client && R2_BUCKET) {
+      await r2Client.send(new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: storageKey,
+        Body: processedBuffer,
+        ContentType: 'image/jpeg',
+      }));
+      url = R2_PUBLIC_URL
+        ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${storageKey}`
+        : `/api/serve-photo/${storageKey}`;
+    } else {
+      url = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`;
+    }
+
+    const metadata = {
+      originalName: file.originalname,
+      size: originalSize,
+      processedSize: processedBuffer.length,
+      mimetype: file.mimetype,
+      watermarked: enableWatermark && isWatermarkAvailable(),
+      uploadedAt: new Date().toISOString(),
+      sourceType,
+    };
+
+    const photo = await GalleryPhoto.create({
+      eventId: event.id,
+      photoNumber,
+      displayName,
+      storageKey,
+      thumbnailKey: storageKey,
+      url,
+      thumbnailUrl: url,
+      originalFilename: file.originalname,
+      fileSize: processedBuffer.length,
+      mimeType: 'image/jpeg',
+      metadata,
+      sourceType: isRaw ? 'raw' : sourceType,
+    });
+
+    // Update event photo count
+    const totalPhotos = await GalleryPhoto.count({ where: { eventId: event.id } });
+    await event.update({ photoCount: totalPhotos });
+    if (!event.coverPhotoId) await event.update({ coverPhotoId: photo.id });
+
+    // Aggressively free memory
+    const finalSize = processedBuffer.length;
+    if (global.gc) global.gc();
+
+    logger.info(`[AdminGallery:Single] ✅ ${displayName} uploaded (${(finalSize / 1024 / 1024).toFixed(1)}MB) for event ${event.slug}`);
+
+    return res.json({
+      success: true,
+      photo: {
+        id: photo.id,
+        photoNumber: photo.photoNumber,
+        displayName: photo.displayName,
+        url: photo.url,
+        thumbnailUrl: photo.thumbnailUrl,
+        sourceType: photo.sourceType,
+        fileSize: finalSize,
+      },
+      totalPhotoCount: totalPhotos,
+    });
+  } catch (err) {
+    logger.error('[AdminGallery:Single] Upload error:', err.message, err.stack?.split('\n').slice(0, 3).join('\n'));
+    if (global.gc) global.gc();
+    return res.status(500).json({ success: false, error: err.message || 'Upload failed' });
+  }
+});
+
+// ── Photo Upload (Legacy Batch) ──────────────────────────────────────────
 
 /**
  * POST /api/admin/gallery/events/:id/upload
@@ -238,16 +404,38 @@ router.post('/events/:id/upload', (req, res, next) => {
         const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
         // Convert RAW/large files to JPEG before watermarking
+        // CRITICAL: If conversion fails, we MUST NOT upload the raw buffer.
+        // RAW files (ARW, CR2, etc.) are 50-150MB and browsers cannot display them.
         const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
         const isRaw = RAW_EXT.test(file.originalname || '');
         let inputBuffer = file.buffer;
         if (isRaw || file.size > 50 * 1024 * 1024) {
-          logger.info(`[AdminGallery] ${isRaw ? 'RAW format' : 'Large file'} (${(file.size / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
-          inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
-            .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 92 })
-            .toBuffer();
-          logger.info(`[AdminGallery] Converted to JPEG: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+          const originalSize = file.size;
+          logger.info(`[AdminGallery] ${isRaw ? 'RAW format' : 'Large file'} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
+          try {
+            inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
+              .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+              .jpeg({ quality: 92 })
+              .toBuffer();
+          } catch (conversionErr) {
+            logger.error(`[AdminGallery] JPEG conversion FAILED for ${file.originalname}: ${conversionErr.message}`);
+            throw new Error(`RAW→JPEG conversion failed for "${file.originalname}": ${conversionErr.message}. ` +
+              `The raw file (${(originalSize / 1024 / 1024).toFixed(0)}MB) was NOT uploaded to prevent broken gallery photos.`);
+          }
+
+          // Validate the converted buffer is actually smaller and non-empty
+          if (!inputBuffer || inputBuffer.length === 0) {
+            logger.error(`[AdminGallery] JPEG conversion produced empty buffer for ${file.originalname}`);
+            throw new Error(`RAW→JPEG conversion produced empty output for "${file.originalname}". File was NOT uploaded.`);
+          }
+
+          // If "converted" buffer is still >90% of original, sharp likely returned the raw data unchanged
+          if (inputBuffer.length > originalSize * 0.9) {
+            logger.error(`[AdminGallery] JPEG conversion suspicious: output (${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB) is ≥90% of input (${(originalSize / 1024 / 1024).toFixed(1)}MB) — likely unconverted RAW`);
+            throw new Error(`RAW→JPEG conversion failed silently for "${file.originalname}": output size (${(inputBuffer.length / 1024 / 1024).toFixed(0)}MB) suggests raw data was not converted. File was NOT uploaded.`);
+          }
+
+          logger.info(`[AdminGallery] Converted to JPEG: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB (${((1 - inputBuffer.length / originalSize) * 100).toFixed(0)}% reduction)`);
         }
 
         // Release original buffer to help GC
@@ -300,6 +488,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           fileSize: processedBuffer.length,
           mimeType: 'image/jpeg',
           metadata,
+          sourceType: isRaw ? 'raw' : 'jpeg',
         });
 
         uploaded.push({
@@ -308,6 +497,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           displayName: photo.displayName,
           url: photo.url,
           thumbnailUrl: photo.thumbnailUrl,
+          sourceType: photo.sourceType,
         });
 
         logger.info(`[AdminGallery] Uploaded ${displayName} for event ${event.slug}`);
@@ -926,7 +1116,7 @@ router.get('/events/:id/photos', async (req, res) => {
   try {
     const photos = await GalleryPhoto.findAll({
       where: { eventId: req.params.id },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'createdAt'],
+      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'sourceType', 'createdAt'],
       order: [['photoNumber', 'ASC']],
     });
     return res.json({ success: true, photos });

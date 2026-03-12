@@ -105,6 +105,21 @@ const progressPulse = keyframes`
   100% { opacity: 1; }
 `;
 
+const pulse = keyframes`
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+`;
+
+const PulsingDot = styled.span<{ $color: string }>`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${p => p.$color};
+  animation: ${pulse} 1.2s ease-in-out infinite;
+`;
+
 const ProgressBarContainer = styled.div`
   margin-top: 16px;
   padding: 16px;
@@ -573,6 +588,7 @@ const AdminGalleryManager: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
+  const [uploadMode, setUploadMode] = useState<'raw' | 'jpeg'>('jpeg');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFileCount, setUploadFileCount] = useState(0);
   const [uploadedPhotoCount, setUploadedPhotoCount] = useState<number | null>(null);
@@ -584,6 +600,8 @@ const AdminGalleryManager: React.FC = () => {
   const [uploadTotalBatches, setUploadTotalBatches] = useState(0);
   const [uploadCompletedPhotos, setUploadCompletedPhotos] = useState(0);
   const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; displayName: string } | null>(null);
+  // Per-file upload status tracking
+  const [fileStatuses, setFileStatuses] = useState<Array<{ name: string; status: 'pending' | 'uploading' | 'processing' | 'done' | 'error'; error?: string; displayName?: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const cancelledRef = useRef(false);
@@ -741,59 +759,38 @@ const AdminGalleryManager: React.FC = () => {
     }
   };
 
-  // ── Direct R2 Upload Flow ─────────────────────────────────────────────
-  // 1. Get presigned URLs from backend (tiny request)
-  // 2. Upload files directly to R2 from browser (parallel within batch)
-  // 3. Confirm with backend → watermarks one-at-a-time from R2
-  // Fallback: legacy multer upload if presign fails (R2 not configured)
+  // ── Sequential Single-File Upload ──────────────────────────────────────
+  // Uploads files ONE at a time to prevent OOM on Render's 512MB plan.
+  // Each file is fully processed (RAW→JPEG + watermark) before the next starts.
 
-  // R2 direct upload disabled — CORS not yet configured on R2 bucket.
-  // Direct R2 upload via presigned URLs — bypasses server memory limits for large files (RAW, HEIC).
-  // Falls back to legacy server upload if R2 CORS fails or R2 not configured.
-  const USE_R2_DIRECT = true;
-  // R2 direct: large batches OK (browser → R2 directly, no server memory).
-  // Legacy: send only 2 at a time to avoid OOM on Render's 512MB starter plan.
-  const BATCH_SIZE = USE_R2_DIRECT ? 20 : 2;
-
-  // Upload a single file directly to R2 via presigned PUT URL
-  const uploadFileToR2 = (file: File, uploadUrl: string): Promise<{ success: boolean; error?: string }> => {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve({ success: true });
-        } else {
-          resolve({ success: false, error: `R2 returned ${xhr.status}` });
-        }
-      });
-      xhr.addEventListener('error', () => resolve({ success: false, error: 'Network error uploading to R2' }));
-      xhr.addEventListener('timeout', () => resolve({ success: false, error: 'R2 upload timeout' }));
-
-      xhr.open('PUT', uploadUrl);
-      // Do NOT set Content-Type header — it's not signed in the presigned URL
-      // and setting custom headers triggers a CORS preflight that R2 may reject.
-      // The browser will send the file's native MIME type automatically.
-      xhr.timeout = 600000; // 10 min for large RAW files (118MB+)
-      xhr.send(file);
-    });
+  // Upload mode limits
+  const UPLOAD_LIMITS = {
+    raw: { maxFiles: 20, maxSizeMB: 150, label: 'RAW', desc: 'Camera RAW files (ARW, CR2, NEF, etc.) — converted to HQ JPEG server-side' },
+    jpeg: { maxFiles: 40, maxSizeMB: 50, label: 'HQ JPEG', desc: 'High-quality JPEG/PNG files — minimal processing, faster uploads' },
   };
 
-  // Legacy upload: send files through Render (fallback if R2 presign unavailable)
-  const uploadBatchLegacy = (eventId: number, batch: File[], completedSoFar: number, totalFiles: number): Promise<{ success: boolean; count: number; error?: string }> => {
+  // Upload a single file via the dedicated single-file endpoint
+  const uploadSingleFile = (
+    eventId: number,
+    file: File,
+    fileIndex: number,
+  ): Promise<{ success: boolean; photo?: any; error?: string }> => {
     return new Promise((resolve) => {
       const formData = new FormData();
-      batch.forEach(f => formData.append('photos', f));
+      formData.append('photo', file);
       formData.append('watermark', watermarkEnabled ? 'true' : 'false');
+      formData.append('sourceType', uploadMode);
 
       const xhr = new XMLHttpRequest();
       xhrRef.current = xhr;
 
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
-          const batchProgress = e.loaded / e.total;
-          const overallProgress = Math.round(((completedSoFar + batch.length * batchProgress) / totalFiles) * 100);
-          setUploadProgress(Math.min(overallProgress, 99));
+          const fileProgress = Math.round((e.loaded / e.total) * 100);
+          // Update this file's status to show upload progress
+          setFileStatuses(prev => prev.map((fs, i) =>
+            i === fileIndex ? { ...fs, status: fileProgress < 100 ? 'uploading' : 'processing' } : fs
+          ));
         }
       });
 
@@ -803,151 +800,59 @@ const AdminGalleryManager: React.FC = () => {
           try {
             const data = JSON.parse(xhr.responseText);
             if (data.success) {
-              resolve({ success: true, count: data.photos?.length ?? batch.length });
+              resolve({ success: true, photo: data.photo });
             } else {
-              resolve({ success: false, count: 0, error: data.error || 'Server error' });
+              resolve({ success: false, error: data.error || 'Server error' });
             }
           } catch {
-            resolve({ success: false, count: 0, error: 'Could not parse response' });
+            resolve({ success: false, error: 'Could not parse response' });
+          }
+        } else if (xhr.status === 422) {
+          // RAW conversion failed
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({ success: false, error: data.error || 'Conversion failed' });
+          } catch {
+            resolve({ success: false, error: `Server returned ${xhr.status}` });
           }
         } else {
-          resolve({ success: false, count: 0, error: `Server returned ${xhr.status}` });
+          resolve({ success: false, error: `Server returned ${xhr.status}` });
         }
       });
 
-      xhr.addEventListener('error', () => { xhrRef.current = null; resolve({ success: false, count: 0, error: 'Network error' }); });
-      xhr.addEventListener('abort', () => { xhrRef.current = null; resolve({ success: false, count: 0, error: 'Cancelled' }); });
-      xhr.addEventListener('timeout', () => { xhrRef.current = null; resolve({ success: false, count: 0, error: 'Timeout' }); });
+      xhr.addEventListener('error', () => { xhrRef.current = null; resolve({ success: false, error: 'Network error' }); });
+      xhr.addEventListener('abort', () => { xhrRef.current = null; resolve({ success: false, error: 'Cancelled' }); });
+      xhr.addEventListener('timeout', () => { xhrRef.current = null; resolve({ success: false, error: 'Upload timeout — file may be too large' }); });
 
       const token = localStorage.getItem('token');
-      xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${eventId}/upload`);
+      xhr.open('POST', `${API_BASE}/api/admin/gallery/events/${eventId}/upload-single`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.timeout = 600000; // 10 min — RAW files can be 120MB+
+      xhr.timeout = 600000; // 10 min per file
       xhr.send(formData);
     });
-  };
-
-  // Direct R2 upload for a batch of files
-  const uploadBatchDirect = async (
-    eventId: number,
-    batch: File[],
-    completedSoFar: number,
-    totalFiles: number,
-  ): Promise<{ success: boolean; count: number; error?: string }> => {
-    try {
-      // Step 1: Get presigned URLs
-      const presignRes = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/presign-upload`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({
-          files: batch.map(f => ({ name: f.name, size: f.size, type: f.type || 'image/jpeg' })),
-        }),
-      });
-
-      if (presignRes.status === 503) {
-        // R2 not configured, fall back to legacy
-        return uploadBatchLegacy(eventId, batch, completedSoFar, totalFiles);
-      }
-
-      const presignData = await presignRes.json();
-      if (!presignData.success) {
-        return { success: false, count: 0, error: presignData.error || 'Failed to get upload URLs' };
-      }
-
-      // Step 2: Upload all files to R2 in parallel
-      const uploadResults = await Promise.all(
-        presignData.uploads.map((upload: any, idx: number) => {
-          const file = batch[idx];
-          return uploadFileToR2(file, upload.uploadUrl).then(result => {
-            // Update progress as each file completes
-            const done = completedSoFar + idx + 1;
-            setUploadProgress(Math.min(Math.round((done / totalFiles) * 90), 90)); // Cap at 90% until confirm
-            return { ...result, upload };
-          });
-        }),
-      );
-
-      const successfulUploads = uploadResults.filter(r => r.success);
-      const failedUploads = uploadResults.filter(r => !r.success);
-
-      if (successfulUploads.length === 0) {
-        // All R2 direct uploads failed (likely CORS) — fall back to legacy upload through backend
-        console.warn('[Gallery] All R2 direct uploads failed, falling back to legacy upload');
-        setUploadStatusMessage('R2 direct upload unavailable, uploading through server...');
-        // Legacy path accepts max 5 files per batch; split if needed
-        const LEGACY_BATCH = 1;
-        let legacyUploaded = 0;
-        for (let li = 0; li < batch.length; li += LEGACY_BATCH) {
-          const legacyBatch = batch.slice(li, li + LEGACY_BATCH);
-          const legacyResult = await uploadBatchLegacy(eventId, legacyBatch, completedSoFar + legacyUploaded, totalFiles);
-          if (legacyResult.success) legacyUploaded += legacyResult.count;
-          if (!legacyResult.success) {
-            return { success: legacyUploaded > 0, count: legacyUploaded, error: legacyResult.error };
-          }
-        }
-        return { success: legacyUploaded > 0, count: legacyUploaded };
-      }
-
-      // Step 3: Confirm uploads (triggers watermarking on backend, one-at-a-time)
-      setUploadStatusMessage(`Watermarking ${successfulUploads.length} photos...`);
-
-      const confirmRes = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/confirm-upload`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({
-          photos: successfulUploads.map((r: any) => ({
-            rawKey: r.upload.rawKey,
-            finalKey: r.upload.finalKey,
-            photoNumber: r.upload.photoNumber,
-            displayName: r.upload.displayName,
-            originalName: batch[presignData.uploads.indexOf(r.upload)]?.name,
-            fileSize: batch[presignData.uploads.indexOf(r.upload)]?.size,
-          })),
-          watermark: watermarkEnabled,
-        }),
-      });
-
-      const confirmData = await confirmRes.json();
-
-      const totalConfirmed = confirmData.photos?.length ?? 0;
-      const totalErrors = (confirmData.errors?.length ?? 0) + failedUploads.length;
-
-      if (totalErrors > 0 && totalConfirmed > 0) {
-        return { success: true, count: totalConfirmed, error: `${totalErrors} photo(s) failed` };
-      }
-
-      return {
-        success: totalConfirmed > 0,
-        count: totalConfirmed,
-        error: totalConfirmed === 0 ? (confirmData.error || 'Confirmation failed') : undefined,
-      };
-    } catch (err: any) {
-      // Network or presign error — fall back to legacy upload through backend
-      console.warn('[Gallery] R2 upload flow error, falling back to legacy:', err.message);
-      setUploadStatusMessage('Uploading through server...');
-      const LEGACY_BATCH = 1;
-      let legacyUploaded = 0;
-      for (let li = 0; li < batch.length; li += LEGACY_BATCH) {
-        const legacyBatch = batch.slice(li, li + LEGACY_BATCH);
-        const legacyResult = await uploadBatchLegacy(eventId, legacyBatch, completedSoFar + legacyUploaded, totalFiles);
-        if (legacyResult.success) legacyUploaded += legacyResult.count;
-        if (!legacyResult.success) {
-          return { success: legacyUploaded > 0, count: legacyUploaded, error: legacyResult.error };
-        }
-      }
-      return { success: legacyUploaded > 0, count: legacyUploaded };
-    }
   };
 
   const handleFileUpload = async (files: FileList | File[]) => {
     if (!uploadEventId || !files.length) return;
     const fileArray = Array.from(files);
+    const limits = UPLOAD_LIMITS[uploadMode];
 
-    // Split into batches
-    const batches: File[][] = [];
-    for (let i = 0; i < fileArray.length; i += BATCH_SIZE) {
-      batches.push(fileArray.slice(i, i + BATCH_SIZE));
+    // Enforce file count limit
+    if (fileArray.length > limits.maxFiles) {
+      setUploadError(`${uploadMode.toUpperCase()} mode allows max ${limits.maxFiles} files. You selected ${fileArray.length}.`);
+      return;
     }
+
+    // Enforce file size limits
+    const oversized = fileArray.filter(f => f.size > limits.maxSizeMB * 1024 * 1024);
+    if (oversized.length > 0) {
+      setUploadError(`${oversized.length} file(s) exceed ${limits.maxSizeMB}MB limit: ${oversized.map(f => f.name).slice(0, 3).join(', ')}${oversized.length > 3 ? '...' : ''}`);
+      return;
+    }
+
+    // Initialize per-file statuses
+    const initialStatuses = fileArray.map(f => ({ name: f.name, status: 'pending' as const }));
+    setFileStatuses(initialStatuses);
 
     // Reset state
     cancelledRef.current = false;
@@ -958,45 +863,53 @@ const AdminGalleryManager: React.FC = () => {
     setUploadError(null);
     setUploadSuccess(null);
     setUploadStartTime(Date.now());
-    setUploadStatusMessage(`Uploading ${fileArray.length} photos in ${batches.length} batch(es)...`);
+    setUploadStatusMessage(`Uploading ${fileArray.length} photos (1 at a time, ${limits.label} mode)...`);
     setUploadCompletedBatches(0);
-    setUploadTotalBatches(batches.length);
+    setUploadTotalBatches(fileArray.length);
     setUploadCompletedPhotos(0);
 
     let totalUploaded = 0;
-    let failedBatches = 0;
     const errors: string[] = [];
 
-    for (let i = 0; i < batches.length; i++) {
+    for (let i = 0; i < fileArray.length; i++) {
       if (cancelledRef.current) {
+        // Mark remaining as error
+        setFileStatuses(prev => prev.map((fs, idx) =>
+          idx >= i ? { ...fs, status: 'error', error: 'Cancelled' } : fs
+        ));
         errors.push('Upload cancelled by user');
         break;
       }
 
-      const batch = batches[i];
-      const batchNum = i + 1;
-      setUploadStatusMessage(`Batch ${batchNum}/${batches.length}: Uploading ${batch.length} photos...`);
+      const file = fileArray[i];
 
-      const result = USE_R2_DIRECT
-        ? await uploadBatchDirect(uploadEventId, batch, totalUploaded, fileArray.length)
-        : await uploadBatchLegacy(uploadEventId, batch, totalUploaded, fileArray.length);
+      // Mark current file as uploading
+      setFileStatuses(prev => prev.map((fs, idx) =>
+        idx === i ? { ...fs, status: 'uploading' } : fs
+      ));
+      setUploadStatusMessage(`Uploading ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)...`);
+
+      const result = await uploadSingleFile(uploadEventId, file, i);
 
       if (result.success) {
-        totalUploaded += result.count;
+        totalUploaded++;
         setUploadCompletedPhotos(totalUploaded);
-        setUploadCompletedBatches(batchNum);
-        setUploadStatusMessage(`Batch ${batchNum}/${batches.length} complete! ${totalUploaded}/${fileArray.length} photos done.`);
-        if (result.error) errors.push(result.error);
+        setUploadProgress(Math.round(((i + 1) / fileArray.length) * 100));
+        setFileStatuses(prev => prev.map((fs, idx) =>
+          idx === i ? { ...fs, status: 'done', displayName: result.photo?.displayName } : fs
+        ));
+        setUploadStatusMessage(`${totalUploaded}/${fileArray.length} done — ${file.name} uploaded as ${result.photo?.displayName || '?'}`);
       } else {
-        failedBatches++;
-        errors.push(`Batch ${batchNum} failed: ${result.error}`);
-        setUploadStatusMessage(`Batch ${batchNum} failed: ${result.error}. Continuing...`);
+        errors.push(`${file.name}: ${result.error}`);
+        setFileStatuses(prev => prev.map((fs, idx) =>
+          idx === i ? { ...fs, status: 'error', error: result.error } : fs
+        ));
+        setUploadStatusMessage(`Failed: ${file.name} — ${result.error}. Continuing...`);
       }
 
-      // Pause between batches to let server GC and release memory
-      if (i < batches.length - 1) {
-        setUploadStatusMessage(`Waiting for server to process... (${totalUploaded}/${fileArray.length} done)`);
-        await new Promise(r => setTimeout(r, 2000));
+      // Brief pause between files for server GC
+      if (i < fileArray.length - 1 && !cancelledRef.current) {
+        await new Promise(r => setTimeout(r, 1500));
       }
     }
 
@@ -1008,16 +921,16 @@ const AdminGalleryManager: React.FC = () => {
     if (totalUploaded > 0) {
       setUploadedPhotoCount(totalUploaded);
       const wm = watermarkEnabled ? ' with watermark' : '';
-      if (failedBatches === 0 && errors.length === 0) {
-        setUploadSuccess(`All ${totalUploaded} photos uploaded successfully${wm}! (Direct R2)`);
+      if (errors.length === 0) {
+        setUploadSuccess(`All ${totalUploaded} photos uploaded successfully${wm}!`);
       } else {
-        setUploadSuccess(`${totalUploaded} photos uploaded${wm}. ${errors.length} issue(s).`);
+        setUploadSuccess(`${totalUploaded}/${fileArray.length} photos uploaded${wm}. ${errors.length} failed.`);
         setUploadError(errors.join(' | '));
       }
       loadEvents();
       loadStats();
     } else {
-      setUploadError(`All batches failed: ${errors.join(' | ')}`);
+      setUploadError(`All uploads failed: ${errors.join(' | ')}`);
     }
   };
 
@@ -1350,6 +1263,31 @@ const AdminGalleryManager: React.FC = () => {
                 <AnimatePresence>
                   {uploadEventId === event.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ marginTop: 16 }}>
+                      {/* Upload Mode Toggle */}
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        {(['raw', 'jpeg'] as const).map(mode => (
+                          <button
+                            key={mode}
+                            onClick={() => setUploadMode(mode)}
+                            style={{
+                              flex: 1, padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                              background: uploadMode === mode ? (mode === 'raw' ? 'rgba(139,92,246,0.15)' : 'rgba(96,192,240,0.15)') : 'rgba(255,255,255,0.03)',
+                              border: `1px solid ${uploadMode === mode ? (mode === 'raw' ? 'rgba(139,92,246,0.4)' : 'rgba(96,192,240,0.4)') : 'rgba(255,255,255,0.08)'}`,
+                              color: uploadMode === mode ? (mode === 'raw' ? '#8B5CF6' : '#60C0F0') : 'rgba(255,255,255,0.5)',
+                              fontWeight: uploadMode === mode ? 700 : 400, fontSize: 13, textAlign: 'left',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
+                              {UPLOAD_LIMITS[mode].label}
+                            </div>
+                            <div style={{ fontSize: 11, opacity: 0.7 }}>
+                              Max {UPLOAD_LIMITS[mode].maxFiles} files, {UPLOAD_LIMITS[mode].maxSizeMB}MB each
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+
                       {/* Watermark Toggle */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
                         <ToggleSwitch $on={watermarkEnabled} onClick={() => setWatermarkEnabled(!watermarkEnabled)} />
@@ -1374,8 +1312,11 @@ const AdminGalleryManager: React.FC = () => {
                           <div style={{ fontSize: 32, marginBottom: 8 }}>📸</div>
                           <div>Drag & drop photos here, or click to browse</div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                            JPG, PNG, HEIC, RAW up to 150MB each · Select up to 300 at once (direct R2 upload, batches of 20)
+                            {UPLOAD_LIMITS[uploadMode].desc}
                             {watermarkEnabled && ' · Watermark will be applied'}
+                          </div>
+                          <div style={{ fontSize: 11, color: uploadMode === 'raw' ? '#8B5CF6' : '#60C0F0', marginTop: 4, fontWeight: 600 }}>
+                            {UPLOAD_LIMITS[uploadMode].label} mode · Up to {UPLOAD_LIMITS[uploadMode].maxFiles} files · Uploads 1 at a time
                           </div>
                         </DropZone>
                       )}
@@ -1385,7 +1326,7 @@ const AdminGalleryManager: React.FC = () => {
                         <ProgressBarContainer>
                           <ProgressInfo>
                             <span>
-                              {uploadCompletedPhotos}/{uploadFileCount} photos · Batch {Math.min(uploadCompletedBatches + 1, uploadTotalBatches)}/{uploadTotalBatches}
+                              {uploadCompletedPhotos}/{uploadFileCount} photos ({UPLOAD_LIMITS[uploadMode].label} mode)
                             </span>
                             <span style={{ fontWeight: 600, color: '#60C0F0' }}>
                               {uploadProgress}%
@@ -1407,7 +1348,63 @@ const AdminGalleryManager: React.FC = () => {
                               Cancel
                             </ActionBtn>
                           </ProgressInfo>
+
+                          {/* Per-File Status List */}
+                          <div style={{ marginTop: 12, maxHeight: 200, overflowY: 'auto', borderRadius: 8, background: 'rgba(0,0,0,0.2)', padding: 8 }}>
+                            {fileStatuses.map((fs, idx) => (
+                              <div key={idx} style={{
+                                display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px',
+                                fontSize: 12, borderBottom: idx < fileStatuses.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                              }}>
+                                {(fs.status === 'uploading' || fs.status === 'processing') ? (
+                                  <PulsingDot $color={fs.status === 'uploading' ? '#60C0F0' : '#C6A84B'} />
+                                ) : (
+                                  <span style={{
+                                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0, display: 'inline-block',
+                                    background: fs.status === 'done' ? '#22c55e'
+                                      : fs.status === 'error' ? '#ef4444'
+                                      : 'rgba(255,255,255,0.2)',
+                                  }} />
+                                )}
+                                <span style={{ flex: 1, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {fs.name}
+                                </span>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 600, flexShrink: 0,
+                                  color: fs.status === 'done' ? '#22c55e'
+                                    : fs.status === 'error' ? '#ef4444'
+                                    : fs.status === 'uploading' ? '#60C0F0'
+                                    : fs.status === 'processing' ? '#C6A84B'
+                                    : 'rgba(255,255,255,0.3)',
+                                }}>
+                                  {fs.status === 'done' ? (fs.displayName || 'Done')
+                                    : fs.status === 'error' ? (fs.error || 'Failed')
+                                    : fs.status === 'uploading' ? 'Uploading...'
+                                    : fs.status === 'processing' ? 'Processing...'
+                                    : 'Pending'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </ProgressBarContainer>
+                      )}
+
+                      {/* Per-file results after upload completes */}
+                      {!uploading && fileStatuses.length > 0 && (uploadSuccess || uploadError) && (
+                        <div style={{ marginTop: 8, maxHeight: 150, overflowY: 'auto', borderRadius: 8, background: 'rgba(0,0,0,0.15)', padding: 8 }}>
+                          {fileStatuses.map((fs, idx) => (
+                            <div key={idx} style={{
+                              display: 'flex', alignItems: 'center', gap: 8, padding: '3px 8px', fontSize: 11,
+                            }}>
+                              <span style={{ color: fs.status === 'done' ? '#22c55e' : '#ef4444' }}>
+                                {fs.status === 'done' ? '✓' : '✕'}
+                              </span>
+                              <span style={{ color: 'rgba(255,255,255,0.5)' }}>{fs.name}</span>
+                              {fs.displayName && <span style={{ color: '#60C0F0', marginLeft: 'auto' }}>{fs.displayName}</span>}
+                              {fs.error && <span style={{ color: '#ef4444', marginLeft: 'auto' }}>{fs.error}</span>}
+                            </div>
+                          ))}
+                        </div>
                       )}
 
                       {/* Success Notification */}
@@ -1415,7 +1412,7 @@ const AdminGalleryManager: React.FC = () => {
                         <Notification $type="success">
                           <span>✓</span> {uploadSuccess}
                           <ActionBtn
-                            onClick={() => { setUploadSuccess(null); setUploadEventId(null); }}
+                            onClick={() => { setUploadSuccess(null); setUploadEventId(null); setFileStatuses([]); }}
                             style={{ marginLeft: 'auto', padding: '2px 10px', minHeight: 28, fontSize: 11 }}
                           >
                             Dismiss
@@ -1532,7 +1529,20 @@ const AdminGalleryManager: React.FC = () => {
                                     </button>
                                   </div>
                                 </PhotoThumb>
-                                <PhotoThumbName title={photo.displayName}>{photo.displayName}</PhotoThumbName>
+                                <PhotoThumbName title={photo.displayName}>
+                                  {photo.displayName}
+                                  {photo.sourceType && (
+                                    <span style={{
+                                      marginLeft: 4, fontSize: 9, fontWeight: 700, padding: '1px 5px',
+                                      borderRadius: 4, verticalAlign: 'middle',
+                                      background: photo.sourceType === 'raw' ? 'rgba(139,92,246,0.2)' : 'rgba(96,192,240,0.2)',
+                                      color: photo.sourceType === 'raw' ? '#8B5CF6' : '#60C0F0',
+                                      border: `1px solid ${photo.sourceType === 'raw' ? 'rgba(139,92,246,0.3)' : 'rgba(96,192,240,0.3)'}`,
+                                    }}>
+                                      {photo.sourceType === 'raw' ? 'RAW' : 'HQ'}
+                                    </span>
+                                  )}
+                                </PhotoThumbName>
                               </PhotoThumbWrapper>
                             );
                           })}
