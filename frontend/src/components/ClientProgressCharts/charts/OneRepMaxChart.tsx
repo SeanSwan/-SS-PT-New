@@ -1,10 +1,10 @@
 /**
  * OneRepMaxChart.tsx
  * ==================
- * 
+ *
  * Bar chart component for displaying 1-rep max projections for key exercises
  * Part of the ClientProgressCharts modular system
- * 
+ *
  * FEATURES:
  * - Horizontal bar chart for better exercise name readability
  * - Gradient bar fills with strength-based color coding
@@ -12,6 +12,8 @@
  * - Sortable by weight, improvement, or alphabetical
  * - Mobile-optimized responsive design
  * - WCAG AA accessibility compliance
+ *
+ * THEME: Enchanted Apex — Crystalline Swan
  */
 
 import React, { useMemo } from 'react';
@@ -34,7 +36,7 @@ import { OneRepMaxChartProps, OneRepMaxDataPoint } from '../types/ClientProgress
 const ChartContainer = styled(motion.div)`
   width: 100%;
   height: 350px;
-  
+
   @media (max-width: 768px) {
     height: 300px;
   }
@@ -43,13 +45,13 @@ const ChartContainer = styled(motion.div)`
 const TooltipContainer = styled.div`
   background: linear-gradient(
     135deg,
-    rgba(15, 23, 42, 0.95) 0%,
-    rgba(30, 41, 59, 0.9) 100%
+    rgba(0, 32, 96, 0.95) 0%,
+    rgba(0, 48, 128, 0.9) 100%
   );
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  border: 1px solid rgba(96, 192, 240, 0.3);
   border-radius: 12px;
   padding: 1rem;
-  color: #e2e8f0;
+  color: #E0ECF4;
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   min-width: 200px;
@@ -57,21 +59,24 @@ const TooltipContainer = styled.div`
 
 const TooltipLabel = styled.div`
   font-weight: 600;
-  color: #f59e0b;
+  color: #C6A84B;
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
+  font-family: 'Fira Code', monospace;
 `;
 
 const TooltipValue = styled.div`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #eab308;
+  color: #C6A84B;
   margin-bottom: 0.25rem;
+  font-family: 'Fira Code', monospace;
 `;
 
 const TooltipDetail = styled.div`
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: #b8c9db;
+  font-family: 'Fira Code', monospace;
 `;
 
 const NoDataContainer = styled.div`
@@ -80,7 +85,7 @@ const NoDataContainer = styled.div`
   align-items: center;
   justify-content: center;
   height: 350px;
-  color: #94a3b8;
+  color: #b8c9db;
   text-align: center;
 `;
 
@@ -93,20 +98,20 @@ const SortControls = styled.div`
 
 const SortButton = styled.button<{ active: boolean }>`
   padding: 0.5rem 1rem;
-  border: 1px solid ${props => props.active ? '#f59e0b' : 'rgba(148, 163, 184, 0.3)'};
-  background: ${props => props.active 
-    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 179, 8, 0.1))'
-    : 'rgba(30, 41, 59, 0.5)'
+  border: 1px solid ${props => props.active ? '#C6A84B' : 'rgba(96, 192, 240, 0.3)'};
+  background: ${props => props.active
+    ? 'linear-gradient(135deg, rgba(198, 168, 75, 0.2), rgba(198, 168, 75, 0.1))'
+    : 'rgba(0, 48, 128, 0.5)'
   };
-  color: ${props => props.active ? '#f59e0b' : '#94a3b8'};
+  color: ${props => props.active ? '#C6A84B' : '#b8c9db'};
   border-radius: 8px;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
-    border-color: #f59e0b;
-    color: #f59e0b;
+    border-color: #C6A84B;
+    color: #C6A84B;
   }
 `;
 
@@ -119,18 +124,6 @@ interface CustomTooltipProps {
 }
 
 // ==================== UTILITY FUNCTIONS ====================
-
-const getBarColor = (weight: number, maxWeight: number): string => {
-  const ratio = weight / maxWeight;
-  
-  if (ratio >= 0.8) {
-    return 'url(#strongGradient)'; // Red-orange for strongest
-  } else if (ratio >= 0.6) {
-    return 'url(#moderateGradient)'; // Orange-yellow for moderate
-  } else {
-    return 'url(#lightGradient)'; // Blue-green for lighter
-  }
-};
 
 const truncateExerciseName = (name: string, maxLength: number = 20): string => {
   if (name.length <= maxLength) return name;
@@ -181,16 +174,16 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
   className
 }) => {
   // ==================== STATE ====================
-  
+
   const [currentSort, setCurrentSort] = React.useState<'weight' | 'improvement' | 'alphabetical'>(sortBy);
 
   // ==================== COMPUTED VALUES ====================
-  
+
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
+
     let sortedData = [...data];
-    
+
     // Apply sorting
     switch (currentSort) {
       case 'weight':
@@ -203,7 +196,7 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
         sortedData.sort((a, b) => a.exercise.localeCompare(b.exercise));
         break;
     }
-    
+
     // Limit to max exercises and format for display
     return sortedData
       .slice(0, maxExercises)
@@ -220,13 +213,13 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
   }, [chartData]);
 
   // ==================== EVENT HANDLERS ====================
-  
+
   const handleSortChange = (newSort: typeof currentSort) => {
     setCurrentSort(newSort);
   };
 
   // ==================== RENDER ====================
-  
+
   if (!data || data.length === 0) {
     return (
       <ChartContainer className={className}>
@@ -236,7 +229,7 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>No 1RM Data</h4>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No 1RM Data</h4>
             <p style={{ margin: 0, fontSize: '0.875rem' }}>
               Log some strength workouts to see your 1-rep max projections!
             </p>
@@ -288,40 +281,40 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
           >
             <defs>
               <linearGradient id="strongGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#dc2626" stopOpacity={0.9}/>
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.7}/>
+                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.9}/>
+                <stop offset="95%" stopColor="#C6A84B" stopOpacity={0.7}/>
               </linearGradient>
               <linearGradient id="moderateGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
-                <stop offset="95%" stopColor="#eab308" stopOpacity={0.7}/>
+                <stop offset="5%" stopColor="#C6A84B" stopOpacity={0.9}/>
+                <stop offset="95%" stopColor="#60C0F0" stopOpacity={0.7}/>
               </linearGradient>
               <linearGradient id="lightGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.7}/>
+                <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.9}/>
+                <stop offset="95%" stopColor="#50A0F0" stopOpacity={0.7}/>
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(148, 163, 184, 0.2)"
+              stroke="rgba(96, 192, 240, 0.1)"
               horizontal={false}
             />
             <XAxis
               type="number"
-              stroke="rgba(148, 163, 184, 0.5)"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              stroke="rgba(96, 192, 240, 0.5)"
+              tick={{ fill: '#b8c9db', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
               domain={[0, 'dataMax']}
             />
             <YAxis
               type="category"
               dataKey="displayName"
-              stroke="rgba(148, 163, 184, 0.5)"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              stroke="rgba(96, 192, 240, 0.5)"
+              tick={{ fill: '#b8c9db', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
               width={90}
             />
             {showTooltip && (
               <Tooltip
                 content={<CustomTooltip />}
-                cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+                cursor={{ fill: 'rgba(96, 192, 240, 0.1)' }}
               />
             )}
             <Bar
@@ -332,7 +325,7 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
             >
               {chartData.map((entry, index) => {
                 const ratio = entry.max / maxWeight;
-                let fill = '#3b82f6';
+                let fill = '#60C0F0';
                 if (ratio >= 0.8) fill = 'url(#strongGradient)';
                 else if (ratio >= 0.6) fill = 'url(#moderateGradient)';
                 else fill = 'url(#lightGradient)';

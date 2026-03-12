@@ -1,17 +1,57 @@
 /**
- * Master Prompt Builder Service
- * =============================
+ * Master Prompt Builder Service v4.0
+ * ===================================
  * Auto-builds a masterPromptJson from existing user data when none exists.
- * Pulls from: User, WaiverRecord, MovementAnalysis, EquipmentProfile, WorkoutSession.
+ * Pulls from: User, WaiverRecord, MovementAnalysis, EquipmentProfile, WorkoutSession,
+ *             ClientBaselineMeasurements, ClientOnboardingQuestionnaire,
+ *             ClientPainEntry, BodyMeasurement, ClientNote, Goal.
  *
  * Used by: aiWorkoutController, longHorizonController, aiChatService
  */
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
+// ── Helper Functions ──────────────────────────────────────────────────────────
+
+function calculateTrend(measurements, field) {
+  if (!measurements || measurements.length < 2) return 'insufficient_data';
+  const recent = measurements[0]?.[field];
+  const older = measurements[measurements.length - 1]?.[field];
+  if (recent == null || older == null) return 'insufficient_data';
+  const diff = recent - older;
+  if (Math.abs(diff) < 0.5) return 'stable';
+  return diff > 0 ? 'increasing' : 'decreasing';
+}
+
+function isWithinDays(date, days) {
+  if (!date) return false;
+  const d = new Date(date);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return d >= cutoff;
+}
+
+function daysBetween(date1, date2) {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  return Math.round(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24));
+}
+
+function calculateWeeklyAverage(sessions) {
+  if (!sessions || sessions.length === 0) return 0;
+  const dates = sessions.map(s => new Date(s.date)).filter(d => !isNaN(d));
+  if (dates.length === 0) return 0;
+  const earliest = new Date(Math.min(...dates));
+  const latest = new Date(Math.max(...dates));
+  const weeks = Math.max(1, daysBetween(earliest, latest) / 7);
+  return Math.round((dates.length / weeks) * 10) / 10;
+}
+
+// ── Main Builder ──────────────────────────────────────────────────────────────
+
 /**
  * Build masterPromptJson from available user data.
- * Returns a v3.0-compatible master prompt object, or null if user not found.
+ * Returns a v4.0-compatible master prompt object, or null if user not found.
  */
 export async function buildMasterPromptFromUserData(targetUser) {
   if (!targetUser) return null;
@@ -26,50 +66,92 @@ export async function buildMasterPromptFromUserData(targetUser) {
     WorkoutLog,
     ClientBaselineMeasurements,
     ClientOnboardingQuestionnaire,
+    ClientPainEntry,
+    BodyMeasurement,
+    ClientNote,
+    Goal,
   } = models;
 
   const userId = targetUser.id;
 
   // Gather all data sources in parallel
-  const [waiver, movementAnalysis, equipmentProfiles, recentSessions, baseline, questionnaire] =
-    await Promise.all([
-      WaiverRecord?.findOne({
-        where: { userId, status: 'linked' },
-        order: [['signedAt', 'DESC']],
-      }).catch(() => null) ?? null,
+  const [
+    waiver,
+    movementAnalysis,
+    equipmentProfiles,
+    recentSessions,
+    baseline,
+    questionnaire,
+    painEntries,
+    bodyMeasurements,
+    trainerNotes,
+    goals,
+  ] = await Promise.all([
+    WaiverRecord?.findOne({
+      where: { userId, status: 'linked' },
+      order: [['signedAt', 'DESC']],
+    }).catch(() => null) ?? null,
 
-      MovementAnalysis?.findOne({
-        where: { userId, status: ['completed', 'linked'] },
-        order: [['assessmentDate', 'DESC']],
-      }).catch(() => null) ?? null,
+    MovementAnalysis?.findOne({
+      where: { userId, status: ['completed', 'linked'] },
+      order: [['assessmentDate', 'DESC']],
+    }).catch(() => null) ?? null,
 
-      EquipmentProfile?.findAll({
-        where: { trainerId: userId, isActive: true },
-        include: EquipmentItem ? [{ model: EquipmentItem, as: 'items' }] : [],
-        limit: 10,
-      }).catch(() => []) ?? [],
+    EquipmentProfile?.findAll({
+      where: { trainerId: userId, isActive: true },
+      include: EquipmentItem ? [{ model: EquipmentItem, as: 'items' }] : [],
+      limit: 10,
+    }).catch(() => []) ?? [],
 
-      WorkoutSession?.findAll({
-        where: { userId },
-        order: [['date', 'DESC']],
-        limit: 10,
-        include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
-      }).catch(() => []) ?? [],
+    WorkoutSession?.findAll({
+      where: { userId },
+      order: [['date', 'DESC']],
+      limit: 30,
+      include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
+    }).catch(() => []) ?? [],
 
-      ClientBaselineMeasurements?.findOne({
-        where: { userId },
-        order: [['takenAt', 'DESC']],
-      }).catch(() => null) ?? null,
+    ClientBaselineMeasurements?.findOne({
+      where: { userId },
+      order: [['takenAt', 'DESC']],
+    }).catch(() => null) ?? null,
 
-      ClientOnboardingQuestionnaire?.findOne({
-        where: { userId },
-        order: [['createdAt', 'DESC']],
-      }).catch(() => null) ?? null,
-    ]);
+    ClientOnboardingQuestionnaire?.findOne({
+      where: { userId },
+      order: [['createdAt', 'DESC']],
+    }).catch(() => null) ?? null,
 
-  // Build the master prompt JSON (v3.0 schema)
+    // v4.0: Active pain entries sorted by severity
+    ClientPainEntry?.findAll({
+      where: { userId },
+      order: [['painLevel', 'DESC']],
+      limit: 10,
+    }).catch(() => []) ?? [],
+
+    // v4.0: Last 5 body measurements for trend tracking
+    BodyMeasurement?.findAll({
+      where: { userId },
+      order: [['measuredAt', 'DESC']],
+      limit: 5,
+    }).catch(() => []) ?? [],
+
+    // v4.0: High/critical severity trainer notes
+    ClientNote?.findAll({
+      where: { userId, severity: ['critical', 'high'] },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    }).catch(() => []) ?? [],
+
+    // v4.0: Active goals with progress
+    Goal?.findAll({
+      where: { userId, status: ['active', 'in_progress'] },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    }).catch(() => []) ?? [],
+  ]);
+
+  // Build the master prompt JSON (v4.0 schema)
   const masterPrompt = {
-    version: '3.0',
+    version: '4.0',
     generatedAt: new Date().toISOString(),
     autoGenerated: true,
 
@@ -152,15 +234,79 @@ export async function buildMasterPromptFromUserData(targetUser) {
       bodyFatPercentage: baseline.bodyFatPercentage || null,
       bmi: baseline.bmi || null,
     } : null,
+
+    // v4.0: Pain & injury context
+    painAndInjuries: {
+      activePainEntries: painEntries.map(p => ({
+        region: p.bodyRegion,
+        side: p.side,
+        level: p.painLevel,
+        type: p.painType,
+        avoid: p.aggravatingMovements,
+        helps: p.relievingFactors,
+        aiGuidance: p.aiNotes,
+        syndrome: p.posturalSyndrome,
+      })),
+      totalActiveIssues: painEntries.length,
+    },
+
+    // v4.0: Body composition trajectory (trend, not just latest)
+    bodyCompositionTrend: {
+      measurements: bodyMeasurements.map(m => ({
+        date: m.measuredAt,
+        weight: m.weight,
+        bodyFat: m.bodyFatPercentage,
+        muscleMass: m.muscleMassPercentage,
+        progressScore: m.progressScore,
+      })),
+      weightTrend: calculateTrend(bodyMeasurements, 'weight'),
+      bodyFatTrend: calculateTrend(bodyMeasurements, 'bodyFatPercentage'),
+      muscleTrend: calculateTrend(bodyMeasurements, 'muscleMassPercentage'),
+    },
+
+    // v4.0: Trainer flags (high/critical notes that should influence AI)
+    trainerFlags: {
+      criticalNotes: trainerNotes.map(n => ({
+        type: n.noteType,
+        severity: n.severity,
+        content: n.content,
+        category: n.category,
+      })),
+    },
+
+    // v4.0: Active goals with progress
+    activeGoals: goals.map(g => ({
+      type: g.goalType,
+      target: g.targetValue,
+      current: g.currentValue,
+      unit: g.unit,
+      deadline: g.deadline,
+      progress: g.progressPercentage,
+    })),
+
+    // v4.0: Workout consistency (derived from session history)
+    consistency: {
+      sessionsLast7Days: recentSessions.filter(s => isWithinDays(s.date, 7)).length,
+      sessionsLast30Days: recentSessions.filter(s => isWithinDays(s.date, 30)).length,
+      averageSessionsPerWeek: recentSessions.length > 0 ? calculateWeeklyAverage(recentSessions) : 0,
+      longestStreak: targetUser.streakDays || 0,
+      lastWorkoutDate: recentSessions[0]?.date || null,
+      daysSinceLastWorkout: recentSessions[0] ? daysBetween(recentSessions[0].date, new Date()) : null,
+    },
   };
 
-  logger.info('Auto-generated masterPromptJson from user data', {
+  logger.info('Auto-generated masterPromptJson v4.0 from user data', {
     userId,
     hasWaiver: !!waiver,
     hasMovementAnalysis: !!movementAnalysis,
     equipmentProfiles: equipmentProfiles.length,
     recentSessions: recentSessions.length,
     hasBaseline: !!baseline,
+    hasQuestionnaire: !!questionnaire,
+    painEntries: painEntries.length,
+    bodyMeasurements: bodyMeasurements.length,
+    trainerNotes: trainerNotes.length,
+    goals: goals.length,
   });
 
   return masterPrompt;

@@ -1,10 +1,10 @@
 /**
  * VolumeOverTimeChart.tsx
  * ======================
- * 
+ *
  * Line chart component for displaying total workout volume over time
  * Part of the ClientProgressCharts modular system
- * 
+ *
  * FEATURES:
  * - Responsive line chart with smooth animations
  * - Gradient fill under the line
@@ -12,6 +12,8 @@
  * - Trend line overlay option
  * - Mobile-optimized touch interactions
  * - WCAG AA accessibility compliance
+ *
+ * THEME: Enchanted Apex — Crystalline Swan
  */
 
 import React, { useMemo } from 'react';
@@ -34,7 +36,7 @@ import { VolumeChartProps, VolumeDataPoint } from '../types/ClientProgressTypes'
 const ChartContainer = styled(motion.div)`
   width: 100%;
   height: 300px;
-  
+
   @media (max-width: 768px) {
     height: 250px;
   }
@@ -43,28 +45,30 @@ const ChartContainer = styled(motion.div)`
 const TooltipContainer = styled.div`
   background: linear-gradient(
     135deg,
-    rgba(15, 23, 42, 0.95) 0%,
-    rgba(30, 41, 59, 0.9) 100%
+    rgba(0, 32, 96, 0.95) 0%,
+    rgba(0, 48, 128, 0.9) 100%
   );
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  border: 1px solid rgba(96, 192, 240, 0.3);
   border-radius: 12px;
   padding: 1rem;
-  color: #e2e8f0;
+  color: #E0ECF4;
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 `;
 
 const TooltipLabel = styled.div`
   font-weight: 600;
-  color: #3b82f6;
+  color: #60C0F0;
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
+  font-family: 'Fira Code', monospace;
 `;
 
 const TooltipValue = styled.div`
   font-size: 1.1rem;
   font-weight: 500;
-  color: #10b981;
+  color: #C6A84B;
+  font-family: 'Fira Code', monospace;
 `;
 
 const NoDataContainer = styled.div`
@@ -73,7 +77,7 @@ const NoDataContainer = styled.div`
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: #94a3b8;
+  color: #b8c9db;
   text-align: center;
 `;
 
@@ -93,7 +97,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   }
 
   const data = payload[0]?.payload as VolumeDataPoint;
-  
+
   return (
     <TooltipContainer>
       <TooltipLabel>
@@ -107,7 +111,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
         {data.label}
       </TooltipValue>
       {data.totalSets && (
-        <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+        <div style={{ fontSize: '0.875rem', color: '#b8c9db', marginTop: '0.25rem', fontFamily: "'Fira Code', monospace" }}>
           {data.totalSets} sets
         </div>
       )}
@@ -128,10 +132,10 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
   className
 }) => {
   // ==================== COMPUTED VALUES ====================
-  
+
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
+
     // Sort data by date and ensure proper formatting
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -157,7 +161,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
   }, [chartData]);
 
   // ==================== RENDER ====================
-  
+
   if (!data || data.length === 0) {
     return (
       <ChartContainer className={className}>
@@ -167,7 +171,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>No Volume Data</h4>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Volume Data</h4>
             <p style={{ margin: 0, fontSize: '0.875rem' }}>
               Complete some workouts to see your volume progress!
             </p>
@@ -192,39 +196,39 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
           >
             <defs>
               <linearGradient id="volumeAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.8}/>
+                <stop offset="50%" stopColor="#50A0F0" stopOpacity={0.4}/>
+                <stop offset="95%" stopColor="#C6A84B" stopOpacity={0.1}/>
               </linearGradient>
               <linearGradient id="trendLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.6}/>
+                <stop offset="0%" stopColor="#C6A84B" stopOpacity={0.3}/>
+                <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.6}/>
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(148, 163, 184, 0.2)"
+              stroke="rgba(96, 192, 240, 0.1)"
             />
             <XAxis
               dataKey="displayDate"
-              stroke="rgba(148, 163, 184, 0.5)"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              stroke="rgba(96, 192, 240, 0.5)"
+              tick={{ fill: '#b8c9db', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
             />
             <YAxis
-              stroke="rgba(148, 163, 184, 0.5)"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
-              label={{ value: 'Volume (lbs)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+              stroke="rgba(96, 192, 240, 0.5)"
+              tick={{ fill: '#b8c9db', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
+              label={{ value: 'Volume (lbs)', angle: -90, position: 'insideLeft', fill: '#b8c9db' }}
             />
             {showTooltip && (
               <Tooltip
                 content={<CustomTooltip />}
-                cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }}
+                cursor={{ stroke: '#60C0F0', strokeWidth: 1, strokeDasharray: '5 5' }}
               />
             )}
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#3b82f6"
+              stroke="#60C0F0"
               strokeWidth={2}
               fill="url(#volumeAreaGradient)"
               isAnimationActive={animate}

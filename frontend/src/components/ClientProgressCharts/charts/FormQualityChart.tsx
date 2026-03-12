@@ -1,10 +1,10 @@
 /**
  * FormQualityChart.tsx
  * ====================
- * 
- * Line chart component for displaying form quality ratings over time
+ *
+ * Composed chart component for displaying form quality ratings over time
  * Part of the ClientProgressCharts modular system
- * 
+ *
  * FEATURES:
  * - Line chart with area fill showing form quality trend
  * - Target form rating reference line (configurable)
@@ -13,12 +13,25 @@
  * - Average form rating overlay
  * - Mobile-optimized responsive design
  * - WCAG AA accessibility compliance
+ *
+ * THEME: Enchanted Apex — Crystalline Swan
  */
 
 import React, { useMemo } from 'react';
-// Using CSS-based charts instead of recharts for build compatibility
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import {
+  ComposedChart,
+  Line,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceArea,
+  ReferenceLine
+} from 'recharts';
 import { FormQualityChartProps, FormQualityDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -26,7 +39,7 @@ import { FormQualityChartProps, FormQualityDataPoint } from '../types/ClientProg
 const ChartContainer = styled(motion.div)`
   width: 100%;
   height: 320px;
-  
+
   @media (max-width: 768px) {
     height: 280px;
   }
@@ -35,22 +48,23 @@ const ChartContainer = styled(motion.div)`
 const TooltipContainer = styled.div`
   background: linear-gradient(
     135deg,
-    rgba(15, 23, 42, 0.95) 0%,
-    rgba(30, 41, 59, 0.9) 100%
+    rgba(0, 32, 96, 0.95) 0%,
+    rgba(0, 48, 128, 0.9) 100%
   );
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  border: 1px solid rgba(96, 192, 240, 0.3);
   border-radius: 12px;
   padding: 1rem;
-  color: #e2e8f0;
+  color: #E0ECF4;
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 `;
 
 const TooltipLabel = styled.div`
   font-weight: 600;
-  color: #8b5cf6;
+  color: #8B5CF6;
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
+  font-family: 'Fira Code', monospace;
 `;
 
 const TooltipValue = styled.div`
@@ -64,8 +78,9 @@ const TooltipValue = styled.div`
 
 const TooltipDetail = styled.div`
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: #b8c9db;
   margin-top: 0.25rem;
+  font-family: 'Fira Code', monospace;
 `;
 
 const QualityBadge = styled.span<{ quality: string }>`
@@ -76,9 +91,9 @@ const QualityBadge = styled.span<{ quality: string }>`
   text-transform: uppercase;
   background: ${props => {
     switch (props.quality) {
-      case 'excellent': return 'linear-gradient(135deg, #10b981, #059669)';
-      case 'good': return 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-      case 'fair': return 'linear-gradient(135deg, #f59e0b, #d97706)';
+      case 'excellent': return 'linear-gradient(135deg, #C6A84B, #a08930)';
+      case 'good': return 'linear-gradient(135deg, #60C0F0, #50A0F0)';
+      case 'fair': return 'linear-gradient(135deg, #C6A84B, #a08930)';
       case 'poor': return 'linear-gradient(135deg, #ef4444, #dc2626)';
       default: return 'linear-gradient(135deg, #6b7280, #4b5563)';
     }
@@ -92,7 +107,7 @@ const NoDataContainer = styled.div`
   align-items: center;
   justify-content: center;
   height: 320px;
-  color: #94a3b8;
+  color: #b8c9db;
   text-align: center;
 `;
 
@@ -109,7 +124,7 @@ const LegendItem = styled.div`
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: #b8c9db;
 `;
 
 const LegendDot = styled.div<{ color: string }>`
@@ -137,9 +152,9 @@ const getFormQuality = (rating: number): string => {
 };
 
 const getFormQualityColor = (rating: number): string => {
-  if (rating >= 4.5) return '#10b981';
-  if (rating >= 3.5) return '#3b82f6';
-  if (rating >= 2.5) return '#f59e0b';
+  if (rating >= 4.5) return '#C6A84B';
+  if (rating >= 3.5) return '#60C0F0';
+  if (rating >= 2.5) return '#C6A84B';
   return '#ef4444';
 };
 
@@ -147,10 +162,10 @@ const generateStars = (rating: number): string => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-  
-  return '★'.repeat(fullStars) + 
-         (hasHalfStar ? '☆' : '') + 
-         '☆'.repeat(emptyStars);
+
+  return '\u2605'.repeat(fullStars) +
+         (hasHalfStar ? '\u2606' : '') +
+         '\u2606'.repeat(emptyStars);
 };
 
 // ==================== COMPONENTS ====================
@@ -162,7 +177,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 
   const data = payload[0]?.payload as FormQualityDataPoint;
   const quality = getFormQuality(data.averageForm);
-  
+
   return (
     <TooltipContainer>
       <TooltipLabel>
@@ -199,10 +214,10 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
   className
 }) => {
   // ==================== COMPUTED VALUES ====================
-  
+
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
+
     // Sort data by date and ensure proper formatting
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -225,22 +240,22 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
 
   const currentTrend = useMemo(() => {
     if (chartData.length < 2) return 'stable';
-    
+
     const recent = chartData.slice(-3);
     const older = chartData.slice(0, -3);
-    
+
     if (recent.length === 0 || older.length === 0) return 'stable';
-    
+
     const recentAvg = recent.reduce((sum, d) => sum + d.averageForm, 0) / recent.length;
     const olderAvg = older.reduce((sum, d) => sum + d.averageForm, 0) / older.length;
-    
+
     if (recentAvg > olderAvg + 0.2) return 'improving';
     if (recentAvg < olderAvg - 0.2) return 'declining';
     return 'stable';
   }, [chartData]);
 
   // ==================== RENDER ====================
-  
+
   if (!data || data.length === 0) {
     return (
       <ChartContainer className={className}>
@@ -250,7 +265,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>No Form Data</h4>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Form Data</h4>
             <p style={{ margin: 0, fontSize: '0.875rem' }}>
               Get your trainer to rate your form during workouts!
             </p>
@@ -271,15 +286,15 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
       {showLegend && (
         <LegendContainer>
           <LegendItem>
-            <LegendDot color="#10b981" />
+            <LegendDot color="#C6A84B" />
             Excellent (4.5+)
           </LegendItem>
           <LegendItem>
-            <LegendDot color="#3b82f6" />
+            <LegendDot color="#60C0F0" />
             Good (3.5-4.4)
           </LegendItem>
           <LegendItem>
-            <LegendDot color="#f59e0b" />
+            <LegendDot color="#C6A84B" />
             Fair (2.5-3.4)
           </LegendItem>
           <LegendItem>
@@ -300,42 +315,44 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               bottom: 20,
             }}
           >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke="rgba(148, 163, 184, 0.2)"
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(96, 192, 240, 0.1)"
               vertical={false}
             />
-            
+
             <XAxis
               dataKey="displayDate"
-              stroke="#94a3b8"
+              stroke="#b8c9db"
               fontSize={12}
               tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
+              axisLine={{ stroke: 'rgba(96, 192, 240, 0.3)' }}
+              tick={{ fontFamily: "'Fira Code', monospace" }}
             />
-            
+
             <YAxis
               domain={[1, 5]}
-              stroke="#94a3b8"
+              stroke="#b8c9db"
               fontSize={12}
               tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
-              tickFormatter={(value) => `${value}★`}
+              axisLine={{ stroke: 'rgba(96, 192, 240, 0.3)' }}
+              tickFormatter={(value) => `${value}\u2605`}
+              tick={{ fontFamily: "'Fira Code', monospace" }}
             />
-            
+
             {showTooltip && (
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{ stroke: 'rgba(139, 92, 246, 0.5)', strokeWidth: 2 }}
               />
             )}
-            
+
             {/* Reference areas for quality zones */}
-            <ReferenceArea y1={4.5} y2={5} fill="rgba(16, 185, 129, 0.1)" />
-            <ReferenceArea y1={3.5} y2={4.5} fill="rgba(59, 130, 246, 0.1)" />
-            <ReferenceArea y1={2.5} y2={3.5} fill="rgba(245, 158, 11, 0.1)" />
+            <ReferenceArea y1={4.5} y2={5} fill="rgba(198, 168, 75, 0.1)" />
+            <ReferenceArea y1={3.5} y2={4.5} fill="rgba(96, 192, 240, 0.1)" />
+            <ReferenceArea y1={2.5} y2={3.5} fill="rgba(198, 168, 75, 0.08)" />
             <ReferenceArea y1={1} y2={2.5} fill="rgba(239, 68, 68, 0.1)" />
-            
+
             {/* Target line */}
             <ReferenceLine
               y={targetFormRating}
@@ -343,28 +360,28 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               strokeDasharray="5 5"
               strokeWidth={2}
               label={{
-                value: `Target: ${targetFormRating}★`,
+                value: `Target: ${targetFormRating}\u2605`,
                 position: 'topRight',
-                fill: '#8b5cf6',
+                fill: '#8B5CF6',
                 fontSize: 12
               }}
             />
-            
+
             {/* Average line */}
             {showAverage && (
               <ReferenceLine
                 y={averageFormRating}
-                stroke="rgba(16, 185, 129, 0.6)"
+                stroke="rgba(96, 192, 240, 0.6)"
                 strokeDasharray="3 3"
                 label={{
-                  value: `Avg: ${averageFormRating.toFixed(1)}★`,
+                  value: `Avg: ${averageFormRating.toFixed(1)}\u2605`,
                   position: 'bottomRight',
-                  fill: '#10b981',
+                  fill: '#60C0F0',
                   fontSize: 12
                 }}
               />
             )}
-            
+
             {/* Area under the line */}
             <Area
               type="monotone"
@@ -373,7 +390,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               stroke="none"
               animationDuration={animate ? 1500 : 0}
             />
-            
+
             {/* Main line */}
             <Line
               type="monotone"
@@ -381,31 +398,31 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               stroke="url(#formLineGradient)"
               strokeWidth={3}
               dot={{
-                fill: '#8b5cf6',
+                fill: '#8B5CF6',
                 strokeWidth: 2,
                 stroke: '#7c3aed',
                 r: 4
               }}
               activeDot={{
                 r: 6,
-                fill: '#8b5cf6',
-                stroke: '#ffffff',
+                fill: '#8B5CF6',
+                stroke: '#E0ECF4',
                 strokeWidth: 2
               }}
               animationDuration={animate ? 1500 : 0}
               animationEasing="ease-out"
             />
-            
+
             {/* Define gradients */}
             <defs>
               <linearGradient id="formGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
                 <stop offset="50%" stopColor="#a855f7" stopOpacity={0.2} />
                 <stop offset="100%" stopColor="#c084fc" stopOpacity={0.1} />
               </linearGradient>
-              
+
               <linearGradient id="formLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.9} />
+                <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.9} />
                 <stop offset="50%" stopColor="#a855f7" stopOpacity={0.8} />
                 <stop offset="100%" stopColor="#c084fc" stopOpacity={0.7} />
               </linearGradient>

@@ -102,6 +102,10 @@ export interface ChartVisibility {
   oneRepMax: boolean;
   formQuality: boolean;
   nasmCategory: boolean;
+  bodyComposition: boolean;
+  strengthProgression: boolean;
+  consistency: boolean;
+  muscleGroup: boolean;
 }
 
 export interface ChartTheme {
@@ -211,6 +215,50 @@ export interface NASMRadarChartProps extends BaseChartProps {
   data: NASMCategoryDataPoint[];
   showPercentages?: boolean;
   maxValue?: number;
+}
+
+// ==================== NEW CHART DATA TYPES (v4.0) ====================
+
+export interface BodyCompositionDataPoint {
+  date: string;
+  weight: number;
+  bodyFat: number;
+  muscleMass?: number;
+  progressScore?: number;
+}
+
+export interface StrengthProgressionDataPoint {
+  date: string;
+  exercises: Record<string, number>; // exerciseName → estimated1RM
+}
+
+export interface ConsistencyDataPoint {
+  date: string;   // YYYY-MM-DD
+  count: number;   // workouts that day
+  volume?: number; // total volume
+}
+
+export interface MuscleGroupDataPoint {
+  muscleGroup: string;
+  volume: number;
+  previousVolume?: number;
+}
+
+export interface BodyCompositionChartProps {
+  data: BodyCompositionDataPoint[];
+}
+
+export interface StrengthProgressionChartProps {
+  data: StrengthProgressionDataPoint[];
+  exerciseNames: string[];
+}
+
+export interface ConsistencyHeatmapProps {
+  data: ConsistencyDataPoint[];
+}
+
+export interface MuscleGroupRadarProps {
+  data: MuscleGroupDataPoint[];
 }
 
 // ==================== UTILITY TYPES ====================
