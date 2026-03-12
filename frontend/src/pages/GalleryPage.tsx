@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import VIPConversionModal from './gallery/VIPConversionModal';
 import PhotoFeedback from './gallery/PhotoFeedback';
 import PhotoDetailModal from './gallery/PhotoDetailModal';
+import GalleryInfoCard from './gallery/GalleryInfoCard';
+import MessageModal from './gallery/MessageModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -975,6 +977,7 @@ const GalleryPage: React.FC = () => {
   const [credits, setCredits] = useState<EnhancementCredits>({ freeRemaining: 3, purchasedCredits: 0, isVip: false, freeUsedThisEvent: 0 });
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null);
 
   // Welcome toast state
@@ -1515,6 +1518,16 @@ const GalleryPage: React.FC = () => {
           </>
         )}
 
+        {/* Gallery Info Card — actions for message, donation, VIP */}
+        {selectedEvent && !loading && photos.length > 0 && (
+          <GalleryInfoCard
+            onOpenMessage={() => setShowMessageModal(true)}
+            onOpenDonation={() => { /* TODO: donation modal */ }}
+            onOpenVip={() => setShowVipModal(true)}
+            freeCredits={credits.freeRemaining}
+          />
+        )}
+
         {loading ? (
           <EventGrid>
             {[1,2,3,4,5,6].map(i => <LoadingShimmer key={i} />)}
@@ -1694,6 +1707,15 @@ const GalleryPage: React.FC = () => {
             fetchCredits();
             setShowVipModal(false);
           }}
+        />
+
+        {/* Message Modal */}
+        <MessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          email={email}
+          galleryToken={galleryToken || ''}
+          eventSlug={selectedEvent?.slug || slug || gateSlug || ''}
         />
       </ContentMax>
 

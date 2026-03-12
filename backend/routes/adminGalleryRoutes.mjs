@@ -19,6 +19,7 @@ import EnhancementRequest from '../models/EnhancementRequest.mjs';
 import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
 import PhotoVote from '../models/PhotoVote.mjs';
+import GalleryMessage from '../models/GalleryMessage.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import sharp from 'sharp';
 import { applyWatermark, isWatermarkAvailable } from '../services/watermarkService.mjs';
@@ -1281,6 +1282,88 @@ router.delete('/photos/bulk-delete', async (req, res) => {
   } catch (err) {
     logger.error('[AdminGallery] Bulk delete error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to delete photos' });
+  }
+});
+
+// ── Gallery Messages (Admin) ──────────────────────────────────────────────
+
+/**
+ * GET /api/admin/gallery/messages
+ * List all gallery messages with visitor/event info, sorted by newest first.
+ * Query params: ?eventId=<id> — filter by event
+ *               ?unreadOnly=true — show only unread messages
+ */
+router.get('/messages', async (req, res) => {
+  try {
+    const { eventId, unreadOnly } = req.query;
+
+    const where = {};
+    if (eventId) {
+      where.eventId = parseInt(eventId, 10);
+    }
+    if (unreadOnly === 'true') {
+      where.isRead = false;
+    }
+
+    const messages = await GalleryMessage.findAll({
+      where,
+      include: [
+        {
+          model: GalleryVisitor,
+          as: 'visitor',
+          attributes: ['id', 'email', 'firstName', 'lastName'],
+        },
+        {
+          model: GalleryEvent,
+          as: 'event',
+          attributes: ['id', 'name', 'slug'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    return res.json({ success: true, messages });
+  } catch (err) {
+    logger.error('[AdminGallery] List messages error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load messages' });
+  }
+});
+
+/**
+ * GET /api/admin/gallery/messages/count
+ * Return unread message count (for badge on Messages tab)
+ */
+router.get('/messages/count', async (req, res) => {
+  try {
+    const unreadCount = await GalleryMessage.count({
+      where: { isRead: false },
+    });
+
+    return res.json({ success: true, unreadCount });
+  } catch (err) {
+    logger.error('[AdminGallery] Message count error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to get message count' });
+  }
+});
+
+/**
+ * PATCH /api/admin/gallery/messages/:id/read
+ * Mark a message as read (set isRead=true, readAt=now)
+ */
+router.patch('/messages/:id/read', async (req, res) => {
+  try {
+    const message = await GalleryMessage.findByPk(req.params.id);
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    await message.update({ isRead: true, readAt: new Date() });
+
+    logger.info(`[AdminGallery] Message ${message.id} marked as read`);
+    return res.json({ success: true, message });
+  } catch (err) {
+    logger.error('[AdminGallery] Mark read error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to mark message as read' });
   }
 });
 

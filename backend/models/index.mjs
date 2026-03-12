@@ -217,6 +217,9 @@ export const getBootcampClassLog = () => getModel('BootcampClassLog');
 export const getBootcampSpaceProfile = () => getModel('BootcampSpaceProfile');
 export const getExerciseTrend = () => getModel('ExerciseTrend');
 
+// Gallery Message Model
+export const getGalleryMessage = () => getModel('GalleryMessage');
+
 // Export Sequelize operators for routes
 export { Op };
 

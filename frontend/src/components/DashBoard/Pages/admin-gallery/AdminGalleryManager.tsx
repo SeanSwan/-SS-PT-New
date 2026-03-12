@@ -82,6 +82,17 @@ interface Referral {
   event: { id: number; name: string };
 }
 
+interface GalleryMessage {
+  id: number;
+  visitorName: string;
+  visitorEmail: string;
+  visitorPhone: string | null;
+  eventName: string | null;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 // ── Styled Components ─────────────────────────────────────────────────────
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
@@ -366,15 +377,115 @@ const EmptyState = styled.div`
   font-size: 14px;
 `;
 
+// ── Messages Table Styled Components ──────────────────────────────────────
+const MessagesTableContainer = styled.div`
+  background: #0a0a1a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow-x: auto;
+`;
+
+const MessagesTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+
+  th {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #A0AABF;
+    letter-spacing: 0.05em;
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  td {
+    font-family: 'Sora', system-ui, sans-serif;
+    font-size: 0.875rem;
+    color: #FFFFFF;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    vertical-align: top;
+  }
+
+  tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+  @media (max-width: 768px) {
+    display: block;
+    min-width: unset;
+    th { display: none; }
+    tr { display: block; margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; }
+    td { display: flex; justify-content: space-between; padding: 4px 0; border: none; }
+    td::before { content: attr(data-label); font-weight: 600; color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; }
+  }
+`;
+
+const MessageRow = styled.tr<{ $unread: boolean }>`
+  border-left: 3px solid ${p => p.$unread ? '#60C0F0' : 'transparent'};
+`;
+
+const MessageCell = styled.td<{ $expanded?: boolean }>`
+  max-width: 300px;
+  ${p => !p.$expanded && `
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `}
+  cursor: pointer;
+  &:hover { color: #60C0F0; }
+`;
+
+const ReadBadge = styled.span<{ $read: boolean }>`
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  ${p => p.$read
+    ? 'background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.4);'
+    : 'background: rgba(96, 192, 240, 0.15); color: #60C0F0;'}
+`;
+
+const UnreadBadgeCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #60C0F0;
+  color: #002060;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+`;
+
+const FilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
 // ── Component ─────────────────────────────────────────────────────────────
 const AdminGalleryManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'events' | 'enhancements' | 'donations' | 'referrals' | 'leads'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'enhancements' | 'donations' | 'referrals' | 'leads' | 'messages'>('events');
   const [stats, setStats] = useState<GalleryStats | null>(null);
   const [events, setEvents] = useState<GalleryEvent[]>([]);
   const [enhancements, setEnhancements] = useState<Enhancement[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [visitors, setVisitors] = useState<any[]>([]);
+  const [messages, setMessages] = useState<GalleryMessage[]>([]);
+  const [messagesUnreadCount, setMessagesUnreadCount] = useState(0);
+  const [messagesUnreadOnly, setMessagesUnreadOnly] = useState(false);
+  const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Create event form
@@ -400,12 +511,13 @@ const AdminGalleryManager: React.FC = () => {
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const cancelledRef = useRef(false);
 
-  useEffect(() => { loadStats(); loadEvents(); }, []);
+  useEffect(() => { loadStats(); loadEvents(); loadMessagesUnreadCount(); }, []);
   useEffect(() => {
     if (activeTab === 'enhancements') loadEnhancements();
     if (activeTab === 'donations') loadDonations();
     if (activeTab === 'referrals') loadReferrals();
     if (activeTab === 'leads') loadVisitors();
+    if (activeTab === 'messages') loadMessages();
   }, [activeTab]);
 
   const loadStats = async () => {
@@ -455,6 +567,36 @@ const AdminGalleryManager: React.FC = () => {
       const res = await fetch(`${API_BASE}/api/admin/gallery/visitors`, { headers: getHeaders() });
       const data = await res.json();
       if (data.success) setVisitors(data.visitors);
+    } catch { /* */ }
+  };
+
+  const loadMessages = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/messages`, { headers: getHeaders() });
+      const data = await res.json();
+      if (data.success) setMessages(data.messages || []);
+    } catch { /* */ }
+  };
+
+  const loadMessagesUnreadCount = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/messages/count`, { headers: getHeaders() });
+      const data = await res.json();
+      if (data.success) setMessagesUnreadCount(data.count || 0);
+    } catch { /* */ }
+  };
+
+  const markMessageRead = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/messages/${id}/read`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
+        setMessagesUnreadCount(prev => Math.max(0, prev - 1));
+      }
     } catch { /* */ }
   };
 
@@ -944,6 +1086,9 @@ const AdminGalleryManager: React.FC = () => {
         <Tab $active={activeTab === 'donations'} onClick={() => setActiveTab('donations')}>Donations</Tab>
         <Tab $active={activeTab === 'referrals'} onClick={() => setActiveTab('referrals')}>Referrals</Tab>
         <Tab $active={activeTab === 'leads'} onClick={() => setActiveTab('leads')}>Email Leads</Tab>
+        <Tab $active={activeTab === 'messages'} onClick={() => setActiveTab('messages')}>
+          ✉ Messages{messagesUnreadCount > 0 && <UnreadBadgeCount>{messagesUnreadCount}</UnreadBadgeCount>}
+        </Tab>
       </TabBar>
 
       {/* ── Events Tab ─────────────────────────────────────────────── */}
@@ -1343,6 +1488,75 @@ const AdminGalleryManager: React.FC = () => {
               </tbody>
             </Table>
           )}
+        </GlassCard>
+      )}
+
+      {/* ── Messages Tab ─────────────────────────────────────────────── */}
+      {activeTab === 'messages' && (
+        <GlassCard>
+          <CardTitle>Visitor Messages ({messages.length})</CardTitle>
+          <FilterBar>
+            <span>Show unread only</span>
+            <ToggleSwitch $on={messagesUnreadOnly} onClick={() => setMessagesUnreadOnly(!messagesUnreadOnly)} />
+          </FilterBar>
+          {(() => {
+            const filtered = messagesUnreadOnly ? messages.filter(m => !m.isRead) : messages;
+            if (filtered.length === 0) {
+              return <EmptyState>{messagesUnreadOnly ? 'No unread messages' : 'No messages received yet'}</EmptyState>;
+            }
+            return (
+              <MessagesTableContainer>
+                <MessagesTable>
+                  <thead>
+                    <tr>
+                      <th>Visitor</th>
+                      <th>Phone</th>
+                      <th>Event</th>
+                      <th>Message</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(msg => (
+                      <MessageRow key={msg.id} $unread={!msg.isRead}>
+                        <td data-label="Visitor">
+                          <div style={{ fontWeight: 600 }}>{msg.visitorName || '—'}</div>
+                          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{msg.visitorEmail}</div>
+                        </td>
+                        <td data-label="Phone">{msg.visitorPhone || '—'}</td>
+                        <td data-label="Event">{msg.eventName || '—'}</td>
+                        <MessageCell
+                          data-label="Message"
+                          $expanded={expandedMessageId === msg.id}
+                          onClick={() => setExpandedMessageId(expandedMessageId === msg.id ? null : msg.id)}
+                        >
+                          {msg.message}
+                        </MessageCell>
+                        <td data-label="Date">
+                          {new Date(msg.createdAt).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </td>
+                        <td data-label="Status">
+                          <ReadBadge $read={msg.isRead}>{msg.isRead ? 'Read' : 'Unread'}</ReadBadge>
+                        </td>
+                        <td data-label="Action">
+                          {!msg.isRead && (
+                            <ActionBtn $variant="ghost" onClick={() => markMessageRead(msg.id)}>
+                              Mark as Read
+                            </ActionBtn>
+                          )}
+                        </td>
+                      </MessageRow>
+                    ))}
+                  </tbody>
+                </MessagesTable>
+              </MessagesTableContainer>
+            );
+          })()}
         </GlassCard>
       )}
     </Wrapper>

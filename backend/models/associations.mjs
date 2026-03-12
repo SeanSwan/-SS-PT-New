@@ -175,6 +175,7 @@ const setupAssociations = async () => {
     const GalleryDonationModule = await import('./GalleryDonation.mjs');
     const GalleryReferralModule = await import('./GalleryReferral.mjs');
     const PhotoVoteModule = await import('./PhotoVote.mjs');
+    const GalleryMessageModule = await import('./GalleryMessage.mjs');
 
     // CRM Lead Management Models
     const LeadModule = await import('./Lead.mjs');
@@ -343,6 +344,7 @@ const setupAssociations = async () => {
     const GalleryDonation = GalleryDonationModule.default;
     const GalleryReferral = GalleryReferralModule.default;
     const PhotoVote = PhotoVoteModule.default;
+    const GalleryMessage = GalleryMessageModule.default;
 
     // CRM Lead Management Models
     const Lead = LeadModule.default;
@@ -440,7 +442,7 @@ const setupAssociations = async () => {
         BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
         ExerciseTrend,
         // Photo Gallery & Lead Generation Models
-        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral
+        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage
       };
     }
 
@@ -1070,6 +1072,11 @@ const setupAssociations = async () => {
 
     PhotoVote.belongsTo(GalleryPhoto, { foreignKey: 'photoId', as: 'photo' });
     PhotoVote.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
+
+    GalleryMessage.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
+    GalleryMessage.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+    GalleryVisitor.hasMany(GalleryMessage, { foreignKey: 'visitorId', as: 'messages' });
+    GalleryEvent.hasMany(GalleryMessage, { foreignKey: 'eventId', as: 'messages' });
     console.log('✅ Photo Gallery & Lead Generation models integrated');
 
     // ── CRM Lead Management Associations ─────────────────
@@ -1245,7 +1252,7 @@ const setupAssociations = async () => {
       ExerciseTrend,
 
       // Photo Gallery & Lead Generation Models
-      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote,
+      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
 
       // CRM Lead Management Models
       Lead, LeadActivity,

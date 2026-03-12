@@ -32,6 +32,7 @@ import EnhancementRequest from '../models/EnhancementRequest.mjs';
 import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
 import PhotoVote from '../models/PhotoVote.mjs';
+import GalleryMessage from '../models/GalleryMessage.mjs';
 import { getUser } from '../models/index.mjs';
 import { Op, fn, col, literal } from 'sequelize';
 import logger from '../utils/logger.mjs';
@@ -1140,6 +1141,60 @@ router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
   } catch (err) {
     logger.error('[Gallery VIP] Activation error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to activate VIP status' });
+  }
+});
+
+// ── Messages (Contact from Gallery Visitors) ─────────────────────────────
+
+// Rate limiter for gallery messages (5 per 15 minutes per visitor)
+const messageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  keyGenerator: (req) => req.galleryAccess?.visitorId || req.ip,
+  message: { success: false, error: 'Message limit reached. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * POST /api/gallery/message
+ * Submit a message from a gallery visitor (requires gallery access token)
+ * Body: { message (required), firstName (optional), phone (optional) }
+ */
+router.post('/message', requireGalleryAccess, messageLimiter, async (req, res) => {
+  try {
+    const { message, firstName, phone } = req.body;
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'Message is required' });
+    }
+
+    if (message.trim().length > 5000) {
+      return res.status(400).json({ success: false, error: 'Message must be under 5000 characters' });
+    }
+
+    const visitorId = req.galleryAccess.visitorId;
+    const eventId = req.galleryAccess.eventId;
+    const email = req.galleryAccess.email;
+
+    const galleryMessage = await GalleryMessage.create({
+      visitorId,
+      eventId,
+      email,
+      firstName: firstName?.trim() || null,
+      phone: phone?.trim() || null,
+      message: message.trim(),
+    });
+
+    logger.info(`[Gallery] Message created id=${galleryMessage.id} from visitor=${visitorId} event=${eventId}`);
+
+    return res.json({
+      success: true,
+      messageId: galleryMessage.id,
+    });
+  } catch (err) {
+    logger.error('[Gallery] Message error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to send message' });
   }
 });
 
