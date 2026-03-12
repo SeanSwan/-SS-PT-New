@@ -6,7 +6,7 @@
  * Design: Gemini 3.1 Pro directive — cosmic glassmorphism with spring animations.
  */
 import React, { useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
@@ -406,6 +406,41 @@ const ValueText = styled.span`
   background-clip: text;
 `;
 
+const urgencyFlash = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+`;
+
+const UrgencyBanner = styled.div`
+  background: linear-gradient(135deg, rgba(198, 168, 75, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(198, 168, 75, 0.35);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  text-align: center;
+  animation: ${urgencyFlash} 3s ease-in-out infinite;
+`;
+
+const UrgencyTitle = styled.div`
+  font-size: 13px;
+  font-weight: 800;
+  color: #C6A84B;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+`;
+
+const UrgencyText = styled.div`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+`;
+
+const SpotsLeft = styled.span`
+  color: #C6A84B;
+  font-weight: 700;
+`;
+
 // ── Step 3: Success styled components ─────────────────────────────────────
 const SuccessContainer = styled.div`
   text-align: center;
@@ -529,6 +564,24 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Limited-time deal: first 5 clients get unlimited enhancements, rest get 50
+  const [vipSpotsRemaining, setVipSpotsRemaining] = useState<number | null>(null);
+  const isUnlimitedDeal = vipSpotsRemaining !== null && vipSpotsRemaining > 0;
+
+  // Fetch VIP spots remaining
+  useEffect(() => {
+    if (!isOpen) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/gallery/vip-spots`);
+        if (res.ok) {
+          const data = await res.json();
+          setVipSpotsRemaining(data.spotsRemaining ?? 0);
+        }
+      } catch { /* non-critical */ }
+    })();
+  }, [isOpen]);
 
   // Check for ?vip=success on mount
   useEffect(() => {
@@ -657,7 +710,9 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
       <Subtitle>
         {isLoginMode
           ? 'Sign in to continue to VIP checkout.'
-          : 'Quick signup to unlock your VIP PT session and unlimited enhancements.'}
+          : isUnlimitedDeal
+            ? 'Quick signup to unlock your VIP PT session and unlimited enhancements.'
+            : 'Quick signup to unlock your VIP PT session and 50 photo enhancements.'}
       </Subtitle>
 
       <form onSubmit={handleAccountSubmit}>
@@ -749,6 +804,26 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
       <VipPriceTag>$175</VipPriceTag>
       <VipLabel>VIP Gallery Package</VipLabel>
 
+      {/* Limited-time urgency banner */}
+      <UrgencyBanner>
+        {isUnlimitedDeal ? (
+          <>
+            <UrgencyTitle>Limited Time Offer</UrgencyTitle>
+            <UrgencyText>
+              Only <SpotsLeft>{vipSpotsRemaining} spot{vipSpotsRemaining !== 1 ? 's' : ''} left</SpotsLeft> for
+              unlimited photo enhancements. After that, new VIP clients receive 50 enhancements.
+            </UrgencyText>
+          </>
+        ) : (
+          <>
+            <UrgencyTitle>VIP Deal</UrgencyTitle>
+            <UrgencyText>
+              Includes <SpotsLeft>50 photo enhancements</SpotsLeft> for this event
+            </UrgencyText>
+          </>
+        )}
+      </UrgencyBanner>
+
       <TrustCard>
         <TrustCardTitle>Your Trainer</TrustCardTitle>
         <TrustBullet>
@@ -788,9 +863,13 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         </TimelineStep>
         <TimelineStep>
           <TimelineNode>3</TimelineNode>
-          <TimelineStepTitle>Unlimited Photo Enhancements</TimelineStepTitle>
+          <TimelineStepTitle>
+            {isUnlimitedDeal ? 'Unlimited Photo Enhancements' : '50 Photo Enhancements'}
+          </TimelineStepTitle>
           <TimelineStepDesc>
-            Every photo from this gallery event, enhanced by Sean at no extra cost
+            {isUnlimitedDeal
+              ? 'Every photo from this gallery event, enhanced by Sean at no extra cost'
+              : 'Up to 50 photos from this gallery event, enhanced by Sean at no extra cost'}
           </TimelineStepDesc>
         </TimelineStep>
       </TimelineContainer>
@@ -829,7 +908,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         <SuccessDescription>
           Your VIP package includes a complimentary NASM Assessment orientation AND a full
           PT training session with Sean — plus your personalized 90-Day Blueprint.
-          That's 2 hours of expert training + unlimited photo enhancements.
+          That's 2 hours of expert training + photo enhancements included.
         </SuccessDescription>
 
         <PrimaryButton onClick={handleViewGallery}>

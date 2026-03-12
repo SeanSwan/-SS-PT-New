@@ -1077,6 +1077,24 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
  * Sets isVip on visitor, links user, and best-effort creates a session credit.
  * Body: { userId }
  */
+/**
+ * GET /api/gallery/vip-spots
+ * Returns how many of the first 5 "unlimited enhancements" VIP spots remain.
+ * No auth required — this is public info to drive urgency.
+ */
+const VIP_UNLIMITED_SPOTS = 5;
+
+router.get('/vip-spots', async (req, res) => {
+  try {
+    const vipCount = await GalleryVisitor.count({ where: { isVip: true } });
+    const spotsRemaining = Math.max(0, VIP_UNLIMITED_SPOTS - vipCount);
+    return res.json({ success: true, spotsRemaining, totalSpots: VIP_UNLIMITED_SPOTS });
+  } catch (err) {
+    logger.error('[Gallery VIP] Spots check error:', err.message);
+    return res.json({ success: true, spotsRemaining: 0, totalSpots: VIP_UNLIMITED_SPOTS });
+  }
+});
+
 router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
   try {
     const { userId } = req.body;
