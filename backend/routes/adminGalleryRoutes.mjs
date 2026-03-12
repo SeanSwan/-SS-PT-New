@@ -515,14 +515,21 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
     const rawSizeMB = (rawBuf.length / 1024 / 1024).toFixed(1);
 
     // Step 2: Convert to JPEG
-    // Sharp doesn't support camera RAW (ARW/CR2/NEF) — use dcraw first if needed
+    // Try sharp first (handles JPEG/PNG/WebP/TIFF). If it fails, try dcraw for camera RAW.
     const step2Start = Date.now();
-    const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
-    const isRawFormat = RAW_EXTENSIONS.test(photo.originalFilename || photo.storageKey);
     let jpegBuf;
 
-    if (isRawFormat) {
-      // Use dcraw to convert RAW → TIFF, then sharp for resize + JPEG
+    try {
+      // Try sharp directly — works if file is already JPEG/PNG/WebP/TIFF
+      jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
+        .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 92 })
+        .toBuffer();
+      rawBuf = null;
+      logger.info('[Reprocess] Sharp handled file directly');
+    } catch (sharpErr) {
+      // Sharp failed — likely a camera RAW file, try dcraw
+      logger.info('[Reprocess] Sharp failed (%s), trying dcraw...', sharpErr.message);
       const fs = await import('fs');
       const os = await import('os');
       const { execFile } = await import('child_process');
@@ -543,7 +550,6 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
       try {
         await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tmpRaw], { timeout: 120000 });
       } catch (dcrawErr) {
-        // Clean up temp files
         try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
         try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
         throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
@@ -559,13 +565,6 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
       // Clean up temp files
       try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
       try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
-    } else {
-      // Standard image — sharp can handle it directly
-      jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
-        .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 92 })
-        .toBuffer();
-      rawBuf = null;
     }
 
     const convertMs = Date.now() - step2Start;
