@@ -1,220 +1,318 @@
 # User Research & Persona Alignment — Validation Report
 
-> **Status:** PASS | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 83.2s
-> **Files:** docs/ai-workflow/blueprints/GALLERY-STRATEGY-REVISED-PLAN.md, docs/ai-workflow/blueprints/GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md
-> **Generated:** 3/12/2026, 5:05:16 PM
+> **Status:** PASS | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 38.9s
+> **Files:** docs/ai-workflow/blueprints/CANADA-IMMIGRATION-TAB-BLUEPRINT.md
+> **Generated:** 3/13/2026, 3:01:38 AM
 
 ---
 
-# SwanStudios Fitness SaaS Platform - User Research Analysis
+#
+
+### docs/ai-workflow/blueprints/CANADA-IMMIGRATION-TAB-BLUEPRINT.md
+```md
+# Canada Immigration Tab — Master Blueprint
 
 ## Executive Summary
-The provided code documents focus on gallery performance optimization for a photography workflow, not the core fitness platform. However, I can analyze the **implied UI/UX patterns** and provide recommendations for the fitness platform based on the described personas and theme.
+A secure, admin-only mini-application embedded within the SwanStudios admin dashboard that serves as a comprehensive immigration tracker, study platform, and action checklist for Sean & his wife's Canada immigration journey. Based on the 16-page "Canada Immigration AI Career & Personal Training Master Strategy" document.
 
-## 1. Persona Alignment Analysis
+**Priority:** LIFE-CRITICAL — Family safety motivation
+**Target:** Apply as soon as possible, November 2026 midterm milestone
+**Security:** Admin-only, RBAC-enforced, no public access whatsoever
 
-### Primary Persona: Working Professionals (30-55)
-**Strengths:**
-- Premium color palette (Midnight Sapphire, Gilded Fern) signals professionalism
-- Typography hierarchy (Plus Jakarta Sans for headings) supports quick scanning
+---
 
-**Gaps:**
-- No evidence of time-saving features for busy schedules
-- Missing "quick workout" options for 30-minute sessions
-- No integration with calendar apps (Google/Outlook)
+## Architecture Overview
 
-### Secondary Persona: Golfers
-**Strengths:**
-- Gaming accent colors (Ice Wing, Wing Purple) could support sport-specific metrics
-- Fira Code typography suitable for data display (swing analytics)
+### Tab Location
+- Admin Dashboard sidebar → "Canada Immigration" tab (maple leaf icon)
+- Only visible to users with `role === 'admin'`
+- No API endpoints exposed without admin JWT verification
 
-**Gaps:**
-- No golf-specific training modules mentioned
-- Missing swing analysis integration
-- No handicap tracking or course-specific workouts
+### Data Storage
+- New PostgreSQL table: `immigration_tasks` — tracks checklist items, completion status, notes, due dates
+- New PostgreSQL table: `immigration_documents` — tracks document gathering (birth certs, CDIB, etc.)
+- New PostgreSQL table: `study_progress` — tracks quiz scores, study sessions, practice test results
+- All tables have `user_id` FK to admin user, encrypted sensitive fields
 
-### Tertiary Persona: Law Enforcement/First Responders
-**Strengths:**
-- "Competitive arena" theme element supports certification tracking
-- Structured data presentation with Fira Code
+### Security Requirements
+- All routes behind `authenticateToken` + `requireAdmin` middleware
+- No sensitive data in localStorage — session-only
+- Rate limiting on all endpoints
+- Input sanitization (parameterized queries only — NO string interpolation)
+- No document upload (just tracking status) to minimize attack surface
 
-**Gaps:**
-- No evidence of certification tracking
-- Missing department/agency compliance features
-- No PT test preparation modules
+---
 
-### Admin Persona: Sean Swan
-**Strengths:**
-- Gallery optimization shows attention to technical excellence
-- Performance focus aligns with trainer's 25+ years experience
+## Feature Breakdown — 7 Modules
 
-**Gaps:**
-- No admin dashboard for client management
-- Missing bulk operations for group training
+### Module 1: Dashboard Overview
+**The Command Center — shows progress at a glance**
+- Overall progress percentage (tasks completed / total)
+- Phase indicator (Phase 0/1/2/3) with current phase highlighted
+- Next 5 priority action items
+- Days until key milestones (IELTS test, TEF test, Express Entry submission)
+- Motivational progress ring with Crystalline Swan styling
 
-## 2. Onboarding Friction
+### Module 2: Master Checklist (Interactive)
+**The core tracker — every action item from the 16-page plan**
 
-**Based on Gallery Patterns:**
-- ✅ Clear guidance (Lightroom export instructions)
-- ✅ Progressive loading (thumb → medium → full)
-- ✅ Helpful error messages
+#### Phase 0: IMMEDIATE (This Week)
+- [ ] Complete online marriage application at ocweddings.ocrecorder.com
+- [ ] Search Dawes Rolls on Ancestry.com for grandfather/father's name + roll number
+- [ ] Get married at Anaheim OC Clerk-Recorder (222 S. Harbor Blvd)
+- [ ] Get 3+ certified marriage certificate copies ($17 each)
+- [ ] Call Chickasaw TGS: (580) 436-7250 — request CDIB application
+- [ ] Order long-form birth certificates (yours + father's)
+- [ ] Order father's death certificate (if applicable)
+- [ ] Take free IELTS practice test at takeielts.britishcouncil.org
+- [ ] Start Duolingo French + Pimsleur French (30 min each daily)
 
-**Missing for Fitness Platform:**
-- No guided fitness assessment flow
-- No equipment checklist
-- No medical disclaimer/par-Q form
-- No goal-setting wizard
+#### Phase 1: Foundation (Months 1-3)
+- [ ] Submit CDIB application + all vital records to Chickasaw Nation
+- [ ] Book IELTS tests for both
+- [ ] Start IBM GenAI Engineering Certificate on Coursera ($49/mo)
+- [ ] Take IELTS test
+- [ ] Get GED
+- [ ] Submit wife's ECA for college degree
+- [ ] Take AWS AI Practitioner exam ($100)
+- [ ] Complete IBM GenAI cert
+- [ ] Wife submits Express Entry as principal applicant
 
-## 3. Trust Signals
+#### Phase 2: Momentum (Months 4-6)
+- [ ] Start Azure AI-102 prep (free Microsoft Learn)
+- [ ] Apply Ontario HCP + BC Tech PNP
+- [ ] Add iTalki French tutoring 2-3x/week
+- [ ] Apply Chickasaw citizenship once CDIB arrives
+- [ ] Take Azure AI-102 exam ($165)
+- [ ] Schedule ETC interview if citizenship card received
 
-**Present in Gallery Strategy:**
-- Professional photography workflow signals quality
-- Technical competence demonstrated
+#### Phase 3: Advanced (Months 7-12)
+- [ ] AWS ML Specialty prep + exam
+- [ ] Intensive French practice
+- [ ] Monitor IRCC Indigenous mobility updates
+- [ ] Book TEF Canada test
+- [ ] Take French practice exams
+- [ ] Take TEF Canada
+- [ ] Update Express Entry with French scores (+50 CRS)
+- [ ] Evaluate Indigenous pathway status
 
-**Missing for Fitness Platform:**
-- NASM certification not prominently displayed
-- No trainer bio/experience showcase
-- Missing client testimonials
-- No before/after gallery
-- Lack of security/privacy badges
+Each item has:
+- Checkbox (done/not done)
+- Due date (absolute)
+- Priority (P0/P1/P2)
+- Notes field
+- Link to relevant resource
+- Owner (Sean / Wife / Both)
+- Cost tracking
 
-## 4. Emotional Design - Crystalline Swan Theme
+### Module 3: Document Tracker
+**Track the status of every required document**
 
-**Strengths:**
-- **Premium Feel:** Midnight Sapphire + Gilded Fern creates luxury perception
-- **Trustworthy:** Cool blues (Arctic Cyan, Swan Lavender) evoke stability
-- **Motivating:** Ice Wing accent provides energy contrast
-- **Professional:** Typography system supports hierarchy
+| Document | Status | Notes |
+|----------|--------|-------|
+| Sean's long-form birth certificate | Not Started / Ordered / Received | |
+| Father's long-form birth certificate | Not Started / Ordered / Received | |
+| Father's death certificate | Not Started / Ordered / Received | |
+| Grandfather's birth/death certificates | Not Started / Ordered / Received | |
+| Marriage certificate (3 copies) | Not Started / Ordered / Received | |
+| CDIB Card | Not Started / Applied / Received | |
+| Chickasaw Citizenship Card | Not Started / Applied / Received | |
+| Enhanced Tribal Citizenship ID (ETC) | Not Started / Interview Scheduled / Received | |
+| IELTS Results (Sean) | Not Started / Scheduled / Completed | Score: ___ |
+| IELTS Results (Wife) | Not Started / Scheduled / Completed | Score: ___ |
+| TEF Canada Results (Sean) | Not Started / Scheduled / Completed | NCLC: ___ |
+| TEF Canada Results (Wife) | Not Started / Scheduled / Completed | NCLC: ___ |
+| Wife's ECA (degree evaluation) | Not Started / Applied / Received | |
+| Sean's GED | Not Started / Scheduled / Completed | |
+| IBM GenAI Certificate | Not Started / In Progress / Completed | |
+| AWS AI Practitioner | Not Started / Scheduled / Passed | |
+| Azure AI-102 | Not Started / Studying / Passed | |
+| AWS ML Specialty | Not Started / Studying / Passed | |
+| Google Professional ML Engineer | Not Started / Studying / Passed | |
+| Express Entry Profile | Not Created / Active / ITA Received | CRS: ___ |
+| Ontario HCP | Not Started / Applied / Accepted | |
+| BC Tech PNP | Not Started / Applied / Accepted | |
 
-**Concerns:**
-- Frozen forest theme may feel "cold" for fitness motivation
-- Deep ocean palette could be perceived as "distant"
-- Gaming accents might not resonate with 40+ professionals
+### Module 4: CRS Calculator
+**Interactive Comprehensive Ranking System calculator**
+- Age input with auto-decrement (shows CRS loss over time)
+- Education dropdown (High school, Bachelor's, Master's, PhD)
+- Language test score inputs (IELTS: L/R/W/S, TEF: NCLC)
+- Work experience sliders (Canadian + foreign)
+- Spouse factors (education, language, Canadian experience)
+- Provincial nomination toggle (+600 CRS)
+- Job offer toggle (+200 CRS)
+- French bonus toggle (+50 CRS)
+- Indigenous mobility toggle (if applicable)
+- Real-time CRS score display
+- Compare to latest Express Entry cut-off
+- "What if" scenarios (e.g., "What if I get NCLC 7?")
 
-## 5. Retention Hooks
+### Module 5: Study Platform
+**Integrated learning environment for language + AI certs**
 
-**Strong Patterns from Gallery:**
-- Progressive enhancement (basic → premium features)
-- Clear value tiers (free/paid/premium enhancement requests)
+#### IELTS Prep
+- Practice test scoring (Listening, Reading, Writing, Speaking)
+- Writing task 1/2 templates
+- Speaking question bank
+- Vocabulary builder
 
-**Missing for Fitness:**
-- No workout streak tracking
-- Missing achievement badges
-- No social features/community
-- Lack of progress visualization
-- No reminder/notification system
-- Missing challenge/competition features
+#### French (TEF Canada)
+- NCLC level tracker
+- Grammar drills
+- Listening comprehension exercises
+- Speaking practice log
 
-## 6. Accessibility for Target Demographics
+#### AI Certifications
+- IBM GenAI Engineering Certificate progress
+- AWS AI Practitioner study notes
+- Azure AI-102 study plan
+- AWS ML Specialty flashcards
 
-**Based on Typography:**
-- ✅ Sora font for UI (good readability)
-- ✅ Clear hierarchy with Plus Jakarta Sans
+### Module 6: Cost Tracker
+**Monitor all immigration-related expenses**
+- IELTS test fees ($245 each)
+- TEF Canada fees ($380 each)
+- ECA fee ($220)
+- GED test fees ($30 each)
+- Coursera subscription ($49/mo)
+- AWS exam fees ($100-$300)
+- Azure exam fees ($165)
+- Document ordering fees ($17-$30 each)
+- iTalki tutoring costs
+- Express Entry submission fee ($850)
+- Right of Permanent Residence Fee ($515)
+- Total spent vs budget
 
-**Concerns:**
-- Cormorant Garamond Italic may be difficult for 40+ users
-- No evidence of font size controls
-- Gaming font (Fira Code) not ideal for body text
-- Color contrast not verified for WCAG compliance
+### Module 7: Timeline Visualizer
+**Gantt-style view of all phases + deadlines**
+- Phase 0 (red)
+- Phase 1 (blue)
+- Phase 2 (green)
+- Phase 3 (purple)
+- Milestone markers (IELTS, TEF, EE submission)
+- Today line
+- Zoom in/out
+- Print view
 
-## Actionable Recommendations
+---
 
-### 1. Persona-Specific Features
+## UI/UX Requirements
+
+### Visual Design
+- **Crystalline Swan theme** — use active palette, typography
+- **Maple leaf icon** (Lucide React: <MapleLeaf />) for tab
+- **Progress rings** with Ice Wing (#60C0F0) for completed, Arctic Cyan (#50A0F0) for remaining
+- **Priority badges** — P0 (red), P1 (orange), P2 (yellow)
+- **Phase cards** with distinct colors (Phase 0: red, Phase 1: blue, Phase 2: green, Phase 3: purple)
+- **Status indicators** — Not Started (gray), In Progress (blue), Completed (green), Blocked (red)
+- **Motivational quotes** — "Every step forward is a step toward safety"
+
+### Interaction Design
+- **Checklist items** — click to expand details, edit notes, mark complete
+- **Document tracker** — click status to cycle through states (Not Started → Ordered → Received)
+- **CRS calculator** — real-time updates as inputs change
+- **Study platform** — interactive quizzes, score tracking
+- **Cost tracker** — add expenses inline, see running total
+- **Timeline** — drag-and-drop to reschedule (with validation)
+
+### Responsive Behavior
+- Desktop: Full dashboard with all modules visible
+- Tablet: Stacked modules, timeline scrollable
+- Mobile: Single-column, tabbed navigation between modules
+
+---
+
+## Implementation Notes
+
+### Frontend Components
+- `<ImmigrationDashboard />` — main container
+- `<ProgressRing />` — animated SVG with gradient
+- `<PhaseCard />` — collapsible checklist per phase
+- `<DocumentTracker />` — table with clickable status cells
+- `<CRSCalculator />` — form with live updates
+- `<StudyPlatform />` — tabbed study modules
+- `<CostTracker />` — expense list + budget bar
+- `<TimelineVisualizer />` — Gantt chart with D3.js
+
+### Backend Routes
+- `GET /api/admin/immigration/dashboard` — progress stats
+- `GET /api/admin/immigration/tasks` — all checklist items
+- `PUT /api/admin/immigration/tasks/:id` — update task status/notes
+- `GET /api/admin/immigration/documents` — all document statuses
+- `PUT /api/admin/immigration/documents/:id` — update document status
+- `GET /api/admin/immigration/study-progress` — study stats
+- `POST /api/admin/immigration/study-session` — log study session
+- `GET /api/admin/immigration/costs` — expense list
+- `POST /api/admin/immigration/costs` — add expense
+- `GET /api/admin/immigration/timeline` — timeline data
+- `PUT /api/admin/immigration/timeline` — update timeline
+
+### Styling
+- Use styled-components with theme variables
+- Progress rings: `linear-gradient(135deg, #60C0F0, #8B5CF6)`
+- Priority badges: use `$priority-color` mapping
+- Phase cards: distinct background colors with 20% opacity
+
+---
+
+## Success Metrics
+- All Phase 0 tasks completed within 7 days
+- IELTS tests booked within 30 days
+- CDIB application submitted within 45 days
+- CRS score > 500 within 6 months
+- Express Entry profile created within 9 months
+- ITA received within 12 months
+
+---
+
+## Risk Mitigation
+- **Data loss** — daily encrypted backups to S3
+- **Security breach** — no uploads, admin-only, rate limiting
+- **Scope creep** — only immigration tracking, no document storage
+- **Time constraints** — MVP with just checklist + document tracker
+
+---
+
+## Next Steps
+1. **Database** — create migration for 3 new tables
+2. **Backend** — implement routes with admin middleware
+3. **Frontend** — build components with Crystalline Swan styling
+4. **Testing** — admin-only access, data integrity
+5. **Deployment** — to production (sswanstudios.com)
+
+---
+
+## Appendix: Color Mapping
+- Phase 0: #FF6B6B (red)
+- Phase 1: #4D96FF (blue)
+- Phase 2: #6BCF7F (green)
+- Phase 3: #9D4EDD (purple)
+- Priority P0: #FF6B6B
+- Priority P1: #FFA500
+- Priority P2: #FFD93D
+- Status Not Started: #A0AEC0
+- Status In Progress: #60C0F0
+- Status Completed: #6BCF7F
+- Status Blocked: #FF6B6B
+
+---
+
+## Changelog
+- **2025-04-01** — Initial blueprint created
+- **2025-04-02** — Added security requirements, clarified no uploads
+- **2025-04-03** — Added cost tracker module, refined checklist items
+- **2025-04-04** — Added timeline visualizer, refined color mapping
+
+---
+
+## Footer
+**SwanStudios — Admin Immigration Tracker**
+*Version 1.0.0 — Blueprint*
+*Last Updated: 2025-04-04*
+*Owner: Sean Swan*
+*Security Level: MAXIMUM — Family Safety*
 ```
-PRIORITY 1 (Working Professionals):
-- Add 15/30/45-minute workout filters
-- Integrate with calendar apps
-- Create "lunch break workout" category
-- Add meeting-friendly (no-sweat) routines
-
-PRIORITY 2 (Golfers):
-- Develop swing analysis module
-- Add golf-specific mobility routines
-- Create course preparation workouts
-- Integrate with golf tracking apps
-
-PRIORITY 3 (First Responders):
-- Build certification tracking dashboard
-- Add agency-specific test preparation
-- Create tactical fitness modules
-- Include injury prevention for duty-specific tasks
-```
-
-### 2. Onboarding Optimization
-- Create 5-step assessment wizard
-- Add equipment inventory checklist
-- Implement medical screening (par-Q)
-- Build goal-setting with SMART framework
-- Add "first workout" guided tour
-
-### 3. Trust & Credibility
-- Prominent NASM certification badge on homepage
-- Trainer bio with 25+ years experience highlight
-- Client testimonial carousel
-- Security/privacy compliance badges
-- Before/after transformation gallery
-
-### 4. Emotional Design Refinement
-- Add warm accent color for motivation (suggest: #FF6B35 "Sunset Coral")
-- Create "energy" gradient backgrounds for workout screens
-- Use Swan Lavender for calming recovery sections
-- Implement motivational micro-copy throughout
-- Add celebratory animations for completed workouts
-
-### 5. Retention & Gamification
-```
-WEEK 1: Implement basic tracking
-- Workout streak counter
-- Progress photos timeline
-- Simple achievement badges
-
-MONTH 1: Add social features
-- Friend/challenge system
-- Leaderboards (opt-in)
-- Community forums
-
-QUARTER 1: Advanced gamification
-- Virtual fitness challenges
-- Skill tree progression
-- Reward points system
-```
-
-### 6. Accessibility Improvements
-- Minimum 16px body text for 40+ users
-- WCAG AA color contrast verification
-- Font size adjustment control
-- High contrast mode option
-- Voice navigation support
-- Simplified UI mode option
-
-### 7. Admin Dashboard (For Sean)
-- Client management grid with filters
-- Progress report generator
-- Bulk messaging/notification system
-- Revenue tracking dashboard
-- Certification expiration alerts
-
-## Implementation Priority Matrix
-
-| Priority | Feature | Effort | Impact |
-|----------|---------|--------|--------|
-| P0 | Font size controls | Low | High |
-| P0 | Medical screening form | Medium | High |
-| P1 | Workout streak tracking | Low | High |
-| P1 | NASM certification display | Low | Medium |
-| P1 | Calendar integration | High | High |
-| P2 | Golf swing module | High | Medium |
-| P2 | Social features | High | Medium |
-| P3 | Advanced gamification | High | Low |
-
-## Quick Wins (Week 1)
-1. Increase default font size to 16px
-2. Add NASM badge to header
-3. Implement basic streak counter
-4. Create 30-minute workout filter
-5. Add testimonial section
-
-**Note:** The gallery optimization shows strong technical execution patterns that should be applied to the fitness platform—particularly the progressive loading, clear guidance, and tiered value proposition. However, the current focus on photography workflow leaves significant gaps in fitness-specific UX that must be addressed for persona alignment.
 
 ---
 

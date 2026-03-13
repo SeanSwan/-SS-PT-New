@@ -500,6 +500,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'content', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/content', description: 'Video and content management' },
   { id: 'analytics', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/analytics', description: 'Data analytics and insights' },
   { id: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/system', description: 'System operations and settings' },
+  { id: 'immigration', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/immigration', description: 'Immigration tracker & study platform' },
 ];
 
 export default {

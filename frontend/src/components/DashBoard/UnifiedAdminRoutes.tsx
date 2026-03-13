@@ -64,6 +64,7 @@ const FoodIntelligenceDashboard = React.lazy(() => import('../FoodTracker/FoodIn
 const FoodScannerPage = React.lazy(() => import('../../pages/FoodScanner/FoodScannerPage'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
+const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
 
 
 // Workspace containers
@@ -370,6 +371,13 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="settings/launch" element={<Navigate to="/dashboard/system/settings" replace />} />
       <Route path="settings/style-guide" element={<Navigate to="/dashboard/system/settings" replace />} />
     </Route>
+
+    {/* Canada Immigration — Admin-only standalone mini-app */}
+    <Route path="/immigration" element={
+      <React.Suspense fallback={<CosmicSuspenseLoader />}>
+        <CanadaImmigrationTab />
+      </React.Suspense>
+    } />
 
     {/* Fallback Route */}
     <Route path="*" element={<Navigate to="/dashboard/home" replace />} />

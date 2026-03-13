@@ -162,6 +162,9 @@ import customPackageRoutes from '../routes/customPackageRoutes.mjs';
 import galleryRoutes from '../routes/galleryRoutes.mjs';
 import adminGalleryRoutes from '../routes/adminGalleryRoutes.mjs';
 
+// ===================== IMMIGRATION TRACKING =====================
+import immigrationRoutes from '../routes/immigrationRoutes.mjs';
+
 // ===================== CRM LEAD MANAGEMENT =====================
 import leadRoutes from '../routes/leadRoutes.mjs';
 
@@ -490,6 +493,9 @@ export const setupRoutes = async (app) => {
   // ===================== PHOTO GALLERY & LEAD GENERATION =====================
   app.use('/api/gallery', galleryRoutes);
   app.use('/api/admin/gallery', adminGalleryRoutes);
+
+  // ===================== IMMIGRATION TRACKING (Admin Mini-App) =====================
+  app.use('/api/immigration', immigrationRoutes);
 
   // ===================== CRM LEAD MANAGEMENT =====================
   app.use('/api/leads', leadRoutes);

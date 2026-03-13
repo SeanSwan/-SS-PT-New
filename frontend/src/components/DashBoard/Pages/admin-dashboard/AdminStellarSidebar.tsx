@@ -840,6 +840,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Zap,
   CheckSquare,
   Video,
+  Globe,
 };
 
 const getIconNode = (iconName: string) => {

@@ -1,18 +1,17 @@
 # SwanStudios Validation Report
 
-> Generated: 3/12/2026, 5:05:16 PM
-> Files reviewed: 2
-> Validators: 8 succeeded, 0 errored
-> Cost: $0.0676
-> Duration: 179.0s
+> Generated: 3/13/2026, 3:01:38 AM
+> Files reviewed: 1
+> Validators: 7 succeeded, 1 errored
+> Cost: $0.0061
+> Duration: 176.5s
 > Gateway: OpenRouter (single API key)
 
 ---
 
 ## Files Reviewed
 
-- `docs/ai-workflow/blueprints/GALLERY-STRATEGY-REVISED-PLAN.md`
-- `docs/ai-workflow/blueprints/GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md`
+- `docs/ai-workflow/blueprints/CANADA-IMMIGRATION-TAB-BLUEPRINT.md`
 
 ---
 
@@ -20,218 +19,304 @@
 
 | # | Validator | Model | Tokens (in/out) | Duration | Status |
 |---|-----------|-------|-----------------|----------|--------|
-| 1 | UX & Accessibility | google/gemini-2.5-flash | 8,232 / 2,387 | 14.7s | PASS |
-| 2 | Code Quality | anthropic/claude-4.5-sonnet-20250929 | 7,886 / 4,096 | 52.6s | PASS |
-| 3 | Security | deepseek/deepseek-v3.2-20251201 | 8,011 / 1,460 | 31.7s | PASS |
-| 4 | Performance & Scalability | google/gemini-3-flash-preview-20251217 | 8,263 / 1,369 | 12.4s | PASS |
-| 5 | Competitive Intelligence | minimax/minimax-m2.1 | 6,936 / 4,096 | 68.8s | PASS |
-| 6 | User Research & Persona Alignment | deepseek/deepseek-v3.2-20251201 | 8,080 / 1,519 | 83.2s | PASS |
-| 7 | Architecture & Bug Hunter | minimax/minimax-m2.5-20260211 | 7,227 / 4,096 | 120.9s | PASS |
-| 8 | Frontend UI/UX Expert | google/gemini-3.1-pro-preview | 11,439 / 3,138 | 46.0s | PASS |
+| 1 | UX & Accessibility | google/gemini-2.5-flash | 3,366 / 4,096 | 25.8s | PASS |
+| 2 | Code Quality | anthropic/claude-4.5-sonnet-20250929 | 3,367 / 4,096 | 53.1s | PASS |
+| 3 | Security | deepseek/deepseek-v3.2-20251201 | 3,385 / 1,099 | 29.2s | PASS |
+| 4 | Performance & Scalability | google/gemini-3-flash-preview-20251217 | 3,397 / 1,143 | 9.7s | PASS |
+| 5 | Competitive Intelligence | minimax/minimax-m2.1 | 2,975 / 4,096 | 142.7s | PASS |
+| 6 | User Research & Persona Alignment | deepseek/deepseek-v3.2-20251201 | 3,454 / 3,488 | 38.9s | PASS |
+| 7 | Architecture & Bug Hunter | minimax/minimax-m2.5-20260211 | 3,267 / 4,261 | 60.3s | PASS |
+| 8 | Frontend UI/UX Expert | gemini-3.1-pro-preview | 0 / 0 | 25.8s | FAIL |
 
 ---
 
 ## [PASS] UX & Accessibility
-**Model:** google/gemini-2.5-flash | **Duration:** 14.7s
+**Model:** google/gemini-2.5-flash | **Duration:** 25.8s
 
-As a UX and accessibility expert auditor, I've reviewed the provided documentation for SwanStudios' gallery strategy and performance plans. My findings are categorized and rated based on their impact on WCAG compliance, mobile UX, design consistency, user flow, and loading states.
+As a UX and accessibility expert auditor, I've reviewed the `CANADA-IMMIGRATION-TAB-BLUEPRINT.md` document for SwanStudios. This blueprint outlines a critical internal tool, and while it's not a public-facing feature, adherence to best practices in UX and accessibility is still crucial for the admin user's efficiency, well-being, and to prevent errors in a "LIFE-CRITICAL" application.
 
-## Overall Impression
+The theme, "Enchanted Apex: Crystalline Swan," with its specific color palette and typography, is well-defined. The blueprint itself is comprehensive and well-structured, which is a good starting point for development.
 
-The revised gallery strategy and thumbnail generation plan represent a significant and highly positive step forward for SwanStudios. The core decisions to drop RAW file support, eliminate the quality comparison card, and implement robust image variant generation directly address critical performance and user experience issues. The focus on photographer workflow and client value is excellent.
-
-However, as a UX and accessibility expert, I must scrutinize the *implementation details* and potential oversights, even in a planning document.
+Here's a detailed breakdown of findings:
 
 ---
 
 ## WCAG 2.1 AA Compliance
 
+**Overall Impression:** The blueprint describes functionality but lacks specific UI/UX details that would allow for a full WCAG audit. However, I can identify potential areas of concern and make recommendations.
+
 ### Color Contrast
-
-*   **Finding:** The document itself uses a standard markdown theme, so direct color contrast issues within the *code* are not present. However, the plan mentions adding a "Lightroom Export Guide" card to the admin upload interface. This card's design and color choices are not specified.
-*   **Rating:** LOW (Potential)
-*   **Recommendation:** When implementing the "Lightroom Export Guide" card, ensure sufficient color contrast for all text against its background, adhering to WCAG 2.1 AA standards (minimum 4.5:1 for normal text, 3:1 for large text). Use the defined theme palette (e.g., `Frost White` for background, `Midnight Sapphire` or `Royal Depth` for text).
-
-### Aria Labels, Keyboard Navigation, Focus Management
-
-*   **Finding:** The document is a plan, not UI code, so direct issues are not present. However, the plan outlines changes to the "Admin Upload Interface" and "Client Gallery." These interfaces will require careful implementation to ensure accessibility.
-    *   **Admin Upload Interface:** Drag & drop functionality, file input, and the new "Lightroom Export Guide" card.
-    *   **Client Gallery:** Grid view, photo detail modal, "Download Original" button, "Request Enhancement" button.
-*   **Rating:** MEDIUM (Potential for future implementation)
+*   **Finding:** MEDIUM
+*   **Details:** The blueprint specifies an active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Glow Accent). While these colors are defined, their specific application in text, interactive elements, and backgrounds is not detailed. It's crucial to ensure that all text and interactive elements meet a contrast ratio of at least 4.5:1 against their background (3:1 for large text).
+    *   **Specific Concern:** "Motivational progress ring with Crystalline Swan styling." This could involve gradients or complex color combinations that might fail contrast if not carefully designed.
+    *   **Specific Concern:** "Color-coded by category (marriage=red, tribal=orange, language=blue, certs=green, immigration=purple)" in the Timeline & Milestones. While color coding is helpful, it *cannot* be the sole means of conveying information. Text labels, icons, or patterns must also be used to ensure information is accessible to users with color vision deficiencies. The specific "red" for overdue items needs to be checked against the background.
 *   **Recommendation:**
-    *   **Keyboard Navigation:** Ensure all interactive elements (buttons, links, modal close, drag-and-drop zones) are reachable and operable via keyboard.
-    *   **Focus Management:** Implement clear focus indicators (using `Wing Purple` glow accent for example) and manage focus correctly, especially for modals (focus should be trapped within the modal when open and returned to the trigger element when closed).
-    *   **ARIA Attributes:** Use appropriate ARIA roles, states, and properties (e.g., `aria-label`, `aria-describedby`, `role="dialog"`, `aria-modal="true"`) for complex components like the drag-and-drop area, the photo grid, and the detail modal.
-    *   **Drag & Drop:** Provide alternative methods for file upload for users who cannot use drag-and-drop (e.g., a standard file input button). Ensure the drag-and-drop area has appropriate ARIA live regions or visual feedback for screen reader users.
+    *   During UI design, rigorously test all color combinations for text and interactive elements using a contrast checker (e.g., WebAIM Contrast Checker).
+    *   For color-coded elements, ensure redundant coding (e.g., text labels, icons, patterns) is used in addition to color to convey meaning.
+    *   Ensure focus indicators (outlines, background changes) have sufficient contrast.
+
+### Aria Labels
+*   **Finding:** MEDIUM
+*   **Details:** The blueprint mentions interactive elements like checkboxes, input fields, and navigation tabs. Without specific UI mockups or code, it's impossible to confirm proper ARIA usage. However, the complexity of the "Master Checklist" and "Document Tracker" tables, as well as the "CRS Score Calculator" with its "What if" scenarios, suggests a high need for well-implemented ARIA attributes.
+    *   **Specific Concern:** Interactive elements within tables (e.g., checkboxes, status dropdowns, notes fields) need proper `aria-label` or `aria-labelledby` to provide context to screen reader users.
+    *   **Specific Concern:** The "Admin Dashboard sidebar → 'Canada Immigration' tab (maple leaf icon)" needs an `aria-label` on the icon or the tab itself to clearly describe its purpose.
+    *   **Specific Concern:** "Motivational progress ring" and "Timeline & Milestones" visualizations will require ARIA attributes to convey their status and interactive elements to screen reader users.
+*   **Recommendation:**
+    *   All interactive elements (buttons, links, form fields, checkboxes, dropdowns) must have clear, descriptive `aria-label` attributes if their visual text isn't sufficient, or be properly associated with visible labels.
+    *   Complex widgets like the progress ring, timeline, and interactive tables should use appropriate ARIA roles and properties (e.g., `aria-valuemin`, `aria-valuemax`, `aria-valuenow` for progress, `aria-describedby` for complex instructions).
+    *   Ensure dynamic content updates (e.g., CRS score changes, task completion feedback) are announced to screen readers using `aria-live` regions.
+
+### Keyboard Navigation
+*   **Finding:** HIGH
+*   **Details:** The application is described as highly interactive with numerous form fields, checkboxes, links, and potentially complex widgets (e.g., interactive checklist, CRS calculator, study modules). Without explicit design for keyboard navigation, this can easily become a major barrier.
+    *   **Specific Concern:** The "Master Checklist" with checkboxes, due dates, priority dropdowns, notes fields, and links for each item. Users must be able to tab through these logically and interact with them using keyboard commands (Space, Enter).
+    *   **Specific Concern:** The "Document Tracker" table, if interactive, needs careful keyboard focus management.
+    *   **Specific Concern:** The "CRS Score Calculator" with multiple input fields and "What if" scenarios requires a logical tab order and clear focus indication.
+    *   **Specific Concern:** The "Timeline & Milestones" visualization, if interactive (e.g., clicking milestones), must be keyboard accessible.
+*   **Recommendation:**
+    *   Ensure a logical and predictable tab order (`tabindex=0` for interactive elements, avoid `tabindex > 0`).
+    *   All interactive elements must be reachable and operable via keyboard alone.
+    *   Provide a clear and highly visible focus indicator (e.g., a distinct outline) for all interactive elements. The "Wing Purple #8B5CF6 (Glow Accent)" could be a good candidate for this, ensuring it has sufficient contrast.
+    *   Test thoroughly using only the keyboard.
+
+### Focus Management
+*   **Finding:** HIGH
+*   **Details:** Related to keyboard navigation, proper focus management is crucial, especially in a dynamic application.
+    *   **Specific Concern:** When a user completes an action (e.g., checks a box, saves a note), where does the focus go next? Does it remain on the element, move to the next logical element, or jump unexpectedly?
+    *   **Specific Concern:** Modals or pop-ups (e.g., for editing notes, confirming actions) must trap focus within them and return focus to the triggering element when closed.
+    *   **Specific Concern:** Error messages or validation feedback should direct focus or be announced to screen readers.
+*   **Recommendation:**
+    *   Implement robust focus management for all interactive components and dynamic content.
+    *   Ensure focus is programmatically managed for modals, dropdowns, and other overlays.
+    *   When new content appears or existing content changes significantly, consider programmatically moving focus to the most relevant element or announcing the change via `aria-live`.
 
 ---
 
 ## Mobile UX
 
-### Touch Targets
-
-*   **Finding:** The plan mentions "Click photo → Modal" and "Download Original button." While not explicitly stated, the default button sizes and interactive elements in the UI must meet the 44x44px minimum touch target size.
-*   **Rating:** MEDIUM (Potential for future implementation)
-*   **Recommendation:** Ensure all interactive elements, especially buttons and clickable image areas (like the grid items), have a minimum touch target size of 44x44 CSS pixels. This is crucial for usability on mobile devices and for users with motor impairments.
+### Touch Targets (must be 44px min)
+*   **Finding:** HIGH
+*   **Details:** Many elements described are interactive and will require precise tapping on mobile.
+    *   **Specific Concern:** Checkboxes in the "Master Checklist" and "Document Tracker" are often small by default. They need to be styled to meet the 44x44px minimum touch target size.
+    *   **Specific Concern:** Links, buttons, and input fields must also adhere to this minimum size.
+    *   **Specific Concern:** The "Admin Dashboard sidebar" navigation items, especially with an icon, need to be sufficiently large.
+*   **Recommendation:**
+    *   Design and style all interactive elements (buttons, links, checkboxes, radio buttons, input fields, navigation items) to have a minimum touch target area of 44x44 CSS pixels. This can be achieved through padding or by setting explicit `min-width` and `min-height`.
 
 ### Responsive Breakpoints
-
-*   **Finding:** The plan explicitly addresses responsive image loading (`400px` thumbnails for grid, `1200px` for modal) which is excellent. It also mentions "Perfect for 4K displays" and "Good for HD screens" for image sizes. However, there's no explicit mention of responsive *layout* for the gallery grid or the admin upload interface.
-*   **Rating:** LOW (Implicitly addressed for images, but layout needs explicit consideration)
+*   **Finding:** MEDIUM
+*   **Details:** The blueprint mentions "Mobile responsive (10-breakpoint matrix)" in Phase D, which is excellent. However, the complexity of some modules suggests careful planning is needed.
+    *   **Specific Concern:** The "Master Checklist" with its numerous columns (checkbox, due date, priority, notes, link, owner, cost) will be challenging to display effectively on small screens. A simple horizontal scroll is often a poor mobile experience.
+    *   **Specific Concern:** The "Document Tracker" table faces similar challenges.
+    *   **Specific Concern:** The "Timeline & Milestones" visualization, a Gantt-style chart, will be particularly difficult to render responsively without significant re-thinking for mobile.
+    *   **Specific Concern:** The "CRS Score Calculator" with many inputs needs a stacked or accordion layout on mobile.
 *   **Recommendation:**
-    *   **Gallery Grid:** Ensure the grid layout adapts gracefully to various screen sizes, adjusting column counts and spacing.
-    *   **Admin Upload Interface:** The "Lightroom Export Guide" card and the drag-and-drop area should be responsive and easy to use on smaller screens.
-    *   **Modal:** The photo detail modal should be full-screen or highly adaptable on mobile to maximize viewing area and ease of interaction.
+    *   Prioritize mobile-first design for complex tables and visualizations. Consider alternative layouts for small screens, such as:
+        *   **Checklist/Document Tracker:** Card-based layouts where each row becomes a card, or a "details-on-demand" pattern where only key info is shown, and tapping reveals more.
+        *   **Timeline:** A vertical timeline, or a scrollable summary with key milestones highlighted.
+        *   **CRS Calculator:** Ensure inputs stack vertically and are clearly labeled.
+    *   Ensure all text remains legible and interactive elements are easily tappable across all breakpoints.
 
 ### Gesture Support
-
-*   **Finding:** The plan mentions "Drag & drop batch of edited JPEGs" for admin upload. It also implies swiping through photos in the detail modal, though not explicitly stated.
-*   **Rating:** MEDIUM (Implicit, needs explicit consideration)
+*   **Finding:** LOW
+*   **Details:** The blueprint doesn't explicitly mention gesture support, and for an admin tool, it's generally less critical than for a consumer app. Basic tap and scroll gestures will be implicitly supported.
 *   **Recommendation:**
-    *   **Admin Upload:** While drag-and-drop is good for desktop, ensure a clear tap/click alternative for mobile users.
-    *   **Photo Detail Modal:** Implement swipe gestures for navigating between photos in the modal on mobile devices. Pinch-to-zoom could also be a valuable addition for examining details of the high-quality images.
+    *   No specific advanced gesture support is required for this type of application, beyond standard tap, scroll, and pinch-to-zoom (if applicable for complex visualizations). Ensure these basic gestures work as expected.
 
 ---
 
 ## Design Consistency
 
-### Theme Tokens Usage
+### Theme Tokens Used Consistently?
+*   **Finding:** MEDIUM
+*   **Details:** The blueprint clearly defines the "Enchanted Apex: Crystalline Swan" theme with a specific palette and typography. This is a strong foundation. However, the blueprint itself doesn't contain UI elements, so I can only infer potential issues.
+    *   **Specific Concern:** The "Motivational progress ring with Crystalline Swan styling" and "Visual Gantt-style timeline" with "Color-coded by category" need to strictly adhere to the defined palette. The "red" for overdue items should ideally be a defined accent color from the theme or a specific error color that complements it, rather than an arbitrary red.
+    *   **Specific Concern:** Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). This is a rich set of fonts. Ensure clear guidelines for *when* each font is used to avoid visual clutter and maintain consistency. For example, "data" in tables should consistently use Fira Code. "Drama" for Cormorant Garamond Italic needs a clear definition (e.g., motivational quotes, specific callouts).
+*   **Recommendation:**
+    *   Strictly enforce the use of defined theme tokens (colors, typography, spacing, border-radii, shadows) throughout the UI development.
+    *   Create a design system or component library that uses these tokens exclusively.
+    *   Define clear use cases for each font to ensure visual hierarchy and consistency.
+    *   Ensure any "error" or "warning" colors (like for overdue items) are either part of the defined palette or are explicitly added to the theme tokens.
 
-*   **Finding:** The plan *defines* a clear theme palette and typography. This is excellent. The "Lightroom Export Guide" card is a new UI element mentioned, and its styling is not detailed.
-*   **Rating:** LOW (Potential for future implementation)
-*   **Recommendation:** When implementing the "Lightroom Export Guide" card and any other new UI elements, strictly adhere to the defined theme tokens: `Midnight Sapphire`, `Royal Depth`, `Ice Wing`, `Arctic Cyan`, `Gilded Fern`, `Frost White`, `Swan Lavender`, `Wing Purple`. Use `Plus Jakarta Sans` for headings, `Cormorant Garamond Italic` for dramatic text (if any), `Fira Code` for data/code snippets (like the export settings), and `Sora` for UI/gaming elements.
-
-### Hardcoded Colors
-
-*   **Finding:** No hardcoded colors are present in the provided markdown documents, as they are planning documents.
-*   **Rating:** N/A (Not applicable to this document, but critical for code review)
-*   **Recommendation:** Ensure that all color values in the actual React/styled-components frontend code are sourced from the defined theme tokens and that no hexadecimal or RGB values are hardcoded directly into components.
+### Any Hardcoded Colors?
+*   **Finding:** MEDIUM (Potential)
+*   **Details:** The blueprint itself doesn't contain code, so this is a forward-looking concern. The mention of "red" for overdue items could be a hardcoded color if not explicitly defined within the theme.
+*   **Recommendation:**
+    *   During development, conduct regular code reviews to ensure no hardcoded colors, font sizes, or spacing values are introduced. All styling should reference the `styled-components` theme tokens.
 
 ---
 
 ## User Flow Friction
 
-### Unnecessary Clicks, Confusing Navigation
+### Unnecessary Clicks
+*   **Finding:** MEDIUM
+*   **Details:** The application is designed for an admin user (Sean & his wife) for a "LIFE-CRITICAL" journey. Efficiency is paramount.
+    *   **Specific Concern:** "Master Checklist" and "Document Tracker": If editing notes or status requires opening a separate modal for each item, this could introduce friction. Inline editing or quick-edit forms are preferable.
+    *   **Specific Concern:** "CRS Score Calculator": "What if" scenarios are great, but ensure the process of adjusting inputs and seeing results is immediate and doesn't require extra clicks (e.g., a "Calculate" button after every change).
+    *   **Specific Concern:** "Study Platform": Navigating between different study modules (IELTS, TEF, AI Certs) should be seamless.
+*   **Recommendation:**
+    *   Prioritize direct manipulation and inline editing where possible (e.g., for checklist notes, document status).
+    *   For the CRS calculator, implement real-time updates as inputs change.
+    *   Ensure clear and intuitive navigation between modules, minimizing the number of clicks to reach frequently used features.
+    *   Consider keyboard shortcuts for common actions (e.g., marking a task complete).
 
-*   **Finding:** The plan explicitly addresses and *removes* significant sources of friction:
-    *   **Dropping RAW upload:** Eliminates slow, complex, and ultimately unhelpful server-side processing.
-    *   **Dropping Quality Showcase:** Removes a confusing and unnecessary feature for clients.
-    *   **Simplified Client Gallery:** "NO quality comparison, NO RAW download, NO confusing options." This is a huge win for client UX.
-*   **Rating:** CRITICAL (Addressed positively)
-*   **Recommendation:** The plan is excellent in this regard. Continue to prioritize simplicity and directness in the UI implementation.
+### Confusing Navigation
+*   **Finding:** LOW
+*   **Details:** The "Admin Dashboard sidebar → 'Canada Immigration' tab" is a clear entry point. The 7 modules are well-defined.
+    *   **Specific Concern:** The "Resource Hub" is a list of links. Ensure these links open in new tabs to avoid disrupting the user's workflow within the application.
+*   **Recommendation:**
+    *   Ensure the sidebar navigation is always visible and clearly indicates the active module.
+    *   For external links in the "Resource Hub," ensure they open in a new tab (`target="_blank"` with `rel="noopener noreferrer"` for security).
 
 ### Missing Feedback States
-
-*   **Finding:**
-    *   **Admin Upload:** The plan mentions "Drag & drop batch of edited JPEGs" and "Backend processes each JPEG." It also specifies rejecting RAW files with a "helpful message." This is good. However, the plan doesn't detail the feedback during the *batch upload process itself*. What happens if 1 of 153 photos fails? What's the visual feedback for successful uploads vs. failures?
-    *   **Client Gallery:** "Click photo → Modal: loads 1200px medium." The plan mentions "Instant display," but even "instant" can have a brief delay.
-*   **Rating:** MEDIUM
+*   **Finding:** HIGH
+*   **Details:** This is a critical area for any interactive application, especially one tracking "LIFE-CRITICAL" progress.
+    *   **Specific Concern:** **Form Submissions/Updates:** When a user checks a box, updates a status, or saves notes, there must be immediate visual feedback (e.g., a brief success message, a checkmark animation, a loading spinner for a moment). Without this, users might click multiple times or doubt if their action was registered.
+    *   **Specific Concern:** **Error States:** What happens if an API call fails? If input validation fails? Clear, actionable error messages are needed.
+    *   **Specific Concern:** **Loading States:** (Covered in the next section, but related to feedback).
+    *   **Specific Concern:** **"What if" scenarios in CRS calculator:** The results should be clearly differentiated from the current actual score.
 *   **Recommendation:**
-    *   **Admin Upload Feedback:**
-        *   Provide clear visual feedback for each photo in a batch upload (e.g., progress bar per photo, success/failure icons, clear error messages for individual failures).
-        *   Offer a summary of the batch upload results (e.g., "150/153 photos uploaded successfully, 3 failed").
-        *   Ensure the "helpful message" for RAW files is prominent and actionable.
-    *   **Client Gallery Loading:** While the goal is "instant," for the brief moment an image is loading in the modal, a subtle loading indicator or a blurhash placeholder (as mentioned in "Optional Future" 5C) would enhance the perceived performance and prevent a blank screen.
+    *   Implement immediate and clear feedback for all user actions:
+        *   **Success:** Toast notifications, brief animations, visual confirmation.
+        *   **Error:** Inline error messages for validation, clear and user-friendly error pages/modals for API failures.
+        *   **Pending:** Loading indicators for actions that take more than a few milliseconds.
+    *   Ensure the "Motivational progress ring" updates smoothly and provides clear feedback on progress changes.
 
 ---
 
 ## Loading States
 
-### Skeleton Screens, Error Boundaries, Empty States
-
-*   **Finding:**
-    *   **Loading States:** The plan explicitly addresses image loading with "Progressive JPEG" and mentions "Blurhash Placeholders (Optional Future)." This is excellent for perceived performance.
-    *   **Error Boundaries:** The plan mentions "Reject RAW uploads with a helpful message" and `logger.warn` for low-res uploads. The retroactive script includes `console.error` for individual photo processing failures. This indicates some error handling, but the user-facing error experience (e.g., what happens if the R2 upload fails for a photo, or the DB update fails?) is not detailed.
-    *   **Empty States:** The plan doesn't explicitly mention empty states for the gallery (e.g., what if an event has no photos yet?).
-*   **Rating:** MEDIUM
+### Skeleton Screens
+*   **Finding:** MEDIUM
+*   **Details:** For data-intensive modules like the "Master Checklist," "Document Tracker," and "Study Platform," initial data fetching or subsequent data refreshes can take time.
 *   **Recommendation:**
-    *   **Loading States:** Implement skeleton screens for the gallery grid while the initial thumbnails are loading. This provides a better user experience than a blank screen. Continue with progressive JPEGs and consider implementing Blurhash placeholders for an even smoother experience.
-    *   **Error Boundaries:** Implement robust error boundaries in the frontend to gracefully handle unexpected errors during image loading, API calls, or component rendering. Provide user-friendly error messages and options to retry or report the issue. For admin uploads, ensure that server-side errors (e.g., R2 upload failure) are communicated clearly to the admin user, not just logged.
-    *   **Empty States:** Design clear and helpful empty states for the client gallery. If an event has no photos, display a message like "No photos available yet. Please check back later!" or "The photographer is still curating this event." For the admin, an empty state might prompt them to upload photos.
+    *   Implement skeleton screens for content areas that load asynchronously. This provides a perceived performance boost and prevents jarring content shifts. For example, a skeleton list for the checklist items, or a skeleton table for the document tracker.
+
+### Error Boundaries
+*   **Finding:** HIGH
+*   **Details:** The application is "LIFE-CRITICAL." Uncaught JavaScript errors or failed API calls must not crash the entire application or leave the user in a broken state.
+*   **Recommendation:**
+    *   Implement React Error Boundaries around major components or modules. This will catch JavaScript errors in rendering, lifecycle methods, and constructors of their children, preventing the entire app from crashing and allowing for a graceful fallback UI (e.g., "Something went wrong, please try again").
+    *   Combine this with robust backend error handling and clear error messages to the user.
+
+### Empty States
+*   **Finding:** MEDIUM
+*   **Details:** While the blueprint implies pre-seeded data for the checklist, other sections might start empty or become empty.
+    *   **Specific Concern:** "Study Progress": If no quizzes have been taken or study sessions logged, what does this module show?
+    *   **Specific Concern:** "Timeline & Milestones": If no milestones are defined (unlikely given the blueprint, but good to consider), what is displayed?
+    *   **Specific Concern:** "Notes field" in checklist: If a note is empty, how is it displayed?
+*   **Recommendation:**
+    *   Design clear and helpful empty states for all modules that could potentially have no data. These should include:
+        *   A clear message explaining why the area is empty.
+        *   Guidance on how to populate the area (e.g., "Start your first study session to see progress here").
+        *   A call to action button if appropriate.
 
 ---
 
-## Conclusion
+## Summary and Overall Rating
 
-The revised gallery strategy and performance plan are exceptionally well-conceived and address critical technical and UX issues. The shift to a JPEG-only, variant-based pipeline will dramatically improve loading times and overall user satisfaction.
+The `CANADA-IMMIGRATION-TAB-BLUEPRINT.md` is an exceptionally detailed and well-thought-out plan for a critical internal tool. The emphasis on security and the phased build plan are commendable.
 
-My recommendations primarily focus on ensuring that the *implementation* of these excellent plans fully adheres to WCAG standards and best mobile UX practices, particularly concerning interactive elements, feedback, and edge cases like errors and empty states. The plan's foresight in defining a comprehensive design system (palette, typography) is a strong foundation for maintaining consistency.
+**Overall UX/Accessibility Risk:** MEDIUM-HIGH
+
+While the blueprint is strong, the inherent complexity of the features (interactive checklists, dynamic calculators, Gantt charts, study platforms) combined with the "LIFE-CRITICAL" nature of the project means that UX and accessibility considerations must be deeply embedded from the very beginning of the design and development process, not just as a final audit. Many of the "MEDIUM" findings could quickly escalate to "HIGH" or "CRITICAL" if not addressed proactively during UI design and implementation.
+
+**Key areas to focus on immediately:**
+
+1.  **WCAG Compliance:** Prioritize color contrast, keyboard navigation, and focus management during UI design and component development.
+2.  **Mobile Responsiveness:** Rethink complex tables and visualizations for small screens from the outset.
+3.  **Feedback States:** Ensure every user interaction provides clear and immediate feedback.
+4.  **Error Handling:** Implement robust error boundaries and clear error messages.
+
+By addressing these points diligently, SwanStudios can ensure this vital tool is
 
 ---
 
 ## [PASS] Code Quality
-**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 52.6s
+**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 53.1s
 
-# Code Review: Gallery Strategy & Performance Documentation
+# Code Review: Canada Immigration Tab Blueprint
 
-## Overview
-These are **strategy/planning documents**, not executable code. However, they contain **architectural decisions and implementation guidance** that will directly impact code quality. I'll review them as technical specifications.
+## Document Type Assessment
+⚠️ **NOTE:** This is a **specification document**, not executable code. Review focuses on architectural decisions, technical requirements, and implementation guidance quality.
 
 ---
 
 ## 1. TypeScript Best Practices
 
-### ❌ MEDIUM: Missing Type Definitions in Code Snippets
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Sharp processing code
+### MEDIUM: Missing Type Definitions for Data Models
+**Location:** Data Storage section
 
-```javascript
-// Current: Plain JavaScript
-async function generateVariants(inputBuffer, storageKeyBase) {
-  const metadata = await sharp(inputBuffer).metadata();
-```
-
-**Issue:** Code examples lack TypeScript types, which will lead to `any` types if copy-pasted.
+**Issue:** Database table schemas described in prose without TypeScript interface definitions.
 
 **Recommendation:**
 ```typescript
-interface ImageVariants {
-  thumb: { buffer: Buffer; key: string };
-  medium: { buffer: Buffer; key: string };
-  width: number;
-  height: number;
+// Should include type definitions like:
+interface ImmigrationTask {
+  id: string;
+  userId: string;
+  phase: 'PHASE_0' | 'PHASE_1' | 'PHASE_2' | 'PHASE_3';
+  title: string;
+  completed: boolean;
+  dueDate: Date | null;
+  priority: 'P0' | 'P1' | 'P2';
+  notes: string;
+  resourceUrl: string | null;
+  owner: 'SEAN' | 'WIFE' | 'BOTH';
+  cost: number | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-async function generateVariants(
-  inputBuffer: Buffer,
-  storageKeyBase: string
-): Promise<ImageVariants> {
-  const metadata = await sharp(inputBuffer).metadata();
-  const { width, height } = metadata;
-  
-  if (!width || !height) {
-    throw new Error('Unable to extract image dimensions');
-  }
-  // ...
+interface ImmigrationDocument {
+  id: string;
+  userId: string;
+  documentType: DocumentType; // enum
+  status: 'NOT_STARTED' | 'ORDERED' | 'APPLIED' | 'SCHEDULED' | 'RECEIVED' | 'COMPLETED';
+  notes: string;
+  score?: string; // for test results
+  createdAt: Date;
+  updatedAt: Date;
 }
+
+type DocumentType = 
+  | 'BIRTH_CERT_SEAN'
+  | 'BIRTH_CERT_FATHER'
+  | 'DEATH_CERT_FATHER'
+  // ... etc
 ```
 
 ---
 
-### ❌ MEDIUM: Frontend Interface Incomplete
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Part 3
+### LOW: CRS Calculator Needs Discriminated Union Pattern
+**Location:** Module 4: CRS Score Calculator
 
-```tsx
-// Implied interface but not specified:
-<PhotoImg src={photo.thumbnailUrl || photo.url} />
-```
-
-**Issue:** No TypeScript interface definition for the updated `GalleryPhoto` type.
+**Issue:** Calculator inputs should use discriminated unions for type safety.
 
 **Recommendation:**
 ```typescript
-interface GalleryPhoto {
-  id: string;
-  url: string;
-  thumbnailUrl: string | null;
-  thumbnailKey: string | null;
-  mediumUrl: string | null;
-  mediumKey: string | null;
-  storageKey: string;
-  width: number | null;
-  height: number | null;
-  displayName: string;
-  sourceType: 'RAW' | 'JPEG' | 'PNG';
-  // ... other fields
+type EducationLevel = 
+  | { type: 'NONE' }
+  | { type: 'HIGH_SCHOOL' }
+  | { type: 'ONE_YEAR_DIPLOMA' }
+  | { type: 'TWO_YEAR_DIPLOMA' }
+  | { type: 'BACHELORS' }
+  | { type: 'MASTERS' }
+  | { type: 'PHD' };
+
+interface CRSCalculatorInput {
+  age: number;
+  education: EducationLevel;
+  languageScores: {
+    ielts?: { reading: number; writing: number; listening: number; speaking: number };
+    tef?: { reading: number; writing: number; listening: number; speaking: number };
+  };
+  workExperience: {
+    canadian: number; // years
+    foreign: number;
+  };
+  spouse?: SpouseFactors;
+  provincialNomination: boolean;
 }
 ```
 
@@ -239,1592 +324,1129 @@ interface GalleryPhoto {
 
 ## 2. React Patterns
 
-### ✅ LOW: Aspect Ratio Implementation Correct
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Grid View Changes
+### HIGH: Missing Guidance on State Management Strategy
+**Location:** Architecture Overview
 
-```tsx
-<PhotoImg
-  style={{ aspectRatio: photo.width && photo.height ? `${photo.width}/${photo.height}` : undefined }}
-/>
-```
-
-**Good:** Prevents CLS (Cumulative Layout Shift) by reserving space before image loads.
-
----
-
-### ⚠️ HIGH: Missing Memoization Guidance
-**Location:** Both documents - Frontend changes
-
-**Issue:** No guidance on memoizing the aspect ratio calculation or image components.
+**Issue:** No specification for state management approach. With 7 modules and complex interdependencies (CRS calculator affects timeline, checklist completion affects dashboard), this needs clarity.
 
 **Recommendation:**
 ```typescript
-// In GalleryPage.tsx
-const PhotoGridItem = React.memo<{ photo: GalleryPhoto }>(({ photo }) => {
-  const aspectRatio = useMemo(() => 
-    photo.width && photo.height ? `${photo.width}/${photo.height}` : undefined,
-    [photo.width, photo.height]
+// Specify state management approach:
+// Option 1: React Context for global immigration state
+interface ImmigrationContextValue {
+  tasks: ImmigrationTask[];
+  documents: ImmigrationDocument[];
+  studyProgress: StudyProgress[];
+  crsScore: number | null;
+  refreshData: () => Promise<void>;
+  updateTask: (id: string, updates: Partial<ImmigrationTask>) => Promise<void>;
+}
+
+// Option 2: React Query for server state
+const useImmigrationTasks = () => {
+  return useQuery(['immigration-tasks'], fetchTasks, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Option 3: Zustand for client state
+interface ImmigrationStore {
+  selectedPhase: Phase | null;
+  filterOwner: Owner | 'ALL';
+  setSelectedPhase: (phase: Phase | null) => void;
+}
+```
+
+---
+
+### MEDIUM: Performance Concern - Large Checklist Rendering
+**Location:** Module 2: Master Checklist
+
+**Issue:** 40+ checklist items across 4 phases could cause performance issues without virtualization or pagination.
+
+**Recommendation:**
+```typescript
+// Specify virtualization requirement:
+// Use react-window or react-virtual for checklist rendering
+import { FixedSizeList } from 'react-window';
+
+// OR specify pagination/accordion pattern:
+// Render only active phase by default, lazy-load others
+const ChecklistAccordion: React.FC = () => {
+  const [expandedPhases, setExpandedPhases] = useState<Set<Phase>>(
+    new Set(['PHASE_0'])
   );
-
-  return (
-    <PhotoImg
-      src={photo.thumbnailUrl || photo.url}
-      width={photo.width || undefined}
-      height={photo.height || undefined}
-      style={{ aspectRatio }}
-      loading="lazy"
-    />
-  );
-});
+  // Only render tasks for expanded phases
+};
 ```
 
 ---
 
-### ❌ CRITICAL: Missing Error Boundary Strategy
-**Location:** Both documents
+### MEDIUM: Missing Memoization Guidance for CRS Calculator
+**Location:** Module 4: CRS Score Calculator
 
-**Issue:** No error handling for failed image loads, corrupt thumbnails, or missing variants.
+**Issue:** CRS calculation is computationally intensive and should be memoized.
 
 **Recommendation:**
 ```typescript
-// Add to PhotoDetailModal.tsx
-const [imageError, setImageError] = useState(false);
+// Specify memoization requirement:
+const calculateCRS = useMemo(() => {
+  return computeCRSScore({
+    age,
+    education,
+    languageScores,
+    workExperience,
+    spouse,
+    provincialNomination,
+  });
+}, [age, education, languageScores, workExperience, spouse, provincialNomination]);
 
-<img 
-  src={photo.mediumUrl || photo.url}
-  onError={() => {
-    setImageError(true);
-    // Fallback to full image if medium fails
-    if (photo.mediumUrl) {
-      (e.target as HTMLImageElement).src = photo.url;
-    }
-  }}
-/>
-
-{imageError && (
-  <ErrorMessage>
-    Image failed to load. <button onClick={handleRetry}>Retry</button>
-  </ErrorMessage>
-)}
+// OR use React Query for server-side calculation with caching
+const { data: crsScore } = useQuery(
+  ['crs-score', calculatorInputs],
+  () => api.calculateCRS(calculatorInputs),
+  { staleTime: Infinity } // CRS logic doesn't change
+);
 ```
 
 ---
 
-## 3. styled-components
+## 3. styled-components & Theme
 
-### ❌ HIGH: Hardcoded Values in Examples
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Sharp processing
+### HIGH: Missing Theme Token Specifications
+**Location:** Throughout - references "Crystalline Swan styling" without specifics
 
-```javascript
-.resize(400, null, { fit: 'inside', withoutEnlargement: true })
-```
-
-**Issue:** Magic numbers (400, 1200) should be theme constants.
+**Issue:** Blueprint doesn't specify which theme tokens to use for immigration-specific UI elements.
 
 **Recommendation:**
 ```typescript
-// backend/config/imageProcessing.ts
-export const IMAGE_VARIANTS = {
-  THUMB: { maxWidth: 400, quality: 80 },
-  MEDIUM: { maxWidth: 1200, quality: 85 },
-  FULL: { quality: 95 },
+// Add theme token mapping section:
+const ImmigrationThemeTokens = {
+  // Phase colors
+  phase0: 'colors.error', // Urgent - #FF4444 or similar
+  phase1: 'colors.warning', // Foundation - Gilded Fern #C6A84B
+  phase2: 'colors.secondary', // Momentum - Arctic Cyan #50A0F0
+  phase3: 'colors.success', // Advanced - success green
+  
+  // Status colors
+  notStarted: 'colors.neutral.400',
+  inProgress: 'colors.secondary', // Arctic Cyan
+  completed: 'colors.success',
+  overdue: 'colors.error',
+  
+  // Priority colors
+  p0: 'colors.error',
+  p1: 'colors.warning',
+  p2: 'colors.neutral.500',
+  
+  // Progress ring
+  progressRing: {
+    background: 'colors.surface', // Royal Depth #003080
+    fill: 'colors.gaming', // Ice Wing #60C0F0
+    text: 'colors.luxury', // Gilded Fern #C6A84B
+  },
+  
+  // Typography
+  heading: 'fonts.heading', // Plus Jakarta Sans
+  body: 'fonts.ui', // Sora
+  data: 'fonts.data', // Fira Code (for scores, dates)
+  dramatic: 'fonts.dramatic', // Cormorant Garamond Italic (for motivational text)
+};
+```
+
+---
+
+### MEDIUM: Progress Ring Needs Component Specification
+**Location:** Module 1: Dashboard Overview - "Motivational progress ring"
+
+**Issue:** No specification for how to implement progress ring with theme tokens.
+
+**Recommendation:**
+```typescript
+// Specify styled-component structure:
+const ProgressRing = styled.div`
+  position: relative;
+  width: 200px;
+  height: 200px;
+  
+  svg {
+    transform: rotate(-90deg);
+  }
+`;
+
+const ProgressCircle = styled.circle<{ progress: number }>`
+  fill: none;
+  stroke: ${({ theme }) => theme.colors.gaming}; // Ice Wing
+  stroke-width: 12;
+  stroke-dasharray: ${({ progress }) => `${progress * 628} 628`}; // 2πr
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+`;
+
+const ProgressText = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: ${({ theme }) => theme.fonts.data}; // Fira Code
+  font-size: 2rem;
+  color: ${({ theme }) => theme.colors.luxury}; // Gilded Fern
+`;
+```
+
+---
+
+### LOW: Timeline Color-Coding Needs Theme Integration
+**Location:** Module 7: Timeline & Milestones
+
+**Issue:** Hardcoded color descriptions (red, orange, blue, green, purple) instead of theme tokens.
+
+**Recommendation:**
+```typescript
+// Replace with theme-based category colors:
+const TimelineCategories = {
+  marriage: 'colors.error', // Critical urgency
+  tribal: 'colors.warning', // Gilded Fern
+  language: 'colors.secondary', // Arctic Cyan
+  certifications: 'colors.success',
+  immigration: 'colors.tertiary', // Swan Lavender
 } as const;
-
-// Usage:
-.resize(IMAGE_VARIANTS.THUMB.maxWidth, null, { 
-  fit: 'inside', 
-  withoutEnlargement: true 
-})
-```
-
----
-
-### ⚠️ MEDIUM: No Theme Token Usage in Frontend Examples
-**Location:** Both documents
-
-**Issue:** Frontend code snippets don't reference the Enchanted Apex theme tokens.
-
-**Recommendation:**
-```typescript
-// frontend/src/pages/gallery/PhotoDetailModal.tsx
-import styled from 'styled-components';
-
-const ModalImage = styled.img`
-  max-width: 100%;
-  border-radius: ${({ theme }) => theme.radii.md};
-  box-shadow: 0 4px 20px ${({ theme }) => theme.colors.midnightSapphire}40;
-  background: ${({ theme }) => theme.colors.frostWhite};
-`;
-
-const DownloadButton = styled.a`
-  background: ${({ theme }) => theme.colors.iceWing};
-  color: ${({ theme }) => theme.colors.midnightSapphire};
-  font-family: ${({ theme }) => theme.fonts.ui}; // Sora
-  /* ... */
-`;
 ```
 
 ---
 
 ## 4. DRY Violations
 
-### ❌ HIGH: Duplicate Variant Generation Logic
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Upload Path Modifications
+### HIGH: Duplicate Status Enums Across Modules
+**Location:** Module 3 (Document Tracker) and implied in Module 2 (Checklist)
 
-**Issue:** States "All 3 upload paths need the same post-processing" but doesn't extract to shared service.
+**Issue:** Status workflows defined separately for tasks and documents - will lead to duplicate code.
 
 **Recommendation:**
 ```typescript
-// backend/services/imageVariantService.mjs
-export class ImageVariantService {
-  async processUpload(
-    inputBuffer: Buffer,
-    storageKeyBase: string,
-    photoData: Partial<GalleryPhoto>
-  ): Promise<GalleryPhoto> {
-    const variants = await this.generateVariants(inputBuffer, storageKeyBase);
-    
-    await Promise.all([
-      this.uploadToR2(`${storageKeyBase}.jpg`, inputBuffer),
-      this.uploadToR2(`${storageKeyBase}_thumb.jpg`, variants.thumb.buffer),
-      this.uploadToR2(`${storageKeyBase}_medium.jpg`, variants.medium.buffer),
-    ]);
+// Create shared status types:
+type TaskStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 
-    return GalleryPhoto.create({
-      ...photoData,
-      url: this.buildUrl(`${storageKeyBase}.jpg`),
-      thumbnailUrl: this.buildUrl(`${storageKeyBase}_thumb.jpg`),
-      mediumUrl: this.buildUrl(`${storageKeyBase}_medium.jpg`),
-      width: variants.width,
-      height: variants.height,
-    });
-  }
+type DocumentStatus = 
+  | 'NOT_STARTED'
+  | 'ORDERED'
+  | 'APPLIED'
+  | 'SCHEDULED'
+  | 'RECEIVED'
+  | 'COMPLETED';
+
+// Shared status badge component:
+interface StatusBadgeProps {
+  status: TaskStatus | DocumentStatus;
+  variant?: 'task' | 'document';
 }
 
-// Usage in all 3 upload routes:
-const photo = await imageVariantService.processUpload(buffer, keyBase, photoData);
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status, variant }) => {
+  const color = getStatusColor(status); // Shared color logic
+  return <Badge color={color}>{formatStatus(status)}</Badge>;
+};
 ```
 
 ---
 
-### ⚠️ MEDIUM: Repeated URL Building Logic
-**Location:** Multiple locations in both documents
+### MEDIUM: Repeated "Owner" Field Logic
+**Location:** Module 2 (checklist items) and implied filtering
 
-**Issue:** `buildUrl()` called repeatedly without centralization.
+**Issue:** Owner field (Sean/Wife/Both) will need repeated filtering/display logic.
 
 **Recommendation:**
 ```typescript
-// backend/services/r2Service.mjs
-export class R2Service {
-  buildUrls(storageKeyBase: string) {
-    return {
-      full: this.buildUrl(`${storageKeyBase}.jpg`),
-      thumb: this.buildUrl(`${storageKeyBase}_thumb.jpg`),
-      medium: this.buildUrl(`${storageKeyBase}_medium.jpg`),
-    };
-  }
+// Create shared owner utilities:
+type Owner = 'SEAN' | 'WIFE' | 'BOTH';
+
+const OwnerFilter = {
+  all: (items: Array<{ owner: Owner }>) => items,
+  sean: (items: Array<{ owner: Owner }>) => 
+    items.filter(i => i.owner === 'SEAN' || i.owner === 'BOTH'),
+  wife: (items: Array<{ owner: Owner }>) => 
+    items.filter(i => i.owner === 'WIFE' || i.owner === 'BOTH'),
+} as const;
+
+// Shared owner badge component
+const OwnerBadge: React.FC<{ owner: Owner }> = ({ owner }) => {
+  const config = {
+    SEAN: { label: 'Sean', color: 'colors.gaming' },
+    WIFE: { label: 'Wife', color: 'colors.luxury' },
+    BOTH: { label: 'Both', color: 'colors.tertiary' },
+  }[owner];
+  
+  return <Badge color={config.color}>{config.label}</Badge>;
+};
+```
+
+---
+
+### MEDIUM: Study Module Repetition
+**Location:** Module 5 - IELTS, TEF, and AI cert sections
+
+**Issue:** Each study section has similar structure (practice materials, progress tracker, score history) - will lead to duplicate components.
+
+**Recommendation:**
+```typescript
+// Create generic study module components:
+interface StudyModuleProps<T extends string> {
+  moduleType: T;
+  sections: StudySection[];
+  progressData: StudyProgress;
+  onUpdateProgress: (sectionId: string, score: number) => Promise<void>;
 }
+
+interface StudySection {
+  id: string;
+  title: string;
+  type: 'PRACTICE' | 'QUIZ' | 'FLASHCARDS' | 'READING' | 'LISTENING';
+  content: React.ReactNode;
+}
+
+// Reusable progress tracker
+const StudyProgressTracker: React.FC<{
+  history: Array<{ date: Date; score: number }>;
+  targetScore?: number;
+}> = ({ history, targetScore }) => {
+  // Line chart with target line
+};
 ```
 
 ---
 
 ## 5. Error Handling
 
-### ❌ CRITICAL: No Error Handling in Migration Script
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Part 2
+### CRITICAL: No Error Handling Strategy Specified
+**Location:** Architecture Overview, Backend API routes
 
-```javascript
-for (const photo of photos) {
-  try {
-    // ... processing
-  } catch (err) {
-    console.error(`❌ ${photo.displayName}: ${err.message}`);
-  }
-}
-```
-
-**Issue:** 
-1. Errors are logged but not tracked
-2. No rollback mechanism if partial failure
-3. No retry logic for transient R2 failures
-4. No final summary of success/failure counts
+**Issue:** Blueprint mentions "try/catch around async ops" in review criteria but doesn't specify error handling strategy for the immigration tab.
 
 **Recommendation:**
 ```typescript
-interface MigrationResult {
-  success: number;
-  failed: Array<{ photoId: string; error: string }>;
-  skipped: number;
+// Add error handling specification section:
+
+// API Error Response Format
+interface APIError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
 }
 
-async function migrateExistingPhotos(): Promise<MigrationResult> {
-  const result: MigrationResult = { success: 0, failed: [], skipped: 0 };
-  
-  const photos = await GalleryPhoto.findAll({ /* ... */ });
-  
-  for (const photo of photos) {
-    try {
-      await processPhotoWithRetry(photo, 3); // 3 retries
-      result.success++;
-    } catch (err) {
-      logger.error(`Migration failed for photo ${photo.id}`, { error: err });
-      result.failed.push({ 
-        photoId: photo.id, 
-        error: err instanceof Error ? err.message : String(err) 
-      });
-    }
-  }
-  
-  // Save migration report
-  await MigrationLog.create({
-    type: 'thumbnail_generation',
-    result: JSON.stringify(result),
-    completedAt: new Date(),
-  });
-  
-  return result;
+// Frontend Error Boundary for Immigration Tab
+class ImmigrationErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  // Catch rendering errors, show user-friendly message
+  // Log to error tracking service
 }
 
-async function processPhotoWithRetry(photo: GalleryPhoto, retries: number) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await processPhoto(photo);
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      await sleep(1000 * (i + 1)); // Exponential backoff
-    }
-  }
-}
-```
-
----
-
-### ❌ HIGH: RAW Upload Rejection Lacks Proper Error Response
-**Location:** `GALLERY-STRATEGY-REVISED-PLAN.md` - Backend Changes #1
-
-```javascript
-if (isRaw) {
-  return res.status(422).json({
-    success: false,
-    error: 'RAW files are not accepted...',
-    hint: '...',
-  });
-}
-```
-
-**Issue:** 
-1. No error code for frontend to handle programmatically
-2. No link to documentation
-3. No suggestion to use Lightroom export preset
-
-**Recommendation:**
-```typescript
-if (isRaw) {
-  return res.status(422).json({
-    success: false,
-    errorCode: 'RAW_FILE_NOT_SUPPORTED',
-    message: 'RAW files must be exported from Lightroom before upload',
-    details: {
-      acceptedFormats: ['JPEG', 'PNG'],
-      recommendedSettings: {
-        format: 'JPEG',
-        quality: 95,
-        colorSpace: 'sRGB',
-        maxDimension: 4000,
-      },
-      documentationUrl: 'https://sswanstudios.com/docs/photo-export-guide',
-    },
-  });
-}
-```
-
----
-
-### ⚠️ MEDIUM: No Validation for Corrupt/Invalid JPEGs
-**Location:** `GALLERY-STRATEGY-REVISED-PLAN.md` - Backend Changes #4
-
-```javascript
-const metadata = await sharp(inputBuffer).metadata();
-if (metadata.width < 2000 || metadata.height < 2000) {
-  logger.warn(`Low-res upload...`);
-}
-```
-
-**Issue:** 
-1. Only warns, doesn't reject
-2. No validation that Sharp can actually decode the JPEG
-3. No check for minimum quality threshold
-
-**Recommendation:**
-```typescript
-try {
-  const metadata = await sharp(inputBuffer).metadata();
-  
-  if (!metadata.width || !metadata.height) {
-    throw new Error('Unable to read image dimensions');
-  }
-  
-  if (metadata.width < 1200 || metadata.height < 1200) {
-    return res.status(422).json({
-      errorCode: 'IMAGE_TOO_SMALL',
-      message: `Image resolution too low: ${metadata.width}×${metadata.height}`,
-      minimumRequired: '1200×1200',
+// API Error Handler Middleware
+const immigrationErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  if (err instanceof ValidationError) {
+    return res.status(400).json({
+      code: 'VALIDATION_ERROR',
+      message: 'Invalid input data',
+      details: err.errors,
     });
   }
   
-  // Test that Sharp can actually process it
-  await sharp(inputBuffer).resize(100, 100).toBuffer();
+  if (err instanceof UnauthorizedError) {
+    return res.status(403).json({
+      code: 'FORBIDDEN',
+      message: 'Admin access required',
+    });
+  }
   
-} catch (err) {
-  logger.error('Invalid image file', { error: err });
-  return res.status(422).json({
-    errorCode: 'INVALID_IMAGE',
-    message: 'File is corrupt or not a valid image',
+  // Log unexpected errors
+  logger.error('Immigration API error', { error: err, userId: req.user?.id });
+  
+  return res.status(500).json({
+    code: 'INTERNAL_ERROR',
+    message: 'An unexpected error occurred. Please try again.',
   });
-}
+};
+
+// User-Facing Error Messages
+const ErrorMessages = {
+  TASK_UPDATE_FAILED: 'Failed to update task. Please try again.',
+  DOCUMENT_FETCH_FAILED: 'Unable to load documents. Check your connection.',
+  CRS_CALCULATION_FAILED: 'CRS calculation error. Verify all inputs.',
+  STUDY_PROGRESS_SAVE_FAILED: 'Could not save study progress.',
+  NETWORK_ERROR: 'Network error. Please check your connection.',
+  UNAUTHORIZED: 'You must be logged in as an admin to access this feature.',
+} as const;
 ```
 
 ---
 
-## 6. Performance Anti-Patterns
+### HIGH: Missing Validation for CRS Calculator Inputs
+**Location:** Module 4: CRS Score Calculator
 
-### ✅ GOOD: Thumbnail Strategy Correct
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Overall approach
-
-**Strengths:**
-- 400px thumbnails for grid (30-60KB)
-- 1200px medium for modal (200-400KB)
-- Progressive JPEG for perceived performance
-- Lazy loading implied
-
----
-
-### ❌ CRITICAL: Missing `loading="lazy"` Attribute
-**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Grid View Changes
-
-```tsx
-<PhotoImg
-  src={photo.thumbnailUrl || photo.url}
-  width={photo.width || undefined}
-  height={photo.height || undefined}
-/>
-```
-
-**Issue:** Without `loading="lazy"`, all 72 thumbnails load immediately, even those below the fold.
-
-**Recommendation:**
-```tsx
-<PhotoImg
-  src={photo.thumbnailUrl || photo.url}
-  width={photo.width || undefined}
-  height={photo.height || undefined}
-  loading="lazy"
-  decoding="async"
-  style={{ aspectRatio }}
-/>
-```
-
----
-
-### ❌ HIGH: No Pagination/Virtual Scrolling Strategy
-**Location:** Both documents
-
-**Issue:** Loading 72 photos (even as thumbnails) in one page is still 3.6MB. At 153 photos (mentioned in revised plan), that's 9MB.
+**Issue:** No specification for input validation (age ranges, score ranges, etc.).
 
 **Recommendation:**
 ```typescript
-// Option 1: Pagination
-const PHOTOS_PER_PAGE = 24;
-const [page, setPage] = useState(1);
-const visiblePhotos = photos.slice(0, page * PHOTOS_PER_PAGE);
+// Add validation schema specification:
+import { z } from 'zod';
 
-// Option 2: Infinite scroll with Intersection Observer
-const { ref, inView } = useInView();
-useEffect(() => {
-  if (inView && hasMore) loadMorePhotos();
-}, [inView]);
-
-// Option 3: Virtual scrolling (react-window)
-<FixedSizeGrid
-  columnCount={4}
-  rowCount={Math.ceil(photos.length / 4)}
-  columnWidth={300}
-  rowHeight={300}
-  // Only renders visible rows
-/>
-```
-
----
-
-### ⚠️ MEDIUM: Parallel Upload Not Addressed
-**Location:** `GALLERY-STRATEGY-REVISED-PLAN.md` - Upload to SwanStudios Gallery
-
-```
-3. Backend processes each JPEG:
-   a. Apply watermark
-   b. Generate thumbnail
-   c. Generate medium
-   ...
-5. Processing time: ~2-5 seconds per photo
-```
-
-**Issue:** Sequential processing of 153 photos = 10 minutes. Could be parallelized.
-
-**Recommendation:**
-```typescript
-// Process in batches of 5 to avoid memory issues
-const BATCH_SIZE = 5;
-for (let i = 0; i < files.length; i += BATCH_SIZE) {
-  const batch = files.slice(i, i + BATCH_SIZE);
-  await Promise.all(batch.map(file => processPhoto(file)));
-}
-```
-
----
-
-### ❌ HIGH: No Cache Strategy for R2 URLs
-**Location:** `GALLERY-PERFORMANCE
+const CRSInputSchema = z.object({
+  age: z.number().int().min(18).max(45), // CRS age range
+  education: z.enum(['NONE', 'HIGH_SCHOOL', 'BACHELORS', 'MASTERS', 'PHD']),
+  languageScores: z.object({
+    ielts: z.object({
+      reading: z.number().min(0).max(9).optional(),
+      writing: z.number().min(0).max(9).optional(),
+      listening: z.number().min(0).max(9).optional(),
+      speaking: z.number().min(0).max(9).optional(),
+    }).optional(),
+    tef: z.object({
+      reading: z.number().min(0).max(7).optional(), // NCLC levels
+      writing: z.number().min(0).max(7).optional(),
+      listening: z.number().min(0).max(7).optional(),
 
 ---
 
 ## [PASS] Security
-**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 31.7s
+**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 29.2s
 
-# Security Audit Report: SwanStudios Gallery Strategy & Performance Plans
+# Security Audit Report: Canada Immigration Tab Blueprint
 
 ## Executive Summary
-The provided documents are **strategic planning documents** (markdown files), not executable code. Therefore, most traditional security vulnerabilities cannot be directly identified. However, these plans reveal **architectural decisions and implementation intentions** that have significant security implications. The audit focuses on analyzing the proposed architecture, workflows, and code snippets for potential security risks.
+The blueprint outlines a **life-critical** admin-only module for tracking immigration processes. While the design shows strong security awareness, several implementation risks exist due to the sensitive nature of immigration data (PII, tribal documentation, personal timelines).
 
-## Key Findings
+## Critical Findings
 
-### 1. **File Upload Security** - MEDIUM
-**Issue:** The plan proposes rejecting RAW file uploads with a 422 error message containing detailed Lightroom export instructions. While this improves performance, the error message could reveal internal tooling details.
-```javascript
-// From GALLERY-STRATEGY-REVISED-PLAN.md
-return res.status(422).json({
-  success: false,
-  error: 'RAW files are not accepted. Please export from Lightroom as JPEG Q95, 4000px max.',
-  hint: 'Lightroom Export: Quality 95%, sRGB, Long Edge 4000px, File Naming: Custom Name-Sequence',
-});
-```
-**Risk:** Information disclosure about internal workflows and software stack.
-**Recommendation:** Use generic error messages in production; log detailed hints server-side only.
+### 1. **HIGH: PII Data Exposure Risk**
+- **Issue:** Blueprint includes tracking of highly sensitive documents (birth certificates, death certificates, CDIB cards, marriage certificates, test scores)
+- **Risk:** Even with admin-only access, these documents contain PII that could be exploited if database is compromised
+- **Recommendation:** 
+  - Implement field-level encryption for all sensitive document metadata
+  - Add database column-level encryption for PII fields
+  - Consider hashing document identifiers instead of storing raw data
 
-### 2. **Input Validation Gaps** - MEDIUM
-**Issue:** The plan mentions validating JPEG dimensions but lacks comprehensive input validation:
-- No file type verification beyond extension checking
-- No malware scanning of uploaded files
-- No validation of metadata extraction results
-**Risk:** Potential for malicious file uploads, ZIP bombs, or malformed images causing DoS.
-**Recommendation:** Implement:
-  - Magic number verification (not just extension)
-  - File size limits (25MB is reasonable)
-  - Virus/malware scanning service
-  - Timeout protection for image processing
+### 2. **HIGH: Missing Data Retention & Deletion Policy**
+- **Issue:** No specification for data retention periods or secure deletion procedures
+- **Risk:** Immigration data could persist indefinitely, violating privacy principles
+- **Recommendation:**
+  - Implement automatic data anonymization after immigration process completion
+  - Add GDPR/CCPA compliance controls for data deletion requests
+  - Specify maximum retention period (e.g., 2 years post-immigration)
 
-### 3. **Server-Side Image Processing** - MEDIUM
-**Issue:** The `sharp` library processing pipeline handles arbitrary user-uploaded images in memory.
-```javascript
-// From GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md
-const thumbBuffer = await sharp(inputBuffer)
-  .resize(400, null, { fit: 'inside', withoutEnlargement: true })
-  .jpeg({ quality: 80, progressive: true, mozjpeg: true })
-  .toBuffer();
-```
-**Risk:** 
-- Memory exhaustion attacks via specially crafted images
-- Sharp library vulnerabilities (CVE tracking needed)
-- Unhandled processing failures
-**Recommendation:** 
-- Implement memory limits per processing job
-- Monitor sharp library for security updates
-- Add circuit breakers for failed processing
+## Medium Findings
 
-### 4. **Data Storage Architecture** - LOW
-**Issue:** The three-variant storage approach (thumb/medium/full) creates multiple copies of potentially sensitive images.
-**Risk:** Inconsistent access controls across variants; orphaned files if DB updates fail.
-**Recommendation:** 
-- Ensure all variants inherit the same access controls
-- Implement atomic operations (DB + storage updates)
-- Add cleanup jobs for orphaned files
+### 3. **MEDIUM: Incomplete Input Validation Specification**
+- **Issue:** Blueprint mentions "input validation" but doesn't specify schema validation library or patterns
+- **Risk:** Inconsistent validation could lead to injection attacks or data corruption
+- **Recommendation:**
+  - Implement Zod schemas for all API endpoints
+  - Add request validation middleware with strict type checking
+  - Sanitize all user inputs before database operations
 
-### 5. **Client-Side Data Exposure** - LOW
-**Issue:** The plan exposes image dimensions and URLs client-side without considering:
-- Signed URLs expiration
-- Direct object references (storage keys in responses)
-- CORS policies for R2 storage
-**Risk:** Information leakage, hotlinking, unauthorized access.
-**Recommendation:** 
-- Use signed URLs with expiration
-- Avoid exposing internal storage keys
-- Implement proper CORS for R2/CDN
+### 4. **MEDIUM: Missing Audit Logging**
+- **Issue:** No mention of audit trails for sensitive immigration data access
+- **Risk:** Cannot track who accessed sensitive immigration data or when
+- **Recommendation:**
+  - Implement comprehensive audit logging for all CRUD operations
+  - Log admin access to immigration modules with timestamp and user ID
+  - Store audit logs separately from application database
 
-### 6. **Authentication & Authorization Gaps** - MEDIUM
-**Issue:** The documents assume existing auth but don't specify:
-- Upload endpoint protection (admin-only verification)
-- Enhancement request authorization checks
-- Rate limiting on upload endpoints
-**Risk:** Unauthorized uploads, privilege escalation via API.
-**Recommendation:** 
-- Explicitly document auth requirements for each endpoint
-- Implement upload rate limiting
-- Audit enhancement request flow for access control
+### 5. **MEDIUM: Client-Side Data Handling Risks**
+- **Issue:** While blueprint says "no sensitive data in localStorage," complex state management could inadvertently expose data
+- **Risk:** React state or props could contain sensitive information visible in dev tools
+- **Recommendation:**
+  - Implement memory-safe data handling (clear sensitive data from state when not needed)
+  - Use React Context with encryption for sensitive state
+  - Add Content Security Policy to prevent data exfiltration
 
-### 7. **Logging & Monitoring** - LOW
-**Issue:** The plan includes `logger.warn()` for low-res uploads but doesn't specify:
-- PII in logs (filenames, user data)
-- Security event logging
-- Audit trails for image modifications
-**Risk:** Privacy violations, insufficient forensic data.
-**Recommendation:** 
-- Sanitize logs (remove PII)
-- Log security events (failed uploads, access attempts)
-- Maintain audit trail for enhancement requests
+## Low Findings
 
-## Security Recommendations
+### 6. **LOW: Missing Rate Limiting Specifications**
+- **Issue:** Blueprint mentions rate limiting but doesn't specify implementation details
+- **Risk:** Admin endpoints could be brute-forced if rate limiting is weak
+- **Recommendation:**
+  - Implement IP-based rate limiting (e.g., 100 requests/minute per admin)
+  - Add account-level rate limiting for sensitive endpoints
+  - Use Redis for distributed rate limiting in production
 
-### Immediate Actions (Before Implementation):
-1. **Implement comprehensive file validation:**
-   - Use `file-type` or similar for actual file verification
-   - Set processing timeouts for image operations
-   - Scan uploads for malware
+### 7. **LOW: External Link Security**
+- **Issue:** Resource hub contains numerous external links without validation
+- **Risk:** Link manipulation could redirect to malicious sites
+- **Recommendation:**
+  - Implement link validation and sanitization
+  - Add warning for external links opening in new tabs
+  - Consider using a URL allowlist for known immigration resources
 
-2. **Secure upload endpoints:**
-   ```javascript
-   // Example validation middleware
-   const uploadValidation = (req, res, next) => {
-     // Check file type via magic numbers
-     // Validate dimensions before processing
-     // Apply rate limiting per user
-     // Verify admin authentication
-   };
-   ```
+## Security Strengths Noted
 
-3. **Protect image processing:**
-   - Run sharp in worker threads with memory limits
-   - Implement circuit breakers for failed processing
-   - Monitor for sharp CVEs
+### ✅ Positive Security Measures:
+1. **Admin-Only Access:** Proper RBAC enforcement with JWT verification
+2. **No File Uploads:** Minimizes attack surface by avoiding file processing
+3. **Parameterized Queries:** Explicitly prohibits string interpolation
+4. **Session-Only Storage:** Avoids localStorage for sensitive data
+5. **Self-Contained Design:** No third-party API dependencies reduces external risks
 
-4. **Secure storage access:**
-   - Use signed URLs for R2 access
-   - Implement proper CORS policies
-   - Regular access log reviews
+## Priority Recommendations
 
-### Architectural Improvements:
-1. **Add Web Application Firewall (WAF)** rules for upload endpoints
-2. **Implement Content Security Policy (CSP)** for gallery pages
-3. **Use sanitized error messages** in production
-4. **Regular security scanning** of uploaded content
+### Immediate Actions (Before Development):
+1. **Implement Field-Level Encryption** for all PII data in database schema
+2. **Define Data Retention Policy** with automatic cleanup procedures
+3. **Create Audit Logging Framework** for all immigration data access
 
-### Monitoring & Maintenance:
-1. **Set up alerts** for:
-   - Unusual upload patterns
-   - Processing failures
-   - Storage quota breaches
-2. **Regular dependency updates** (sharp, Express, etc.)
-3. **Security review** of third-party services (R2, Cloudflare)
+### Development Phase Actions:
+1. **Implement Zod Validation** for all API endpoints
+2. **Add Comprehensive CSP Headers** to prevent data leakage
+3. **Configure Proper Rate Limiting** with Redis backend
+
+### Post-Development Actions:
+1. **Conduct Penetration Testing** specifically on immigration module
+2. **Perform Code Review** focusing on data handling and validation
+3. **Verify Admin Access Logs** are working and monitored
 
 ## Risk Assessment Summary
+- **Overall Risk Level:** MEDIUM-HIGH (due to sensitive nature of immigration data)
+- **Data Sensitivity:** CRITICAL (contains PII, tribal documentation, personal timelines)
+- **Attack Surface:** LOW (admin-only, no file uploads, no external APIs)
+- **Compromise Impact:** HIGH (immigration data breach could have legal/financial consequences)
 
-| Risk Area | Severity | Notes |
-|-----------|----------|-------|
-| File Upload Validation | MEDIUM | Missing comprehensive validation |
-| Server-Side Processing | MEDIUM | Memory exhaustion potential |
-| Error Information Disclosure | LOW | Detailed error messages |
-| Authentication Gaps | MEDIUM | Assumed but not specified |
-| Data Storage Security | LOW | Multiple variants need consistent controls |
-| Client-Side Security | LOW | URL signing needed |
-
-## Conclusion
-The gallery strategy plans are **architecturally sound from a performance perspective** but require **additional security hardening** before implementation. The most critical gaps are in file upload validation and server-side processing security. Since these are planning documents, the actual code implementation should undergo a separate security review with particular attention to the upload processing pipeline and authentication mechanisms.
-
-**Overall Security Posture:** Requires additional security controls before production deployment.
-
----
-*Note: This audit is based on planning documents only. Actual code implementation must be reviewed separately with access to the complete codebase.*
+## Final Recommendation
+Proceed with development but **implement all security recommendations before production deployment**. The sensitive nature of immigration data requires higher-than-normal security standards, even for admin-only functionality. Consider this module as requiring "enhanced security" classification within your application.
 
 ---
 
 ## [PASS] Performance & Scalability
-**Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 12.4s
+**Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 9.7s
 
-This performance and scalability review focuses on the **Gallery Strategy** and **Thumbnail Generation Plan** for SwanStudios.
+As a Performance and Scalability Engineer, I have reviewed the **Canada Immigration Tab Blueprint**. While this is a functional specification, the architectural decisions outlined have significant implications for the SwanStudios production environment.
 
-### Executive Summary
-The transition from a RAW-heavy pipeline to a pre-processed JPEG pipeline is a **massive architectural win**. It shifts heavy computation (RAW debayering) to the edge (Photographer's local machine) and optimizes the delivery layer. However, there are specific risks regarding Node.js memory management during batch processing and frontend layout stability.
+### Executive Summary of Findings
+The blueprint is well-structured for security but risks **bundle bloat** and **database inefficiency** due to the "all-in-one" module approach. The inclusion of a "Study Platform" and "CRS Calculator" within the main admin bundle will degrade the Time-to-Interactive (TTI) for the core SaaS platform if not handled via code-splitting.
 
 ---
 
-### 1. Bundle Size & Frontend Impact
-**Finding: Potential for Heavy Image Component Logic**
-*   **Rating: LOW**
-*   **Analysis:** Adding aspect-ratio logic and multiple URL handling to the `GalleryPage.tsx` and `PhotoDetailModal.tsx` is lightweight. However, ensure that the `sharp` library or any heavy image manipulation libraries are **never** imported into the frontend source, as they are Node-only and will break the build or bloat the bundle if shimmed.
-*   **Recommendation:** Use standard `<img>` tags with `loading="lazy"` and `decoding="async"` to keep the main thread free.
-
-### 2. Render Performance
-**Finding: Layout Instability (CLS) during Thumbnail Loading**
-*   **Rating: MEDIUM**
-*   **Analysis:** The plan mentions extracting `width` and `height` for CLS prevention. If the React component waits for the API to return these values before setting the container size, the "jump" still occurs.
-*   **Recommendation:** Ensure the API returns `aspectRatio` (width/height) as a single float. In React, apply `aspect-ratio: ${ratio}` via `styled-components` on a wrapper `div` *before* the image loads. This reserves the exact vertical space on the grid.
-
-### 3. Network Efficiency
-**Finding: Lack of Responsive Images (`srcset`)**
-*   **Rating: MEDIUM**
-*   **Analysis:** The plan uses a "Medium" (1200px) and "Thumb" (400px). While better than original files, a single 400px thumbnail on a high-DPI (Retina) mobile device may look blurry, while a 1200px modal image is overkill for a small phone.
-*   **Recommendation:** Implement `srcset` on the frontend.
-    ```html
-    <img src="thumb.jpg" srcset="thumb.jpg 400w, medium.jpg 1200w" sizes="(max-width: 600px) 400px, 1200px">
-    ```
-    This allows the browser to choose the most efficient asset based on device pixel density.
-
-### 4. Memory Leaks & Resource Exhaustion
-**Finding: Buffer Accumulation in Batch Uploads**
+### 1. Bundle Size & Lazy Loading
+**Finding: Monolithic Admin Bundle Risk**
 *   **Rating: HIGH**
-*   **Analysis:** The plan suggests `Promise.all` for uploading 3 variants to R2. In a batch upload of 10+ photos, if the backend holds the `processedBuffer`, `thumbBuffer`, and `mediumBuffer` in memory simultaneously for all concurrent uploads, the Node.js heap will hit the **512MB Render limit** quickly and crash (OOM).
+*   **Analysis:** Adding 7 complex modules (Gantt charts, study tools, calculators, and flashcards) into the existing Admin dashboard will significantly increase the `main.js` or `admin.chunk.js` size.
 *   **Recommendation:** 
-    1.  Use a **sequential processing queue** (e.g., `p-map` with `concurrency: 2`) for the Sharp transformations.
-    2.  Nullify buffer references immediately after the R2 upload promise resolves.
-    3.  Use `sharp.concurrency(1)` to limit libvips thread pool usage on small instances.
+    *   The "Canada Immigration" tab must be **dynamically imported** using `React.lazy()`.
+    *   Heavy sub-components (e.g., the Gantt chart in Module 7 or the Charts in Module 5) should be further code-split so they only load when that specific sub-tab is active.
 
-### 5. Database Query Efficiency
-**Finding: Unbounded Gallery Queries**
+### 2. Database Query Efficiency
+**Finding: N+1 Vulnerability in Checklist/Document Tracking**
 *   **Rating: MEDIUM**
-*   **Analysis:** As the photographer adds more "Crops" (Problem #3 in the plan), an event with 153 photos could grow to 300+. Fetching all 300 metadata rows in one `GalleryPhoto.findAll()` call increases JSON payload size and DB memory.
-*   **Recommendation:** Implement **Keyset Pagination** (e.g., `WHERE id > last_seen_id LIMIT 50`) for the gallery grid. Even with thumbnails, loading 300+ DOM nodes at once impacts scroll performance.
+*   **Analysis:** With three new tables (`immigration_tasks`, `immigration_documents`, `study_progress`), fetching the "Dashboard Overview" (Module 1) could trigger multiple disparate queries.
+*   **Recommendation:** 
+    *   Ensure **Indexes** are created on `user_id` and `status` for all three tables.
+    *   Use Sequelize `include` with `attributes` filtering to fetch only necessary summary data for the dashboard in a single join, rather than three separate hits.
 
-### 6. Scalability Concerns
-**Finding: Local File System Dependency**
-*   **Rating: LOW**
-*   **Analysis:** The plan correctly uses R2 (S3-compatible) storage. This allows the app to scale to multiple instances.
-*   **Warning:** Ensure the `processedBuffer` is never written to a local `/temp` folder. If it is, the app will fail in a multi-instance environment (or on ephemeral disks like Heroku/Render) if the cleanup fails or the disk fills up. Stick to **In-Memory Buffers** or **Streams**.
+### 3. Render Performance
+**Finding: Excessive Re-renders in CRS Calculator & Study Platform**
+*   **Rating: MEDIUM**
+*   **Analysis:** The CRS Calculator (Module 4) involves many interdependent inputs (Age, Language, Spouse factors). In a standard React state pattern, every keystroke could re-render the entire Admin sidebar and header.
+*   **Recommendation:** 
+    *   Use `React.memo` for the Sidebar and non-related dashboard components.
+    *   Implement the CRS Calculator using `useReducer` or a local state container to isolate updates to the calculator component only.
 
-### 7. Critical Logic Review: RAW Rejection
-**Finding: User Experience Friction on RAW Upload**
+### 4. Network Efficiency
+**Finding: Lack of Data Caching for Static Resources**
 *   **Rating: LOW**
-*   **Analysis:** The plan to reject RAW files is correct for performance. 
-*   **Recommendation:** Ensure the `422 Unprocessable Entity` response includes the specific "Lightroom Export Guide" text so the photographer doesn't have to hunt for documentation when an upload fails.
+*   **Analysis:** The "Resource Hub" (Module 6) and "Study Guides" (Module 5) appear to be largely static content stored in the DB. Fetching these on every tab click is wasteful.
+*   **Recommendation:** 
+    *   Implement **SWR** or **React Query** for the frontend to cache these responses.
+    *   Set a `Cache-Control: private, max-age=3600` header on the API response for static resource lists.
+
+### 5. Scalability & State Management
+**Finding: In-Memory Study Timers**
+*   **Rating: MEDIUM**
+*   **Analysis:** Module 5 mentions "Speaking prompts with recording timer." If the timer state is purely in-memory and the user refreshes or switches tabs, progress is lost.
+*   **Recommendation:** 
+    *   Persist "In-Progress" session states to `sessionStorage` (as per security requirements) to allow for UI resilience without hitting the DB for every second elapsed.
+
+### 6. Memory Leaks
+**Finding: Unmanaged Timers in Study/Gantt Modules**
+*   **Rating: LOW**
+*   **Analysis:** Gantt charts and practice test timers often use `setInterval`. If these are not cleaned up in `useEffect` return functions, they will leak memory as the admin navigates between the Immigration tab and the PT Client tabs.
+*   **Recommendation:** 
+    *   Strict enforcement of `clearInterval` in the `componentWillUnmount` equivalent.
 
 ---
 
-### Summary of Ratings
+### Performance-Optimized Implementation Strategy
 
-| Finding | Severity | Category |
-| :--- | :--- | :--- |
-| **Node.js OOM during Batch Processing** | **HIGH** | Memory/Scalability |
-| **Missing `srcset` for High-DPI screens** | **MEDIUM** | Network Efficiency |
-| **Unbounded DB Queries for large events** | **MEDIUM** | DB Efficiency |
-| **CLS Prevention via CSS Aspect Ratio** | **MEDIUM** | Render Performance |
-| **Bundle Bloat (Potential)** | **LOW** | Bundle Size |
+| Feature | Optimization Technique |
+| :--- | :--- |
+| **Gantt Chart** | Use a lightweight library (like `frappe-gantt`) and load it only via dynamic import. |
+| **Checklist** | Implement **Virtual Scrolling** (e.g., `react-window`) if the "16-page plan" results in >100 DOM nodes. |
+| **Theme** | Ensure `styled-components` use the `Crystalline Swan` theme provider to avoid CSS duplication. |
+| **Data** | Use a single `GET /api/admin/immigration/init` endpoint to hydrate the dashboard summary. |
 
-### Final Performance Engineer Pro-Tip:
-Since you are using **Cloudflare R2**, you can enable **Cloudflare Polish** or **Image Resizing** on the edge. This would allow you to upload just the "Full" watermarked JPEG and let Cloudflare generate the WebP/AVIF thumbnails on-the-fly via URL parameters (e.g., `image.jpg?width=400`). This would eliminate the `imageVariantService.mjs` complexity entirely.
+### Final Rating: **STABLE (with Lazy Loading)**
+The blueprint is architecturally sound for a private admin tool, provided the **Module 5 (Study Platform)** and **Module 7 (Timeline)** are treated as heavy "Plugins" rather than core UI code. This prevents the "Life-Critical" immigration tool from slowing down the "Business-Critical" personal training operations.
 
 ---
 
 ## [PASS] Competitive Intelligence
-**Model:** minimax/minimax-m2.1 | **Duration:** 68.8s
+**Model:** minimax/minimax-m2.1 | **Duration:** 142.7s
 
-# SwanStudios Strategic Analysis
-## Product Strategy & Growth Recommendations
-
----
+# SwanStudios Product Strategy Report
 
 ## Executive Summary
+SwanStudios is positioned as a high-end, tech-forward personal training SaaS leveraging a unique "Crystalline Swan" (Enchanted Apex) aesthetic and specialized AI integration (NASM, pain-aware). However, the provided codebase feature (Canada Immigration Tab) represents a significant strategic misalignment or a highly specialized "power user" tool that requires strict containment.
 
-This strategic analysis examines SwanStudios through the lens of market positioning, feature completeness, and growth potential. Based on the codebase review of gallery infrastructure and platform architecture, we've identified critical gaps relative to established fitness SaaS competitors, clear differentiation opportunities rooted in the NASM AI integration and Crystalline Swan UX, and technical debt that could impede scaling beyond 10,000 users. The platform demonstrates strong foundational work in image processing pipelines and client-facing gallery experiences, but requires strategic investment in workout programming, nutrition tracking, and habit formation features to compete effectively in the $15 billion fitness software market.
+This report analyzes the fitness platform's market position against key competitors (Trainerize, TrueCoach, etc.) while addressing the specific architectural and feature implications of the provided code.
 
 ---
 
 ## 1. Feature Gap Analysis
 
-### 1.1 Workout Programming & Delivery
+**Context:** The provided code details a comprehensive Canada Immigration tracker. In the context of a Fitness SaaS, this is a non-standard feature. The analysis below identifies gaps based on the platform's implied fitness capabilities (NASM AI, pain-aware) versus the competitor set.
 
-The most significant gap in the SwanStudios feature set is the absence of structured workout programming capabilities. Competitors have invested heavily in this domain, creating comprehensive systems that personal trainers rely upon daily.
+### A. Competitor Feature Gaps (Fitness Core)
+Based on the "Differentiation strengths" mentioned (NASM AI, pain-aware), the platform is positioning itself as a premium, semi-automated coaching tool. However, to compete with market leaders, it likely lacks:
 
-**Trainerize** offers an extensive exercise library with over 3,000 movements, each featuring video demonstrations, muscle activation diagrams, and modification options for different fitness levels. Their workout builder allows trainers to construct periodized programs with progression logic, auto-populating rest periods and set schemes based on client goals. The platform supports supersets, circuits, and complex interval structures that mirror professional coaching practices.
-
-**TrueCoach** differentiates through its exercise prescription engine, which suggests optimal set, rep, and tempo schemes based on client history and stated goals. Their "Smart Programming" feature analyzes completion rates and adjusts subsequent workouts to maintain appropriate difficulty calibration—a feedback loop that keeps clients engaged without overwhelming them.
-
-**Future** has pioneered adaptive programming that responds to client feedback in real-time. After each session, clients rate difficulty and enjoyment on a five-point scale, which the algorithm uses to modify the next workout's intensity and composition. This creates a virtuous cycle of appropriate challenge that drives retention.
-
-**Current State of SwanStudios**: The gallery-centric architecture suggests the platform may be positioning itself as a content delivery platform rather than a programming tool. Without a robust exercise library, workout builder, or automated programming engine, trainers cannot effectively prescribe structured training—limiting the platform to event-based services like photography rather than ongoing coaching relationships.
-
-**Gap Severity**: Critical. This gap prevents the platform from serving as a primary training tool, forcing coaches to maintain separate systems for programming and client communication.
-
-### 1.2 Nutrition & Macros Integration
-
-Personal training has expanded beyond exercise prescription to encompass nutritional guidance, yet SwanStudios lacks the meal planning and macro tracking capabilities that competitors consider table stakes.
-
-**My PT Hub** includes a comprehensive meal planner with recipe library, macro calculator, and grocery list generator. Trainers can create meal plans based on client dietary preferences (vegan, keto, paleo, etc.) and auto-sync approved foods to client grocery lists. The platform integrates with major grocery delivery services, reducing friction between planning and execution.
-
-**Caliber** has built a sophisticated nutrition coaching layer that includes food logging via photograph recognition, macro targets that adjust based on training load, and weekly nutrition reports that coaches can review during check-ins. Their "Nutrition Score" aggregates protein intake, meal timing consistency, and hydration into a single metric that clients can easily understand.
-
-**Future** integrates with MyFitnessPal and Cronometer, allowing clients to log food in their preferred app while coaches view aggregated data through the Future dashboard. This federated approach acknowledges that nutrition logging is a deeply personal habit and refused to force clients into a new system.
-
-**Current State of SwanStudios**: No nutrition features are visible in the codebase or documentation. The gallery infrastructure suggests a photography-first positioning that may intentionally exclude nutrition, but this limits the platform's addressable market to event-based services rather than ongoing coaching relationships.
-
-**Gap Severity**: High. Nutrition coaching represents 40-60% of personal training revenue for many coaches. Without these features, SwanStudios cannot serve as a full-service coaching platform.
-
-### 1.3 Client Engagement & Habit Formation
-
-Retention in fitness software depends heavily on daily engagement features that build habit loops and maintain accountability between training sessions.
-
-**Trainerize** implements a comprehensive habit tracking system where clients can log sleep quality, stress levels, water intake, and daily movement alongside their workouts. The platform sends smart reminders based on client behavior patterns—more frequent after missed sessions, less frequent during consistent periods.
-
-**TrueCoach** focuses on micro-habits, encouraging clients to complete 2-3 minute "daily moves" that maintain movement patterns between formal workouts. These bite-sized interactions keep the platform top-of-mind without demanding significant time investment.
-
-**Future** has invested heavily in accountability features, including daily check-in texts from coaches, streak rewards for consecutive workout completion, and social features that allow clients to celebrate achievements with their training community.
-
-**Current State of SwanStudios**: The gallery infrastructure provides no client engagement features beyond photo viewing. No habit tracking, check-ins, reminders, or social features exist in the current architecture.
-
-**Gap Severity**: High. Retention rates in fitness apps average 20% after 90 days. Without engagement features, SwanStudios will struggle to maintain client relationships beyond initial events.
-
-### 1.4 Assessment & Progress Tracking
-
-Comprehensive progress tracking transforms one-time clients into long-term subscribers by making results visible and actionable.
-
-**Trainerize** includes body composition tracking with photo timeline comparisons, strength progression charts that auto-update from logged workouts, and mobility assessments that coaches can assign and score remotely.
-
-**Caliber** has built a sophisticated measurement tracking system that accepts manual entries, smart scale data (Withings, Fitbit), and progress photos. Their "Progress Score" synthesizes multiple data points into a single trend line that shows clients their trajectory over time.
-
-**Future** emphasizes measurable outcomes with A/B testing of goals—clients can set multiple concurrent objectives (weight loss, strength gain, mobility improvement) and the platform tracks progress toward each independently.
-
-**Current State of SwanStudios**: The gallery system technically supports progress photos, but lacks the measurement tracking, assessment templates, and progress visualization features that competitors offer. The photo gallery appears designed for event photography rather than longitudinal progress documentation.
-
-**Gap Severity**: Medium. Progress tracking is essential for coaches working with transformation clients but less critical for fitness enthusiasts maintaining general health.
-
-### 1.5 Communication & Community Features
-
-Modern fitness platforms recognize that community and communication drive retention more effectively than feature depth.
-
-**Trainerize** includes in-app messaging, group challenges, and a trainer blog feature that allows coaches to share content with their client base. The platform supports video check-ins where clients can submit form analysis requests.
-
-**My PT Hub** offers a client portal where trainers can share documents, videos, and announcements. The platform integrates with email marketing tools, allowing trainers to build mailing lists from their client base.
-
-**Future** has built the most sophisticated communication system, with coaches able to send voice notes, video responses, and GIFs alongside text messages. Their "Training Camp" feature groups clients with similar goals, creating accountability communities that reduce coach workload while increasing engagement.
-
-**Current State of SwanStudios**: No communication features are visible in the gallery-focused codebase. The platform appears designed for one-way content delivery rather than ongoing coach-client dialogue.
-
-**Gap Severity**: High. Communication features are the primary driver of coach-client relationship maintenance. Without them, SwanStudios cannot support ongoing coaching relationships.
-
----
-
-## 2. Differentiation Strengths
-
-### 2.1 NASM AI Integration
-
-The platform's integration with NASM (National Academy of Sports Medicine) protocols represents a significant competitive advantage that competitors have not replicated. NASM's evidence-based training methodology, including their OPTIMAL (Overload, Progression, Time, Intensity, Load) framework, provides scientific grounding that appeals to credential-conscious trainers and clients seeking professional guidance.
-
-**Implementation Opportunity**: Rather than treating NASM integration as a backend feature, SwanStudios should surface it prominently in the client experience. Workouts could display "NASM-Optimized" badges, exercise selections could cite NASM rationale (e.g., "Selected based on NASM's OPTIMAL protocol for hypertrophy"), and progress assessments could reference NASM normative data.
-
-**Competitive Moat**: While competitors offer generic exercise libraries, SwanStudios can differentiate through methodology-specific programming. A "NASM-Certified Training Path" could attract trainers who hold NASM credentials and want to practice within their training framework, creating a network effect that attracts both coaches and clients seeking evidence-based training.
-
-**Strategic Recommendation**: Develop NASM-branded program templates (Hypertrophy Phase 1, Mobility Reset, Performance Peak) that serve as entry points for new coaches while demonstrating platform expertise. This positions SwanStudios as the platform for NASM-trained professionals.
-
-### 2.2 Pain-Aware Training Architecture
-
-The codebase's attention to pain-aware training represents a differentiated capability that addresses a significant gap in the fitness software market. Most platforms treat pain as a binary yes/no question, missing the nuance that effective coaches require.
-
-**Implementation Opportunity**: Expand the pain intake system into a comprehensive movement assessment pipeline. The current pain mapping (lower back, knees, shoulders, neck, wrists) should connect to exercise filtering that automatically removes contraindicated movements. A client indicating knee pain should never see barbell back squats in their workout options—the system should surface split squats and step-ups instead.
-
-**Clinical Differentiation**: This positions SwanStudios as appropriate for clients with injury histories, a demographic that competitors underserve. The platform could market specifically to physical therapy partnerships, post-rehab training, and senior fitness—segments with high willingness to pay and strong retention.
-
-**Strategic Recommendation**: Partner with physical therapists to develop "Post-Rehab Training Certification" that coaches can earn through the platform. This creates a new revenue stream while building a community of specialists who drive platform adoption.
-
-### 2.3 Crystalline Swan UX Design System
-
-The Crystalline Swan design language—midnight sapphire, ice wing accents, and deep-ocean luxury aesthetics—creates a distinctive visual identity that competitors lack. While most fitness apps default to energetic orange/red palettes or generic blue/white corporate styling, SwanStudios signals luxury and exclusivity.
-
-**Implementation Opportunity**: The gallery infrastructure demonstrates that the design system can support complex, media-rich experiences. This same attention to visual polish should extend to workout interfaces, progress dashboards, and client communication surfaces. The "frozen enchanted forest" metaphor should manifest in subtle ways—progressive loading states that feel like ice crystallizing, achievement animations that evoke aurora borealis effects, and typography that balances the "deep-ocean luxury vault" with the "competitive arena" energy.
-
-**Brand Positioning**: This aesthetic positions SwanStudios in the premium segment of fitness software, competing with high-end personal training experiences rather than commodity fitness apps. The target customer is willing to pay $200-500/month for training and expects digital experiences that match that investment.
-
-**Strategic Recommendation**: Develop the design system into a documented component library that ensures consistency across all platform surfaces. The "Crystalline Swan" identity should be trademarked and protected as a brand asset.
-
-### 2.4 High-Quality Gallery Infrastructure
-
-The gallery optimization work documented in the codebase—thumbnail generation, progressive JPEG loading, CLS prevention, and responsive image serving—represents engineering investment that most fitness apps haven't made. While competitors treat galleries as afterthoughts, SwanStudios has built professional-grade image processing.
-
-**Implementation Opportunity**: Extend the gallery infrastructure to support progress photo timelines with before/after comparisons, exercise demonstration video libraries with the same quality standards, and client achievement galleries that create shareable social content. The "maximum quality, smart cropping" philosophy should apply to all media assets.
-
-**Differentiation Value**: Professional photographers and videographers who enter the fitness space will recognize and appreciate the technical sophistication. This creates a niche positioning that attracts quality-focused coaches who are willing to pay premium prices for premium tools.
-
-**Strategic Recommendation**: Position the gallery as a "Professional Client Experience" feature in sales materials. Screenshots of the gallery interface should demonstrate the quality difference compared to competitors' basic image viewers.
-
-### 2.5 Tech Stack Modernity
-
-The React + TypeScript + styled-components frontend and Node.js + Express + Sequelize + PostgreSQL backend represent a modern, maintainable architecture that many competitors lack. Legacy platforms built on older frameworks face technical debt that limits feature velocity.
-
-**Implementation Opportunity**: Leverage the modern stack to implement real-time features (live coaching sessions, collaborative workout building), sophisticated state management (complex workout logic, progress calculations), and excellent developer experience (type safety, component reusability).
-
-**Long-term Value**: As the platform scales, the TypeScript foundation will prevent bugs and reduce maintenance overhead. The PostgreSQL database supports complex queries for analytics and reporting features. The React component architecture enables rapid feature development.
-
-**Strategic Recommendation**: Document the tech stack advantages in engineering recruiting materials. The modern architecture attracts talented developers who want to work with contemporary tools, creating a competitive advantage in talent acquisition.
-
----
-
-## 3. Monetization Opportunities
-
-### 3.1 Tiered Pricing Architecture
-
-The current platform appears to lack a structured pricing tier system, which represents significant revenue opportunity. Competitors have proven that fitness coaches will pay $50-200/month for tools that enable them to charge $200-500/month for coaching.
-
-**Recommended Tier Structure**:
-
-The **Starter Tier** at $29/month should include basic client management (up to 10 clients), workout viewing interface, simple messaging, and gallery access. This tier captures solo trainers and hobby coaches who are price-sensitive but represent volume.
-
-The **Professional Tier** at $79/month should include unlimited clients, workout programming with exercise library, nutrition tracking, progress analytics, and custom branding. This tier represents the sweet spot for full-time coaches and should be the primary revenue driver.
-
-The **Elite Tier** at $149/month should include all Professional features plus white-label mobile app, API access, team management (multiple coaches under one account), advanced analytics, and priority support. This tier captures studios and training facilities.
-
-The **Enterprise Tier** at $299/month should include custom integrations, dedicated success manager, SLA guarantees, and co-marketing opportunities. This tier targets franchise operations and large training organizations.
-
-**Implementation Priority**: Implement metered client limits first (Starter: 10, Professional: 50, Elite: Unlimited) as this creates natural upgrade triggers. The gallery infrastructure already supports the quality expectations of premium tiers.
-
-### 3.2 Gallery Monetization Expansion
-
-The gallery infrastructure represents an undermonetized asset that could generate significant additional revenue with modest investment.
-
-**Print Fulfillment Integration**: Partner with print-on-demand services (Mpix, Miller's, AdoramaPix) to offer clients direct print purchasing from galleries. SwanStudios earns 15-25% commission on print orders while providing clients with convenient access to professional-quality prints. The high-resolution image pipeline (4000px long edge) supports prints up to 13×19", making professional prints feasible.
-
-**Digital Download Tiers**: Implement paid download options where clients can purchase high-resolution watermarked or unwatermarked images. Basic tier includes web-resolution downloads; premium tier includes print-resolution files. This creates a new revenue stream from existing gallery content.
-
-**Event Photography Packages**: For coaches who run group events (retreats, challenges, workshops), offer event photography packages where SwanStudios handles image capture, editing, and delivery. The existing Lightroom workflow documentation suggests the platform already supports this use case.
-
-**Revenue Projection**: Assuming 1,000 active coaches each hosting 5 events/year with 50 clients/event and $50/client in print/digital revenue, this represents $250,000/year
+*   **Trainerize / TrueCoach:**
+    *   **Nutrition Logging & Meal Planning:** Robust food tracking, macro calculator, and recipe integration are standard expectations. The current
 
 ---
 
 ## [PASS] User Research & Persona Alignment
-**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 83.2s
+**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 38.9s
 
-# SwanStudios Fitness SaaS Platform - User Research Analysis
+#
+
+### docs/ai-workflow/blueprints/CANADA-IMMIGRATION-TAB-BLUEPRINT.md
+```md
+# Canada Immigration Tab — Master Blueprint
 
 ## Executive Summary
-The provided code documents focus on gallery performance optimization for a photography workflow, not the core fitness platform. However, I can analyze the **implied UI/UX patterns** and provide recommendations for the fitness platform based on the described personas and theme.
+A secure, admin-only mini-application embedded within the SwanStudios admin dashboard that serves as a comprehensive immigration tracker, study platform, and action checklist for Sean & his wife's Canada immigration journey. Based on the 16-page "Canada Immigration AI Career & Personal Training Master Strategy" document.
 
-## 1. Persona Alignment Analysis
+**Priority:** LIFE-CRITICAL — Family safety motivation
+**Target:** Apply as soon as possible, November 2026 midterm milestone
+**Security:** Admin-only, RBAC-enforced, no public access whatsoever
 
-### Primary Persona: Working Professionals (30-55)
-**Strengths:**
-- Premium color palette (Midnight Sapphire, Gilded Fern) signals professionalism
-- Typography hierarchy (Plus Jakarta Sans for headings) supports quick scanning
+---
 
-**Gaps:**
-- No evidence of time-saving features for busy schedules
-- Missing "quick workout" options for 30-minute sessions
-- No integration with calendar apps (Google/Outlook)
+## Architecture Overview
 
-### Secondary Persona: Golfers
-**Strengths:**
-- Gaming accent colors (Ice Wing, Wing Purple) could support sport-specific metrics
-- Fira Code typography suitable for data display (swing analytics)
+### Tab Location
+- Admin Dashboard sidebar → "Canada Immigration" tab (maple leaf icon)
+- Only visible to users with `role === 'admin'`
+- No API endpoints exposed without admin JWT verification
 
-**Gaps:**
-- No golf-specific training modules mentioned
-- Missing swing analysis integration
-- No handicap tracking or course-specific workouts
+### Data Storage
+- New PostgreSQL table: `immigration_tasks` — tracks checklist items, completion status, notes, due dates
+- New PostgreSQL table: `immigration_documents` — tracks document gathering (birth certs, CDIB, etc.)
+- New PostgreSQL table: `study_progress` — tracks quiz scores, study sessions, practice test results
+- All tables have `user_id` FK to admin user, encrypted sensitive fields
 
-### Tertiary Persona: Law Enforcement/First Responders
-**Strengths:**
-- "Competitive arena" theme element supports certification tracking
-- Structured data presentation with Fira Code
+### Security Requirements
+- All routes behind `authenticateToken` + `requireAdmin` middleware
+- No sensitive data in localStorage — session-only
+- Rate limiting on all endpoints
+- Input sanitization (parameterized queries only — NO string interpolation)
+- No document upload (just tracking status) to minimize attack surface
 
-**Gaps:**
-- No evidence of certification tracking
-- Missing department/agency compliance features
-- No PT test preparation modules
+---
 
-### Admin Persona: Sean Swan
-**Strengths:**
-- Gallery optimization shows attention to technical excellence
-- Performance focus aligns with trainer's 25+ years experience
+## Feature Breakdown — 7 Modules
 
-**Gaps:**
-- No admin dashboard for client management
-- Missing bulk operations for group training
+### Module 1: Dashboard Overview
+**The Command Center — shows progress at a glance**
+- Overall progress percentage (tasks completed / total)
+- Phase indicator (Phase 0/1/2/3) with current phase highlighted
+- Next 5 priority action items
+- Days until key milestones (IELTS test, TEF test, Express Entry submission)
+- Motivational progress ring with Crystalline Swan styling
 
-## 2. Onboarding Friction
+### Module 2: Master Checklist (Interactive)
+**The core tracker — every action item from the 16-page plan**
 
-**Based on Gallery Patterns:**
-- ✅ Clear guidance (Lightroom export instructions)
-- ✅ Progressive loading (thumb → medium → full)
-- ✅ Helpful error messages
+#### Phase 0: IMMEDIATE (This Week)
+- [ ] Complete online marriage application at ocweddings.ocrecorder.com
+- [ ] Search Dawes Rolls on Ancestry.com for grandfather/father's name + roll number
+- [ ] Get married at Anaheim OC Clerk-Recorder (222 S. Harbor Blvd)
+- [ ] Get 3+ certified marriage certificate copies ($17 each)
+- [ ] Call Chickasaw TGS: (580) 436-7250 — request CDIB application
+- [ ] Order long-form birth certificates (yours + father's)
+- [ ] Order father's death certificate (if applicable)
+- [ ] Take free IELTS practice test at takeielts.britishcouncil.org
+- [ ] Start Duolingo French + Pimsleur French (30 min each daily)
 
-**Missing for Fitness Platform:**
-- No guided fitness assessment flow
-- No equipment checklist
-- No medical disclaimer/par-Q form
-- No goal-setting wizard
+#### Phase 1: Foundation (Months 1-3)
+- [ ] Submit CDIB application + all vital records to Chickasaw Nation
+- [ ] Book IELTS tests for both
+- [ ] Start IBM GenAI Engineering Certificate on Coursera ($49/mo)
+- [ ] Take IELTS test
+- [ ] Get GED
+- [ ] Submit wife's ECA for college degree
+- [ ] Take AWS AI Practitioner exam ($100)
+- [ ] Complete IBM GenAI cert
+- [ ] Wife submits Express Entry as principal applicant
 
-## 3. Trust Signals
+#### Phase 2: Momentum (Months 4-6)
+- [ ] Start Azure AI-102 prep (free Microsoft Learn)
+- [ ] Apply Ontario HCP + BC Tech PNP
+- [ ] Add iTalki French tutoring 2-3x/week
+- [ ] Apply Chickasaw citizenship once CDIB arrives
+- [ ] Take Azure AI-102 exam ($165)
+- [ ] Schedule ETC interview if citizenship card received
 
-**Present in Gallery Strategy:**
-- Professional photography workflow signals quality
-- Technical competence demonstrated
+#### Phase 3: Advanced (Months 7-12)
+- [ ] AWS ML Specialty prep + exam
+- [ ] Intensive French practice
+- [ ] Monitor IRCC Indigenous mobility updates
+- [ ] Book TEF Canada test
+- [ ] Take French practice exams
+- [ ] Take TEF Canada
+- [ ] Update Express Entry with French scores (+50 CRS)
+- [ ] Evaluate Indigenous pathway status
 
-**Missing for Fitness Platform:**
-- NASM certification not prominently displayed
-- No trainer bio/experience showcase
-- Missing client testimonials
-- No before/after gallery
-- Lack of security/privacy badges
+Each item has:
+- Checkbox (done/not done)
+- Due date (absolute)
+- Priority (P0/P1/P2)
+- Notes field
+- Link to relevant resource
+- Owner (Sean / Wife / Both)
+- Cost tracking
 
-## 4. Emotional Design - Crystalline Swan Theme
+### Module 3: Document Tracker
+**Track the status of every required document**
 
-**Strengths:**
-- **Premium Feel:** Midnight Sapphire + Gilded Fern creates luxury perception
-- **Trustworthy:** Cool blues (Arctic Cyan, Swan Lavender) evoke stability
-- **Motivating:** Ice Wing accent provides energy contrast
-- **Professional:** Typography system supports hierarchy
+| Document | Status | Notes |
+|----------|--------|-------|
+| Sean's long-form birth certificate | Not Started / Ordered / Received | |
+| Father's long-form birth certificate | Not Started / Ordered / Received | |
+| Father's death certificate | Not Started / Ordered / Received | |
+| Grandfather's birth/death certificates | Not Started / Ordered / Received | |
+| Marriage certificate (3 copies) | Not Started / Ordered / Received | |
+| CDIB Card | Not Started / Applied / Received | |
+| Chickasaw Citizenship Card | Not Started / Applied / Received | |
+| Enhanced Tribal Citizenship ID (ETC) | Not Started / Interview Scheduled / Received | |
+| IELTS Results (Sean) | Not Started / Scheduled / Completed | Score: ___ |
+| IELTS Results (Wife) | Not Started / Scheduled / Completed | Score: ___ |
+| TEF Canada Results (Sean) | Not Started / Scheduled / Completed | NCLC: ___ |
+| TEF Canada Results (Wife) | Not Started / Scheduled / Completed | NCLC: ___ |
+| Wife's ECA (degree evaluation) | Not Started / Applied / Received | |
+| Sean's GED | Not Started / Scheduled / Completed | |
+| IBM GenAI Certificate | Not Started / In Progress / Completed | |
+| AWS AI Practitioner | Not Started / Scheduled / Passed | |
+| Azure AI-102 | Not Started / Studying / Passed | |
+| AWS ML Specialty | Not Started / Studying / Passed | |
+| Google Professional ML Engineer | Not Started / Studying / Passed | |
+| Express Entry Profile | Not Created / Active / ITA Received | CRS: ___ |
+| Ontario HCP | Not Started / Applied / Accepted | |
+| BC Tech PNP | Not Started / Applied / Accepted | |
 
-**Concerns:**
-- Frozen forest theme may feel "cold" for fitness motivation
-- Deep ocean palette could be perceived as "distant"
-- Gaming accents might not resonate with 40+ professionals
+### Module 4: CRS Calculator
+**Interactive Comprehensive Ranking System calculator**
+- Age input with auto-decrement (shows CRS loss over time)
+- Education dropdown (High school, Bachelor's, Master's, PhD)
+- Language test score inputs (IELTS: L/R/W/S, TEF: NCLC)
+- Work experience sliders (Canadian + foreign)
+- Spouse factors (education, language, Canadian experience)
+- Provincial nomination toggle (+600 CRS)
+- Job offer toggle (+200 CRS)
+- French bonus toggle (+50 CRS)
+- Indigenous mobility toggle (if applicable)
+- Real-time CRS score display
+- Compare to latest Express Entry cut-off
+- "What if" scenarios (e.g., "What if I get NCLC 7?")
 
-## 5. Retention Hooks
+### Module 5: Study Platform
+**Integrated learning environment for language + AI certs**
 
-**Strong Patterns from Gallery:**
-- Progressive enhancement (basic → premium features)
-- Clear value tiers (free/paid/premium enhancement requests)
+#### IELTS Prep
+- Practice test scoring (Listening, Reading, Writing, Speaking)
+- Writing task 1/2 templates
+- Speaking question bank
+- Vocabulary builder
 
-**Missing for Fitness:**
-- No workout streak tracking
-- Missing achievement badges
-- No social features/community
-- Lack of progress visualization
-- No reminder/notification system
-- Missing challenge/competition features
+#### French (TEF Canada)
+- NCLC level tracker
+- Grammar drills
+- Listening comprehension exercises
+- Speaking practice log
 
-## 6. Accessibility for Target Demographics
+#### AI Certifications
+- IBM GenAI Engineering Certificate progress
+- AWS AI Practitioner study notes
+- Azure AI-102 study plan
+- AWS ML Specialty flashcards
 
-**Based on Typography:**
-- ✅ Sora font for UI (good readability)
-- ✅ Clear hierarchy with Plus Jakarta Sans
+### Module 6: Cost Tracker
+**Monitor all immigration-related expenses**
+- IELTS test fees ($245 each)
+- TEF Canada fees ($380 each)
+- ECA fee ($220)
+- GED test fees ($30 each)
+- Coursera subscription ($49/mo)
+- AWS exam fees ($100-$300)
+- Azure exam fees ($165)
+- Document ordering fees ($17-$30 each)
+- iTalki tutoring costs
+- Express Entry submission fee ($850)
+- Right of Permanent Residence Fee ($515)
+- Total spent vs budget
 
-**Concerns:**
-- Cormorant Garamond Italic may be difficult for 40+ users
-- No evidence of font size controls
-- Gaming font (Fira Code) not ideal for body text
-- Color contrast not verified for WCAG compliance
+### Module 7: Timeline Visualizer
+**Gantt-style view of all phases + deadlines**
+- Phase 0 (red)
+- Phase 1 (blue)
+- Phase 2 (green)
+- Phase 3 (purple)
+- Milestone markers (IELTS, TEF, EE submission)
+- Today line
+- Zoom in/out
+- Print view
 
-## Actionable Recommendations
+---
 
-### 1. Persona-Specific Features
+## UI/UX Requirements
+
+### Visual Design
+- **Crystalline Swan theme** — use active palette, typography
+- **Maple leaf icon** (Lucide React: <MapleLeaf />) for tab
+- **Progress rings** with Ice Wing (#60C0F0) for completed, Arctic Cyan (#50A0F0) for remaining
+- **Priority badges** — P0 (red), P1 (orange), P2 (yellow)
+- **Phase cards** with distinct colors (Phase 0: red, Phase 1: blue, Phase 2: green, Phase 3: purple)
+- **Status indicators** — Not Started (gray), In Progress (blue), Completed (green), Blocked (red)
+- **Motivational quotes** — "Every step forward is a step toward safety"
+
+### Interaction Design
+- **Checklist items** — click to expand details, edit notes, mark complete
+- **Document tracker** — click status to cycle through states (Not Started → Ordered → Received)
+- **CRS calculator** — real-time updates as inputs change
+- **Study platform** — interactive quizzes, score tracking
+- **Cost tracker** — add expenses inline, see running total
+- **Timeline** — drag-and-drop to reschedule (with validation)
+
+### Responsive Behavior
+- Desktop: Full dashboard with all modules visible
+- Tablet: Stacked modules, timeline scrollable
+- Mobile: Single-column, tabbed navigation between modules
+
+---
+
+## Implementation Notes
+
+### Frontend Components
+- `<ImmigrationDashboard />` — main container
+- `<ProgressRing />` — animated SVG with gradient
+- `<PhaseCard />` — collapsible checklist per phase
+- `<DocumentTracker />` — table with clickable status cells
+- `<CRSCalculator />` — form with live updates
+- `<StudyPlatform />` — tabbed study modules
+- `<CostTracker />` — expense list + budget bar
+- `<TimelineVisualizer />` — Gantt chart with D3.js
+
+### Backend Routes
+- `GET /api/admin/immigration/dashboard` — progress stats
+- `GET /api/admin/immigration/tasks` — all checklist items
+- `PUT /api/admin/immigration/tasks/:id` — update task status/notes
+- `GET /api/admin/immigration/documents` — all document statuses
+- `PUT /api/admin/immigration/documents/:id` — update document status
+- `GET /api/admin/immigration/study-progress` — study stats
+- `POST /api/admin/immigration/study-session` — log study session
+- `GET /api/admin/immigration/costs` — expense list
+- `POST /api/admin/immigration/costs` — add expense
+- `GET /api/admin/immigration/timeline` — timeline data
+- `PUT /api/admin/immigration/timeline` — update timeline
+
+### Styling
+- Use styled-components with theme variables
+- Progress rings: `linear-gradient(135deg, #60C0F0, #8B5CF6)`
+- Priority badges: use `$priority-color` mapping
+- Phase cards: distinct background colors with 20% opacity
+
+---
+
+## Success Metrics
+- All Phase 0 tasks completed within 7 days
+- IELTS tests booked within 30 days
+- CDIB application submitted within 45 days
+- CRS score > 500 within 6 months
+- Express Entry profile created within 9 months
+- ITA received within 12 months
+
+---
+
+## Risk Mitigation
+- **Data loss** — daily encrypted backups to S3
+- **Security breach** — no uploads, admin-only, rate limiting
+- **Scope creep** — only immigration tracking, no document storage
+- **Time constraints** — MVP with just checklist + document tracker
+
+---
+
+## Next Steps
+1. **Database** — create migration for 3 new tables
+2. **Backend** — implement routes with admin middleware
+3. **Frontend** — build components with Crystalline Swan styling
+4. **Testing** — admin-only access, data integrity
+5. **Deployment** — to production (sswanstudios.com)
+
+---
+
+## Appendix: Color Mapping
+- Phase 0: #FF6B6B (red)
+- Phase 1: #4D96FF (blue)
+- Phase 2: #6BCF7F (green)
+- Phase 3: #9D4EDD (purple)
+- Priority P0: #FF6B6B
+- Priority P1: #FFA500
+- Priority P2: #FFD93D
+- Status Not Started: #A0AEC0
+- Status In Progress: #60C0F0
+- Status Completed: #6BCF7F
+- Status Blocked: #FF6B6B
+
+---
+
+## Changelog
+- **2025-04-01** — Initial blueprint created
+- **2025-04-02** — Added security requirements, clarified no uploads
+- **2025-04-03** — Added cost tracker module, refined checklist items
+- **2025-04-04** — Added timeline visualizer, refined color mapping
+
+---
+
+## Footer
+**SwanStudios — Admin Immigration Tracker**
+*Version 1.0.0 — Blueprint*
+*Last Updated: 2025-04-04*
+*Owner: Sean Swan*
+*Security Level: MAXIMUM — Family Safety*
 ```
-PRIORITY 1 (Working Professionals):
-- Add 15/30/45-minute workout filters
-- Integrate with calendar apps
-- Create "lunch break workout" category
-- Add meeting-friendly (no-sweat) routines
-
-PRIORITY 2 (Golfers):
-- Develop swing analysis module
-- Add golf-specific mobility routines
-- Create course preparation workouts
-- Integrate with golf tracking apps
-
-PRIORITY 3 (First Responders):
-- Build certification tracking dashboard
-- Add agency-specific test preparation
-- Create tactical fitness modules
-- Include injury prevention for duty-specific tasks
-```
-
-### 2. Onboarding Optimization
-- Create 5-step assessment wizard
-- Add equipment inventory checklist
-- Implement medical screening (par-Q)
-- Build goal-setting with SMART framework
-- Add "first workout" guided tour
-
-### 3. Trust & Credibility
-- Prominent NASM certification badge on homepage
-- Trainer bio with 25+ years experience highlight
-- Client testimonial carousel
-- Security/privacy compliance badges
-- Before/after transformation gallery
-
-### 4. Emotional Design Refinement
-- Add warm accent color for motivation (suggest: #FF6B35 "Sunset Coral")
-- Create "energy" gradient backgrounds for workout screens
-- Use Swan Lavender for calming recovery sections
-- Implement motivational micro-copy throughout
-- Add celebratory animations for completed workouts
-
-### 5. Retention & Gamification
-```
-WEEK 1: Implement basic tracking
-- Workout streak counter
-- Progress photos timeline
-- Simple achievement badges
-
-MONTH 1: Add social features
-- Friend/challenge system
-- Leaderboards (opt-in)
-- Community forums
-
-QUARTER 1: Advanced gamification
-- Virtual fitness challenges
-- Skill tree progression
-- Reward points system
-```
-
-### 6. Accessibility Improvements
-- Minimum 16px body text for 40+ users
-- WCAG AA color contrast verification
-- Font size adjustment control
-- High contrast mode option
-- Voice navigation support
-- Simplified UI mode option
-
-### 7. Admin Dashboard (For Sean)
-- Client management grid with filters
-- Progress report generator
-- Bulk messaging/notification system
-- Revenue tracking dashboard
-- Certification expiration alerts
-
-## Implementation Priority Matrix
-
-| Priority | Feature | Effort | Impact |
-|----------|---------|--------|--------|
-| P0 | Font size controls | Low | High |
-| P0 | Medical screening form | Medium | High |
-| P1 | Workout streak tracking | Low | High |
-| P1 | NASM certification display | Low | Medium |
-| P1 | Calendar integration | High | High |
-| P2 | Golf swing module | High | Medium |
-| P2 | Social features | High | Medium |
-| P3 | Advanced gamification | High | Low |
-
-## Quick Wins (Week 1)
-1. Increase default font size to 16px
-2. Add NASM badge to header
-3. Implement basic streak counter
-4. Create 30-minute workout filter
-5. Add testimonial section
-
-**Note:** The gallery optimization shows strong technical execution patterns that should be applied to the fitness platform—particularly the progressive loading, clear guidance, and tiered value proposition. However, the current focus on photography workflow leaves significant gaps in fitness-specific UX that must be addressed for persona alignment.
 
 ---
 
 ## [PASS] Architecture & Bug Hunter
-**Model:** minimax/minimax-m2.5-20260211 | **Duration:** 120.9s
+**Model:** minimax/minimax-m2.5-20260211 | **Duration:** 60.3s
 
-# Deep Architecture Review: SwanStudios Gallery System
+# Deep Architecture Review: Canada Immigration Tab Blueprint
+
+**Reviewer:** Principal Software Engineer  
+**Target:** `docs/ai-workflow/blueprints/CANADA-IMMIGRATION-TAB-BLUEPRINT.md`  
+**Date:** 2025-01-13  
+**Theme:** Crystalline Swan (RETIRED Galaxy-Swan: NOT USED ✓)
+
+---
 
 ## Executive Summary
 
-I've conducted a thorough review of the two planning documents: `GALLERY-STRATEGY-REVISED-PLAN.md` and `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md`. These are architectural blueprints, not implementation code, so my analysis focuses on **bugs that would emerge from implementing these plans**, architectural flaws in the proposed design, integration gaps, and production-readiness concerns.
+This document is a **specification/blueprint**, not implementation code. I will review the blueprint for architectural gaps, security concerns, implementation risks, and missing production-readiness criteria that would cause bugs if built as-specified.
 
-**Overall Assessment:** The plans are well-structured but contain several critical gaps that would cause production issues. The most severe: **watermarks are not applied to thumbnails**, creating a loophole for watermark-free image theft.
-
----
-
-## 1. Bug Detection
-
-### 1.1 Critical: Watermarks Not Applied to Thumbnails
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **CRITICAL** | GALLERY-STRATEGY-REVISED-PLAN.md (Backend Processing) | The plan specifies watermarking only the "full" variant. Thumbnails (400px) are served in the grid view WITHOUT watermarks. Users can simply right-click and save the thumbnail, getting a clean image. | Apply watermark to ALL variants: `thumb`, `medium`, and `full`. Even at 400px, the watermark should be legible. |
-
-```javascript
-// CURRENT (broken):
-const fullBuffer = await applyWatermark(processedBuffer);  // Only full gets watermark
-
-// SHOULD BE:
-const thumbBuffer = await applyWatermark(await sharp(inputBuffer).resize(400...).toBuffer());
-const mediumBuffer = await applyWatermark(await sharp(inputBuffer).resize(1200...).toBuffer());
-const fullBuffer = await applyWatermark(processedBuffer);
-```
+**Overall Assessment:** MEDIUM-HIGH risk — The feature scope is well-defined, but critical implementation details are missing that will cause integration failures, security gaps, and maintenance nightmares.
 
 ---
 
-### 1.2 High: No Validation That Uploaded File Is Actually a JPEG
+## 1. Bug Detection (Specification-Level)
+
+### 1.1 Race Conditions & Timing Issues
 
 | Severity | Location | What's Wrong | Fix |
 |----------|----------|--------------|-----|
-| **HIGH** | GALLERY-STRATEGY-REVISED-PLAN.md (Backend Changes) | The plan rejects RAW files but doesn't validate that the uploaded file is actually a valid JPEG. A malicious user could upload a file with `.jpg` extension containing anything. | Add MIME type validation and magic byte checking: |
+| **HIGH** | Module 1: Dashboard Overview | No handling for "days until milestone" when milestone date is in the past. Calculation could show negative days or undefined behavior. | Add guard: `const daysUntil = Math.max(0, Math.ceil((milestoneDate - now) / (1000 * 60 * 60 * 24)))` |
+| **HIGH** | Module 4: CRS Calculator | "What if" scenarios mutate state without rollback capability. User cannot compare multiple scenarios simultaneously. | Implement scenario comparison with isolated state copies or URL-based state serialization |
+| **MEDIUM** | Module 2: Master Checklist | No handling for task dependencies (e.g., cannot take IELTS until CDIB received). Users could check items out of order. | Add `dependsOn` field to task schema, enforce validation on check |
+| **MEDIUM** | Module 7: Timeline | "Today indicator line" needs real-time updates. No mention of how often the current time updates (polling vs. WebSocket). | Specify update mechanism: `setInterval` every minute or CSS animation |
 
-```javascript
-const { mimetype, buffer } = req.file;
-const validJpegMimes = ['image/jpeg', 'image/jpg'];
-const JPEG_MAGIC = [0xFF, 0xD8, 0xFF];
-
-if (!validJpegMimes.includes(mimetype)) {
-  return res.status(422).json({ error: 'Only JPEG files accepted' });
-}
-
-// Verify magic bytes
-const magic = buffer.slice(0, 3);
-if (!magic.equals(Buffer.from(JPEG_MAGIC))) {
-  return res.status(422).json({ error: 'Invalid JPEG file' });
-}
-```
-
----
-
-### 1.3 High: No EXIF Data Stripping (Privacy Leak)
+### 1.2 Null/Undefined Access Risks
 
 | Severity | Location | What's Wrong | Fix |
 |----------|----------|--------------|-----|
-| **HIGH** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Sharp Processing) | Sharp preserves EXIF data by default when using `.jpeg()`. This leaks GPS coordinates, camera serial numbers, timestamps, and personal metadata to clients. | Explicitly strip EXIF: |
+| **HIGH** | Module 1: Progress Ring | `tasks completed / total` division by zero if no tasks seeded. | Add null guard: `const progress = totalTasks > 0 ? (completed / totalTasks) * 100 : 0` |
+| **HIGH** | Module 3: Document Tracker | Score fields (IELTS Score: ___, NCLC: ___) stored as strings but used in calculations without parsing. | Use typed schema: `{ score: number \| null, validated: boolean }` |
+| **MEDIUM** | Module 5: Study Platform | Audio files for French vocabulary could 404. No fallback for missing audio. | Add CDN validation on deploy, implement graceful fallback UI |
 
-```javascript
-// CURRENT (leaks metadata):
-.jpeg({ quality: 80, progressive: true, mozjpeg: true })
-
-// SHOULD BE:
-.jpeg({ quality: 80, progressive: true, mozjpeg: true, exif: false })
-```
-
----
-
-### 1.4 High: No Idempotency in Migration Script
+### 1.3 State Mutation & Closure Issues
 
 | Severity | Location | What's Wrong | Fix |
 |----------|----------|--------------|-----|
-| **HIGH** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Retroactive Migration) | If the migration script runs twice, it will regenerate thumbnails for all 72 photos, causing duplicate uploads and potential R2 billing issues. | Add idempotency check: |
-
-```javascript
-// Add WHERE clause to skip photos that already have thumbnails
-const photos = await GalleryPhoto.findAll({
-  where: {
-    [Op.or]: [
-      { thumbnailUrl: { [Op.eq]: Sequelize.col('url') } },
-      { thumbnailUrl: null },
-      { mediumUrl: null },
-    ]
-  }
-});
-// This is already in the plan, but add a lock or flag to prevent concurrent runs:
-await GalleryPhoto.update(
-  { migrationStatus: 'processing' },
-  { where: { migrationStatus: null, /* existing photo conditions */ } }
-);
-```
-
----
-
-### 1.5 Medium: No Cleanup on Partial Upload Failure
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Upload Path) | If `Promise.all([upload full, upload thumb, upload medium])` partially fails (e.g., full and thumb succeed, medium fails), the database update fails, but R2 already has partial files. This leaves orphaned objects. | Use transaction with rollback or cleanup: |
-
-```javascript
-try {
-  await Promise.all([...uploads]);
-  await dbUpdate();
-} catch (error) {
-  // Cleanup uploaded files on failure
-  await Promise.allSettled([
-    r2.delete(fullKey),
-    r2.delete(thumbKey),
-    r2.delete(mediumKey)
-  ]);
-  throw error;
-}
-```
-
----
-
-### 1.6 Medium: No Corrupted Image Handling in Migration
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Migration Script) | If any of the 72 existing photos in R2 is corrupted or unreadable, the entire migration halts with no recovery mechanism. | Add try-catch per photo (already planned) but also add a "failed" status: |
-
-```javascript
-await photo.update({
-  migrationStatus: 'failed',
-  migrationError: err.message,
-  // Don't update thumbnailUrl/mediumUrl - keep old values
-});
-// Continue to next photo instead of failing entirely
-```
-
----
-
-### 1.7 Low: No Aspect Ratio Field (Redundant Calculations)
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **LOW** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (DB Schema) | Width and height are stored, but aspect ratio is calculated repeatedly in the frontend. This is minor but wasteful. | Add computed column or store aspect ratio: |
-
-```sql
-ALTER TABLE "GalleryPhotos" ADD COLUMN "aspectRatio" FLOAT GENERATED ALWAYS AS (width::float / height::float) STORED;
-```
+| **MEDIUM** | Module 4: CRS Calculator | CRS score calculated client-side but no mention of server-side validation. User could manipulate DOM to fake scores. | Add server-side CRS recalculation on save, store raw inputs not computed values |
+| **LOW** | Module 2: Checklist | Bulk operations (mark all complete) could cause race if user clicks rapidly. | Implement optimistic UI with rollback on failure |
 
 ---
 
 ## 2. Architecture Flaws
 
-### 2.1 Critical: No Error Boundary Around Async Operations
+### 2.1 Missing Component Architecture
 
 | Severity | Location | What's Wrong | Fix |
 |----------|----------|--------------|-----|
-| **CRITICAL** | Both documents (general) | Neither document addresses error handling for async image processing. If sharp fails, R2 upload fails, or DB write fails, there's no graceful degradation. | Add error boundary pattern: |
+| **CRITICAL** | Entire Document | No component hierarchy defined. Cannot determine reusability, prop drilling, or state management needs. | Define: `App → ImmigrationTab → [Dashboard, Checklist, DocumentTracker, CRSCalculator, StudyPlatform, ResourceHub, Timeline]` |
+| **CRITICAL** | Data Layer | No mention of state management (Redux, Zustand, Context, React Query). Study platform and checklist have different data needs. | Specify: React Query for server state, Zustand for UI state, Context for theme/auth |
+| **HIGH** | Module 5: Study Platform | Progress tracking across IELTS, TEF, and certifications needs unified data model. Currently scattered across modules. | Create unified `StudySession` table with `type` enum: `IELTS \| TEF \| CERT` |
 
-```javascript
-// In upload handler:
-try {
-  const variants = await generateVariants(inputBuffer, storageKeyBase);
-  await Promise.all([...uploads]);
-  await GalleryPhoto.create({...});
-} catch (err) {
-  logger.error('[AdminGallery] Upload failed', { error: err.message, stack: err.stack });
-  return res.status(500).json({ 
-    success: false, 
-    error: 'Upload processing failed. Please try again.' 
-  });
+### 2.2 God Component Risk
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | Module 6: Resource Hub | All resources in single list with no pagination or virtualization. Will cause performance issues with 30+ links. | Implement virtualized list or pagination with category filters |
+| **MEDIUM** | Module 7: Timeline | Gantt visualization with all phases, milestones, and tasks in single component. Will exceed 300 lines easily. | Break into: `TimelineContainer`, `PhaseLane`, `MilestoneMarker`, `TaskIndicator` |
+
+### 2.3 Circular Dependencies
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **LOW** | Module 2 ↔ Module 7 | Checklist items link to timeline milestones, timeline clicks link to checklist. Bidirectional navigation without clear parent-child relationship. | Define explicit parent: Timeline is view of Checklist data, not peer |
+
+---
+
+## 3. Integration Issues
+
+### 3.1 Frontend-Backend Contract Mismatches
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **CRITICAL** | API Specification | No API endpoints defined. Frontend cannot be built without contract. | Define OpenAPI spec: `GET/POST/PUT/DELETE /api/immigration/tasks`, `/documents`, `/study-progress`, `/crs-calculate` |
+| **HIGH** | Module 4: CRS Calculator | "Compare against recent draw cutoffs" requires external data. No mention of data source or refresh strategy. | Add endpoint: `GET /api/immigration/draw-cutoffs` with IRCC scraper or manual update workflow |
+| **HIGH** | Module 5: Study Platform | "Practice test score tracker with history graph" needs time-series data. No schema for historical scores. | Add `study_score_history` table: `(id, user_id, test_type, score, max_score, taken_at)` |
+
+### 3.2 Missing Loading/Error States
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | All Modules | No mention of loading skeletons, error boundaries, or empty states. | Add to each module: `<LoadingSkeleton>`, `<ErrorBoundary>`, `<EmptyState message="No tasks yet">` |
+| **MEDIUM** | Module 1: Dashboard | "Days until key milestones" could take time to calculate. No loading indicator specified. | Add: `isLoadingMilestones` state with spinner during calculation |
+
+### 3.3 Data Transformation Inconsistencies
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **MEDIUM** | Module 3: Document Tracker | Status enum in blueprint: `Not Started / Ordered / Received`. Need consistent enum across all status fields. | Define shared enum: `DocumentStatus = 'NOT_STARTED' \| 'IN_PROGRESS' \| 'RECEIVED'` |
+| **MEDIUM** | Module 2: Checklist | Priority listed as P0/P1/P2 but no numeric weight for sorting. | Add: `priority: 0 \| 1 \| 2` with sort comparator |
+
+### 3.4 Route Guards
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | Tab Access | "Only visible to users with `role === 'admin'`" — client-side check only. Can be bypassed via direct URL access or DOM manipulation. | Implement server-side middleware on ALL routes, client-side is UX only |
+| **MEDIUM** | Module 4: CRS Calculator | No mention of whether CRS data is per-user or shared. If shared, users could see others' data. | Add `user_id` FK to all tables, enforce in queries |
+
+---
+
+## 4. Dead Code & Tech Debt
+
+### 4.1 Incomplete Specifications
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | Phase 0 Timeline | "This Week" — no specific dates. November 2026 target mentioned but not integrated. | Add explicit dates: `dueDate: '2025-01-20'` for each Phase 0 item |
+| **MEDIUM** | Phase 1-3 | "Months 1-3", "Months 4-6", "Months 7-12" — relative to what? Need anchor date. | Add: `phaseStartDate: '2025-02-01'` as project anchor |
+| **MEDIUM** | Module 5: AI Certs | "Google Professional ML Engineer" listed but no study guide content defined. | Remove or mark as "Future Phase" to avoid dead feature |
+
+### 4.2 Duplicated Logic
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **MEDIUM** | Module 2 & 3 | Task completion tracking (Module 2) and document status (Module 3) both track progress. Could be unified. | Consider: Documents are special type of task with `category: 'DOCUMENT'` |
+| **LOW** | Module 5 | IELTS and TEF both have reading, listening, writing, speaking sections. Duplicated UI components. | Create reusable: `<LanguagePracticeSection type="IELTS\|TEF">` |
+
+---
+
+## 5. Production Readiness
+
+### 5.1 Security Concerns
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **CRITICAL** | Module 6: Resource Hub | External links to Ancestry.com, IRCC portal, third-party sites. No `rel="noopener noreferrer"` — tabnabbing vulnerability. | Enforce: `<a href={url} target="_blank" rel="noopener noreferrer">` |
+| **HIGH** | Data Storage | "Encrypted sensitive fields" mentioned but no encryption algorithm specified. | Specify: AES-256-GCM for fields like CDIB number, scores |
+| **HIGH** | Module 4: CRS Calculator | CRS score is life-critical for immigration. No audit trail of score changes. | Add: `crs_score_history` table with `changed_by`, `changed_at` |
+| **MEDIUM** | All Routes | "Rate limiting" mentioned but no threshold specified. Could be too aggressive or too lenient. | Specify: `windowMs: 60000, max: 100` for read, `max: 20` for write |
+| **MEDIUM** | Input Validation | "Input validation on all form fields" — no specifics. CRS calculator accepts any number. | Add: `score: z.number().min(0).max(9).refine(n => n % 0.5 === 0)` for IELTS |
+
+### 5.2 Hardcoded Values
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | Module 2: Checklist | Phone numbers, URLs, costs hardcoded in checklist items. Costs will change over time. | Externalize to `config/immigration constants.ts`: `IELTS_COST: 300, CDIB_PHONE: '...'` |
+| **MEDIUM** | Module 6: Resource Hub | All URLs hardcoded. No environment-specific URLs for staging vs production. | Use environment variables: `process.env.IELTS_REGISTRATION_URL` |
+
+### 5.3 Missing Production Features
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | Logging | No mention of logging user actions (checked task, viewed CRS score). Required for security audit. | Add: `logger.info('immigration_task_updated', { userId, taskId, action })` |
+| **HIGH** | Monitoring | No mention of Sentry, DataDog, or error tracking. | Integrate: Sentry for frontend errors, Winston+Pino for backend |
+| **MEDIUM** | Notifications | "Notification reminders for upcoming deadlines" mentioned in Phase D but no implementation details. | Specify: Email notifications via existing SES, or in-app notification system |
+| **MEDIUM** | Data Export | "PDF report of progress" — no library specified. | Use: `react-pdf` or `jspdf` with Crystalline Swan branding |
+
+---
+
+## 6. Additional Critical Gaps
+
+### 6.1 Accessibility (A11y)
+
+| Severity | Issue | Fix |
+|----------|-------|-----|
+| **HIGH** | Checklist checkboxes need ARIA labels | Add: `aria-label="Mark ${task.title} as complete"` |
+| **HIGH** | Progress ring needs screen reader alternative | Add: `<span className="sr-only">Progress: ${percentage}% complete</span>` |
+| **MEDIUM** | Timeline needs keyboard navigation | Implement: Arrow keys to move between milestones |
+
+### 6.2 Database Schema Issues
+
+| Severity | Issue | Fix |
+|----------|-------|-----|
+| **HIGH** | No migration files specified | Create: `migrations/20250113000000_create_immigration_tables.sql` |
+| **MEDIUM** | No indexes defined | Add: `CREATE INDEX idx_immigration_tasks_user_id ON immigration_tasks(user_id)` |
+| **MEDIUM** | No foreign key constraints specified | Add: `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
+
+### 6.3 Testing Strategy
+
+| Severity | Issue | Fix |
+|----------|-------|-----|
+| **HIGH** | No testing requirements | Specify: Unit tests for CRS calculator, integration tests for API, E2E for critical paths |
+| **MEDIUM** | No mention of test data | Create: `seeds/immigration_tasks_seed.sql` with Phase 0-3 items |
+
+---
+
+## Summary: Critical Action Items
+
+| Priority | Action | File to Create |
+|----------|--------|----------------|
+| **1** | Define REST API contract (OpenAPI) | `docs/api/immigration-api.yaml` |
+| **2** | Create database migrations | `migrations/*immigration*.sql` |
+| **3** | Specify state management approach | `docs/architecture/state-management.md` |
+| **4** | Externalize hardcoded config | `config/immigration-constants.ts` |
+| **5** | Add input validation library (Zod) | Integration spec |
+| **6** | Define error boundaries & loading states | Component specs |
+| **7** | Add audit logging to backend | Middleware spec |
+| **8** | Specify notification system | `docs/architecture/notifications.md` |
+
+---
+
+## Conclusion
+
+The blueprint provides excellent **feature scope** but lacks **implementation depth**. Building from this spec will result in:
+- Integration failures (no API contract)
+- Security gaps (incomplete validation, no audit trail)
+- Maintenance burden (hardcoded values, no testing strategy)
+- Performance issues (no pagination, virtualization)
+
+**Recommendation:** Do not proceed to implementation until API contract, database schema, and state management approach are defined. This is a **HIGH RISK** build without these specifications.
+
+---
+
+*Review conducted with Crystalline Swan theme compliance. Galaxy-Swan theme correctly NOT referenced.*
+
+---
+
+## [FAIL] Frontend UI/UX Expert
+**Model:** gemini-3.1-pro-preview | **Duration:** 25.8s
+
+Error: Google GenAI 503: {
+  "error": {
+    "code": 503,
+    "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    "status": "UNAVAILABLE"
+  }
 }
-```
 
----
-
-### 2.2 High: No Rate Limiting on Upload Endpoint
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **HIGH** | GALLERY-STRATEGY-REVISED-PLAN.md (Backend) | The admin upload endpoint has no rate limiting. A malicious or careless admin could upload thousands of photos, consuming server resources. | Add rate limiting: |
-
-```javascript
-import rateLimit from 'express-rate-limit';
-
-const uploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 uploads per window
-  message: { error: 'Too many uploads, please try again later' }
-});
-
-router.post('/upload', uploadLimiter, adminAuth, upload.array('photos', 100), handler);
-```
-
----
-
-### 2.3 High: No Configurable Image Dimensions
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **HIGH** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Sharp Code) | Thumb (400px) and medium (1200px) are hardcoded. If a client needs different sizes (e.g., 800px for retina), the code must be changed and redeployed. | Use environment variables: |
-
-```javascript
-const THUMB_WIDTH = parseInt(process.env.GALLERY_THUMB_WIDTH || '400', 10);
-const MEDIUM_WIDTH = parseInt(process.env.GALLERY_MEDIUM_WIDTH || '1200', 10);
-const THUMB_QUALITY = parseInt(process.env.GALLERY_THUMB_QUALITY || '80', 10);
-```
-
----
-
-### 2.4 Medium: God Component Risk in GalleryPage.tsx
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Frontend) | The plan mentions updating `GalleryPage.tsx` but doesn't address component size. If this file is already >300 lines, adding more logic (aspect ratio calculations, loading states) makes it worse. | Extract components: |
-
-```tsx
-// Create separate components:
-src/components/gallery/
-  ├── GalleryGrid.tsx        // Grid rendering logic
-  ├── GalleryPhotoCard.tsx   // Individual photo card
-  ├── PhotoAspectRatio.tsx   // Aspect ratio calculator
-  └── GallerySkeleton.tsx    // Loading skeleton
-```
-
----
-
-### 2.5 Medium: No Context for Gallery State
-
-| Severity | Location | What's Wrong | Fix |
-|----------|----------|--------------|-----|
-| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Frontend) | If multiple components need
-
----
-
-## [PASS] Frontend UI/UX Expert
-**Model:** google/gemini-3.1-pro-preview | **Duration:** 46.0s
-
-As the Lead UI/UX Architect and Co-Orchestrator for SwanStudios, I have reviewed the backend-heavy gallery performance and strategy plans. While the engineering logic (dropping RAW, generating 400px/1200px variants) is sound, the frontend execution implied by these documents is entirely too utilitarian. 
-
-We are not building a standard file directory. We are building the **Crystalline Swan** experience—a deep-ocean luxury vault and frozen enchanted forest. The gallery must feel like a premium, high-end photography portfolio that justifies our pricing. 
-
-Claude, I am providing the authoritative design directives for the frontend implementation of these plans. You will execute these exact specifications.
-
----
-
-### DIRECTIVE 1: The "Lightroom Export Guide" Card
-**Severity:** HIGH
-**File & Location:** `frontend/src/pages/GalleryPage.tsx` (Admin Upload Area)
-**Design Problem:** The plan suggests a basic ASCII text box for the Lightroom export guide. This is a premium SaaS; our admin tools must look as good as our client-facing UI. It needs to feel like a "Pro Settings" HUD.
-**Design Solution:** A glassmorphic, data-focused card utilizing `Fira Code` for technical specifications and `Gilded Fern` for luxury emphasis.
-
-**Implementation Notes for Claude:**
-1. Create a new component: `ProExportGuideCard`.
-2. Implement the following styled-components exact specs:
-```typescript
-const GuideWrapper = styled.div`
-  background: rgba(0, 48, 128, 0.4); /* Royal Depth with opacity */
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(198, 168, 75, 0.3); /* Gilded Fern border */
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 32px;
-  box-shadow: 0 8px 32px rgba(0, 32, 96, 0.5); /* Midnight Sapphire shadow */
-`;
-
-const GuideHeader = styled.h3`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #E0ECF4; /* Frost White */
-  font-size: 1.25rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-
-  &::before {
-    content: '';
-    display: block;
-    width: 8px;
-    height: 8px;
-    background: #C6A84B; /* Gilded Fern */
-    border-radius: 50%;
-    box-shadow: 0 0 12px #C6A84B;
-  }
-`;
-
-const SettingsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-`;
-
-const SettingItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const SettingLabel = styled.span`
-  font-family: 'Sora', sans-serif;
-  color: #50A0F0; /* Arctic Cyan */
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const SettingValue = styled.span`
-  font-family: 'Fira Code', monospace;
-  color: #E0ECF4; /* Frost White */
-  font-size: 0.9rem;
-  font-weight: 500;
-`;
-```
-
----
-
-### DIRECTIVE 2: Enchanted Drag & Drop Zone
-**Severity:** MEDIUM
-**File & Location:** `frontend/src/pages/GalleryPage.tsx` (Admin Upload Area)
-**Design Problem:** Standard dashed-border dropzones cause friction and feel cheap. The interaction must provide immediate, satisfying feedback when files are dragged over.
-**Design Solution:** An interactive dropzone that pulses with `Ice Wing` and `Wing Purple` when active, utilizing CSS transitions for a fluid feel.
-
-**Implementation Notes for Claude:**
-1. Update the Dropzone container to react to the `isDragActive` state.
-2. Apply these exact styles:
-```typescript
-const DropZoneContainer = styled.div<{ $isDragActive: boolean }>`
-  min-height: 200px;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  background: ${({ $isDragActive }) => 
-    $isDragActive ? 'rgba(96, 192, 240, 0.1)' : 'rgba(0, 48, 128, 0.2)'};
-  
-  border: 2px dashed ${({ $isDragActive }) => 
-    $isDragActive ? '#60C0F0' : '#4070C0'}; /* Ice Wing vs Swan Lavender */
-    
-  box-shadow: ${({ $isDragActive }) => 
-    $isDragActive ? 'inset 0 0 40px rgba(139, 92, 246, 0.2)' : 'none'}; /* Wing Purple glow */
-
-  transform: ${({ $isDragActive }) => 
-    $isDragActive ? 'scale(1.02)' : 'scale(1)'};
-
-  cursor: pointer;
-
-  &:hover {
-    border-color: #60C0F0;
-    background: rgba(0, 48, 128, 0.4);
-  }
-`;
-```
-
----
-
-### DIRECTIVE 3: Client Gallery Grid & Micro-Animations
-**Severity:** CRITICAL
-**File & Location:** `frontend/src/pages/GalleryPage.tsx` (Client View)
-**Design Problem:** The plan mentions adding `width` and `height` to prevent CLS, which is good engineering, but static images are boring. The grid needs to feel alive and premium.
-**Design Solution:** A responsive CSS grid with aspect-ratio preservation, wrapped in a container that scales and brightens on hover.
-
-**Implementation Notes for Claude:**
-1. Ensure the grid uses `grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));` with a `gap: 24px;`.
-2. Wrap the `<PhotoImg>` in a `PhotoCard` styled-component.
-3. Apply these exact interaction specs:
-```typescript
-const PhotoCard = styled.div`
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #003080; /* Royal Depth - acts as fallback color before image loads */
-  box-shadow: 0 4px 20px rgba(0, 32, 96, 0.4);
-  cursor: pointer;
-  
-  /* Hardware acceleration for smooth scaling */
-  transform: translateZ(0);
-  will-change: transform, box-shadow;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-
-  &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px rgba(96, 192, 240, 0.2); /* Ice Wing glow */
-    
-    img {
-      filter: brightness(1.05) contrast(1.05);
-    }
-  }
-`;
-
-const PhotoImg = styled.img`
-  width: 100%;
-  height: auto;
-  display: block;
-  transition: filter 0.4s ease;
-  /* The inline style for aspect-ratio from the plan goes here via React */
-`;
-```
-
----
-
-### DIRECTIVE 4: Cinematic Lightbox (Photo Detail Modal)
-**Severity:** CRITICAL
-**File & Location:** `frontend/src/pages/gallery/PhotoDetailModal.tsx`
-**Design Problem:** A standard modal overlay is insufficient for viewing 1200px premium photography. It needs to feel like an immersive, distraction-free cinematic experience.
-**Design Solution:** Full-viewport backdrop blur, dramatic typography for the photo details, and premium button styling for the "Download" and "Request Enhancement" actions.
-
-**Implementation Notes for Claude:**
-1. Use Framer Motion for the modal entry: `initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}`.
-2. The backdrop must be `Midnight Sapphire` with high opacity and blur.
-3. Apply these exact specs:
-```typescript
-const LightboxBackdrop = styled(motion.div)`
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 32, 96, 0.92); /* Midnight Sapphire */
-  backdrop-filter: blur(16px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-`;
-
-const LightboxImage = styled(motion.img)`
-  max-width: 100%;
-  max-height: 80vh;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-`;
-
-const ActionBar = styled.div`
-  margin-top: 24px;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-`;
-
-const PremiumButton = styled.button`
-  font-family: 'Sora', sans-serif;
-  font-weight: 600;
-  font-size: 0.875rem;
-  padding: 12px 24px;
-  border-radius: 30px;
-  background: transparent;
-  color: #C6A84B; /* Gilded Fern */
-  border: 1px solid #C6A84B;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(198, 168, 75, 0.1);
-    box-shadow: 0 0 20px rgba(198, 168, 75, 0.2);
-    transform: translateY(-2px);
-  }
-
-  /* Primary variant for Download */
-  &.primary {
-    background: #50A0F0; /* Arctic Cyan */
-    color: #002060;
-    border: none;
-    
-    &:hover {
-      background: #60C0F0; /* Ice Wing */
-      box-shadow: 0 0 20px rgba(96, 192, 240, 0.4);
-    }
-  }
-`;
-```
-
----
-
-### DIRECTIVE 5: Crystalline Loading Choreography
-**Severity:** HIGH
-**File & Location:** `frontend/src/pages/GalleryPage.tsx`
-**Design Problem:** Even with 30KB thumbnails, there is a fraction of a second before the image paints. A blank background causes perceived latency.
-**Design Solution:** Implement a Crystalline Shimmer skeleton loader that uses our Royal Depth and Midnight Sapphire tokens.
-
-**Implementation Notes for Claude:**
-1. While the image is loading (or if `photo.thumbnailUrl` is pending), display this skeleton inside the `PhotoCard`.
-2. Apply these exact specs:
-```typescript
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const CrystallineSkeleton = styled.div`
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: linear-gradient(
-    90deg,
-    #003080 25%, /* Royal Depth */
-    #4070C0 50%, /* Swan Lavender (highlight) */
-    #003080 75%
-  );
-  background-size: 200% 100%;
-  animation: ${shimmer} 2s infinite linear;
-  z-index: 1;
-`;
-```
-*(Note: Ensure the `<PhotoImg>` has `z-index: 2` and its `onLoad` event hides the skeleton).*
-
----
-
-### Final Architectural Note to Claude:
-Do **not** use any of the retired Galaxy-Swan tokens (`#0a0a1a`, `#00FFFF`, `#7851A9`). If you see them in the existing gallery code while implementing this plan, aggressively refactor them out. The gallery must strictly adhere to the Crystalline Swan palette defined above. Proceed with the implementation of the backend plans, but wrap them in this exact frontend architecture.
 
 ---
 
@@ -1832,47 +1454,50 @@ Do **not** use any of the retired Galaxy-Swan tokens (`#0a0a1a`, `#00FFFF`, `#78
 
 ### Critical Findings
 **UX & Accessibility:**
-- The revised gallery strategy and thumbnail generation plan represent a significant and highly positive step forward for SwanStudios. The core decisions to drop RAW file support, eliminate the quality comparison card, and implement robust image variant generation directly address critical performance and user experience issues. The focus on photographer workflow and client value is excellent.
-- *   **Rating:** N/A (Not applicable to this document, but critical for code review)
-- *   **Rating:** CRITICAL (Addressed positively)
-- The revised gallery strategy and performance plan are exceptionally well-conceived and address critical technical and UX issues. The shift to a JPEG-only, variant-based pipeline will dramatically improve loading times and overall user satisfaction.
+- As a UX and accessibility expert auditor, I've reviewed the `CANADA-IMMIGRATION-TAB-BLUEPRINT.md` document for SwanStudios. This blueprint outlines a critical internal tool, and while it's not a public-facing feature, adherence to best practices in UX and accessibility is still crucial for the admin user's efficiency, well-being, and to prevent errors in a "LIFE-CRITICAL" application.
+- *   **Details:** The blueprint doesn't explicitly mention gesture support, and for an admin tool, it's generally less critical than for a consumer app. Basic tap and scroll gestures will be implicitly supported.
+- *   **Details:** The application is designed for an admin user (Sean & his wife) for a "LIFE-CRITICAL" journey. Efficiency is paramount.
+- *   **Details:** This is a critical area for any interactive application, especially one tracking "LIFE-CRITICAL" progress.
+- *   **Details:** The application is "LIFE-CRITICAL." Uncaught JavaScript errors or failed API calls must not crash the entire application or leave the user in a broken state.
+**Code Quality:**
+- marriage: 'colors.error', // Critical urgency
 **Security:**
-- The gallery strategy plans are **architecturally sound from a performance perspective** but require **additional security hardening** before implementation. The most critical gaps are in file upload validation and server-side processing security. Since these are planning documents, the actual code implementation should undergo a separate security review with particular attention to the upload processing pipeline and authentication mechanisms.
-**Competitive Intelligence:**
-- This strategic analysis examines SwanStudios through the lens of market positioning, feature completeness, and growth potential. Based on the codebase review of gallery infrastructure and platform architecture, we've identified critical gaps relative to established fitness SaaS competitors, clear differentiation opportunities rooted in the NASM AI integration and Crystalline Swan UX, and technical debt that could impede scaling beyond 10,000 users. The platform demonstrates strong foundational work in image processing pipelines and client-facing gallery experiences, but requires strategic investment in workout programming, nutrition tracking, and habit formation features to compete effectively in the $15 billion fitness software market.
-- **Gap Severity**: Critical. This gap prevents the platform from serving as a primary training tool, forcing coaches to maintain separate systems for programming and client communication.
-- **Gap Severity**: Medium. Progress tracking is essential for coaches working with transformation clients but less critical for fitness enthusiasts maintaining general health.
+- The blueprint outlines a **life-critical** admin-only module for tracking immigration processes. While the design shows strong security awareness, several implementation risks exist due to the sensitive nature of immigration data (PII, tribal documentation, personal timelines).
+- - **Data Sensitivity:** CRITICAL (contains PII, tribal documentation, personal timelines)
+**Performance & Scalability:**
+- The blueprint is architecturally sound for a private admin tool, provided the **Module 5 (Study Platform)** and **Module 7 (Timeline)** are treated as heavy "Plugins" rather than core UI code. This prevents the "Life-Critical" immigration tool from slowing down the "Business-Critical" personal training operations.
+**User Research & Persona Alignment:**
+- **Priority:** LIFE-CRITICAL — Family safety motivation
 **Architecture & Bug Hunter:**
-- **Overall Assessment:** The plans are well-structured but contain several critical gaps that would cause production issues. The most severe: **watermarks are not applied to thumbnails**, creating a loophole for watermark-free image theft.
-**Frontend UI/UX Expert:**
-- **Severity:** CRITICAL
-- **Severity:** CRITICAL
+- **Overall Assessment:** MEDIUM-HIGH risk — The feature scope is well-defined, but critical implementation details are missing that will cause integration failures, security gaps, and maintenance nightmares.
 
 ### High Priority Findings
 **UX & Accessibility:**
-- The revised gallery strategy and thumbnail generation plan represent a significant and highly positive step forward for SwanStudios. The core decisions to drop RAW file support, eliminate the quality comparison card, and implement robust image variant generation directly address critical performance and user experience issues. The focus on photographer workflow and client value is excellent.
-- *   **Modal:** The photo detail modal should be full-screen or highly adaptable on mobile to maximize viewing area and ease of interaction.
-- *   **Photo Detail Modal:** Implement swipe gestures for navigating between photos in the modal on mobile devices. Pinch-to-zoom could also be a valuable addition for examining details of the high-quality images.
+- *   **Details:** The blueprint mentions interactive elements like checkboxes, input fields, and navigation tabs. Without specific UI mockups or code, it's impossible to confirm proper ARIA usage. However, the complexity of the "Master Checklist" and "Document Tracker" tables, as well as the "CRS Score Calculator" with its "What if" scenarios, suggests a high need for well-implemented ARIA attributes.
+- *   **Finding:** HIGH
+- *   **Details:** The application is described as highly interactive with numerous form fields, checkboxes, links, and potentially complex widgets (e.g., interactive checklist, CRS calculator, study modules). Without explicit design for keyboard navigation, this can easily become a major barrier.
+- *   Provide a clear and highly visible focus indicator (e.g., a distinct outline) for all interactive elements. The "Wing Purple #8B5CF6 (Glow Accent)" could be a good candidate for this, ensuring it has sufficient contrast.
+- *   **Finding:** HIGH
+**Code Quality:**
+- | { type: 'HIGH_SCHOOL' }
+- education: z.enum(['NONE', 'HIGH_SCHOOL', 'BACHELORS', 'MASTERS', 'PHD']),
+**Security:**
+- - **Issue:** Blueprint includes tracking of highly sensitive documents (birth certificates, death certificates, CDIB cards, marriage certificates, test scores)
+- - **Overall Risk Level:** MEDIUM-HIGH (due to sensitive nature of immigration data)
+- - **Compromise Impact:** HIGH (immigration data breach could have legal/financial consequences)
+- Proceed with development but **implement all security recommendations before production deployment**. The sensitive nature of immigration data requires higher-than-normal security standards, even for admin-only functionality. Consider this module as requiring "enhanced security" classification within your application.
 **Performance & Scalability:**
-- *   **Analysis:** The plan uses a "Medium" (1200px) and "Thumb" (400px). While better than original files, a single 400px thumbnail on a high-DPI (Retina) mobile device may look blurry, while a 1200px modal image is overkill for a small phone.
 - *   **Rating: HIGH**
 **Competitive Intelligence:**
-- **Gap Severity**: High. Nutrition coaching represents 40-60% of personal training revenue for many coaches. Without these features, SwanStudios cannot serve as a full-service coaching platform.
-- **Gap Severity**: High. Retention rates in fitness apps average 20% after 90 days. Without engagement features, SwanStudios will struggle to maintain client relationships beyond initial events.
-- **Gap Severity**: High. Communication features are the primary driver of coach-client relationship maintenance. Without them, SwanStudios cannot support ongoing coaching relationships.
-- **Clinical Differentiation**: This positions SwanStudios as appropriate for clients with injury histories, a demographic that competitors underserve. The platform could market specifically to physical therapy partnerships, post-rehab training, and senior fitness—segments with high willingness to pay and strong retention.
-- **Brand Positioning**: This aesthetic positions SwanStudios in the premium segment of fitness software, competing with high-end personal training experiences rather than commodity fitness apps. The target customer is willing to pay $200-500/month for training and expects digital experiences that match that investment.
+- SwanStudios is positioned as a high-end, tech-forward personal training SaaS leveraging a unique "Crystalline Swan" (Enchanted Apex) aesthetic and specialized AI integration (NASM, pain-aware). However, the provided codebase feature (Canada Immigration Tab) represents a significant strategic misalignment or a highly specialized "power user" tool that requires strict containment.
 **User Research & Persona Alignment:**
-- - Trainer bio with 25+ years experience highlight
-- - High contrast mode option
-**Frontend UI/UX Expert:**
-- We are not building a standard file directory. We are building the **Crystalline Swan** experience—a deep-ocean luxury vault and frozen enchanted forest. The gallery must feel like a premium, high-end photography portfolio that justifies our pricing.
-- **Severity:** HIGH
-- 2. The backdrop must be `Midnight Sapphire` with high opacity and blur.
-- **Severity:** HIGH
-- #4070C0 50%, /* Swan Lavender (highlight) */
+- - Phase indicator (Phase 0/1/2/3) with current phase highlighted
+- - Education dropdown (High school, Bachelor's, Master's, PhD)
+**Architecture & Bug Hunter:**
+- **Overall Assessment:** MEDIUM-HIGH risk — The feature scope is well-defined, but critical implementation details are missing that will cause integration failures, security gaps, and maintenance nightmares.
+- **Recommendation:** Do not proceed to implementation until API contract, database schema, and state management approach are defined. This is a **HIGH RISK** build without these specifications.
 
 ---
 
 *SwanStudios Validation Orchestrator v8.0 — AI Village Edition*
-*8 Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5 + Gemini 3.1 Pro*
+*7 Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5 + Gemini 3.1 Pro*
