@@ -1,20 +1,41 @@
 /**
- * DocumentTracker.tsx
+ * DocumentTracker.tsx — v2.0
  * ──────────────────────────────────────────────────────────────────
  * Module 3: Track document statuses with collapsible category
- * sections, status dropdowns, score fields, and notes.
+ * sections, status dropdowns, score fields, notes, cost badges,
+ * due-date warnings, category summary, and quick actions.
  * ──────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import React, { useState, useMemo, useCallback } from 'react';
+import styled, { keyframes, css } from 'styled-components';
+import {
+  Heart,
+  Landmark,
+  Languages,
+  Monitor,
+  ShieldCheck,
+  Fingerprint,
+  Users,
+  GraduationCap,
+  Briefcase,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  DollarSign,
+  Calendar,
+  ChevronDown,
+} from 'lucide-react';
 import type { ImmigrationDocument } from './CanadaImmigrationTab';
 
 /* ────────── Props ────────── */
 
-interface Props {
-  documents: ImmigrationDocument[];
-  updateDocument: (id: number, updates: Partial<ImmigrationDocument>) => Promise<void>;
+interface DocumentTrackerProps {
+  documents: any[];
+  onUpdateDocument?: (id: number, updates: any) => void;
+  // Keep backward-compat with existing call-site
+  updateDocument?: (id: number, updates: Partial<ImmigrationDocument>) => Promise<void>;
+  [key: string]: any; // accept sharedProps spread
 }
 
 /* ────────── Constants ────────── */
@@ -28,61 +49,151 @@ const DOC_STATUSES = [
   { value: 'completed', label: 'Completed', color: '#C6A84B' },
 ];
 
-const CAT_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  marriage: { label: 'Marriage & Legal', color: '#ef4444', icon: '\u{1F48D}' },
-  tribal: { label: 'Tribal / Indigenous', color: '#f97316', icon: '\u{1F3DB}\uFE0F' },
-  language: { label: 'Language Tests', color: '#60C0F0', icon: '\u{1F4DD}' },
-  certification: { label: 'AI Certifications', color: '#22c55e', icon: '\u{1F4BB}' },
-  immigration: { label: 'Immigration Docs', color: '#8B5CF6', icon: '\u{1F6C2}' },
-  identity: { label: 'Identity Documents', color: '#50A0F0', icon: '\u{1FAAA}' },
+const TERMINAL_STATUSES = new Set(['received', 'completed']);
+
+type CatKey =
+  | 'marriage'
+  | 'tribal'
+  | 'language'
+  | 'certification'
+  | 'immigration'
+  | 'identity'
+  | 'family'
+  | 'wife_med'
+  | 'self_employed'
+  | 'pt_market';
+
+interface CatMeta {
+  label: string;
+  color: string;
+  Icon: React.FC<{ size?: number; color?: string }>;
+}
+
+const CAT_CONFIG: Record<CatKey | string, CatMeta> = {
+  marriage:       { label: 'Marriage & Legal',           color: '#ef4444',  Icon: Heart },
+  tribal:         { label: 'Tribal / Indigenous',        color: '#f97316',  Icon: Landmark },
+  language:       { label: 'Language Tests',             color: '#60C0F0',  Icon: Languages },
+  certification:  { label: 'AI Certifications',          color: '#22c55e',  Icon: Monitor },
+  immigration:    { label: 'Immigration Docs',           color: '#8B5CF6',  Icon: ShieldCheck },
+  identity:       { label: 'Identity Documents',         color: '#50A0F0',  Icon: Fingerprint },
+  family:         { label: 'Family & Dependents',        color: '#22C55E',  Icon: Users },
+  wife_med:       { label: 'Wife MEd / Study Permit',    color: '#E879F9',  Icon: GraduationCap },
+  self_employed:  { label: 'Self-Employed Program',      color: '#C6A84B',  Icon: Briefcase },
+  pt_market:      { label: 'PT Market Research',         color: '#60C0F0',  Icon: Monitor },
 };
 
 /* ────────── Animations ────────── */
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const pulseWarn = keyframes`
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+`;
+
+const fadeInAnim = css`
+  animation: ${fadeIn} 0.4s ease-out;
 `;
 
 /* ────────── Styled Components ────────── */
 
 const Container = styled.div`
-  animation: ${fadeIn} 0.4s ease-out;
+  ${fadeInAnim}
+`;
+
+/* ── Overall Summary ── */
+
+const OverallSummary = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+`;
+
+const SummaryTitle = styled.div`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #E0ECF4;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const SummaryTotalBadge = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  padding: 2px 10px;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 20px;
+  color: #a78bfa;
+`;
+
+const ProgressBarOuter = styled.div`
+  width: 100%;
+  height: 8px;
+  background: rgba(224, 236, 244, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+`;
+
+const ProgressBarFill = styled.div<{ $pct: number; $color: string }>`
+  height: 100%;
+  width: ${(p) => p.$pct}%;
+  background: linear-gradient(90deg, ${(p) => p.$color}, #C6A84B);
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+`;
+
+const ProgressLabel = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: rgba(224, 236, 244, 0.5);
+  text-align: right;
+  margin-bottom: 4px;
 `;
 
 const SummaryBar = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
 `;
 
 const SummaryChip = styled.div<{ $color: string }>`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 12px;
   background: rgba(0, 48, 128, 0.3);
   border: 1px solid ${(p) => p.$color}33;
   border-radius: 10px;
 `;
 
 const Dot = styled.span<{ $color: string }>`
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: ${(p) => p.$color};
   flex-shrink: 0;
 `;
 
 const SummaryLabel = styled.span`
-  font-size: 12px;
-  color: rgba(224, 236, 244, 0.6);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  color: rgba(224, 236, 244, 0.5);
 `;
 
 const SummaryCount = styled.span`
   font-family: 'Fira Code', monospace;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #E0ECF4;
 `;
@@ -90,7 +201,7 @@ const SummaryCount = styled.span`
 /* ── Category Section ── */
 
 const CategorySection = styled.div`
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 `;
 
 const CategoryHeader = styled.button<{ $color: string }>`
@@ -100,8 +211,9 @@ const CategoryHeader = styled.button<{ $color: string }>`
   width: 100%;
   min-height: 48px;
   padding: 12px 16px;
-  background: rgba(0, 48, 128, 0.25);
-  border: 1px solid ${(p) => p.$color}22;
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
   border-left: 3px solid ${(p) => p.$color};
   border-radius: 12px;
   cursor: pointer;
@@ -113,11 +225,20 @@ const CategoryHeader = styled.button<{ $color: string }>`
 
   &:hover {
     background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(96, 192, 240, 0.25);
   }
 `;
 
-const CatIcon = styled.span`
-  font-size: 18px;
+const CatIconWrap = styled.span<{ $color: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: ${(p) => p.$color}18;
+  color: ${(p) => p.$color};
+  flex-shrink: 0;
 `;
 
 const CatLabel = styled.span`
@@ -132,9 +253,43 @@ const CatCount = styled.span`
 `;
 
 const CatArrow = styled.span<{ $open: boolean }>`
-  font-size: 12px;
+  display: flex;
   transition: transform 0.2s;
   transform: rotate(${(p) => (p.$open ? '180deg' : '0deg')});
+  color: rgba(224, 236, 244, 0.4);
+`;
+
+const CatActions = styled.div`
+  display: flex;
+  gap: 8px;
+  padding: 8px 0 4px 16px;
+`;
+
+const QuickActionBtn = styled.button<{ $color: string }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  background: ${(p) => p.$color}18;
+  border: 1px solid ${(p) => p.$color}44;
+  border-radius: 8px;
+  color: ${(p) => p.$color};
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: ${(p) => p.$color}30;
+    border-color: ${(p) => p.$color}66;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 
 const DocList = styled.div`
@@ -151,9 +306,9 @@ const DocList = styled.div`
 /* ── Document Card ── */
 
 const DocCard = styled.div`
-  background: rgba(0, 48, 128, 0.3);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(96, 192, 240, 0.1);
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 12px;
   padding: 16px;
   display: grid;
@@ -172,11 +327,61 @@ const DocInfo = styled.div`
   gap: 8px;
 `;
 
+const DocNameRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
 const DocName = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: #E0ECF4;
+`;
+
+const CostBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(198, 168, 75, 0.15);
+  border: 1px solid rgba(198, 168, 75, 0.3);
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #C6A84B;
+`;
+
+const DueDateBadge = styled.span<{ $urgent: 'overdue' | 'soon' | 'ok' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+
+  ${(p) =>
+    p.$urgent === 'overdue'
+      ? css`
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #ef4444;
+          animation: ${pulseWarn} 1.5s ease-in-out infinite;
+        `
+      : p.$urgent === 'soon'
+      ? css`
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          color: #f59e0b;
+        `
+      : css`
+          background: rgba(224, 236, 244, 0.06);
+          border: 1px solid rgba(224, 236, 244, 0.1);
+          color: rgba(224, 236, 244, 0.5);
+        `}
 `;
 
 const StatusDots = styled.div`
@@ -193,7 +398,8 @@ const StatusDot = styled.div<{ $active: boolean; $color: string }>`
   transition: background 0.2s;
 `;
 
-const StatusLabel = styled.span`
+const StatusLabelText = styled.span`
+  font-family: 'Sora', sans-serif;
   font-size: 11px;
   color: rgba(224, 236, 244, 0.5);
   margin-left: 6px;
@@ -275,9 +481,54 @@ const NotesInput = styled.input`
   }
 `;
 
+/* ────────── Helpers ────────── */
+
+function getDueUrgency(dueDate?: string | null): 'overdue' | 'soon' | 'ok' | null {
+  if (!dueDate) return null;
+  const now = new Date();
+  const due = new Date(dueDate);
+  if (isNaN(due.getTime())) return null;
+  const daysLeft = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysLeft < 0) return 'overdue';
+  if (daysLeft <= 30) return 'soon';
+  return 'ok';
+}
+
+function formatDueDate(dueDate: string): string {
+  const d = new Date(dueDate);
+  if (isNaN(d.getTime())) return dueDate;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatCost(doc: any): string | null {
+  const cost = doc.cost ?? doc.costEach ?? doc.cost_each;
+  const qty = doc.quantity ?? doc.qty ?? 1;
+  if (!cost || cost <= 0) return null;
+  if (qty > 1) {
+    return `$${cost} ea \u00D7 ${qty} = $${cost * qty}`;
+  }
+  return `$${cost}`;
+}
+
 /* ────────── Component ────────── */
 
-const DocumentTracker: React.FC<Props> = ({ documents, updateDocument }) => {
+const DocumentTracker: React.FC<DocumentTrackerProps> = ({
+  documents,
+  onUpdateDocument,
+  updateDocument,
+}) => {
+  // Support both prop naming conventions
+  const doUpdate = useCallback(
+    async (id: number, updates: any) => {
+      if (onUpdateDocument) {
+        onUpdateDocument(id, updates);
+      } else if (updateDocument) {
+        await updateDocument(id, updates);
+      }
+    },
+    [onUpdateDocument, updateDocument]
+  );
+
   const [openCats, setOpenCats] = useState<Set<string>>(new Set(Object.keys(CAT_CONFIG)));
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
   const [scoreDraft, setScoreDraft] = useState<Record<number, string>>({});
@@ -299,9 +550,15 @@ const DocumentTracker: React.FC<Props> = ({ documents, updateDocument }) => {
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const s of DOC_STATUSES) {
-      counts[s.value] = documents.filter((d) => d.status === s.value).length;
+      counts[s.value] = documents.filter((d: any) => d.status === s.value).length;
     }
     return counts;
+  }, [documents]);
+
+  const completionPct = useMemo(() => {
+    if (documents.length === 0) return 0;
+    const done = documents.filter((d: any) => TERMINAL_STATUSES.has(d.status)).length;
+    return Math.round((done / documents.length) * 100);
   }, [documents]);
 
   /* ── Handlers ── */
@@ -316,18 +573,25 @@ const DocumentTracker: React.FC<Props> = ({ documents, updateDocument }) => {
   };
 
   const handleStatusChange = async (docId: number, status: string) => {
-    await updateDocument(docId, { status });
+    await doUpdate(docId, { status });
   };
 
   const handleScoreBlur = async (docId: number) => {
     if (scoreDraft[docId] !== undefined) {
-      await updateDocument(docId, { score: scoreDraft[docId] || null });
+      await doUpdate(docId, { score: scoreDraft[docId] || null });
     }
   };
 
   const handleNotesBlur = async (docId: number) => {
     if (notesDraft[docId] !== undefined) {
-      await updateDocument(docId, { notes: notesDraft[docId] || null });
+      await doUpdate(docId, { notes: notesDraft[docId] || null });
+    }
+  };
+
+  const handleMarkAllReceived = async (catDocs: ImmigrationDocument[]) => {
+    const pending = catDocs.filter((d) => !TERMINAL_STATUSES.has(d.status));
+    for (const doc of pending) {
+      await doUpdate(doc.id, { status: 'received' });
     }
   };
 
@@ -338,88 +602,157 @@ const DocumentTracker: React.FC<Props> = ({ documents, updateDocument }) => {
 
   return (
     <Container>
-      {/* Summary Bar */}
-      <SummaryBar>
-        {DOC_STATUSES.map((s) => (
-          <SummaryChip key={s.value} $color={s.color}>
-            <Dot $color={s.color} />
-            <SummaryCount>{statusCounts[s.value] || 0}</SummaryCount>
-            <SummaryLabel>{s.label}</SummaryLabel>
-          </SummaryChip>
-        ))}
-      </SummaryBar>
+      {/* ── Overall Summary ── */}
+      <OverallSummary>
+        <SummaryTitle>
+          Document Progress
+          <SummaryTotalBadge>{documents.length} total</SummaryTotalBadge>
+        </SummaryTitle>
 
-      {/* Category Sections */}
+        <ProgressLabel>{completionPct}% complete</ProgressLabel>
+        <ProgressBarOuter>
+          <ProgressBarFill $pct={completionPct} $color="#8B5CF6" />
+        </ProgressBarOuter>
+
+        <SummaryBar>
+          {DOC_STATUSES.map((s) => (
+            <SummaryChip key={s.value} $color={s.color}>
+              <Dot $color={s.color} />
+              <SummaryCount>{statusCounts[s.value] || 0}</SummaryCount>
+              <SummaryLabel>{s.label}</SummaryLabel>
+            </SummaryChip>
+          ))}
+        </SummaryBar>
+      </OverallSummary>
+
+      {/* ── Category Sections ── */}
       {Object.entries(CAT_CONFIG).map(([catKey, config]) => {
         const docs = grouped[catKey] || [];
         if (docs.length === 0) return null;
         const isOpen = openCats.has(catKey);
+        const doneCount = docs.filter(
+          (d) => d.status === 'completed' || d.status === 'received'
+        ).length;
+        const pendingCount = docs.filter((d) => !TERMINAL_STATUSES.has(d.status)).length;
+        const CatIconComp = config.Icon;
 
         return (
           <CategorySection key={catKey}>
             <CategoryHeader $color={config.color} onClick={() => toggleCat(catKey)}>
-              <CatIcon>{config.icon}</CatIcon>
+              <CatIconWrap $color={config.color}>
+                <CatIconComp size={16} />
+              </CatIconWrap>
               <CatLabel>{config.label}</CatLabel>
               <CatCount>
-                {docs.filter((d) => d.status === 'completed' || d.status === 'received').length}/
-                {docs.length}
+                {doneCount}/{docs.length}
               </CatCount>
-              <CatArrow $open={isOpen}>{'\u25BC'}</CatArrow>
+              <CatArrow $open={isOpen}>
+                <ChevronDown size={14} />
+              </CatArrow>
             </CategoryHeader>
 
             {isOpen && (
-              <DocList>
-                {docs.map((doc) => {
-                  const currentIdx = getStatusIdx(doc.status);
+              <>
+                {/* Quick Actions */}
+                <CatActions>
+                  <QuickActionBtn
+                    $color="#22c55e"
+                    disabled={pendingCount === 0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMarkAllReceived(docs);
+                    }}
+                  >
+                    <CheckCircle2 size={14} />
+                    Mark All Received ({pendingCount})
+                  </QuickActionBtn>
+                </CatActions>
 
-                  return (
-                    <DocCard key={doc.id}>
-                      <DocInfo>
-                        <DocName>{doc.name}</DocName>
-                        <StatusDots>
-                          {DOC_STATUSES.map((s, i) => (
-                            <StatusDot key={s.value} $active={i <= currentIdx} $color={s.color} />
-                          ))}
-                          <StatusLabel>
-                            {DOC_STATUSES.find((s) => s.value === doc.status)?.label || doc.status}
-                          </StatusLabel>
-                        </StatusDots>
-                      </DocInfo>
+                <DocList>
+                  {docs.map((doc: any) => {
+                    const currentIdx = getStatusIdx(doc.status);
+                    const costStr = formatCost(doc);
+                    const dueDate = doc.dueDate ?? doc.due_date;
+                    const urgency = getDueUrgency(dueDate);
 
-                      <DocControls>
-                        <Select
-                          value={doc.status}
-                          onChange={(e) => handleStatusChange(doc.id, e.target.value)}
-                        >
-                          {DOC_STATUSES.map((s) => (
-                            <option key={s.value} value={s.value}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </Select>
+                    return (
+                      <DocCard key={doc.id}>
+                        <DocInfo>
+                          <DocNameRow>
+                            <DocName>{doc.name}</DocName>
+                            {costStr && (
+                              <CostBadge>
+                                <DollarSign size={10} />
+                                {costStr}
+                              </CostBadge>
+                            )}
+                            {urgency && dueDate && (
+                              <DueDateBadge $urgent={urgency}>
+                                {urgency === 'overdue' ? (
+                                  <AlertCircle size={10} />
+                                ) : urgency === 'soon' ? (
+                                  <AlertTriangle size={10} />
+                                ) : (
+                                  <Calendar size={10} />
+                                )}
+                                {urgency === 'overdue'
+                                  ? `Overdue \u2014 ${formatDueDate(dueDate)}`
+                                  : urgency === 'soon'
+                                  ? `Due ${formatDueDate(dueDate)}`
+                                  : formatDueDate(dueDate)}
+                              </DueDateBadge>
+                            )}
+                          </DocNameRow>
+                          <StatusDots>
+                            {DOC_STATUSES.map((s, i) => (
+                              <StatusDot
+                                key={s.value}
+                                $active={i <= currentIdx}
+                                $color={s.color}
+                              />
+                            ))}
+                            <StatusLabelText>
+                              {DOC_STATUSES.find((s) => s.value === doc.status)?.label ||
+                                doc.status}
+                            </StatusLabelText>
+                          </StatusDots>
+                        </DocInfo>
 
-                        <SmallInput
-                          placeholder="Score / result"
-                          value={scoreDraft[doc.id] ?? doc.score ?? ''}
-                          onChange={(e) =>
-                            setScoreDraft((d) => ({ ...d, [doc.id]: e.target.value }))
-                          }
-                          onBlur={() => handleScoreBlur(doc.id)}
-                        />
+                        <DocControls>
+                          <Select
+                            value={doc.status}
+                            onChange={(e) => handleStatusChange(doc.id, e.target.value)}
+                          >
+                            {DOC_STATUSES.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </Select>
 
-                        <NotesInput
-                          placeholder="Notes..."
-                          value={notesDraft[doc.id] ?? doc.notes ?? ''}
-                          onChange={(e) =>
-                            setNotesDraft((d) => ({ ...d, [doc.id]: e.target.value }))
-                          }
-                          onBlur={() => handleNotesBlur(doc.id)}
-                        />
-                      </DocControls>
-                    </DocCard>
-                  );
-                })}
-              </DocList>
+                          <SmallInput
+                            placeholder="Score / result"
+                            value={scoreDraft[doc.id] ?? doc.score ?? ''}
+                            onChange={(e) =>
+                              setScoreDraft((d) => ({ ...d, [doc.id]: e.target.value }))
+                            }
+                            onBlur={() => handleScoreBlur(doc.id)}
+                          />
+
+                          <NotesInput
+                            placeholder="Notes..."
+                            value={notesDraft[doc.id] ?? doc.notes ?? ''}
+                            onChange={(e) =>
+                              setNotesDraft((d) => ({ ...d, [doc.id]: e.target.value }))
+                            }
+                            onBlur={() => handleNotesBlur(doc.id)}
+                          />
+                        </DocControls>
+                      </DocCard>
+                    );
+                  })}
+                </DocList>
+              </>
             )}
           </CategorySection>
         );

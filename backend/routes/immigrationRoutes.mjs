@@ -414,15 +414,11 @@ router.post('/seed', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Idempotency check: if tasks already exist for this user, skip
-    const existing = await sequelize.query(
-      `SELECT COUNT(*)::int AS count FROM immigration_tasks WHERE user_id = :userId`,
-      { replacements: { userId }, type: QueryTypes.SELECT }
-    );
-
-    if (existing[0] && parseInt(existing[0].count, 10) > 0) {
-      return res.json({ success: true, message: 'Seed data already exists', seeded: false });
-    }
+    // Track how many items were created vs skipped
+    let tasksCreated = 0;
+    let tasksSkipped = 0;
+    let docsCreated = 0;
+    let docsSkipped = 0;
 
     // ===================== SEED TASKS =====================
     const tasks = [
@@ -440,37 +436,83 @@ router.post('/seed', async (req, res) => {
       // Phase 1 — Months 1-3
       { phase: 1, sort_order: 10, category: 'tribal', title: 'Submit CDIB application + all vital records to Chickasaw Nation', owner: 'sean', priority: 'P0' },
       { phase: 1, sort_order: 11, category: 'language', title: 'Book IELTS tests for both', owner: 'both', priority: 'P0' },
-      { phase: 1, sort_order: 12, category: 'certification', title: 'Start IBM GenAI Engineering Certificate on Coursera ($49/mo)', owner: 'sean', priority: 'P1', cost: 294 },
+      { phase: 1, sort_order: 12, category: 'certification', title: 'Start IBM GenAI Engineering Certificate on Coursera ($49/mo)', owner: 'sean', priority: 'P1', cost: 294, notes: '0 CRS points - personal growth only. Does not contribute to Express Entry score but strengthens tech portfolio.' },
       { phase: 1, sort_order: 13, category: 'language', title: 'Take IELTS test', owner: 'both', priority: 'P0', cost: 300 },
       { phase: 1, sort_order: 14, category: 'immigration', title: 'Get GED', owner: 'sean', priority: 'P0' },
       { phase: 1, sort_order: 15, category: 'immigration', title: "Submit wife's ECA for college degree", owner: 'wife', priority: 'P0' },
-      { phase: 1, sort_order: 16, category: 'certification', title: 'Take AWS AI Practitioner exam ($100)', owner: 'sean', priority: 'P1', cost: 100 },
-      { phase: 1, sort_order: 17, category: 'certification', title: 'Complete IBM GenAI cert', owner: 'sean', priority: 'P1' },
+      { phase: 1, sort_order: 16, category: 'certification', title: 'Take AWS AI Practitioner exam ($100)', owner: 'sean', priority: 'P1', cost: 100, notes: '0 CRS points - personal growth only. Demonstrates AI competency for job market, not scored by IRCC.' },
+      { phase: 1, sort_order: 17, category: 'certification', title: 'Complete IBM GenAI cert', owner: 'sean', priority: 'P1', notes: '0 CRS points - personal growth only. Completion milestone for IBM GenAI Engineering Certificate.' },
       { phase: 1, sort_order: 18, category: 'immigration', title: 'Wife submits Express Entry as principal applicant', owner: 'both', priority: 'P0' },
+      // Wife MEd Pathway — Phase 1
+      { phase: 1, sort_order: 19, category: 'immigration', title: 'Research Canadian MEd programs (McGill, UBC, UofT, Concordia)', owner: 'wife', priority: 'P0', cost: 0 },
+      { phase: 1, sort_order: 20, category: 'immigration', title: "Submit wife's Educational Credential Assessment (ECA)", owner: 'wife', priority: 'P0', cost: 200 },
 
       // Phase 2 — Months 4-6
-      { phase: 2, sort_order: 19, category: 'certification', title: 'Start Azure AI-102 prep (free Microsoft Learn)', owner: 'sean', priority: 'P1' },
-      { phase: 2, sort_order: 20, category: 'immigration', title: 'Apply Ontario HCP + BC Tech PNP', owner: 'wife', priority: 'P1' },
-      { phase: 2, sort_order: 21, category: 'language', title: 'Add iTalki French tutoring 2-3x/week', owner: 'both', priority: 'P1' },
-      { phase: 2, sort_order: 22, category: 'tribal', title: 'Apply for Chickasaw citizenship once CDIB arrives', owner: 'sean', priority: 'P0' },
-      { phase: 2, sort_order: 23, category: 'certification', title: 'Take Azure AI-102 exam ($165)', owner: 'sean', priority: 'P1', cost: 165 },
-      { phase: 2, sort_order: 24, category: 'tribal', title: 'Schedule ETC interview if citizenship card received', owner: 'sean', priority: 'P1' },
+      { phase: 2, sort_order: 21, category: 'certification', title: 'Start Azure AI-102 prep (free Microsoft Learn)', owner: 'sean', priority: 'P1', notes: '0 CRS points - personal growth only. Free prep through Microsoft Learn, exam fee separate.' },
+      { phase: 2, sort_order: 22, category: 'immigration', title: 'Apply Ontario HCP + BC Tech PNP', owner: 'wife', priority: 'P1' },
+      { phase: 2, sort_order: 23, category: 'language', title: 'Add iTalki French tutoring 2-3x/week', owner: 'both', priority: 'P1' },
+      { phase: 2, sort_order: 24, category: 'tribal', title: 'Apply for Chickasaw citizenship once CDIB arrives', owner: 'sean', priority: 'P0' },
+      { phase: 2, sort_order: 25, category: 'certification', title: 'Take Azure AI-102 exam ($165)', owner: 'sean', priority: 'P1', cost: 165, notes: '0 CRS points - personal growth only. Azure certification for job competitiveness, not IRCC scored.' },
+      { phase: 2, sort_order: 26, category: 'tribal', title: 'Schedule ETC interview if citizenship card received', owner: 'sean', priority: 'P1' },
+      // Wife MEd Pathway — Phase 2
+      { phase: 2, sort_order: 27, category: 'immigration', title: 'Wife applies to Canadian MEd programs', owner: 'wife', priority: 'P0', cost: 200 },
+      { phase: 2, sort_order: 28, category: 'immigration', title: 'Apply for Ontario HCP + BC Tech PNP as backup', owner: 'both', priority: 'P1', cost: 0 },
+      // Self-Employed Program — Phase 2
+      { phase: 2, sort_order: 29, category: 'pt_market', title: 'Begin documenting PT business for Self-Employed file', owner: 'sean', priority: 'P1', cost: 0 },
+      { phase: 2, sort_order: 30, category: 'pt_market', title: 'Gather 5+ years tax returns showing PT income', owner: 'sean', priority: 'P1', cost: 0 },
 
       // Phase 3 — Months 7-12
-      { phase: 3, sort_order: 25, category: 'certification', title: 'AWS ML Specialty prep + exam', owner: 'sean', priority: 'P1', cost: 300 },
-      { phase: 3, sort_order: 26, category: 'language', title: 'Intensive French practice', owner: 'both', priority: 'P1' },
-      { phase: 3, sort_order: 27, category: 'immigration', title: 'Monitor IRCC Indigenous mobility updates', owner: 'sean', priority: 'P2' },
-      { phase: 3, sort_order: 28, category: 'language', title: 'Book TEF Canada test', owner: 'both', priority: 'P1' },
-      { phase: 3, sort_order: 29, category: 'language', title: 'Take French practice exams', owner: 'both', priority: 'P1' },
-      { phase: 3, sort_order: 30, category: 'language', title: 'Take TEF Canada', owner: 'both', priority: 'P0' },
-      { phase: 3, sort_order: 31, category: 'immigration', title: 'Update Express Entry with French scores (+50 CRS)', owner: 'both', priority: 'P0' },
-      { phase: 3, sort_order: 32, category: 'tribal', title: 'Evaluate Indigenous pathway status', owner: 'sean', priority: 'P1' },
+      { phase: 3, sort_order: 31, category: 'certification', title: 'AWS ML Specialty prep + exam', owner: 'sean', priority: 'P1', cost: 300 },
+      { phase: 3, sort_order: 32, category: 'language', title: 'Intensive French practice', owner: 'both', priority: 'P1' },
+      { phase: 3, sort_order: 33, category: 'immigration', title: 'Monitor IRCC Indigenous mobility updates', owner: 'sean', priority: 'P2' },
+      { phase: 3, sort_order: 34, category: 'language', title: 'Book TEF Canada test', owner: 'both', priority: 'P1' },
+      { phase: 3, sort_order: 35, category: 'language', title: 'Take French practice exams', owner: 'both', priority: 'P1' },
+      { phase: 3, sort_order: 36, category: 'language', title: 'Take TEF Canada', owner: 'both', priority: 'P0' },
+      { phase: 3, sort_order: 37, category: 'immigration', title: 'Update Express Entry with French scores (+50 CRS)', owner: 'both', priority: 'P0' },
+      { phase: 3, sort_order: 38, category: 'tribal', title: 'Evaluate Indigenous pathway status', owner: 'sean', priority: 'P1' },
+      // Wife MEd Pathway — Phase 3
+      { phase: 3, sort_order: 39, category: 'immigration', title: 'Wife accepted to MEd — apply for study permit', owner: 'wife', priority: 'P0', cost: 150 },
+      { phase: 3, sort_order: 40, category: 'immigration', title: 'Apply for spousal Open Work Permit (OWP)', owner: 'sean', priority: 'P0', cost: 255 },
+      { phase: 3, sort_order: 41, category: 'immigration', title: 'Enroll 4 kids in Canadian public school (free K-12)', owner: 'both', priority: 'P0', cost: 0 },
+      { phase: 3, sort_order: 42, category: 'immigration', title: 'Apply for grandma Super Visa', owner: 'both', priority: 'P1', cost: 175 },
+      // Self-Employed Program — Phase 3
+      { phase: 3, sort_order: 43, category: 'pt_market', title: 'Write business plan for Canadian PT market', owner: 'sean', priority: 'P1', cost: 0 },
+      { phase: 3, sort_order: 44, category: 'pt_market', title: 'Collect client testimonials and NASM documentation (26 years)', owner: 'sean', priority: 'P1', cost: 0 },
+      { phase: 3, sort_order: 45, category: 'immigration', title: 'Monitor Self-Employed Persons Program for 2027 reopen', owner: 'sean', priority: 'P2', cost: 0 },
+
+      // Phase 4 — Months 13-24
+      { phase: 4, sort_order: 46, category: 'pt_market', title: 'Build Canadian work experience (PT clients + SwanStudios)', owner: 'sean', priority: 'P0', cost: 0 },
+      { phase: 4, sort_order: 47, category: 'immigration', title: 'Wife completes MEd program', owner: 'wife', priority: 'P0', cost: 0 },
+      { phase: 4, sort_order: 48, category: 'immigration', title: 'Wife gets Post-Graduation Work Permit (PGWP)', owner: 'wife', priority: 'P0', cost: 255 },
+      { phase: 4, sort_order: 49, category: 'immigration', title: 'Apply for PR through Canadian Experience Class', owner: 'both', priority: 'P0', cost: 1325 },
+      { phase: 4, sort_order: 50, category: 'immigration', title: 'Establish 3-year income for grandma PGP sponsorship', owner: 'both', priority: 'P1', cost: 0 },
+      { phase: 4, sort_order: 51, category: 'immigration', title: 'Apply for permanent residency', owner: 'both', priority: 'P0', cost: 0 },
+      { phase: 4, sort_order: 52, category: 'pt_market', title: 'Network with PT clients in target neighborhoods', owner: 'sean', priority: 'P1', cost: 0 },
+      { phase: 4, sort_order: 53, category: 'certification', title: 'Get Canadian PT credentials (CSEP/canfitpro equivalency)', owner: 'sean', priority: 'P1', cost: 500 },
     ];
 
     for (const t of tasks) {
+      // Idempotent upsert by title — skip if task already exists for this user
+      const existingTask = await sequelize.query(
+        `SELECT id FROM immigration_tasks WHERE user_id = :userId AND title = :title LIMIT 1`,
+        { replacements: { userId, title: t.title }, type: QueryTypes.SELECT }
+      );
+
+      if (existingTask.length > 0) {
+        // Update notes if provided (for honest framing updates on existing cert tasks)
+        if (t.notes) {
+          await sequelize.query(
+            `UPDATE immigration_tasks SET notes = :notes, sort_order = :sort_order, updated_at = CURRENT_TIMESTAMP WHERE id = :id`,
+            { replacements: { notes: t.notes, sort_order: t.sort_order, id: existingTask[0].id } }
+          );
+        }
+        tasksSkipped++;
+        continue;
+      }
+
       await sequelize.query(
-        `INSERT INTO immigration_tasks (user_id, phase, category, title, owner, priority, cost, resource_url, sort_order, status, created_at, updated_at)
-         VALUES (:userId, :phase, :category, :title, :owner, :priority, :cost, :resource_url, :sort_order, 'not_started', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        `INSERT INTO immigration_tasks (user_id, phase, category, title, owner, priority, cost, resource_url, sort_order, status, notes, created_at, updated_at)
+         VALUES (:userId, :phase, :category, :title, :owner, :priority, :cost, :resource_url, :sort_order, 'not_started', :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         {
           replacements: {
             userId,
@@ -481,39 +523,83 @@ router.post('/seed', async (req, res) => {
             priority: t.priority || 'P1',
             cost: t.cost ?? null,
             resource_url: t.resource_url ?? null,
-            sort_order: t.sort_order
+            sort_order: t.sort_order,
+            notes: t.notes ?? null
           }
         }
       );
+      tasksCreated++;
     }
 
     // ===================== SEED DOCUMENTS =====================
     const documents = [
+      // Vital Records
       { name: "Sean's long-form birth certificate", category: 'vital_records', sort_order: 1 },
       { name: "Father's long-form birth certificate", category: 'vital_records', sort_order: 2 },
       { name: "Father's death certificate", category: 'vital_records', sort_order: 3 },
       { name: "Grandfather's birth/death certificates", category: 'vital_records', sort_order: 4 },
       { name: 'Marriage certificate (3 copies)', category: 'vital_records', sort_order: 5 },
+      // Tribal
       { name: 'CDIB Card', category: 'tribal', sort_order: 6 },
       { name: 'Chickasaw Citizenship Card', category: 'tribal', sort_order: 7 },
       { name: 'Enhanced Tribal Citizenship ID (ETC)', category: 'tribal', sort_order: 8 },
+      // Language
       { name: 'IELTS Results (Sean)', category: 'language', sort_order: 9 },
       { name: 'IELTS Results (Wife)', category: 'language', sort_order: 10 },
       { name: 'TEF Canada Results (Sean)', category: 'language', sort_order: 11 },
       { name: 'TEF Canada Results (Wife)', category: 'language', sort_order: 12 },
+      // Immigration
       { name: "Wife's ECA (degree evaluation)", category: 'immigration', sort_order: 13 },
       { name: "Sean's GED", category: 'immigration', sort_order: 14 },
+      // Certifications
       { name: 'IBM GenAI Certificate', category: 'certification', sort_order: 15 },
       { name: 'AWS AI Practitioner', category: 'certification', sort_order: 16 },
       { name: 'Azure AI-102', category: 'certification', sort_order: 17 },
       { name: 'AWS ML Specialty', category: 'certification', sort_order: 18 },
       { name: 'Google Professional ML Engineer', category: 'certification', sort_order: 19 },
+      // Immigration Applications
       { name: 'Express Entry Profile', category: 'immigration', sort_order: 20 },
       { name: 'Ontario HCP Application', category: 'immigration', sort_order: 21 },
       { name: 'BC Tech PNP Application', category: 'immigration', sort_order: 22 },
+
+      // Wife MEd Documents
+      { name: "Wife's Educational Credential Assessment (ECA)", category: 'immigration', sort_order: 23 },
+      { name: "Wife's College Transcripts (for MEd application)", category: 'immigration', sort_order: 24 },
+      { name: 'MEd Program Acceptance Letter', category: 'immigration', sort_order: 25 },
+      { name: "Wife's Study Permit Application", category: 'immigration', sort_order: 26 },
+
+      // Spousal/Family Documents
+      { name: 'Spousal Open Work Permit Application', category: 'immigration', sort_order: 27 },
+      { name: 'Relationship Proof Package (photos, joint accounts, etc.)', category: 'marriage', sort_order: 28 },
+      { name: 'Kids Birth Certificates (4 copies)', category: 'marriage', sort_order: 29 },
+      { name: 'Kids Immunization Records', category: 'marriage', sort_order: 30 },
+      { name: 'Kids School Records/Transcripts', category: 'marriage', sort_order: 31 },
+      { name: 'Grandma Super Visa Application', category: 'immigration', sort_order: 32 },
+      { name: 'Grandma Medical Exam Results', category: 'immigration', sort_order: 33 },
+      { name: 'Grandma Private Health Insurance (min $100K coverage)', category: 'immigration', sort_order: 34 },
+
+      // Self-Employed Documents
+      { name: 'NASM Certification (26 years documentation)', category: 'certification', sort_order: 35 },
+      { name: 'Business Plan for Canadian PT Market', category: 'pt_market', sort_order: 36 },
+      { name: '5+ Years Notice of Assessments (NOAs/Tax Returns)', category: 'pt_market', sort_order: 37 },
+      { name: 'Client Contracts and Invoices', category: 'pt_market', sort_order: 38 },
+      { name: 'SwanStudios Platform Documentation', category: 'pt_market', sort_order: 39 },
+      { name: 'Client Testimonials and References', category: 'pt_market', sort_order: 40 },
+      { name: 'Bank Statements (self-employment income proof)', category: 'pt_market', sort_order: 41 },
     ];
 
     for (const d of documents) {
+      // Idempotent upsert by name — skip if document already exists for this user
+      const existingDoc = await sequelize.query(
+        `SELECT id FROM immigration_documents WHERE user_id = :userId AND name = :name LIMIT 1`,
+        { replacements: { userId, name: d.name }, type: QueryTypes.SELECT }
+      );
+
+      if (existingDoc.length > 0) {
+        docsSkipped++;
+        continue;
+      }
+
       await sequelize.query(
         `INSERT INTO immigration_documents (user_id, name, category, status, sort_order, created_at, updated_at)
          VALUES (:userId, :name, :category, 'not_started', :sort_order, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -526,15 +612,16 @@ router.post('/seed', async (req, res) => {
           }
         }
       );
+      docsCreated++;
     }
 
-    logger.info(`[Immigration] Seeded ${tasks.length} tasks and ${documents.length} documents for user ${userId}`);
+    logger.info(`[Immigration] Seed complete for user ${userId}: ${tasksCreated} tasks created (${tasksSkipped} skipped), ${docsCreated} docs created (${docsSkipped} skipped)`);
 
     res.json({
       success: true,
-      message: `Seeded ${tasks.length} tasks and ${documents.length} documents`,
-      seeded: true,
-      counts: { tasks: tasks.length, documents: documents.length }
+      message: `Seeded ${tasksCreated} tasks and ${docsCreated} documents (${tasksSkipped} tasks and ${docsSkipped} docs already existed)`,
+      seeded: tasksCreated > 0 || docsCreated > 0,
+      counts: { tasks_created: tasksCreated, tasks_skipped: tasksSkipped, docs_created: docsCreated, docs_skipped: docsSkipped }
     });
   } catch (err) {
     logger.error('[Immigration] Seed error:', err.message);

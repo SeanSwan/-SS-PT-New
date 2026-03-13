@@ -1,14 +1,14 @@
 /**
- * MasterChecklist.tsx
+ * MasterChecklist.tsx  v2.0
  * ──────────────────────────────────────────────────────────────────
  * Module 2: Interactive master checklist with phase/owner/status
- * filters, expandable notes, category color coding, and progress
- * bars per phase.
+ * filters, expandable notes, category color coding, cost tracking,
+ * critical-path indicators, and progress bars per phase (0-4).
  * ──────────────────────────────────────────────────────────────────
  */
 
 import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import type { ImmigrationTask } from './CanadaImmigrationTab';
 
 /* ────────── Props ────────── */
@@ -18,22 +18,58 @@ interface Props {
   updateTask: (id: number, updates: Partial<ImmigrationTask>) => Promise<void>;
 }
 
+/* ────────── Phase Meta ────────── */
+
+const PHASE_META: Record<number, { label: string; months: string; color: string }> = {
+  0: { label: 'Foundation',          months: 'Months 0-3',   color: '#8B5CF6' },
+  1: { label: 'Language & Certs',    months: 'Months 3-6',   color: '#60C0F0' },
+  2: { label: 'Application',         months: 'Months 6-9',   color: '#C6A84B' },
+  3: { label: 'Settlement Prep',     months: 'Months 9-12',  color: '#06b6d4' },
+  4: { label: 'Permanent Residency', months: 'Months 13-24', color: '#22C55E' },
+};
+
+const PHASE_KEYS = [0, 1, 2, 3, 4] as const;
+
 /* ────────── Category Colors ────────── */
 
 const CAT_COLORS: Record<string, string> = {
-  marriage: '#ef4444',
-  tribal: '#f97316',
-  language: '#60C0F0',
-  certification: '#22c55e',
-  immigration: '#8B5CF6',
-  pt_market: '#06b6d4',
+  marriage:       '#ef4444',
+  tribal:         '#f97316',
+  language:       '#60C0F0',
+  certification:  '#22c55e',
+  immigration:    '#8B5CF6',
+  pt_market:      '#06b6d4',
+  family:         '#22C55E',
 };
+
+/* ────────── Owner Config ────────── */
 
 const OWNER_LABELS: Record<string, string> = {
   sean: 'Sean',
   wife: 'Wife',
   both: 'Both',
 };
+
+const OWNER_COLORS: Record<string, string> = {
+  sean: '#60C0F0',
+  wife: '#E879F9',
+  both: '#8B5CF6',
+};
+
+/* ────────── Helpers ────────── */
+
+/** Parse a cost string like "$2,500" or "$150" into a number. Returns 0 on failure. */
+function parseCost(cost: string | null | undefined): number {
+  if (!cost) return 0;
+  const cleaned = cost.replace(/[^0-9.]/g, '');
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? 0 : val;
+}
+
+/** Format a number as $X,XXX */
+function fmtCost(n: number): string {
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 /* ────────── Animations ────────── */
 
@@ -44,7 +80,12 @@ const fadeIn = keyframes`
 
 const slideDown = keyframes`
   from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 200px; }
+  to { opacity: 1; max-height: 300px; }
+`;
+
+const pulseGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.25); }
 `;
 
 /* ────────── Styled Components ────────── */
@@ -52,6 +93,88 @@ const slideDown = keyframes`
 const Container = styled.div`
   animation: ${fadeIn} 0.4s ease-out;
 `;
+
+/* ── Summary Bar ── */
+
+const SummaryBar = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+`;
+
+const SummaryHeadline = styled.div`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #E0ECF4;
+  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+  }
+`;
+
+const SummaryNumber = styled.span`
+  font-family: 'Fira Code', monospace;
+  color: #C6A84B;
+`;
+
+const SummaryDim = styled.span`
+  color: rgba(224, 236, 244, 0.5);
+`;
+
+const MiniProgressRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 375px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const MiniPhaseItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const MiniPhaseLabel = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(224, 236, 244, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const MiniTrack = styled.div`
+  height: 4px;
+  background: rgba(0, 32, 96, 0.6);
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const MiniFill = styled.div<{ $pct: number; $color: string }>`
+  height: 100%;
+  width: ${(p) => p.$pct}%;
+  background: ${(p) => p.$color};
+  border-radius: 2px;
+  transition: width 0.5s ease;
+`;
+
+/* ── Filters ── */
 
 const FiltersBar = styled.div`
   display: flex;
@@ -69,7 +192,7 @@ const FilterGroup = styled.div`
 `;
 
 const FilterBtn = styled.button<{ $active: boolean }>`
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 14px;
   border: none;
   border-radius: 8px;
@@ -92,12 +215,18 @@ const FilterBtn = styled.button<{ $active: boolean }>`
 
 const PhaseProgressRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 375px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -112,7 +241,7 @@ const PhaseProgressHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 `;
 
 const PhaseLabel = styled.span`
@@ -128,6 +257,20 @@ const PhasePct = styled.span`
   color: #60C0F0;
 `;
 
+const PhaseSubline = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  color: rgba(224, 236, 244, 0.4);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const PhaseCostHighlight = styled.span`
+  color: #C6A84B;
+`;
+
 const ProgressTrack = styled.div`
   height: 6px;
   background: rgba(0, 32, 96, 0.6);
@@ -135,10 +278,10 @@ const ProgressTrack = styled.div`
   overflow: hidden;
 `;
 
-const ProgressFill = styled.div<{ $pct: number }>`
+const ProgressFill = styled.div<{ $pct: number; $color?: string }>`
   height: 100%;
   width: ${(p) => p.$pct}%;
-  background: linear-gradient(90deg, #8B5CF6, #60C0F0);
+  background: ${(p) => p.$color || 'linear-gradient(90deg, #8B5CF6, #60C0F0)'};
   border-radius: 3px;
   transition: width 0.5s ease;
 `;
@@ -151,7 +294,12 @@ const TaskList = styled.div`
   gap: 8px;
 `;
 
-const TaskCard = styled.div<{ $catColor: string }>`
+const blockingBorderPulse = css`
+  border-left: 3px solid #ef4444;
+  animation: ${pulseGlow} 2.5s ease-in-out infinite;
+`;
+
+const TaskCard = styled.div<{ $catColor: string; $blocking: boolean }>`
   background: rgba(0, 48, 128, 0.3);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(96, 192, 240, 0.1);
@@ -159,6 +307,9 @@ const TaskCard = styled.div<{ $catColor: string }>`
   border-radius: 12px;
   overflow: hidden;
   transition: border-color 0.2s;
+  position: relative;
+
+  ${(p) => p.$blocking && blockingBorderPulse}
 
   &:hover {
     border-color: rgba(139, 92, 246, 0.3);
@@ -237,6 +388,7 @@ const BadgeRow = styled.div`
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 4px;
+  align-items: center;
 `;
 
 const Badge = styled.span<{ $bg: string; $color: string }>`
@@ -250,10 +402,33 @@ const Badge = styled.span<{ $bg: string; $color: string }>`
   white-space: nowrap;
 `;
 
+const BlockingBadge = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+`;
+
+const OwnerBadge = styled.span<{ $ownerColor: string }>`
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: ${(p) => `${p.$ownerColor}18`};
+  color: ${(p) => p.$ownerColor};
+  white-space: nowrap;
+`;
+
 const ExpandBtn = styled.button`
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   border: none;
   border-radius: 8px;
   background: rgba(0, 32, 96, 0.5);
@@ -281,6 +456,25 @@ const TaskExpanded = styled.div`
   @media (max-width: 480px) {
     padding: 0 12px 12px;
   }
+`;
+
+const BlockingNote = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  line-height: 1.5;
+`;
+
+const FieldLabel = styled.label`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.5);
+  margin-bottom: 4px;
+  display: block;
 `;
 
 const NotesTextarea = styled.textarea`
@@ -329,6 +523,7 @@ const ResourceLink = styled.a`
   color: #60C0F0;
   font-size: 13px;
   text-decoration: none;
+  min-height: 44px;
 
   &:hover {
     color: #8B5CF6;
@@ -374,14 +569,30 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
       .sort((a, b) => a.phase - b.phase || a.sortOrder - b.sortOrder);
   }, [tasks, phaseFilter, ownerFilter, statusFilter]);
 
-  /* ── Phase progress ── */
+  /* ── Phase stats (pct + cost) ── */
 
-  const phasePcts = useMemo(() => {
-    return [0, 1, 2, 3].map((p) => {
+  const phaseStats = useMemo(() => {
+    return PHASE_KEYS.map((p) => {
       const pt = tasks.filter((t) => t.phase === p);
-      if (pt.length === 0) return 0;
-      return Math.round((pt.filter((t) => t.status === 'completed').length / pt.length) * 100);
+      const done = pt.filter((t) => t.status === 'completed');
+      const pct = pt.length === 0 ? 0 : Math.round((done.length / pt.length) * 100);
+      const totalCost = pt.reduce((sum, t) => sum + parseCost(t.cost), 0);
+      const spentCost = done.reduce((sum, t) => sum + parseCost(t.cost), 0);
+      return { phase: p, total: pt.length, completed: done.length, pct, totalCost, spentCost };
     });
+  }, [tasks]);
+
+  /* ── Overall summary ── */
+
+  const summary = useMemo(() => {
+    const total = tasks.length;
+    const completed = tasks.filter((t) => t.status === 'completed').length;
+    const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const totalCost = tasks.reduce((sum, t) => sum + parseCost(t.cost), 0);
+    const spentCost = tasks
+      .filter((t) => t.status === 'completed')
+      .reduce((sum, t) => sum + parseCost(t.cost), 0);
+    return { total, completed, pct, totalCost, spentCost };
   }, [tasks]);
 
   /* ── Handlers ── */
@@ -424,17 +635,47 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
     return '';
   };
 
+  const isBlocking = (task: ImmigrationTask) =>
+    task.priority === 'P0' && task.status !== 'completed';
+
   return (
     <Container>
-      {/* Filters */}
+      {/* ── Top Summary ── */}
+      <SummaryBar>
+        <SummaryHeadline>
+          <SummaryNumber>{summary.completed}</SummaryNumber>
+          <SummaryDim>of</SummaryDim>
+          <SummaryNumber>{summary.total}</SummaryNumber>
+          <SummaryDim>tasks complete</SummaryDim>
+          <SummaryDim>({summary.pct}%)</SummaryDim>
+          <SummaryDim>|</SummaryDim>
+          <SummaryNumber>{fmtCost(summary.spentCost)}</SummaryNumber>
+          <SummaryDim>of</SummaryDim>
+          <SummaryNumber>{fmtCost(summary.totalCost)}</SummaryNumber>
+          <SummaryDim>spent</SummaryDim>
+        </SummaryHeadline>
+
+        <MiniProgressRow>
+          {phaseStats.map((ps) => (
+            <MiniPhaseItem key={ps.phase}>
+              <MiniPhaseLabel>P{ps.phase} {PHASE_META[ps.phase]?.label}</MiniPhaseLabel>
+              <MiniTrack>
+                <MiniFill $pct={ps.pct} $color={PHASE_META[ps.phase]?.color || '#8B5CF6'} />
+              </MiniTrack>
+            </MiniPhaseItem>
+          ))}
+        </MiniProgressRow>
+      </SummaryBar>
+
+      {/* ── Filters ── */}
       <FiltersBar>
         <FilterGroup>
           <FilterBtn $active={phaseFilter === 'all'} onClick={() => setPhaseFilter('all')}>
             All
           </FilterBtn>
-          {[0, 1, 2, 3].map((p) => (
+          {PHASE_KEYS.map((p) => (
             <FilterBtn key={p} $active={phaseFilter === p} onClick={() => setPhaseFilter(p)}>
-              Phase {p}
+              P{p}
             </FilterBtn>
           ))}
         </FilterGroup>
@@ -466,31 +707,42 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
         </FilterGroup>
       </FiltersBar>
 
-      {/* Phase Progress */}
+      {/* ── Phase Progress Cards ── */}
       <PhaseProgressRow>
-        {[0, 1, 2, 3].map((p) => (
-          <PhaseProgressCard key={p}>
-            <PhaseProgressHeader>
-              <PhaseLabel>Phase {p}</PhaseLabel>
-              <PhasePct>{phasePcts[p]}%</PhasePct>
-            </PhaseProgressHeader>
-            <ProgressTrack>
-              <ProgressFill $pct={phasePcts[p]} />
-            </ProgressTrack>
-          </PhaseProgressCard>
-        ))}
+        {phaseStats.map((ps) => {
+          const meta = PHASE_META[ps.phase];
+          return (
+            <PhaseProgressCard key={ps.phase}>
+              <PhaseProgressHeader>
+                <PhaseLabel>Phase {ps.phase}: {meta?.label}</PhaseLabel>
+                <PhasePct>{ps.pct}%</PhasePct>
+              </PhaseProgressHeader>
+              <PhaseSubline>
+                {ps.completed}/{ps.total} tasks |{' '}
+                <PhaseCostHighlight>{fmtCost(ps.spentCost)}</PhaseCostHighlight>
+                {' / '}
+                <PhaseCostHighlight>{fmtCost(ps.totalCost)}</PhaseCostHighlight>
+              </PhaseSubline>
+              <ProgressTrack>
+                <ProgressFill $pct={ps.pct} $color={meta?.color} />
+              </ProgressTrack>
+            </PhaseProgressCard>
+          );
+        })}
       </PhaseProgressRow>
 
-      {/* Task List */}
+      {/* ── Task List ── */}
       <TaskList>
         {filtered.length === 0 && <EmptyState>No tasks match filters.</EmptyState>}
 
         {filtered.map((task) => {
           const isExpanded = expandedId === task.id;
           const catColor = CAT_COLORS[task.category] || '#60C0F0';
+          const blocking = isBlocking(task);
+          const ownerColor = OWNER_COLORS[task.owner] || 'rgba(224,236,244,0.6)';
 
           return (
-            <TaskCard key={task.id} $catColor={catColor}>
+            <TaskCard key={task.id} $catColor={blocking ? '#ef4444' : catColor} $blocking={blocking}>
               <TaskHeader>
                 <Checkbox $status={task.status} onClick={() => cycleStatus(task)}>
                   {statusIcon(task.status)}
@@ -526,10 +778,11 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
                     >
                       {task.category}
                     </Badge>
-                    <Badge $bg="rgba(224,236,244,0.08)" $color="rgba(224,236,244,0.6)">
+                    <OwnerBadge $ownerColor={ownerColor}>
                       {OWNER_LABELS[task.owner] || task.owner}
-                    </Badge>
+                    </OwnerBadge>
                     {task.cost && <CostTag>{task.cost}</CostTag>}
+                    {blocking && <BlockingBadge>BLOCKING</BlockingBadge>}
                   </BadgeRow>
                 </TaskInfo>
 
@@ -540,10 +793,14 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
 
               {isExpanded && (
                 <TaskExpanded>
+                  {blocking && (
+                    <BlockingNote>
+                      This task is P0 priority and blocks progress to the next phase. Complete it before moving on.
+                    </BlockingNote>
+                  )}
+
                   <div>
-                    <label style={{ fontSize: '12px', color: 'rgba(224,236,244,0.5)', marginBottom: 4, display: 'block' }}>
-                      Notes
-                    </label>
+                    <FieldLabel>Notes</FieldLabel>
                     <NotesTextarea
                       value={notesDraft[task.id] ?? task.notes ?? ''}
                       onChange={(e) => setNotesDraft((d) => ({ ...d, [task.id]: e.target.value }))}
@@ -553,9 +810,7 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '12px', color: 'rgba(224,236,244,0.5)', marginBottom: 4, display: 'block' }}>
-                      Due Date
-                    </label>
+                    <FieldLabel>Due Date</FieldLabel>
                     <DueDateInput
                       type="date"
                       value={task.dueDate || ''}

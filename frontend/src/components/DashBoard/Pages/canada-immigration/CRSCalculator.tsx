@@ -3,12 +3,14 @@
  * ──────────────────────────────────────────────────────────────────
  * Module 4: Interactive Express Entry CRS Score Calculator.
  * Both applicants' fields, auto-calculation, breakdown display,
- * "what-if" toggles, and recent draw cutoff comparisons.
+ * "what-if" toggles, draw cutoff comparisons, wife-as-principal
+ * toggle, point impact labels, and self-employed score section.
  * ──────────────────────────────────────────────────────────────────
  */
 
 import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css as styledCss } from 'styled-components';
+import { AlertTriangle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 
 /* ────────── Types ────────── */
 
@@ -204,6 +206,18 @@ function calculateCRS(
   };
 }
 
+/* ────────── Helper: education points label ────────── */
+
+function getEducationPtsLabel(edu: string, withSpouse: boolean): string {
+  const pts = educationPoints(edu, withSpouse);
+  return `= ${pts} pts`;
+}
+
+function getAgePtsLabel(age: number, withSpouse: boolean): string {
+  const pts = agePoints(age, withSpouse);
+  return `= ${pts} pts`;
+}
+
 /* ────────── Animations ────────── */
 
 const fadeIn = keyframes`
@@ -211,10 +225,21 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+const pulseGold = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 rgba(198, 168, 75, 0.15); }
+  50% { box-shadow: 0 0 12px 2px rgba(198, 168, 75, 0.2); }
+`;
+
 /* ────────── Styled Components ────────── */
 
-const Container = styled.div`
+const Wrapper = styled.div`
   animation: ${fadeIn} 0.4s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const Container = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
@@ -225,9 +250,9 @@ const Container = styled.div`
 `;
 
 const Card = styled.div`
-  background: rgba(0, 48, 128, 0.3);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(96, 192, 240, 0.1);
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 16px;
   padding: 24px;
 
@@ -270,6 +295,9 @@ const Label = styled.label`
   font-weight: 600;
   color: rgba(224, 236, 244, 0.6);
   font-family: 'Sora', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 `;
 
 const Select = styled.select`
@@ -318,6 +346,147 @@ const SectionLabel = styled.div`
   color: #60C0F0;
   margin: 12px 0 8px;
   grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const PointImpactBadge = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #60C0F0;
+  background: rgba(96, 192, 240, 0.1);
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+`;
+
+const InlinePoints = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #C6A84B;
+  margin-left: auto;
+`;
+
+/* ── Alert Banner ── */
+
+const AlertBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(198, 168, 75, 0.08);
+  border: 1px solid rgba(198, 168, 75, 0.35);
+  border-radius: 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: #C6A84B;
+  line-height: 1.4;
+  animation: ${styledCss`${pulseGold}`} 3s ease-in-out infinite;
+
+  svg {
+    flex-shrink: 0;
+    color: #C6A84B;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+`;
+
+/* ── Principal Applicant Toggle ── */
+
+const PrincipalToggleContainer = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (max-width: 480px) {
+    padding: 12px 14px;
+  }
+`;
+
+const PrincipalLabel = styled.div`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(224, 236, 244, 0.7);
+`;
+
+const PrincipalButtons = styled.div`
+  display: flex;
+  gap: 8px;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+`;
+
+const PrincipalOption = styled.button<{ $active: boolean }>`
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.5)' : 'rgba(96, 192, 240, 0.15)')};
+  background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.2)' : 'rgba(0, 16, 64, 0.4)')};
+  color: ${(p) => (p.$active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)')};
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.12);
+  }
+`;
+
+const PrincipalNote = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: #60C0F0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(96, 192, 240, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(96, 192, 240, 0.1);
+
+  svg { flex-shrink: 0; }
+`;
+
+/* ── Strategy Tip ── */
+
+const StrategyTip = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  background: rgba(96, 192, 240, 0.05);
+  border: 1px solid rgba(96, 192, 240, 0.1);
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  color: rgba(224, 236, 244, 0.55);
+  line-height: 1.4;
+  grid-column: 1 / -1;
+
+  svg {
+    flex-shrink: 0;
+    color: #60C0F0;
+    margin-top: 1px;
+  }
 `;
 
 /* ── Results Display ── */
@@ -441,6 +610,10 @@ const DrawGrid = styled.div`
   gap: 12px;
   margin-top: 16px;
 
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
   }
@@ -480,6 +653,124 @@ const DrawStatus = styled.div<{ $status: 'green' | 'yellow' | 'red' }>`
     '#ef4444'};
 `;
 
+/* ── Self-Employed Score Section ── */
+
+const CollapsibleHeader = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 14px 18px;
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(0, 32, 96, 0.25);
+    border-color: rgba(96, 192, 240, 0.25);
+  }
+`;
+
+const CollapsibleTitle = styled.span`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #E0ECF4;
+`;
+
+const CollapsibleBody = styled.div`
+  animation: ${fadeIn} 0.3s ease-out;
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 20px;
+  margin-top: -12px;
+
+  @media (max-width: 480px) {
+    padding: 14px;
+  }
+`;
+
+const SETable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
+`;
+
+const SEHeaderRow = styled.tr`
+  border-bottom: 1px solid rgba(96, 192, 240, 0.15);
+`;
+
+const SEHeaderCell = styled.th`
+  text-align: left;
+  padding: 8px 10px;
+  font-weight: 700;
+  color: rgba(224, 236, 244, 0.6);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &:last-child, &:nth-child(2) {
+    text-align: right;
+  }
+`;
+
+const SERow = styled.tr<{ $highlight?: boolean }>`
+  border-bottom: 1px solid rgba(96, 192, 240, 0.06);
+  background: ${(p) => (p.$highlight ? 'rgba(198, 168, 75, 0.08)' : 'transparent')};
+`;
+
+const SECell = styled.td<{ $gold?: boolean }>`
+  padding: 10px;
+  color: ${(p) => (p.$gold ? '#C6A84B' : 'rgba(224, 236, 244, 0.7)')};
+  font-family: ${(p) => (p.$gold ? "'Fira Code', monospace" : 'inherit')};
+  font-weight: ${(p) => (p.$gold ? 700 : 400)};
+
+  &:last-child, &:nth-child(2) {
+    text-align: right;
+  }
+`;
+
+const SENote = styled.div`
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(198, 168, 75, 0.06);
+  border: 1px solid rgba(198, 168, 75, 0.15);
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: #C6A84B;
+  line-height: 1.5;
+`;
+
+const UnderScoreTip = styled.div`
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(96, 192, 240, 0.05);
+  border: 1px solid rgba(96, 192, 240, 0.12);
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.55);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  svg { flex-shrink: 0; margin-top: 1px; color: #60C0F0; }
+`;
+
 /* ────────── Component ────────── */
 
 const EDUCATION_OPTIONS = [
@@ -494,10 +785,18 @@ const EDUCATION_OPTIONS = [
 ];
 
 const CRSCalculator: React.FC = () => {
-  const [primary, setPrimary] = useState<ApplicantData>(defaultApplicant());
-  const [spouse, setSpouse] = useState<ApplicantData>(defaultApplicant());
+  const [sean, setSean] = useState<ApplicantData>(defaultApplicant());
+  const [wife, setWife] = useState<ApplicantData>(defaultApplicant());
+  const [wifeIsPrincipal, setWifeIsPrincipal] = useState(false);
   const [whatIfFrench, setWhatIfFrench] = useState(false);
   const [whatIfPNP, setWhatIfPNP] = useState(false);
+  const [selfEmployedOpen, setSelfEmployedOpen] = useState(false);
+
+  // Determine who is primary and spouse based on toggle
+  const primary = wifeIsPrincipal ? wife : sean;
+  const spouse = wifeIsPrincipal ? sean : wife;
+  const setPrimaryData = wifeIsPrincipal ? setWife : setSean;
+  const setSpouseData = wifeIsPrincipal ? setSean : setWife;
 
   const effectivePrimary = useMemo(() => {
     if (!whatIfFrench) return primary;
@@ -517,9 +816,11 @@ const CRSCalculator: React.FC = () => {
 
   /* ── Draw cutoffs (recent values) ── */
   const draws = [
-    { category: 'General', cutoff: 520 },
-    { category: 'French (PEQ)', cutoff: 379 },
-    { category: 'STEM', cutoff: 480 },
+    { category: 'General', cutoff: 520, note: null },
+    { category: 'French (PEQ)', cutoff: 379, note: null },
+    { category: 'STEM', cutoff: 480, note: null },
+    { category: 'CEC', cutoff: 500, note: 'Canadian Experience Class' },
+    { category: 'PNP', cutoff: 750, note: '+600 nomination makes this easy' },
   ];
 
   const getDrawStatus = (cutoff: number): 'green' | 'yellow' | 'red' => {
@@ -532,227 +833,364 @@ const CRSCalculator: React.FC = () => {
 
   /* ── Field updaters ── */
   const updatePrimary = (field: keyof ApplicantData, value: number | string) =>
-    setPrimary((p) => ({ ...p, [field]: value }));
+    setPrimaryData((p) => ({ ...p, [field]: value }));
 
   const updateSpouse = (field: keyof ApplicantData, value: number | string) =>
-    setSpouse((p) => ({ ...p, [field]: value }));
+    setSpouseData((p) => ({ ...p, [field]: value }));
 
   const clbOptions = Array.from({ length: 13 }, (_, i) => i);
   const ageOptions = Array.from({ length: 28 }, (_, i) => i + 18);
   const workOptions = [0, 1, 2, 3, 4, 5];
 
+  const primaryLabel = wifeIsPrincipal ? 'Wife (Principal Applicant)' : 'Primary Applicant (Sean)';
+  const spouseLabel = wifeIsPrincipal ? 'Spouse (Sean)' : 'Spouse / Partner';
+
   return (
-    <Container>
-      {/* Primary Applicant */}
-      <Card>
-        <CardTitle>Primary Applicant (Sean)</CardTitle>
-        <FormGrid>
-          <FieldGroup>
-            <Label>Age</Label>
-            <Select value={primary.age} onChange={(e) => updatePrimary('age', Number(e.target.value))}>
-              {ageOptions.map((a) => (
-                <option key={a} value={a}>{a}{a >= 45 ? '+' : ''}</option>
-              ))}
-            </Select>
-          </FieldGroup>
+    <Wrapper>
+      {/* ── AI Certifications = 0 CRS Points Banner ── */}
+      <AlertBanner role="alert">
+        <AlertTriangle size={18} />
+        <span>
+          AI certifications give <strong>ZERO</strong> direct CRS points. Focus on IELTS (up to 136 pts) and French TEF (up to +50 pts) first.
+        </span>
+      </AlertBanner>
 
-          <FieldGroup>
-            <Label>Education</Label>
-            <Select value={primary.education} onChange={(e) => updatePrimary('education', e.target.value)}>
-              {EDUCATION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-
-          <SectionLabel>IELTS (CLB Scores)</SectionLabel>
-          {(['clbReading', 'clbWriting', 'clbListening', 'clbSpeaking'] as const).map((f) => (
-            <FieldGroup key={f}>
-              <Label>{f.replace('clb', '')}</Label>
-              <Select value={primary[f]} onChange={(e) => updatePrimary(f, Number(e.target.value))}>
-                {clbOptions.map((v) => (
-                  <option key={v} value={v}>CLB {v}</option>
-                ))}
-              </Select>
-            </FieldGroup>
-          ))}
-
-          <SectionLabel>French (NCLC Scores)</SectionLabel>
-          {(['frenchReading', 'frenchWriting', 'frenchListening', 'frenchSpeaking'] as const).map((f) => (
-            <FieldGroup key={f}>
-              <Label>{f.replace('french', '')}</Label>
-              <Select value={primary[f]} onChange={(e) => updatePrimary(f, Number(e.target.value))}>
-                {clbOptions.map((v) => (
-                  <option key={v} value={v}>NCLC {v}</option>
-                ))}
-              </Select>
-            </FieldGroup>
-          ))}
-
-          <SectionLabel>Work Experience</SectionLabel>
-          <FieldGroup>
-            <Label>Canadian (years)</Label>
-            <Select value={primary.canadianWorkYears} onChange={(e) => updatePrimary('canadianWorkYears', Number(e.target.value))}>
-              {workOptions.map((v) => (
-                <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-          <FieldGroup>
-            <Label>Foreign (years)</Label>
-            <Select value={primary.foreignWorkYears} onChange={(e) => updatePrimary('foreignWorkYears', Number(e.target.value))}>
-              {workOptions.map((v) => (
-                <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-        </FormGrid>
-      </Card>
-
-      {/* Spouse */}
-      <Card>
-        <CardTitle>Spouse / Partner</CardTitle>
-        <FormGrid>
-          <FieldGroup>
-            <Label>Age</Label>
-            <Select value={spouse.age} onChange={(e) => updateSpouse('age', Number(e.target.value))}>
-              {ageOptions.map((a) => (
-                <option key={a} value={a}>{a}{a >= 45 ? '+' : ''}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-
-          <FieldGroup>
-            <Label>Education</Label>
-            <Select value={spouse.education} onChange={(e) => updateSpouse('education', e.target.value)}>
-              {EDUCATION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-
-          <SectionLabel>IELTS (CLB Scores)</SectionLabel>
-          {(['clbReading', 'clbWriting', 'clbListening', 'clbSpeaking'] as const).map((f) => (
-            <FieldGroup key={f}>
-              <Label>{f.replace('clb', '')}</Label>
-              <Select value={spouse[f]} onChange={(e) => updateSpouse(f, Number(e.target.value))}>
-                {clbOptions.map((v) => (
-                  <option key={v} value={v}>CLB {v}</option>
-                ))}
-              </Select>
-            </FieldGroup>
-          ))}
-
-          <SectionLabel>Work Experience</SectionLabel>
-          <FieldGroup>
-            <Label>Canadian (years)</Label>
-            <Select value={spouse.canadianWorkYears} onChange={(e) => updateSpouse('canadianWorkYears', Number(e.target.value))}>
-              {workOptions.map((v) => (
-                <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-          <FieldGroup>
-            <Label>Foreign (years)</Label>
-            <Select value={spouse.foreignWorkYears} onChange={(e) => updateSpouse('foreignWorkYears', Number(e.target.value))}>
-              {workOptions.map((v) => (
-                <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
-              ))}
-            </Select>
-          </FieldGroup>
-        </FormGrid>
-      </Card>
-
-      {/* Score Result */}
-      <Card>
-        <CardTitle>CRS Score Breakdown</CardTitle>
-        <ScoreDisplay $color={scoreColor}>
-          <ScoreNumber>{breakdown.total}</ScoreNumber>
-          <ScoreLabel>Comprehensive Ranking System Score</ScoreLabel>
-        </ScoreDisplay>
-
-        <BreakdownList>
-          <BreakdownRow>
-            <BreakdownLabel>Core / Human Capital</BreakdownLabel>
-            <div>
-              <BreakdownValue>{breakdown.coreHumanCapital}</BreakdownValue>
-              <BreakdownMax>/ 460</BreakdownMax>
-            </div>
-          </BreakdownRow>
-          <BreakdownRow>
-            <BreakdownLabel>Spouse Factors</BreakdownLabel>
-            <div>
-              <BreakdownValue>{breakdown.spouseFactors}</BreakdownValue>
-              <BreakdownMax>/ 40</BreakdownMax>
-            </div>
-          </BreakdownRow>
-          <BreakdownRow>
-            <BreakdownLabel>Skill Transferability</BreakdownLabel>
-            <div>
-              <BreakdownValue>{breakdown.skillTransfer}</BreakdownValue>
-              <BreakdownMax>/ 100</BreakdownMax>
-            </div>
-          </BreakdownRow>
-          <BreakdownRow>
-            <BreakdownLabel>Additional Points</BreakdownLabel>
-            <div>
-              <BreakdownValue>{breakdown.additional}</BreakdownValue>
-              <BreakdownMax>/ 600</BreakdownMax>
-            </div>
-          </BreakdownRow>
-        </BreakdownList>
-
-        {/* What-If */}
-        <ToggleRow>
-          <ToggleButton $active={whatIfFrench} onClick={() => setWhatIfFrench(!whatIfFrench)}>
-            <ToggleIndicator $on={whatIfFrench} />
-            What if I get NCLC 7+ in French? (+25 or +50)
-          </ToggleButton>
-          <ToggleButton $active={whatIfPNP} onClick={() => setWhatIfPNP(!whatIfPNP)}>
-            <ToggleIndicator $on={whatIfPNP} />
-            What if we get a PNP nomination? (+600)
-          </ToggleButton>
-        </ToggleRow>
-      </Card>
-
-      {/* Draw Comparison */}
-      <Card>
-        <CardTitle>Recent Draw Cutoffs</CardTitle>
-        <DrawGrid>
-          {draws.map((d) => {
-            const status = getDrawStatus(d.cutoff);
-            return (
-              <DrawCard key={d.category} $status={status}>
-                <DrawCategory>{d.category}</DrawCategory>
-                <DrawCutoff>~{d.cutoff}</DrawCutoff>
-                <DrawStatus $status={status}>
-                  {status === 'green' && 'Above cutoff'}
-                  {status === 'yellow' && 'Within 50 pts'}
-                  {status === 'red' && 'Below cutoff'}
-                </DrawStatus>
-                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: 'rgba(224,236,244,0.4)', marginTop: 4 }}>
-                  {breakdown.total >= d.cutoff ? `+${breakdown.total - d.cutoff}` : `${breakdown.total - d.cutoff}`}
-                </div>
-              </DrawCard>
-            );
-          })}
-        </DrawGrid>
-
-        {frenchBonus(effectivePrimary) > 0 && (
-          <div style={{
-            marginTop: 16,
-            padding: '12px 16px',
-            background: 'rgba(198, 168, 75, 0.1)',
-            border: '1px solid rgba(198, 168, 75, 0.25)',
-            borderRadius: 10,
-            fontSize: 13,
-            color: '#C6A84B',
-          }}>
-            French Bonus Active: +{frenchBonus(effectivePrimary)} points (NCLC 7+ achieved)
-          </div>
+      {/* ── Principal Applicant Toggle ── */}
+      <PrincipalToggleContainer>
+        <PrincipalLabel>Who is the principal applicant?</PrincipalLabel>
+        <PrincipalButtons>
+          <PrincipalOption
+            $active={!wifeIsPrincipal}
+            onClick={() => setWifeIsPrincipal(false)}
+            type="button"
+          >
+            Sean (You)
+          </PrincipalOption>
+          <PrincipalOption
+            $active={wifeIsPrincipal}
+            onClick={() => setWifeIsPrincipal(true)}
+            type="button"
+          >
+            Wife (Principal)
+          </PrincipalOption>
+        </PrincipalButtons>
+        {wifeIsPrincipal && (
+          <PrincipalNote>
+            <Info size={14} />
+            Recommended: Wife as principal applicant for Express Entry
+          </PrincipalNote>
         )}
-      </Card>
-    </Container>
+      </PrincipalToggleContainer>
+
+      <Container>
+        {/* Primary Applicant */}
+        <Card>
+          <CardTitle>{primaryLabel}</CardTitle>
+          <FormGrid>
+            <FieldGroup>
+              <Label>
+                Age
+                <InlinePoints>{getAgePtsLabel(primary.age, true)}</InlinePoints>
+              </Label>
+              <Select value={primary.age} onChange={(e) => updatePrimary('age', Number(e.target.value))}>
+                {ageOptions.map((a) => (
+                  <option key={a} value={a}>{a}{a >= 45 ? '+' : ''}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>
+                Education
+                <InlinePoints>{getEducationPtsLabel(primary.education, true)}</InlinePoints>
+              </Label>
+              <Select value={primary.education} onChange={(e) => updatePrimary('education', e.target.value)}>
+                {EDUCATION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+
+            <SectionLabel>
+              IELTS (CLB Scores)
+              <PointImpactBadge>Up to 136 CRS points</PointImpactBadge>
+            </SectionLabel>
+            {(['clbReading', 'clbWriting', 'clbListening', 'clbSpeaking'] as const).map((f) => (
+              <FieldGroup key={f}>
+                <Label>{f.replace('clb', '')}</Label>
+                <Select value={primary[f]} onChange={(e) => updatePrimary(f, Number(e.target.value))}>
+                  {clbOptions.map((v) => (
+                    <option key={v} value={v}>CLB {v}</option>
+                  ))}
+                </Select>
+              </FieldGroup>
+            ))}
+
+            <SectionLabel>
+              French (NCLC Scores)
+              <PointImpactBadge>+50 bonus CRS points</PointImpactBadge>
+            </SectionLabel>
+            {(['frenchReading', 'frenchWriting', 'frenchListening', 'frenchSpeaking'] as const).map((f) => (
+              <FieldGroup key={f}>
+                <Label>{f.replace('french', '')}</Label>
+                <Select value={primary[f]} onChange={(e) => updatePrimary(f, Number(e.target.value))}>
+                  {clbOptions.map((v) => (
+                    <option key={v} value={v}>NCLC {v}</option>
+                  ))}
+                </Select>
+              </FieldGroup>
+            ))}
+            <StrategyTip>
+              <Info size={14} />
+              French-category draws: cutoff ~379 vs general ~520. French proficiency is the fastest path to an ITA.
+            </StrategyTip>
+
+            <SectionLabel>Work Experience</SectionLabel>
+            <FieldGroup>
+              <Label>Canadian (years)</Label>
+              <Select value={primary.canadianWorkYears} onChange={(e) => updatePrimary('canadianWorkYears', Number(e.target.value))}>
+                {workOptions.map((v) => (
+                  <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+            <FieldGroup>
+              <Label>Foreign (years)</Label>
+              <Select value={primary.foreignWorkYears} onChange={(e) => updatePrimary('foreignWorkYears', Number(e.target.value))}>
+                {workOptions.map((v) => (
+                  <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+          </FormGrid>
+        </Card>
+
+        {/* Spouse */}
+        <Card>
+          <CardTitle>{spouseLabel}</CardTitle>
+          <FormGrid>
+            <FieldGroup>
+              <Label>
+                Age
+                <InlinePoints>{getAgePtsLabel(spouse.age, true)}</InlinePoints>
+              </Label>
+              <Select value={spouse.age} onChange={(e) => updateSpouse('age', Number(e.target.value))}>
+                {ageOptions.map((a) => (
+                  <option key={a} value={a}>{a}{a >= 45 ? '+' : ''}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>
+                Education
+                <InlinePoints>{getEducationPtsLabel(spouse.education, true)}</InlinePoints>
+              </Label>
+              <Select value={spouse.education} onChange={(e) => updateSpouse('education', e.target.value)}>
+                {EDUCATION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+
+            <SectionLabel>IELTS (CLB Scores)</SectionLabel>
+            {(['clbReading', 'clbWriting', 'clbListening', 'clbSpeaking'] as const).map((f) => (
+              <FieldGroup key={f}>
+                <Label>{f.replace('clb', '')}</Label>
+                <Select value={spouse[f]} onChange={(e) => updateSpouse(f, Number(e.target.value))}>
+                  {clbOptions.map((v) => (
+                    <option key={v} value={v}>CLB {v}</option>
+                  ))}
+                </Select>
+              </FieldGroup>
+            ))}
+
+            <SectionLabel>Work Experience</SectionLabel>
+            <FieldGroup>
+              <Label>Canadian (years)</Label>
+              <Select value={spouse.canadianWorkYears} onChange={(e) => updateSpouse('canadianWorkYears', Number(e.target.value))}>
+                {workOptions.map((v) => (
+                  <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+            <FieldGroup>
+              <Label>Foreign (years)</Label>
+              <Select value={spouse.foreignWorkYears} onChange={(e) => updateSpouse('foreignWorkYears', Number(e.target.value))}>
+                {workOptions.map((v) => (
+                  <option key={v} value={v}>{v}{v >= 5 ? '+' : ''}</option>
+                ))}
+              </Select>
+            </FieldGroup>
+          </FormGrid>
+        </Card>
+
+        {/* Score Result */}
+        <Card>
+          <CardTitle>CRS Score Breakdown</CardTitle>
+          <ScoreDisplay $color={scoreColor}>
+            <ScoreNumber>{breakdown.total}</ScoreNumber>
+            <ScoreLabel>Comprehensive Ranking System Score</ScoreLabel>
+          </ScoreDisplay>
+
+          <BreakdownList>
+            <BreakdownRow>
+              <BreakdownLabel>Core / Human Capital</BreakdownLabel>
+              <div>
+                <BreakdownValue>{breakdown.coreHumanCapital}</BreakdownValue>
+                <BreakdownMax>/ 460</BreakdownMax>
+              </div>
+            </BreakdownRow>
+            <BreakdownRow>
+              <BreakdownLabel>Spouse Factors</BreakdownLabel>
+              <div>
+                <BreakdownValue>{breakdown.spouseFactors}</BreakdownValue>
+                <BreakdownMax>/ 40</BreakdownMax>
+              </div>
+            </BreakdownRow>
+            <BreakdownRow>
+              <BreakdownLabel>Skill Transferability</BreakdownLabel>
+              <div>
+                <BreakdownValue>{breakdown.skillTransfer}</BreakdownValue>
+                <BreakdownMax>/ 100</BreakdownMax>
+              </div>
+            </BreakdownRow>
+            <BreakdownRow>
+              <BreakdownLabel>Additional Points</BreakdownLabel>
+              <div>
+                <BreakdownValue>{breakdown.additional}</BreakdownValue>
+                <BreakdownMax>/ 600</BreakdownMax>
+              </div>
+            </BreakdownRow>
+          </BreakdownList>
+
+          {/* What-If */}
+          <ToggleRow>
+            <ToggleButton $active={whatIfFrench} onClick={() => setWhatIfFrench(!whatIfFrench)}>
+              <ToggleIndicator $on={whatIfFrench} />
+              What if I get NCLC 7+ in French? (+25 or +50)
+            </ToggleButton>
+            <ToggleButton $active={whatIfPNP} onClick={() => setWhatIfPNP(!whatIfPNP)}>
+              <ToggleIndicator $on={whatIfPNP} />
+              What if we get a PNP nomination? (+600)
+            </ToggleButton>
+          </ToggleRow>
+
+          <StrategyTip style={{ marginTop: 12 }}>
+            <Info size={14} />
+            Ontario HCP and BC Tech PNP are the strongest provincial programs.
+          </StrategyTip>
+
+          <UnderScoreTip>
+            <Info size={14} />
+            Your estimated Self-Employed Program score: 68-80 (pass mark: 35) — separate from CRS. See details below.
+          </UnderScoreTip>
+        </Card>
+
+        {/* Draw Comparison */}
+        <Card>
+          <CardTitle>Recent Draw Cutoffs</CardTitle>
+          <DrawGrid>
+            {draws.map((d) => {
+              const status = getDrawStatus(d.cutoff);
+              return (
+                <DrawCard key={d.category} $status={status}>
+                  <DrawCategory>{d.category}</DrawCategory>
+                  <DrawCutoff>~{d.cutoff}</DrawCutoff>
+                  <DrawStatus $status={status}>
+                    {status === 'green' && 'Above cutoff'}
+                    {status === 'yellow' && 'Within 50 pts'}
+                    {status === 'red' && 'Below cutoff'}
+                  </DrawStatus>
+                  <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: 'rgba(224,236,244,0.4)', marginTop: 4 }}>
+                    {breakdown.total >= d.cutoff ? `+${breakdown.total - d.cutoff}` : `${breakdown.total - d.cutoff}`}
+                  </div>
+                  {d.note && (
+                    <div style={{ fontSize: 10, color: 'rgba(224,236,244,0.35)', marginTop: 2 }}>
+                      {d.note}
+                    </div>
+                  )}
+                </DrawCard>
+              );
+            })}
+          </DrawGrid>
+
+          {frenchBonus(effectivePrimary) > 0 && (
+            <div style={{
+              marginTop: 16,
+              padding: '12px 16px',
+              background: 'rgba(198, 168, 75, 0.1)',
+              border: '1px solid rgba(198, 168, 75, 0.25)',
+              borderRadius: 10,
+              fontSize: 13,
+              color: '#C6A84B',
+            }}>
+              French Bonus Active: +{frenchBonus(effectivePrimary)} points (NCLC 7+ achieved)
+            </div>
+          )}
+        </Card>
+      </Container>
+
+      {/* ── Self-Employed Persons Program Score ── */}
+      <CollapsibleHeader
+        type="button"
+        onClick={() => setSelfEmployedOpen(!selfEmployedOpen)}
+        aria-expanded={selfEmployedOpen}
+      >
+        <CollapsibleTitle>Self-Employed Persons Program Score (Separate from CRS)</CollapsibleTitle>
+        {selfEmployedOpen ? <ChevronUp size={18} color="#60C0F0" /> : <ChevronDown size={18} color="#60C0F0" />}
+      </CollapsibleHeader>
+
+      {selfEmployedOpen && (
+        <CollapsibleBody>
+          <SETable>
+            <thead>
+              <SEHeaderRow>
+                <SEHeaderCell>Factor</SEHeaderCell>
+                <SEHeaderCell>Your Estimate</SEHeaderCell>
+                <SEHeaderCell>Max Points</SEHeaderCell>
+              </SEHeaderRow>
+            </thead>
+            <tbody>
+              <SERow>
+                <SECell>Experience (5+ years self-employed athletics)</SECell>
+                <SECell $gold>35</SECell>
+                <SECell>35</SECell>
+              </SERow>
+              <SERow>
+                <SECell>Education (GED = high school)</SECell>
+                <SECell $gold>5</SECell>
+                <SECell>25</SECell>
+              </SERow>
+              <SERow>
+                <SECell>Age (46-48 at application)</SECell>
+                <SECell $gold>5-10</SECell>
+                <SECell>10</SECell>
+              </SERow>
+              <SERow>
+                <SECell>Language (IELTS CLB 9 + French NCLC 7)</SECell>
+                <SECell $gold>20-24</SECell>
+                <SECell>24</SECell>
+              </SERow>
+              <SERow>
+                <SECell>Adaptability (spouse language + education)</SECell>
+                <SECell $gold>3-6</SECell>
+                <SECell>6</SECell>
+              </SERow>
+              <SERow $highlight>
+                <SECell style={{ fontWeight: 700, color: '#E0ECF4' }}>ESTIMATED TOTAL</SECell>
+                <SECell $gold style={{ fontSize: 16 }}>68-80</SECell>
+                <SECell style={{ fontWeight: 700, color: '#E0ECF4' }}>Pass: 35</SECell>
+              </SERow>
+            </tbody>
+          </SETable>
+
+          <SENote>
+            Program paused until 2027. Your 26 years of experience alone meets the pass mark.
+          </SENote>
+        </CollapsibleBody>
+      )}
+    </Wrapper>
   );
 };
 

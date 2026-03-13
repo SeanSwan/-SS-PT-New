@@ -1,13 +1,31 @@
 /**
- * StudyPlatform.tsx
+ * StudyPlatform.tsx  v2.0
  * ──────────────────────────────────────────────────────────────────
- * Module 5: Study Hub — IELTS prep, French/TEF, AI Certifications,
- * score history chart, and study session logging.
+ * Module 5: Study Hub — IELTS Target Tracker, French/TEF Target Tracker,
+ * AI Certifications (with honest framing), Score History chart,
+ * Study Progression Timeline, and study session logging.
+ *
+ * Design System: Enchanted Apex — Crystalline Swan (Gemini 3.1 Pro)
  * ──────────────────────────────────────────────────────────────────
  */
 
 import React, { useState, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
+import {
+  BookOpen,
+  Award,
+  BarChart3,
+  Languages,
+  AlertTriangle,
+  ExternalLink,
+  Clock,
+  DollarSign,
+  Target,
+  Calendar,
+  ChevronRight,
+  GraduationCap,
+  Zap,
+} from 'lucide-react';
 import type { StudySession } from './CanadaImmigrationTab';
 
 /* ────────── Props ────────── */
@@ -39,59 +57,102 @@ const IELTS_TIPS = {
     'Practice with podcasts at 1.25x speed for real-test comfort.',
   ],
   speaking: [
-    'Part 1: Answer in 2-3 sentences. Extend naturally, don\'t give one-word answers.',
+    "Part 1: Answer in 2-3 sentences. Extend naturally, don't give one-word answers.",
     'Part 2: Use the 1-minute prep wisely — jot down keywords, not full sentences.',
     'Part 3: Give opinion + reason + example for band 7+ responses.',
     'Paraphrase the question in your answer to show vocabulary range.',
   ],
 };
 
+const IELTS_TARGETS = [
+  { skill: 'Listening', target: '8.0', icon: '🎧' },
+  { skill: 'Reading', target: '7.0', icon: '📖' },
+  { skill: 'Writing', target: '7.0', icon: '✍️' },
+  { skill: 'Speaking', target: '7.0', icon: '🗣️' },
+];
+
+const IELTS_RESOURCES = [
+  { name: 'British Council Practice Test', cost: 'FREE', description: 'Full practice tests, closest to real exam format' },
+  { name: 'IELTS Online Tests', cost: 'FREE', description: 'Computer-based format with AI scoring feedback' },
+  { name: 'IELTS Test Fee', cost: '~$300/attempt', description: 'Test centers in LA, Irvine, OC area. Results 3-5 days' },
+];
+
+const FRENCH_BENEFITS = [
+  { level: 'NCLC 7+ all 4 skills + CLB 5+', benefit: '+50 additional CRS points' },
+  { level: 'NCLC 5+ (listening + speaking)', benefit: 'Francophone Mobility Work Permit (NO LMIA)' },
+  { level: 'NCLC 7+ all 4 skills', benefit: 'French-category Express Entry draws (cutoffs ~379 vs 500+ general)' },
+];
+
+const FRENCH_TIMELINE = [
+  { months: 'Months 1-3', activity: 'Duolingo + Pimsleur ($15/mo)', detail: 'Build foundation, daily habit' },
+  { months: 'Months 4-6', activity: 'Add iTalki tutoring ($10-20/session)', detail: 'Speaking practice with native speakers' },
+  { months: 'Months 7-12', activity: 'TEF prep course + practice tests', detail: 'Exam-specific strategies and timing' },
+];
+
 const FRENCH_VOCAB = [
   { word: 'Bonjour', meaning: 'Hello / Good day', example: 'Bonjour, comment allez-vous?' },
   { word: 'Merci', meaning: 'Thank you', example: 'Merci beaucoup pour votre aide.' },
-  { word: 'S\'il vous plait', meaning: 'Please (formal)', example: 'Un cafe, s\'il vous plait.' },
+  { word: "S'il vous plait", meaning: 'Please (formal)', example: "Un cafe, s'il vous plait." },
   { word: 'Travailler', meaning: 'To work', example: 'Je travaille a Toronto.' },
   { word: 'Comprendre', meaning: 'To understand', example: 'Je comprends le francais.' },
-  { word: 'Habiter', meaning: 'To live', example: 'J\'habite au Canada.' },
-  { word: 'Apprendre', meaning: 'To learn', example: 'J\'apprends le francais.' },
-  { word: 'Parler', meaning: 'To speak', example: 'Je parle anglais et francais.' },
-  { word: 'Chercher', meaning: 'To look for', example: 'Je cherche un emploi.' },
-  { word: 'Pouvoir', meaning: 'To be able to / Can', example: 'Je peux vous aider.' },
-];
-
-const GRAMMAR_TIPS = [
-  'Verb groups: -er (parler), -ir (finir), -re (vendre) — learn conjugation patterns.',
-  'Passe compose = avoir/etre + past participle. "J\'ai mange" (I ate).',
-  'Use "ne...pas" for negation: "Je ne parle pas francais."',
-  'Gender matters: le/la/les — learn nouns with their articles.',
-  'Formal vs informal: vous (formal) vs tu (informal).',
+  { word: 'Apprendre', meaning: 'To learn', example: "J'apprends le francais." },
 ];
 
 const AI_CERTS = [
   {
-    name: 'IBM AI Engineering Professional',
+    num: 1,
+    name: 'IBM Generative AI Engineering',
     platform: 'Coursera',
-    topics: ['Machine Learning', 'Deep Learning', 'Neural Networks', 'TensorFlow', 'Keras'],
+    cost: '~$150',
+    time: '2-3 mo',
+    difficulty: 'Beginner' as const,
+    why: 'Aligns with LLM/RAG/agent work on SwanStudios',
     link: 'https://www.coursera.org/professional-certificates/ai-engineer',
+    topics: ['Generative AI', 'LLMs', 'RAG', 'Prompt Engineering', 'LangChain'],
   },
   {
-    name: 'AWS Certified ML - Specialty',
-    platform: 'AWS',
-    topics: ['SageMaker', 'Data Engineering', 'ML Modeling', 'ML Implementation', 'Deployment'],
-    link: 'https://aws.amazon.com/certification/certified-machine-learning-specialty/',
-  },
-  {
-    name: 'Microsoft Azure AI Engineer',
+    num: 2,
+    name: 'Azure AI Engineer (AI-102)',
     platform: 'Microsoft Learn',
-    topics: ['Azure Cognitive Services', 'Azure ML', 'NLP', 'Computer Vision', 'Conversational AI'],
+    cost: '$165 exam',
+    time: '3-4 mo',
+    difficulty: 'Moderate' as const,
+    why: 'Microsoft dominates Canadian enterprise. Free prep. $120K-$180K CAD roles',
     link: 'https://learn.microsoft.com/en-us/certifications/azure-ai-engineer/',
+    topics: ['Azure Cognitive Services', 'Azure ML', 'NLP', 'Computer Vision', 'Conversational AI'],
   },
   {
-    name: 'Google Cloud Professional ML',
-    platform: 'Google Cloud',
-    topics: ['Vertex AI', 'BigQuery ML', 'TensorFlow on GCP', 'ML Pipelines', 'AutoML'],
-    link: 'https://cloud.google.com/certification/machine-learning-engineer',
+    num: 3,
+    name: 'AWS AI Practitioner',
+    platform: 'AWS',
+    cost: '$100 exam',
+    time: '2-4 wks',
+    difficulty: 'Beginner' as const,
+    why: 'Quick credibility. Business + technical AI bridge',
+    link: 'https://aws.amazon.com/certification/certified-ai-practitioner/',
+    topics: ['AWS AI Services', 'ML Concepts', 'Responsible AI', 'Business Applications'],
   },
+  {
+    num: 0,
+    name: 'Google Professional ML Engineer',
+    platform: 'Google Cloud',
+    cost: '$200 exam',
+    time: '3-6 mo',
+    difficulty: 'Advanced' as const,
+    why: 'Top-tier. Only if going deep. Not required.',
+    link: 'https://cloud.google.com/certification/machine-learning-engineer',
+    topics: ['Vertex AI', 'BigQuery ML', 'TensorFlow on GCP', 'ML Pipelines', 'AutoML'],
+  },
+];
+
+const STUDY_PROGRESSION = [
+  { period: 'Now - Month 3', items: ['IELTS prep (FREE online resources)', 'Duolingo French daily (15 min)'], color: '#60C0F0' },
+  { period: 'Month 1', items: ['Start IBM GenAI cert on Coursera ($49/mo spare time)'], color: '#8B5CF6' },
+  { period: 'Month 2', items: ['Take IELTS exam ($300)'], color: '#60C0F0' },
+  { period: 'Months 4-6', items: ['iTalki French tutoring begins', 'Azure AI-102 exam prep'], color: '#C6A84B' },
+  { period: 'Month 6', items: ['Azure AI-102 exam ($165)'], color: '#8B5CF6' },
+  { period: 'Months 7-12', items: ['TEF prep intensive'], color: '#C6A84B' },
+  { period: 'Month 11-12', items: ['Take TEF Canada exam'], color: '#C6A84B' },
 ];
 
 const STUDY_CATEGORIES = [
@@ -106,6 +167,11 @@ const STUDY_CATEGORIES = [
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+`;
+
+const pulseGold = keyframes`
+  0%, 100% { border-color: rgba(198, 168, 75, 0.4); }
+  50% { border-color: rgba(198, 168, 75, 0.7); }
 `;
 
 /* ────────── Styled Components ────────── */
@@ -133,6 +199,9 @@ const SubTab = styled.button<{ $active: boolean }>`
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   transition: all 0.15s;
   background: ${(p) => (p.$active ? 'rgba(139, 92, 246, 0.25)' : 'rgba(0, 48, 128, 0.3)')};
   color: ${(p) => (p.$active ? '#E0ECF4' : 'rgba(224,236,244,0.5)')};
@@ -142,12 +211,18 @@ const SubTab = styled.button<{ $active: boolean }>`
     background: rgba(139, 92, 246, 0.15);
     color: #E0ECF4;
   }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
 `;
 
-const Card = styled.div`
-  background: rgba(0, 48, 128, 0.3);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(96, 192, 240, 0.1);
+const GlassCard = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 20px;
@@ -163,6 +238,16 @@ const CardTitle = styled.h3`
   font-weight: 700;
   color: #E0ECF4;
   margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    color: #60C0F0;
+    flex-shrink: 0;
+  }
 `;
 
 const TipsList = styled.div`
@@ -173,9 +258,11 @@ const TipsList = styled.div`
 
 const TipCard = styled.div`
   padding: 12px 16px;
-  background: rgba(0, 32, 96, 0.4);
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(96, 192, 240, 0.08);
   border-radius: 10px;
+  font-family: 'Sora', sans-serif;
   font-size: 13px;
   color: rgba(224, 236, 244, 0.8);
   line-height: 1.5;
@@ -200,46 +287,209 @@ const SectionTitle = styled.h4`
   text-transform: capitalize;
 `;
 
-/* ── Vocab Table ── */
+/* ── Reality Check Banner ── */
 
-const VocabGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+const RealityBanner = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-left: 4px solid #C6A84B;
+  border-radius: 0 16px 16px 0;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  animation: ${pulseGold} 3s ease-in-out infinite;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 `;
 
-const VocabCard = styled.div`
-  padding: 12px 16px;
-  background: rgba(0, 32, 96, 0.4);
-  border: 1px solid rgba(96, 192, 240, 0.08);
-  border-radius: 10px;
-`;
-
-const VocabWord = styled.div`
+const BannerTitle = styled.div`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   color: #C6A84B;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
 `;
 
-const VocabMeaning = styled.div`
+const BannerText = styled.p`
+  font-family: 'Sora', sans-serif;
   font-size: 13px;
-  color: #E0ECF4;
-  margin-top: 2px;
+  color: rgba(224, 236, 244, 0.8);
+  line-height: 1.6;
+  margin: 0 0 8px;
+
+  &:last-child { margin-bottom: 0; }
 `;
 
-const VocabExample = styled.div`
+const GoldHighlight = styled.span`
+  color: #C6A84B;
+  font-weight: 700;
+`;
+
+const IceHighlight = styled.span`
+  color: #60C0F0;
+  font-weight: 700;
+`;
+
+const PurpleHighlight = styled.span`
+  color: #8B5CF6;
+  font-weight: 700;
+`;
+
+/* ── Data Table ── */
+
+const DataTable = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  margin: 16px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96,192,240,0.2) transparent;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 2px;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  min-width: 580px;
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(96, 192, 240, 0.1);
+  color: #60C0F0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
   font-size: 12px;
-  color: rgba(224, 236, 244, 0.5);
-  font-style: italic;
-  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+
+  &:first-child { border-radius: 8px 0 0 8px; }
+  &:last-child { border-radius: 0 8px 8px 0; }
+`;
+
+const Td = styled.td<{ $mono?: boolean }>`
+  padding: 10px 14px;
+  background: rgba(0, 32, 96, 0.3);
+  color: rgba(224, 236, 244, 0.8);
+  font-family: ${(p) => (p.$mono ? "'Fira Code', monospace" : "'Sora', sans-serif")};
+  font-size: ${(p) => (p.$mono ? '12px' : '13px')};
+  vertical-align: top;
+
+  &:first-child { border-radius: 8px 0 0 8px; }
+  &:last-child { border-radius: 0 8px 8px 0; }
+`;
+
+/* ── Target Tracker Cards ── */
+
+const TargetGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+`;
+
+const TargetCard = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+`;
+
+const TargetIcon = styled.div`
+  font-size: 24px;
+  margin-bottom: 6px;
+`;
+
+const TargetSkill = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.6);
+  margin-bottom: 4px;
+`;
+
+const TargetScore = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #60C0F0;
+`;
+
+/* ── Point Impact Badge ── */
+
+const PointBadge = styled.div`
+  background: rgba(96, 192, 240, 0.1);
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+  margin: 16px 0;
+`;
+
+const PointValue = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: #60C0F0;
+  margin-bottom: 4px;
+`;
+
+const PointLabel = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.6);
+`;
+
+/* ── Difficulty Badge ── */
+
+const difficultyColors = {
+  Beginner: '#22c55e',
+  Moderate: '#C6A84B',
+  Advanced: '#ef4444',
+};
+
+const DifficultyBadge = styled.span<{ $level: 'Beginner' | 'Moderate' | 'Advanced' }>`
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+  color: ${(p) => difficultyColors[p.$level]};
+  background: ${(p) => difficultyColors[p.$level]}22;
+  border: 1px solid ${(p) => difficultyColors[p.$level]}44;
 `;
 
 /* ── Cert Cards ── */
 
 const CertCard = styled.div`
-  background: rgba(0, 32, 96, 0.4);
-  border: 1px solid rgba(96, 192, 240, 0.08);
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 12px;
   padding: 16px;
 `;
@@ -252,9 +502,44 @@ const CertName = styled.div`
 `;
 
 const CertPlatform = styled.div`
+  font-family: 'Sora', sans-serif;
   font-size: 12px;
   color: #60C0F0;
   margin-bottom: 8px;
+`;
+
+const CertMeta = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+`;
+
+const CertMetaItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: rgba(224, 236, 244, 0.6);
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: rgba(224, 236, 244, 0.4);
+  }
+`;
+
+const CertWhy = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.7);
+  font-style: italic;
+  padding: 8px 12px;
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  line-height: 1.5;
 `;
 
 const TopicList = styled.div`
@@ -270,6 +555,7 @@ const TopicChip = styled.span`
   border-radius: 6px;
   background: rgba(139, 92, 246, 0.15);
   color: rgba(224, 236, 244, 0.7);
+  font-family: 'Sora', sans-serif;
 `;
 
 const CertProgress = styled.div`
@@ -292,13 +578,205 @@ const CertLink = styled.a`
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   color: #60C0F0;
+  font-family: 'Sora', sans-serif;
   font-size: 12px;
   text-decoration: none;
+  padding: 4px 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 
   &:hover {
     color: #8B5CF6;
     text-decoration: underline;
+  }
+`;
+
+const InvestmentSummary = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 20px;
+  text-align: center;
+`;
+
+const InvestmentValue = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: #C6A84B;
+  margin-bottom: 4px;
+`;
+
+const InvestmentLabel = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.5);
+`;
+
+/* ── Study Progression Timeline ── */
+
+const TimelineContainer = styled.div`
+  position: relative;
+  padding-left: 24px;
+  margin: 16px 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: rgba(96, 192, 240, 0.15);
+    border-radius: 1px;
+  }
+`;
+
+const TimelineItem = styled.div<{ $color: string }>`
+  position: relative;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: ${(p) => p.$color};
+    border: 2px solid rgba(0, 32, 96, 0.8);
+    z-index: 1;
+  }
+`;
+
+const TimelinePeriod = styled.div`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #E0ECF4;
+  margin-bottom: 4px;
+`;
+
+const TimelineActivity = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.7);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    color: rgba(224, 236, 244, 0.4);
+  }
+`;
+
+/* ── French progression timeline ── */
+
+const FrenchStepCard = styled.div`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+`;
+
+const FrenchStepHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+`;
+
+const FrenchStepPeriod = styled.span`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #C6A84B;
+`;
+
+const FrenchStepDetail = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.55);
+`;
+
+/* ── Vocab ── */
+
+const VocabGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+`;
+
+const VocabCard = styled.div`
+  padding: 12px 16px;
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.08);
+  border-radius: 10px;
+`;
+
+const VocabWord = styled.div`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #C6A84B;
+`;
+
+const VocabMeaning = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: #E0ECF4;
+  margin-top: 2px;
+`;
+
+const VocabExample = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.5);
+  font-style: italic;
+  margin-top: 4px;
+`;
+
+/* ── NCLC Table ── */
+
+const NCLCTable = styled.div`
+  display: grid;
+  grid-template-columns: auto repeat(4, 1fr);
+  gap: 2px;
+  font-size: 12px;
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+  }
+`;
+
+const NCLCCell = styled.div<{ $header?: boolean }>`
+  padding: 6px 10px;
+  background: ${(p) => (p.$header ? 'rgba(96,192,240,0.1)' : 'rgba(0, 32, 96, 0.3)')};
+  color: ${(p) => (p.$header ? '#60C0F0' : 'rgba(224,236,244,0.7)')};
+  font-weight: ${(p) => (p.$header ? '700' : '400')};
+  font-family: ${(p) => (p.$header ? "'Sora', sans-serif" : "'Fira Code', monospace")};
+  text-align: center;
+
+  &:first-child {
+    text-align: left;
   }
 `;
 
@@ -359,6 +837,7 @@ const FieldGroup = styled.div`
 `;
 
 const Label = styled.label`
+  font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 600;
   color: rgba(224, 236, 244, 0.6);
@@ -410,34 +889,30 @@ const LogButton = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const NCLCTable = styled.div`
-  display: grid;
-  grid-template-columns: auto repeat(4, 1fr);
-  gap: 2px;
-  font-size: 12px;
+/* ── Callout Box ── */
 
-  @media (max-width: 480px) {
-    font-size: 11px;
-  }
-`;
-
-const NCLCCell = styled.div<{ $header?: boolean }>`
-  padding: 6px 10px;
-  background: ${(p) => (p.$header ? 'rgba(96,192,240,0.1)' : 'rgba(0, 32, 96, 0.3)')};
-  color: ${(p) => (p.$header ? '#60C0F0' : 'rgba(224,236,244,0.7)')};
-  font-weight: ${(p) => (p.$header ? '700' : '400')};
-  font-family: ${(p) => (p.$header ? "'Sora', sans-serif" : "'Fira Code', monospace")};
-  text-align: center;
-
-  &:first-child {
-    text-align: left;
-  }
+const CalloutBox = styled.div<{ $variant?: 'gold' | 'ice' | 'purple' }>`
+  background: rgba(0, 32, 96, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-left: 3px solid ${(p) =>
+    p.$variant === 'gold' ? '#C6A84B' :
+    p.$variant === 'purple' ? '#8B5CF6' :
+    '#60C0F0'
+  };
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: rgba(224, 236, 244, 0.8);
+  line-height: 1.6;
 `;
 
 /* ────────── Component ────────── */
 
 const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
-  const [activeSection, setActiveSection] = useState<'ielts' | 'french' | 'certs' | 'history'>('ielts');
+  const [activeSection, setActiveSection] = useState<'ielts' | 'french' | 'certs' | 'history' | 'timeline'>('ielts');
   const [logCategory, setLogCategory] = useState('ielts');
   const [logScore, setLogScore] = useState('');
   const [logNotes, setLogNotes] = useState('');
@@ -447,7 +922,9 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
   const certProgress = useMemo(() => {
     const aiSessions = studySessions.filter((s) => s.category === 'ai_cert');
     return AI_CERTS.map((cert) => {
-      const sessions = aiSessions.filter((s) => s.notes?.toLowerCase().includes(cert.name.toLowerCase().split(' ')[0]));
+      const sessions = aiSessions.filter((s) =>
+        s.notes?.toLowerCase().includes(cert.name.toLowerCase().split(' ')[0])
+      );
       return { ...cert, sessions: sessions.length, pct: Math.min(100, sessions.length * 20) };
     });
   }, [studySessions]);
@@ -485,42 +962,183 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
   return (
     <Container>
       {/* Sub-tabs */}
-      <SubTabBar>
-        <SubTab $active={activeSection === 'ielts'} onClick={() => setActiveSection('ielts')}>
-          IELTS Prep
+      <SubTabBar role="tablist" aria-label="Study sections">
+        <SubTab
+          role="tab"
+          aria-selected={activeSection === 'ielts'}
+          $active={activeSection === 'ielts'}
+          onClick={() => setActiveSection('ielts')}
+        >
+          <BookOpen /> IELTS Prep
         </SubTab>
-        <SubTab $active={activeSection === 'french'} onClick={() => setActiveSection('french')}>
-          French / TEF
+        <SubTab
+          role="tab"
+          aria-selected={activeSection === 'french'}
+          $active={activeSection === 'french'}
+          onClick={() => setActiveSection('french')}
+        >
+          <Languages /> French / TEF
         </SubTab>
-        <SubTab $active={activeSection === 'certs'} onClick={() => setActiveSection('certs')}>
-          AI Certifications
+        <SubTab
+          role="tab"
+          aria-selected={activeSection === 'certs'}
+          $active={activeSection === 'certs'}
+          onClick={() => setActiveSection('certs')}
+        >
+          <Award /> AI Certifications
         </SubTab>
-        <SubTab $active={activeSection === 'history'} onClick={() => setActiveSection('history')}>
-          Score History
+        <SubTab
+          role="tab"
+          aria-selected={activeSection === 'timeline'}
+          $active={activeSection === 'timeline'}
+          onClick={() => setActiveSection('timeline')}
+        >
+          <Calendar /> Study Plan
+        </SubTab>
+        <SubTab
+          role="tab"
+          aria-selected={activeSection === 'history'}
+          $active={activeSection === 'history'}
+          onClick={() => setActiveSection('history')}
+        >
+          <BarChart3 /> Score History
         </SubTab>
       </SubTabBar>
 
-      {/* IELTS Section */}
+      {/* ═══════════════════ IELTS Section ═══════════════════ */}
       {activeSection === 'ielts' && (
-        <SectionGrid>
-          {(Object.entries(IELTS_TIPS) as [string, string[]][]).map(([section, tips]) => (
-            <Card key={section}>
-              <SectionTitle>{section}</SectionTitle>
-              <TipsList>
-                {tips.map((tip, i) => (
-                  <TipCard key={i}>{tip}</TipCard>
-                ))}
-              </TipsList>
-            </Card>
-          ))}
-        </SectionGrid>
+        <>
+          {/* Target Tracker */}
+          <GlassCard>
+            <CardTitle><Target /> IELTS Target: CLB 9 in All Bands</CardTitle>
+            <TargetGrid>
+              {IELTS_TARGETS.map((t) => (
+                <TargetCard key={t.skill}>
+                  <TargetIcon>{t.icon}</TargetIcon>
+                  <TargetSkill>{t.skill}</TargetSkill>
+                  <TargetScore>{t.target}</TargetScore>
+                </TargetCard>
+              ))}
+            </TargetGrid>
+
+            <CalloutBox $variant="ice">
+              As a native English speaker, most score <IceHighlight>7.0-7.5 on first attempt</IceHighlight>.
+              The challenge is <strong>procedural, not linguistic</strong> — learn the format and time management.
+            </CalloutBox>
+
+            <PointBadge>
+              <PointValue>Up to 136 CRS</PointValue>
+              <PointLabel>IELTS CLB 9 = up to 136 CRS points (first official language)</PointLabel>
+            </PointBadge>
+          </GlassCard>
+
+          {/* Resources Table */}
+          <GlassCard>
+            <CardTitle><GraduationCap /> IELTS Resources</CardTitle>
+            <DataTable>
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Resource</Th>
+                    <Th>Cost</Th>
+                    <Th>What It Does</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {IELTS_RESOURCES.map((r) => (
+                    <tr key={r.name}>
+                      <Td>{r.name}</Td>
+                      <Td $mono>{r.cost}</Td>
+                      <Td>{r.description}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </DataTable>
+          </GlassCard>
+
+          {/* Tips per skill */}
+          <SectionGrid>
+            {(Object.entries(IELTS_TIPS) as [string, string[]][]).map(([section, tips]) => (
+              <GlassCard key={section}>
+                <SectionTitle>{section}</SectionTitle>
+                <TipsList>
+                  {tips.map((tip, i) => (
+                    <TipCard key={i}>{tip}</TipCard>
+                  ))}
+                </TipsList>
+              </GlassCard>
+            ))}
+          </SectionGrid>
+        </>
       )}
 
-      {/* French Section */}
+      {/* ═══════════════════ French / TEF Section ═══════════════════ */}
       {activeSection === 'french' && (
         <>
-          <Card>
-            <CardTitle>Daily Vocabulary (10 Essential Words)</CardTitle>
+          {/* French Target Tracker */}
+          <GlassCard>
+            <CardTitle><Target /> French Target: NCLC 7 (The Magic Number)</CardTitle>
+
+            <CalloutBox $variant="gold">
+              The French bonus is the <GoldHighlight>single highest-ROI move</GoldHighlight>.
+              50 CRS points for $600-1,200 total over 12 months.
+            </CalloutBox>
+
+            {/* Benefits Table */}
+            <DataTable>
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>French Level</Th>
+                    <Th>Immigration Benefit</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FRENCH_BENEFITS.map((b) => (
+                    <tr key={b.level}>
+                      <Td $mono>{b.level}</Td>
+                      <Td>
+                        {b.benefit.includes('+50')
+                          ? <GoldHighlight>{b.benefit}</GoldHighlight>
+                          : b.benefit
+                        }
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </DataTable>
+
+            <PointBadge>
+              <PointValue>+50 CRS</PointValue>
+              <PointLabel>NCLC 7+ all 4 skills with CLB 5+ English</PointLabel>
+            </PointBadge>
+          </GlassCard>
+
+          {/* Study Progression */}
+          <GlassCard>
+            <CardTitle><Clock /> French Study Progression</CardTitle>
+            {FRENCH_TIMELINE.map((step) => (
+              <FrenchStepCard key={step.months}>
+                <FrenchStepHeader>
+                  <FrenchStepPeriod>{step.months}</FrenchStepPeriod>
+                </FrenchStepHeader>
+                <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 13, color: '#E0ECF4', marginBottom: 4 }}>
+                  {step.activity}
+                </div>
+                <FrenchStepDetail>{step.detail}</FrenchStepDetail>
+              </FrenchStepCard>
+            ))}
+            <CalloutBox $variant="gold">
+              Total monthly cost: <GoldHighlight>~$60-100/month</GoldHighlight>.
+              Total over 12 months: $600-1,200. Compare that to 50 CRS points.
+            </CalloutBox>
+          </GlassCard>
+
+          {/* Vocabulary */}
+          <GlassCard>
+            <CardTitle><BookOpen /> Essential Vocabulary (6 Key Words)</CardTitle>
             <VocabGrid>
               {FRENCH_VOCAB.map((v) => (
                 <VocabCard key={v.word}>
@@ -530,18 +1148,10 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
                 </VocabCard>
               ))}
             </VocabGrid>
-          </Card>
+          </GlassCard>
 
-          <Card>
-            <CardTitle>Grammar Tips</CardTitle>
-            <TipsList>
-              {GRAMMAR_TIPS.map((tip, i) => (
-                <TipCard key={i}>{tip}</TipCard>
-              ))}
-            </TipsList>
-          </Card>
-
-          <Card>
+          {/* NCLC Estimator */}
+          <GlassCard>
             <CardTitle>NCLC Level Estimator</CardTitle>
             <NCLCTable>
               <NCLCCell $header>Level</NCLCCell>
@@ -574,42 +1184,181 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
               <NCLCCell>Any context</NCLCCell>
               <NCLCCell>Near-native</NCLCCell>
             </NCLCTable>
-          </Card>
+          </GlassCard>
         </>
       )}
 
-      {/* AI Certifications Section */}
+      {/* ═══════════════════ AI Certifications Section ═══════════════════ */}
       {activeSection === 'certs' && (
-        <SectionGrid>
-          {certProgress.map((cert) => (
-            <CertCard key={cert.name}>
-              <CertName>{cert.name}</CertName>
-              <CertPlatform>{cert.platform}</CertPlatform>
-              <TopicList>
-                {cert.topics.map((t) => (
-                  <TopicChip key={t}>{t}</TopicChip>
-                ))}
-              </TopicList>
-              <CertProgress>
-                <CertFill $pct={cert.pct} />
-              </CertProgress>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, color: 'rgba(224,236,244,0.5)' }}>
-                  {cert.sessions} sessions logged
-                </span>
-                <CertLink href={cert.link} target="_blank" rel="noopener noreferrer">
-                  Open platform
-                </CertLink>
+        <>
+          {/* Reality Check Banner */}
+          <RealityBanner role="alert" aria-live="polite">
+            <BannerTitle>
+              <AlertTriangle /> REALITY CHECK: AI Certifications = <GoldHighlight>0 CRS Points</GoldHighlight>
+            </BannerTitle>
+            <BannerText>
+              AI certifications <strong>do NOT</strong> appear on the CRS scoring grid. Immigration officers do not score them.
+            </BannerText>
+            <BannerText>
+              They <strong>CAN</strong> help you land a Canadian job offer, but IRCC eliminated extra CRS points
+              for job offers as of April 2025.
+            </BannerText>
+            <BannerText>
+              The <strong>REAL reason</strong> to get them: personal growth, stronger SwanStudios platform,
+              backup for employment.
+            </BannerText>
+            <BannerText>
+              <GoldHighlight>
+                DO THESE AFTER IELTS AND FRENCH. Language = 186+ CRS points. Certs = 0.
+              </GoldHighlight>
+            </BannerText>
+          </RealityBanner>
+
+          {/* Cost/Time/Difficulty Summary Table */}
+          <GlassCard>
+            <CardTitle><DollarSign /> Certification Cost & Time Comparison</CardTitle>
+            <DataTable>
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>#</Th>
+                    <Th>Certification</Th>
+                    <Th>Cost</Th>
+                    <Th>Time</Th>
+                    <Th>Difficulty</Th>
+                    <Th>Why It Helps YOU</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {AI_CERTS.map((cert) => (
+                    <tr key={cert.name}>
+                      <Td $mono>{cert.num === 0 ? 'Opt.' : cert.num}</Td>
+                      <Td>{cert.name}</Td>
+                      <Td $mono>{cert.cost}</Td>
+                      <Td $mono>{cert.time}</Td>
+                      <Td>
+                        <DifficultyBadge $level={cert.difficulty}>{cert.difficulty}</DifficultyBadge>
+                      </Td>
+                      <Td>{cert.why}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </DataTable>
+
+            <InvestmentSummary>
+              <InvestmentValue>$415 - $615</InvestmentValue>
+              <InvestmentLabel>Total investment for 3 solid certifications</InvestmentLabel>
+              <div style={{
+                fontFamily: "'Sora', sans-serif",
+                fontSize: 12,
+                color: 'rgba(224,236,244,0.5)',
+                marginTop: 8,
+              }}>
+                Do in parallel with IELTS/French during evenings/weekends
               </div>
-            </CertCard>
-          ))}
-        </SectionGrid>
+            </InvestmentSummary>
+          </GlassCard>
+
+          {/* Detailed Cert Cards */}
+          <SectionGrid>
+            {certProgress.map((cert) => (
+              <CertCard key={cert.name}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <CertName>{cert.num === 0 ? '(Optional) ' : `${cert.num}. `}{cert.name}</CertName>
+                </div>
+                <CertPlatform>{cert.platform}</CertPlatform>
+                <CertMeta>
+                  <CertMetaItem><DollarSign /> {cert.cost}</CertMetaItem>
+                  <CertMetaItem><Clock /> {cert.time}</CertMetaItem>
+                  <CertMetaItem>
+                    <DifficultyBadge $level={cert.difficulty}>{cert.difficulty}</DifficultyBadge>
+                  </CertMetaItem>
+                </CertMeta>
+                <CertWhy>{cert.why}</CertWhy>
+                <TopicList>
+                  {cert.topics.map((t) => (
+                    <TopicChip key={t}>{t}</TopicChip>
+                  ))}
+                </TopicList>
+                <CertProgress>
+                  <CertFill $pct={cert.pct} />
+                </CertProgress>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, color: 'rgba(224,236,244,0.5)' }}>
+                    {cert.sessions} sessions logged
+                  </span>
+                  <CertLink href={cert.link} target="_blank" rel="noopener noreferrer">
+                    Open platform <ExternalLink />
+                  </CertLink>
+                </div>
+              </CertCard>
+            ))}
+          </SectionGrid>
+        </>
       )}
 
-      {/* Score History */}
+      {/* ═══════════════════ Study Plan Timeline ═══════════════════ */}
+      {activeSection === 'timeline' && (
+        <GlassCard>
+          <CardTitle><Calendar /> Study Progression Timeline</CardTitle>
+
+          <CalloutBox $variant="ice">
+            This timeline prioritizes <IceHighlight>language first</IceHighlight> (highest CRS impact),
+            then certifications in parallel during evenings and weekends.
+          </CalloutBox>
+
+          <TimelineContainer>
+            {STUDY_PROGRESSION.map((step, i) => (
+              <TimelineItem key={i} $color={step.color}>
+                <TimelinePeriod>{step.period}</TimelinePeriod>
+                {step.items.map((item, j) => (
+                  <TimelineActivity key={j}>
+                    <ChevronRight /> {item}
+                  </TimelineActivity>
+                ))}
+              </TimelineItem>
+            ))}
+          </TimelineContainer>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: 20, marginTop: 20, flexWrap: 'wrap' }}>
+            {[
+              { label: 'IELTS / English', color: '#60C0F0' },
+              { label: 'AI Certifications', color: '#8B5CF6' },
+              { label: 'French / TEF', color: '#C6A84B' },
+            ].map((l) => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: l.color }} />
+                <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 12, color: 'rgba(224,236,244,0.6)' }}>
+                  {l.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 20 }}>
+            <PointBadge>
+              <PointValue style={{ color: '#60C0F0' }}>136 CRS</PointValue>
+              <PointLabel>IELTS CLB 9 (English)</PointLabel>
+            </PointBadge>
+            <PointBadge>
+              <PointValue style={{ color: '#C6A84B' }}>+50 CRS</PointValue>
+              <PointLabel>French NCLC 7</PointLabel>
+            </PointBadge>
+            <PointBadge>
+              <PointValue style={{ color: '#8B5CF6' }}>0 CRS</PointValue>
+              <PointLabel>AI Certs (job readiness)</PointLabel>
+            </PointBadge>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ═══════════════════ Score History ═══════════════════ */}
       {activeSection === 'history' && (
-        <Card>
-          <CardTitle>Score History</CardTitle>
+        <GlassCard>
+          <CardTitle><BarChart3 /> Score History</CardTitle>
           {chartData.length > 0 ? (
             <ChartContainer>
               {chartData.map((d, i) => (
@@ -617,7 +1366,7 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
               ))}
             </ChartContainer>
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(224,236,244,0.4)', fontSize: 14 }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(224,236,244,0.4)', fontFamily: "'Sora', sans-serif", fontSize: 14 }}>
               No study sessions logged yet. Use the form below to start tracking.
             </div>
           )}
@@ -631,28 +1380,29 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
             ].map((l) => (
               <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: l.color }} />
-                <span style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)' }}>{l.label}</span>
+                <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 11, color: 'rgba(224,236,244,0.5)' }}>{l.label}</span>
               </div>
             ))}
           </div>
-        </Card>
+        </GlassCard>
       )}
 
-      {/* Log Study Session */}
-      <Card>
-        <CardTitle>Log Study Session</CardTitle>
+      {/* ═══════════════════ Log Study Session (always visible) ═══════════════════ */}
+      <GlassCard>
+        <CardTitle><Zap /> Log Study Session</CardTitle>
         <FormRow>
           <FieldGroup>
-            <Label>Category</Label>
-            <Select value={logCategory} onChange={(e) => setLogCategory(e.target.value)}>
+            <Label htmlFor="study-category">Category</Label>
+            <Select id="study-category" value={logCategory} onChange={(e) => setLogCategory(e.target.value)}>
               {STUDY_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </Select>
           </FieldGroup>
           <FieldGroup>
-            <Label>Score (optional)</Label>
+            <Label htmlFor="study-score">Score (optional)</Label>
             <Input
+              id="study-score"
               type="number"
               placeholder="e.g. 7.5"
               value={logScore}
@@ -660,8 +1410,9 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
             />
           </FieldGroup>
           <FieldGroup>
-            <Label>Notes (optional)</Label>
+            <Label htmlFor="study-notes">Notes (optional)</Label>
             <Input
+              id="study-notes"
               placeholder="What did you study?"
               value={logNotes}
               onChange={(e) => setLogNotes(e.target.value)}
@@ -672,7 +1423,7 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
             {submitting ? 'Logging...' : 'Log Session'}
           </LogButton>
         </FormRow>
-      </Card>
+      </GlassCard>
     </Container>
   );
 };
