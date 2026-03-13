@@ -39,6 +39,7 @@ interface GalleryPhoto {
   displayName: string;
   url: string;
   thumbnailUrl: string | null;
+  mediumUrl: string | null;
   width: number | null;
   height: number | null;
   enhancedUrl: string | null;
@@ -1765,6 +1766,9 @@ const GalleryPage: React.FC = () => {
                       }
                       alt={photo.displayName || `Photo ${photo.photoNumber}`}
                       loading="lazy"
+                      width={photo.width || undefined}
+                      height={photo.height || undefined}
+                      style={photo.width && photo.height ? { aspectRatio: `${photo.width}/${photo.height}` } : undefined}
                       onLoad={e => {
                         (e.target as HTMLImageElement).style.animation = 'none';
                         // Clear from failed set if it was retried successfully

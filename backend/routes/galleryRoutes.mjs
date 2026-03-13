@@ -300,7 +300,7 @@ router.get('/events/:slug/photos', requireGalleryAccess, async (req, res) => {
 
     const photos = await GalleryPhoto.findAll({
       where: { eventId: req.galleryAccess.eventId },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'width', 'height', 'enhancedUrl', 'enhancementRequestCount'],
+      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'mediumUrl', 'width', 'height', 'enhancedUrl', 'enhancementRequestCount', 'sourceType'],
       order: [['photoNumber', 'ASC']],
     });
 

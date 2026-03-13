@@ -24,6 +24,7 @@ import GalleryMessage from '../models/GalleryMessage.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import sharp from 'sharp';
 import { applyWatermark, isWatermarkAvailable } from '../services/watermarkService.mjs';
+import { generateVariants, variantKeys } from '../services/imageVariantService.mjs';
 import logger from '../utils/logger.mjs';
 import { tmpdir } from 'os';
 import { join, dirname, extname } from 'path';
@@ -372,6 +373,15 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     const processedBuffer = await applyWatermark(inputBuffer, { applyWatermark: enableWatermark });
     inputBuffer = null;
 
+    // Generate thumbnail + medium variants
+    const keys = variantKeys(storageKey);
+    let variants = null;
+    try {
+      variants = await generateVariants(processedBuffer);
+    } catch (variantErr) {
+      logger.warn(`[AdminGallery:Single] Variant generation failed (non-fatal): ${variantErr.message}`);
+    }
+
     // Upload to R2
     let r2Client = null;
     const R2_BUCKET = process.env.R2_BUCKET_NAME;
@@ -381,19 +391,52 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       if (r2Configured) r2Client = getR2Client();
     } catch { /* R2 not available */ }
 
+    const buildUrl = (key) => R2_PUBLIC_URL
+      ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${key}`
+      : `/api/serve-photo/${key}`;
+
     let url = '';
+    let thumbUrl = '';
+    let mediumUrl = '';
     if (r2Client && R2_BUCKET) {
+      // Upload full-size
       await r2Client.send(new PutObjectCommand({
         Bucket: R2_BUCKET,
         Key: storageKey,
         Body: processedBuffer,
         ContentType: 'image/jpeg',
+        CacheControl: 'public, max-age=31536000, immutable',
       }));
-      url = R2_PUBLIC_URL
-        ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${storageKey}`
-        : `/api/serve-photo/${storageKey}`;
+      url = buildUrl(storageKey);
+
+      // Upload variants (thumb + medium)
+      if (variants) {
+        await Promise.all([
+          r2Client.send(new PutObjectCommand({
+            Bucket: R2_BUCKET,
+            Key: keys.thumbKey,
+            Body: variants.thumb,
+            ContentType: 'image/jpeg',
+            CacheControl: 'public, max-age=31536000, immutable',
+          })),
+          r2Client.send(new PutObjectCommand({
+            Bucket: R2_BUCKET,
+            Key: keys.mediumKey,
+            Body: variants.medium,
+            ContentType: 'image/jpeg',
+            CacheControl: 'public, max-age=31536000, immutable',
+          })),
+        ]);
+        thumbUrl = buildUrl(keys.thumbKey);
+        mediumUrl = buildUrl(keys.mediumKey);
+      } else {
+        thumbUrl = url;
+        mediumUrl = url;
+      }
     } else {
       url = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`;
+      thumbUrl = url;
+      mediumUrl = url;
     }
 
     const metadata = {
@@ -404,6 +447,8 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       watermarked: enableWatermark && isWatermarkAvailable(),
       uploadedAt: new Date().toISOString(),
       sourceType,
+      thumbSize: variants?.thumb?.length || null,
+      mediumSize: variants?.medium?.length || null,
     };
 
     const photo = await GalleryPhoto.create({
@@ -411,11 +456,16 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       photoNumber,
       displayName,
       storageKey,
-      thumbnailKey: storageKey,
+      thumbnailKey: variants ? keys.thumbKey : storageKey,
       url,
-      thumbnailUrl: url,
+      thumbnailUrl: thumbUrl,
+      thumbKey: variants ? keys.thumbKey : null,
+      mediumKey: variants ? keys.mediumKey : null,
+      mediumUrl,
       originalFilename: file.originalname,
       fileSize: processedBuffer.length,
+      width: variants?.width || null,
+      height: variants?.height || null,
       mimeType: 'image/jpeg',
       metadata,
       sourceType: isRaw ? 'raw' : sourceType,
@@ -428,9 +478,10 @@ router.post('/events/:id/upload-single', (req, res, next) => {
 
     // Aggressively free memory
     const finalSize = processedBuffer.length;
+    variants = null;
     if (global.gc) global.gc();
 
-    logger.info(`[AdminGallery:Single] ✅ ${displayName} uploaded (${(finalSize / 1024 / 1024).toFixed(1)}MB) for event ${event.slug}`);
+    logger.info(`[AdminGallery:Single] ✅ ${displayName} uploaded (${(finalSize / 1024 / 1024).toFixed(1)}MB, thumb+medium generated) for event ${event.slug}`);
 
     return res.json({
       success: true,
@@ -440,8 +491,11 @@ router.post('/events/:id/upload-single', (req, res, next) => {
         displayName: photo.displayName,
         url: photo.url,
         thumbnailUrl: photo.thumbnailUrl,
+        mediumUrl: photo.mediumUrl,
         sourceType: photo.sourceType,
         fileSize: finalSize,
+        width: photo.width,
+        height: photo.height,
       },
       totalPhotoCount: totalPhotos,
     });
@@ -556,25 +610,63 @@ router.post('/events/:id/upload', (req, res, next) => {
           applyWatermark: enableWatermark,
         });
 
+        // Generate thumbnail + medium variants
+        const keys = variantKeys(storageKey);
+        let variants = null;
+        try {
+          variants = await generateVariants(processedBuffer);
+        } catch (variantErr) {
+          logger.warn(`[AdminGallery] Variant generation failed (non-fatal) for ${file.originalname}: ${variantErr.message}`);
+        }
+
+        const buildUrl = (key) => R2_PUBLIC_URL
+          ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${key}`
+          : `/api/serve-photo/${key}`;
+
         let url = '';
         let thumbnailUrl = '';
+        let mediumUrl = '';
 
         if (r2Client && R2_BUCKET) {
-          // Upload watermarked photo to R2
+          // Upload full-size watermarked photo to R2
           await r2Client.send(new PutObjectCommand({
             Bucket: R2_BUCKET,
             Key: storageKey,
             Body: processedBuffer,
             ContentType: 'image/jpeg',
+            CacheControl: 'public, max-age=31536000, immutable',
           }));
 
-          url = R2_PUBLIC_URL
-            ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${storageKey}`
-            : `/api/serve-photo/${storageKey}`;
-          thumbnailUrl = url;
+          url = buildUrl(storageKey);
+
+          // Upload variants (thumb + medium)
+          if (variants) {
+            await Promise.all([
+              r2Client.send(new PutObjectCommand({
+                Bucket: R2_BUCKET,
+                Key: keys.thumbKey,
+                Body: variants.thumb,
+                ContentType: 'image/jpeg',
+                CacheControl: 'public, max-age=31536000, immutable',
+              })),
+              r2Client.send(new PutObjectCommand({
+                Bucket: R2_BUCKET,
+                Key: keys.mediumKey,
+                Body: variants.medium,
+                ContentType: 'image/jpeg',
+                CacheControl: 'public, max-age=31536000, immutable',
+              })),
+            ]);
+            thumbnailUrl = buildUrl(keys.thumbKey);
+            mediumUrl = buildUrl(keys.mediumKey);
+          } else {
+            thumbnailUrl = url;
+            mediumUrl = url;
+          }
         } else {
           url = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`;
           thumbnailUrl = url;
+          mediumUrl = url;
         }
 
         const metadata = {
@@ -584,6 +676,8 @@ router.post('/events/:id/upload', (req, res, next) => {
           mimetype: file.mimetype,
           watermarked: enableWatermark && isWatermarkAvailable(),
           uploadedAt: new Date().toISOString(),
+          thumbSize: variants?.thumb?.length || null,
+          mediumSize: variants?.medium?.length || null,
         };
 
         const photo = await GalleryPhoto.create({
@@ -591,15 +685,23 @@ router.post('/events/:id/upload', (req, res, next) => {
           photoNumber,
           displayName,
           storageKey,
-          thumbnailKey: storageKey,
+          thumbnailKey: variants ? keys.thumbKey : storageKey,
           url,
           thumbnailUrl,
+          thumbKey: variants ? keys.thumbKey : null,
+          mediumKey: variants ? keys.mediumKey : null,
+          mediumUrl,
           originalFilename: file.originalname,
           fileSize: processedBuffer.length,
+          width: variants?.width || null,
+          height: variants?.height || null,
           mimeType: 'image/jpeg',
           metadata,
           sourceType: isRaw ? 'raw' : 'jpeg',
         });
+
+        // Free variant buffers
+        variants = null;
 
         uploaded.push({
           id: photo.id,
@@ -607,6 +709,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           displayName: photo.displayName,
           url: photo.url,
           thumbnailUrl: photo.thumbnailUrl,
+          mediumUrl: photo.mediumUrl,
           sourceType: photo.sourceType,
         });
 
@@ -1226,7 +1329,7 @@ router.get('/events/:id/photos', async (req, res) => {
   try {
     const photos = await GalleryPhoto.findAll({
       where: { eventId: req.params.id },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'createdAt'],
+      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'mediumUrl', 'width', 'height', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'sourceType', 'createdAt'],
       order: [['photoNumber', 'ASC']],
     });
     return res.json({ success: true, photos });

@@ -23,6 +23,9 @@ GalleryPhoto.init(
     enhancedUrl: { type: DataTypes.TEXT, allowNull: true, field: 'enhanced_url' },
     enhancementRequestCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, field: 'enhancement_request_count' },
     sourceType: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'jpeg', field: 'source_type' },
+    mediumKey: { type: DataTypes.STRING(500), allowNull: true, field: 'medium_key' },
+    mediumUrl: { type: DataTypes.TEXT, allowNull: true, field: 'medium_url' },
+    thumbKey: { type: DataTypes.STRING(500), allowNull: true, field: 'thumb_key' },
   },
   {
     sequelize,

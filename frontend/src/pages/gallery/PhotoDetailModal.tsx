@@ -359,6 +359,7 @@ interface PhotoDetailModalProps {
     displayName: string;
     url: string;
     thumbnailUrl: string | null;
+    mediumUrl: string | null;
     enhancedUrl: string | null;
   } | null;
   photoIndex: number;
@@ -486,7 +487,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             <ImagePanel>
               {!imgLoaded && <PhotoSkeleton />}
               <PhotoImage
-                src={photo.enhancedUrl || photo.url}
+                src={photo.enhancedUrl || photo.mediumUrl || photo.url}
                 alt={photo.displayName}
                 onLoad={() => setImgLoaded(true)}
                 style={{ display: imgLoaded ? 'block' : 'none' }}
