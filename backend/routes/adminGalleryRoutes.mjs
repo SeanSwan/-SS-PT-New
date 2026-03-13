@@ -479,27 +479,34 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       mediumSize: variants?.medium?.length || null,
     };
 
-    const photo = await GalleryPhoto.create({
-      eventId: event.id,
-      photoNumber,
-      displayName,
-      storageKey,
-      thumbnailKey: variants ? keys.thumbKey : storageKey,
-      url,
-      thumbnailUrl: thumbUrl,
-      thumbKey: variants ? keys.thumbKey : null,
-      mediumKey: variants ? keys.mediumKey : null,
-      mediumUrl,
-      originalFilename: file.originalname,
-      fileSize: processedBuffer.length,
-      width: variants?.width || null,
-      height: variants?.height || null,
-      mimeType: 'image/jpeg',
-      metadata,
-    });
+    // Use raw SQL insert to avoid Sequelize referencing columns not yet migrated
+    const [insertResult] = await sequelize.query(
+      `INSERT INTO gallery_photos (event_id, photo_number, display_name, storage_key, thumbnail_key, url, thumbnail_url, original_filename, file_size, width, height, mime_type, metadata, created_at, updated_at)
+       VALUES (:eventId, :photoNumber, :displayName, :storageKey, :thumbnailKey, :url, :thumbnailUrl, :originalFilename, :fileSize, :width, :height, :mimeType, :metadata, NOW(), NOW())
+       RETURNING id, photo_number as "photoNumber", display_name as "displayName", url, thumbnail_url as "thumbnailUrl", width, height, file_size as "fileSize"`,
+      {
+        replacements: {
+          eventId: event.id,
+          photoNumber,
+          displayName,
+          storageKey,
+          thumbnailKey: variants ? keys.thumbKey : storageKey,
+          url,
+          thumbnailUrl: thumbUrl,
+          originalFilename: file.originalname,
+          fileSize: processedBuffer.length,
+          width: variants?.width || null,
+          height: variants?.height || null,
+          mimeType: 'image/jpeg',
+          metadata: JSON.stringify(metadata),
+        },
+      }
+    );
+    const photo = insertResult[0];
 
     // Update event photo count
-    const totalPhotos = await GalleryPhoto.count({ where: { eventId: event.id } });
+    const [[countRow]] = await sequelize.query('SELECT COUNT(*) as count FROM gallery_photos WHERE event_id = :eventId', { replacements: { eventId: event.id } });
+    const totalPhotos = parseInt(countRow.count, 10);
     await event.update({ photoCount: totalPhotos });
     if (!event.coverPhotoId) await event.update({ coverPhotoId: photo.id });
 
@@ -1326,11 +1333,15 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
  */
 router.get('/events/:id/photos', async (req, res) => {
   try {
-    const photos = await GalleryPhoto.findAll({
-      where: { eventId: req.params.id },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'mediumUrl', 'width', 'height', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'createdAt'],
-      order: [['photoNumber', 'ASC']],
-    });
+    // Use raw SQL to avoid Sequelize referencing columns not yet migrated
+    const [photos] = await sequelize.query(
+      `SELECT id, photo_number as "photoNumber", display_name as "displayName", url,
+              thumbnail_url as "thumbnailUrl", width, height, file_size as "fileSize",
+              enhanced_url as "enhancedUrl", enhancement_request_count as "enhancementRequestCount",
+              created_at as "createdAt"
+       FROM gallery_photos WHERE event_id = :eventId ORDER BY photo_number ASC`,
+      { replacements: { eventId: req.params.id } }
+    );
     return res.json({ success: true, photos });
   } catch (err) {
     logger.error('[AdminGallery] List photos error:', err.message);
