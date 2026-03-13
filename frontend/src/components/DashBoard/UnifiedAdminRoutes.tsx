@@ -63,6 +63,7 @@ const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/Equipm
 const FoodIntelligenceDashboard = React.lazy(() => import('../FoodTracker/FoodIntelligenceDashboard'));
 const FoodScannerPage = React.lazy(() => import('../../pages/FoodScanner/FoodScannerPage'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
+const PaymentSettingsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PaymentSettingsPanel'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
 
@@ -257,6 +258,11 @@ const UnifiedAdminRoutes: React.FC = () => (
       <Route path="revenue" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <CATaxCalculatorWidget />
+        </React.Suspense>
+      } />
+      <Route path="payment-settings" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <PaymentSettingsPanel />
         </React.Suspense>
       } />
     </Route>

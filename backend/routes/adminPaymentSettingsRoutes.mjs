@@ -2,7 +2,7 @@
  * Admin Payment Settings Routes
  * ==============================
  * CRUD for configurable payment method details (Zelle email, Venmo handle, check payee).
- * Stored in AdminSettings model (key-value pairs).
+ * Stored in AdminSettings model with category='payment' and JSON settings column.
  *
  * Endpoints:
  * - GET  /api/admin/payment-settings       — Admin: get all payment settings
@@ -10,26 +10,21 @@
  * - GET  /api/admin/payment-settings/public — Public: get non-sensitive payment info
  */
 import express from 'express';
+import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
-// Settings keys for payment configuration
-const SETTINGS_KEYS = {
-  ZELLE_RECIPIENT: 'payment_zelle_recipient',
-  VENMO_HANDLE: 'payment_venmo_handle',
-  CHECK_PAYEE: 'payment_check_payee_name',
-};
+const CATEGORY = 'payment';
 
-// Default values
 const DEFAULTS = {
-  [SETTINGS_KEYS.ZELLE_RECIPIENT]: '',
-  [SETTINGS_KEYS.VENMO_HANDLE]: '',
-  [SETTINGS_KEYS.CHECK_PAYEE]: 'SwanStudios',
+  zelleRecipient: '3239968153',
+  venmoHandle: '',
+  checkPayeeName: 'SwanStudios',
 };
 
 /**
- * Helper: get or create AdminSettings model
+ * Helper: get the AdminSettings model
  */
 async function getSettingsModel() {
   try {
@@ -41,50 +36,107 @@ async function getSettingsModel() {
 }
 
 /**
- * Helper: get all payment settings as object
+ * Helper: get payment settings record (or create with defaults)
  */
 async function getPaymentSettings() {
   const AdminSettings = await getSettingsModel();
   if (!AdminSettings) return { ...DEFAULTS };
 
-  const result = {};
-  for (const [key, settingKey] of Object.entries(SETTINGS_KEYS)) {
-    try {
-      const record = await AdminSettings.findOne({ where: { key: settingKey } });
-      result[settingKey] = record?.value || DEFAULTS[settingKey] || '';
-    } catch {
-      result[settingKey] = DEFAULTS[settingKey] || '';
+  try {
+    let record = await AdminSettings.findOne({ where: { category: CATEGORY } });
+    if (!record) {
+      record = await AdminSettings.create({
+        category: CATEGORY,
+        settings: { ...DEFAULTS },
+      });
     }
+    return { ...DEFAULTS, ...(record.settings || {}) };
+  } catch (err) {
+    logger.error('[PaymentSettings] Error reading settings:', err.message);
+    return { ...DEFAULTS };
   }
-  return result;
 }
 
 /**
  * GET /api/admin/payment-settings/public
- * Public endpoint — returns non-sensitive payment config for checkout UI.
+ * Public endpoint — returns payment config for checkout UI.
  * No auth required.
  */
-router.get('/public', async (req, res) => {
+router.get('/public', async (_req, res) => {
   try {
     const settings = await getPaymentSettings();
     return res.json({
       success: true,
       settings: {
-        zelleRecipient: settings[SETTINGS_KEYS.ZELLE_RECIPIENT] || '',
-        venmoHandle: settings[SETTINGS_KEYS.VENMO_HANDLE] || '',
-        checkPayeeName: settings[SETTINGS_KEYS.CHECK_PAYEE] || 'SwanStudios',
+        zelleRecipient: settings.zelleRecipient || '',
+        venmoHandle: settings.venmoHandle || '',
+        checkPayeeName: settings.checkPayeeName || 'SwanStudios',
       },
     });
   } catch (err) {
     logger.error('[PaymentSettings] Error fetching public settings:', err.message);
     return res.json({
       success: true,
-      settings: {
-        zelleRecipient: '',
-        venmoHandle: '',
-        checkPayeeName: 'SwanStudios',
-      },
+      settings: { ...DEFAULTS },
     });
+  }
+});
+
+/**
+ * GET /api/admin/payment-settings
+ * Admin only — returns full payment settings.
+ */
+router.get('/', protect, async (req, res) => {
+  try {
+    if (!['admin', 'trainer'].includes(req.user?.role)) {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+    const settings = await getPaymentSettings();
+    return res.json({ success: true, settings });
+  } catch (err) {
+    logger.error('[PaymentSettings] Error fetching admin settings:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to load settings' });
+  }
+});
+
+/**
+ * PUT /api/admin/payment-settings
+ * Admin only — update payment settings.
+ */
+router.put('/', protect, async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const { zelleRecipient, venmoHandle, checkPayeeName } = req.body;
+    const AdminSettings = await getSettingsModel();
+    if (!AdminSettings) {
+      return res.status(500).json({ success: false, message: 'Settings model unavailable' });
+    }
+
+    let record = await AdminSettings.findOne({ where: { category: CATEGORY } });
+    const newSettings = {
+      zelleRecipient: zelleRecipient ?? record?.settings?.zelleRecipient ?? DEFAULTS.zelleRecipient,
+      venmoHandle: venmoHandle ?? record?.settings?.venmoHandle ?? DEFAULTS.venmoHandle,
+      checkPayeeName: checkPayeeName ?? record?.settings?.checkPayeeName ?? DEFAULTS.checkPayeeName,
+    };
+
+    if (record) {
+      record.settings = newSettings;
+      record.changed('settings', true);
+      await record.save();
+    } else {
+      record = await AdminSettings.create({ category: CATEGORY, settings: newSettings });
+    }
+
+    console.warn(`[AUDIT] Admin ${req.user.id} (${req.user.username}) updated payment settings`);
+    logger.info('[PaymentSettings] Settings updated by admin:', req.user.id);
+
+    return res.json({ success: true, settings: newSettings });
+  } catch (err) {
+    logger.error('[PaymentSettings] Error updating settings:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to update settings' });
   }
 });
 

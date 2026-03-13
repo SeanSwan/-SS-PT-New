@@ -42,7 +42,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [settings, setSettings] = useState<PaymentSettings>({
-    zelleRecipient: '',
+    zelleRecipient: '3239968153',
     venmoHandle: '',
     checkPayeeName: 'SwanStudios',
   });
