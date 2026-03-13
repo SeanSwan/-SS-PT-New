@@ -425,20 +425,20 @@ const GalleryInfoCard: React.FC<GalleryInfoCardProps> = ({
 
             {/* Column 3: Actions */}
             <Module>
-              <ActionsHeading>We'd Love to Hear From You</ActionsHeading>
+              <ActionsHeading>About the Photographer</ActionsHeading>
+              <SupportText>
+                I'm a professional trainer with 26+ years of experience.
+                If you'd like to support my work, you can leave a donation
+                of any amount. Know someone who'd benefit from a free
+                training orientation for home training? Send me a note!
+              </SupportText>
+
+              <Divider />
+
               <GhostButton onClick={onOpenMessage}>
                 <Mail size={16} />
                 Send a Note
               </GhostButton>
-
-              <Divider />
-
-              <ActionsHeading>Support Our Work</ActionsHeading>
-              <SupportText>
-                If you've enjoyed these photos, consider leaving an optional
-                donation. Every contribution helps us continue capturing these
-                moments.
-              </SupportText>
               <PrimaryActionButton onClick={onOpenDonation}>
                 <Heart size={16} />
                 Leave a Donation
