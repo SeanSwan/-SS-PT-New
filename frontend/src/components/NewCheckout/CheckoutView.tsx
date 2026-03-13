@@ -38,7 +38,7 @@ import { useToast } from '../../hooks/use-toast';
 import GlowButton from '../ui/buttons/GlowButton';
 import OrderReviewStep from './OrderReviewStep';
 import CheckoutButton from './CheckoutButton';
-import PaymentMethodSelector from '../checkout/PaymentMethodSelector';
+import PaymentMethodSelector from '../Checkout/PaymentMethodSelector';
 import api from '../../services/api.service';
 import {
   ShoppingCart, CreditCard, Shield, Lock, CheckCircle,
