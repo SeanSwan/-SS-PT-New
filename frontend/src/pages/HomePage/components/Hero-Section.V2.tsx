@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -113,6 +113,11 @@ const VideoBackground = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
     opacity: 0.35;
   }
 
@@ -344,6 +349,8 @@ const HeroSectionV2: React.FC = () => {
   const isDesktop = useIsDesktop();
   const prefersReducedMotion = useReducedMotion();
   const [showOrientation, setShowOrientation] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   const orbConfigs = useMemo(
     () => prefersReducedMotion ? [] : (isDesktop ? ORB_CONFIGS_DESKTOP : ORB_CONFIGS_MOBILE),
@@ -355,14 +362,14 @@ const HeroSectionV2: React.FC = () => {
       <HeroContainer>
       {/* Background: video on desktop, gradient on mobile */}
       {isDesktop && !prefersReducedMotion ? (
-        <VideoBackground>
+        <VideoBackground className={videoReady ? 'video-ready' : ''}>
           <video
             autoPlay
             loop
             muted
             playsInline
             preload="metadata"
-            poster=""
+            onCanPlayThrough={handleVideoReady}
           >
             <source src="/Swans.mp4" type="video/mp4" />
           </video>

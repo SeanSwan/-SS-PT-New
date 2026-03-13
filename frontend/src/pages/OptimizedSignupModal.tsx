@@ -6,7 +6,7 @@
  * U.S. standard units (lbs/inches), and better viewport handling.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, Variants } from "framer-motion";
@@ -82,6 +82,12 @@ const VideoBackground = styled.div`
     transform: translate(-50%, -50%);
     object-fit: cover;
     z-index: 0;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
+    opacity: 1;
   }
 `;
 
@@ -573,6 +579,9 @@ const OptimizedSignupModal: React.FC = () => {
   const { theme } = useUniversalTheme();
   const controls = useAnimation();
 
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
+
   const [formData, setFormData] = useState({
     firstName: "", 
     lastName: "", 
@@ -944,10 +953,9 @@ const OptimizedSignupModal: React.FC = () => {
   return (
     <AuthLayout>
       <SignupContainer>
-        <VideoBackground>
-          <video autoPlay loop muted>
+        <VideoBackground className={videoReady ? 'video-ready' : ''}>
+          <video autoPlay loop muted playsInline onCanPlayThrough={handleVideoReady}>
             <source src={powerBackground} type="video/mp4" />
-            Your browser does not support the video tag.
           </video>
         </VideoBackground>
 

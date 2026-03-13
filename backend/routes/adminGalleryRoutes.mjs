@@ -1985,4 +1985,56 @@ router.post('/repair-raw-photos', async (req, res) => {
   }
 });
 
+// ── Reset Test Data (Super Admin Only) ──────────────────────────────────────
+/**
+ * POST /api/admin/gallery/reset-test-data
+ * Clears all gallery test data: donations, visitors, referrals, messages, enhancement requests.
+ * Does NOT delete events or photos (those are real content).
+ * Uses DELETE FROM (not TRUNCATE) to respect FK constraints.
+ */
+router.post('/reset-test-data', async (req, res) => {
+  try {
+    // Extra safety: admin-only (already enforced by middleware, but double-check)
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Super admin access required' });
+    }
+
+    console.warn(`[AUDIT] Admin ${req.user.id} (${req.user.email}) triggered gallery test data reset at ${new Date().toISOString()}`);
+
+    const results = {};
+
+    // Delete in order that respects potential FK relationships
+    const tables = [
+      { model: GalleryDonation, name: 'gallery_donations' },
+      { model: GalleryReferral, name: 'gallery_referrals' },
+      { model: EnhancementRequest, name: 'enhancement_requests' },
+      { model: GalleryMessage, name: 'gallery_messages' },
+      { model: PhotoVote, name: 'photo_votes' },
+      { model: GalleryVisitor, name: 'gallery_visitors' },
+    ];
+
+    for (const { model, name } of tables) {
+      if (model) {
+        const count = await model.destroy({ where: {}, truncate: false });
+        results[name] = count;
+        logger.info(`[ResetTestData] Deleted ${count} rows from ${name}`);
+      } else {
+        results[name] = 'model not available';
+      }
+    }
+
+    console.warn(`[AUDIT] Gallery test data reset complete:`, JSON.stringify(results));
+
+    return res.json({
+      success: true,
+      message: 'Gallery test data has been reset',
+      deleted: results,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    logger.error('[ResetTestData] Error:', err.message, err.stack);
+    return res.status(500).json({ success: false, error: `Reset failed: ${err.message}` });
+  }
+});
+
 export default router;

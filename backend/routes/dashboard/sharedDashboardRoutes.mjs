@@ -33,7 +33,7 @@ import rateLimit from 'express-rate-limit';
 import sequelize from '../../database.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../../models/index.mjs';
-import { PAGE_VIEW_CACHE, PAGE_VIEW_TTL } from '../../services/pageViewCache.mjs';
+import { PAGE_VIEW_CACHE, PAGE_VIEW_TTL, bufferPageView } from '../../services/pageViewCache.mjs';
 
 const router = express.Router();
 
@@ -478,6 +478,12 @@ router.post('/track-pageview', pageviewLimiter, async (req, res) => {
       lookupGeo(ip).then(geo => {
         if (geo) entry.geo = geo;
       }).catch(() => {});
+    }
+
+    // Buffer for persistent DB storage
+    const cachedEntry = PAGE_VIEW_CACHE.get(ip);
+    if (cachedEntry) {
+      bufferPageView(cachedEntry);
     }
 
     // Prune old entries

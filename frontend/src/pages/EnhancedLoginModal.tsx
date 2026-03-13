@@ -6,7 +6,7 @@
  * for better vertical space utilization.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, Variants } from "framer-motion";
@@ -81,6 +81,12 @@ const VideoBackground = styled.div`
     transform: translate(-50%, -50%);
     object-fit: cover;
     z-index: 0;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
+    opacity: 1;
   }
 `;
 
@@ -402,6 +408,8 @@ const EnhancedLoginModal: React.FC = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState({ connected: false, checked: false });
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
   // Force password change state
   const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const [tempToken, setTempToken] = useState("");
@@ -612,10 +620,9 @@ const EnhancedLoginModal: React.FC = () => {
         exit="exit"
         variants={containerVariants}
       >
-        <VideoBackground>
-          <video autoPlay loop muted playsInline key={powerBackground}>
+        <VideoBackground className={videoReady ? 'video-ready' : ''}>
+          <video autoPlay loop muted playsInline key={powerBackground} onCanPlayThrough={handleVideoReady}>
             <source src={powerBackground} type="video/mp4" />
-            Your browser does not support the video tag.
           </video>
         </VideoBackground>
 

@@ -38,6 +38,7 @@ import { useToast } from '../../hooks/use-toast';
 import GlowButton from '../ui/buttons/GlowButton';
 import OrderReviewStep from './OrderReviewStep';
 import CheckoutButton from './CheckoutButton';
+import PaymentMethodSelector from '../checkout/PaymentMethodSelector';
 import api from '../../services/api.service';
 import {
   ShoppingCart, CreditCard, Shield, Lock, CheckCircle,
@@ -662,44 +663,28 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
             </CheckoutInfoGrid>
           </CheckoutSection>
 
-          {/* Payment Method */}
+          {/* Payment Method Selector — wraps Stripe + offline methods */}
           <CheckoutSection
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <SectionTitle>
-              <CreditCard size={20} />
-              Payment Method
-            </SectionTitle>
-            
-            <PaymentMethodCard>
-              <CreditCard size={24} color="#ffffff" />
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem' }}>
-                  Stripe Secure Checkout
-                </h4>
-                <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
-                  Credit/debit cards, Apple Pay, Google Pay, and more
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Shield size={20} color="#ffffff" />
-                <Sparkles size={20} color="#ffffff" />
-              </div>
-            </PaymentMethodCard>
+            <PaymentMethodSelector total={total}>
+              {/* This is the existing Stripe card flow — shown when "card" is selected */}
+              <ActionButtonContainer>
+                <CheckoutButton
+                  onClick={handleCreateCheckoutSession}
+                  disabled={!isCheckoutReady() || checkoutState.isProcessing}
+                  isLoading={checkoutState.isProcessing}
+                  amount={total}
+                />
+              </ActionButtonContainer>
+            </PaymentMethodSelector>
           </CheckoutSection>
 
-          {/* Action Buttons */}
-          <ActionButtonContainer>
-            <CheckoutButton
-              onClick={handleCreateCheckoutSession}
-              disabled={!isCheckoutReady() || checkoutState.isProcessing}
-              isLoading={checkoutState.isProcessing}
-              amount={total}
-            />
-            
-            {onCancel && (
+          {/* Cancel Button */}
+          {onCancel && (
+            <ActionButtonContainer>
               <GlowButton
                 variant="cosmic"
                 size="large"
@@ -710,8 +695,8 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
                 <Home size={20} />
                 Return to Cart
               </GlowButton>
-            )}
-          </ActionButtonContainer>
+            </ActionButtonContainer>
+          )}
 
           {/* Status Messages */}
           <AnimatePresence>

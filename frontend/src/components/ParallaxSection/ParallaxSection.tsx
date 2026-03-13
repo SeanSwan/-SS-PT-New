@@ -1,5 +1,5 @@
 // frontend/src/components/ParallaxSection/ParallaxSection.tsx
-import React, { useRef } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import GlowButton from "../../components/ui/buttons/GlowButton";
@@ -50,6 +50,12 @@ const VideoBackground = styled(motion.div)`
     width: 100%; height: 100%;
     object-fit: cover;
     filter: brightness(0.8);
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
+    opacity: 1;
   }
 `;
 
@@ -173,13 +179,14 @@ const ParallaxSection: React.FC = () => {
   const videoY = useTransform(scrollY, [0, 500], [0, 150]);
   const contentRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(contentRef, { once: true, amount: 0.3 });
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   return (
     <ParallaxSectionContainer>
-      <VideoBackground style={{ y: videoY }}>
-        <video autoPlay loop muted playsInline poster="/video-poster.jpg">
+      <VideoBackground style={{ y: videoY }} className={videoReady ? 'video-ready' : ''}>
+        <video autoPlay loop muted playsInline onCanPlayThrough={handleVideoReady}>
           <source src={wavesVideo} type="video/mp4" />
-          Your browser does not support the video tag.
         </video>
       </VideoBackground>
 

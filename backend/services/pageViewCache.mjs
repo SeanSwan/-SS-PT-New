@@ -1,10 +1,80 @@
 /**
- * In-Memory Page View Cache
- * =========================
+ * In-Memory Page View Cache + Buffered DB Persistence
+ * ====================================================
  * Shared between the public track-pageview endpoint and
  * the admin anonymous-visitors endpoint.
- * Resets on deploy (intentional — this is real-time "who's on site now" data).
+ *
+ * PAGE_VIEW_CACHE: Resets on deploy — real-time "who's on site now" data.
+ * PAGE_VIEW_BUFFER: Batched writes to PostgreSQL every 15s or at 50 records.
  */
 
 export const PAGE_VIEW_CACHE = new Map(); // ip -> { geo, lastSeen, pages[], userAgent, ... }
 export const PAGE_VIEW_TTL = 24 * 60 * 60 * 1000; // 24h
+
+// ── Buffered DB persistence ──
+export const PAGE_VIEW_BUFFER = [];
+const FLUSH_INTERVAL = 15000; // 15 seconds
+const FLUSH_THRESHOLD = 50;   // records
+
+let flushTimer = null;
+let PageViewModel = null; // Lazy-loaded to avoid circular imports
+
+/**
+ * Push a page view record to the buffer for batched DB write.
+ */
+export function bufferPageView(entry) {
+  PAGE_VIEW_BUFFER.push({
+    ip: entry.ip,
+    page: entry.pages?.[entry.pages.length - 1] || null,
+    referrer: entry.referrer || null,
+    userAgent: entry.userAgent || null,
+    country: entry.geo?.country || null,
+    countryCode: entry.geo?.countryCode || null,
+    region: entry.geo?.region || null,
+    city: entry.geo?.city || null,
+    pageCount: entry.pageCount || 1,
+    pages: entry.pages || [],
+    firstSeen: new Date(entry.firstSeen),
+    lastSeen: new Date(entry.lastSeen),
+  });
+
+  if (PAGE_VIEW_BUFFER.length >= FLUSH_THRESHOLD) {
+    flushBuffer();
+  }
+}
+
+/**
+ * Flush buffered records to PostgreSQL via bulkCreate.
+ */
+export async function flushBuffer() {
+  if (PAGE_VIEW_BUFFER.length === 0) return;
+
+  const batch = PAGE_VIEW_BUFFER.splice(0, PAGE_VIEW_BUFFER.length);
+
+  try {
+    if (!PageViewModel) {
+      const mod = await import('../models/PageView.mjs');
+      PageViewModel = mod.default;
+    }
+
+    await PageViewModel.bulkCreate(batch, { ignoreDuplicates: false });
+  } catch (err) {
+    // On failure, log but don't crash — data loss is acceptable for analytics
+    console.warn('[PageViewBuffer] Flush failed:', err.message);
+  }
+}
+
+// Start periodic flush timer
+function startFlushTimer() {
+  if (flushTimer) return;
+  flushTimer = setInterval(() => {
+    if (PAGE_VIEW_BUFFER.length > 0) {
+      flushBuffer();
+    }
+  }, FLUSH_INTERVAL);
+
+  // Don't keep process alive just for analytics
+  if (flushTimer.unref) flushTimer.unref();
+}
+
+startFlushTimer();

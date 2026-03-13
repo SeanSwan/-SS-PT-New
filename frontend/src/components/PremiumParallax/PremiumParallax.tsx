@@ -1,5 +1,5 @@
 // src/pages/homepage/components/PremiumParallax/PremiumParallax.jsx
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import { motion, useScroll, useTransform, useInView, useAnimation } from "framer-motion";
 import { gsap } from "gsap";
@@ -38,13 +38,15 @@ const VideoBackground = styled.div`
   z-index: -1;
 `;
 
-const ParallaxVideo = styled(motion.video)`
+const ParallaxVideo = styled(motion.video)<{ $ready?: boolean }>`
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: ${({ $ready }) => ($ready ? 1 : 0)};
+  transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const DarkenOverlay = styled.div`
@@ -455,6 +457,8 @@ const PremiumParallax = () => {
   const containerRef = useRef(null);
   const cardRef = useRef(null);
   const controls = useAnimation();
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
   const { scrollY } = useScroll();
   const isInView = useInView(containerRef, { once: false, amount: 0.3 });
   
@@ -587,15 +591,16 @@ const PremiumParallax = () => {
   return (
     <ParallaxContainer ref={containerRef} id="premium-parallax">
       <VideoBackground>
-        <ParallaxVideo 
+        <ParallaxVideo
           style={{ y: videoY }}
-          autoPlay 
-          loop 
-          muted 
+          autoPlay
+          loop
+          muted
           playsInline
+          $ready={videoReady}
+          onCanPlayThrough={handleVideoReady}
         >
           <source src={parallaxVideo} type="video/mp4" />
-          Your browser does not support the video tag.
         </ParallaxVideo>
         <DarkenOverlay />
         <GradientOverlay />

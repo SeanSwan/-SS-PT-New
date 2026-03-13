@@ -1,6 +1,6 @@
 // src/pages/HomePage/components/Hero-Section.jsx - Fixed and enhanced version
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
@@ -24,7 +24,7 @@ const HeroStoreContainer = styled.section`
 `;
 
 // Video background with improved positioning
-const VideoBackground = styled.video`
+const VideoBackground = styled.video<{ $ready?: boolean }>`
   position: absolute;
   top: 0;
   left: 0;
@@ -32,7 +32,8 @@ const VideoBackground = styled.video`
   height: 100%;
   object-fit: cover;
   z-index: -2;
-  opacity: 0.9;
+  opacity: ${({ $ready }) => ($ready ? 0.9 : 0)};
+  transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 // Color overlay with better gradient
@@ -152,6 +153,8 @@ const buttonVariants = {
 // HeroSection component
 const HeroSection = () => {
   const [showOrientation, setShowOrientation] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   const handleOrientationClick = () => {
     setShowOrientation(true);
@@ -161,9 +164,8 @@ const HeroSection = () => {
     <>
       <HeroStoreContainer id="store-hero">
         {/* Video background */}
-        <VideoBackground autoPlay loop muted playsInline>
+        <VideoBackground autoPlay loop muted playsInline $ready={videoReady} onCanPlayThrough={handleVideoReady}>
           <source src={heroVideo} type="video/mp4" />
-          Your browser does not support the video tag.
         </VideoBackground>
         
         {/* Color overlay */}

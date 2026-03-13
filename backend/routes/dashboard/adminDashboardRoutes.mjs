@@ -543,4 +543,45 @@ router.get('/anonymous-visitors', protect, adminOnly, async (req, res) => {
   }
 });
 
+// ── Persistent Visitor History (paginated, never deletes) ─────────────────────
+/**
+ * GET /api/admin/dashboard/visitor-history
+ * Returns paginated persistent page view records from PostgreSQL.
+ * Query params: page (default 1), limit (default 50, max 200)
+ */
+router.get('/visitor-history', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+
+    let PageView;
+    try {
+      const mod = await import('../../models/PageView.mjs');
+      PageView = mod.default;
+    } catch {
+      return res.json({ success: true, visitors: [], total: 0, page, limit, message: 'PageView model not yet available' });
+    }
+
+    const { count, rows } = await PageView.findAndCountAll({
+      order: [['last_seen', 'DESC']],
+      limit,
+      offset,
+      raw: true,
+    });
+
+    return res.json({
+      success: true,
+      visitors: rows,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+    });
+  } catch (err) {
+    logger.error('[AdminDashboard] Visitor history error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to fetch visitor history' });
+  }
+});
+
 export default router;

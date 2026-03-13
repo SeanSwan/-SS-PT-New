@@ -11,7 +11,8 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { Globe, MapPin, RefreshCw, Users, Eye, Clock, Activity, TrendingUp, FileText } from 'lucide-react';
+import { Globe, MapPin, RefreshCw, Users, Eye, Clock, Activity, TrendingUp, FileText, Maximize2, X, ChevronRight } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 
 // ── Crystalline Swan Tokens ──
@@ -122,6 +123,8 @@ const VisitorGeoWidget: React.FC = () => {
   const [geoData, setGeoData] = useState<GeoData | null>(null);
   const [anonData, setAnonData] = useState<AnonData | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('live');
+  const [showFullModal, setShowFullModal] = useState(false);
+  const [selectedVisitor, setSelectedVisitor] = useState<AnonVisitor | GeoVisitor | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -193,6 +196,10 @@ const VisitorGeoWidget: React.FC = () => {
           <RefreshBtn onClick={fetchAll} disabled={loading} aria-label="Refresh visitor data">
             <RefreshCw size={14} className={loading ? 'spinning' : ''} />
           </RefreshBtn>
+          <ViewAllBtn onClick={() => setShowFullModal(true)} aria-label="View all visitors">
+            <Maximize2 size={14} />
+            View All
+          </ViewAllBtn>
         </HeaderStats>
       </Header>
 
@@ -252,7 +259,7 @@ const VisitorGeoWidget: React.FC = () => {
                 </EmptyState>
               )}
               {anonData?.recentVisitors?.map((v, i) => (
-                <LiveRow key={`anon-${i}`}>
+                <LiveRow key={`anon-${i}`} onClick={() => setSelectedVisitor(v)} $clickable>
                   <LiveDotSmall $recent={Date.now() - new Date(v.lastSeen).getTime() < 300000} />
                   <LiveInfo>
                     <LiveLocation>
@@ -268,10 +275,11 @@ const VisitorGeoWidget: React.FC = () => {
                     <SourceBadge $variant="anonymous">anon</SourceBadge>
                     <LiveTime>{timeAgo(v.lastSeen)}</LiveTime>
                   </LiveMeta>
+                  <ChevronRight size={14} style={{ opacity: 0.3, flexShrink: 0 }} />
                 </LiveRow>
               ))}
               {geoData?.visitors?.slice(0, 10).map((v, i) => (
-                <LiveRow key={`user-${v.userId || i}`}>
+                <LiveRow key={`user-${v.userId || i}`} onClick={() => setSelectedVisitor(v)} $clickable>
                   <LiveDotSmall $recent={Date.now() - new Date(v.lastActive).getTime() < 300000} />
                   <LiveInfo>
                     <LiveLocation>
@@ -287,6 +295,7 @@ const VisitorGeoWidget: React.FC = () => {
                     </SourceBadge>
                     <LiveTime>{timeAgo(v.lastActive)}</LiveTime>
                   </LiveMeta>
+                  <ChevronRight size={14} style={{ opacity: 0.3, flexShrink: 0 }} />
                 </LiveRow>
               ))}
             </GeoList>
@@ -374,6 +383,156 @@ const VisitorGeoWidget: React.FC = () => {
             </GeoList>
           )}
         </ContentArea>
+      )}
+      {/* ── Visitor Detail Panel ── */}
+      {selectedVisitor && (
+        <DetailPanel>
+          <DetailHeader>
+            <DetailTitle>Visitor Details</DetailTitle>
+            <CloseDetailBtn onClick={() => setSelectedVisitor(null)}><X size={16} /></CloseDetailBtn>
+          </DetailHeader>
+          <DetailContent>
+            {'pages' in selectedVisitor && Array.isArray((selectedVisitor as AnonVisitor).pages) ? (
+              // Anonymous visitor
+              <>
+                <DetailRow>
+                  <DetailLabel>Location</DetailLabel>
+                  <DetailValue>
+                    {countryFlag((selectedVisitor as AnonVisitor).countryCode)}{' '}
+                    {(selectedVisitor as AnonVisitor).city || 'Unknown'}
+                    {(selectedVisitor as AnonVisitor).region && `, ${(selectedVisitor as AnonVisitor).region}`}
+                    {(selectedVisitor as AnonVisitor).country && ` — ${(selectedVisitor as AnonVisitor).country}`}
+                  </DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>First Seen</DetailLabel>
+                  <DetailValue>{new Date((selectedVisitor as AnonVisitor).firstSeen).toLocaleString()}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>Last Seen</DetailLabel>
+                  <DetailValue>{timeAgo((selectedVisitor as AnonVisitor).lastSeen)}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>Page Views</DetailLabel>
+                  <DetailValue>{(selectedVisitor as AnonVisitor).pageCount}</DetailValue>
+                </DetailRow>
+                {(selectedVisitor as AnonVisitor).referrer && (
+                  <DetailRow>
+                    <DetailLabel>Referrer</DetailLabel>
+                    <DetailValue>{(selectedVisitor as AnonVisitor).referrer}</DetailValue>
+                  </DetailRow>
+                )}
+                <DetailRow>
+                  <DetailLabel>Pages Visited</DetailLabel>
+                  <DetailValue>
+                    <PagesList>
+                      {(selectedVisitor as AnonVisitor).pages.map((p, i) => (
+                        <PageTag key={i}>{pageName(p)}</PageTag>
+                      ))}
+                    </PagesList>
+                  </DetailValue>
+                </DetailRow>
+              </>
+            ) : (
+              // Logged-in / gallery visitor
+              <>
+                <DetailRow>
+                  <DetailLabel>Name</DetailLabel>
+                  <DetailValue>{(selectedVisitor as GeoVisitor).name}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>Role</DetailLabel>
+                  <DetailValue>{(selectedVisitor as GeoVisitor).role}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>Location</DetailLabel>
+                  <DetailValue>
+                    {countryFlag((selectedVisitor as GeoVisitor).countryCode)}{' '}
+                    {(selectedVisitor as GeoVisitor).city && `${(selectedVisitor as GeoVisitor).city}, `}
+                    {(selectedVisitor as GeoVisitor).country || 'Unknown'}
+                  </DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>Last Active</DetailLabel>
+                  <DetailValue>{timeAgo((selectedVisitor as GeoVisitor).lastActive)}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel>Source</DetailLabel>
+                  <DetailValue>{(selectedVisitor as GeoVisitor).source}</DetailValue>
+                </DetailRow>
+              </>
+            )}
+          </DetailContent>
+        </DetailPanel>
+      )}
+
+      {/* ── Full-Screen Modal ── */}
+      {showFullModal && createPortal(
+        <ModalOverlay onClick={() => setShowFullModal(false)}>
+          <ModalContent onClick={e => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>
+                <Globe size={20} />
+                Visitor Intelligence — Full View
+              </ModalTitle>
+              <CloseDetailBtn onClick={() => setShowFullModal(false)}><X size={20} /></CloseDetailBtn>
+            </ModalHeader>
+            <ModalBody>
+              <ModalSection>
+                <ModalSectionTitle>
+                  <Activity size={16} /> Anonymous Visitors ({anonData?.recentVisitors?.length || 0})
+                </ModalSectionTitle>
+                <ModalList>
+                  {anonData?.recentVisitors?.map((v, i) => (
+                    <ModalRow key={`anon-${i}`} onClick={() => setSelectedVisitor(v)}>
+                      <LiveDotSmall $recent={Date.now() - new Date(v.lastSeen).getTime() < 300000} />
+                      <ModalRowInfo>
+                        <span>{countryFlag(v.countryCode)} {v.city || v.country || 'Unknown'}</span>
+                        <ModalRowMeta>
+                          {v.pageCount} pages · {timeAgo(v.lastSeen)}
+                          {v.referrer && ` · from ${v.referrer}`}
+                        </ModalRowMeta>
+                      </ModalRowInfo>
+                      <ModalRowPages>
+                        {v.pages.map((p, j) => (
+                          <PageTag key={j}>{pageName(p)}</PageTag>
+                        ))}
+                      </ModalRowPages>
+                    </ModalRow>
+                  ))}
+                  {(!anonData?.recentVisitors?.length) && (
+                    <EmptyState><Eye size={24} /><span>No anonymous visitors tracked yet</span></EmptyState>
+                  )}
+                </ModalList>
+              </ModalSection>
+              <ModalSection>
+                <ModalSectionTitle>
+                  <Users size={16} /> Registered Users ({geoData?.visitors?.length || 0})
+                </ModalSectionTitle>
+                <ModalList>
+                  {geoData?.visitors?.map((v, i) => (
+                    <ModalRow key={`user-${v.userId || i}`} onClick={() => setSelectedVisitor(v)}>
+                      <LiveDotSmall $recent={Date.now() - new Date(v.lastActive).getTime() < 300000} />
+                      <ModalRowInfo>
+                        <span>{countryFlag(v.countryCode)} {v.name}</span>
+                        <ModalRowMeta>
+                          {v.role} · {v.city && `${v.city}, `}{v.country || 'Unknown'} · {timeAgo(v.lastActive)}
+                        </ModalRowMeta>
+                      </ModalRowInfo>
+                      <SourceBadge $variant={v.source === 'gallery' ? 'gallery' : 'login'}>
+                        {v.role === 'gallery_visitor' ? 'gallery' : v.role}
+                      </SourceBadge>
+                    </ModalRow>
+                  ))}
+                  {(!geoData?.visitors?.length) && (
+                    <EmptyState><Users size={24} /><span>No registered user data yet</span></EmptyState>
+                  )}
+                </ModalList>
+              </ModalSection>
+            </ModalBody>
+          </ModalContent>
+        </ModalOverlay>,
+        document.body
       )}
     </WidgetCard>
   );
@@ -634,16 +793,17 @@ const GeoList = styled.div`
 `;
 
 // ── Live Feed Rows ──
-const LiveRow = styled.div`
+const LiveRow = styled.div<{ $clickable?: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
   transition: all 0.2s;
+  cursor: ${p => p.$clickable ? 'pointer' : 'default'};
 
   &:hover {
-    background: rgba(139, 92, 246, 0.06);
+    background: rgba(139, 92, 246, 0.08);
     transform: translateX(2px);
   }
 `;
@@ -846,6 +1006,232 @@ const RecentTime = styled.span`
   font-size: 0.72rem;
   color: rgba(224, 236, 244, 0.25);
   font-family: 'Fira Code', monospace;
+`;
+
+// ── View All Button ──
+const ViewAllBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: ${WING_PURPLE};
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 36px;
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: ${WING_PURPLE};
+  }
+`;
+
+// ── Detail Panel (inline, slides up from bottom of widget) ──
+const DetailPanel = styled.div`
+  border-top: 1px solid rgba(139, 92, 246, 0.15);
+  padding: 16px 24px;
+  background: rgba(0, 32, 96, 0.6);
+  animation: ${fadeSlideUp} 0.3s ease-out;
+`;
+
+const DetailHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+`;
+
+const DetailTitle = styled.h4`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: ${FROST};
+  margin: 0;
+`;
+
+const CloseDetailBtn = styled.button`
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(224, 236, 244, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover { background: rgba(139, 92, 246, 0.15); color: ${WING_PURPLE}; }
+`;
+
+const DetailContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 0.8rem;
+`;
+
+const DetailLabel = styled.span`
+  color: rgba(224, 236, 244, 0.4);
+  min-width: 90px;
+  flex-shrink: 0;
+  font-weight: 600;
+`;
+
+const DetailValue = styled.span`
+  color: ${FROST};
+  word-break: break-all;
+`;
+
+const PagesList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const PageTag = styled.span`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  font-size: 0.7rem;
+  color: ${ICE_WING};
+`;
+
+// ── Full-Screen Modal ──
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ${fadeSlideUp} 0.3s ease-out;
+`;
+
+const ModalContent = styled.div`
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  background: rgba(0, 32, 96, 0.95);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 20px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const ModalTitle = styled.h3`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: ${FROST};
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const ModalBody = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const ModalSection = styled.div`
+  margin-bottom: 24px;
+
+  &:last-child { margin-bottom: 0; }
+`;
+
+const ModalSectionTitle = styled.h4`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: ${ICE_WING};
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ModalList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const ModalRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.08);
+    transform: translateX(2px);
+  }
+`;
+
+const ModalRowInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  span {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: ${FROST};
+  }
+`;
+
+const ModalRowMeta = styled.div`
+  font-size: 0.72rem;
+  color: rgba(224, 236, 244, 0.4);
+  margin-top: 2px;
+`;
+
+const ModalRowPages = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: 200px;
 `;
 
 export default VisitorGeoWidget;

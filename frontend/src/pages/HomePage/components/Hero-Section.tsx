@@ -1,6 +1,6 @@
 // frontend/src/pages/HomePage/components/Hero-Section.tsx
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion } from "framer-motion";
 
@@ -108,7 +108,13 @@ const VideoBackground = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
-    will-change: transform; /* Performance optimization */
+    will-change: transform;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
+    opacity: 1;
   }
   
   /* Add a subtle vignette effect around the edges */
@@ -432,6 +438,8 @@ const HeroSection: React.FC = () => {
   const videoSource = useMemo(() => heroVideo, []);
   const logoSource = useMemo(() => logoImg, []);
   const [showOrientation, setShowOrientation] = useState<boolean>(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   const [showScrollIndicator, setShowScrollIndicator] = useState<boolean>(true);
 
@@ -473,19 +481,19 @@ const HeroSection: React.FC = () => {
 
   return (
     <HeroContainer ref={containerRef} id="hero">
-      <VideoBackground>
-        <video 
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
+      <VideoBackground className={videoReady ? 'video-ready' : ''}>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           loading="eager"
           disablePictureInPicture
           disableRemotePlayback
+          onCanPlayThrough={handleVideoReady}
         >
           <source src={videoSource} type="video/mp4" />
           <track kind="captions" srcLang="en" label="English captions" />
-          Your browser does not support the video tag.
         </video>
       </VideoBackground>
 

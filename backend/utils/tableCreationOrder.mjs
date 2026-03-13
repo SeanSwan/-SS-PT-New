@@ -91,7 +91,8 @@ const TABLE_CREATION_ORDER = [
 
   // PHASE 12: CRM Lead Management (leads first, then activities)
   'leads',                       // Lead — depends on Users, gallery_visitors
-  'lead_activities'              // LeadActivity — depends on leads, Users
+  'lead_activities',             // LeadActivity — depends on leads, Users
+  'page_views'                   // PageView — standalone, anonymous page view persistence
 ];
 
 /**

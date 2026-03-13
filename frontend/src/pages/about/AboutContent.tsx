@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion, useInView } from "framer-motion";
 
@@ -103,6 +103,11 @@ const VideoBackground = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
     opacity: 0.5;
   }
 `;
@@ -863,6 +868,9 @@ const AboutContent = () => {
   const textInView = useInView(textRef, { once: true });
   const statsInView = useInView(statsRef, { once: true });
   
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
+
   // State for number counter animation
   const [countedStats, setCountedStats] = useState({
     years: 0,
@@ -987,8 +995,8 @@ const AboutContent = () => {
 
   return (
     <AboutSection>
-      <VideoBackground>
-        <video autoPlay loop muted playsInline>
+      <VideoBackground className={videoReady ? 'video-ready' : ''}>
+        <video autoPlay loop muted playsInline onCanPlayThrough={handleVideoReady}>
           <source src={wavesVideo} type="video/mp4" />
         </video>
       </VideoBackground>

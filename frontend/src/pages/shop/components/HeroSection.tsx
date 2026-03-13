@@ -16,7 +16,7 @@
  * - Reduced-motion gated animations
  */
 
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, useAnimation, useInView, MotionConfig } from 'framer-motion';
 import { ThemedGlowButton } from '../../../styles/swan-theme-utils';
@@ -103,6 +103,12 @@ const VideoBackground = styled.div`
     height: auto;
     transform: translate(-50%, -50%);
     z-index: 0;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.video-ready video {
+    opacity: 1;
   }
 `;
 
@@ -342,6 +348,8 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
   onViewPackages
 }) => {
   const [animateScrollIndicator, setAnimateScrollIndicator] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
+  const handleVideoReady = useCallback(() => setVideoReady(true), []);
   const heroRef = useRef<HTMLDivElement>(null);
   const heroControls = useAnimation();
   const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 });
@@ -371,8 +379,8 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
   return (
     <MotionConfig reducedMotion="user">
       <HeroContainer ref={heroRef}>
-        <VideoBackground>
-          <video autoPlay loop muted playsInline preload="metadata" poster="/images/parallax/store-hero-bg.png" key="hero-bg-video">
+        <VideoBackground className={videoReady ? 'video-ready' : ''}>
+          <video autoPlay loop muted playsInline preload="metadata" key="hero-bg-video" onCanPlayThrough={handleVideoReady}>
             <source src={swanVideo} type="video/mp4" />
           </video>
         </VideoBackground>

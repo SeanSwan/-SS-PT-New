@@ -41,6 +41,8 @@ import storefrontRoutes from '../routes/storeFrontRoutes.mjs';
 import v2PaymentRoutes from '../routes/v2PaymentRoutes.mjs';
 import orderRoutes from '../routes/orderRoutes.mjs';
 import financialRoutes from '../routes/financialRoutes.mjs';
+import offlinePaymentRoutes from '../routes/offlinePaymentRoutes.mjs';
+import adminPaymentSettingsRoutes from '../routes/adminPaymentSettingsRoutes.mjs';
 
 // ===================== COMMUNICATION =====================
 import contactRoutes from '../routes/contactRoutes.mjs';
@@ -269,6 +271,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/v2/payments', v2PaymentRoutes);
   app.use('/api/orders', orderRoutes);
   app.use('/api/financial', financialRoutes);
+  app.use('/api/payments', offlinePaymentRoutes);
+  app.use('/api/admin/payment-settings', adminPaymentSettingsRoutes);
 
   // ===================== COMMUNICATION ROUTES =====================
   app.use('/api/contact', contactRoutes);
