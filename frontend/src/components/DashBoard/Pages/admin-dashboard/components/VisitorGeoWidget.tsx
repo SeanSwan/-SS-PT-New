@@ -127,8 +127,8 @@ const VisitorGeoWidget: React.FC = () => {
     try {
       setLoading(true);
       const [geoRes, anonRes] = await Promise.allSettled([
-        authAxios.get('/api/dashboard/visitor-geo'),
-        authAxios.get('/api/dashboard/anonymous-visitors'),
+        authAxios.get('/api/admin/dashboard/visitor-geo'),
+        authAxios.get('/api/admin/dashboard/anonymous-visitors'),
       ]);
 
       if (geoRes.status === 'fulfilled' && geoRes.value.data?.success) {

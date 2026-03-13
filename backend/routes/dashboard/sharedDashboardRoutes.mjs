@@ -29,9 +29,11 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import sequelize from '../../database.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../../models/index.mjs';
+import { PAGE_VIEW_CACHE, PAGE_VIEW_TTL } from '../../services/pageViewCache.mjs';
 
 const router = express.Router();
 
@@ -421,6 +423,74 @@ router.get('/recent-activity', protect, async (req, res) => {
       success: false,
       message: 'Error fetching recent activity',
     });
+  }
+});
+
+// ── Anonymous Page View Tracker (public, no auth required) ──────────────────────
+/**
+ * POST /api/dashboard/track-pageview
+ * Lightweight endpoint called by the frontend to record anonymous page visits.
+ * No auth required — rate limited to prevent abuse.
+ * Stores in shared PAGE_VIEW_CACHE (read by admin anonymous-visitors endpoint).
+ */
+const pageviewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
+router.post('/track-pageview', pageviewLimiter, async (req, res) => {
+  try {
+    const { getClientIp, lookupGeo } = await import('../../services/geoIpService.mjs');
+    const ip = getClientIp(req);
+    const { page, referrer } = req.body || {};
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Skip bots
+    if (/bot|crawler|spider|curl|wget|python|scrapy/i.test(userAgent)) {
+      return res.json({ success: true, tracked: false });
+    }
+
+    const existing = PAGE_VIEW_CACHE.get(ip);
+    const now = Date.now();
+
+    if (existing) {
+      existing.lastSeen = now;
+      existing.pageCount = (existing.pageCount || 1) + 1;
+      if (page && !existing.pages.includes(page)) {
+        existing.pages.push(page);
+      }
+    } else {
+      const entry = {
+        ip,
+        firstSeen: now,
+        lastSeen: now,
+        pages: page ? [page] : [],
+        pageCount: 1,
+        userAgent: userAgent.slice(0, 200),
+        geo: null,
+        referrer: referrer?.slice(0, 200) || null,
+      };
+      PAGE_VIEW_CACHE.set(ip, entry);
+
+      // Geo lookup in background (don't block response)
+      lookupGeo(ip).then(geo => {
+        if (geo) entry.geo = geo;
+      }).catch(() => {});
+    }
+
+    // Prune old entries
+    if (PAGE_VIEW_CACHE.size > 2000) {
+      const cutoff = now - PAGE_VIEW_TTL;
+      for (const [key, val] of PAGE_VIEW_CACHE) {
+        if (val.lastSeen < cutoff) PAGE_VIEW_CACHE.delete(key);
+      }
+    }
+
+    return res.json({ success: true, tracked: true });
+  } catch (err) {
+    return res.json({ success: true, tracked: false });
   }
 });
 
