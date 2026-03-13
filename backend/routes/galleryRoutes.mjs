@@ -39,6 +39,7 @@ import PrintOrder from '../models/PrintOrder.mjs';
 import { analyzeForm } from '../services/formAnalysisService.mjs';
 import { getUser } from '../models/index.mjs';
 import { Op, fn, col, literal } from 'sequelize';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -298,11 +299,13 @@ router.get('/events/:slug/photos', requireGalleryAccess, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Access token does not match this event' });
     }
 
-    const photos = await GalleryPhoto.findAll({
-      where: { eventId: req.galleryAccess.eventId },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'mediumUrl', 'width', 'height', 'enhancedUrl', 'enhancementRequestCount', 'sourceType'],
-      order: [['photoNumber', 'ASC']],
-    });
+    const [photos] = await sequelize.query(
+      `SELECT id, photo_number as "photoNumber", display_name as "displayName", url,
+              thumbnail_url as "thumbnailUrl", width, height,
+              enhanced_url as "enhancedUrl", enhancement_request_count as "enhancementRequestCount"
+       FROM gallery_photos WHERE event_id = :eventId ORDER BY photo_number ASC`,
+      { replacements: { eventId: req.galleryAccess.eventId } }
+    );
 
     return res.json({ success: true, photos });
   } catch (err) {
