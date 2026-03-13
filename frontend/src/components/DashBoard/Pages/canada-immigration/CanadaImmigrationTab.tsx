@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 import ImmigrationDashboard from './ImmigrationDashboard';
 import MasterChecklist from './MasterChecklist';
@@ -165,7 +165,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   color: ${(p) => (p.$active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.5)')};
   border-bottom: 2px solid ${(p) => (p.$active ? '#8B5CF6' : 'transparent')};
 
-  ${(p) => p.$active && `animation: ${glowPulse} 2s ease-in-out infinite;`}
+  ${(p) => p.$active && css`animation: ${glowPulse} 2s ease-in-out infinite;`}
 
   &:hover {
     background: rgba(139, 92, 246, 0.15);

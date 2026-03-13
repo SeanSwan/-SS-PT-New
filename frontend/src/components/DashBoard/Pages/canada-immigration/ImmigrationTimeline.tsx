@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import type { ImmigrationTask } from './CanadaImmigrationTab';
 
 /* ────────── Props ────────── */
@@ -100,7 +100,7 @@ const PhaseNode = styled.div<{ $color: string; $isCurrent: boolean }>`
   background: ${(p) => p.$color};
   border: 3px solid ${(p) => (p.$isCurrent ? '#E0ECF4' : p.$color)};
   z-index: 2;
-  ${(p) => p.$isCurrent && `animation: ${glowPulse} 2s ease-in-out infinite;`}
+  ${(p) => p.$isCurrent && css`animation: ${glowPulse} 2s ease-in-out infinite;`}
 
   @media (max-width: 480px) {
     left: 4px;
