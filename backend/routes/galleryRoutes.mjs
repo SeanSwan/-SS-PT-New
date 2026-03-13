@@ -38,6 +38,7 @@ import LeadActivity from '../models/LeadActivity.mjs';
 import PrintOrder from '../models/PrintOrder.mjs';
 import { analyzeForm } from '../services/formAnalysisService.mjs';
 import { getUser } from '../models/index.mjs';
+import { getClientIp, lookupGeo } from '../services/geoIpService.mjs';
 import { Op, fn, col, literal } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -201,7 +202,8 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
 
     // Upsert visitor record (same email + event = same visitor)
     const cleanEmail = email.trim().toLowerCase();
-    const [visitor] = await GalleryVisitor.findOrCreate({
+    const visitorIp = getClientIp(req);
+    const [visitor, visitorCreated] = await GalleryVisitor.findOrCreate({
       where: { email: cleanEmail, eventId: event.id },
       defaults: {
         email: cleanEmail,
@@ -212,8 +214,28 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
         newsletterOptIn: newsletterOptIn !== false,
         parentalConsent: parentalConsent === true,
         source: 'gallery',
+        ipAddress: visitorIp,
       },
     });
+
+    // Update IP + geo on every access (async, non-blocking)
+    (async () => {
+      try {
+        const geo = await lookupGeo(visitorIp);
+        const updateFields = { ipAddress: visitorIp };
+        if (geo) {
+          Object.assign(updateFields, {
+            country: geo.country,
+            countryCode: geo.countryCode,
+            region: geo.region,
+            city: geo.city,
+            lat: geo.lat,
+            lon: geo.lon,
+          });
+        }
+        await visitor.update(updateFields);
+      } catch { /* non-blocking */ }
+    })();
 
     // ── Auto-create Lead from gallery visitor (CRM funnel) ──
     try {

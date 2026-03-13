@@ -15,12 +15,20 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
  * Returns { country, countryCode, region, city, lat, lon } or null.
  */
 export async function lookupGeo(ip) {
-  if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+  if (!ip) return null;
+
+  // Strip IPv4-mapped IPv6 prefix (::ffff:1.2.3.4 → 1.2.3.4)
+  let cleanIp = ip;
+  if (cleanIp.startsWith('::ffff:')) {
+    cleanIp = cleanIp.slice(7);
+  }
+
+  if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.') || cleanIp.startsWith('172.')) {
     return null; // Skip private/localhost IPs
   }
 
-  // Check cache
-  const cached = CACHE.get(ip);
+  // Check cache (use cleanIp as key)
+  const cached = CACHE.get(cleanIp);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return cached.data;
   }
@@ -29,7 +37,7 @@ export async function lookupGeo(ip) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
 
-    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,regionName,city,lat,lon`, {
+    const res = await fetch(`http://ip-api.com/json/${cleanIp}?fields=status,country,countryCode,regionName,city,lat,lon`, {
       signal: controller.signal,
     });
     clearTimeout(timeout);
@@ -48,7 +56,7 @@ export async function lookupGeo(ip) {
       lon: data.lon,
     };
 
-    CACHE.set(ip, { data: geo, ts: Date.now() });
+    CACHE.set(cleanIp, { data: geo, ts: Date.now() });
 
     // Prune cache if it gets too large
     if (CACHE.size > 5000) {
@@ -58,7 +66,7 @@ export async function lookupGeo(ip) {
 
     return geo;
   } catch (err) {
-    logger.debug('[GeoIP] Lookup failed for %s: %s', ip, err.message);
+    logger.debug('[GeoIP] Lookup failed for %s: %s', cleanIp, err.message);
     return null;
   }
 }

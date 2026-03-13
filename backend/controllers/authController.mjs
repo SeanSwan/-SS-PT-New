@@ -230,6 +230,7 @@ import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { sendEmailNotification } from '../utils/notification.mjs';
+import { getClientIp } from '../services/geoIpService.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -507,7 +508,7 @@ export const register = async (req, res) => {
         emergencyContact,
         role: role, // Use the provided role or default to 'user'
         lastActive: new Date(),
-        registrationIP: req.ip // Store IP for security monitoring (make sure your Express app has trust proxy enabled)
+        registrationIP: getClientIp(req) // Store IP for security monitoring
       },
       { transaction }
     );
@@ -781,7 +782,7 @@ export const login = async (req, res) => {
         failedLoginAttempts: 0,
         lastLogin: new Date(),
         lastActive: new Date(),
-        lastLoginIP: req.ip,
+        lastLoginIP: getClientIp(req),
         refreshTokenHash: await bcrypt.hash(refreshToken, 10)
       });
       console.log('💾 User info updated successfully');

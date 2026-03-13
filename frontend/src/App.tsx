@@ -5,6 +5,7 @@
 // import './utils/circuit-breaker';
 // import './utils/emergencyAdminFix';
 
+import './utils/pageViewTracker'; // Anonymous page view analytics
 import React, { useEffect } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider, useSelector, useDispatch } from 'react-redux';

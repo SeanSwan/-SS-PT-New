@@ -30,12 +30,19 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import sequelize from '../../database.mjs';
 import { protect, adminOnly, trainerOrAdminOnly } from '../../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
+
+// ── In-memory anonymous page view tracker ──
+// Tracks unique IPs that hit the site (no auth required endpoint records them)
+// Persists in memory only — resets on deploy (fine for real-time "who's on the site now")
+const PAGE_VIEW_CACHE = new Map(); // ip -> { geo, lastSeen, pages[], userAgent }
+const PAGE_VIEW_TTL = 24 * 60 * 60 * 1000; // 24h
 
 const getDateRangeFromTimeframe = (timeframe) => {
   const now = new Date();
@@ -324,7 +331,9 @@ router.get('/health', protect, adminOnly, async (req, res) => {
 
 /**
  * GET /api/dashboard/visitor-geo
- * Returns geo-aggregated visitor data from user login IPs.
+ * Returns geo-aggregated visitor data from BOTH:
+ *   1. Logged-in users (lastLoginIP from users table)
+ *   2. Gallery visitors (ip_address from gallery_visitors table)
  * Uses ip-api.com (free tier, 45 req/min) with 24h caching.
  */
 router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
@@ -336,10 +345,10 @@ router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
       return res.status(500).json({ success: false, error: 'User model not found' });
     }
 
-    // Get all users with login IPs (last 90 days active)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
+    // ── 1. Logged-in users with IPs ──
     const users = await User.findAll({
       where: {
         lastLoginIP: { [Op.ne]: null },
@@ -350,8 +359,7 @@ router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
       raw: true,
     });
 
-    // Geo-lookup each unique IP (cached, fast for repeat IPs)
-    const ipSet = new Map(); // ip -> geo data
+    const ipSet = new Map(); // ip -> geo data (shared cache for both sources)
     const results = [];
 
     for (const user of users) {
@@ -365,6 +373,7 @@ router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
         userId: user.id,
         name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
         role: user.role,
+        source: 'login',
         lastActive: user.lastActive,
         lastLogin: user.lastLogin,
         ip,
@@ -372,30 +381,235 @@ router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Aggregate by country and city
+    // ── 2. Gallery visitors with IPs ──
+    let galleryResults = [];
+    try {
+      const GalleryVisitor = (await import('../../models/GalleryVisitor.mjs')).default;
+      const galleryVisitors = await GalleryVisitor.findAll({
+        where: {
+          [Op.or]: [
+            { ipAddress: { [Op.ne]: null } },
+            { country: { [Op.ne]: null } },
+          ],
+        },
+        attributes: ['id', 'email', 'firstName', 'lastName', 'ipAddress', 'country', 'countryCode', 'region', 'city', 'lat', 'lon', 'createdAt', 'updatedAt'],
+        order: [['updatedAt', 'DESC']],
+        limit: 100,
+        raw: true,
+      });
+
+      // Deduplicate by email (keep most recent)
+      const seenEmails = new Set(results.map(r => r.name?.toLowerCase()));
+      for (const gv of galleryVisitors) {
+        const email = gv.email?.toLowerCase();
+        if (seenEmails.has(email)) continue; // Skip if already tracked as a logged-in user
+        seenEmails.add(email);
+
+        // Use pre-stored geo data if available, else lookup
+        let geo = gv.country ? {
+          country: gv.country, countryCode: gv.countryCode,
+          region: gv.region, city: gv.city, lat: gv.lat, lon: gv.lon,
+        } : null;
+
+        if (!geo && gv.ipAddress) {
+          if (!ipSet.has(gv.ipAddress)) {
+            const looked = await lookupGeo(gv.ipAddress);
+            ipSet.set(gv.ipAddress, looked);
+          }
+          geo = ipSet.get(gv.ipAddress);
+        }
+
+        const entry = {
+          userId: null,
+          name: [gv.firstName, gv.lastName].filter(Boolean).join(' ') || gv.email,
+          role: 'gallery_visitor',
+          source: 'gallery',
+          lastActive: gv.updatedAt,
+          lastLogin: gv.createdAt,
+          ip: gv.ipAddress,
+          ...(geo || { country: 'Unknown', countryCode: null, region: null, city: null, lat: null, lon: null }),
+        };
+        galleryResults.push(entry);
+      }
+    } catch (galleryErr) {
+      logger.debug('[AdminDashboard] Gallery visitor geo skipped: %s', galleryErr.message);
+    }
+
+    const allResults = [...results, ...galleryResults].sort(
+      (a, b) => new Date(b.lastActive) - new Date(a.lastActive)
+    );
+
+    // ── 3. Aggregate by country and city ──
     const countryMap = {};
     const cityMap = {};
-    for (const r of results) {
+    for (const r of allResults) {
       const cc = r.countryCode || 'XX';
       const country = r.country || 'Unknown';
       const city = r.city || 'Unknown';
       countryMap[cc] = countryMap[cc] || { country, countryCode: cc, count: 0 };
       countryMap[cc].count++;
-      const cityKey = `${city}, ${country}`;
-      cityMap[cityKey] = cityMap[cityKey] || { city, country, countryCode: cc, lat: r.lat, lon: r.lon, count: 0 };
-      cityMap[cityKey].count++;
+      if (city !== 'Unknown') {
+        const cityKey = `${city}, ${country}`;
+        cityMap[cityKey] = cityMap[cityKey] || { city, country, countryCode: cc, lat: r.lat, lon: r.lon, count: 0 };
+        cityMap[cityKey].count++;
+      }
     }
+
+    // ── 4. Summary stats ──
+    const loginCount = results.length;
+    const galleryCount = galleryResults.length;
+    const uniqueCountries = Object.keys(countryMap).filter(k => k !== 'XX').length;
+    const uniqueCities = Object.keys(cityMap).length;
 
     return res.json({
       success: true,
-      totalVisitors: results.length,
-      visitors: results,
+      totalVisitors: allResults.length,
+      loginVisitors: loginCount,
+      galleryVisitors: galleryCount,
+      uniqueCountries,
+      uniqueCities,
+      visitors: allResults.slice(0, 50), // Cap at 50 most recent
       byCountry: Object.values(countryMap).sort((a, b) => b.count - a.count),
       byCity: Object.values(cityMap).sort((a, b) => b.count - a.count).slice(0, 20),
     });
   } catch (err) {
     logger.error('[AdminDashboard] Visitor geo error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to fetch visitor geo data' });
+  }
+});
+
+// ── Anonymous Page View Tracker (no auth required) ──────────────────────
+/**
+ * POST /api/dashboard/track-pageview
+ * Lightweight endpoint called by the frontend to record anonymous page visits.
+ * No auth required — rate limited to prevent abuse.
+ * Stores in memory only (resets on deploy).
+ */
+const pageviewLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 min
+  max: 30, // 30 per min per IP
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
+router.post('/track-pageview', pageviewLimiter, async (req, res) => {
+  try {
+    const { getClientIp, lookupGeo } = await import('../../services/geoIpService.mjs');
+    const ip = getClientIp(req);
+    const { page, referrer } = req.body || {};
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Skip bots
+    if (/bot|crawler|spider|curl|wget|python|scrapy/i.test(userAgent)) {
+      return res.json({ success: true, tracked: false });
+    }
+
+    const existing = PAGE_VIEW_CACHE.get(ip);
+    const now = Date.now();
+
+    if (existing) {
+      existing.lastSeen = now;
+      existing.pageCount = (existing.pageCount || 1) + 1;
+      if (page && !existing.pages.includes(page)) {
+        existing.pages.push(page);
+      }
+    } else {
+      // New visitor — do geo lookup (async, non-blocking response)
+      const entry = {
+        ip,
+        firstSeen: now,
+        lastSeen: now,
+        pages: page ? [page] : [],
+        pageCount: 1,
+        userAgent: userAgent.slice(0, 200),
+        geo: null,
+        referrer: referrer?.slice(0, 200) || null,
+      };
+      PAGE_VIEW_CACHE.set(ip, entry);
+
+      // Geo lookup in background (don't block response)
+      lookupGeo(ip).then(geo => {
+        if (geo) entry.geo = geo;
+      }).catch(() => {});
+    }
+
+    // Prune old entries
+    if (PAGE_VIEW_CACHE.size > 2000) {
+      const cutoff = now - PAGE_VIEW_TTL;
+      for (const [key, val] of PAGE_VIEW_CACHE) {
+        if (val.lastSeen < cutoff) PAGE_VIEW_CACHE.delete(key);
+      }
+    }
+
+    return res.json({ success: true, tracked: true });
+  } catch (err) {
+    return res.json({ success: true, tracked: false });
+  }
+});
+
+/**
+ * GET /api/dashboard/anonymous-visitors
+ * Returns the in-memory anonymous visitor data (admin only).
+ */
+router.get('/anonymous-visitors', protect, adminOnly, async (req, res) => {
+  try {
+    const now = Date.now();
+    const fiveMinAgo = now - 5 * 60 * 1000;
+    const oneHourAgo = now - 60 * 60 * 1000;
+    const oneDayAgo = now - PAGE_VIEW_TTL;
+
+    const all = [...PAGE_VIEW_CACHE.values()].filter(v => v.lastSeen > oneDayAgo);
+    const activeNow = all.filter(v => v.lastSeen > fiveMinAgo);
+    const lastHour = all.filter(v => v.lastSeen > oneHourAgo);
+
+    // Aggregate by country
+    const countryMap = {};
+    for (const v of all) {
+      const cc = v.geo?.countryCode || 'XX';
+      const country = v.geo?.country || 'Unknown';
+      countryMap[cc] = countryMap[cc] || { country, countryCode: cc, count: 0 };
+      countryMap[cc].count++;
+    }
+
+    // Most visited pages
+    const pageMap = {};
+    for (const v of all) {
+      for (const p of v.pages) {
+        pageMap[p] = (pageMap[p] || 0) + 1;
+      }
+    }
+    const topPages = Object.entries(pageMap)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 15)
+      .map(([page, views]) => ({ page, views }));
+
+    return res.json({
+      success: true,
+      activeNow: activeNow.length,
+      lastHour: lastHour.length,
+      last24h: all.length,
+      totalPageViews: all.reduce((sum, v) => sum + (v.pageCount || 1), 0),
+      topPages,
+      byCountry: Object.values(countryMap).sort((a, b) => b.count - a.count),
+      recentVisitors: all
+        .sort((a, b) => b.lastSeen - a.lastSeen)
+        .slice(0, 20)
+        .map(v => ({
+          ip: v.ip?.replace(/\d+$/, '***'), // Partially mask IP for privacy
+          country: v.geo?.country || 'Unknown',
+          countryCode: v.geo?.countryCode || null,
+          city: v.geo?.city || null,
+          region: v.geo?.region || null,
+          pages: v.pages,
+          pageCount: v.pageCount,
+          firstSeen: new Date(v.firstSeen).toISOString(),
+          lastSeen: new Date(v.lastSeen).toISOString(),
+          referrer: v.referrer,
+        })),
+    });
+  } catch (err) {
+    logger.error('[AdminDashboard] Anonymous visitors error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to fetch anonymous visitor data' });
   }
 });
 
