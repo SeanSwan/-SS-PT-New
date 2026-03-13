@@ -602,13 +602,13 @@ const DonationModal: React.FC<DonationModalProps> = ({
             <MethodIcon><CreditCard size={18} /></MethodIcon>
             Card
           </MethodButton>
-          <MethodButton $active={method === 'venmo'} onClick={() => { setMethod('venmo'); setFeedback(null); }}>
+          <MethodButton $active={false} disabled style={{ opacity: 0.35, cursor: 'not-allowed', filter: 'grayscale(0.6)' }}>
             <MethodIcon>V</MethodIcon>
-            Venmo
+            <span style={{ fontSize: '9px', lineHeight: 1 }}>Coming Soon</span>
           </MethodButton>
-          <MethodButton $active={method === 'zelle'} onClick={() => { setMethod('zelle'); setFeedback(null); }}>
+          <MethodButton $active={false} disabled style={{ opacity: 0.35, cursor: 'not-allowed', filter: 'grayscale(0.6)' }}>
             <MethodIcon><DollarSign size={18} /></MethodIcon>
-            Zelle
+            <span style={{ fontSize: '9px', lineHeight: 1 }}>Coming Soon</span>
           </MethodButton>
         </MethodGrid>
 
