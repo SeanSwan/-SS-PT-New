@@ -19,7 +19,6 @@ const ICE_WING   = '#60C0F0';
 const ARCTIC     = '#50A0F0';
 const GILDED     = '#C6A84B';
 const FROST      = '#E0ECF4';
-const WING_PURPLE = '#8B5CF6';
 
 // ── Animations ───────────────────────────────────────────────────────────
 const shimmer = keyframes`
@@ -384,7 +383,6 @@ interface PhotoDetailModalProps {
 
 // ── Component ────────────────────────────────────────────────────────────
 const PrintStore = React.lazy(() => import('./PrintStore'));
-const FormAnalysisOverlay = React.lazy(() => import('./FormAnalysisOverlay'));
 
 const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   isOpen,
@@ -408,7 +406,6 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   const [imgLoaded, setImgLoaded] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [showPrintStore, setShowPrintStore] = React.useState(false);
-  const [showFormAnalysis, setShowFormAnalysis] = React.useState(false);
 
   // Reset image loaded state when photo changes
   useEffect(() => {
@@ -536,13 +533,13 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
               <Divider />
               <SectionLabel>Get This Photo</SectionLabel>
 
-              {/* Option 1: Free High-Quality Original */}
+              {/* Option 1: Download to Browser */}
               <OptionCard
                 $accent={ICE_WING}
                 $glowColor={ICE_WING}
                 onClick={() => onDownloadOriginal(photo.id)}
                 style={{ animationDelay: '0.05s' }}
-                aria-label="Download high-quality original for free"
+                aria-label="Download photo to your browser"
               >
                 <OptionIcon $bg={ICE_WING}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -552,10 +549,10 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                   </svg>
                 </OptionIcon>
                 <OptionContent>
-                  <OptionTitle>High-Quality Original</OptionTitle>
+                  <OptionTitle>Download to Browser</OptionTitle>
                   <OptionBadge $color={ICE_WING}>Free</OptionBadge>
                   <OptionDesc>
-                    Download the full-resolution photo without watermarks. Perfect for social media and personal use.
+                    Save this high-quality photo directly to your device. Perfect for social media and personal use.
                   </OptionDesc>
                 </OptionContent>
               </OptionCard>
@@ -606,38 +603,22 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 )}
               </AnimatePresence>
 
-              {/* Print-on-Demand Option */}
+              {/* Print-on-Demand Option — Coming Soon */}
               <OptionCard
-                onClick={() => setShowPrintStore(true)}
-                aria-label="Order a premium print of this photo"
-                style={{ borderColor: 'rgba(198, 168, 75, 0.3)' }}
+                $accent={GILDED}
+                $glowColor={GILDED}
+                disabled
+                aria-label="Order prints — coming soon"
+                style={{ animationDelay: '0.25s', opacity: 0.45, cursor: 'not-allowed', filter: 'grayscale(0.5)' }}
               >
                 <OptionIcon style={{ background: `linear-gradient(135deg, rgba(198,168,75,0.2), rgba(198,168,75,0.05))`, borderColor: 'rgba(198,168,75,0.3)' }}>
                   <span style={{ fontSize: '1.5rem' }}>🖼️</span>
                 </OptionIcon>
                 <OptionContent>
                   <OptionTitle style={{ color: GILDED }}>Order Print</OptionTitle>
-                  <OptionMeta style={{ color: 'rgba(198,168,75,0.8)' }}>From $24.99</OptionMeta>
+                  <OptionBadge $color="rgba(224,236,244,0.4)">Coming Soon</OptionBadge>
                   <OptionDesc>
                     Premium fine art prints, canvas, and metal — delivered to your door.
-                  </OptionDesc>
-                </OptionContent>
-              </OptionCard>
-
-              {/* AI Form Analysis Option */}
-              <OptionCard
-                onClick={() => setShowFormAnalysis(true)}
-                aria-label="Analyze exercise form with AI"
-                style={{ borderColor: 'rgba(139, 92, 246, 0.3)' }}
-              >
-                <OptionIcon style={{ background: `linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.05))`, borderColor: 'rgba(139,92,246,0.3)' }}>
-                  <span style={{ fontSize: '1.5rem' }}>🔬</span>
-                </OptionIcon>
-                <OptionContent>
-                  <OptionTitle style={{ color: WING_PURPLE }}>Analyze Form</OptionTitle>
-                  <OptionMeta style={{ color: 'rgba(139,92,246,0.8)' }}>NASM-Certified AI</OptionMeta>
-                  <OptionDesc>
-                    AI-powered form analysis — pose estimation, joint angles, and correction feedback.
                   </OptionDesc>
                 </OptionContent>
               </OptionCard>
@@ -694,17 +675,6 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             )}
           </AnimatePresence>
 
-          {/* AI Form Analysis Overlay */}
-          {showFormAnalysis && photo && galleryToken && (
-            <React.Suspense fallback={null}>
-              <FormAnalysisOverlay
-                photoId={photo.id}
-                photoUrl={photo.url}
-                galleryToken={galleryToken}
-                onClose={() => setShowFormAnalysis(false)}
-              />
-            </React.Suspense>
-          )}
         </Backdrop>
       )}
     </AnimatePresence>
