@@ -316,7 +316,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     if (!file) return res.status(400).json({ success: false, error: 'No photo uploaded' });
 
     const enableWatermark = req.body.watermark !== 'false';
-    const sourceType = req.body.sourceType || 'jpeg';
+    // sourceType removed — JPEG only workflow
 
     // Get next photo number
     const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
@@ -475,7 +475,6 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       mimetype: file.mimetype,
       watermarked: enableWatermark && isWatermarkAvailable(),
       uploadedAt: new Date().toISOString(),
-      sourceType,
       thumbSize: variants?.thumb?.length || null,
       mediumSize: variants?.medium?.length || null,
     };
@@ -497,7 +496,6 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       height: variants?.height || null,
       mimeType: 'image/jpeg',
       metadata,
-      sourceType: isRaw ? 'raw' : sourceType,
     });
 
     // Update event photo count
@@ -521,7 +519,6 @@ router.post('/events/:id/upload-single', (req, res, next) => {
         url: photo.url,
         thumbnailUrl: photo.thumbnailUrl,
         mediumUrl: photo.mediumUrl,
-        sourceType: photo.sourceType,
         fileSize: finalSize,
         width: photo.width,
         height: photo.height,
@@ -701,7 +698,6 @@ router.post('/events/:id/upload', (req, res, next) => {
           height: variants?.height || null,
           mimeType: 'image/jpeg',
           metadata,
-          sourceType: isRaw ? 'raw' : 'jpeg',
         });
 
         // Free variant buffers
@@ -714,8 +710,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           url: photo.url,
           thumbnailUrl: photo.thumbnailUrl,
           mediumUrl: photo.mediumUrl,
-          sourceType: photo.sourceType,
-        });
+          });
 
         logger.info(`[AdminGallery] Uploaded ${displayName} for event ${event.slug}`);
       } catch (photoErr) {

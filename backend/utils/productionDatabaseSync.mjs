@@ -92,6 +92,22 @@ const MISSING_COLUMNS = [
     column: 'source_type',
     sql: `ALTER TABLE "gallery_photos" ADD COLUMN "source_type" VARCHAR(20) NOT NULL DEFAULT 'jpeg';`,
   },
+  // gallery_photos thumbnail variant columns — added in 20260312000002 migration
+  {
+    table: 'gallery_photos',
+    column: 'medium_key',
+    sql: `ALTER TABLE "gallery_photos" ADD COLUMN "medium_key" VARCHAR(500);`,
+  },
+  {
+    table: 'gallery_photos',
+    column: 'medium_url',
+    sql: `ALTER TABLE "gallery_photos" ADD COLUMN "medium_url" TEXT;`,
+  },
+  {
+    table: 'gallery_photos',
+    column: 'thumb_key',
+    sql: `ALTER TABLE "gallery_photos" ADD COLUMN "thumb_key" VARCHAR(500);`,
+  },
   // gallery_visitors geo columns — added in 20260311000100 migration
   {
     table: 'gallery_visitors',
