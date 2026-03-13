@@ -189,6 +189,50 @@ router.post('/events/:id/recount', async (req, res) => {
 });
 
 /**
+ * DELETE /api/admin/gallery/events/:id/photos
+ * Delete ALL photos for an event (clean slate) — keeps the event itself
+ */
+router.delete('/events/:id/photos', async (req, res) => {
+  try {
+    const event = await GalleryEvent.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    // Delete associated records first (FK constraints)
+    const [[countRow]] = await sequelize.query(
+      'SELECT COUNT(*) as count FROM gallery_photos WHERE event_id = :eventId',
+      { replacements: { eventId: event.id } }
+    );
+    const photoCount = parseInt(countRow.count, 10);
+
+    if (photoCount > 0) {
+      // Get all photo IDs for FK cleanup
+      const [photoRows] = await sequelize.query(
+        'SELECT id FROM gallery_photos WHERE event_id = :eventId',
+        { replacements: { eventId: event.id } }
+      );
+      const photoIds = photoRows.map(r => r.id);
+
+      // Delete FKs
+      await EnhancementRequest.destroy({ where: { photoId: photoIds } });
+      await PhotoVote.destroy({ where: { photoId: photoIds } });
+
+      // Delete all photos
+      await sequelize.query('DELETE FROM gallery_photos WHERE event_id = :eventId', {
+        replacements: { eventId: event.id },
+      });
+    }
+
+    // Reset count and cover photo
+    await event.update({ photoCount: 0, coverPhotoId: null });
+    logger.info(`[AdminGallery] Deleted all ${photoCount} photos from event ${event.id} (${event.name})`);
+    return res.json({ success: true, message: `Deleted ${photoCount} photos`, deletedCount: photoCount });
+  } catch (err) {
+    logger.error('[AdminGallery] Delete all photos error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to delete photos' });
+  }
+});
+
+/**
  * DELETE /api/admin/gallery/events/:id
  * Delete event and all associated photos/visitors
  */
@@ -1289,7 +1333,7 @@ router.get('/events/:id/photos', async (req, res) => {
   try {
     const photos = await GalleryPhoto.findAll({
       where: { eventId: req.params.id },
-      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'mediumUrl', 'width', 'height', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'sourceType', 'createdAt'],
+      attributes: ['id', 'photoNumber', 'displayName', 'url', 'thumbnailUrl', 'mediumUrl', 'width', 'height', 'fileSize', 'enhancedUrl', 'enhancementRequestCount', 'createdAt'],
       order: [['photoNumber', 'ASC']],
     });
     return res.json({ success: true, photos });
