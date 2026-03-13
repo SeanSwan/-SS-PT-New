@@ -1045,7 +1045,7 @@ const GalleryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // Progressive photo loading — show PHOTOS_PER_BATCH at a time, load more on scroll
-  const PHOTOS_PER_BATCH = 7;
+  const PHOTOS_PER_BATCH = 24;
   const [visiblePhotoCount, setVisiblePhotoCount] = useState(PHOTOS_PER_BATCH);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -1073,17 +1073,18 @@ const GalleryPage: React.FC = () => {
   // Progressive photo loading — IntersectionObserver loads more rows as user scrolls
   useEffect(() => {
     if (!loadMoreRef.current) return;
+    const el = loadMoreRef.current;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisiblePhotoCount(prev => Math.min(prev + PHOTOS_PER_BATCH, photos.length));
         }
       },
-      { rootMargin: '200px' }
+      { rootMargin: '400px' }
     );
-    observer.observe(loadMoreRef.current);
+    observer.observe(el);
     return () => observer.disconnect();
-  }, [photos.length, visiblePhotoCount]);
+  }, [photos.length]);
 
   // Reset visible count when photos change (new event selected)
   useEffect(() => {
