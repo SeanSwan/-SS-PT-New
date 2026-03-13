@@ -48,7 +48,7 @@ router.use((req, res, next) => {
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif|arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw)$/i;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 150 * 1024 * 1024, files: 2 }, // 150MB per file (RAW files), 2 files max to avoid OOM on 512MB Render
+  limits: { fileSize: 25 * 1024 * 1024, files: 2 }, // 25MB per file (JPEG only — RAW dropped)
   fileFilter: (req, file, cb) => {
     // Accept image/* MIME types, application/octet-stream (RAW/HEIC), OR common image/RAW file extensions
     if (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
@@ -209,14 +209,13 @@ function getDcrawBin() {
   return _dcrawBin;
 }
 
-// Separate multer instance: disk storage, exactly 1 file, 150MB max
-// Disk storage avoids holding 120MB+ RAW files in Node.js heap on 512MB Render
+// Separate multer instance: disk storage, exactly 1 file, 25MB max (JPEG only)
 const uploadSingle = multer({
   storage: multer.diskStorage({
     destination: tmpdir(),
     filename: (req, file, cb) => cb(null, `upload-${Date.now()}-${Math.random().toString(36).slice(2)}${extname(file.originalname)}`),
   }),
-  limits: { fileSize: 150 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream' || ALLOWED_IMAGE_EXTENSIONS.test(file.originalname)) {
       cb(null, true);
@@ -266,7 +265,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     const displayName = originalBaseName;
     const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
-    // Detect RAW format
+    // Reject RAW files — they should be exported from Lightroom as JPEG Q95 4000px before upload
     const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
     const isRaw = RAW_EXT.test(file.originalname || '');
 
@@ -283,47 +282,14 @@ router.post('/events/:id/upload-single', (req, res, next) => {
 
     try {
       if (isRaw) {
-        // ── RAW file: must use dcraw → TIFF → sharp → JPEG ──
-        logger.info(`[AdminGallery:Single] RAW file ${file.originalname} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — dcraw pipeline`);
-        const dcrawBin = getDcrawBin();
-        if (!dcrawBin) {
-          cleanupTemp(uploadedPath);
-          return res.status(422).json({
-            success: false,
-            error: `RAW conversion not available: dcraw binary not installed on this server.`,
-            hint: 'Convert the ARW file to JPEG on your computer before uploading, or contact support.',
-          });
-        }
-        try {
-          // dcraw reads from disk, writes .tiff alongside it — no buffer needed in RAM
-          logger.info(`[AdminGallery:Single] Running dcraw: ${dcrawBin} -T -w -q 3 -o 1 ${uploadedPath}`);
-          const dcrawResult = execFileSync(dcrawBin, ['-T', '-w', '-q', '3', '-o', '1', uploadedPath], {
-            timeout: 120000,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
-          // dcraw outputs a .tiff file next to the input
-          const tiffPath = uploadedPath.replace(/\.[^.]+$/, '.tiff');
-          if (!existsSync(tiffPath)) {
-            throw new Error(`dcraw completed but TIFF not found at ${tiffPath}`);
-          }
-          const tiffSizeMB = (statSync(tiffPath).size / 1024 / 1024).toFixed(1);
-          logger.info(`[AdminGallery:Single] dcraw produced ${tiffSizeMB}MB TIFF — converting to Q95 JPEG via sharp`);
-          // Use sharp to read TIFF from disk (streaming) and convert to JPEG buffer
-          inputBuffer = await sharp(tiffPath, { limitInputPixels: false })
-            .jpeg({ quality: 95 })
-            .toBuffer();
-          logger.info(`[AdminGallery:Single] Final JPEG: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB`);
-          cleanupTemp(uploadedPath, tiffPath);
-        } catch (dcrawErr) {
-          logger.error(`[AdminGallery:Single] dcraw pipeline FAILED: ${dcrawErr.message}`);
-          if (dcrawErr.stderr) logger.error(`[AdminGallery:Single] dcraw stderr: ${dcrawErr.stderr.toString().slice(0, 500)}`);
-          cleanupTemp(uploadedPath, uploadedPath.replace(/\.[^.]+$/, '.tiff'));
-          return res.status(422).json({
-            success: false,
-            error: `RAW conversion failed for ${file.originalname}: ${dcrawErr.message}`,
-            hint: 'Convert the ARW file to JPEG on your computer before uploading.',
-          });
-        }
+        // ── RAW files are no longer accepted ──
+        logger.warn(`[AdminGallery:Single] RAW file rejected: ${file.originalname} (${(originalSize / 1024 / 1024).toFixed(1)}MB)`);
+        cleanupTemp(uploadedPath);
+        return res.status(422).json({
+          success: false,
+          error: 'RAW files are not accepted. Please convert to JPEG before uploading.',
+          hint: 'Export as JPEG Q95, sRGB, 4000px long edge from your editing software (Lightroom, Capture One, etc.). This produces 3-8MB files that look stunning on any screen and print beautifully up to 13×19".',
+        });
       } else {
         // ── Standard image (JPEG/PNG/etc) ──
         const ext = extname(file.originalname || '').toLowerCase();
@@ -568,39 +534,14 @@ router.post('/events/:id/upload', (req, res, next) => {
         const displayName = originalBaseName;
         const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
-        // Convert RAW/large files to JPEG before watermarking
-        // CRITICAL: If conversion fails, we MUST NOT upload the raw buffer.
-        // RAW files (ARW, CR2, etc.) are 50-150MB and browsers cannot display them.
+        // Reject RAW files — must be exported from Lightroom as JPEG before upload
         const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
         const isRaw = RAW_EXT.test(file.originalname || '');
-        let inputBuffer = file.buffer;
-        if (isRaw || file.size > 50 * 1024 * 1024) {
-          const originalSize = file.size;
-          logger.info(`[AdminGallery] ${isRaw ? 'RAW format' : 'Large file'} (${(originalSize / 1024 / 1024).toFixed(1)}MB) — converting to JPEG`);
-          try {
-            inputBuffer = await sharp(file.buffer, { limitInputPixels: false })
-              .jpeg({ quality: 95 })
-              .toBuffer();
-          } catch (conversionErr) {
-            logger.error(`[AdminGallery] JPEG conversion FAILED for ${file.originalname}: ${conversionErr.message}`);
-            throw new Error(`RAW→JPEG conversion failed for "${file.originalname}": ${conversionErr.message}. ` +
-              `The raw file (${(originalSize / 1024 / 1024).toFixed(0)}MB) was NOT uploaded to prevent broken gallery photos.`);
-          }
-
-          // Validate the converted buffer is actually smaller and non-empty
-          if (!inputBuffer || inputBuffer.length === 0) {
-            logger.error(`[AdminGallery] JPEG conversion produced empty buffer for ${file.originalname}`);
-            throw new Error(`RAW→JPEG conversion produced empty output for "${file.originalname}". File was NOT uploaded.`);
-          }
-
-          // If "converted" buffer is still >90% of original, sharp likely returned the raw data unchanged
-          if (inputBuffer.length > originalSize * 0.9) {
-            logger.error(`[AdminGallery] JPEG conversion suspicious: output (${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB) is ≥90% of input (${(originalSize / 1024 / 1024).toFixed(1)}MB) — likely unconverted RAW`);
-            throw new Error(`RAW→JPEG conversion failed silently for "${file.originalname}": output size (${(inputBuffer.length / 1024 / 1024).toFixed(0)}MB) suggests raw data was not converted. File was NOT uploaded.`);
-          }
-
-          logger.info(`[AdminGallery] Converted to JPEG: ${(inputBuffer.length / 1024 / 1024).toFixed(1)}MB (${((1 - inputBuffer.length / originalSize) * 100).toFixed(0)}% reduction)`);
+        if (isRaw) {
+          logger.warn(`[AdminGallery] RAW file rejected in batch: ${file.originalname}`);
+          throw new Error(`RAW files are not accepted. Please convert "${file.originalname}" to JPEG (Quality 95%, sRGB, 4000px long edge) before uploading.`);
         }
+        let inputBuffer = file.buffer;
 
         // Release original buffer to help GC
         file.buffer = null;

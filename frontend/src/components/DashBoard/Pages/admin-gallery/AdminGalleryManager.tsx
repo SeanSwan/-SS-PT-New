@@ -588,7 +588,7 @@ const AdminGalleryManager: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
-  const [uploadMode, setUploadMode] = useState<'raw' | 'jpeg'>('jpeg');
+  const [uploadMode] = useState<'jpeg'>('jpeg');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFileCount, setUploadFileCount] = useState(0);
   const [uploadedPhotoCount, setUploadedPhotoCount] = useState<number | null>(null);
@@ -764,10 +764,9 @@ const AdminGalleryManager: React.FC = () => {
   // Uploads files ONE at a time to prevent OOM on Render's 512MB plan.
   // Each file is fully processed (RAW→JPEG + watermark) before the next starts.
 
-  // Upload mode limits
+  // Upload limits — JPEG only (RAW uploads dropped, export from Lightroom first)
   const UPLOAD_LIMITS = {
-    raw: { maxFiles: 500, maxSizeMB: 150, label: 'RAW → JPEG', desc: 'Camera RAW files (ARW, CR2, NEF, etc.) — converts to full-res Q95 JPEG + watermark (uses more server power)' },
-    jpeg: { maxFiles: 500, maxSizeMB: 50, label: 'JPEG (watermark only)', desc: 'Already high-quality JPEGs — watermark applied, no conversion needed, fast uploads' },
+    jpeg: { maxFiles: 500, maxSizeMB: 25, label: 'JPEG Upload', desc: 'High-quality JPEGs — auto-generates thumbnails + watermark, fast uploads' },
   };
 
   // Upload a single file via the dedicated single-file endpoint
@@ -1279,30 +1278,44 @@ const AdminGalleryManager: React.FC = () => {
                 <AnimatePresence>
                   {uploadEventId === event.id && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ marginTop: 16 }}>
-                      {/* Upload Mode Toggle */}
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                        {(['raw', 'jpeg'] as const).map(mode => (
-                          <button
-                            key={mode}
-                            onClick={() => setUploadMode(mode)}
-                            style={{
-                              flex: 1, padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
-                              background: uploadMode === mode ? (mode === 'raw' ? 'rgba(139,92,246,0.15)' : 'rgba(96,192,240,0.15)') : 'rgba(255,255,255,0.03)',
-                              border: `1px solid ${uploadMode === mode ? (mode === 'raw' ? 'rgba(139,92,246,0.4)' : 'rgba(96,192,240,0.4)') : 'rgba(255,255,255,0.08)'}`,
-                              color: uploadMode === mode ? (mode === 'raw' ? '#8B5CF6' : '#60C0F0') : 'rgba(255,255,255,0.5)',
-                              fontWeight: uploadMode === mode ? 700 : 400, fontSize: 13, textAlign: 'left',
-                              transition: 'all 0.2s ease',
-                            }}
-                          >
-                            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
-                              {UPLOAD_LIMITS[mode].label}
-                            </div>
-                            <div style={{ fontSize: 11, opacity: 0.7 }}>
-                              Max {UPLOAD_LIMITS[mode].maxFiles} files, {UPLOAD_LIMITS[mode].maxSizeMB}MB each
-                            </div>
-                          </button>
-                        ))}
-                      </div>
+                      {/* Lightroom Export Guide (collapsible tip) */}
+                      <details style={{
+                        marginBottom: 12, borderRadius: 10,
+                        background: 'linear-gradient(135deg, rgba(0,32,96,0.6) 0%, rgba(0,48,128,0.4) 100%)',
+                        border: '1px solid rgba(198,168,75,0.25)',
+                        backdropFilter: 'blur(8px)',
+                        overflow: 'hidden',
+                      }}>
+                        <summary style={{
+                          padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                          listStyle: 'none', userSelect: 'none',
+                        }}>
+                          <span style={{ fontSize: 14 }}>📷</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#C6A84B' }}>
+                            Recommended Export Settings
+                          </span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 'auto' }}>
+                            click to expand
+                          </span>
+                        </summary>
+                        <div style={{ padding: '0 16px 12px 16px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 16px', fontSize: 12 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Format:</span>
+                            <span style={{ color: '#E0ECF4', fontWeight: 600 }}>JPEG</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Quality:</span>
+                            <span style={{ color: '#E0ECF4', fontWeight: 600 }}>95</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Color Space:</span>
+                            <span style={{ color: '#E0ECF4', fontWeight: 600 }}>sRGB</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Long Edge:</span>
+                            <span style={{ color: '#E0ECF4', fontWeight: 600 }}>4000 pixels</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Sharpening:</span>
+                            <span style={{ color: '#E0ECF4', fontWeight: 600 }}>Screen, Standard</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 8, lineHeight: 1.4 }}>
+                            These settings produce 3-8MB files that look stunning on any screen and print beautifully up to 13×19". Max 25MB per file.
+                          </div>
+                        </div>
+                      </details>
 
                       {/* Watermark Toggle */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -1331,8 +1344,8 @@ const AdminGalleryManager: React.FC = () => {
                             {UPLOAD_LIMITS[uploadMode].desc}
                             {watermarkEnabled && ' · Watermark will be applied'}
                           </div>
-                          <div style={{ fontSize: 11, color: uploadMode === 'raw' ? '#8B5CF6' : '#60C0F0', marginTop: 4, fontWeight: 600 }}>
-                            {UPLOAD_LIMITS[uploadMode].label} mode · Up to {UPLOAD_LIMITS[uploadMode].maxFiles} files · Uploads 1 at a time
+                          <div style={{ fontSize: 11, color: '#60C0F0', marginTop: 4, fontWeight: 600 }}>
+                            {UPLOAD_LIMITS.jpeg.label} · Up to {UPLOAD_LIMITS.jpeg.maxFiles} files · Max {UPLOAD_LIMITS.jpeg.maxSizeMB}MB each · Uploads 1 at a time
                           </div>
                         </DropZone>
                       )}

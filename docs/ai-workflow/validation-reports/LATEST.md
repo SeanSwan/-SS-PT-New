@@ -1,18 +1,18 @@
 # SwanStudios Validation Report
 
-> Generated: 3/12/2026, 11:48:35 AM
+> Generated: 3/12/2026, 5:05:16 PM
 > Files reviewed: 2
 > Validators: 8 succeeded, 0 errored
-> Cost: $0.0880
-> Duration: 152.1s
+> Cost: $0.0676
+> Duration: 179.0s
 > Gateway: OpenRouter (single API key)
 
 ---
 
 ## Files Reviewed
 
-- `backend/routes/galleryRoutes.mjs`
-- `backend/services/formAnalysisService.mjs`
+- `docs/ai-workflow/blueprints/GALLERY-STRATEGY-REVISED-PLAN.md`
+- `docs/ai-workflow/blueprints/GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md`
 
 ---
 
@@ -20,883 +20,889 @@
 
 | # | Validator | Model | Tokens (in/out) | Duration | Status |
 |---|-----------|-------|-----------------|----------|--------|
-| 1 | UX & Accessibility | google/gemini-2.5-flash | 18,915 / 2,789 | 18.5s | PASS |
-| 2 | Code Quality | anthropic/claude-4.5-sonnet-20250929 | 18,792 / 4,096 | 49.5s | PASS |
-| 3 | Security | deepseek/deepseek-v3.2-20251201 | 18,646 / 1,759 | 55.4s | PASS |
-| 4 | Performance & Scalability | google/gemini-3-flash-preview-20251217 | 18,946 / 1,300 | 11.4s | PASS |
-| 5 | Competitive Intelligence | minimax/minimax-m2.1 | 15,743 / 5,421 | 59.2s | PASS |
-| 6 | User Research & Persona Alignment | deepseek/deepseek-v3.2-20251201 | 18,709 / 1,928 | 88.5s | PASS |
-| 7 | Architecture & Bug Hunter | minimax/minimax-m2.5-20260211 | 16,033 / 4,096 | 96.6s | PASS |
-| 8 | Frontend UI/UX Expert | google/gemini-3.1-pro-preview | 22,524 / 2,776 | 43.4s | PASS |
+| 1 | UX & Accessibility | google/gemini-2.5-flash | 8,232 / 2,387 | 14.7s | PASS |
+| 2 | Code Quality | anthropic/claude-4.5-sonnet-20250929 | 7,886 / 4,096 | 52.6s | PASS |
+| 3 | Security | deepseek/deepseek-v3.2-20251201 | 8,011 / 1,460 | 31.7s | PASS |
+| 4 | Performance & Scalability | google/gemini-3-flash-preview-20251217 | 8,263 / 1,369 | 12.4s | PASS |
+| 5 | Competitive Intelligence | minimax/minimax-m2.1 | 6,936 / 4,096 | 68.8s | PASS |
+| 6 | User Research & Persona Alignment | deepseek/deepseek-v3.2-20251201 | 8,080 / 1,519 | 83.2s | PASS |
+| 7 | Architecture & Bug Hunter | minimax/minimax-m2.5-20260211 | 7,227 / 4,096 | 120.9s | PASS |
+| 8 | Frontend UI/UX Expert | google/gemini-3.1-pro-preview | 11,439 / 3,138 | 46.0s | PASS |
 
 ---
 
 ## [PASS] UX & Accessibility
-**Model:** google/gemini-2.5-flash | **Duration:** 18.5s
+**Model:** google/gemini-2.5-flash | **Duration:** 14.7s
 
-As a UX and accessibility expert auditor, I've reviewed the provided backend code for SwanStudios. While backend code doesn't directly impact frontend WCAG compliance, mobile UX, or design consistency, it lays the foundation for how data is presented and interacted with. My review focuses on the *implications* of the backend structure and responses on the frontend experience, as well as potential areas for improvement in error handling and data consistency that affect user perception.
+As a UX and accessibility expert auditor, I've reviewed the provided documentation for SwanStudios' gallery strategy and performance plans. My findings are categorized and rated based on their impact on WCAG compliance, mobile UX, design consistency, user flow, and loading states.
 
-## Backend Code Review: `backend/routes/galleryRoutes.mjs` and `backend/services/formAnalysisService.mjs`
+## Overall Impression
 
-### 1. WCAG 2.1 AA Compliance
+The revised gallery strategy and thumbnail generation plan represent a significant and highly positive step forward for SwanStudios. The core decisions to drop RAW file support, eliminate the quality comparison card, and implement robust image variant generation directly address critical performance and user experience issues. The focus on photographer workflow and client value is excellent.
 
-**Overall Assessment:** The backend code itself doesn't directly violate WCAG. However, the data it provides and the error messages it generates are crucial for frontend accessibility.
-
-*   **Error Messages:**
-    *   **Finding:** Many error messages are generic (`'Failed to load events'`, `'Failed to verify access'`, `'Failed to submit enhancement request'`). While these prevent information leakage, they offer little actionable advice to users.
-    *   **Implication:** On the frontend, generic errors can be frustrating for users, especially those using assistive technologies, as they don't explain *what* went wrong or *how* to fix it. This can lead to confusion and perceived lack of control.
-    *   **Recommendation:** Provide more specific, user-friendly error messages where possible, even if they're mapped to a generic message for public display. For example, instead of "Failed to verify access," if it's a password issue, "Incorrect event password" is better. If it's an expired token, "Gallery access expired. Please re-enter your email and event password." is already good.
-    *   **Rating:** MEDIUM
-
-*   **Data for `aria-labels` / `alt` text:**
-    *   **Finding:** The `GET /api/gallery/events` endpoint returns `name`, `description`, `coverPhotoUrl`. The `GET /api/gallery/events/:slug/photos` returns `displayName`, `url`, `thumbnailUrl`.
-    *   **Implication:** This data is essential for generating meaningful `alt` text for images and `aria-labels` for interactive elements on the frontend. If `displayName` or `description` are often null or generic, the frontend will struggle to provide good accessibility.
-    *   **Recommendation:** Ensure that `displayName` for photos and `description` for events are consistently populated with descriptive content. For cover photos, if `coverPhotoId` is null, the first photo's `thumbnailUrl` is used, but its `displayName` isn't explicitly fetched for the event listing. The frontend would need to make an additional call or assume a generic `alt` text.
-    *   **Rating:** LOW (Potential for improvement in data completeness)
-
-*   **Keyboard Navigation / Focus Management:**
-    *   **Finding:** Backend routes define API interactions, not UI elements.
-    *   **Implication:** No direct impact. Frontend implementation is responsible for keyboard navigation and focus management.
-    *   **Rating:** N/A
-
-### 2. Mobile UX
-
-**Overall Assessment:** Backend performance and response structure indirectly affect mobile UX.
-
-*   **Payload Size:**
-    *   **Finding:** `GET /api/gallery/events/:slug/photos` returns all photos for an event. For events with many photos, this could be a large payload.
-    *   **Implication:** Large payloads can lead to slow loading times on mobile networks, consuming more data and battery.
-    *   **Recommendation:** Consider implementing pagination or infinite scrolling for photo galleries, especially for events with hundreds or thousands of photos. This would require adding `limit` and `offset` (or `page` and `pageSize`) parameters to the API.
-    *   **Rating:** MEDIUM
-
-*   **Touch Targets / Gestures:**
-    *   **Finding:** Backend defines API endpoints.
-    *   **Implication:** No direct impact. Frontend implementation is responsible for touch target sizes and gesture support.
-    *   **Rating:** N/A
-
-*   **Responsive Breakpoints:**
-    *   **Finding:** Backend defines API endpoints.
-    *   **Implication:** No direct impact. Frontend implementation is responsible for responsive design.
-    *   **Rating:** N/A
-
-### 3. Design Consistency
-
-**Overall Assessment:** Backend code does not directly handle visual design.
-
-*   **Theme Tokens / Hardcoded Colors:**
-    *   **Finding:** No frontend styling or color definitions in the backend code.
-    *   **Implication:** No direct impact.
-    *   **Rating:** N/A
-
-### 4. User Flow Friction
-
-**Overall Assessment:** The backend logic defines the steps and requirements for various user actions, which can introduce friction if not carefully designed.
-
-*   **Unnecessary Clicks / Steps:**
-    *   **Finding:**
-        *   **Enhancement Request Logic:** The logic for enhancement requests is complex, involving free credits, purchased credits, and VIP status. If a user doesn't have enough credits, the API returns a `402` with details on credits needed and pricing.
-        *   **VIP Signup/Checkout:** The flow requires a `vip-signup` (create/login user) then a `vip-checkout` (Stripe session) and finally `vip-activate`. This multi-step process, while logically sound for backend separation, could feel disjointed on the frontend if not well-orchestrated. The `userId` needs to be passed from signup to checkout.
-    *   **Implication:**
-        *   For enhancement requests, the frontend needs to clearly communicate the credit situation and guide the user to purchase credits if needed. If the UI doesn't handle the `402` gracefully, it could be a dead end for the user.
-        *   The VIP flow requires careful state management on the frontend to ensure a smooth transition between signup, checkout, and activation. Any misstep could lead to user frustration.
-    *   **Recommendation:**
-        *   For enhancement requests, ensure the frontend provides clear, real-time feedback on credit availability and a direct, prominent call to action to purchase more if necessary.
-        *   For VIP, ensure the frontend clearly guides the user through each step, perhaps with a multi-step form or clear progress indicators. Consider if `vip-signup` and `vip-checkout` could be more tightly integrated on the frontend to reduce perceived steps. The `userId` passing between steps is a potential point of failure if not handled robustly.
-    *   **Rating:** MEDIUM (Potential for friction if frontend doesn't handle complex logic gracefully)
-
-*   **Confusing Navigation:**
-    *   **Finding:** The API structure is clear for backend developers.
-    *   **Implication:** No direct impact. Frontend navigation is key.
-    *   **Rating:** N/A
-
-*   **Missing Feedback States:**
-    *   **Finding:**
-        *   **Stripe Webhook vs. Immediate Credit Application:** For `purchase-credits`, credits are applied immediately on the backend, with a note that a webhook *can* reconcile later if payment fails.
-        *   **Zelle Confirmation:** The `zelle-confirm` endpoint marks the donation as `zelleConfirmed: false`, requiring admin verification.
-    *   **Implication:**
-        *   Applying credits immediately for Stripe purchases is a good UX choice, as it provides instant gratification. However, the frontend must be prepared for the rare case where the payment fails but credits were temporarily granted, and then revoked. This requires a robust webhook system and frontend handling of such reversals.
-        *   For Zelle, the frontend needs to clearly communicate that the donation requires manual verification and is not instantly processed.
-    *   **Recommendation:**
-        *   Ensure the frontend has a mechanism to handle potential credit reversals from Stripe.
-        *   For Zelle, explicitly state on the frontend that "Your Zelle payment will be verified by an admin shortly, and you'll receive a confirmation once processed."
-    *   **Rating:** LOW (Good practices in place, but requires careful frontend communication)
-
-### 5. Loading States
-
-**Overall Assessment:** Backend response times and error handling directly influence the need for and effectiveness of frontend loading states.
-
-*   **Slow API Responses:**
-    *   **Finding:**
-        *   `GET /api/gallery/events` and `GET /api/gallery/events/:slug/photos` involve database queries and potentially fetching cover photo URLs (which can involve multiple `findByPk` calls).
-        *   `POST /api/gallery/enhancement-request` involves multiple database operations (`findOrCreate`, `increment`, `update`, `reload`, `Lead.findOne`, `LeadActivity.create`).
-        *   `POST /api/gallery/analyze-form` involves fetching an image from R2 and then calling an external AI service (Gemini Vision), which can be slow.
-    *   **Implication:** These operations can take time, especially under load or with large datasets. Without proper frontend loading states (skeleton screens, spinners), users will experience blank screens or unresponsive UIs, leading to frustration.
-    *   **Recommendation:**
-        *   **Frontend:** Implement skeleton screens for initial data loads (events, photos). Use spinners or progress indicators for actions like submitting enhancement requests, purchasing credits, or especially for form analysis.
-        *   **Backend Optimization:** Consider optimizing database queries, especially for `GET /api/gallery/events` (e.g., eager loading cover photo URLs or denormalizing). For `POST /api/gallery/enhancement-request`, ensure transactions are used for atomicity and performance.
-        *   **Asynchronous Operations:** For `analyzeForm`, since it's an external AI call, it's inherently slow. The frontend must clearly indicate that analysis is in progress and may take some time.
-    *   **Rating:** HIGH (Direct impact on perceived performance and user experience)
-
-*   **Error Boundaries:**
-    *   **Finding:** All API endpoints include `try...catch` blocks and return `success: false` with an `error` message on failure.
-    *   **Implication:** This is good practice. The frontend can use these `success: false` responses to trigger error boundaries or display user-friendly error messages, preventing crashes and providing feedback.
-    *   **Recommendation:** Ensure the frontend has robust error boundaries and displays user-friendly messages for all possible backend error responses.
-    *   **Rating:** LOW (Good implementation)
-
-*   **Empty States:**
-    *   **Finding:**
-        *   `GET /api/gallery/events` returns `events: []` if no published events.
-        *   `GET /api/gallery/events/:slug/photos` returns `photos: []` if no photos.
-        *   `GET /api/gallery/print-orders` returns `orders: []` if no orders.
-    *   **Implication:** The backend correctly returns empty arrays for collections, allowing the frontend to easily detect and display "no data" or "empty state" messages.
-    *   **Recommendation:** Ensure the frontend explicitly designs and implements empty states for galleries, order lists, etc., to avoid blank areas and guide the user.
-    *   **Rating:** LOW (Good implementation)
+However, as a UX and accessibility expert, I must scrutinize the *implementation details* and potential oversights, even in a planning document.
 
 ---
 
-### Summary of Key Findings and Recommendations:
+## WCAG 2.1 AA Compliance
 
-*   **CRITICAL:** None directly from backend code, but potential for critical UX issues if frontend doesn't handle complex backend responses (e.g., `402` for credits, multi-step VIP flow) gracefully.
-*   **HIGH:**
-    *   **Loading States:** Backend operations, especially `analyzeForm` and complex `enhancement-request` logic, can be slow. Frontend must implement robust loading indicators (skeleton screens, spinners) to manage user expectations.
-*   **MEDIUM:**
-    *   **Error Messages (WCAG/UX):** Many backend error messages are generic. Frontend should map these to more specific, actionable messages for the user.
-    *   **Payload Size (Mobile UX):** `GET /events/:slug/photos` could return large payloads. Consider pagination for large galleries.
-    *   **User Flow Friction:** The multi-step VIP signup/checkout/activate process and the credit management for enhancement requests require careful frontend orchestration to avoid friction.
-*   **LOW:**
-    *   **Data Completeness (WCAG):** Ensure `displayName` for photos and `description` for events are consistently descriptive for `alt` text.
-    *   **Feedback States:** Good handling of immediate credit application and Zelle confirmation, but frontend needs to communicate these nuances clearly.
-    *   **Error Boundaries / Empty States:** Backend provides good foundations for these; frontend needs to implement them.
+### Color Contrast
 
-This audit highlights that while the backend is functionally robust, its design choices significantly influence the frontend's ability to deliver a compliant and user-friendly experience. Close collaboration between backend and frontend teams is essential to address these implications.
+*   **Finding:** The document itself uses a standard markdown theme, so direct color contrast issues within the *code* are not present. However, the plan mentions adding a "Lightroom Export Guide" card to the admin upload interface. This card's design and color choices are not specified.
+*   **Rating:** LOW (Potential)
+*   **Recommendation:** When implementing the "Lightroom Export Guide" card, ensure sufficient color contrast for all text against its background, adhering to WCAG 2.1 AA standards (minimum 4.5:1 for normal text, 3:1 for large text). Use the defined theme palette (e.g., `Frost White` for background, `Midnight Sapphire` or `Royal Depth` for text).
+
+### Aria Labels, Keyboard Navigation, Focus Management
+
+*   **Finding:** The document is a plan, not UI code, so direct issues are not present. However, the plan outlines changes to the "Admin Upload Interface" and "Client Gallery." These interfaces will require careful implementation to ensure accessibility.
+    *   **Admin Upload Interface:** Drag & drop functionality, file input, and the new "Lightroom Export Guide" card.
+    *   **Client Gallery:** Grid view, photo detail modal, "Download Original" button, "Request Enhancement" button.
+*   **Rating:** MEDIUM (Potential for future implementation)
+*   **Recommendation:**
+    *   **Keyboard Navigation:** Ensure all interactive elements (buttons, links, modal close, drag-and-drop zones) are reachable and operable via keyboard.
+    *   **Focus Management:** Implement clear focus indicators (using `Wing Purple` glow accent for example) and manage focus correctly, especially for modals (focus should be trapped within the modal when open and returned to the trigger element when closed).
+    *   **ARIA Attributes:** Use appropriate ARIA roles, states, and properties (e.g., `aria-label`, `aria-describedby`, `role="dialog"`, `aria-modal="true"`) for complex components like the drag-and-drop area, the photo grid, and the detail modal.
+    *   **Drag & Drop:** Provide alternative methods for file upload for users who cannot use drag-and-drop (e.g., a standard file input button). Ensure the drag-and-drop area has appropriate ARIA live regions or visual feedback for screen reader users.
+
+---
+
+## Mobile UX
+
+### Touch Targets
+
+*   **Finding:** The plan mentions "Click photo → Modal" and "Download Original button." While not explicitly stated, the default button sizes and interactive elements in the UI must meet the 44x44px minimum touch target size.
+*   **Rating:** MEDIUM (Potential for future implementation)
+*   **Recommendation:** Ensure all interactive elements, especially buttons and clickable image areas (like the grid items), have a minimum touch target size of 44x44 CSS pixels. This is crucial for usability on mobile devices and for users with motor impairments.
+
+### Responsive Breakpoints
+
+*   **Finding:** The plan explicitly addresses responsive image loading (`400px` thumbnails for grid, `1200px` for modal) which is excellent. It also mentions "Perfect for 4K displays" and "Good for HD screens" for image sizes. However, there's no explicit mention of responsive *layout* for the gallery grid or the admin upload interface.
+*   **Rating:** LOW (Implicitly addressed for images, but layout needs explicit consideration)
+*   **Recommendation:**
+    *   **Gallery Grid:** Ensure the grid layout adapts gracefully to various screen sizes, adjusting column counts and spacing.
+    *   **Admin Upload Interface:** The "Lightroom Export Guide" card and the drag-and-drop area should be responsive and easy to use on smaller screens.
+    *   **Modal:** The photo detail modal should be full-screen or highly adaptable on mobile to maximize viewing area and ease of interaction.
+
+### Gesture Support
+
+*   **Finding:** The plan mentions "Drag & drop batch of edited JPEGs" for admin upload. It also implies swiping through photos in the detail modal, though not explicitly stated.
+*   **Rating:** MEDIUM (Implicit, needs explicit consideration)
+*   **Recommendation:**
+    *   **Admin Upload:** While drag-and-drop is good for desktop, ensure a clear tap/click alternative for mobile users.
+    *   **Photo Detail Modal:** Implement swipe gestures for navigating between photos in the modal on mobile devices. Pinch-to-zoom could also be a valuable addition for examining details of the high-quality images.
+
+---
+
+## Design Consistency
+
+### Theme Tokens Usage
+
+*   **Finding:** The plan *defines* a clear theme palette and typography. This is excellent. The "Lightroom Export Guide" card is a new UI element mentioned, and its styling is not detailed.
+*   **Rating:** LOW (Potential for future implementation)
+*   **Recommendation:** When implementing the "Lightroom Export Guide" card and any other new UI elements, strictly adhere to the defined theme tokens: `Midnight Sapphire`, `Royal Depth`, `Ice Wing`, `Arctic Cyan`, `Gilded Fern`, `Frost White`, `Swan Lavender`, `Wing Purple`. Use `Plus Jakarta Sans` for headings, `Cormorant Garamond Italic` for dramatic text (if any), `Fira Code` for data/code snippets (like the export settings), and `Sora` for UI/gaming elements.
+
+### Hardcoded Colors
+
+*   **Finding:** No hardcoded colors are present in the provided markdown documents, as they are planning documents.
+*   **Rating:** N/A (Not applicable to this document, but critical for code review)
+*   **Recommendation:** Ensure that all color values in the actual React/styled-components frontend code are sourced from the defined theme tokens and that no hexadecimal or RGB values are hardcoded directly into components.
+
+---
+
+## User Flow Friction
+
+### Unnecessary Clicks, Confusing Navigation
+
+*   **Finding:** The plan explicitly addresses and *removes* significant sources of friction:
+    *   **Dropping RAW upload:** Eliminates slow, complex, and ultimately unhelpful server-side processing.
+    *   **Dropping Quality Showcase:** Removes a confusing and unnecessary feature for clients.
+    *   **Simplified Client Gallery:** "NO quality comparison, NO RAW download, NO confusing options." This is a huge win for client UX.
+*   **Rating:** CRITICAL (Addressed positively)
+*   **Recommendation:** The plan is excellent in this regard. Continue to prioritize simplicity and directness in the UI implementation.
+
+### Missing Feedback States
+
+*   **Finding:**
+    *   **Admin Upload:** The plan mentions "Drag & drop batch of edited JPEGs" and "Backend processes each JPEG." It also specifies rejecting RAW files with a "helpful message." This is good. However, the plan doesn't detail the feedback during the *batch upload process itself*. What happens if 1 of 153 photos fails? What's the visual feedback for successful uploads vs. failures?
+    *   **Client Gallery:** "Click photo → Modal: loads 1200px medium." The plan mentions "Instant display," but even "instant" can have a brief delay.
+*   **Rating:** MEDIUM
+*   **Recommendation:**
+    *   **Admin Upload Feedback:**
+        *   Provide clear visual feedback for each photo in a batch upload (e.g., progress bar per photo, success/failure icons, clear error messages for individual failures).
+        *   Offer a summary of the batch upload results (e.g., "150/153 photos uploaded successfully, 3 failed").
+        *   Ensure the "helpful message" for RAW files is prominent and actionable.
+    *   **Client Gallery Loading:** While the goal is "instant," for the brief moment an image is loading in the modal, a subtle loading indicator or a blurhash placeholder (as mentioned in "Optional Future" 5C) would enhance the perceived performance and prevent a blank screen.
+
+---
+
+## Loading States
+
+### Skeleton Screens, Error Boundaries, Empty States
+
+*   **Finding:**
+    *   **Loading States:** The plan explicitly addresses image loading with "Progressive JPEG" and mentions "Blurhash Placeholders (Optional Future)." This is excellent for perceived performance.
+    *   **Error Boundaries:** The plan mentions "Reject RAW uploads with a helpful message" and `logger.warn` for low-res uploads. The retroactive script includes `console.error` for individual photo processing failures. This indicates some error handling, but the user-facing error experience (e.g., what happens if the R2 upload fails for a photo, or the DB update fails?) is not detailed.
+    *   **Empty States:** The plan doesn't explicitly mention empty states for the gallery (e.g., what if an event has no photos yet?).
+*   **Rating:** MEDIUM
+*   **Recommendation:**
+    *   **Loading States:** Implement skeleton screens for the gallery grid while the initial thumbnails are loading. This provides a better user experience than a blank screen. Continue with progressive JPEGs and consider implementing Blurhash placeholders for an even smoother experience.
+    *   **Error Boundaries:** Implement robust error boundaries in the frontend to gracefully handle unexpected errors during image loading, API calls, or component rendering. Provide user-friendly error messages and options to retry or report the issue. For admin uploads, ensure that server-side errors (e.g., R2 upload failure) are communicated clearly to the admin user, not just logged.
+    *   **Empty States:** Design clear and helpful empty states for the client gallery. If an event has no photos, display a message like "No photos available yet. Please check back later!" or "The photographer is still curating this event." For the admin, an empty state might prompt them to upload photos.
+
+---
+
+## Conclusion
+
+The revised gallery strategy and performance plan are exceptionally well-conceived and address critical technical and UX issues. The shift to a JPEG-only, variant-based pipeline will dramatically improve loading times and overall user satisfaction.
+
+My recommendations primarily focus on ensuring that the *implementation* of these excellent plans fully adheres to WCAG standards and best mobile UX practices, particularly concerning interactive elements, feedback, and edge cases like errors and empty states. The plan's foresight in defining a comprehensive design system (palette, typography) is a strong foundation for maintaining consistency.
 
 ---
 
 ## [PASS] Code Quality
-**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 49.5s
+**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 52.6s
 
-# Code Review: SwanStudios Gallery Routes & Form Analysis Service
+# Code Review: Gallery Strategy & Performance Documentation
 
-## CRITICAL Issues
+## Overview
+These are **strategy/planning documents**, not executable code. However, they contain **architectural decisions and implementation guidance** that will directly impact code quality. I'll review them as technical specifications.
 
-### 1. **Hardcoded Secrets & Missing Environment Variable Validation**
-**File:** `backend/routes/galleryRoutes.mjs` (Line 30)  
-**Severity:** CRITICAL
+---
+
+## 1. TypeScript Best Practices
+
+### ❌ MEDIUM: Missing Type Definitions in Code Snippets
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Sharp processing code
 
 ```javascript
-const GALLERY_JWT_SECRET = process.env.JWT_SECRET || 'gallery-fallback-secret';
+// Current: Plain JavaScript
+async function generateVariants(inputBuffer, storageKeyBase) {
+  const metadata = await sharp(inputBuffer).metadata();
 ```
 
-**Issue:** Fallback to hardcoded secret in production is a **critical security vulnerability**. If `JWT_SECRET` is missing, all gallery tokens can be forged.
+**Issue:** Code examples lack TypeScript types, which will lead to `any` types if copy-pasted.
 
-**Fix:**
-```javascript
-const GALLERY_JWT_SECRET = process.env.JWT_SECRET;
-if (!GALLERY_JWT_SECRET) {
-  throw new Error('FATAL: JWT_SECRET environment variable is required');
+**Recommendation:**
+```typescript
+interface ImageVariants {
+  thumb: { buffer: Buffer; key: string };
+  medium: { buffer: Buffer; key: string };
+  width: number;
+  height: number;
+}
+
+async function generateVariants(
+  inputBuffer: Buffer,
+  storageKeyBase: string
+): Promise<ImageVariants> {
+  const metadata = await sharp(inputBuffer).metadata();
+  const { width, height } = metadata;
+  
+  if (!width || !height) {
+    throw new Error('Unable to extract image dimensions');
+  }
+  // ...
 }
 ```
 
 ---
 
-### 2. **Race Condition in Credit Deduction**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 329-345)  
-**Severity:** CRITICAL
+### ❌ MEDIUM: Frontend Interface Incomplete
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Part 3
 
-```javascript
-// Process the enhancements
-const created = [];
-for (const photoId of newPhotoIds) {
-  const [request, wasCreated] = await EnhancementRequest.findOrCreate({...});
-  if (wasCreated) {
-    created.push(request);
-    await GalleryPhoto.increment('enhancementRequestCount', { where: { id: photoId } });
-  }
-}
+```tsx
+// Implied interface but not specified:
+<PhotoImg src={photo.thumbnailUrl || photo.url} />
+```
 
-// Deduct credits
-if (freeToUse > 0) {
-  const updatedFreeUsed = { ...(visitor.freeEnhancementsUsed || {}), [eventKey]: freeUsed + freeToUse };
-  await visitor.update({ freeEnhancementsUsed: updatedFreeUsed });
+**Issue:** No TypeScript interface definition for the updated `GalleryPhoto` type.
+
+**Recommendation:**
+```typescript
+interface GalleryPhoto {
+  id: string;
+  url: string;
+  thumbnailUrl: string | null;
+  thumbnailKey: string | null;
+  mediumUrl: string | null;
+  mediumKey: string | null;
+  storageKey: string;
+  width: number | null;
+  height: number | null;
+  displayName: string;
+  sourceType: 'RAW' | 'JPEG' | 'PNG';
+  // ... other fields
 }
 ```
 
-**Issue:** Credits are deducted **after** creating enhancement requests. If the process crashes between creation and deduction, users get free enhancements. No database transaction wrapping.
+---
 
-**Fix:**
+## 2. React Patterns
+
+### ✅ LOW: Aspect Ratio Implementation Correct
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Grid View Changes
+
+```tsx
+<PhotoImg
+  style={{ aspectRatio: photo.width && photo.height ? `${photo.width}/${photo.height}` : undefined }}
+/>
+```
+
+**Good:** Prevents CLS (Cumulative Layout Shift) by reserving space before image loads.
+
+---
+
+### ⚠️ HIGH: Missing Memoization Guidance
+**Location:** Both documents - Frontend changes
+
+**Issue:** No guidance on memoizing the aspect ratio calculation or image components.
+
+**Recommendation:**
+```typescript
+// In GalleryPage.tsx
+const PhotoGridItem = React.memo<{ photo: GalleryPhoto }>(({ photo }) => {
+  const aspectRatio = useMemo(() => 
+    photo.width && photo.height ? `${photo.width}/${photo.height}` : undefined,
+    [photo.width, photo.height]
+  );
+
+  return (
+    <PhotoImg
+      src={photo.thumbnailUrl || photo.url}
+      width={photo.width || undefined}
+      height={photo.height || undefined}
+      style={{ aspectRatio }}
+      loading="lazy"
+    />
+  );
+});
+```
+
+---
+
+### ❌ CRITICAL: Missing Error Boundary Strategy
+**Location:** Both documents
+
+**Issue:** No error handling for failed image loads, corrupt thumbnails, or missing variants.
+
+**Recommendation:**
+```typescript
+// Add to PhotoDetailModal.tsx
+const [imageError, setImageError] = useState(false);
+
+<img 
+  src={photo.mediumUrl || photo.url}
+  onError={() => {
+    setImageError(true);
+    // Fallback to full image if medium fails
+    if (photo.mediumUrl) {
+      (e.target as HTMLImageElement).src = photo.url;
+    }
+  }}
+/>
+
+{imageError && (
+  <ErrorMessage>
+    Image failed to load. <button onClick={handleRetry}>Retry</button>
+  </ErrorMessage>
+)}
+```
+
+---
+
+## 3. styled-components
+
+### ❌ HIGH: Hardcoded Values in Examples
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Sharp processing
+
 ```javascript
-const transaction = await sequelize.transaction();
-try {
-  // 1. Deduct credits first
-  if (freeToUse > 0) {
-    await visitor.update({ freeEnhancementsUsed: updatedFreeUsed }, { transaction });
-  }
-  if (creditsToUse > 0) {
-    await visitor.update({ 
-      enhancementCredits: visitor.enhancementCredits - creditsToUse 
-    }, { transaction });
-  }
+.resize(400, null, { fit: 'inside', withoutEnlargement: true })
+```
 
-  // 2. Create requests
-  for (const photoId of newPhotoIds) {
-    await EnhancementRequest.create({...}, { transaction });
-    await GalleryPhoto.increment('enhancementRequestCount', { 
-      where: { id: photoId }, 
-      transaction 
+**Issue:** Magic numbers (400, 1200) should be theme constants.
+
+**Recommendation:**
+```typescript
+// backend/config/imageProcessing.ts
+export const IMAGE_VARIANTS = {
+  THUMB: { maxWidth: 400, quality: 80 },
+  MEDIUM: { maxWidth: 1200, quality: 85 },
+  FULL: { quality: 95 },
+} as const;
+
+// Usage:
+.resize(IMAGE_VARIANTS.THUMB.maxWidth, null, { 
+  fit: 'inside', 
+  withoutEnlargement: true 
+})
+```
+
+---
+
+### ⚠️ MEDIUM: No Theme Token Usage in Frontend Examples
+**Location:** Both documents
+
+**Issue:** Frontend code snippets don't reference the Enchanted Apex theme tokens.
+
+**Recommendation:**
+```typescript
+// frontend/src/pages/gallery/PhotoDetailModal.tsx
+import styled from 'styled-components';
+
+const ModalImage = styled.img`
+  max-width: 100%;
+  border-radius: ${({ theme }) => theme.radii.md};
+  box-shadow: 0 4px 20px ${({ theme }) => theme.colors.midnightSapphire}40;
+  background: ${({ theme }) => theme.colors.frostWhite};
+`;
+
+const DownloadButton = styled.a`
+  background: ${({ theme }) => theme.colors.iceWing};
+  color: ${({ theme }) => theme.colors.midnightSapphire};
+  font-family: ${({ theme }) => theme.fonts.ui}; // Sora
+  /* ... */
+`;
+```
+
+---
+
+## 4. DRY Violations
+
+### ❌ HIGH: Duplicate Variant Generation Logic
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Upload Path Modifications
+
+**Issue:** States "All 3 upload paths need the same post-processing" but doesn't extract to shared service.
+
+**Recommendation:**
+```typescript
+// backend/services/imageVariantService.mjs
+export class ImageVariantService {
+  async processUpload(
+    inputBuffer: Buffer,
+    storageKeyBase: string,
+    photoData: Partial<GalleryPhoto>
+  ): Promise<GalleryPhoto> {
+    const variants = await this.generateVariants(inputBuffer, storageKeyBase);
+    
+    await Promise.all([
+      this.uploadToR2(`${storageKeyBase}.jpg`, inputBuffer),
+      this.uploadToR2(`${storageKeyBase}_thumb.jpg`, variants.thumb.buffer),
+      this.uploadToR2(`${storageKeyBase}_medium.jpg`, variants.medium.buffer),
+    ]);
+
+    return GalleryPhoto.create({
+      ...photoData,
+      url: this.buildUrl(`${storageKeyBase}.jpg`),
+      thumbnailUrl: this.buildUrl(`${storageKeyBase}_thumb.jpg`),
+      mediumUrl: this.buildUrl(`${storageKeyBase}_medium.jpg`),
+      width: variants.width,
+      height: variants.height,
     });
   }
-
-  await transaction.commit();
-} catch (err) {
-  await transaction.rollback();
-  throw err;
 }
+
+// Usage in all 3 upload routes:
+const photo = await imageVariantService.processUpload(buffer, keyBase, photoData);
 ```
 
 ---
 
-### 3. **Stripe Payment Applied Before Confirmation**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 426-440)  
-**Severity:** CRITICAL
+### ⚠️ MEDIUM: Repeated URL Building Logic
+**Location:** Multiple locations in both documents
 
-```javascript
-// Apply credits immediately (Stripe webhook can reconcile later if payment fails)
-// For production, move this to a webhook handler for checkout.session.completed
-const visitor = await GalleryVisitor.findByPk(visitorId);
-if (visitor) {
-  if (pkg === 'vip') {
-    await visitor.update({ isVip: true });
-  } else {
-    await visitor.update({ enhancementCredits: visitor.enhancementCredits + pricing.credits });
+**Issue:** `buildUrl()` called repeatedly without centralization.
+
+**Recommendation:**
+```typescript
+// backend/services/r2Service.mjs
+export class R2Service {
+  buildUrls(storageKeyBase: string) {
+    return {
+      full: this.buildUrl(`${storageKeyBase}.jpg`),
+      thumb: this.buildUrl(`${storageKeyBase}_thumb.jpg`),
+      medium: this.buildUrl(`${storageKeyBase}_medium.jpg`),
+    };
   }
 }
 ```
 
-**Issue:** Credits/VIP status granted **before payment confirmation**. Comment acknowledges this but code is in production. Users can cancel payment and keep benefits.
-
-**Fix:**
-```javascript
-// DO NOT apply credits here — only create a pending record
-await CreditPurchase.create({
-  visitorId,
-  package: pkg,
-  credits: pricing.credits,
-  stripeSessionId: session.id,
-  status: 'pending',
-});
-
-// Credits applied in webhook handler on checkout.session.completed
-```
-
 ---
 
-### 4. **SQL Injection via Sequelize `literal()`**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 663-664)  
-**Severity:** CRITICAL
+## 5. Error Handling
+
+### ❌ CRITICAL: No Error Handling in Migration Script
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Part 2
 
 ```javascript
-[fn('SUM', literal("CASE WHEN vote_type = 1 THEN 1 ELSE 0 END")), 'thumbsUp'],
-[fn('SUM', literal("CASE WHEN vote_type = -1 THEN 1 ELSE 0 END")), 'thumbsDown'],
-```
-
-**Issue:** While this specific case is safe (no user input), using `literal()` sets a dangerous pattern. If copied elsewhere with user input, it's an injection vector.
-
-**Fix:**
-```javascript
-// Use Sequelize's built-in operators instead
-attributes: [
-  'photoId',
-  [fn('COUNT', col('id')), 'totalVotes'],
-  [fn('SUM', fn('IF', { voteType: 1 }, 1, 0)), 'thumbsUp'],
-  [fn('SUM', fn('IF', { voteType: -1 }, 1, 0)), 'thumbsDown'],
-],
-```
-
-Or use raw query with parameterization:
-```javascript
-const [results] = await sequelize.query(
-  `SELECT photo_id, 
-          SUM(CASE WHEN vote_type = 1 THEN 1 ELSE 0 END) as thumbsUp,
-          SUM(CASE WHEN vote_type = -1 THEN 1 ELSE 0 END) as thumbsDown
-   FROM photo_votes 
-   WHERE photo_id IN (:photoIds)
-   GROUP BY photo_id`,
-  { replacements: { photoIds }, type: QueryTypes.SELECT }
-);
-```
-
----
-
-## HIGH Issues
-
-### 5. **Missing TypeScript Types (JavaScript File)**
-**File:** Both files  
-**Severity:** HIGH
-
-**Issue:** Files use `.mjs` extension but project is TypeScript. No type safety, no IDE autocomplete, no compile-time checks.
-
-**Fix:** Convert to `.ts`:
-```typescript
-// backend/routes/galleryRoutes.ts
-import { Request, Response, NextFunction } from 'express';
-import { JwtPayload } from 'jsonwebtoken';
-
-interface GalleryAccessPayload extends JwtPayload {
-  type: 'gallery_access';
-  visitorId: number;
-  eventId: number;
-  email: string;
-  slug: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  galleryAccess?: GalleryAccessPayload;
-}
-
-function requireGalleryAccess(
-  req: AuthenticatedRequest, 
-  res: Response, 
-  next: NextFunction
-): void {
-  // ... typed implementation
-}
-```
-
----
-
-### 6. **Async Error Handling Anti-Pattern**
-**File:** `backend/routes/galleryRoutes.mjs` (All routes)  
-**Severity:** HIGH
-
-**Issue:** Every route manually wraps in `try/catch`. DRY violation + easy to forget in new routes.
-
-**Fix:**
-```javascript
-// utils/asyncHandler.mjs
-export const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
-
-// Use in routes
-router.get('/events', asyncHandler(async (req, res) => {
-  const events = await GalleryEvent.findAll({...});
-  return res.json({ success: true, events });
-}));
-
-// Global error handler in app.mjs
-app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', err);
-  res.status(err.status || 500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message,
-  });
-});
-```
-
----
-
-### 7. **N+1 Query Problem in Event Listing**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 84-103)  
-**Severity:** HIGH
-
-```javascript
-const eventsWithCovers = await Promise.all(events.map(async (event) => {
-  const plain = event.toJSON();
-  if (plain.coverPhotoId) {
-    const coverPhoto = await GalleryPhoto.findByPk(plain.coverPhotoId, {...});
-    plain.coverPhotoUrl = coverPhoto?.thumbnailUrl || coverPhoto?.url || null;
-  } else {
-    const firstPhoto = await GalleryPhoto.findOne({...});
-    plain.coverPhotoUrl = firstPhoto?.thumbnailUrl || firstPhoto?.url || null;
+for (const photo of photos) {
+  try {
+    // ... processing
+  } catch (err) {
+    console.error(`❌ ${photo.displayName}: ${err.message}`);
   }
-  return plain;
-}));
-```
-
-**Issue:** If 50 events exist, this makes 50+ additional queries. Performance degrades linearly with event count.
-
-**Fix:**
-```javascript
-const events = await GalleryEvent.findAll({
-  where: { isPublished: true },
-  include: [{
-    model: GalleryPhoto,
-    as: 'coverPhoto',
-    attributes: ['thumbnailUrl', 'url'],
-    required: false,
-  }],
-  order: [['eventDate', 'DESC']],
-});
-
-const eventsWithCovers = events.map(event => {
-  const plain = event.toJSON();
-  plain.coverPhotoUrl = plain.coverPhoto?.thumbnailUrl 
-    || plain.coverPhoto?.url 
-    || null;
-  delete plain.coverPhoto;
-  return plain;
-});
-```
-
----
-
-### 8. **Unvalidated User Input in VIP Signup**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 747-750)  
-**Severity:** HIGH
-
-```javascript
-const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
-```
-
-**Issue:** No validation that `email` contains `@`. If malformed, `split('@')[0]` could be entire string. Also no length validation (username could be 200+ chars).
-
-**Fix:**
-```javascript
-// Already validated email format earlier, but add defensive check
-if (!email.includes('@')) {
-  return res.status(400).json({ success: false, error: 'Invalid email format' });
-}
-
-const baseUsername = email.split('@')[0]
-  .replace(/[^a-zA-Z0-9_]/g, '_')
-  .slice(0, 30); // Enforce max length
-
-if (baseUsername.length < 3) {
-  baseUsername = `user_${uuidv4().slice(0, 8)}`;
 }
 ```
 
----
+**Issue:** 
+1. Errors are logged but not tracked
+2. No rollback mechanism if partial failure
+3. No retry logic for transient R2 failures
+4. No final summary of success/failure counts
 
-### 9. **Missing Rate Limiting on Critical Endpoints**
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Severity:** HIGH
-
-**Issue:** Only `/access`, `/download`, `/vip-signup`, and `/message` have rate limiting. Missing on:
-- `/enhancement-request` (could spam enhancement queue)
-- `/purchase-credits` (could spam Stripe API)
-- `/vip-checkout` (could spam Stripe API)
-- `/referral` (could spam referral credits)
-
-**Fix:**
-```javascript
-const enhancementLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // 20 enhancement requests per hour
-  keyGenerator: (req) => req.galleryAccess?.visitorId || req.ip,
-});
-
-router.post('/enhancement-request', requireGalleryAccess, enhancementLimiter, async (req, res) => {
-  // ...
-});
-```
-
----
-
-## MEDIUM Issues
-
-### 10. **Inconsistent Error Response Format**
-**File:** `backend/routes/galleryRoutes.mjs` (Throughout)  
-**Severity:** MEDIUM
-
-**Issue:** Some errors return `{ success: false, error: 'message' }`, others return `{ success: false, error: 'code', ... }`. Frontend can't reliably parse.
-
-**Fix:**
+**Recommendation:**
 ```typescript
-interface ErrorResponse {
-  success: false;
-  error: {
-    code: string;
-    message: string;
-    details?: Record<string, any>;
-  };
+interface MigrationResult {
+  success: number;
+  failed: Array<{ photoId: string; error: string }>;
+  skipped: number;
 }
 
-// Usage
-return res.status(402).json({
-  success: false,
-  error: {
-    code: 'CREDITS_REQUIRED',
-    message: 'Not enough enhancement credits',
-    details: {
-      freeRemaining,
-      creditsAvailable: visitor.enhancementCredits,
-      creditsNeeded: remaining - visitor.enhancementCredits,
-      pricing: CREDIT_PRICING,
-    },
-  },
-});
-```
-
----
-
-### 11. **Magic Numbers Without Constants**
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Severity:** MEDIUM
-
-```javascript
-if (photoIds.length > 50) { // Line 267
-if (message.trim().length > 5000) { // Line 925
-const scoreBoost = created.length * 5; // Line 363
-```
-
-**Issue:** Business rules scattered throughout code. Hard to maintain consistency.
-
-**Fix:**
-```javascript
-const LIMITS = {
-  MAX_PHOTOS_PER_ENHANCEMENT: 50,
-  MAX_MESSAGE_LENGTH: 5000,
-  MAX_PRINT_QUANTITY: 10,
-  SCORE_BOOST_PER_ENHANCEMENT: 5,
-  SCORE_BOOST_REFERRAL: 15,
-  SCORE_BOOST_DONATION: 20,
-  SCORE_BOOST_VIP: 25,
-  SCORE_BOOST_MESSAGE: 10,
-  SCORE_BOOST_VOTE: 2,
-  SCORE_BOOST_PRINT: 10,
-} as const;
-```
-
----
-
-### 12. **Non-Atomic Lead Score Updates**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 363-377, 552-565, etc.)  
-**Severity:** MEDIUM
-
-**Issue:** Lead score updates are "best-effort" with `try/catch` that swallows errors. If two requests update score simultaneously, last-write-wins (race condition).
-
-**Fix:**
-```javascript
-// Use atomic increment instead of read-modify-write
-await Lead.increment('score', { 
-  by: scoreBoost, 
-  where: { 
-    id: lead.id,
-    score: { [Op.lt]: 100 } // Cap at 100
-  } 
-});
-
-// Or use optimistic locking
-const [updated] = await Lead.update(
-  { score: sequelize.literal(`LEAST(score + ${scoreBoost}, 100)`) },
-  { where: { id: lead.id } }
-);
-```
-
----
-
-### 13. **Missing Input Sanitization**
-**File:** `backend/routes/galleryRoutes.mjs` (Lines 923-927)  
-**Severity:** MEDIUM
-
-```javascript
-message: message.trim(),
-firstName: firstName?.trim() || null,
-phone: phone?.trim() || null,
-```
-
-**Issue:** Only trims whitespace. No HTML escaping, no XSS protection if displayed in admin panel.
-
-**Fix:**
-```javascript
-import DOMPurify from 'isomorphic-dompurify';
-
-message: DOMPurify.sanitize(message.trim()),
-firstName: firstName ? DOMPurify.sanitize(firstName.trim()) : null,
-```
-
-Or use a validation library:
-```javascript
-import { body, validationResult } from 'express-validator';
-
-router.post('/message', 
-  requireGalleryAccess,
-  messageLimiter,
-  body('message').trim().isLength({ min: 1, max: 5000 }).escape(),
-  body('firstName').optional().trim().isLength({ max: 100 }).escape(),
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+async function migrateExistingPhotos(): Promise<MigrationResult> {
+  const result: MigrationResult = { success: 0, failed: [], skipped: 0 };
+  
+  const photos = await GalleryPhoto.findAll({ /* ... */ });
+  
+  for (const photo of photos) {
+    try {
+      await processPhotoWithRetry(photo, 3); // 3 retries
+      result.success++;
+    } catch (err) {
+      logger.error(`Migration failed for photo ${photo.id}`, { error: err });
+      result.failed.push({ 
+        photoId: photo.id, 
+        error: err instanceof Error ? err.message : String(err) 
+      });
     }
-    // ...
   }
-);
+  
+  // Save migration report
+  await MigrationLog.create({
+    type: 'thumbnail_generation',
+    result: JSON.stringify(result),
+    completedAt: new Date(),
+  });
+  
+  return result;
+}
+
+async function processPhotoWithRetry(photo: GalleryPhoto, retries: number) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await processPhoto(photo);
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await sleep(1000 * (i + 1)); // Exponential backoff
+    }
+  }
+}
 ```
 
 ---
 
-### 14. **Incomplete Form Analysis Service**
-**File:** `backend/services/formAnalysisService.mjs` (Line 67)  
-**Severity:** MEDIUM
+### ❌ HIGH: RAW Upload Rejection Lacks Proper Error Response
+**Location:** `GALLERY-STRATEGY-REVISED-PLAN.md` - Backend Changes #1
 
 ```javascript
-const base64Image = imageBuffer.toString('base64');
-// ... truncated ...
+if (isRaw) {
+  return res.status(422).json({
+    success: false,
+    error: 'RAW files are not accepted...',
+    hint: '...',
+  });
+}
 ```
 
-**Issue:** Service is incomplete (truncated). Can't review Gemini API integration, error handling, or response parsing.
+**Issue:** 
+1. No error code for frontend to handle programmatically
+2. No link to documentation
+3. No suggestion to use Lightroom export preset
 
-**Required for Full Review:**
-- Gemini API call implementation
-- Response parsing/validation
-- Error handling for API failures
--
+**Recommendation:**
+```typescript
+if (isRaw) {
+  return res.status(422).json({
+    success: false,
+    errorCode: 'RAW_FILE_NOT_SUPPORTED',
+    message: 'RAW files must be exported from Lightroom before upload',
+    details: {
+      acceptedFormats: ['JPEG', 'PNG'],
+      recommendedSettings: {
+        format: 'JPEG',
+        quality: 95,
+        colorSpace: 'sRGB',
+        maxDimension: 4000,
+      },
+      documentationUrl: 'https://sswanstudios.com/docs/photo-export-guide',
+    },
+  });
+}
+```
+
+---
+
+### ⚠️ MEDIUM: No Validation for Corrupt/Invalid JPEGs
+**Location:** `GALLERY-STRATEGY-REVISED-PLAN.md` - Backend Changes #4
+
+```javascript
+const metadata = await sharp(inputBuffer).metadata();
+if (metadata.width < 2000 || metadata.height < 2000) {
+  logger.warn(`Low-res upload...`);
+}
+```
+
+**Issue:** 
+1. Only warns, doesn't reject
+2. No validation that Sharp can actually decode the JPEG
+3. No check for minimum quality threshold
+
+**Recommendation:**
+```typescript
+try {
+  const metadata = await sharp(inputBuffer).metadata();
+  
+  if (!metadata.width || !metadata.height) {
+    throw new Error('Unable to read image dimensions');
+  }
+  
+  if (metadata.width < 1200 || metadata.height < 1200) {
+    return res.status(422).json({
+      errorCode: 'IMAGE_TOO_SMALL',
+      message: `Image resolution too low: ${metadata.width}×${metadata.height}`,
+      minimumRequired: '1200×1200',
+    });
+  }
+  
+  // Test that Sharp can actually process it
+  await sharp(inputBuffer).resize(100, 100).toBuffer();
+  
+} catch (err) {
+  logger.error('Invalid image file', { error: err });
+  return res.status(422).json({
+    errorCode: 'INVALID_IMAGE',
+    message: 'File is corrupt or not a valid image',
+  });
+}
+```
+
+---
+
+## 6. Performance Anti-Patterns
+
+### ✅ GOOD: Thumbnail Strategy Correct
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Overall approach
+
+**Strengths:**
+- 400px thumbnails for grid (30-60KB)
+- 1200px medium for modal (200-400KB)
+- Progressive JPEG for perceived performance
+- Lazy loading implied
+
+---
+
+### ❌ CRITICAL: Missing `loading="lazy"` Attribute
+**Location:** `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md` - Grid View Changes
+
+```tsx
+<PhotoImg
+  src={photo.thumbnailUrl || photo.url}
+  width={photo.width || undefined}
+  height={photo.height || undefined}
+/>
+```
+
+**Issue:** Without `loading="lazy"`, all 72 thumbnails load immediately, even those below the fold.
+
+**Recommendation:**
+```tsx
+<PhotoImg
+  src={photo.thumbnailUrl || photo.url}
+  width={photo.width || undefined}
+  height={photo.height || undefined}
+  loading="lazy"
+  decoding="async"
+  style={{ aspectRatio }}
+/>
+```
+
+---
+
+### ❌ HIGH: No Pagination/Virtual Scrolling Strategy
+**Location:** Both documents
+
+**Issue:** Loading 72 photos (even as thumbnails) in one page is still 3.6MB. At 153 photos (mentioned in revised plan), that's 9MB.
+
+**Recommendation:**
+```typescript
+// Option 1: Pagination
+const PHOTOS_PER_PAGE = 24;
+const [page, setPage] = useState(1);
+const visiblePhotos = photos.slice(0, page * PHOTOS_PER_PAGE);
+
+// Option 2: Infinite scroll with Intersection Observer
+const { ref, inView } = useInView();
+useEffect(() => {
+  if (inView && hasMore) loadMorePhotos();
+}, [inView]);
+
+// Option 3: Virtual scrolling (react-window)
+<FixedSizeGrid
+  columnCount={4}
+  rowCount={Math.ceil(photos.length / 4)}
+  columnWidth={300}
+  rowHeight={300}
+  // Only renders visible rows
+/>
+```
+
+---
+
+### ⚠️ MEDIUM: Parallel Upload Not Addressed
+**Location:** `GALLERY-STRATEGY-REVISED-PLAN.md` - Upload to SwanStudios Gallery
+
+```
+3. Backend processes each JPEG:
+   a. Apply watermark
+   b. Generate thumbnail
+   c. Generate medium
+   ...
+5. Processing time: ~2-5 seconds per photo
+```
+
+**Issue:** Sequential processing of 153 photos = 10 minutes. Could be parallelized.
+
+**Recommendation:**
+```typescript
+// Process in batches of 5 to avoid memory issues
+const BATCH_SIZE = 5;
+for (let i = 0; i < files.length; i += BATCH_SIZE) {
+  const batch = files.slice(i, i + BATCH_SIZE);
+  await Promise.all(batch.map(file => processPhoto(file)));
+}
+```
+
+---
+
+### ❌ HIGH: No Cache Strategy for R2 URLs
+**Location:** `GALLERY-PERFORMANCE
 
 ---
 
 ## [PASS] Security
-**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 55.4s
+**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 31.7s
 
-# Security Audit Report: SwanStudios Gallery Routes & Form Analysis Service
+# Security Audit Report: SwanStudios Gallery Strategy & Performance Plans
 
 ## Executive Summary
-**Audit Date:** 2024-03-20  
-**Target:** SwanStudios Personal Training SaaS Platform  
-**Scope:** `backend/routes/galleryRoutes.mjs`, `backend/services/formAnalysisService.mjs`  
-**Risk Level:** **MEDIUM** - Multiple security concerns identified requiring attention
+The provided documents are **strategic planning documents** (markdown files), not executable code. Therefore, most traditional security vulnerabilities cannot be directly identified. However, these plans reveal **architectural decisions and implementation intentions** that have significant security implications. The audit focuses on analyzing the proposed architecture, workflows, and code snippets for potential security risks.
 
-## Critical Findings (1)
+## Key Findings
 
-### CRITICAL-001: Hardcoded JWT Secret Fallback
-**Location:** `galleryRoutes.mjs` line 44  
-**Issue:** Hardcoded fallback secret `'gallery-fallback-secret'` when `JWT_SECRET` environment variable is missing  
-**Impact:** If environment variable is not set, attackers can forge valid JWT tokens  
-**OWASP Category:** A02:2021 - Cryptographic Failures  
-**Fix:** Remove fallback, require environment variable validation at startup
+### 1. **File Upload Security** - MEDIUM
+**Issue:** The plan proposes rejecting RAW file uploads with a 422 error message containing detailed Lightroom export instructions. While this improves performance, the error message could reveal internal tooling details.
 ```javascript
-const GALLERY_JWT_SECRET = process.env.JWT_SECRET;
-if (!GALLERY_JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
+// From GALLERY-STRATEGY-REVISED-PLAN.md
+return res.status(422).json({
+  success: false,
+  error: 'RAW files are not accepted. Please export from Lightroom as JPEG Q95, 4000px max.',
+  hint: 'Lightroom Export: Quality 95%, sRGB, Long Edge 4000px, File Naming: Custom Name-Sequence',
+});
 ```
+**Risk:** Information disclosure about internal workflows and software stack.
+**Recommendation:** Use generic error messages in production; log detailed hints server-side only.
 
-## High Severity Findings (3)
+### 2. **Input Validation Gaps** - MEDIUM
+**Issue:** The plan mentions validating JPEG dimensions but lacks comprehensive input validation:
+- No file type verification beyond extension checking
+- No malware scanning of uploaded files
+- No validation of metadata extraction results
+**Risk:** Potential for malicious file uploads, ZIP bombs, or malformed images causing DoS.
+**Recommendation:** Implement:
+  - Magic number verification (not just extension)
+  - File size limits (25MB is reasonable)
+  - Virus/malware scanning service
+  - Timeout protection for image processing
 
-### HIGH-001: Missing Input Validation & Sanitization
-**Location:** Multiple endpoints (`/events/:slug/access`, `/referral`, `/message`, etc.)  
-**Issue:** No comprehensive input validation using Zod/Yup schemas  
-**Impact:** Potential for NoSQL/command injection, XSS via stored data  
-**OWASP Category:** A03:2021 - Injection  
-**Fix:** Implement centralized validation middleware with Zod schemas
+### 3. **Server-Side Image Processing** - MEDIUM
+**Issue:** The `sharp` library processing pipeline handles arbitrary user-uploaded images in memory.
+```javascript
+// From GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md
+const thumbBuffer = await sharp(inputBuffer)
+  .resize(400, null, { fit: 'inside', withoutEnlargement: true })
+  .jpeg({ quality: 80, progressive: true, mozjpeg: true })
+  .toBuffer();
+```
+**Risk:** 
+- Memory exhaustion attacks via specially crafted images
+- Sharp library vulnerabilities (CVE tracking needed)
+- Unhandled processing failures
+**Recommendation:** 
+- Implement memory limits per processing job
+- Monitor sharp library for security updates
+- Add circuit breakers for failed processing
 
-### HIGH-002: Insecure Direct Object Reference (IDOR)
-**Location:** `/photos/:id/download` endpoint  
-**Issue:** Photo access only checks `eventId` match, but doesn't verify visitor has access to that specific photo  
-**Impact:** Attackers can enumerate photo IDs and download any photo from the event  
-**OWASP Category:** A01:2021 - Broken Access Control  
-**Fix:** Add explicit authorization check for each photo resource
+### 4. **Data Storage Architecture** - LOW
+**Issue:** The three-variant storage approach (thumb/medium/full) creates multiple copies of potentially sensitive images.
+**Risk:** Inconsistent access controls across variants; orphaned files if DB updates fail.
+**Recommendation:** 
+- Ensure all variants inherit the same access controls
+- Implement atomic operations (DB + storage updates)
+- Add cleanup jobs for orphaned files
 
-### HIGH-003: Missing Stripe Webhook Verification
-**Location:** `/purchase-credits` endpoint lines 415-418  
-**Issue:** Credits applied immediately before payment confirmation via webhook  
-**Impact:** Users get credits without paying if they cancel checkout  
-**OWASP Category:** A01:2021 - Broken Access Control  
-**Fix:** Move credit application to Stripe webhook handler for `checkout.session.completed`
+### 5. **Client-Side Data Exposure** - LOW
+**Issue:** The plan exposes image dimensions and URLs client-side without considering:
+- Signed URLs expiration
+- Direct object references (storage keys in responses)
+- CORS policies for R2 storage
+**Risk:** Information leakage, hotlinking, unauthorized access.
+**Recommendation:** 
+- Use signed URLs with expiration
+- Avoid exposing internal storage keys
+- Implement proper CORS for R2/CDN
 
-## Medium Severity Findings (7)
+### 6. **Authentication & Authorization Gaps** - MEDIUM
+**Issue:** The documents assume existing auth but don't specify:
+- Upload endpoint protection (admin-only verification)
+- Enhancement request authorization checks
+- Rate limiting on upload endpoints
+**Risk:** Unauthorized uploads, privilege escalation via API.
+**Recommendation:** 
+- Explicitly document auth requirements for each endpoint
+- Implement upload rate limiting
+- Audit enhancement request flow for access control
 
-### MEDIUM-001: Weak Password Validation
-**Location:** `/events/:slug/access` endpoint  
-**Issue:** No minimum password length or complexity requirements for event passwords  
-**Impact:** Weak passwords vulnerable to brute-force attacks  
-**OWASP Category:** A07:2021 - Identification and Authentication Failures  
-**Fix:** Enforce minimum password length (8+ chars) and store password strength in logs
+### 7. **Logging & Monitoring** - LOW
+**Issue:** The plan includes `logger.warn()` for low-res uploads but doesn't specify:
+- PII in logs (filenames, user data)
+- Security event logging
+- Audit trails for image modifications
+**Risk:** Privacy violations, insufficient forensic data.
+**Recommendation:** 
+- Sanitize logs (remove PII)
+- Log security events (failed uploads, access attempts)
+- Maintain audit trail for enhancement requests
 
-### MEDIUM-002: Missing CORS Configuration
-**Location:** Entire router  
-**Issue:** No CORS headers configured, relying on Express default or upstream middleware  
-**Impact:** Potential CSRF or unauthorized cross-origin requests  
-**OWASP Category:** A01:2021 - Broken Access Control  
-**Fix:** Implement strict CORS policy with allowed origins list
+## Security Recommendations
 
-### MEDIUM-003: PII Exposure in Logs
-**Location:** Multiple `logger.info()` and `logger.error()` calls  
-**Issue:** Email addresses, user IDs, and other PII logged in plaintext  
-**Impact:** GDPR/CCPA violations, data breach if logs are exposed  
-**OWASP Category:** A09:2021 - Security Logging and Monitoring Failures  
-**Fix:** Implement PII masking in logger utility
+### Immediate Actions (Before Implementation):
+1. **Implement comprehensive file validation:**
+   - Use `file-type` or similar for actual file verification
+   - Set processing timeouts for image operations
+   - Scan uploads for malware
 
-### MEDIUM-004: Missing Rate Limiting on Sensitive Endpoints
-**Location:** `/vip-activate`, `/print-order`, `/print-orders`  
-**Issue:** No rate limiting on financial and VIP activation endpoints  
-**Impact:** Potential for brute-force attacks or resource exhaustion  
-**OWASP Category:** A05:2021 - Security Misconfiguration  
-**Fix:** Apply consistent rate limiting to all authenticated endpoints
+2. **Secure upload endpoints:**
+   ```javascript
+   // Example validation middleware
+   const uploadValidation = (req, res, next) => {
+     // Check file type via magic numbers
+     // Validate dimensions before processing
+     // Apply rate limiting per user
+     // Verify admin authentication
+   };
+   ```
 
-### MEDIUM-005: SQL Injection Risk via Raw Queries
-**Location:** `getVoteCounts()` function using `literal()`  
-**Issue:** Raw SQL fragments in Sequelize queries  
-**Impact:** Potential SQL injection if inputs are not properly sanitized  
-**OWASP Category:** A03:2021 - Injection  
-**Fix:** Use Sequelize query builders instead of raw SQL
+3. **Protect image processing:**
+   - Run sharp in worker threads with memory limits
+   - Implement circuit breakers for failed processing
+   - Monitor for sharp CVEs
 
-### MEDIUM-006: Missing Content Security Policy (CSP)
-**Location:** Entire application  
-**Issue:** No CSP headers implemented  
-**Impact:** XSS attacks could execute malicious scripts  
-**OWASP Category:** A05:2021 - Security Misconfiguration  
-**Fix:** Implement strict CSP headers in Express middleware
+4. **Secure storage access:**
+   - Use signed URLs for R2 access
+   - Implement proper CORS policies
+   - Regular access log reviews
 
-### MEDIUM-007: API Key Exposure Risk
-**Location:** `formAnalysisService.mjs`  
-**Issue:** Gemini API key loaded from environment but no validation of image URLs  
-**Impact:** Potential SSRF if photo URLs can be manipulated  
-**OWASP Category:** A10:2021 - Server-Side Request Forgery  
-**Fix:** Validate photo URLs are from trusted domains before fetching
+### Architectural Improvements:
+1. **Add Web Application Firewall (WAF)** rules for upload endpoints
+2. **Implement Content Security Policy (CSP)** for gallery pages
+3. **Use sanitized error messages** in production
+4. **Regular security scanning** of uploaded content
 
-## Low Severity Findings (4)
+### Monitoring & Maintenance:
+1. **Set up alerts** for:
+   - Unusual upload patterns
+   - Processing failures
+   - Storage quota breaches
+2. **Regular dependency updates** (sharp, Express, etc.)
+3. **Security review** of third-party services (R2, Cloudflare)
 
-### LOW-001: Missing Request Size Limits
-**Location:** All POST endpoints  
-**Issue:** No body parser limits configured  
-**Impact:** Potential for DoS via large payloads  
-**Fix:** Configure Express body parser with size limits
+## Risk Assessment Summary
 
-### LOW-002: Insecure Defaults in Rate Limiters
-**Location:** Various rate limit configurations  
-**Issue:** `keyGenerator` uses IP which can be spoofed  
-**Impact:** Rate limiting bypass possible  
-**Fix:** Combine IP with visitorId/userId for rate limiting keys
-
-### LOW-003: Missing HTTP Security Headers
-**Location:** Entire application  
-**Issue:** Missing HSTS, X-Content-Type-Options, X-Frame-Options  
-**Impact:** Various client-side attacks possible  
-**Fix:** Implement security headers middleware
-
-### LOW-004: Verbose Error Messages
-**Location:** Multiple error responses  
-**Issue:** Stack traces and detailed errors returned in production  
-**Impact:** Information disclosure aiding attackers  
-**Fix:** Use generic error messages in production mode
-
-## Positive Security Practices Observed
-
-1. **JWT Token Validation:** Proper token type checking implemented
-2. **Password Hashing:** bcrypt used for password storage
-3. **Rate Limiting:** Implemented on critical endpoints
-4. **Input Trimming:** Basic input sanitization present
-5. **Transaction Boundaries:** Database operations wrapped in try-catch
-6. **Environment Variables:** Sensitive data loaded from environment
-
-## Recommendations Priority
-
-### Immediate (Critical/High)
-1. Remove hardcoded JWT secret fallback
-2. Implement comprehensive input validation with Zod
-3. Add Stripe webhook verification for payments
-4. Fix IDOR vulnerability in photo downloads
-
-### Short-term (Medium)
-1. Implement CORS and CSP headers
-2. Add PII masking to logger
-3. Apply rate limiting to all authenticated endpoints
-4. Fix SQL injection risks in raw queries
-
-### Long-term (Low/Enhancements)
-1. Implement security headers middleware
-2. Add request size limiting
-3. Improve rate limiting key generation
-4. Implement comprehensive audit logging
-
-## Testing Notes
-
-**Required Security Tests:**
-1. JWT token manipulation attempts
-2. SQL/NoSQL injection attempts on all inputs
-3. IDOR testing on all resource endpoints
-4. SSRF testing on image URL parameters
-5. Rate limiting bypass attempts
-6. XSS payload testing on all text inputs
-
-**Environment Variables Required:**
-- `JWT_SECRET` (256-bit minimum)
-- `STRIPE_SECRET_KEY`
-- `GEMINI_API_KEY`
-- `FRONTEND_URL` (for CORS)
+| Risk Area | Severity | Notes |
+|-----------|----------|-------|
+| File Upload Validation | MEDIUM | Missing comprehensive validation |
+| Server-Side Processing | MEDIUM | Memory exhaustion potential |
+| Error Information Disclosure | LOW | Detailed error messages |
+| Authentication Gaps | MEDIUM | Assumed but not specified |
+| Data Storage Security | LOW | Multiple variants need consistent controls |
+| Client-Side Security | LOW | URL signing needed |
 
 ## Conclusion
+The gallery strategy plans are **architecturally sound from a performance perspective** but require **additional security hardening** before implementation. The most critical gaps are in file upload validation and server-side processing security. Since these are planning documents, the actual code implementation should undergo a separate security review with particular attention to the upload processing pipeline and authentication mechanisms.
 
-The gallery routes demonstrate good architectural patterns but lack several critical security controls. The most urgent issues are the hardcoded JWT secret and missing input validation. With the recommended fixes implemented, the system would achieve a **LOW** risk rating.
-
-**Overall Risk Rating:** **MEDIUM** (due to CRITICAL-001 and HIGH-001/002/003)
+**Overall Security Posture:** Requires additional security controls before production deployment.
 
 ---
-*Report generated by Security Auditor Assistant*  
-*Confidential - For SwanStudios internal use only*
+*Note: This audit is based on planning documents only. Actual code implementation must be reviewed separately with access to the complete codebase.*
 
 ---
 
 ## [PASS] Performance & Scalability
-**Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 11.4s
+**Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 12.4s
 
-As a Performance and Scalability Engineer, I have reviewed the provided backend routes and services. While the logic is functionally rich, there are several architectural bottlenecks that will degrade performance as the **Enchanted Apex** user base grows.
+This performance and scalability review focuses on the **Gallery Strategy** and **Thumbnail Generation Plan** for SwanStudios.
 
-### 1. Database & Query Efficiency
-
-**Finding: N+1 Query Pattern in Event Listing**
-*   **Location:** `backend/routes/galleryRoutes.mjs` -> `GET /events`
-*   **Issue:** The code fetches all events and then performs a separate `GalleryPhoto.findByPk` or `findOne` for **every single event** inside a `Promise.all`. If you have 50 events, this triggers 51 database queries.
-*   **Impact:** **HIGH**. This will cause significant latency and DB connection pool exhaustion as the gallery grows.
-*   **Recommendation:** Use Sequelize `include` with a limit or a lateral join to fetch cover photos in a single query.
-
-**Finding: Unbounded Aggregations in Lead Recalculation**
-*   **Location:** `POST /recalculate-lead-scores`
-*   **Issue:** This route performs a `Lead.findAll()` without pagination or batching, then runs 5 `count` queries per lead.
-*   **Impact:** **CRITICAL**. On a production database with 10k+ leads, this request will timeout the event loop and potentially crash the RDS instance.
-*   **Recommendation:** Use a single `GROUP BY` query joining all tables to calculate scores, or process in batches of 100 using a worker queue (BullMQ).
-
-**Finding: Missing Database Indexes**
-*   **Location:** Multiple routes.
-*   **Issue:** Queries filter by `visitorId`, `eventId`, and `slug`.
-*   **Impact:** **MEDIUM**. Without composite indexes on `(visitorId, photoId)` and `(eventId, isPublished)`, PostgreSQL will perform full table scans.
-*   **Recommendation:** Ensure indexes exist for `GalleryVisitor(email, eventId)`, `PhotoVote(photoId, visitorId)`, and `GalleryPhoto(eventId)`.
+### Executive Summary
+The transition from a RAW-heavy pipeline to a pre-processed JPEG pipeline is a **massive architectural win**. It shifts heavy computation (RAW debayering) to the edge (Photographer's local machine) and optimizes the delivery layer. However, there are specific risks regarding Node.js memory management during batch processing and frontend layout stability.
 
 ---
 
-### 2. Network & API Efficiency
+### 1. Bundle Size & Frontend Impact
+**Finding: Potential for Heavy Image Component Logic**
+*   **Rating: LOW**
+*   **Analysis:** Adding aspect-ratio logic and multiple URL handling to the `GalleryPage.tsx` and `PhotoDetailModal.tsx` is lightweight. However, ensure that the `sharp` library or any heavy image manipulation libraries are **never** imported into the frontend source, as they are Node-only and will break the build or bloat the bundle if shimmed.
+*   **Recommendation:** Use standard `<img>` tags with `loading="lazy"` and `decoding="async"` to keep the main thread free.
 
-**Finding: Redundant Photo Metadata Fetching**
-*   **Location:** `GET /events/:slug/photos`
-*   **Issue:** Returns all photo attributes for every photo in the event.
-*   **Impact:** **MEDIUM**. For a gallery with 500+ high-res photos, the JSON payload becomes massive, delaying the "Time to Interactive" for the frontend.
-*   **Recommendation:** Implement pagination or "Infinite Scroll" support (`limit`/`offset`). Only return `thumbnailUrl` initially; fetch `url` (full-res) only when a photo is opened in the lightbox.
+### 2. Render Performance
+**Finding: Layout Instability (CLS) during Thumbnail Loading**
+*   **Rating: MEDIUM**
+*   **Analysis:** The plan mentions extracting `width` and `height` for CLS prevention. If the React component waits for the API to return these values before setting the container size, the "jump" still occurs.
+*   **Recommendation:** Ensure the API returns `aspectRatio` (width/height) as a single float. In React, apply `aspect-ratio: ${ratio}` via `styled-components` on a wrapper `div` *before* the image loads. This reserves the exact vertical space on the grid.
 
-**Finding: Synchronous External Fetch in AI Analysis**
-*   **Location:** `POST /analyze-form`
-*   **Issue:** The server fetches the image from R2 (`fetch(photoUrl)`) and waits for the buffer before even calling Gemini.
-*   **Impact:** **HIGH**. This ties up a Node.js worker thread for the duration of two external network hops.
-*   **Recommendation:** Pass the R2 URL directly to Gemini if using their API features, or use a streaming approach. Better yet, move AI analysis to a background job and use WebSockets/SSE to push the result.
+### 3. Network Efficiency
+**Finding: Lack of Responsive Images (`srcset`)**
+*   **Rating: MEDIUM**
+*   **Analysis:** The plan uses a "Medium" (1200px) and "Thumb" (400px). While better than original files, a single 400px thumbnail on a high-DPI (Retina) mobile device may look blurry, while a 1200px modal image is overkill for a small phone.
+*   **Recommendation:** Implement `srcset` on the frontend.
+    ```html
+    <img src="thumb.jpg" srcset="thumb.jpg 400w, medium.jpg 1200w" sizes="(max-width: 600px) 400px, 1200px">
+    ```
+    This allows the browser to choose the most efficient asset based on device pixel density.
 
----
+### 4. Memory Leaks & Resource Exhaustion
+**Finding: Buffer Accumulation in Batch Uploads**
+*   **Rating: HIGH**
+*   **Analysis:** The plan suggests `Promise.all` for uploading 3 variants to R2. In a batch upload of 10+ photos, if the backend holds the `processedBuffer`, `thumbBuffer`, and `mediumBuffer` in memory simultaneously for all concurrent uploads, the Node.js heap will hit the **512MB Render limit** quickly and crash (OOM).
+*   **Recommendation:** 
+    1.  Use a **sequential processing queue** (e.g., `p-map` with `concurrency: 2`) for the Sharp transformations.
+    2.  Nullify buffer references immediately after the R2 upload promise resolves.
+    3.  Use `sharp.concurrency(1)` to limit libvips thread pool usage on small instances.
 
-### 3. Scalability & State Concerns
+### 5. Database Query Efficiency
+**Finding: Unbounded Gallery Queries**
+*   **Rating: MEDIUM**
+*   **Analysis:** As the photographer adds more "Crops" (Problem #3 in the plan), an event with 153 photos could grow to 300+. Fetching all 300 metadata rows in one `GalleryPhoto.findAll()` call increases JSON payload size and DB memory.
+*   **Recommendation:** Implement **Keyset Pagination** (e.g., `WHERE id > last_seen_id LIMIT 50`) for the gallery grid. Even with thumbnails, loading 300+ DOM nodes at once impacts scroll performance.
 
-**Finding: In-Memory Stripe Imports**
-*   **Location:** `POST /purchase-credits`, `POST /donation`, etc.
-*   **Issue:** Dynamic `import('stripe')` inside route handlers.
-*   **Impact:** **LOW**. While it saves initial boot time, it adds overhead to the first few requests.
-*   **Recommendation:** Move Stripe initialization to a singleton service file.
+### 6. Scalability Concerns
+**Finding: Local File System Dependency**
+*   **Rating: LOW**
+*   **Analysis:** The plan correctly uses R2 (S3-compatible) storage. This allows the app to scale to multiple instances.
+*   **Warning:** Ensure the `processedBuffer` is never written to a local `/temp` folder. If it is, the app will fail in a multi-instance environment (or on ephemeral disks like Heroku/Render) if the cleanup fails or the disk fills up. Stick to **In-Memory Buffers** or **Streams**.
 
-**Finding: Race Conditions in Credit Updates**
-*   **Location:** `POST /enhancement-request`
-*   **Issue:** Credits are read, calculated in JS, and then `visitor.update()` is called.
-*   **Impact:** **MEDIUM**. If a user double-clicks or submits two requests rapidly, they might bypass credit limits because the second request reads the balance before the first one writes it.
-*   **Recommendation:** Use `visitor.decrement('enhancementCredits', { by: creditsToUse, transaction: t })` to handle this at the DB level.
-
----
-
-### 4. Memory & Bundle Size (Backend Context)
-
-**Finding: Large Buffer Conversions**
-*   **Location:** `backend/services/formAnalysisService.mjs`
-*   **Issue:** `imageBuffer.toString('base64')` creates a second, larger copy of the image in memory.
-*   **Impact:** **MEDIUM**. If multiple users upload 10MB 4K photos for analysis simultaneously, the heap memory will spike, potentially triggering OOM (Out of Memory) kills.
-*   **Recommendation:** Use `sharp` to resize/compress the image to a lower resolution (Gemini doesn't need 4K for pose estimation) before converting to base64.
+### 7. Critical Logic Review: RAW Rejection
+**Finding: User Experience Friction on RAW Upload**
+*   **Rating: LOW**
+*   **Analysis:** The plan to reject RAW files is correct for performance. 
+*   **Recommendation:** Ensure the `422 Unprocessable Entity` response includes the specific "Lightroom Export Guide" text so the photographer doesn't have to hunt for documentation when an upload fails.
 
 ---
 
@@ -904,1130 +910,921 @@ As a Performance and Scalability Engineer, I have reviewed the provided backend 
 
 | Finding | Severity | Category |
 | :--- | :--- | :--- |
-| **N+1 Queries in Event List** | **HIGH** | DB Efficiency |
-| **Unbounded Lead Recalculation** | **CRITICAL** | Scalability |
-| **Lack of Pagination for Photos** | **MEDIUM** | Network Efficiency |
-| **In-Memory Base64 Duplication** | **MEDIUM** | Memory |
-| **Race Conditions in Credits** | **MEDIUM** | Scalability |
+| **Node.js OOM during Batch Processing** | **HIGH** | Memory/Scalability |
+| **Missing `srcset` for High-DPI screens** | **MEDIUM** | Network Efficiency |
+| **Unbounded DB Queries for large events** | **MEDIUM** | DB Efficiency |
+| **CLS Prevention via CSS Aspect Ratio** | **MEDIUM** | Render Performance |
+| **Bundle Bloat (Potential)** | **LOW** | Bundle Size |
 
-### Performance Pro-Tip for "Crystalline Swan" Theme:
-Since your UI uses **Glow Accents** and **Ice Wing** gaming aesthetics, the frontend likely relies on heavy CSS filters/animations. Ensure the backend `GET /photos` returns `width` and `height` (which you are currently doing) so the React frontend can reserve space and prevent **Layout Shift** during the "frozen enchanted forest" transition animations.
+### Final Performance Engineer Pro-Tip:
+Since you are using **Cloudflare R2**, you can enable **Cloudflare Polish** or **Image Resizing** on the edge. This would allow you to upload just the "Full" watermarked JPEG and let Cloudflare generate the WebP/AVIF thumbnails on-the-fly via URL parameters (e.g., `image.jpg?width=400`). This would eliminate the `imageVariantService.mjs` complexity entirely.
 
 ---
 
 ## [PASS] Competitive Intelligence
-**Model:** minimax/minimax-m2.1 | **Duration:** 59.2s
+**Model:** minimax/minimax-m2.1 | **Duration:** 68.8s
 
-# SwanStudios Strategic Product Analysis
+# SwanStudios Strategic Analysis
+## Product Strategy & Growth Recommendations
+
+---
 
 ## Executive Summary
 
-SwanStudios represents a sophisticated convergence of fitness training and photography services, leveraging a modern React/Node.js stack with AI-powered form analysis capabilities. The codebase reveals a well-architected gallery system designed for lead generation and conversion, but also exposes several technical and strategic gaps that could limit scalability and competitive positioning. This analysis provides actionable recommendations across five critical dimensions: feature gaps, differentiation strengths, monetization opportunities, market positioning, and growth blockers.
+This strategic analysis examines SwanStudios through the lens of market positioning, feature completeness, and growth potential. Based on the codebase review of gallery infrastructure and platform architecture, we've identified critical gaps relative to established fitness SaaS competitors, clear differentiation opportunities rooted in the NASM AI integration and Crystalline Swan UX, and technical debt that could impede scaling beyond 10,000 users. The platform demonstrates strong foundational work in image processing pipelines and client-facing gallery experiences, but requires strategic investment in workout programming, nutrition tracking, and habit formation features to compete effectively in the $15 billion fitness software market.
 
 ---
 
 ## 1. Feature Gap Analysis
 
-### 1.1 Competitor Feature Comparison Matrix
+### 1.1 Workout Programming & Delivery
 
-| Feature Category | SwanStudios | Trainerize | TrueCoach | My PT Hub | Future | Caliber |
-|------------------|-------------|------------|-----------|-----------|--------|---------|
-| **Workout Programming** | | | | | | |
-| Custom workout builder | Limited | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Exercise library (video) | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Workout templates | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Periodization planning | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Client Management** | | | | | | |
-| Client profiles | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Progress photos | ✅ Gallery | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Body measurements | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Goal tracking | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Nutrition** | | | | | | |
-| Meal planning | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Macro tracking | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Food logging | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Communication** | | | | | | |
-| In-app messaging | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Video calls | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Automated reminders | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Assessments** | | | | | | |
-| PAR-Q screening | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Fitness assessments | AI Form | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Progress reports | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Business Tools** | | | | | | |
-| Payment processing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Scheduling/booking | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Package management | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **AI Features** | | | | | | |
-| Form analysis | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Workout generation | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Nutrition suggestions | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+The most significant gap in the SwanStudios feature set is the absence of structured workout programming capabilities. Competitors have invested heavily in this domain, creating comprehensive systems that personal trainers rely upon daily.
 
-### 1.2 Critical Missing Features
+**Trainerize** offers an extensive exercise library with over 3,000 movements, each featuring video demonstrations, muscle activation diagrams, and modification options for different fitness levels. Their workout builder allows trainers to construct periodized programs with progression logic, auto-populating rest periods and set schemes based on client goals. The platform supports supersets, circuits, and complex interval structures that mirror professional coaching practices.
 
-#### Core Training Infrastructure
-The platform lacks fundamental workout programming capabilities that define the personal training SaaS category. Competitors offer extensive exercise libraries with video demonstrations, customizable workout builders, and template systems that enable trainers to efficiently program for multiple clients. SwanStudios currently has no workout delivery mechanism, meaning trainers cannot assign structured training programs through the platform. This represents the most significant functional gap and directly impacts the platform's ability to serve its stated purpose as a personal training SaaS.
+**TrueCoach** differentiates through its exercise prescription engine, which suggests optimal set, rep, and tempo schemes based on client history and stated goals. Their "Smart Programming" feature analyzes completion rates and adjusts subsequent workouts to maintain appropriate difficulty calibration—a feedback loop that keeps clients engaged without overwhelming them.
 
-#### Client Engagement & Communication
-Absence of in-app messaging and video consultation capabilities forces client-trainer communication outside the platform, reducing stickiness and limiting revenue capture. Trainerize, TrueCoach, and Future all offer integrated communication tools that create switching costs and increase perceived value. Without these features, SwanStudios risks becoming a peripheral service (photography gallery) rather than a central training hub.
+**Future** has pioneered adaptive programming that responds to client feedback in real-time. After each session, clients rate difficulty and enjoyment on a five-point scale, which the algorithm uses to modify the next workout's intensity and composition. This creates a virtuous cycle of appropriate challenge that drives retention.
 
-#### Nutrition Programming
-Complete absence of nutrition features places SwanStudios at a severe disadvantage. Nutrition coaching represents 40-60% of personal training revenue for many providers. Competitors offer meal planning, macro tracking, food logging, and recipe integration. The gallery's VIP package mentions a "Personalized 90-Day Blueprint" but lacks the technical infrastructure to deliver nutrition guidance within the platform.
+**Current State of SwanStudios**: The gallery-centric architecture suggests the platform may be positioning itself as a content delivery platform rather than a programming tool. Without a robust exercise library, workout builder, or automated programming engine, trainers cannot effectively prescribe structured training—limiting the platform to event-based services like photography rather than ongoing coaching relationships.
 
-#### Scheduling & Booking
-No appointment scheduling system exists despite the VIP package promising "2 Sessions." Clients must coordinate training sessions through external channels, creating friction and potential scheduling conflicts. This gap directly impacts the $175 VIP conversion funnel's deliverability.
+**Gap Severity**: Critical. This gap prevents the platform from serving as a primary training tool, forcing coaches to maintain separate systems for programming and client communication.
 
-### 1.3 Secondary Gaps
+### 1.2 Nutrition & Macros Integration
 
-**Assessment & Screening Tools**
-- No PAR-Q (Physical Activity Readiness Questionnaire) for liability protection
-- Missing fitness assessment templates (strength testing, cardiovascular assessments)
-- No goal-setting framework or progress milestone tracking
+Personal training has expanded beyond exercise prescription to encompass nutritional guidance, yet SwanStudios lacks the meal planning and macro tracking capabilities that competitors consider table stakes.
 
-**Business Intelligence**
-- No trainer performance dashboards or revenue analytics
-- Missing client retention metrics and churn prediction
-- No cohort analysis or engagement scoring beyond basic lead scoring
+**My PT Hub** includes a comprehensive meal planner with recipe library, macro calculator, and grocery list generator. Trainers can create meal plans based on client dietary preferences (vegan, keto, paleo, etc.) and auto-sync approved foods to client grocery lists. The platform integrates with major grocery delivery services, reducing friction between planning and execution.
 
-**Mobile Experience**
-- No dedicated mobile application (PWA only)
-- Missing push notifications for engagement
-- No offline functionality for workout logging
+**Caliber** has built a sophisticated nutrition coaching layer that includes food logging via photograph recognition, macro targets that adjust based on training load, and weekly nutrition reports that coaches can review during check-ins. Their "Nutrition Score" aggregates protein intake, meal timing consistency, and hydration into a single metric that clients can easily understand.
+
+**Future** integrates with MyFitnessPal and Cronometer, allowing clients to log food in their preferred app while coaches view aggregated data through the Future dashboard. This federated approach acknowledges that nutrition logging is a deeply personal habit and refused to force clients into a new system.
+
+**Current State of SwanStudios**: No nutrition features are visible in the codebase or documentation. The gallery infrastructure suggests a photography-first positioning that may intentionally exclude nutrition, but this limits the platform's addressable market to event-based services rather than ongoing coaching relationships.
+
+**Gap Severity**: High. Nutrition coaching represents 40-60% of personal training revenue for many coaches. Without these features, SwanStudios cannot serve as a full-service coaching platform.
+
+### 1.3 Client Engagement & Habit Formation
+
+Retention in fitness software depends heavily on daily engagement features that build habit loops and maintain accountability between training sessions.
+
+**Trainerize** implements a comprehensive habit tracking system where clients can log sleep quality, stress levels, water intake, and daily movement alongside their workouts. The platform sends smart reminders based on client behavior patterns—more frequent after missed sessions, less frequent during consistent periods.
+
+**TrueCoach** focuses on micro-habits, encouraging clients to complete 2-3 minute "daily moves" that maintain movement patterns between formal workouts. These bite-sized interactions keep the platform top-of-mind without demanding significant time investment.
+
+**Future** has invested heavily in accountability features, including daily check-in texts from coaches, streak rewards for consecutive workout completion, and social features that allow clients to celebrate achievements with their training community.
+
+**Current State of SwanStudios**: The gallery infrastructure provides no client engagement features beyond photo viewing. No habit tracking, check-ins, reminders, or social features exist in the current architecture.
+
+**Gap Severity**: High. Retention rates in fitness apps average 20% after 90 days. Without engagement features, SwanStudios will struggle to maintain client relationships beyond initial events.
+
+### 1.4 Assessment & Progress Tracking
+
+Comprehensive progress tracking transforms one-time clients into long-term subscribers by making results visible and actionable.
+
+**Trainerize** includes body composition tracking with photo timeline comparisons, strength progression charts that auto-update from logged workouts, and mobility assessments that coaches can assign and score remotely.
+
+**Caliber** has built a sophisticated measurement tracking system that accepts manual entries, smart scale data (Withings, Fitbit), and progress photos. Their "Progress Score" synthesizes multiple data points into a single trend line that shows clients their trajectory over time.
+
+**Future** emphasizes measurable outcomes with A/B testing of goals—clients can set multiple concurrent objectives (weight loss, strength gain, mobility improvement) and the platform tracks progress toward each independently.
+
+**Current State of SwanStudios**: The gallery system technically supports progress photos, but lacks the measurement tracking, assessment templates, and progress visualization features that competitors offer. The photo gallery appears designed for event photography rather than longitudinal progress documentation.
+
+**Gap Severity**: Medium. Progress tracking is essential for coaches working with transformation clients but less critical for fitness enthusiasts maintaining general health.
+
+### 1.5 Communication & Community Features
+
+Modern fitness platforms recognize that community and communication drive retention more effectively than feature depth.
+
+**Trainerize** includes in-app messaging, group challenges, and a trainer blog feature that allows coaches to share content with their client base. The platform supports video check-ins where clients can submit form analysis requests.
+
+**My PT Hub** offers a client portal where trainers can share documents, videos, and announcements. The platform integrates with email marketing tools, allowing trainers to build mailing lists from their client base.
+
+**Future** has built the most sophisticated communication system, with coaches able to send voice notes, video responses, and GIFs alongside text messages. Their "Training Camp" feature groups clients with similar goals, creating accountability communities that reduce coach workload while increasing engagement.
+
+**Current State of SwanStudios**: No communication features are visible in the gallery-focused codebase. The platform appears designed for one-way content delivery rather than ongoing coach-client dialogue.
+
+**Gap Severity**: High. Communication features are the primary driver of coach-client relationship maintenance. Without them, SwanStudios cannot support ongoing coaching relationships.
 
 ---
 
 ## 2. Differentiation Strengths
 
-### 2.1 NASM AI Integration — The Form Analysis Engine
+### 2.1 NASM AI Integration
 
-The `formAnalysisService.mjs` represents SwanStudios' most significant competitive moat. This service implements:
+The platform's integration with NASM (National Academy of Sports Medicine) protocols represents a significant competitive advantage that competitors have not replicated. NASM's evidence-based training methodology, including their OPTIMAL (Overload, Progression, Time, Intensity, Load) framework, provides scientific grounding that appeals to credential-conscious trainers and clients seeking professional guidance.
 
-**Technical Implementation**
-- COCO 17-keypoint standard pose estimation
-- Gemini Vision API integration for keypoint extraction
-- NASM (National Academy of Sports Medicine) assessment rules
-- Real-time angle calculations for joint assessment
-- Severity classification (adjust vs. critical)
+**Implementation Opportunity**: Rather than treating NASM integration as a backend feature, SwanStudios should surface it prominently in the client experience. Workouts could display "NASM-Optimized" badges, exercise selections could cite NASM rationale (e.g., "Selected based on NASM's OPTIMAL protocol for hypertrophy"), and progress assessments could reference NASM normative data.
 
-**Competitive Advantage**
-No major competitor currently offers AI-powered form analysis as a core feature. This capability positions SwanStudios at the intersection of fitness training and computer vision, creating a unique value proposition that:
-- Justifies premium pricing through technology differentiation
-- Provides measurable value beyond competitor feature parity
-- Creates viral potential through "share your form analysis" mechanics
-- Enables asynchronous training feedback without trainer time investment
+**Competitive Moat**: While competitors offer generic exercise libraries, SwanStudios can differentiate through methodology-specific programming. A "NASM-Certified Training Path" could attract trainers who hold NASM credentials and want to practice within their training framework, creating a network effect that attracts both coaches and clients seeking evidence-based training.
 
-**Enhancement Recommendations**
-The current implementation should be expanded to:
-- Support multiple exercise types beyond "general" (squats, deadlifts, presses)
-- Store historical form comparisons to show progress
-- Integrate with video analysis for movement pattern assessment
-- Generate shareable social media assets with form overlays
+**Strategic Recommendation**: Develop NASM-branded program templates (Hypertrophy Phase 1, Mobility Reset, Performance Peak) that serve as entry points for new coaches while demonstrating platform expertise. This positions SwanStudios as the platform for NASM-trained professionals.
 
-### 2.2 Pain-Aware Training Intelligence
+### 2.2 Pain-Aware Training Architecture
 
-The codebase reveals sophisticated lead scoring that accounts for pain indicators and training preferences. The `analyzeForm` function detects:
-- Shoulder asymmetry (potential rotator cuff issues)
-- Hip tilt (potential lower back concerns)
-- Knee valgus (potential ACL/prepatellar issues)
+The codebase's attention to pain-aware training represents a differentiated capability that addresses a significant gap in the fitness software market. Most platforms treat pain as a binary yes/no question, missing the nuance that effective coaches require.
 
-This pain-awareness creates a differentiated positioning around "training that understands your body's limitations." Competitors treat all clients as healthy populations; SwanStudios can capture the significant market segment training around injuries or chronic conditions.
+**Implementation Opportunity**: Expand the pain intake system into a comprehensive movement assessment pipeline. The current pain mapping (lower back, knees, shoulders, neck, wrists) should connect to exercise filtering that automatically removes contraindicated movements. A client indicating knee pain should never see barbell back squats in their workout options—the system should surface split squats and step-ups instead.
 
-### 2.3 Crystalline Swan UX — Visual Differentiation
+**Clinical Differentiation**: This positions SwanStudios as appropriate for clients with injury histories, a demographic that competitors underserve. The platform could market specifically to physical therapy partnerships, post-rehab training, and senior fitness—segments with high willingness to pay and strong retention.
 
-The Enchanted Apex theme with its frozen enchanted forest + deep-ocean luxury vault aesthetic provides strong visual differentiation in a market dominated by generic fitness app designs. The color palette:
+**Strategic Recommendation**: Partner with physical therapists to develop "Post-Rehab Training Certification" that coaches can earn through the platform. This creates a new revenue stream while building a community of specialists who drive platform adoption.
 
-- **Midnight Sapphire #002060** — Primary brand color conveying trust and depth
-- **Ice Wing #60C0F0** — Gaming accent creating energy and movement
-- **Gilded Fern #C6A84B** — Luxury accent signaling premium positioning
-- **Frost White #E0ECF4** — Background maintaining clean, sophisticated feel
+### 2.3 Crystalline Swan UX Design System
 
-This thematic approach appeals to the target demographic of competitive athletes and fitness enthusiasts who identify with the "arena" and "luxury vault" metaphors. The UX differentiation should be maintained and potentially expanded into:
-- Achievement badges with crystalline/sw imagery
-- Training progress visualizations using the frozen forest aesthetic
-- VIP tier branding with enhanced visual treatments
+The Crystalline Swan design language—midnight sapphire, ice wing accents, and deep-ocean luxury aesthetics—creates a distinctive visual identity that competitors lack. While most fitness apps default to energetic orange/red palettes or generic blue/white corporate styling, SwanStudios signals luxury and exclusivity.
 
-### 2.4 Gallery-to-Training Conversion Funnel
+**Implementation Opportunity**: The gallery infrastructure demonstrates that the design system can support complex, media-rich experiences. This same attention to visual polish should extend to workout interfaces, progress dashboards, and client communication surfaces. The "frozen enchanted forest" metaphor should manifest in subtle ways—progressive loading states that feel like ice crystallizing, achievement animations that evoke aurora borealis effects, and typography that balances the "deep-ocean luxury vault" with the "competitive arena" energy.
 
-The gallery system demonstrates sophisticated funnel engineering:
+**Brand Positioning**: This aesthetic positions SwanStudios in the premium segment of fitness software, competing with high-end personal training experiences rather than commodity fitness apps. The target customer is willing to pay $200-500/month for training and expects digital experiences that match that investment.
 
-**Lead Capture Architecture**
-- Email-gated access creates opt-in relationship
-- Lead auto-creation from gallery visitors (10 base score)
-- Enhancement requests trigger +5 score per photo
-- Referrals award +15 score and 5 credits
-- Donations add +20 score
-- VIP conversion adds +25 score
+**Strategic Recommendation**: Develop the design system into a documented component library that ensures consistency across all platform surfaces. The "Crystalline Swan" identity should be trademarked and protected as a brand asset.
 
-**Credit Economy Design**
-- 3 free enhancements per event creates initial engagement
-- Credit packages ($15/single, $50/5-bundle) provide entry-level conversion
-- VIP package ($175) captures high-value clients with unlimited enhancements + PT sessions
-- Referral rewards (5 credits) incentivize organic growth
+### 2.4 High-Quality Gallery Infrastructure
 
-This funnel is significantly more sophisticated than typical fitness SaaS lead capture and represents a defensible competitive advantage in converting photography customers into training clients.
+The gallery optimization work documented in the codebase—thumbnail generation, progressive JPEG loading, CLS prevention, and responsive image serving—represents engineering investment that most fitness apps haven't made. While competitors treat galleries as afterthoughts, SwanStudios has built professional-grade image processing.
+
+**Implementation Opportunity**: Extend the gallery infrastructure to support progress photo timelines with before/after comparisons, exercise demonstration video libraries with the same quality standards, and client achievement galleries that create shareable social content. The "maximum quality, smart cropping" philosophy should apply to all media assets.
+
+**Differentiation Value**: Professional photographers and videographers who enter the fitness space will recognize and appreciate the technical sophistication. This creates a niche positioning that attracts quality-focused coaches who are willing to pay premium prices for premium tools.
+
+**Strategic Recommendation**: Position the gallery as a "Professional Client Experience" feature in sales materials. Screenshots of the gallery interface should demonstrate the quality difference compared to competitors' basic image viewers.
+
+### 2.5 Tech Stack Modernity
+
+The React + TypeScript + styled-components frontend and Node.js + Express + Sequelize + PostgreSQL backend represent a modern, maintainable architecture that many competitors lack. Legacy platforms built on older frameworks face technical debt that limits feature velocity.
+
+**Implementation Opportunity**: Leverage the modern stack to implement real-time features (live coaching sessions, collaborative workout building), sophisticated state management (complex workout logic, progress calculations), and excellent developer experience (type safety, component reusability).
+
+**Long-term Value**: As the platform scales, the TypeScript foundation will prevent bugs and reduce maintenance overhead. The PostgreSQL database supports complex queries for analytics and reporting features. The React component architecture enables rapid feature development.
+
+**Strategic Recommendation**: Document the tech stack advantages in engineering recruiting materials. The modern architecture attracts talented developers who want to work with contemporary tools, creating a competitive advantage in talent acquisition.
 
 ---
 
 ## 3. Monetization Opportunities
 
-### 3.1 Current Revenue Streams
+### 3.1 Tiered Pricing Architecture
 
-| Stream | Implementation | Monthly Potential |
-|--------|---------------|-------------------|
-| Photo enhancements | 3 free + $15/credit | Medium |
-| VIP PT packages | $175/session | High |
-| Print-on-demand | 15-20% commission | Low-Medium |
-| Donations | Optional | Low |
-| Referrals | 5 credits awarded | N/A (cost) |
+The current platform appears to lack a structured pricing tier system, which represents significant revenue opportunity. Competitors have proven that fitness coaches will pay $50-200/month for tools that enable them to charge $200-500/month for coaching.
 
-### 3.2 Pricing Model Improvements
+**Recommended Tier Structure**:
 
-#### Tiered Subscription Architecture
-Current credit-based pricing creates unpredictable revenue and high friction. Implement subscription tiers:
+The **Starter Tier** at $29/month should include basic client management (up to 10 clients), workout viewing interface, simple messaging, and gallery access. This tier captures solo trainers and hobby coaches who are price-sensitive but represent volume.
 
-**Proposed Tier Structure**
-- **Bronze Gallery** ($9.99/month): 10 enhancements/month, standard download quality, basic form analysis
-- **Silver Gallery** ($19.99/month): 30 enhancements/month, high-res downloads, priority form analysis, print discounts
-- **Gold Gallery** ($34.99/month): Unlimited enhancements, full-res downloads, unlimited AI analysis, 10% print commission rebate, VIP waitlist priority
+The **Professional Tier** at $79/month should include unlimited clients, workout programming with exercise library, nutrition tracking, progress analytics, and custom branding. This tier represents the sweet spot for full-time coaches and should be the primary revenue driver.
 
-**Rationale**: Subscription models provide predictable recurring revenue (ARR), reduce purchase friction, and increase customer lifetime value. Competitors like Trainerize and Future use subscription models successfully.
+The **Elite Tier** at $149/month should include all Professional features plus white-label mobile app, API access, team management (multiple coaches under one account), advanced analytics, and priority support. This tier captures studios and training facilities.
 
-#### Enhancement Package Restructuring
-Current single-credit pricing ($15) is premium-priced. Introduce volume tiers:
+The **Enterprise Tier** at $299/month should include custom integrations, dedicated success manager, SLA guarantees, and co-marketing opportunities. This tier targets franchise operations and large training organizations.
 
-- 1 credit: $15
-- 5 credits: $60 (20% discount)
-- 10 credits: $100 (33% discount)
-- Unlimited monthly: $29.99/month
+**Implementation Priority**: Implement metered client limits first (Starter: 10, Professional: 50, Elite: Unlimited) as this creates natural upgrade triggers. The gallery infrastructure already supports the quality expectations of premium tiers.
 
-### 3.3 High-Value Upsell Vectors
+### 3.2 Gallery Monetization Expansion
 
-#### VIP Package Enhancement
-The current $175 VIP package includes:
-- 2 Sessions (Orientation + PT)
-- Unlimited enhancements
-- Personalized 90-Day Blueprint
+The gallery infrastructure represents an undermonetized asset that could generate significant additional revenue with modest investment.
 
-**Upsell Opportunities**
-- Add nutrition coaching tier (+$100/month)
-- Include recovery services (massage, cryotherapy partnerships)
-- Offer competition preparation add-on for athletes (+$200/month during prep)
-- Create "Swan Elite" tier with quarterly in-person assessments ($500/quarter)
+**Print Fulfillment Integration**: Partner with print-on-demand services (Mpix, Miller's, AdoramaPix) to offer clients direct print purchasing from galleries. SwanStudios earns 15-25% commission on print orders while providing clients with convenient access to professional-quality prints. The high-resolution image pipeline (4000px long edge) supports prints up to 13×19", making professional prints feasible.
 
-#### Form Analysis Monetization
-Currently, form analysis appears to be a free feature within the gallery. Monetize this core differentiator:
+**Digital Download Tiers**: Implement paid download options where clients can purchase high-resolution watermarked or unwatermarked images. Basic tier includes web-resolution downloads; premium tier includes print-resolution files. This creates a new revenue stream from existing gallery content.
 
-- Basic analysis (3 free/month): Included in all tiers
-- Detailed analysis with corrective exercise prescription: $5/exercise
-- Video form analysis (upload video): $15/video
-- Monthly form progress report: $9.99/month
-- "Form Score" tracking and historical comparison: $4.99/month
+**Event Photography Packages**: For coaches who run group events (retreats, challenges, workshops), offer event photography packages where SwanStudios handles image capture, editing, and delivery. The existing Lightroom workflow documentation suggests the platform already supports this use case.
 
-#### Print-on-Demand Expansion
-Current print products include prints, canvas, metal, posters, and photobooks. Expand:
-
-- Partner with premium labs for museum-quality prints
-- Add home decor items (phone cases, blankets, pillows)
-- Create team/club merchandise store functionality
-- Implement white-label printing for sports teams and events
-
-#### Event Photography Packages
-The gallery system is event-agnostic. Create vertical-specific packages:
-
-- **Youth Sports League**: Team photo packages, individual action shots, seasonal composites
-- **Fitness Competitions**: Competition day packages, podium photos, qualification certificates
-- **Corporate Wellness**: Company event photography, before/after transformation displays
-- **CrossFit/Functional Fitness**: Heat-by-heat coverage, PR celebrations, leaderboard integration
-
-### 3.4 Conversion Optimization
-
-#### Friction Reduction
-Current VIP conversion requires:
-1. Email/password gallery access
-2. VIP signup (create account)
-3. VIP checkout (Stripe payment)
-4. VIP activation (webhook/manual)
-
-**Streamline to**: One-click upgrade from gallery context with Apple Pay/Google Pay support.
-
-#### Social Proof Integration
-Add during checkout:
-- "X people enhanced photos this week"
-- "SwanStudios has helped Y athletes improve their form"
-- Testimonial carousel specific to purchased service
-
-#### Abandonment Recovery
-Implement:
-- Email sequences for cart abandonment
-- In-app notifications for pending enhancements
-- SMS reminders for VIP session booking
-
----
-
-## 4. Market Positioning
-
-### 4.1 Current Positioning Analysis
-
-SwanStudios occupies a unique but ambiguous market position:
-
-**Strengths**
-- Only platform combining fitness photography with AI form analysis
-- Sophisticated lead scoring and conversion funnel
-- Premium visual branding and UX
-- NASM-aligned assessment methodology
-
-**Weaknesses**
-- No core workout programming capability
-- Missing nutrition features
-- No scheduling or communication tools
-- Limited client management features
-
-**Opportunities**
-- Position as "AI-Powered Athletic Performance Platform"
-- Capture injury-conscious athlete segment
-- Become the platform for "visual fitness" (photos + form + progress)
-
-**Threats**
-- Competitors may integrate AI form analysis
-- Photography may remain peripheral to training business
-- Technical debt may limit feature velocity
-
-### 4.2 Recommended Positioning Strategy
-
-#### Primary Position: "The AI Form Analysis Platform for Serious Athletes"
-
-This positioning leverages the strongest differentiator (formAnalysisService) while acknowledging the photography heritage. Messaging should emphasize:
-
-- "See your form like never before"
-- "NASM-certified AI analyzes every rep"
-- "Transform your technique in 90 days"
-- "Where elite performance meets cutting-edge technology"
-
-#### Secondary Position: "Visual Progress Tracking"
-
-For clients primarily interested in photography, position SwanStudios as the premium progress tracking platform:
-
-- "Every rep, every photo, every PR"
-- "Your fitness journey, beautifully documented"
-- "More than photos — understand your movement"
-
-### 4.3 Competitive Response Strategy
-
-| Competitor | SwanStudios Response |
-|------------|---------------------|
-| Trainerize | Emphasize AI form analysis superiority; position as "Trainerize + AI" |
-| TrueCoach | Highlight premium UX and visual design; target aesthetic-conscious athletes |
-| Future | Compete on accessibility and price; emphasize AI reduces trainer costs |
-| Caliber | Focus on form analysis accuracy; position as "human + AI" hybrid |
-| My PT Hub | Leverage modern tech stack; target digital-native trainers |
-
-### 4.4 Target Market Segments
-
-**Primary: Competitive Athletes**
-- CrossFit athletes, powerlifters, Olympic weightlifters
-- Value: Form optimization, PR tracking, competition preparation
-- Price sensitivity: Medium-High (willing to pay for performance)
-
-**Secondary: Injury-Conscious Population**
-- Post-rehab clients, chronic pain sufferers, older athletes
-- Value: Pain-aware training, safe progression, form confidence
-- Price sensitivity: Medium (prioritize safety over price)
-
-**Tertiary: Fitness Enthusiasts**
-- Regular gym-goers seeking improvement
-- Value: Progress tracking, social sharing, aesthetic results
-- Price sensitivity: Medium (value-driven)
-
----
-
-## 5. Growth Blockers
-
-### 5.1 Technical Blockers
-
-#### Critical: Payment Reconciliation Risk
-
-**Issue**: In `galleryRoutes.mjs` lines 594-597, credits are applied immediately before Stripe webhook confirmation:
-
-```javascript
-// Apply credits immediately (Stripe webhook can reconcile later if payment fails)
-// For production, move this to a webhook handler for checkout.session.completed
-const visitor = await GalleryVisitor.findByPk(visitorId);
-if (visitor) {
-  if (pkg === 'vip') {
-    await visitor.update({ isVip: true });
-  } else {
-    await visitor.update({ enhancementCredits: visitor.enhancementCredits + pricing.credits });
-  }
-}
-```
-
-**Impact**: 
-- Users could receive credits without payment if Stripe webhook fails
-- Chargeback risk increases significantly
-- Financial reconciliation becomes manual and error-prone
-- Audit compliance issues for subscription revenue
-
-**Recommendation**: 
-1. Implement Stripe webhook handler for `checkout.session.completed`
-2. Move credit application to webhook handler only
-3. Add idempotency keys to prevent duplicate credit application
-4. Implement refund webhook handler for credit deduction
-
-#### Critical: Form Analysis Service Truncation
-
-**Issue**: The `formAnalysisService.mjs` file appears truncated. The base64Image variable is declared but not used, and the function implementation is incomplete:
-
-```javascript
-const base64Image = imageBuffer.toString('base64');
-
-
-// ... truncated ...
-```
-
-**Impact**:
-- AI form analysis feature may be non-functional
-- Potential syntax errors if deployed as-is
-- No error handling visible for API failures
-
-**Recommendation**:
-1. Complete the Gemini API integration
-2. Add proper error handling and retry logic
-3. Implement response caching for repeated analyses
-4. Add logging for debugging and improvement
-
-#### High: Missing Webhook Infrastructure
-
-**Issue**: No webhook handlers are visible in the provided code. Payment processing relies on immediate credit application and success URL redirects.
-
-**Impact**:
-- No payment confirmation verification
-- Unable to handle failed payments gracefully
-- No subscription management (renewals, cancellations)
-- Limited revenue recognition accuracy
-
-**Recommendation**:
-1. Implement Stripe webhook endpoint
-2. Handle events: `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted`
-3. Add webhook signature verification
-4. Implement retry logic for failed webhook deliveries
-
-#### High: Database Query Optimization
-
-**Issue**: Several routes use N+1 query patterns and unoptimized aggregations:
-
-```javascript
-// Line 76-86: Fetching cover photos for each event individually
-const eventsWithCovers = await Promise.all(events.map(async (event) => {
-  const plain = event.toJSON();
-  if (plain.coverPhotoId) {
-    const coverPhoto = await GalleryPhoto.findByPk(plain.coverPhotoId, {
-      attributes: ['thumbnailUrl', 'url'],
-    });
-    // ...
-  }
-}));
-```
-
-**Impact**:
-- Performance degrades linearly with event count
-- Database connection pool exhaustion under load
-- Response times increase, UX suffers
-
-**Recommendation**:
-1. Use eager loading with Sequelize `include`
-2. Implement pagination for gallery listings
-3. Add database indexes on frequently queried columns
-4. Consider read replicas for gallery traffic
-
-### 5.2 UX/Product Blockers
-
-#### High: No Workout Delivery System
-
-**Impact**:
-- Cannot deliver on "personal training" promise
-- VIP package sessions have no structured programming context
-- Trainers cannot assign homework or track client progress
-- Platform remains photography-first, training-peripheral
-
-**Recommendation**:
-1. Prioritize workout builder MVP
-2. Integrate with form analysis for exercise-specific recommendations
-3. Create template library with NASM alignment
-4. Enable workout sharing from trainer to client
-
-#### High: No Scheduling System
-
-**Impact**:
-- VIP session booking requires external coordination
-- No availability management for trainers
-- Missed revenue from no-shows (no cancellation policies)
-- Poor client experience
-
-**Recommendation**:
-1. Implement basic appointment booking
-2. Integrate with calendar systems (Google, Outlook)
-3. Add reminder notifications (email, SMS)
-4. Implement cancellation policies and waitlists
-
-#### Medium: Limited Mobile Experience
-
-**Impact**:
-- Fitness activities often occur in gyms without desktop access
-- Photo browsing and enhancement requests mobile-first use cases
-- Competitors offer native mobile apps
-- PWA may not provide sufficient offline capability
-
-**Recommendation**:
-1. Optimize PWA for mobile use cases
-2. Add offline photo browsing capability
-3. Implement push notifications for engagement
-4. Consider React Native app for enhanced mobile experience
-
-#### Medium: No Communication Tools
-
-**Impact**:
-- Client-trainer communication leaves platform
-- Reduced stickiness and engagement
-- Competitors capture communication revenue
-- Support requests require external channels
-
-**Recommendation**:
-1. Implement in-app messaging (MVP)
-2. Add video call integration (Zoom API, Twilio)
-3. Create automated reminder system
-4. Enable exercise feedback loop
-
-### 5.3 Scalability Blockers
-
-#### Medium: Gallery Token Architecture
-
-**Issue**: Gallery access uses short-lived JWTs (24h) with no refresh mechanism. Visitors must re-authenticate for each event.
-
-**Impact**:
-- Poor UX for multi-event attendees
-- No persistent session across events
-- Friction in conversion funnel
-
-**Recommendation**:
-1. Implement refresh token rotation
-2. Create persistent visitor accounts
-3. Enable cross-event photo browsing
-
-#### Medium: Rate Limiting Granularity
-
-**Issue**: Rate limiters are applied at endpoint level with fixed windows:
-
-```javascript
-const accessLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  // ...
-});
-```
-
-**Impact**:
-- No per-user rate limiting visibility
-- Hard to identify abuse patterns
-- Legitimate users may hit limits during high-activity periods
-
-**Recommendation**:
-1. Implement distributed rate limiting (Redis)
-2. Add user-based rate limit tiers
-3. Create abuse detection and alerting
-
-#### Low: Logging and Observability
-
-**Issue**: Basic logging exists but limited observability:
-
-```javascript
-logger.error('[Gallery] List events error:', err.message);
-```
-
-**Impact**:
-- Difficult to diagnose production issues
-- No performance monitoring
-- Limited business intelligence
-
-**Recommendation**:
-1. Implement structured logging (JSON format)
-2. Add performance tracing
-3. Create business metrics dashboards
-4. Implement error alerting
-
----
-
-## 6. Prioritized Action Roadmap
-
-### Phase 1: Critical Fixes (0-30 Days)
-
-| Priority | Action | Impact | Effort |
-|----------|--------|--------|--------|
-| P0 | Implement Stripe webhook handler | Revenue protection | Medium |
-| P0 | Complete form analysis service | Core differentiator | Medium |
-| P0 | Fix payment credit application | Financial integrity | Low |
-| P1 | Optimize database queries | Scalability | Medium |
-| P1 | Add webhook signature verification | Security | Low |
-
-### Phase 2: Core Features (30-90 Days)
-
-| Priority | Action | Impact | Effort |
-|----------|--------|--------|--------|
-| P1 | Workout builder MVP | Core functionality | High |
-| P1 | Scheduling system | VIP delivery | Medium |
-| P2 | Subscription tiers | Revenue predictability | Medium |
-| P2 | In-app messaging | Engagement | Medium |
-| P2 | Nutrition basics | Competitive parity | High |
-
-### Phase 3: Growth Features (90-180 Days)
-
-| Priority | Action | Impact | Effort |
-|----------|--------|--------|--------|
-| P2 | Mobile PWA optimization | UX improvement | Medium |
-| P2 | Form analysis expansion | Differentiation | Medium |
-| P3 | Print-on-demand expansion | Revenue | Medium |
-| P3 | Social sharing features | Virality | Low |
-| P3 | Team/club features | New market | High |
-
-### Phase 4: Scale Infrastructure (180+ Days)
-
-| Priority | Action | Impact | Effort |
-|----------|--------|--------|--------|
-| P3 | Native mobile app | Market reach | Very High |
-| P3 | Advanced analytics | Business intelligence | Medium |
-| P3 | White-label platform | B2B revenue | Very High |
-| P3 | Internationalization | Market expansion | Medium |
-
----
-
-## Conclusion
-
-SwanStudios possesses significant competitive advantages through its AI form analysis capabilities, sophisticated lead conversion funnel, and differentiated Crystalline Swan visual identity. However, critical gaps in core training infrastructure (workout programming, nutrition, scheduling) and technical debt in payment processing represent immediate growth blockers.
-
-The recommended path forward prioritizes fixing payment security vulnerabilities and completing the form analysis service in the first 30 days, followed by building workout and scheduling capabilities to deliver on the personal training promise. Monetization should shift toward subscription models while preserving premium upsell opportunities through VIP packages and advanced form analysis features.
-
-With these investments, SwanStudios can establish a defensible position as the AI-powered visual fitness platform for serious athletes, capturing the significant market opportunity at the intersection of computer vision, personal training, and athletic photography.
+**Revenue Projection**: Assuming 1,000 active coaches each hosting 5 events/year with 50 clients/event and $50/client in print/digital revenue, this represents $250,000/year
 
 ---
 
 ## [PASS] User Research & Persona Alignment
-**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 88.5s
+**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 83.2s
 
 # SwanStudios Fitness SaaS Platform - User Research Analysis
 
 ## Executive Summary
-The gallery system represents a sophisticated **lead generation and conversion funnel** that effectively bridges photography services with personal training. While the backend architecture is robust, several UI/UX considerations emerge from analyzing this codebase against target personas.
-
----
+The provided code documents focus on gallery performance optimization for a photography workflow, not the core fitness platform. However, I can analyze the **implied UI/UX patterns** and provide recommendations for the fitness platform based on the described personas and theme.
 
 ## 1. Persona Alignment Analysis
 
-### **Primary: Working Professionals (30-55)**
-**✅ Strengths:**
-- Gallery access via email/password aligns with professional communication patterns
-- VIP package ($175) priced appropriately for disposable income demographic
-- "Unlimited enhancements" creates perceived value
-- NASM assessment mentioned in VIP package builds credibility
+### Primary Persona: Working Professionals (30-55)
+**Strengths:**
+- Premium color palette (Midnight Sapphire, Gilded Fern) signals professionalism
+- Typography hierarchy (Plus Jakarta Sans for headings) supports quick scanning
 
-**⚠️ Concerns:**
-- No clear time-saving messaging for busy professionals
-- Missing "quick start" options for time-constrained users
-- No integration with calendar apps for scheduling
+**Gaps:**
+- No evidence of time-saving features for busy schedules
+- Missing "quick workout" options for 30-minute sessions
+- No integration with calendar apps (Google/Outlook)
 
-### **Secondary: Golfers**
-**✅ Strengths:**
-- `sport` field in events allows golf-specific categorization
-- Form analysis service could analyze golf swings
-- Print products appeal to golfers wanting action shots
+### Secondary Persona: Golfers
+**Strengths:**
+- Gaming accent colors (Ice Wing, Wing Purple) could support sport-specific metrics
+- Fira Code typography suitable for data display (swing analytics)
 
-**⚠️ Concerns:**
-- No golf-specific form analysis rules
-- Missing golf terminology in UI/UX
-- No integration with golf metrics (swing speed, club path)
+**Gaps:**
+- No golf-specific training modules mentioned
+- Missing swing analysis integration
+- No handicap tracking or course-specific workouts
 
-### **Tertiary: Law Enforcement/First Responders**
-**✅ Strengths:**
-- Parental consent field suggests youth sports photography
-- Fitness certification mentioned in persona but not in gallery system
-- Structured access control (passwords, tokens) aligns with security mindset
+### Tertiary Persona: Law Enforcement/First Responders
+**Strengths:**
+- "Competitive arena" theme element supports certification tracking
+- Structured data presentation with Fira Code
 
-**⚠️ Concerns:**
-- No LE-specific fitness assessments
-- Missing tactical fitness terminology
-- No department/badge number fields for professional context
+**Gaps:**
+- No evidence of certification tracking
+- Missing department/agency compliance features
+- No PT test preparation modules
 
-### **Admin: Sean Swan (NASM-certified)**
-**✅ Strengths:**
-- Lead scoring system automates qualification
-- CRM integration captures gallery visitors as leads
-- Commission tracking for print sales
-- Comprehensive logging for troubleshooting
+### Admin Persona: Sean Swan
+**Strengths:**
+- Gallery optimization shows attention to technical excellence
+- Performance focus aligns with trainer's 25+ years experience
 
----
+**Gaps:**
+- No admin dashboard for client management
+- Missing bulk operations for group training
 
-## 2. Onboarding Friction Points
+## 2. Onboarding Friction
 
-### **High-Friction Areas:**
-1. **Email + Password Gate:** Requires users to know event-specific password
-2. **Multi-step VIP Conversion:** Gallery → Account Creation → Payment → Activation
-3. **Credit System Complexity:** 3 free enhancements, then credits, then VIP tiers
-4. **Form Analysis Limitations:** 10 requests per 15 minutes may frustrate serious users
+**Based on Gallery Patterns:**
+- ✅ Clear guidance (Lightroom export instructions)
+- ✅ Progressive loading (thumb → medium → full)
+- ✅ Helpful error messages
 
-### **Low-Friction Successes:**
-- Auto-lead creation from gallery access
-- Single sign-on from gallery to main platform
-- Progressive disclosure of paid features
+**Missing for Fitness Platform:**
+- No guided fitness assessment flow
+- No equipment checklist
+- No medical disclaimer/par-Q form
+- No goal-setting wizard
 
----
+## 3. Trust Signals
 
-## 3. Trust Signals Assessment
+**Present in Gallery Strategy:**
+- Professional photography workflow signals quality
+- Technical competence demonstrated
 
-### **Present & Effective:**
-- ✅ NASM certification mentioned in VIP package
-- ✅ Stripe integration for secure payments
-- ✅ JWT tokens with 24-hour expiration
-- ✅ Rate limiting prevents abuse
-- ✅ Comprehensive error logging
+**Missing for Fitness Platform:**
+- NASM certification not prominently displayed
+- No trainer bio/experience showcase
+- Missing client testimonials
+- No before/after gallery
+- Lack of security/privacy badges
 
-### **Missing/Weak:**
-- ❌ No testimonials in gallery flow
-- ❌ No Sean Swan bio/credentials in gallery context
-- ❌ No security badges (SSL, privacy policy links)
-- ❌ No before/after examples of photo enhancements
-- ❌ No social proof (number of clients trained, success stories)
+## 4. Emotional Design - Crystalline Swan Theme
 
----
+**Strengths:**
+- **Premium Feel:** Midnight Sapphire + Gilded Fern creates luxury perception
+- **Trustworthy:** Cool blues (Arctic Cyan, Swan Lavender) evoke stability
+- **Motivating:** Ice Wing accent provides energy contrast
+- **Professional:** Typography system supports hierarchy
 
-## 4. Emotional Design (Crystalline Swan Theme)
+**Concerns:**
+- Frozen forest theme may feel "cold" for fitness motivation
+- Deep ocean palette could be perceived as "distant"
+- Gaming accents might not resonate with 40+ professionals
 
-### **Theme Alignment with Backend:**
-The gallery system implements **competitive arena** elements through:
-- Photo voting (thumbs up/down)
-- Limited VIP spots (5 total) creating scarcity
-- Enhancement credits as "currency"
+## 5. Retention Hooks
 
-### **Missing Emotional Connections:**
-1. **Frozen Enchanted Forest:** No mystical/motivational elements in messaging
-2. **Deep-Ocean Luxury:** Missing premium service language for VIP package
-3. **Competitive Arena:** Voting exists but lacks leaderboards or achievements
+**Strong Patterns from Gallery:**
+- Progressive enhancement (basic → premium features)
+- Clear value tiers (free/paid/premium enhancement requests)
 
-### **Color Palette Application:**
-- No evidence of palette usage in API responses
-- Missing opportunity for themed error messages
-- No seasonal/event theming variations
-
----
-
-## 5. Retention Hooks Analysis
-
-### **Strong Retention Mechanics:**
-- ✅ **Gamification:** Photo voting, credit system, limited VIP spots
-- ✅ **Progress Tracking:** Enhancement request counts, print order history
-- ✅ **Community:** Shared gallery events, voting visibility
-- ✅ **Upsell Paths:** Free → Credits → VIP → Full PT client
-
-### **Missing Retention Features:**
-- ❌ **Social Sharing:** No share buttons for photos
-- ❌ **Achievements/Badges:** No rewards system
-- ❌ **Reminders:** No email follow-ups for unused credits
-- ❌ **Referral Programs:** Only 5 credits for referrals (no recurring benefits)
-- ❌ **Content Unlocking:** No tiered content access
-
----
+**Missing for Fitness:**
+- No workout streak tracking
+- Missing achievement badges
+- No social features/community
+- Lack of progress visualization
+- No reminder/notification system
+- Missing challenge/competition features
 
 ## 6. Accessibility for Target Demographics
 
-### **Working Professionals (40+):**
-**✅ Mobile-First Evidence:**
-- Rate limiting suggests mobile API consideration
-- Short-lived tokens work well with mobile sessions
+**Based on Typography:**
+- ✅ Sora font for UI (good readability)
+- ✅ Clear hierarchy with Plus Jakarta Sans
 
-**⚠️ Concerns:**
-- No font size controls in API responses
-- Complex credit system may be confusing on small screens
-- Missing voice input options for busy professionals
-
-### **Critical Accessibility Gaps:**
-1. **No alt-text for photos** in API responses
-2. **No keyboard navigation** considerations in gallery flow
-3. **Color contrast** not enforced in theme implementation
-4. **No screen reader** optimizations in structured data
-
----
+**Concerns:**
+- Cormorant Garamond Italic may be difficult for 40+ users
+- No evidence of font size controls
+- Gaming font (Fira Code) not ideal for body text
+- Color contrast not verified for WCAG compliance
 
 ## Actionable Recommendations
 
-### **Immediate (1-2 Weeks):**
-1. **Add Trust Signals to Gallery Flow:**
-   - Include Sean Swan's NASM certification in VIP package description
-   - Add "Trusted by X athletes" counter
-   - Display security badges near payment options
+### 1. Persona-Specific Features
+```
+PRIORITY 1 (Working Professionals):
+- Add 15/30/45-minute workout filters
+- Integrate with calendar apps
+- Create "lunch break workout" category
+- Add meeting-friendly (no-sweat) routines
 
-2. **Simplify Onboarding:**
-   - Add "Forgot event password?" option
-   - Create single-click "Continue as guest" for gallery access
-   - Pre-fill email from social logins if available
+PRIORITY 2 (Golfers):
+- Develop swing analysis module
+- Add golf-specific mobility routines
+- Create course preparation workouts
+- Integrate with golf tracking apps
 
-3. **Enhance Persona Alignment:**
-   - Add golf swing analysis to form assessment
-   - Include LE/first responder fitness assessment options
-   - Add "time-saving" messaging for professionals
+PRIORITY 3 (First Responders):
+- Build certification tracking dashboard
+- Add agency-specific test preparation
+- Create tactical fitness modules
+- Include injury prevention for duty-specific tasks
+```
 
-### **Short-Term (1 Month):**
-4. **Strengthen Emotional Design:**
-   - Apply color palette to API status messages
-   - Add themed loading states using Crystalline Swan elements
-   - Create motivational messages for form corrections
+### 2. Onboarding Optimization
+- Create 5-step assessment wizard
+- Add equipment inventory checklist
+- Implement medical screening (par-Q)
+- Build goal-setting with SMART framework
+- Add "first workout" guided tour
 
-5. **Improve Retention:**
-   - Add achievement badges (e.g., "Form Master," "Gallery Explorer")
-   - Implement email reminders for unused credits
-   - Create social sharing with branded watermarks
+### 3. Trust & Credibility
+- Prominent NASM certification badge on homepage
+- Trainer bio with 25+ years experience highlight
+- Client testimonial carousel
+- Security/privacy compliance badges
+- Before/after transformation gallery
 
-6. **Boost Accessibility:**
-   - Add `altText` field to GalleryPhoto model
-   - Implement font size preferences in user accounts
-   - Ensure all interactive elements have keyboard shortcuts
+### 4. Emotional Design Refinement
+- Add warm accent color for motivation (suggest: #FF6B35 "Sunset Coral")
+- Create "energy" gradient backgrounds for workout screens
+- Use Swan Lavender for calming recovery sections
+- Implement motivational micro-copy throughout
+- Add celebratory animations for completed workouts
 
-### **Long-Term (3 Months):**
-7. **Advanced Persona Features:**
-   - Golf: Integration with swing tracking apps
-   - LE: Department billing options, fitness test prep
-   - Professionals: Calendar sync, "lunch break workout" plans
+### 5. Retention & Gamification
+```
+WEEK 1: Implement basic tracking
+- Workout streak counter
+- Progress photos timeline
+- Simple achievement badges
 
-8. **Enhanced Gamification:**
-   - Leaderboards for most active gallery participants
-   - Seasonal challenges with prizes
-   - "Train with Sean" virtual events
+MONTH 1: Add social features
+- Friend/challenge system
+- Leaderboards (opt-in)
+- Community forums
 
-9. **Community Building:**
-   - Gallery comment sections (moderated)
-   - Client success story submissions
-   - Virtual workout groups based on gallery events
+QUARTER 1: Advanced gamification
+- Virtual fitness challenges
+- Skill tree progression
+- Reward points system
+```
 
----
+### 6. Accessibility Improvements
+- Minimum 16px body text for 40+ users
+- WCAG AA color contrast verification
+- Font size adjustment control
+- High contrast mode option
+- Voice navigation support
+- Simplified UI mode option
 
-## Technical Implementation Notes
+### 7. Admin Dashboard (For Sean)
+- Client management grid with filters
+- Progress report generator
+- Bulk messaging/notification system
+- Revenue tracking dashboard
+- Certification expiration alerts
 
-### **Frontend Integration Priorities:**
-1. **Theme Implementation:**
-   ```typescript
-   // Apply palette to gallery components
-   const galleryTheme = {
-     primary: '#002060', // Midnight Sapphire
-     accent: '#8B5CF6',  // Wing Purple (glow)
-     background: '#E0ECF4' // Frost White
-   }
-   ```
+## Implementation Priority Matrix
 
-2. **Persona-Specific Components:**
-   - Golf: Swing analysis visualization
-   - Professionals: Quick scheduling widget
-   - LE: Fitness test progress tracker
+| Priority | Feature | Effort | Impact |
+|----------|---------|--------|--------|
+| P0 | Font size controls | Low | High |
+| P0 | Medical screening form | Medium | High |
+| P1 | Workout streak tracking | Low | High |
+| P1 | NASM certification display | Low | Medium |
+| P1 | Calendar integration | High | High |
+| P2 | Golf swing module | High | Medium |
+| P2 | Social features | High | Medium |
+| P3 | Advanced gamification | High | Low |
 
-3. **Accessibility Enhancements:**
-   - Font size controls in user settings
-   - High contrast mode toggle
-   - Screen reader announcements for gallery updates
+## Quick Wins (Week 1)
+1. Increase default font size to 16px
+2. Add NASM badge to header
+3. Implement basic streak counter
+4. Create 30-minute workout filter
+5. Add testimonial section
 
-### **Backend Enhancements:**
-1. **Add Persona Metadata:**
-   ```javascript
-   // Extend GalleryVisitor model
-   personaType: 'golfer' | 'professional' | 'first_responder' | 'other'
-   fitnessGoals: string[] // NASM-specific goal categories
-   ```
-
-2. **Enhanced Trust Signals:**
-   - API endpoint for trainer credentials
-   - Testimonial rotation system
-   - Success metric counters
-
----
-
-## Success Metrics to Track
-
-1. **Conversion Rates:**
-   - Gallery visitor → Lead: Currently automated
-   - Lead → VIP: Track via `vip-activate` endpoint
-   - VIP → Full PT client: Needs additional tracking
-
-2. **Engagement Metrics:**
-   - Average enhancements per visitor
-   - Voting participation rate
-   - Form analysis usage
-
-3. **Persona-Specific Metrics:**
-   - Golf: Swing analysis requests
-   - Professionals: VIP conversion rate
-   - LE: Department referral rates
-
----
-
-**Conclusion:** The gallery system is a technically sophisticated lead generation engine that needs stronger persona alignment, enhanced trust signals, and better emotional design implementation. The Crystalline Swan theme provides excellent branding opportunities that are currently underutilized in the gallery experience.
+**Note:** The gallery optimization shows strong technical execution patterns that should be applied to the fitness platform—particularly the progressive loading, clear guidance, and tiered value proposition. However, the current focus on photography workflow leaves significant gaps in fitness-specific UX that must be addressed for persona alignment.
 
 ---
 
 ## [PASS] Architecture & Bug Hunter
-**Model:** minimax/minimax-m2.5-20260211 | **Duration:** 96.6s
+**Model:** minimax/minimax-m2.5-20260211 | **Duration:** 120.9s
 
-# Deep Code Review: SwanStudios Gallery Backend
+# Deep Architecture Review: SwanStudios Gallery System
 
-**Reviewer:** Principal Software Engineer (AI)  
-**Target:** `backend/routes/galleryRoutes.mjs`, `backend/services/formAnalysisService.mjs`  
-**Theme:** Enchanted Apex (Active) — Galaxy-Swan (Retired)
+## Executive Summary
 
-This review identifies critical production blockers, architectural weaknesses, and integration risks. The payment logic in particular requires immediate intervention.
+I've conducted a thorough review of the two planning documents: `GALLERY-STRATEGY-REVISED-PLAN.md` and `GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md`. These are architectural blueprints, not implementation code, so my analysis focuses on **bugs that would emerge from implementing these plans**, architectural flaws in the proposed design, integration gaps, and production-readiness concerns.
+
+**Overall Assessment:** The plans are well-structured but contain several critical gaps that would cause production issues. The most severe: **watermarks are not applied to thumbnails**, creating a loophole for watermark-free image theft.
 
 ---
 
 ## 1. Bug Detection
 
-### 1.1. CRITICAL: Fraud Risk in Credit Purchase
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Line:** ~440 (inside `purchase-credits`)
+### 1.1 Critical: Watermarks Not Applied to Thumbnails
 
-**What's Wrong:**
-The system applies enhancement credits **immediately** upon creating the Stripe Checkout session, rather than waiting for payment confirmation (webhook). This allows a malicious user to open the checkout, cancel it, and retain the credits. The code explicitly acknowledges this with a TODO comment, but it is currently active in production logic.
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **CRITICAL** | GALLERY-STRATEGY-REVISED-PLAN.md (Backend Processing) | The plan specifies watermarking only the "full" variant. Thumbnails (400px) are served in the grid view WITHOUT watermarks. Users can simply right-click and save the thumbnail, getting a clean image. | Apply watermark to ALL variants: `thumb`, `medium`, and `full`. Even at 400px, the watermark should be legible. |
 
 ```javascript
-// Apply credits immediately (Stripe webhook can reconcile later if payment fails)
-// For production, move this to a webhook handler for checkout.session.completed
-const visitor = await GalleryVisitor.findByPk(visitorId);
-if (visitor) {
-  // ... adds credits here ...
+// CURRENT (broken):
+const fullBuffer = await applyWatermark(processedBuffer);  // Only full gets watermark
+
+// SHOULD BE:
+const thumbBuffer = await applyWatermark(await sharp(inputBuffer).resize(400...).toBuffer());
+const mediumBuffer = await applyWatermark(await sharp(inputBuffer).resize(1200...).toBuffer());
+const fullBuffer = await applyWatermark(processedBuffer);
+```
+
+---
+
+### 1.2 High: No Validation That Uploaded File Is Actually a JPEG
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | GALLERY-STRATEGY-REVISED-PLAN.md (Backend Changes) | The plan rejects RAW files but doesn't validate that the uploaded file is actually a valid JPEG. A malicious user could upload a file with `.jpg` extension containing anything. | Add MIME type validation and magic byte checking: |
+
+```javascript
+const { mimetype, buffer } = req.file;
+const validJpegMimes = ['image/jpeg', 'image/jpg'];
+const JPEG_MAGIC = [0xFF, 0xD8, 0xFF];
+
+if (!validJpegMimes.includes(mimetype)) {
+  return res.status(422).json({ error: 'Only JPEG files accepted' });
+}
+
+// Verify magic bytes
+const magic = buffer.slice(0, 3);
+if (!magic.equals(Buffer.from(JPEG_MAGIC))) {
+  return res.status(422).json({ error: 'Invalid JPEG file' });
 }
 ```
 
-**Fix:**
-Remove the credit application logic from this handler. Implement a Stripe Webhook handler (e.g., `checkout.session.completed`) in a separate route (e.g., `webhooks/stripe.mjs`) and move the credit addition logic there.
+---
+
+### 1.3 High: No EXIF Data Stripping (Privacy Leak)
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Sharp Processing) | Sharp preserves EXIF data by default when using `.jpeg()`. This leaks GPS coordinates, camera serial numbers, timestamps, and personal metadata to clients. | Explicitly strip EXIF: |
+
+```javascript
+// CURRENT (leaks metadata):
+.jpeg({ quality: 80, progressive: true, mozjpeg: true })
+
+// SHOULD BE:
+.jpeg({ quality: 80, progressive: true, mozjpeg: true, exif: false })
+```
 
 ---
 
-### 1.2. HIGH: Race Condition in Credit Deduction
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Line:** ~330 (inside `enhancement-request`)
+### 1.4 High: No Idempotency in Migration Script
 
-**What's Wrong:**
-The code performs a non-atomic read-modify-write on `visitor.enhancementCredits`. If two requests arrive simultaneously, both can read the same balance (e.g., 5 credits), both determine they can afford the request, and both deduct from the balance, resulting in the user spending more credits than they have.
-
-```javascript
-// Request 1 reads credits: 5
-// Request 2 reads credits: 5
-// Request 1 writes credits: 5 - 3 = 2
-// Request 2 writes credits: 5 - 3 = 2 (Overdraft!)
-```
-
-**Fix:**
-Use database-level atomic operations. Instead of reading, calculating in JS, and writing back:
-```javascript
-// Use Sequelize's decrement to atomically reduce credits
-await visitor.decrement('enhancementCredits', { by: creditsToUse });
-```
-*Note: You must handle the case where `enhancementCredits` goes below zero (check balance before decrement or use a database constraint).*
-
----
-
-### 1.3. HIGH: N+1 Query Performance
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Line:** ~95 (inside `GET /events`)
-
-**What's Wrong:**
-The code fetches all events, then iterates over them to fetch cover photos one by one (or via `Promise.all` which still executes N queries). This creates massive latency under load.
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Retroactive Migration) | If the migration script runs twice, it will regenerate thumbnails for all 72 photos, causing duplicate uploads and potential R2 billing issues. | Add idempotency check: |
 
 ```javascript
-const eventsWithCovers = await Promise.all(events.map(async (event) => {
-  // ... await GalleryPhoto.findByPk ... (N+1 Problem)
-}));
-```
-
-**Fix:**
-Use a single query with a JOIN or a `WHERE IN` clause.
-```javascript
-const events = await GalleryEvent.findAll({ /* ... */ });
-const coverPhotoIds = events.map(e => e.coverPhotoId).filter(Boolean);
-// Fetch all cover photos in one go
-const coverPhotos = await GalleryPhoto.findAll({ 
-  where: { id: coverPhotoIds },
-  attributes: ['id', 'thumbnailUrl', 'url'] 
+// Add WHERE clause to skip photos that already have thumbnails
+const photos = await GalleryPhoto.findAll({
+  where: {
+    [Op.or]: [
+      { thumbnailUrl: { [Op.eq]: Sequelize.col('url') } },
+      { thumbnailUrl: null },
+      { mediumUrl: null },
+    ]
+  }
 });
-// Map manually in memory
+// This is already in the plan, but add a lock or flag to prevent concurrent runs:
+await GalleryPhoto.update(
+  { migrationStatus: 'processing' },
+  { where: { migrationStatus: null, /* existing photo conditions */ } }
+);
 ```
 
 ---
 
-### 1.4. MEDIUM: Hardcoded Fallback JWT Secret
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Line:** ~30
+### 1.5 Medium: No Cleanup on Partial Upload Failure
 
-**What's Wrong:**
-Using a fallback secret (`'gallery-fallback-secret'`) in production weakens security. If the environment variable is accidentally unset, the system falls back to a known string, compromising all gallery tokens.
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Upload Path) | If `Promise.all([upload full, upload thumb, upload medium])` partially fails (e.g., full and thumb succeed, medium fails), the database update fails, but R2 already has partial files. This leaves orphaned objects. | Use transaction with rollback or cleanup: |
 
-**Fix:**
-Fail fast if the secret is missing:
 ```javascript
-const GALLERY_JWT_SECRET = process.env.JWT_SECRET;
-if (!GALLERY_JWT_SECRET) throw new Error('FATAL: JWT_SECRET not set');
+try {
+  await Promise.all([...uploads]);
+  await dbUpdate();
+} catch (error) {
+  // Cleanup uploaded files on failure
+  await Promise.allSettled([
+    r2.delete(fullKey),
+    r2.delete(thumbKey),
+    r2.delete(mediumKey)
+  ]);
+  throw error;
+}
+```
+
+---
+
+### 1.6 Medium: No Corrupted Image Handling in Migration
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Migration Script) | If any of the 72 existing photos in R2 is corrupted or unreadable, the entire migration halts with no recovery mechanism. | Add try-catch per photo (already planned) but also add a "failed" status: |
+
+```javascript
+await photo.update({
+  migrationStatus: 'failed',
+  migrationError: err.message,
+  // Don't update thumbnailUrl/mediumUrl - keep old values
+});
+// Continue to next photo instead of failing entirely
+```
+
+---
+
+### 1.7 Low: No Aspect Ratio Field (Redundant Calculations)
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **LOW** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (DB Schema) | Width and height are stored, but aspect ratio is calculated repeatedly in the frontend. This is minor but wasteful. | Add computed column or store aspect ratio: |
+
+```sql
+ALTER TABLE "GalleryPhotos" ADD COLUMN "aspectRatio" FLOAT GENERATED ALWAYS AS (width::float / height::float) STORED;
 ```
 
 ---
 
 ## 2. Architecture Flaws
 
-### 2.1. MEDIUM: Synchronous Dynamic Import in Hot Path
-**File:** `backend/routes/galleryRoutes.mjs`  
-**Line:** ~447, ~530, ~600 (Multiple locations)
+### 2.1 Critical: No Error Boundary Around Async Operations
 
-**What's Wrong:**
-The code uses `await import('stripe')` inside route handlers. While this ensures the import happens after the env var is loaded (if env loads asynchronously), it adds overhead to every request as the module loader caches the import. It is better to import Stripe at the top level or initialize it once at startup.
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **CRITICAL** | Both documents (general) | Neither document addresses error handling for async image processing. If sharp fails, R2 upload fails, or DB write fails, there's no graceful degradation. | Add error boundary pattern: |
 
-**Fix:**
-Move Stripe initialization to a service file (e.g., `backend/services/stripe.mjs`) that exports a singleton instance, and import that instance at the top of `galleryRoutes.mjs`.
+```javascript
+// In upload handler:
+try {
+  const variants = await generateVariants(inputBuffer, storageKeyBase);
+  await Promise.all([...uploads]);
+  await GalleryPhoto.create({...});
+} catch (err) {
+  logger.error('[AdminGallery] Upload failed', { error: err.message, stack: err.stack });
+  return res.status(500).json({ 
+    success: false, 
+    error: 'Upload processing failed. Please try again.' 
+  });
+}
+```
 
 ---
 
-### 2.2. LOW: Unused Constants in Service
-**File:** `backend/services/formAnalysisService.mjs`  
-**Line:** ~10, ~15
+### 2.2 High: No Rate Limiting on Upload Endpoint
 
-**What's Wrong:**
-`JOINT_NAMES` and `BONES` are defined at the top of the file but do not appear to be used in the visible logic of `analyzeForm` or `assessForm` (which uses string literals). If these are intended for the frontend (skeleton rendering), they should be documented or moved to a shared types file. If unused, they are dead code.
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | GALLERY-STRATEGY-REVISED-PLAN.md (Backend) | The admin upload endpoint has no rate limiting. A malicious or careless admin could upload thousands of photos, consuming server resources. | Add rate limiting: |
+
+```javascript
+import rateLimit from 'express-rate-limit';
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // 50 uploads per window
+  message: { error: 'Too many uploads, please try again later' }
+});
+
+router.post('/upload', uploadLimiter, adminAuth, upload.array('photos', 100), handler);
+```
 
 ---
 
-## 3. Integration Issues
+### 2.3 High: No Configurable Image Dimensions
 
-### 3.1. CRITICAL: Incomplete Code Review (Truncation)
-**File:** `backend/services/formAnalysisService.mjs`  
-**Line:** ~75
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **HIGH** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Sharp Code) | Thumb (400px) and medium (1200px) are hardcoded. If a client needs different sizes (e.g., 800px for retina), the code must be changed and redeployed. | Use environment variables: |
 
+```javascript
+const THUMB_WIDTH = parseInt(process.env.GALLERY_THUMB_WIDTH || '400', 10);
+const MEDIUM_WIDTH = parseInt(process.env.GALLERY_MEDIUM_WIDTH || '1200', 10);
+const THUMB_QUALITY = parseInt(process.env.GALLERY_THUMB_QUALITY || '80', 10);
+```
 
+---
+
+### 2.4 Medium: God Component Risk in GalleryPage.tsx
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Frontend) | The plan mentions updating `GalleryPage.tsx` but doesn't address component size. If this file is already >300 lines, adding more logic (aspect ratio calculations, loading states) makes it worse. | Extract components: |
+
+```tsx
+// Create separate components:
+src/components/gallery/
+  ├── GalleryGrid.tsx        // Grid rendering logic
+  ├── GalleryPhotoCard.tsx   // Individual photo card
+  ├── PhotoAspectRatio.tsx   // Aspect ratio calculator
+  └── GallerySkeleton.tsx    // Loading skeleton
+```
+
+---
+
+### 2.5 Medium: No Context for Gallery State
+
+| Severity | Location | What's Wrong | Fix |
+|----------|----------|--------------|-----|
+| **MEDIUM** | GALLERY-PERFORMANCE-THUMBNAIL-PLAN.md (Frontend) | If multiple components need
 
 ---
 
 ## [PASS] Frontend UI/UX Expert
-**Model:** google/gemini-3.1-pro-preview | **Duration:** 43.4s
+**Model:** google/gemini-3.1-pro-preview | **Duration:** 46.0s
 
-As the Lead UI/UX Architect and Co-Orchestrator, I have reviewed the backend API contracts for the Gallery and AI Form Analysis systems. 
+As the Lead UI/UX Architect and Co-Orchestrator for SwanStudios, I have reviewed the backend-heavy gallery performance and strategy plans. While the engineering logic (dropping RAW, generating 400px/1200px variants) is sound, the frontend execution implied by these documents is entirely too utilitarian. 
 
-The secondary scanner provided generic, surface-level observations. We are building a **premium, high-ticket SaaS platform**, not a basic CRUD app. The backend reveals a highly sophisticated feature set (AI pose estimation, VIP conversion funnels, print-on-demand, micro-transactions). If the frontend UI looks like a standard Bootstrap or Material template, we will fail to justify the $175 VIP price tag or the print markups.
+We are not building a standard file directory. We are building the **Crystalline Swan** experience—a deep-ocean luxury vault and frozen enchanted forest. The gallery must feel like a premium, high-end photography portfolio that justifies our pricing. 
 
-Here is my authoritative design vision and exact implementation directives for Claude to execute.
-
----
-
-### 1. DESIGN VISION: The "Crystalline Vault" Experience
-The Gallery is a high-intent lead generation engine disguised as a photo viewing experience. It must feel like entering a **Deep-Ocean Luxury Vault**. 
-*   **Backgrounds:** Deep, immersive `Midnight Sapphire #002060` transitioning into `Royal Depth #003080`.
-*   **Surfaces:** Frosted glass (glassmorphism) using `Frost White #E0ECF4` at 5-10% opacity with heavy background blur.
-*   **Accents:** Interactive elements glow with `Ice Wing #60C0F0`. High-ticket/VIP elements are exclusively branded with `Gilded Fern #C6A84B`.
-*   **Typography:** `Plus Jakarta Sans` for clean UI reading, `Sora` for numbers/pricing, and `Cormorant Garamond Italic` for dramatic, elegant headers (e.g., *"Your Moments, Immortalized"*).
+Claude, I am providing the authoritative design directives for the frontend implementation of these plans. You will execute these exact specifications.
 
 ---
 
-### 2. DESIGN DIRECTIVES FOR CLAUDE
+### DIRECTIVE 1: The "Lightroom Export Guide" Card
+**Severity:** HIGH
+**File & Location:** `frontend/src/pages/GalleryPage.tsx` (Admin Upload Area)
+**Design Problem:** The plan suggests a basic ASCII text box for the Lightroom export guide. This is a premium SaaS; our admin tools must look as good as our client-facing UI. It needs to feel like a "Pro Settings" HUD.
+**Design Solution:** A glassmorphic, data-focused card utilizing `Fira Code` for technical specifications and `Gilded Fern` for luxury emphasis.
 
-#### DIRECTIVE 1: The Access Gate (Event Password Screen)
-*   **Severity:** CRITICAL
-*   **Location:** Frontend route mapping to `POST /api/gallery/events/:slug/access`
-*   **Design Problem:** Standard login forms feel cheap. This is the user's first impression of the event gallery. It needs to feel exclusive.
-*   **Design Solution:** A centered, glassmorphic "Vault" card over a slow-moving, blurred background image of the event cover photo.
-*   **Implementation Notes for Claude:**
-    1.  Create `<VaultGateWrapper>`: `min-height: 100vh; display: grid; place-items: center; background: linear-gradient(to bottom, #002060, #003080);`
-    2.  Implement `<GlassCard>`:
-        ```css
-        background: rgba(224, 236, 244, 0.03); /* Frost White ultra-sheer */
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(224, 236, 244, 0.1);
-        border-radius: 24px;
-        box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(224, 236, 244, 0.2);
-        padding: 48px;
-        ```
-    3.  **Inputs:** Floating labels. Bottom-border only until focus, then expand to a full rounded rectangle with an `Ice Wing #60C0F0` glow (`box-shadow: 0 0 0 2px rgba(96, 192, 240, 0.3)`).
-    4.  **Animation:** Use Framer Motion. The card should `initial={{ opacity: 0, y: 20, scale: 0.95 }}` and `animate={{ opacity: 1, y: 0, scale: 1 }}` with a `spring` transition (stiffness: 100, damping: 20).
+**Implementation Notes for Claude:**
+1. Create a new component: `ProExportGuideCard`.
+2. Implement the following styled-components exact specs:
+```typescript
+const GuideWrapper = styled.div`
+  background: rgba(0, 48, 128, 0.4); /* Royal Depth with opacity */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(198, 168, 75, 0.3); /* Gilded Fern border */
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 8px 32px rgba(0, 32, 96, 0.5); /* Midnight Sapphire shadow */
+`;
 
-#### DIRECTIVE 2: AI Form Analysis Overlay (The "Crystalline Scan")
-*   **Severity:** HIGH
-*   **Location:** Frontend consumer of `POST /api/gallery/analyze-form` & `formAnalysisService.mjs`
-*   **Design Problem:** The backend takes time to fetch the image from R2 and run Gemini Vision. A standard spinner will cause users to abandon. The resulting skeleton data needs a stunning visualization.
-*   **Design Solution:** A cyber-magical "scanning" state, followed by a glowing skeleton overlay mapped exactly to the COCO 17-keypoints.
-*   **Implementation Notes for Claude:**
-    1.  **Loading State:** While waiting for the API, overlay the photo with a `<Scanline>` component:
-        ```css
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 4px;
-        background: #50A0F0; /* Arctic Cyan */
-        box-shadow: 0 0 20px 4px rgba(80, 160, 240, 0.6);
-        animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
-        /* @keyframes scan { 0% { transform: translateY(0); } 100% { transform: translateY(100%); } } */
-        ```
-    2.  **Skeleton Render:** Once data returns, use an HTML5 `<canvas>` overlaid on the image.
-    3.  **Bones:** Draw lines between connected joints using `Frost White #E0ECF4` with `globalAlpha = 0.6` and `lineWidth = 3`.
-    4.  **Joints:** Draw circles at keypoints. Fill: `#002060`, Stroke: `#60C0F0`, `lineWidth = 2`.
-    5.  **Corrections (from `assessForm`):** If a joint has a correction (e.g., knee valgus), pulse that specific joint with `Wing Purple #8B5CF6` and attach a tooltip using `Fira Code` for the angle data (e.g., `158°`).
+const GuideHeader = styled.h3`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #E0ECF4; /* Frost White */
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
 
-#### DIRECTIVE 3: The 402 Enhancement Upsell Flow
-*   **Severity:** HIGH
-*   **Location:** Frontend handler for `POST /api/gallery/enhancement-request` (when returning `402 credits_required`)
-*   **Design Problem:** Hitting a paywall abruptly feels punitive. We need to pivot this into an exciting premium upgrade opportunity.
-*   **Design Solution:** A bottom-sheet modal (mobile) or centered modal (desktop) that presents the pricing tiers as luxury cards.
-*   **Implementation Notes for Claude:**
-    1.  Intercept the `402` response. Do *not* show a toast error. Instead, trigger the `<CreditUpsellModal>`.
-    2.  **Tier Cards:** Display the 3 tiers (`single`, `bundle5`, `vip`).
-    3.  **VIP Tier Styling:** The VIP tier ($175) must dominate the visual hierarchy.
-        ```css
-        background: linear-gradient(135deg, rgba(198, 168, 75, 0.1), rgba(0, 32, 96, 0.8));
-        border: 1px solid #C6A84B; /* Gilded Fern */
-        box-shadow: 0 0 30px rgba(198, 168, 75, 0.15);
-        position: relative;
-        transform: scale(1.05);
-        z-index: 10;
-        ```
-    4.  Add a subtle shimmer effect across the VIP card using a CSS pseudo-element with a linear gradient translating across the X-axis.
+  &::before {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: #C6A84B; /* Gilded Fern */
+    border-radius: 50%;
+    box-shadow: 0 0 12px #C6A84B;
+  }
+`;
 
-#### DIRECTIVE 4: High-Performance Photo Grid & Interactions
-*   **Severity:** HIGH
-*   **Location:** Frontend consumer of `GET /api/gallery/events/:slug/photos`
-*   **Design Problem:** Rendering hundreds of photos will destroy mobile performance and feel clunky without proper choreography.
-*   **Design Solution:** Virtualized masonry grid with staggered reveals and micro-interactions.
-*   **Implementation Notes for Claude:**
-    1.  Use `react-virtuoso` or a similar virtualization library for the masonry grid.
-    2.  **Image Loading:** Use the `thumbnailUrl` first, blurred. Transition to `url` once loaded.
-    3.  **Hover State (Desktop):**
-        ```css
-        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
-        &:hover {
-          transform: translateY(-4px) scale(1.02);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(96, 192, 240, 0.3); /* Ice Wing glow */
-          z-index: 2;
-        }
-        ```
-    4.  **Action Bar:** On hover/tap, reveal a glassmorphic action bar at the bottom of the photo containing: [Enhance ✨] [Vote 👍/👎] [Print 🖼️].
+const SettingsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+`;
 
-#### DIRECTIVE 5: VIP Conversion Wizard (The $175 Package)
-*   **Severity:** CRITICAL
-*   **Location:** Frontend flow for `/vip-signup` -> `/vip-checkout`
-*   **Design Problem:** The backend requires a multi-step process (create user -> stripe checkout -> activate). If the UI feels disjointed, conversion rates will plummet.
-*   **Design Solution:** A seamless, state-driven "Black Card" wizard.
-*   **Implementation Notes for Claude:**
-    1.  Create a unified `<VipConversionWizard>` component that manages the state across the 3 backend endpoints.
-    2.  **Step 1: Account Creation:** "Secure your VIP Access". Use `Plus Jakarta Sans`.
-    3.  **Transition:** When `/vip-signup` succeeds, do *not* reload the page. Slide the form out to the left, and slide in the Checkout summary from the right using Framer Motion (`x: 100%` to `x: 0`).
-    4.  **Urgency Banner:** The backend exposes `GET /api/gallery/vip-spots`. Fetch this. If spots < 5, display a sticky banner at the top of the wizard: `font-family: 'Sora'; color: #C6A84B;` "Only {spots} VIP Unlimited spots remaining for this event."
+const SettingItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
 
-#### DIRECTIVE 6: Print-on-Demand Drawer
-*   **Severity:** MEDIUM
-*   **Location:** Frontend consumer of `/print-products` and `/print-order`
-*   **Design Problem:** Users need to understand what they are buying (Canvas vs Metal vs Print) without leaving the gallery context.
-*   **Design Solution:** A right-side sliding drawer (desktop) or bottom sheet (mobile) that overlays the gallery.
-*   **Implementation Notes for Claude:**
-    1.  **Backdrop:** `background: rgba(0, 32, 96, 0.6); backdrop-filter: blur(8px);`
-    2.  **Drawer Surface:** `background: #002060; border-left: 1px solid rgba(224, 236, 244, 0.1);`
-    3.  **Product Selection:** Use large, touch-friendly radio cards (min 60px height). When selected, border turns `Arctic Cyan #50A0F0` and background shifts to `Royal Depth #003080`.
-    4.  **Price Display:** Use `Sora` font, size `24px`, color `Frost White #E0ECF4`.
+const SettingLabel = styled.span`
+  font-family: 'Sora', sans-serif;
+  color: #50A0F0; /* Arctic Cyan */
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
 
-### Execution Mandate for Claude
-Claude, when you implement these components, you are to strictly adhere to the CSS values, Framer Motion specs, and component architectures outlined above. Do not fall back to generic component libraries. Build these bespoke using `styled-components`. Prioritize the `402` Upsell and the VIP Conversion Wizard first, as these are the primary revenue drivers for the platform.
+const SettingValue = styled.span`
+  font-family: 'Fira Code', monospace;
+  color: #E0ECF4; /* Frost White */
+  font-size: 0.9rem;
+  font-weight: 500;
+`;
+```
+
+---
+
+### DIRECTIVE 2: Enchanted Drag & Drop Zone
+**Severity:** MEDIUM
+**File & Location:** `frontend/src/pages/GalleryPage.tsx` (Admin Upload Area)
+**Design Problem:** Standard dashed-border dropzones cause friction and feel cheap. The interaction must provide immediate, satisfying feedback when files are dragged over.
+**Design Solution:** An interactive dropzone that pulses with `Ice Wing` and `Wing Purple` when active, utilizing CSS transitions for a fluid feel.
+
+**Implementation Notes for Claude:**
+1. Update the Dropzone container to react to the `isDragActive` state.
+2. Apply these exact styles:
+```typescript
+const DropZoneContainer = styled.div<{ $isDragActive: boolean }>`
+  min-height: 200px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: ${({ $isDragActive }) => 
+    $isDragActive ? 'rgba(96, 192, 240, 0.1)' : 'rgba(0, 48, 128, 0.2)'};
+  
+  border: 2px dashed ${({ $isDragActive }) => 
+    $isDragActive ? '#60C0F0' : '#4070C0'}; /* Ice Wing vs Swan Lavender */
+    
+  box-shadow: ${({ $isDragActive }) => 
+    $isDragActive ? 'inset 0 0 40px rgba(139, 92, 246, 0.2)' : 'none'}; /* Wing Purple glow */
+
+  transform: ${({ $isDragActive }) => 
+    $isDragActive ? 'scale(1.02)' : 'scale(1)'};
+
+  cursor: pointer;
+
+  &:hover {
+    border-color: #60C0F0;
+    background: rgba(0, 48, 128, 0.4);
+  }
+`;
+```
+
+---
+
+### DIRECTIVE 3: Client Gallery Grid & Micro-Animations
+**Severity:** CRITICAL
+**File & Location:** `frontend/src/pages/GalleryPage.tsx` (Client View)
+**Design Problem:** The plan mentions adding `width` and `height` to prevent CLS, which is good engineering, but static images are boring. The grid needs to feel alive and premium.
+**Design Solution:** A responsive CSS grid with aspect-ratio preservation, wrapped in a container that scales and brightens on hover.
+
+**Implementation Notes for Claude:**
+1. Ensure the grid uses `grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));` with a `gap: 24px;`.
+2. Wrap the `<PhotoImg>` in a `PhotoCard` styled-component.
+3. Apply these exact interaction specs:
+```typescript
+const PhotoCard = styled.div`
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #003080; /* Royal Depth - acts as fallback color before image loads */
+  box-shadow: 0 4px 20px rgba(0, 32, 96, 0.4);
+  cursor: pointer;
+  
+  /* Hardware acceleration for smooth scaling */
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(96, 192, 240, 0.2); /* Ice Wing glow */
+    
+    img {
+      filter: brightness(1.05) contrast(1.05);
+    }
+  }
+`;
+
+const PhotoImg = styled.img`
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: filter 0.4s ease;
+  /* The inline style for aspect-ratio from the plan goes here via React */
+`;
+```
+
+---
+
+### DIRECTIVE 4: Cinematic Lightbox (Photo Detail Modal)
+**Severity:** CRITICAL
+**File & Location:** `frontend/src/pages/gallery/PhotoDetailModal.tsx`
+**Design Problem:** A standard modal overlay is insufficient for viewing 1200px premium photography. It needs to feel like an immersive, distraction-free cinematic experience.
+**Design Solution:** Full-viewport backdrop blur, dramatic typography for the photo details, and premium button styling for the "Download" and "Request Enhancement" actions.
+
+**Implementation Notes for Claude:**
+1. Use Framer Motion for the modal entry: `initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}`.
+2. The backdrop must be `Midnight Sapphire` with high opacity and blur.
+3. Apply these exact specs:
+```typescript
+const LightboxBackdrop = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 32, 96, 0.92); /* Midnight Sapphire */
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+`;
+
+const LightboxImage = styled(motion.img)`
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+`;
+
+const ActionBar = styled.div`
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+`;
+
+const PremiumButton = styled.button`
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 12px 24px;
+  border-radius: 30px;
+  background: transparent;
+  color: #C6A84B; /* Gilded Fern */
+  border: 1px solid #C6A84B;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(198, 168, 75, 0.1);
+    box-shadow: 0 0 20px rgba(198, 168, 75, 0.2);
+    transform: translateY(-2px);
+  }
+
+  /* Primary variant for Download */
+  &.primary {
+    background: #50A0F0; /* Arctic Cyan */
+    color: #002060;
+    border: none;
+    
+    &:hover {
+      background: #60C0F0; /* Ice Wing */
+      box-shadow: 0 0 20px rgba(96, 192, 240, 0.4);
+    }
+  }
+`;
+```
+
+---
+
+### DIRECTIVE 5: Crystalline Loading Choreography
+**Severity:** HIGH
+**File & Location:** `frontend/src/pages/GalleryPage.tsx`
+**Design Problem:** Even with 30KB thumbnails, there is a fraction of a second before the image paints. A blank background causes perceived latency.
+**Design Solution:** Implement a Crystalline Shimmer skeleton loader that uses our Royal Depth and Midnight Sapphire tokens.
+
+**Implementation Notes for Claude:**
+1. While the image is loading (or if `photo.thumbnailUrl` is pending), display this skeleton inside the `PhotoCard`.
+2. Apply these exact specs:
+```typescript
+const shimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const CrystallineSkeleton = styled.div`
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    #003080 25%, /* Royal Depth */
+    #4070C0 50%, /* Swan Lavender (highlight) */
+    #003080 75%
+  );
+  background-size: 200% 100%;
+  animation: ${shimmer} 2s infinite linear;
+  z-index: 1;
+`;
+```
+*(Note: Ensure the `<PhotoImg>` has `z-index: 2` and its `onLoad` event hides the skeleton).*
+
+---
+
+### Final Architectural Note to Claude:
+Do **not** use any of the retired Galaxy-Swan tokens (`#0a0a1a`, `#00FFFF`, `#7851A9`). If you see them in the existing gallery code while implementing this plan, aggressively refactor them out. The gallery must strictly adhere to the Crystalline Swan palette defined above. Proceed with the implementation of the backend plans, but wrap them in this exact frontend architecture.
 
 ---
 
@@ -2035,60 +1832,45 @@ Claude, when you implement these components, you are to strictly adhere to the C
 
 ### Critical Findings
 **UX & Accessibility:**
-- *   **CRITICAL:** None directly from backend code, but potential for critical UX issues if frontend doesn't handle complex backend responses (e.g., `402` for credits, multi-step VIP flow) gracefully.
-**Code Quality:**
-- **Severity:** CRITICAL
-- **Issue:** Fallback to hardcoded secret in production is a **critical security vulnerability**. If `JWT_SECRET` is missing, all gallery tokens can be forged.
-- **Severity:** CRITICAL
-- **Severity:** CRITICAL
-- **Severity:** CRITICAL
+- The revised gallery strategy and thumbnail generation plan represent a significant and highly positive step forward for SwanStudios. The core decisions to drop RAW file support, eliminate the quality comparison card, and implement robust image variant generation directly address critical performance and user experience issues. The focus on photographer workflow and client value is excellent.
+- *   **Rating:** N/A (Not applicable to this document, but critical for code review)
+- *   **Rating:** CRITICAL (Addressed positively)
+- The revised gallery strategy and performance plan are exceptionally well-conceived and address critical technical and UX issues. The shift to a JPEG-only, variant-based pipeline will dramatically improve loading times and overall user satisfaction.
 **Security:**
-- 3. **Rate Limiting:** Implemented on critical endpoints
-- The gallery routes demonstrate good architectural patterns but lack several critical security controls. The most urgent issues are the hardcoded JWT secret and missing input validation. With the recommended fixes implemented, the system would achieve a **LOW** risk rating.
-- **Overall Risk Rating:** **MEDIUM** (due to CRITICAL-001 and HIGH-001/002/003)
-**Performance & Scalability:**
-- *   **Impact:** **CRITICAL**. On a production database with 10k+ leads, this request will timeout the event loop and potentially crash the RDS instance.
+- The gallery strategy plans are **architecturally sound from a performance perspective** but require **additional security hardening** before implementation. The most critical gaps are in file upload validation and server-side processing security. Since these are planning documents, the actual code implementation should undergo a separate security review with particular attention to the upload processing pipeline and authentication mechanisms.
 **Competitive Intelligence:**
-- SwanStudios represents a sophisticated convergence of fitness training and photography services, leveraging a modern React/Node.js stack with AI-powered form analysis capabilities. The codebase reveals a well-architected gallery system designed for lead generation and conversion, but also exposes several technical and strategic gaps that could limit scalability and competitive positioning. This analysis provides actionable recommendations across five critical dimensions: feature gaps, differentiation strengths, monetization opportunities, market positioning, and growth blockers.
-- - Severity classification (adjust vs. critical)
-- SwanStudios possesses significant competitive advantages through its AI form analysis capabilities, sophisticated lead conversion funnel, and differentiated Crystalline Swan visual identity. However, critical gaps in core training infrastructure (workout programming, nutrition, scheduling) and technical debt in payment processing represent immediate growth blockers.
+- This strategic analysis examines SwanStudios through the lens of market positioning, feature completeness, and growth potential. Based on the codebase review of gallery infrastructure and platform architecture, we've identified critical gaps relative to established fitness SaaS competitors, clear differentiation opportunities rooted in the NASM AI integration and Crystalline Swan UX, and technical debt that could impede scaling beyond 10,000 users. The platform demonstrates strong foundational work in image processing pipelines and client-facing gallery experiences, but requires strategic investment in workout programming, nutrition tracking, and habit formation features to compete effectively in the $15 billion fitness software market.
+- **Gap Severity**: Critical. This gap prevents the platform from serving as a primary training tool, forcing coaches to maintain separate systems for programming and client communication.
+- **Gap Severity**: Medium. Progress tracking is essential for coaches working with transformation clients but less critical for fitness enthusiasts maintaining general health.
 **Architecture & Bug Hunter:**
-- This review identifies critical production blockers, architectural weaknesses, and integration risks. The payment logic in particular requires immediate intervention.
+- **Overall Assessment:** The plans are well-structured but contain several critical gaps that would cause production issues. The most severe: **watermarks are not applied to thumbnails**, creating a loophole for watermark-free image theft.
 **Frontend UI/UX Expert:**
-- *   **Severity:** CRITICAL
-- *   **Severity:** CRITICAL
+- **Severity:** CRITICAL
+- **Severity:** CRITICAL
 
 ### High Priority Findings
 **UX & Accessibility:**
-- *   **Rating:** HIGH (Direct impact on perceived performance and user experience)
-- *   **HIGH:**
-- This audit highlights that while the backend is functionally robust, its design choices significantly influence the frontend's ability to deliver a compliant and user-friendly experience. Close collaboration between backend and frontend teams is essential to address these implications.
-**Code Quality:**
-- **Severity:** HIGH
-- **Severity:** HIGH
-- **Severity:** HIGH
-- **Severity:** HIGH
-- **Severity:** HIGH
-**Security:**
-- **Overall Risk Rating:** **MEDIUM** (due to CRITICAL-001 and HIGH-001/002/003)
+- The revised gallery strategy and thumbnail generation plan represent a significant and highly positive step forward for SwanStudios. The core decisions to drop RAW file support, eliminate the quality comparison card, and implement robust image variant generation directly address critical performance and user experience issues. The focus on photographer workflow and client value is excellent.
+- *   **Modal:** The photo detail modal should be full-screen or highly adaptable on mobile to maximize viewing area and ease of interaction.
+- *   **Photo Detail Modal:** Implement swipe gestures for navigating between photos in the modal on mobile devices. Pinch-to-zoom could also be a valuable addition for examining details of the high-quality images.
 **Performance & Scalability:**
-- *   **Impact:** **HIGH**. This will cause significant latency and DB connection pool exhaustion as the gallery grows.
-- *   **Impact:** **MEDIUM**. For a gallery with 500+ high-res photos, the JSON payload becomes massive, delaying the "Time to Interactive" for the frontend.
-- *   **Impact:** **HIGH**. This ties up a Node.js worker thread for the duration of two external network hops.
+- *   **Analysis:** The plan uses a "Medium" (1200px) and "Thumb" (400px). While better than original files, a single 400px thumbnail on a high-DPI (Retina) mobile device may look blurry, while a 1200px modal image is overkill for a small phone.
+- *   **Rating: HIGH**
 **Competitive Intelligence:**
-- - VIP package ($175) captures high-value clients with unlimited enhancements + PT sessions
-- Current credit-based pricing creates unpredictable revenue and high friction. Implement subscription tiers:
-- - **Silver Gallery** ($19.99/month): 30 enhancements/month, high-res downloads, priority form analysis, print discounts
-- - Price sensitivity: Medium-High (willing to pay for performance)
-- - Legitimate users may hit limits during high-activity periods
+- **Gap Severity**: High. Nutrition coaching represents 40-60% of personal training revenue for many coaches. Without these features, SwanStudios cannot serve as a full-service coaching platform.
+- **Gap Severity**: High. Retention rates in fitness apps average 20% after 90 days. Without engagement features, SwanStudios will struggle to maintain client relationships beyond initial events.
+- **Gap Severity**: High. Communication features are the primary driver of coach-client relationship maintenance. Without them, SwanStudios cannot support ongoing coaching relationships.
+- **Clinical Differentiation**: This positions SwanStudios as appropriate for clients with injury histories, a demographic that competitors underserve. The platform could market specifically to physical therapy partnerships, post-rehab training, and senior fitness—segments with high willingness to pay and strong retention.
+- **Brand Positioning**: This aesthetic positions SwanStudios in the premium segment of fitness software, competing with high-end personal training experiences rather than commodity fitness apps. The target customer is willing to pay $200-500/month for training and expects digital experiences that match that investment.
 **User Research & Persona Alignment:**
-- - High contrast mode toggle
+- - Trainer bio with 25+ years experience highlight
+- - High contrast mode option
 **Frontend UI/UX Expert:**
-- The secondary scanner provided generic, surface-level observations. We are building a **premium, high-ticket SaaS platform**, not a basic CRUD app. The backend reveals a highly sophisticated feature set (AI pose estimation, VIP conversion funnels, print-on-demand, micro-transactions). If the frontend UI looks like a standard Bootstrap or Material template, we will fail to justify the $175 VIP price tag or the print markups.
-- The Gallery is a high-intent lead generation engine disguised as a photo viewing experience. It must feel like entering a **Deep-Ocean Luxury Vault**.
-- *   **Accents:** Interactive elements glow with `Ice Wing #60C0F0`. High-ticket/VIP elements are exclusively branded with `Gilded Fern #C6A84B`.
-- *   **Severity:** HIGH
-- *   **Severity:** HIGH
+- We are not building a standard file directory. We are building the **Crystalline Swan** experience—a deep-ocean luxury vault and frozen enchanted forest. The gallery must feel like a premium, high-end photography portfolio that justifies our pricing.
+- **Severity:** HIGH
+- 2. The backdrop must be `Midnight Sapphire` with high opacity and blur.
+- **Severity:** HIGH
+- #4070C0 50%, /* Swan Lavender (highlight) */
 
 ---
 
