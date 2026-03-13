@@ -727,6 +727,17 @@ const AdminGalleryManager: React.FC = () => {
     } catch { /* */ }
   };
 
+  const recountPhotos = async (eventId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/gallery/events/${eventId}/recount`, {
+        method: 'POST',
+        headers: getHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) loadEvents();
+    } catch { /* */ }
+  };
+
   const togglePublish = async (event: GalleryEvent) => {
     try {
       await fetch(`${API_BASE}/api/admin/gallery/events/${event.id}`, {
@@ -1196,6 +1207,11 @@ const AdminGalleryManager: React.FC = () => {
                       {event.eventDate && `${new Date(event.eventDate).toLocaleDateString()} · `}
                       {event.location && `${event.location} · `}
                       {event.photoCount} photos
+                      <span
+                        onClick={() => recountPhotos(event.id)}
+                        style={{ cursor: 'pointer', color: '#C6A84B', marginLeft: 4, fontSize: 11 }}
+                        title="Recount photos from database"
+                      >↻ sync</span>
                       {' · '}
                       <span style={{ color: '#60C0F0', cursor: 'pointer' }}>/gallery/{event.slug}</span>
                     </div>

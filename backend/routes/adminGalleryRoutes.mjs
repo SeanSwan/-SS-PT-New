@@ -170,6 +170,25 @@ router.patch('/events/:id', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/gallery/events/:id/recount
+ * Sync photoCount from actual GalleryPhoto records (fixes stale counts)
+ */
+router.post('/events/:id/recount', async (req, res) => {
+  try {
+    const event = await GalleryEvent.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    const actualCount = await GalleryPhoto.count({ where: { eventId: event.id } });
+    await event.update({ photoCount: actualCount });
+    logger.info(`[AdminGallery] Recount event ${event.id}: ${event.photoCount} → ${actualCount}`);
+    return res.json({ success: true, event: { ...event.toJSON(), photoCount: actualCount }, previous: event.photoCount, actual: actualCount });
+  } catch (err) {
+    logger.error('[AdminGallery] Recount error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to recount photos' });
+  }
+});
+
+/**
  * DELETE /api/admin/gallery/events/:id
  * Delete event and all associated photos/visitors
  */
