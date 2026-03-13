@@ -56,7 +56,7 @@ router.post('/offline', protect, async (req, res) => {
 
     const order = await Order.create({
       userId,
-      cartId: 0, // Offline orders don't use cart ID (items stored in notes)
+      cartId: null, // Offline orders don't use cart (items stored in notes)
       orderNumber,
       totalAmount: totalWithFee,
       status: 'pending',

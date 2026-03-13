@@ -17,7 +17,7 @@ Order.init(
     },
     cartId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     orderNumber: {
       type: DataTypes.STRING,
