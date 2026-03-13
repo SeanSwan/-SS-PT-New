@@ -216,15 +216,18 @@ const MethodCard = styled.button<{ $active: boolean }>`
   color: #E0ECF4;
 
   ${p => p.$active && css`
-    background: rgba(96, 192, 240, 0.06);
+    background: linear-gradient(145deg, rgba(96, 192, 240, 0.12) 0%, rgba(0, 48, 128, 0.4) 100%);
     border-color: #60C0F0;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(96, 192, 240, 0.15), 0 0 0 1px rgba(96, 192, 240, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(96, 192, 240, 0.15),
+                0 0 0 1px rgba(96, 192, 240, 0.3),
+                inset 0 2px 12px rgba(96, 192, 240, 0.1);
   `}
 
   &:hover {
     background: rgba(96, 192, 240, 0.04);
     border-color: rgba(96, 192, 240, 0.3);
+    transform: translateY(-2px);
   }
 `;
 
@@ -274,10 +277,11 @@ const FeeSummary = styled.div`
 
 const MethodContent = styled.div`
   padding: 20px;
-  background: rgba(0, 32, 96, 0.3);
+  background: rgba(0, 32, 96, 0.4);
   backdrop-filter: blur(12px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(96, 192, 240, 0.15);
+  box-shadow: inset 0 4px 24px rgba(0, 0, 0, 0.2);
   min-height: 200px;
 `;
 

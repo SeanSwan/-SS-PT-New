@@ -7,7 +7,8 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { X, Heart, CreditCard, CheckCircle, AlertCircle, DollarSign } from 'lucide-react';
+import { X, Heart, CreditCard, CheckCircle, AlertCircle, DollarSign, Smartphone } from 'lucide-react';
+import ZelleQR from '../../assets/Zelle.png';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -47,8 +48,8 @@ const spin = keyframes`
 `;
 
 const heartPulse = keyframes`
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(198, 168, 75, 0); }
+  50% { transform: scale(1.12); box-shadow: 0 0 20px 4px rgba(198, 168, 75, 0.25); }
 `;
 
 // ── Styled Components ─────────────────────────────────────────────────────
@@ -59,9 +60,9 @@ const ModalOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 32, 96, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 16px;
   animation: ${fadeIn} 0.2s ease-out;
 `;
@@ -72,11 +73,12 @@ const ModalContent = styled.div`
   max-width: 440px;
   max-height: 90vh;
   overflow-y: auto;
-  background: #0a0a1a;
+  background: linear-gradient(165deg, #002060 0%, #003080 100%);
   border: 1px solid rgba(96, 192, 240, 0.2);
   border-radius: 24px;
   padding: 32px 28px;
   color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 24px 48px rgba(0, 32, 96, 0.6), inset 0 1px 0 rgba(224, 236, 244, 0.1);
   animation: ${fadeInUp} 0.35s ease-out;
 
   @media (max-width: 767px) {
@@ -153,7 +155,7 @@ const SectionLabel = styled.label`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #A0AABF;
+  color: #50A0F0;
   margin-bottom: 10px;
 `;
 
@@ -275,6 +277,71 @@ const MethodIcon = styled.span`
 `;
 
 // ── Zelle Info Box ────────────────────────────────────────────────────────
+const ZelleQRSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(0, 48, 128, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  box-shadow: inset 0 0 20px rgba(96, 192, 240, 0.05), 0 8px 32px rgba(0, 32, 96, 0.4);
+
+  @media (max-width: 380px) {
+    flex-direction: column;
+    text-align: center;
+  }
+`;
+
+const ZelleQRCard = styled.div`
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  background: #E0ECF4;
+  border: 2px solid rgba(224, 236, 244, 0.8);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.25);
+`;
+
+const ZelleQRImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+`;
+
+const ZelleQRInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const ZelleScanLabel = styled.div`
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #E0ECF4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  @media (max-width: 380px) {
+    justify-content: center;
+  }
+`;
+
+const ZelleScanHint = styled.p`
+  font-size: 12px;
+  font-family: 'Sora', sans-serif;
+  color: rgba(224, 236, 244, 0.7);
+  margin: 0;
+  line-height: 1.4;
+`;
+
 const ZelleInfoBox = styled.div`
   background: rgba(139, 92, 246, 0.06);
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -336,7 +403,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   background: linear-gradient(135deg, #C6A84B 0%, #D4B85C 100%);
   border: none;
   border-radius: 12px;
-  color: #0a0a1a;
+  color: #002060;
   font-family: 'Sora', system-ui, sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -362,8 +429,8 @@ const Spinner = styled.span`
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(10, 10, 26, 0.3);
-  border-top-color: #0a0a1a;
+  border: 2px solid rgba(0, 32, 96, 0.3);
+  border-top-color: #002060;
   border-radius: 50%;
   animation: ${spin} 0.6s linear infinite;
 `;
@@ -403,7 +470,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
 }) => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
-  const [method, setMethod] = useState<PaymentMethod>('stripe');
+  const [method, setMethod] = useState<PaymentMethod>('zelle');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -466,7 +533,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const resetForm = () => {
     setSelectedAmount(null);
     setCustomAmount('');
-    setMethod('stripe');
+    setMethod('zelle');
     setNote('');
     setFeedback(null);
   };
@@ -563,7 +630,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   if (!isOpen) return null;
 
   const amount = getAmount();
-  const zelleEmail = 'loveswanstudios@protonmail.com';
+  const zelleRecipient = '3239968153';
 
   return (
     <ModalOverlay onClick={handleOverlayClick}>
@@ -598,27 +665,36 @@ const DonationModal: React.FC<DonationModalProps> = ({
         {/* Payment Method */}
         <SectionLabel>Payment method</SectionLabel>
         <MethodGrid>
+          <MethodButton $active={method === 'zelle'} onClick={() => { setMethod('zelle'); setFeedback(null); }}>
+            <MethodIcon>⚡</MethodIcon>
+            Zelle
+          </MethodButton>
           <MethodButton $active={method === 'stripe'} onClick={() => { setMethod('stripe'); setFeedback(null); }}>
             <MethodIcon><CreditCard size={18} /></MethodIcon>
             Card
           </MethodButton>
-          <MethodButton $active={false} disabled style={{ opacity: 0.35, cursor: 'not-allowed', filter: 'grayscale(0.6)' }}>
+          <MethodButton $active={false} disabled style={{ opacity: 0.35, cursor: 'not-allowed' }}>
             <MethodIcon>V</MethodIcon>
-            <span style={{ fontSize: '9px', lineHeight: 1 }}>Coming Soon</span>
-          </MethodButton>
-          <MethodButton $active={false} disabled style={{ opacity: 0.35, cursor: 'not-allowed', filter: 'grayscale(0.6)' }}>
-            <MethodIcon><DollarSign size={18} /></MethodIcon>
             <span style={{ fontSize: '9px', lineHeight: 1 }}>Coming Soon</span>
           </MethodButton>
         </MethodGrid>
 
-        {/* Zelle Instructions */}
+        {/* Zelle QR + Instructions */}
         {method === 'zelle' && (
           <>
+            <ZelleQRSection>
+              <ZelleQRCard>
+                <ZelleQRImg src={ZelleQR} alt="Scan to pay with Zelle" />
+              </ZelleQRCard>
+              <ZelleQRInfo>
+                <ZelleScanLabel><Smartphone size={16} /> Scan to Pay</ZelleScanLabel>
+                <ZelleScanHint>Open your banking app and scan this QR code</ZelleScanHint>
+              </ZelleQRInfo>
+            </ZelleQRSection>
             <ZelleInfoBox>
-              Send your Zelle payment to:
-              <ZelleDetail>{zelleEmail}</ZelleDetail>
-              After sending, click the button below to let us know. We'll confirm receipt on our end.
+              Or send manually to:
+              <ZelleDetail>{zelleRecipient}</ZelleDetail>
+              After sending, click the button below to let us know.
             </ZelleInfoBox>
             <NoteInput
               placeholder="Optional note (e.g., 'From the Johnson family')"
