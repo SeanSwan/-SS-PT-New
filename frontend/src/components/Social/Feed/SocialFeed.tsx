@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   MessageSquare,
   Heart,
@@ -82,7 +82,8 @@ const EmptyFeedMessage = styled.div`
   padding: 24px;
   text-align: center;
   border-radius: 8px;
-  background-color: rgba(29, 31, 43, 0.8);
+  background: rgba(0, 48, 128, 0.85);
+  backdrop-filter: blur(12px);
 `;
 
 const WelcomeCard = styled.div`
@@ -140,10 +141,10 @@ const ActivityIndicator = styled.div`
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgba(76, 175, 80, 0.1);
+  background: rgba(96, 192, 240, 0.1);
   border-radius: 8px;
   margin-bottom: 16px;
-  border-left: 4px solid #4caf50;
+  border-left: 4px solid #60C0F0;
 `;
 
 const FeedStats = styled.div`
@@ -154,7 +155,8 @@ const FeedStats = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: rgba(29, 31, 43, 0.8);
+  background: rgba(0, 48, 128, 0.85);
+  backdrop-filter: blur(12px);
   padding: 16px;
   border-radius: 8px;
   text-align: center;
@@ -183,8 +185,8 @@ const LiveBadgeLabel = styled.span`
   line-height: 20px;
   text-align: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  color: white;
+  background: #60C0F0;
+  color: #001840;
   animation: ${pulse} 2s infinite;
 `;
 
@@ -332,28 +334,40 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string | null>(null);
 
-  // Calculate feed stats
-  const feedStats = {
-    totalPosts: posts.length,
-    workoutPosts: posts.filter(p => p.type === 'workout').length,
-    achievementPosts: posts.filter(p => p.type === 'achievement').length,
-    transformationPosts: posts.filter(p => p.type === 'transformation').length,
-    totalLikes: posts.reduce((sum, p) => sum + p.likesCount, 0),
-    totalComments: posts.reduce((sum, p) => sum + p.commentsCount, 0)
-  };
+  // Calculate feed stats — single-pass reduce, memoized on posts reference
+  const feedStats = useMemo(() => {
+    return posts.reduce((acc, p) => {
+      acc.totalPosts++;
+      if (p.type === 'workout') acc.workoutPosts++;
+      if (p.type === 'achievement') acc.achievementPosts++;
+      if (p.type === 'transformation') acc.transformationPosts++;
+      acc.totalLikes += p.likesCount;
+      acc.totalComments += p.commentsCount;
+      return acc;
+    }, {
+      totalPosts: 0, workoutPosts: 0, achievementPosts: 0,
+      transformationPosts: 0, totalLikes: 0, totalComments: 0
+    });
+  }, [posts]);
 
-  // Show activity indicator when there's recent activity
+  // Show activity indicator when there's recent activity — with cleanup
   useEffect(() => {
-    if (posts.length > 0) {
-      const latestPost = posts[0];
-      const timeDiff = Date.now() - new Date(latestPost.createdAt).getTime();
+    if (posts.length === 0) return;
 
-      if (timeDiff < 300000) { // 5 minutes
-        setRecentActivity(`New ${latestPost.type} post from ${latestPost.user.firstName}`);
-        setTimeout(() => setRecentActivity(null), 10000);
-      }
+    const latestPost = posts[0];
+    const timeDiff = Date.now() - new Date(latestPost.createdAt).getTime();
+
+    if (timeDiff < 300000) { // 5 minutes
+      setRecentActivity(`New ${latestPost.type} post from ${latestPost.user.firstName}`);
+      const timer = setTimeout(() => setRecentActivity(null), 10000);
+      return () => clearTimeout(timer);
     }
   }, [posts]);
+
+  // Stable like toggle callback for PostCard memoization
+  const handleLikeToggle = useCallback((postId: string, isLiked: boolean) => {
+    return isLiked ? unlikePost(postId) : likePost(postId);
+  }, [likePost, unlikePost]);
 
   if (isLoading) {
     return (
@@ -419,10 +433,10 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
       {recentActivity && (
         <ActivityIndicator>
           <LiveActivityBadgeWrapper>
-            <TrendingUp size={20} color="#4caf50" />
+            <TrendingUp size={20} color="#60C0F0" />
             <LiveBadgeLabel>LIVE</LiveBadgeLabel>
           </LiveActivityBadgeWrapper>
-          <BodyText2 $color="#4caf50" $fontWeight={500}>
+          <BodyText2 $color="#60C0F0" $fontWeight={500}>
             {recentActivity}
           </BodyText2>
         </ActivityIndicator>
@@ -479,7 +493,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
             <PostCard
               key={post.id}
               post={post}
-              onLike={() => post.isLiked ? unlikePost(post.id) : likePost(post.id)}
+              onLike={() => handleLikeToggle(post.id, post.isLiked)}
               onReact={reactToPost}
               onRemoveReaction={removeReaction}
               onComment={addComment}

@@ -55,7 +55,7 @@ const SWAN_LOGO_URL = '/Logo.png';
 
 // Category gradient overlays (dark enough for text readability)
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  workout: 'linear-gradient(135deg, rgba(25,118,210,0.7) 0%, rgba(0,32,96,0.85) 100%)',
+  workout: 'linear-gradient(135deg, rgba(96,192,240,0.5) 0%, rgba(0,32,96,0.85) 100%)',
   transformation: 'linear-gradient(135deg, rgba(233,30,99,0.6) 0%, rgba(0,32,96,0.85) 100%)',
   achievement: 'linear-gradient(135deg, rgba(255,152,0,0.6) 0%, rgba(0,32,96,0.85) 100%)',
   challenge: 'linear-gradient(135deg, rgba(156,39,176,0.6) 0%, rgba(0,32,96,0.85) 100%)',
@@ -416,8 +416,8 @@ const PointNotificationChip = styled.span`
   gap: 4px;
   padding: 4px 10px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  color: white;
+  background: linear-gradient(135deg, #C6A84B, #d4b85a);
+  color: #000B18;
   font-weight: bold;
   font-size: 0.8125rem;
   animation: ${pointEarnAnimation} 2s ease-out;
@@ -571,7 +571,7 @@ const PostTypeIndicator = styled.div<{ $postType: string }>`
   right: 12px;
   pointer-events: none;
   background: ${props =>
-    props.$postType === 'workout' ? 'linear-gradient(135deg, #1976d2, #42a5f5)' :
+    props.$postType === 'workout' ? 'linear-gradient(135deg, #003080, #60C0F0)' :
     props.$postType === 'transformation' ? 'linear-gradient(135deg, #e91e63, #f06292)' :
     props.$postType === 'achievement' ? 'linear-gradient(135deg, #ff9800, #ffb74d)' :
     props.$postType === 'challenge' ? 'linear-gradient(135deg, #9c27b0, #ba68c8)' :
@@ -642,7 +642,7 @@ const DropdownMenu = styled.div`
   right: 0;
   z-index: 100;
   min-width: 160px;
-  background: #1a1a2e;
+  background: #001840;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -685,7 +685,7 @@ const Overlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: #1a1a2e;
+  background: #001840;
   border-radius: 12px;
   padding: 0;
   max-width: 500px;
@@ -785,8 +785,8 @@ const Toast = styled.div<{ $visible: boolean }>`
   gap: 8px;
   padding: 12px 20px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  color: white;
+  background: linear-gradient(135deg, #C6A84B, #d4b85a);
+  color: #000B18;
   font-size: 0.875rem;
   font-weight: 500;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

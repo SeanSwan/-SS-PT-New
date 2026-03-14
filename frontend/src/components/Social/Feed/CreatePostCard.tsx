@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Image,
   Send,
@@ -105,7 +105,7 @@ const StyledTextarea = styled.textarea<{ $rows?: number }>`
   padding: 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 20, 64, 0.6);
   color: #e0e0e0;
   font-family: inherit;
   font-size: 0.95rem;
@@ -115,11 +115,17 @@ const StyledTextarea = styled.textarea<{ $rows?: number }>`
   transition: border-color 0.2s ease;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
     border-color: #8B5CF6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 
   &:disabled {
@@ -133,7 +139,7 @@ const StyledInput = styled.input`
   padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 20, 64, 0.6);
   color: #e0e0e0;
   font-family: inherit;
   font-size: 0.875rem;
@@ -142,11 +148,17 @@ const StyledInput = styled.input`
   transition: border-color 0.2s ease;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
     border-color: #8B5CF6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -233,7 +245,7 @@ const NativeSelect = styled.select`
   padding: 6px 28px 6px 10px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06)
+  background: rgba(0, 20, 64, 0.6)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
     no-repeat right 8px center;
   color: #e0e0e0;
@@ -248,13 +260,19 @@ const NativeSelect = styled.select`
     border-color: #8B5CF6;
   }
 
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+  }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
   option {
-    background: #1a1a2e;
+    background: #001840;
     color: #e0e0e0;
   }
 `;
@@ -272,13 +290,14 @@ const PostTypeSelector = styled.div`
   flex-wrap: wrap;
 `;
 
-const PostTypeChip = styled.span<{ $selected?: boolean }>`
+const PostTypeChip = styled.button<{ $selected?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 0.8125rem;
+  font-family: inherit;
   cursor: pointer;
   user-select: none;
   min-height: 44px;
@@ -291,6 +310,12 @@ const PostTypeChip = styled.span<{ $selected?: boolean }>`
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+  }
 `;
 
 const PointPreviewChip = styled.span`
@@ -301,8 +326,8 @@ const PointPreviewChip = styled.span`
   border-radius: 16px;
   font-size: 0.8125rem;
   font-weight: bold;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  color: white;
+  background: linear-gradient(135deg, #C6A84B, #d4b85a);
+  color: #000B18;
   white-space: nowrap;
 `;
 
@@ -343,18 +368,27 @@ const TransformationImageContainer = styled.div`
   margin-top: 16px;
 `;
 
-const TransformationImageBox = styled.div`
+const TransformationImageBox = styled.button`
   flex: 1;
   border: 2px dashed rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 16px;
   text-align: center;
   cursor: pointer;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
   transition: all 0.2s ease;
 
   &:hover {
     border-color: #8B5CF6;
     background-color: rgba(139, 92, 246, 0.04);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -545,23 +579,47 @@ const CreatePostCard: React.FC = () => {
 
   const { authAxios } = useAuth();
 
+  // AbortController ref for cancelling in-flight workout history requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup any pending fetch on unmount
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
+
   const fetchWorkoutHistory = useCallback(async () => {
     if (workoutHistory.length > 0) { setShowWorkoutHistory(true); return; }
+
+    // Cancel any previous in-flight request
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoadingHistory(true);
     try {
-      const res = await authAxios.get('/api/sessions', { params: { limit: 20, status: 'completed' } });
+      const res = await authAxios.get('/api/sessions', {
+        params: { limit: 20, status: 'completed' },
+        signal: controller.signal,
+      });
       const sessions = res.data?.sessions || res.data?.data || res.data || [];
       setWorkoutHistory(Array.isArray(sessions) ? sessions : []);
       setShowWorkoutHistory(true);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.error('Failed to fetch workout history:', err);
       // Try alternate endpoint
       try {
-        const res2 = await authAxios.get('/api/workout-sessions', { params: { limit: 20 } });
+        const res2 = await authAxios.get('/api/workout-sessions', {
+          params: { limit: 20 },
+          signal: controller.signal,
+        });
         const sessions2 = res2.data?.sessions || res2.data?.data || res2.data || [];
         setWorkoutHistory(Array.isArray(sessions2) ? sessions2 : []);
         setShowWorkoutHistory(true);
-      } catch { setWorkoutHistory([]); setShowWorkoutHistory(true); }
+      } catch (err2: any) {
+        if (err2.name === 'CanceledError' || err2.name === 'AbortError') return;
+        setWorkoutHistory([]); setShowWorkoutHistory(true);
+      }
     } finally { setIsLoadingHistory(false); }
   }, [authAxios, workoutHistory.length]);
 
@@ -858,7 +916,9 @@ const CreatePostCard: React.FC = () => {
               {postTypeOptions.map((option) => (
                 <PostTypeChip
                   key={option.value}
+                  type="button"
                   $selected={postType === option.value}
+                  aria-pressed={postType === option.value}
                   onClick={() => setPostType(option.value as any)}
                 >
                   {option.icon}
@@ -1031,7 +1091,7 @@ const CreatePostCard: React.FC = () => {
                   ) : (
                     <MediaPreview src={mediaPreview} alt="Upload preview" />
                   )}
-                  <RemoveMediaButton onClick={handleRemoveMedia}>
+                  <RemoveMediaButton onClick={handleRemoveMedia} aria-label="Remove attached media">
                     <X size={16} />
                   </RemoveMediaButton>
                 </MediaPreviewWrapper>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import {
   Home,
   Users,
@@ -58,7 +58,7 @@ const MenuButton = styled.button<{ $active?: boolean; disabled?: boolean }>`
   justify-content: flex-start;
   text-transform: none;
   font-weight: ${props => props.$active ? 'bold' : 'normal'};
-  background-color: ${props => props.$active ? 'rgba(25, 118, 210, 0.08)' : 'transparent'};
+  background-color: ${props => props.$active ? 'rgba(139, 92, 246, 0.12)' : 'transparent'};
   padding: 12px 16px;
   min-height: 44px;
   border: none;
@@ -66,22 +66,30 @@ const MenuButton = styled.button<{ $active?: boolean; disabled?: boolean }>`
   cursor: ${props => props.disabled ? 'default' : 'pointer'};
   opacity: ${props => props.disabled ? 0.5 : 1};
   font-size: 0.875rem;
-  color: inherit;
+  color: ${props => props.$active ? '#8B5CF6' : 'inherit'};
   font-family: inherit;
+  transition: background-color 0.2s ease, color 0.2s ease;
 
   &:hover {
     background-color: ${props => props.disabled
-      ? (props.$active ? 'rgba(25, 118, 210, 0.08)' : 'transparent')
-      : (props.$active ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)')};
+      ? (props.$active ? 'rgba(139, 92, 246, 0.12)' : 'transparent')
+      : (props.$active ? 'rgba(139, 92, 246, 0.16)' : 'rgba(255, 255, 255, 0.04)')};
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 `;
 
 const GamificationSidebar = styled.div`
-  background: linear-gradient(135deg, #1976d2, #42a5f5);
+  background: linear-gradient(135deg, #002060, #003080);
   color: white;
   padding: 20px;
   border-radius: 12px;
   margin-bottom: 16px;
+  border: 1px solid rgba(96, 192, 240, 0.15);
 `;
 
 const PointsSection = styled.div`
@@ -112,18 +120,24 @@ const QuickActionButton = styled.button`
   text-transform: none;
   min-height: 44px;
   padding: 8px 16px;
-  border: 1px solid rgba(25, 118, 210, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
   font-size: 0.875rem;
   color: inherit;
   font-family: inherit;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 
   &:hover {
     transform: translateX(4px);
-    transition: transform 0.2s ease;
-    background-color: rgba(25, 118, 210, 0.04);
+    background-color: rgba(139, 92, 246, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -146,8 +160,9 @@ const BadgeDot = styled.span`
   font-weight: 600;
   line-height: 1;
   padding: 0 4px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  background: #8B5CF6;
   color: white;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
 `;
 
 const StyledDivider = styled.hr`
@@ -180,7 +195,8 @@ const ProgressBarTrack = styled.div`
 const ProgressBarFill = styled.div<{ $value: number }>`
   height: 100%;
   border-radius: 3px;
-  background-color: #90caf9;
+  background-color: #60C0F0;
+  box-shadow: 0 0 6px rgba(96, 192, 240, 0.4);
   width: ${props => Math.min(Math.max(props.$value, 0), 100)}%;
   transition: width 0.4s ease;
 `;
@@ -228,20 +244,33 @@ const QuickActionsTitle = styled.h6`
 /* --- Grid layout ---- */
 const DesktopGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 3fr;
+  grid-template-columns: 1fr;
   gap: 24px;
 
-  @media (max-width: 899px) {
-    grid-template-columns: 1fr;
+  @media (min-width: 900px) {
+    grid-template-columns: 1fr 3fr;
   }
 `;
 
-/* --- Mobile tab bar --- */
+/* Sidebar column — hidden on mobile via CSS, no JS resize listener */
+const SidebarColumn = styled.div`
+  display: none;
+
+  @media (min-width: 900px) {
+    display: block;
+  }
+`;
+
+/* --- Mobile tab bar (hidden on desktop) --- */
 const TabBar = styled.div`
   display: flex;
   width: 100%;
   margin-bottom: 24px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+
+  @media (min-width: 900px) {
+    display: none;
+  }
 `;
 
 const TabButton = styled.button<{ $active?: boolean }>`
@@ -253,10 +282,10 @@ const TabButton = styled.button<{ $active?: boolean }>`
   padding: 12px 8px;
   min-height: 44px;
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#1976d2' : 'transparent'};
+  border-bottom: 2px solid ${props => props.$active ? '#8B5CF6' : 'transparent'};
   margin-bottom: -2px;
   background: transparent;
-  color: ${props => props.$active ? '#1976d2' : 'inherit'};
+  color: ${props => props.$active ? '#8B5CF6' : 'inherit'};
   cursor: pointer;
   font-size: 0.8125rem;
   font-family: inherit;
@@ -266,6 +295,12 @@ const TabButton = styled.button<{ $active?: boolean }>`
 
   &:hover {
     opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -282,31 +317,16 @@ const SocialPage: React.FC = () => {
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
 
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 900
-  );
-
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 900);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-
-  const initialTab: SocialTab = VALID_TABS.includes(tab as SocialTab) ? (tab as SocialTab) : 'feed';
-  const [activeTab, setActiveTab] = useState<SocialTab>(initialTab);
-
-  // Sync tab state when URL param changes
-  useEffect(() => {
-    const urlTab = VALID_TABS.includes(tab as SocialTab) ? (tab as SocialTab) : 'feed';
-    setActiveTab(urlTab);
-  }, [tab]);
+  // Derive activeTab directly from URL — no state duplication
+  const activeTab: SocialTab = VALID_TABS.includes(tab as SocialTab)
+    ? (tab as SocialTab)
+    : 'feed';
 
   // Mock notification count for demo
   const notificationCount = 3;
 
   // Handle tab change — update URL so back/forward work
   const handleTabChange = (newTab: SocialTab) => {
-    setActiveTab(newTab);
     navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);
   };
 
@@ -334,164 +354,158 @@ const SocialPage: React.FC = () => {
     <PageContainer>
       <PageTitle>Social Hub</PageTitle>
 
-      {isMobile ? (
-        // Mobile layout with tabs
-        <>
-          <TabBar>
-            <TabButton
-              $active={activeTab === 'feed'}
+      {/* Mobile tab bar — hidden on desktop via CSS */}
+      <TabBar>
+        <TabButton
+          $active={activeTab === 'feed'}
+          onClick={() => handleTabChange('feed')}
+        >
+          <Home size={20} />
+          Feed
+        </TabButton>
+        <TabButton
+          $active={activeTab === 'reels'}
+          onClick={() => handleTabChange('reels')}
+        >
+          <Play size={20} />
+          Reels
+        </TabButton>
+        <TabButton
+          $active={activeTab === 'friends'}
+          onClick={() => handleTabChange('friends')}
+        >
+          <Users size={20} />
+          Friends
+        </TabButton>
+        <TabButton
+          $active={activeTab === 'challenges'}
+          onClick={() => handleTabChange('challenges')}
+        >
+          <Trophy size={20} />
+          Challenges
+        </TabButton>
+      </TabBar>
+
+      {/* Desktop sidebar + content grid */}
+      <DesktopGrid>
+        <SidebarColumn>
+          {/* Gamification Section */}
+          {profile.data && (
+            <GamificationSidebar>
+              <PointsSection>
+                <div>
+                  <PointsValue>
+                    {profile.data.points?.toLocaleString() || 0}
+                  </PointsValue>
+                  <PointsLabel>
+                    Points
+                  </PointsLabel>
+                </div>
+                <LevelChip>
+                  <Star size={16} />
+                  Level {profile.data.level || 1}
+                </LevelChip>
+              </PointsSection>
+
+              <StreakSection>
+                <Zap size={18} />
+                <StreakText>
+                  {profile.data.streakDays || 0} day streak
+                </StreakText>
+                <StreakEmoji>
+                  {'\uD83D\uDD25'}
+                </StreakEmoji>
+              </StreakSection>
+
+              <ProgressSection>
+                <ProgressCaption>
+                  Next Level Progress
+                </ProgressCaption>
+                <ProgressBarTrack>
+                  <ProgressBarFill $value={profile.data.nextLevelProgress || 0} />
+                </ProgressBarTrack>
+                <ProgressCaption>
+                  {profile.data.nextLevelProgress || 0}% to Level {(profile.data.level || 1) + 1}
+                </ProgressCaption>
+              </ProgressSection>
+            </GamificationSidebar>
+          )}
+
+          <SidebarContainer>
+            <SidebarTitle>
+              Social Hub
+            </SidebarTitle>
+            <SidebarMenu>
+              <MenuButton
+                onClick={() => handleTabChange('feed')}
+                $active={activeTab === 'feed'}
+              >
+                <Home size={20} />
+                Feed
+              </MenuButton>
+              <MenuButton
+                onClick={() => handleTabChange('reels')}
+                $active={activeTab === 'reels'}
+              >
+                <Play size={20} />
+                Reels
+              </MenuButton>
+              <MenuButton
+                onClick={() => handleTabChange('friends')}
+                $active={activeTab === 'friends'}
+              >
+                <Users size={20} />
+                Friends
+              </MenuButton>
+              <MenuButton
+                onClick={() => handleTabChange('challenges')}
+                $active={activeTab === 'challenges'}
+              >
+                <Trophy size={20} />
+                Challenges
+              </MenuButton>
+              <MenuButton
+                disabled
+              >
+                <NotificationBadge>
+                  <Bell size={20} />
+                  {notificationCount > 0 && (
+                    <BadgeDot>{notificationCount}</BadgeDot>
+                  )}
+                </NotificationBadge>
+                Notifications
+              </MenuButton>
+            </SidebarMenu>
+
+            <StyledDivider />
+
+            <QuickActionsTitle>
+              Quick Actions
+            </QuickActionsTitle>
+
+            <QuickActionButton
               onClick={() => handleTabChange('feed')}
             >
-              <Home size={20} />
-              Feed
-            </TabButton>
-            <TabButton
-              $active={activeTab === 'reels'}
-              onClick={() => handleTabChange('reels')}
-            >
-              <Play size={20} />
-              Reels
-            </TabButton>
-            <TabButton
-              $active={activeTab === 'friends'}
-              onClick={() => handleTabChange('friends')}
-            >
-              <Users size={20} />
-              Friends
-            </TabButton>
-            <TabButton
-              $active={activeTab === 'challenges'}
-              onClick={() => handleTabChange('challenges')}
-            >
-              <Trophy size={20} />
-              Challenges
-            </TabButton>
-          </TabBar>
+              <PlusCircle size={18} />
+              Create Post
+            </QuickActionButton>
 
+            <QuickActionButton>
+              <Target size={18} />
+              Set Goal
+            </QuickActionButton>
+
+            <QuickActionButton>
+              <Award size={18} />
+              View Rewards
+            </QuickActionButton>
+          </SidebarContainer>
+        </SidebarColumn>
+
+        <div>
           {renderContent()}
-        </>
-      ) : (
-        // Desktop layout with sidebar
-        <DesktopGrid>
-          <div>
-            {/* Gamification Section */}
-            {profile.data && (
-              <GamificationSidebar>
-                <PointsSection>
-                  <div>
-                    <PointsValue>
-                      {profile.data.points?.toLocaleString() || 0}
-                    </PointsValue>
-                    <PointsLabel>
-                      Points
-                    </PointsLabel>
-                  </div>
-                  <LevelChip>
-                    <Star size={16} />
-                    Level {profile.data.level || 1}
-                  </LevelChip>
-                </PointsSection>
-
-                <StreakSection>
-                  <Zap size={18} />
-                  <StreakText>
-                    {profile.data.streakDays || 0} day streak
-                  </StreakText>
-                  <StreakEmoji>
-                    {'\uD83D\uDD25'}
-                  </StreakEmoji>
-                </StreakSection>
-
-                <ProgressSection>
-                  <ProgressCaption>
-                    Next Level Progress
-                  </ProgressCaption>
-                  <ProgressBarTrack>
-                    <ProgressBarFill $value={profile.data.nextLevelProgress || 0} />
-                  </ProgressBarTrack>
-                  <ProgressCaption>
-                    {profile.data.nextLevelProgress || 0}% to Level {(profile.data.level || 1) + 1}
-                  </ProgressCaption>
-                </ProgressSection>
-              </GamificationSidebar>
-            )}
-
-            <SidebarContainer>
-              <SidebarTitle>
-                Social Hub
-              </SidebarTitle>
-              <SidebarMenu>
-                <MenuButton
-                  onClick={() => handleTabChange('feed')}
-                  $active={activeTab === 'feed'}
-                >
-                  <Home size={20} />
-                  Feed
-                </MenuButton>
-                <MenuButton
-                  onClick={() => handleTabChange('reels')}
-                  $active={activeTab === 'reels'}
-                >
-                  <Play size={20} />
-                  Reels
-                </MenuButton>
-                <MenuButton
-                  onClick={() => handleTabChange('friends')}
-                  $active={activeTab === 'friends'}
-                >
-                  <Users size={20} />
-                  Friends
-                </MenuButton>
-                <MenuButton
-                  onClick={() => handleTabChange('challenges')}
-                  $active={activeTab === 'challenges'}
-                >
-                  <Trophy size={20} />
-                  Challenges
-                </MenuButton>
-                <MenuButton
-                  disabled
-                >
-                  <NotificationBadge>
-                    <Bell size={20} />
-                    {notificationCount > 0 && (
-                      <BadgeDot>{notificationCount}</BadgeDot>
-                    )}
-                  </NotificationBadge>
-                  Notifications
-                </MenuButton>
-              </SidebarMenu>
-
-              <StyledDivider />
-
-              <QuickActionsTitle>
-                Quick Actions
-              </QuickActionsTitle>
-
-              <QuickActionButton
-                onClick={() => handleTabChange('feed')}
-              >
-                <PlusCircle size={18} />
-                Create Post
-              </QuickActionButton>
-
-              <QuickActionButton>
-                <Target size={18} />
-                Set Goal
-              </QuickActionButton>
-
-              <QuickActionButton>
-                <Award size={18} />
-                View Rewards
-              </QuickActionButton>
-            </SidebarContainer>
-          </div>
-
-          <div>
-            {renderContent()}
-          </div>
-        </DesktopGrid>
-      )}
+        </div>
+      </DesktopGrid>
     </PageContainer>
   );
 };
