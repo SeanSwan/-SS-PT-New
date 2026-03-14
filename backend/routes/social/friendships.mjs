@@ -1,4 +1,7 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { Op, Sequelize } from 'sequelize';
+import sequelize from '../../database.mjs';
 import { Friendship } from '../../models/social/index.mjs';
 import User from '../../models/User.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
@@ -8,6 +11,10 @@ const router = express.Router();
 // Apply auth middleware to all routes
 router.use(protect);
 
+// Rate limiters for abuse-prone endpoints
+const searchLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { success: false, message: 'Too many search requests, try again later' } });
+const requestLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { success: false, message: 'Too many friend requests, try again later' } });
+
 /**
  * Get friends list for the current user
  */
@@ -16,7 +23,7 @@ router.get('/', async (req, res) => {
     // Get accepted friendships where current user is either requester or recipient
     const friendships = await Friendship.findAll({
       where: {
-        [req.db.Sequelize.Op.or]: [
+        [Op.or]: [
           { requesterId: req.user.id, status: 'accepted' },
           { recipientId: req.user.id, status: 'accepted' }
         ]
@@ -113,7 +120,7 @@ router.get('/requests', async (req, res) => {
 /**
  * Send a friend request
  */
-router.post('/request/:recipientId', async (req, res) => {
+router.post('/request/:recipientId', requestLimiter, async (req, res) => {
   try {
     const { recipientId } = req.params;
     
@@ -138,65 +145,46 @@ router.post('/request/:recipientId', async (req, res) => {
       });
     }
     
-    // Check if a friendship already exists between these users
-    const existingFriendship = await Friendship.findOne({
-      where: {
-        [req.db.Sequelize.Op.or]: [
-          { requesterId: req.user.id, recipientId: recipientIdNum },
-          { requesterId: recipientIdNum, recipientId: req.user.id }
-        ]
+    // Use transaction to prevent race condition on concurrent requests
+    const result = await sequelize.transaction(async (t) => {
+      const existingFriendship = await Friendship.findOne({
+        where: {
+          [Op.or]: [
+            { requesterId: req.user.id, recipientId: recipientIdNum },
+            { requesterId: recipientIdNum, recipientId: req.user.id }
+          ]
+        },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      if (existingFriendship) {
+        if (existingFriendship.status === 'accepted') {
+          return { status: 400, body: { success: false, message: 'You are already friends with this user' } };
+        } else if (existingFriendship.status === 'pending') {
+          const msg = Number(existingFriendship.requesterId) === req.user.id
+            ? 'You have already sent a friend request to this user'
+            : 'This user has already sent you a friend request';
+          return { status: 400, body: { success: false, message: msg } };
+        } else if (existingFriendship.status === 'declined') {
+          existingFriendship.status = 'pending';
+          await existingFriendship.save({ transaction: t });
+          return { status: 200, body: { success: true, message: 'Friend request sent successfully', friendship: existingFriendship } };
+        } else if (existingFriendship.status === 'blocked') {
+          return { status: 403, body: { success: false, message: 'Unable to send friend request' } };
+        }
       }
+
+      const friendship = await Friendship.create({
+        requesterId: req.user.id,
+        recipientId: recipientIdNum,
+        status: 'pending'
+      }, { transaction: t });
+
+      return { status: 201, body: { success: true, message: 'Friend request sent successfully', friendship } };
     });
 
-    if (existingFriendship) {
-      // Return different messages based on the status
-      if (existingFriendship.status === 'accepted') {
-        return res.status(400).json({
-          success: false,
-          message: 'You are already friends with this user'
-        });
-      } else if (existingFriendship.status === 'pending') {
-        if (Number(existingFriendship.requesterId) === req.user.id) {
-          return res.status(400).json({
-            success: false,
-            message: 'You have already sent a friend request to this user'
-          });
-        } else {
-          return res.status(400).json({
-            success: false,
-            message: 'This user has already sent you a friend request'
-          });
-        }
-      } else if (existingFriendship.status === 'declined') {
-        // Allow re-requesting if previously declined
-        existingFriendship.status = 'pending';
-        await existingFriendship.save();
-        
-        return res.status(200).json({
-          success: true,
-          message: 'Friend request sent successfully',
-          friendship: existingFriendship
-        });
-      } else if (existingFriendship.status === 'blocked') {
-        return res.status(403).json({
-          success: false,
-          message: 'Unable to send friend request'
-        });
-      }
-    }
-    
-    // Create a new friendship request
-    const friendship = await Friendship.create({
-      requesterId: req.user.id,
-      recipientId: recipientIdNum,
-      status: 'pending'
-    });
-    
-    return res.status(201).json({
-      success: true,
-      message: 'Friend request sent successfully',
-      friendship
-    });
+    return res.status(result.status).json(result.body);
   } catch (error) {
     console.error('Error sending friend request:', error);
     return res.status(500).json({
@@ -394,7 +382,7 @@ router.post('/block/:userId', async (req, res) => {
     // Check if a friendship already exists
     let friendship = await Friendship.findOne({
       where: {
-        [req.db.Sequelize.Op.or]: [
+        [Op.or]: [
           { requesterId: req.user.id, recipientId: userIdNum },
           { requesterId: userIdNum, recipientId: req.user.id }
         ]
@@ -479,7 +467,7 @@ router.post('/unblock/:userId', async (req, res) => {
 /**
  * Search for users by name or username
  */
-router.get('/search', async (req, res) => {
+router.get('/search', searchLimiter, async (req, res) => {
   try {
     const { q } = req.query;
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 50);
@@ -491,8 +479,9 @@ router.get('/search', async (req, res) => {
       });
     }
 
-    const searchTerm = `%${String(q).trim()}%`;
-    const Op = req.db.Sequelize.Op;
+    const escaped = String(q).trim().replace(/[%_\\]/g, '\\$&');
+    const searchTerm = `%${escaped}%`;
+    // Op imported at module level
 
     // Get blocked user IDs to exclude them
     const blocks = await Friendship.findAll({
@@ -517,8 +506,8 @@ router.get('/search', async (req, res) => {
           { firstName: { [Op.iLike]: searchTerm } },
           { lastName: { [Op.iLike]: searchTerm } },
           { username: { [Op.iLike]: searchTerm } },
-          req.db.Sequelize.where(
-            req.db.Sequelize.fn('concat', req.db.Sequelize.col('firstName'), ' ', req.db.Sequelize.col('lastName')),
+          Sequelize.where(
+            Sequelize.fn('concat', Sequelize.col('firstName'), ' ', Sequelize.col('lastName')),
             { [Op.iLike]: searchTerm }
           )
         ]
@@ -586,7 +575,7 @@ router.get('/suggestions', async (req, res) => {
     // Get the current user's friends
     const friendships = await Friendship.findAll({
       where: {
-        [req.db.Sequelize.Op.or]: [
+        [Op.or]: [
           { requesterId: req.user.id, status: 'accepted' },
           { recipientId: req.user.id, status: 'accepted' }
         ]
@@ -601,7 +590,7 @@ router.get('/suggestions', async (req, res) => {
     // Also get blocked users
     const blocks = await Friendship.findAll({
       where: {
-        [req.db.Sequelize.Op.or]: [
+        [Op.or]: [
           { requesterId: req.user.id, status: 'blocked' },
           { recipientId: req.user.id, status: 'blocked' }
         ]
@@ -623,8 +612,8 @@ router.get('/suggestions', async (req, res) => {
     // 4. Have similar traits (e.g., recent activity, similar interests)
     const suggestedUsers = await User.findAll({
       where: {
-        id: { [req.db.Sequelize.Op.notIn]: excludeIds },
-        role: { [req.db.Sequelize.Op.in]: ['client', 'trainer'] } // Only suggest clients or trainers
+        id: { [Op.notIn]: excludeIds },
+        role: { [Op.in]: ['client', 'trainer'] } // Only suggest clients or trainers
       },
       attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
       limit,

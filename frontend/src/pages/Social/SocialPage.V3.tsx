@@ -564,7 +564,7 @@ const SocialPageV3: React.FC = () => {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
   const isDesktop = useMediaQuery('(min-width: 900px)');
-  const notificationCount = 3;
+  const notificationCount = 0; // TODO: wire to real notification API
 
   const handleTabChange = (newTab: SocialTab) => {
     navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);

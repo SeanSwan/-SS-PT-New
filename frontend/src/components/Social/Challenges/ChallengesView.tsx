@@ -632,7 +632,7 @@ const ChallengesView: React.FC = () => {
                     </CategoryBadge>
                   </CardHeader>
 
-                  <CardDescription>{challenge.description}</CardDescription>
+                  <CardDescription>{challenge.description?.replace(/\s*\[seed\]\s*/gi, '')}</CardDescription>
 
                   {challenge.status !== 'upcoming' && (
                     <>

@@ -650,7 +650,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
         {/* Description */}
         {variant !== 'compact' && (
           <ChallengeDescription>
-            {challenge.shortDescription || challenge.description}
+            {(challenge.shortDescription || challenge.description)?.replace(/\s*\[seed\]\s*/gi, '')}
           </ChallengeDescription>
         )}
         
