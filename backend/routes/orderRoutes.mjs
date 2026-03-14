@@ -32,19 +32,33 @@ function generateOrderNumber() {
 
 /**
  * GET /api/orders
- * Get all orders for the authenticated user
+ * Get orders for the authenticated user (or all orders for admins).
+ * Query params:
+ *   ?status=pending  — filter by order status
+ *   ?limit=20        — max rows returned (default: 100, max: 200)
+ *   ?method=zelle     — filter by paymentMethod
  */
 router.get('/', protect, async (req, res) => {
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const Order = getOrder();
     const OrderItem = getOrderItem();
-    
-    const userId = req.user.id;
-    
+
+    const isAdmin = req.user.role === 'admin';
+    const { status, limit, method } = req.query;
+
+    // Build WHERE clause
+    const where = {};
+    // Non-admins only see their own orders
+    if (!isAdmin) where.userId = req.user.id;
+    // Optional status filter
+    if (status) where.status = status;
+    // Optional paymentMethod filter
+    if (method) where.paymentMethod = method;
+
     const orders = await Order.findAll({
-      where: { userId },
+      where,
       order: [['createdAt', 'DESC']],
+      limit: Math.min(parseInt(limit) || 100, 200),
       include: [
         {
           model: OrderItem,
@@ -52,7 +66,7 @@ router.get('/', protect, async (req, res) => {
         }
       ]
     });
-    
+
     return res.status(200).json({
       success: true,
       orders

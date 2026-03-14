@@ -29,11 +29,11 @@ const PendingPaymentsWidget: React.FC = () => {
   const fetchPending = useCallback(async () => {
     try {
       setLoading(true);
+      // Admin endpoint returns all orders; filter to pending offline methods
       const res = await authAxios.get('/api/orders', {
-        params: { status: 'pending', limit: 20 },
+        params: { status: 'pending', limit: 50 },
       });
       if (res.data?.orders) {
-        // Filter to offline methods only
         const offline = res.data.orders.filter((o: PendingOrder) =>
           ['check', 'zelle', 'venmo'].includes(o.paymentMethod)
         );
@@ -49,11 +49,12 @@ const PendingPaymentsWidget: React.FC = () => {
   useEffect(() => { fetchPending(); }, [fetchPending]);
 
   const handleConfirm = async (orderId: number) => {
+    const order = orders.find(o => o.id === orderId);
     setConfirming(orderId);
     try {
-      await authAxios.patch(`/api/orders/${orderId}`, {
-        status: 'completed',
-        paymentAppliedAt: new Date().toISOString(),
+      // Use apply-payment endpoint: idempotent, sets paymentAppliedBy, triggers session allocation
+      await authAxios.post(`/api/orders/${orderId}/apply-payment`, {
+        method: order?.paymentMethod || 'other',
       });
       setOrders(prev => prev.filter(o => o.id !== orderId));
     } catch {
