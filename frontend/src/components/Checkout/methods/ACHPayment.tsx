@@ -10,7 +10,7 @@
  * 3. User authorizes via Stripe Financial Connections
  * 4. Payment processes asynchronously (webhook handles completion)
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { Building2, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
@@ -21,6 +21,21 @@ import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
 import ProcessingOverlay from '../ProcessingOverlay';
 import PriceMismatchModal from '../PriceMismatchModal';
+
+/** localStorage-backed idempotency key with 24hr TTL (9-Brain Phase 2 consensus) */
+function getPersistedIdempotencyKey(fingerprint: string): string {
+  const storageKey = `payment-idemp-ach-${fingerprint}`;
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const { key, timestamp } = JSON.parse(stored);
+      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) return key;
+    }
+  } catch { /* corrupted — regenerate */ }
+  const newKey = uuidv4();
+  localStorage.setItem(storageKey, JSON.stringify({ key: newKey, timestamp: Date.now() }));
+  return newKey;
+}
 
 // Lazy-load Stripe only when ACH payment is actually initiated (not at module scope)
 // This prevents IntegrationError on Store/Checkout pages when the key is missing
@@ -52,7 +67,18 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
   const [status, setStatus] = useState<ACHStatus>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
-  const idempotencyKey = useRef(uuidv4());
+
+  // Derive stable cart fingerprint from items for idempotency key binding
+  const cartFingerprint = items.map(i => `${i.storefrontItemId}:${i.quantity}`).sort().join('|');
+  const idempotencyKey = useRef(getPersistedIdempotencyKey(cartFingerprint));
+
+  // Cleanup localStorage on successful payment
+  useEffect(() => {
+    if (status === 'succeeded' || status === 'processing') {
+      try { localStorage.removeItem(`payment-idemp-ach-${cartFingerprint}`); } catch {}
+    }
+  }, [status, cartFingerprint]);
+
   const [priceMismatch, setPriceMismatch] = useState<{
     expectedTotal: number;
     updatedTotal: number;
@@ -133,12 +159,16 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
           changedItems: pricing.changedItems,
         });
         setErrorMsg('Prices have been updated. Please review the changes.');
-        // Price changed = new payload, so new idempotency key
-        idempotencyKey.current = uuidv4();
+        // Price changed = new payload, so new idempotency key (also update localStorage)
+        const newKey = uuidv4();
+        idempotencyKey.current = newKey;
+        try { localStorage.setItem(`payment-idemp-ach-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch {}
       } else if (data?.code === 'PAYMENT_INTENT_FAILED') {
         setErrorMsg(data.userMessage || 'Payment processing failed.');
         // Stripe confirmed failure — safe to regenerate key for retry
-        idempotencyKey.current = uuidv4();
+        const newKey = uuidv4();
+        idempotencyKey.current = newKey;
+        try { localStorage.setItem(`payment-idemp-ach-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch {}
       } else {
         setErrorMsg(err.message || 'ACH payment failed');
         // Network errors: keep same key so retry is idempotent (prevents double-billing)
@@ -320,10 +350,11 @@ const InfoTitle = styled.div`
 `;
 
 const InfoDesc = styled.p`
-  font-size: 0.85rem;
-  color: rgba(224, 236, 244, 0.7);
+  font-size: 0.875rem;
+  color: #E0ECF4;
+  font-weight: 300;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 `;
 
 const FeatureRow = styled.div`
@@ -336,8 +367,9 @@ const Feature = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
-  color: rgba(224, 236, 244, 0.6);
+  font-size: 0.875rem;
+  color: #E0ECF4;
+  font-weight: 300;
 
   svg { color: #60C0F0; }
 `;
@@ -409,11 +441,14 @@ const StatusBanner = styled.div<{ $type: 'info' | 'success' | 'error' }>`
 `;
 
 const Note = styled.p`
-  font-size: 0.78rem;
-  color: rgba(224, 236, 244, 0.75);
+  color: #E0ECF4;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  font-size: 0.875rem;
   margin: 0;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  line-height: 1.5;
+  padding: 1rem;
+  background: rgba(80, 160, 240, 0.08);
+  border-left: 3px solid #50A0F0;
+  border-radius: 0 4px 4px 0;
 `;

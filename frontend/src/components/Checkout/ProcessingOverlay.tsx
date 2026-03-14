@@ -5,7 +5,7 @@
  * Shows transaction ID, premium spinner, and 15s escape hatch.
  * Crystalline Swan theme: Royal Depth surface + Ice Wing accents.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 
 interface ProcessingOverlayProps {
@@ -94,14 +94,39 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
   onContactSupport,
 }) => {
   const [showEscape, setShowEscape] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowEscape(true), 15000);
     return () => clearTimeout(timer);
   }, []);
 
+  // Focus trap: move focus into modal on mount, restore on unmount
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement;
+    containerRef.current?.focus();
+    return () => { previouslyFocused?.focus?.(); };
+  }, []);
+
+  // Trap Tab key within modal
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = el.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) { e.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showEscape]);
+
   return (
-    <Container role="dialog" aria-modal="true" aria-label="Payment processing">
+    <Container ref={containerRef} role="dialog" aria-modal="true" aria-label="Payment processing" tabIndex={-1}>
       <Card role="status" aria-live="polite">
         <Spinner viewBox="0 0 64 64">
           <circle

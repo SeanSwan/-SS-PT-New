@@ -8,8 +8,9 @@
  * Design: Glassmorphic card grid per Gemini specs.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { v4 as uuidv4 } from 'uuid';
+import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
@@ -26,6 +27,21 @@ import VenmoPayment from './methods/VenmoPayment';
 import ACHPayment from './methods/ACHPayment';
 import ProcessingOverlay from './ProcessingOverlay';
 import PriceMismatchModal from './PriceMismatchModal';
+
+/** localStorage-backed idempotency key with 24hr TTL (9-Brain Phase 2 consensus) */
+function getPersistedIdempotencyKey(fingerprint: string): string {
+  const storageKey = `payment-idemp-offline-${fingerprint}`;
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const { key, timestamp } = JSON.parse(stored);
+      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) return key;
+    }
+  } catch { /* corrupted — regenerate */ }
+  const newKey = uuidv4();
+  localStorage.setItem(storageKey, JSON.stringify({ key: newKey, timestamp: Date.now() }));
+  return newKey;
+}
 
 interface PaymentMethodSelectorProps {
   total: number;
@@ -58,10 +74,16 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
   const { success: toastSuccess, error: toastError } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('card');
   const [isProcessing, setIsProcessing] = useState(false);
-  const idempotencyKey = useRef(uuidv4());
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [settingsStatus, setSettingsStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [priceMismatch, setPriceMismatch] = useState<PriceMismatchData | null>(null);
+
+  // Stable cart fingerprint for idempotency key binding
+  const cartFingerprint = (cart?.items || [])
+    .map((i: any) => `${i.storefrontItemId || i.id}:${i.quantity}`)
+    .sort()
+    .join('|');
+  const idempotencyKey = useRef(getPersistedIdempotencyKey(cartFingerprint));
 
   const methods = getPaymentMethods(total);
 
@@ -108,6 +130,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
 
       if (res.data?.success) {
         toastSuccess(`Order placed! Your ${selectedMethod} payment is pending confirmation.`);
+        try { localStorage.removeItem(`payment-idemp-offline-${cartFingerprint}`); } catch {}
         await refreshCart();
       } else {
         throw new Error(res.data?.message || 'Order creation failed');
@@ -121,8 +144,10 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
           updatedTotal: pricing.updatedTotal ?? total,
           changedItems: pricing.changedItems,
         });
-        // Price changed = new payload, so new idempotency key
-        idempotencyKey.current = uuidv4();
+        // Price changed = new payload, so new idempotency key (persist to localStorage)
+        const newKey = uuidv4();
+        idempotencyKey.current = newKey;
+        try { localStorage.setItem(`payment-idemp-offline-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch {}
       } else {
         toastError(data?.message || err.message || 'Failed to place order');
         // Network errors: keep same key so retry is idempotent (prevents double-billing)
@@ -161,7 +186,12 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
           onCancel={handlePriceMismatchCancel}
         />
       )}
-      <SelectorHeader>Choose Payment Method</SelectorHeader>
+      <GridHeader>
+        <SelectorHeader>Select Payment Method</SelectorHeader>
+        <TrustBadge>
+          <ShieldCheck size={14} /> Secured by Stripe &middot; 30-Day Guarantee
+        </TrustBadge>
+      </GridHeader>
 
       <MethodGrid>
         {methods.map(method => (
@@ -191,7 +221,11 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
         {selectedMethod === 'card' && children}
 
         {selectedMethod !== 'card' && selectedMethod !== 'ach' && settingsStatus === 'loading' && (
-          <SettingsLoadingMsg>Loading payment details...</SettingsLoadingMsg>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SkeletonCard style={{ height: 80 }} />
+            <SkeletonCard style={{ height: 48 }} />
+            <SkeletonCard style={{ height: 48 }} />
+          </div>
         )}
 
         {selectedMethod !== 'card' && selectedMethod !== 'ach' && settingsStatus === 'error' && (
@@ -258,13 +292,39 @@ const Container = styled.div`
   width: 100%;
 `;
 
-const SelectorHeader = styled.h3`
+const GridHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+`;
+
+const SelectorHeader = styled.h2`
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #E0ECF4;
   margin: 0;
-  text-align: center;
+`;
+
+const TrustBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.6875rem;
+  color: #50A0F0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+
+  svg { flex-shrink: 0; }
 `;
 
 const MethodGrid = styled.div`
@@ -284,33 +344,38 @@ const MethodCard = styled.button<{ $active: boolean }>`
   align-items: center;
   gap: 8px;
   padding: 20px 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  background: rgba(0, 32, 96, 0.6);
   backdrop-filter: blur(12px);
-  border: 1px solid ${p => p.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.08)'};
+  border: 1px solid ${p => p.$active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.1)'};
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   min-height: 44px;
   color: #E0ECF4;
+  transform: translateZ(0);
 
   ${p => p.$active && css`
-    background: linear-gradient(145deg, rgba(96, 192, 240, 0.12) 0%, rgba(0, 48, 128, 0.4) 100%);
-    border-color: #60C0F0;
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(96, 192, 240, 0.15),
-                0 0 0 1px rgba(96, 192, 240, 0.3),
-                inset 0 2px 12px rgba(96, 192, 240, 0.1);
+    border: 1px solid #8B5CF6;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(0, 48, 128, 0.4) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.15),
+                inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   `}
 
-  &:hover {
-    background: rgba(96, 192, 240, 0.04);
-    border-color: rgba(96, 192, 240, 0.3);
+  &:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.4);
     transform: translateY(-2px);
   }
 
   &:focus-visible {
     outline: 2px solid #8B5CF6;
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;
 
@@ -369,20 +434,26 @@ const MethodLabel = styled.span`
 `;
 
 const MethodFee = styled.span<{ $zero: boolean }>`
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: ${p => p.$zero ? '#8B5CF6' : 'rgba(224, 236, 244, 0.7)'};
+  font-family: 'Fira Code', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${p => p.$zero ? '#8B5CF6' : '#60C0F0'};
 `;
 
 const FeeSummary = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 0.875rem;
+  color: #E0ECF4;
   text-align: center;
-  font-size: 0.8rem;
-  color: rgba(224, 236, 244, 0.7);
-  padding: 8px;
+  padding: 12px 8px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(224, 236, 244, 0.1);
 
   strong {
-    color: #60C0F0;
     font-family: 'Fira Code', monospace;
+    font-size: 1.125rem;
+    color: #60C0F0;
+    font-weight: 600;
   }
 `;
 
@@ -394,6 +465,21 @@ const MethodContent = styled.div`
   border-top: 1px solid rgba(96, 192, 240, 0.15);
   box-shadow: inset 0 4px 24px rgba(0, 0, 0, 0.2);
   min-height: 200px;
+  transform: translateZ(0);
+  will-change: transform, backdrop-filter;
+`;
+
+const shimmer = keyframes`
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+`;
+
+const SkeletonCard = styled.div`
+  height: 120px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #002060 25%, #003080 50%, #002060 75%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite ease-in-out;
 `;
 
 const SettingsLoadingMsg = styled.div`

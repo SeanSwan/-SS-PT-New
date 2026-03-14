@@ -203,6 +203,8 @@ const PriceMismatchModal: React.FC<PriceMismatchModalProps> = ({
   onAccept,
   onCancel,
 }) => {
+  const overlayRef = React.useRef<HTMLDivElement>(null);
+
   // Close on Escape key
   React.useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -212,8 +214,32 @@ const PriceMismatchModal: React.FC<PriceMismatchModalProps> = ({
     return () => document.removeEventListener('keydown', handleKey);
   }, [onCancel]);
 
+  // Focus trap: move focus into modal on mount, restore on unmount
+  React.useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement;
+    overlayRef.current?.focus();
+    return () => { previouslyFocused?.focus?.(); };
+  }, []);
+
+  // Trap Tab key within modal
+  React.useEffect(() => {
+    const el = overlayRef.current;
+    if (!el) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = el.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) { e.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
-  <Overlay role="dialog" aria-modal="true" aria-label="Price update notification">
+  <Overlay ref={overlayRef} role="dialog" aria-modal="true" aria-label="Price update notification" tabIndex={-1}>
     <Container>
       <Heading>Itinerary Update</Heading>
       <Description>
