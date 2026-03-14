@@ -58,6 +58,7 @@ import { monitorRouting } from './utils/routeDebugger'; // Route debugging
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
 // Styles
+import './styles/tokens.css'; // Crystalline Swan design tokens (CSS custom properties)
 import './App.css';
 import './index.css';
 import './styles/responsive-fixes.css';

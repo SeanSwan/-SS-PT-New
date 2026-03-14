@@ -19,6 +19,8 @@ import GlowButton from '../../ui/buttons/GlowButton';
 import api from '../../../services/api.service';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
+import ProcessingOverlay from '../ProcessingOverlay';
+import PriceMismatchModal from '../PriceMismatchModal';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
 
@@ -38,6 +40,11 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
   const [errorMsg, setErrorMsg] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const idempotencyKey = useRef(uuidv4());
+  const [priceMismatch, setPriceMismatch] = useState<{
+    expectedTotal: number;
+    updatedTotal: number;
+    changedItems?: any[];
+  } | null>(null);
 
   const totalWithFee = total + fee;
 
@@ -106,8 +113,13 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
       setStatus('error');
       const data = err.response?.data;
       if (data?.code === 'PRICE_MISMATCH') {
-        const pricing = data.pricingData;
-        setErrorMsg(`Prices updated. New total: $${pricing?.updatedTotal?.toFixed(2) || data.updatedTotal?.toFixed(2)}. Please review your cart.`);
+        const pricing = data.pricingData || data;
+        setPriceMismatch({
+          expectedTotal: pricing.expectedTotal ?? total,
+          updatedTotal: pricing.updatedTotal ?? total,
+          changedItems: pricing.changedItems,
+        });
+        setErrorMsg('Prices have been updated. Please review the changes.');
       } else if (data?.code === 'PAYMENT_INTENT_FAILED') {
         setErrorMsg(data.userMessage || 'Payment processing failed.');
       } else {
@@ -125,6 +137,23 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
 
   return (
     <Container>
+      {(status === 'creating' || status === 'confirming') && (
+        <ProcessingOverlay transactionId={orderNumber || undefined} />
+      )}
+
+      {priceMismatch && (
+        <PriceMismatchModal
+          expectedTotal={priceMismatch.expectedTotal}
+          updatedTotal={priceMismatch.updatedTotal}
+          changedItems={priceMismatch.changedItems}
+          onAccept={() => {
+            setPriceMismatch(null);
+            reset();
+          }}
+          onCancel={() => setPriceMismatch(null)}
+        />
+      )}
+
       <InfoCard>
         <InfoIcon><Building2 size={28} /></InfoIcon>
         <InfoContent>

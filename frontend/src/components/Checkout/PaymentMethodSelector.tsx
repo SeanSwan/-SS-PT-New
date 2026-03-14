@@ -24,6 +24,8 @@ import CheckPayment from './methods/CheckPayment';
 import ZellePayment from './methods/ZellePayment';
 import VenmoPayment from './methods/VenmoPayment';
 import ACHPayment from './methods/ACHPayment';
+import ProcessingOverlay from './ProcessingOverlay';
+import PriceMismatchModal from './PriceMismatchModal';
 
 interface PaymentMethodSelectorProps {
   total: number;
@@ -35,6 +37,19 @@ interface PaymentSettings {
   zelleRecipient: string;
   venmoHandle: string;
   checkPayeeName: string;
+}
+
+interface PriceMismatchData {
+  expectedTotal: number;
+  updatedTotal: number;
+  changedItems?: Array<{
+    id: number;
+    name: string;
+    expectedPrice: number;
+    actualPrice: number;
+    delta: number;
+    status: 'PRICE_CHANGED' | 'REMOVED';
+  }>;
 }
 
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, children }) => {
@@ -49,6 +64,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
     venmoHandle: '',
     checkPayeeName: 'Sean Swan',
   });
+  const [priceMismatch, setPriceMismatch] = useState<PriceMismatchData | null>(null);
 
   const methods = getPaymentMethods(total);
 
@@ -98,7 +114,12 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
     } catch (err: any) {
       const data = err.response?.data;
       if (data?.code === 'PRICE_MISMATCH') {
-        toastError(`Prices have been updated. New total: $${data.updatedTotal?.toFixed(2)}. Please review and try again.`);
+        const pricing = data.pricingData || data;
+        setPriceMismatch({
+          expectedTotal: pricing.expectedTotal ?? total,
+          updatedTotal: pricing.updatedTotal ?? total,
+          changedItems: pricing.changedItems,
+        });
       } else {
         toastError(data?.message || err.message || 'Failed to place order');
       }
@@ -109,10 +130,35 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
     }
   }, [isProcessing, cart, selectedMethod, user, total, toastSuccess, toastError, refreshCart]);
 
+  const handlePriceMismatchAccept = useCallback(() => {
+    setPriceMismatch(null);
+    // User accepted — they can retry at the new price
+    toastSuccess('Prices updated. Please submit your payment again.');
+  }, [toastSuccess]);
+
+  const handlePriceMismatchCancel = useCallback(() => {
+    setPriceMismatch(null);
+  }, []);
+
   const fee = calculateFee(selectedMethod, total);
 
   return (
     <Container>
+      {isProcessing && (
+        <ProcessingOverlay
+          transactionId={selectedMethod.toUpperCase()}
+        />
+      )}
+
+      {priceMismatch && (
+        <PriceMismatchModal
+          expectedTotal={priceMismatch.expectedTotal}
+          updatedTotal={priceMismatch.updatedTotal}
+          changedItems={priceMismatch.changedItems}
+          onAccept={handlePriceMismatchAccept}
+          onCancel={handlePriceMismatchCancel}
+        />
+      )}
       <SelectorHeader>Choose Payment Method</SelectorHeader>
 
       <MethodGrid>
