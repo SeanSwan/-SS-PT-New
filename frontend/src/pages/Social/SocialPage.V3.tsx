@@ -6,7 +6,7 @@
  * Preserves all existing functionality (feed, friends, challenges, gamification).
  */
 
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useRef, lazy, Suspense } from 'react';
 import {
   Home,
   Users,
@@ -207,11 +207,11 @@ const ContentArea = styled.div`
 
 const DesktopGrid = styled.div`
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
 
-  @media (max-width: 899px) {
-    grid-template-columns: 1fr;
+  @media (min-width: 900px) {
+    grid-template-columns: 280px 1fr;
   }
   @media (min-width: 2560px) {
     grid-template-columns: 320px 1fr;
@@ -220,6 +220,24 @@ const DesktopGrid = styled.div`
   @media (min-width: 3840px) {
     grid-template-columns: 380px 1fr;
     gap: 40px;
+  }
+`;
+
+// ─── Sidebar Column (hidden on mobile via CSS — Issue #5) ────────────
+
+const SidebarColumn = styled.div`
+  display: none;
+
+  @media (min-width: 900px) {
+    display: block;
+  }
+`;
+
+// ─── Mobile Gamification (hidden on desktop) ─────────────────────────
+
+const MobileGamification = styled.div`
+  @media (min-width: 900px) {
+    display: none;
   }
 `;
 
@@ -363,6 +381,12 @@ const NavButton = styled.button<{ $active?: boolean }>`
     color: #8B5CF6;
   }
 
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+  }
+
   svg {
     flex-shrink: 0;
   }
@@ -411,6 +435,12 @@ const QuickActionBtn = styled.button`
     color: #8B5CF6;
     transform: translateX(4px);
   }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+  }
 `;
 
 // ─── Mobile Tab Bar ──────────────────────────────────────────────────
@@ -426,6 +456,10 @@ const MobileTabBar = styled.div`
   border-radius: 1rem;
   padding: 4px;
   gap: 4px;
+
+  @media (min-width: 900px) {
+    display: none;
+  }
 `;
 
 const MobileTab = styled.button<{ $active?: boolean }>`
@@ -451,6 +485,12 @@ const MobileTab = styled.button<{ $active?: boolean }>`
 
   &:hover {
     color: #8B5CF6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
   }
 
   @media (max-width: 320px) {
@@ -494,25 +534,10 @@ const SocialPageV3: React.FC = () => {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement>(null);
 
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 900
-  );
-
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 900);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-
-  const initialTab: SocialTab = VALID_TABS.includes(tab as SocialTab)
+  // Derive activeTab directly from URL — no state duplication (Issue #6)
+  const activeTab: SocialTab = VALID_TABS.includes(tab as SocialTab)
     ? (tab as SocialTab)
     : 'feed';
-  const [activeTab, setActiveTab] = useState<SocialTab>(initialTab);
-
-  useEffect(() => {
-    const urlTab = VALID_TABS.includes(tab as SocialTab) ? (tab as SocialTab) : 'feed';
-    setActiveTab(urlTab);
-  }, [tab]);
 
   // Parallax
   const { scrollYProgress } = useScroll({
@@ -524,7 +549,6 @@ const SocialPageV3: React.FC = () => {
   const notificationCount = 3;
 
   const handleTabChange = (newTab: SocialTab) => {
-    setActiveTab(newTab);
     navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);
   };
 
@@ -573,15 +597,77 @@ const SocialPageV3: React.FC = () => {
 
       {/* ── Main Content ── */}
       <ContentArea>
-        {isMobile ? (
-          <>
-            {/* Mobile: Gamification summary + tabs */}
+        {/* Mobile: Gamification summary — hidden on desktop via CSS */}
+        {profile.data && (
+          <MobileGamification>
+            <ScrollReveal direction="up" delay={0.05}>
+              <GamificationCard>
+                <PointsRow>
+                  <div>
+                    <PointsValue>{profile.data.points?.toLocaleString() || 0}</PointsValue>
+                    <PointsLabel>Points</PointsLabel>
+                  </div>
+                  <LevelBadge>
+                    <Star size={14} />
+                    Level {profile.data.level || 1}
+                  </LevelBadge>
+                </PointsRow>
+                <StreakRow>
+                  <Zap size={16} />
+                  {profile.data.streakDays || 0} day streak
+                </StreakRow>
+                <ProgressTrack>
+                  <ProgressFill $value={profile.data.nextLevelProgress || 0} />
+                </ProgressTrack>
+              </GamificationCard>
+            </ScrollReveal>
+          </MobileGamification>
+        )}
+
+        {/* Mobile tab bar — hidden on desktop via CSS */}
+        <MobileTabBar>
+          <MobileTab
+            $active={activeTab === 'feed'}
+            onClick={() => handleTabChange('feed')}
+          >
+            <Home size={20} />
+            Feed
+          </MobileTab>
+          <MobileTab
+            $active={activeTab === 'reels'}
+            onClick={() => handleTabChange('reels')}
+          >
+            <Play size={20} />
+            Reels
+          </MobileTab>
+          <MobileTab
+            $active={activeTab === 'friends'}
+            onClick={() => handleTabChange('friends')}
+          >
+            <Users size={20} />
+            Friends
+          </MobileTab>
+          <MobileTab
+            $active={activeTab === 'challenges'}
+            onClick={() => handleTabChange('challenges')}
+          >
+            <Trophy size={20} />
+            Challenges
+          </MobileTab>
+        </MobileTabBar>
+
+        {/* Desktop grid: sidebar + feed */}
+        <DesktopGrid>
+          {/* Sidebar — hidden on mobile via CSS */}
+          <SidebarColumn>
             {profile.data && (
-              <ScrollReveal direction="up" delay={0.05}>
+              <ScrollReveal direction="left" delay={0.1}>
                 <GamificationCard>
                   <PointsRow>
                     <div>
-                      <PointsValue>{profile.data.points?.toLocaleString() || 0}</PointsValue>
+                      <PointsValue>
+                        {profile.data.points?.toLocaleString() || 0}
+                      </PointsValue>
                       <PointsLabel>Points</PointsLabel>
                     </div>
                     <LevelBadge>
@@ -593,149 +679,85 @@ const SocialPageV3: React.FC = () => {
                     <Zap size={16} />
                     {profile.data.streakDays || 0} day streak
                   </StreakRow>
-                  <ProgressTrack>
-                    <ProgressFill $value={profile.data.nextLevelProgress || 0} />
-                  </ProgressTrack>
+                  <div>
+                    <ProgressLabel>Next Level Progress</ProgressLabel>
+                    <ProgressTrack>
+                      <ProgressFill $value={profile.data.nextLevelProgress || 0} />
+                    </ProgressTrack>
+                    <ProgressLabel>
+                      {profile.data.nextLevelProgress || 0}% to Level{' '}
+                      {(profile.data.level || 1) + 1}
+                    </ProgressLabel>
+                  </div>
                 </GamificationCard>
               </ScrollReveal>
             )}
 
-            <MobileTabBar>
-              <MobileTab
-                $active={activeTab === 'feed'}
-                onClick={() => handleTabChange('feed')}
-              >
-                <Home size={20} />
-                Feed
-              </MobileTab>
-              <MobileTab
-                $active={activeTab === 'reels'}
-                onClick={() => handleTabChange('reels')}
-              >
-                <Play size={20} />
-                Reels
-              </MobileTab>
-              <MobileTab
-                $active={activeTab === 'friends'}
-                onClick={() => handleTabChange('friends')}
-              >
-                <Users size={20} />
-                Friends
-              </MobileTab>
-              <MobileTab
-                $active={activeTab === 'challenges'}
-                onClick={() => handleTabChange('challenges')}
-              >
-                <Trophy size={20} />
-                Challenges
-              </MobileTab>
-            </MobileTabBar>
+            <ScrollReveal direction="left" delay={0.2}>
+              <GlassSidebar>
+                <NavSection>
+                  <NavTitle>Social Hub</NavTitle>
+                  <NavButton
+                    $active={activeTab === 'feed'}
+                    onClick={() => handleTabChange('feed')}
+                  >
+                    <Home size={18} />
+                    Feed
+                  </NavButton>
+                  <NavButton
+                    $active={activeTab === 'reels'}
+                    onClick={() => handleTabChange('reels')}
+                  >
+                    <Play size={18} />
+                    Reels
+                  </NavButton>
+                  <NavButton
+                    $active={activeTab === 'friends'}
+                    onClick={() => handleTabChange('friends')}
+                  >
+                    <Users size={18} />
+                    Friends
+                  </NavButton>
+                  <NavButton
+                    $active={activeTab === 'challenges'}
+                    onClick={() => handleTabChange('challenges')}
+                  >
+                    <Trophy size={18} />
+                    Challenges
+                  </NavButton>
+                  <NavButton disabled style={{ opacity: 0.5 }}>
+                    <Bell size={18} />
+                    Notifications
+                    {notificationCount > 0 && <NotifDot>{notificationCount}</NotifDot>}
+                  </NavButton>
+                </NavSection>
 
-            <FeedContainer>{renderContent()}</FeedContainer>
-          </>
-        ) : (
-          <DesktopGrid>
-            {/* ── Sidebar ── */}
-            <div>
-              {profile.data && (
-                <ScrollReveal direction="left" delay={0.1}>
-                  <GamificationCard>
-                    <PointsRow>
-                      <div>
-                        <PointsValue>
-                          {profile.data.points?.toLocaleString() || 0}
-                        </PointsValue>
-                        <PointsLabel>Points</PointsLabel>
-                      </div>
-                      <LevelBadge>
-                        <Star size={14} />
-                        Level {profile.data.level || 1}
-                      </LevelBadge>
-                    </PointsRow>
-                    <StreakRow>
-                      <Zap size={16} />
-                      {profile.data.streakDays || 0} day streak
-                    </StreakRow>
-                    <div>
-                      <ProgressLabel>Next Level Progress</ProgressLabel>
-                      <ProgressTrack>
-                        <ProgressFill $value={profile.data.nextLevelProgress || 0} />
-                      </ProgressTrack>
-                      <ProgressLabel>
-                        {profile.data.nextLevelProgress || 0}% to Level{' '}
-                        {(profile.data.level || 1) + 1}
-                      </ProgressLabel>
-                    </div>
-                  </GamificationCard>
-                </ScrollReveal>
-              )}
+                <Divider />
 
-              <ScrollReveal direction="left" delay={0.2}>
-                <GlassSidebar>
-                  <NavSection>
-                    <NavTitle>Navigation</NavTitle>
-                    <NavButton
-                      $active={activeTab === 'feed'}
-                      onClick={() => handleTabChange('feed')}
-                    >
-                      <Home size={18} />
-                      Feed
-                    </NavButton>
-                    <NavButton
-                      $active={activeTab === 'reels'}
-                      onClick={() => handleTabChange('reels')}
-                    >
-                      <Play size={18} />
-                      Reels
-                    </NavButton>
-                    <NavButton
-                      $active={activeTab === 'friends'}
-                      onClick={() => handleTabChange('friends')}
-                    >
-                      <Users size={18} />
-                      Friends
-                    </NavButton>
-                    <NavButton
-                      $active={activeTab === 'challenges'}
-                      onClick={() => handleTabChange('challenges')}
-                    >
-                      <Trophy size={18} />
-                      Challenges
-                    </NavButton>
-                    <NavButton disabled style={{ opacity: 0.5 }}>
-                      <Bell size={18} />
-                      Notifications
-                      {notificationCount > 0 && <NotifDot>{notificationCount}</NotifDot>}
-                    </NavButton>
-                  </NavSection>
-
-                  <Divider />
-
-                  <NavSection>
-                    <NavTitle>Quick Actions</NavTitle>
-                    <QuickActionBtn onClick={() => handleTabChange('feed')}>
-                      <PlusCircle size={16} />
-                      Create Post
-                    </QuickActionBtn>
-                    <QuickActionBtn>
-                      <Target size={16} />
-                      Set Goal
-                    </QuickActionBtn>
-                    <QuickActionBtn>
-                      <Award size={16} />
-                      View Rewards
-                    </QuickActionBtn>
-                  </NavSection>
-                </GlassSidebar>
-              </ScrollReveal>
-            </div>
-
-            {/* ── Feed ── */}
-            <ScrollReveal direction="up" delay={0.15}>
-              <FeedContainer>{renderContent()}</FeedContainer>
+                <NavSection>
+                  <NavTitle>Quick Actions</NavTitle>
+                  <QuickActionBtn onClick={() => handleTabChange('feed')}>
+                    <PlusCircle size={16} />
+                    Create Post
+                  </QuickActionBtn>
+                  <QuickActionBtn>
+                    <Target size={16} />
+                    Set Goal
+                  </QuickActionBtn>
+                  <QuickActionBtn>
+                    <Award size={16} />
+                    View Rewards
+                  </QuickActionBtn>
+                </NavSection>
+              </GlassSidebar>
             </ScrollReveal>
-          </DesktopGrid>
-        )}
+          </SidebarColumn>
+
+          {/* Feed */}
+          <ScrollReveal direction="up" delay={0.15}>
+            <FeedContainer>{renderContent()}</FeedContainer>
+          </ScrollReveal>
+        </DesktopGrid>
       </ContentArea>
     </PageWrapper>
   );
