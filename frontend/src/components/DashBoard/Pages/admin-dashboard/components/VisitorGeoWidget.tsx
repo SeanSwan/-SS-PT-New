@@ -125,6 +125,8 @@ const VisitorGeoWidget: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('live');
   const [showFullModal, setShowFullModal] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState<AnonVisitor | GeoVisitor | null>(null);
+  const [historyData, setHistoryData] = useState<{ visitors: any[]; total: number; page: number; totalPages: number } | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -146,6 +148,37 @@ const VisitorGeoWidget: React.FC = () => {
   }, [authAxios]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Fetch persistent visitor history when modal opens
+  const fetchHistory = useCallback(async (page = 1) => {
+    try {
+      setHistoryLoading(true);
+      const res = await authAxios.get('/api/admin/dashboard/visitor-history', {
+        params: { page, limit: 50 },
+      });
+      if (res.data?.success) {
+        setHistoryData(res.data);
+      }
+    } catch { /* silent */ } finally {
+      setHistoryLoading(false);
+    }
+  }, [authAxios]);
+
+  useEffect(() => {
+    if (showFullModal) fetchHistory(1);
+  }, [showFullModal, fetchHistory]);
+
+  // Escape key closes modal/detail panel
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedVisitor) setSelectedVisitor(null);
+        else if (showFullModal) setShowFullModal(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [selectedVisitor, showFullModal]);
 
   // Auto-refresh every 30s for live data
   useEffect(() => {
@@ -478,9 +511,10 @@ const VisitorGeoWidget: React.FC = () => {
               <CloseDetailBtn onClick={() => setShowFullModal(false)}><X size={20} /></CloseDetailBtn>
             </ModalHeader>
             <ModalBody>
+              {/* Live / In-Memory Visitors */}
               <ModalSection>
                 <ModalSectionTitle>
-                  <Activity size={16} /> Anonymous Visitors ({anonData?.recentVisitors?.length || 0})
+                  <Activity size={16} /> Live Visitors ({anonData?.recentVisitors?.length || 0})
                 </ModalSectionTitle>
                 <ModalList>
                   {anonData?.recentVisitors?.map((v, i) => (
@@ -501,10 +535,12 @@ const VisitorGeoWidget: React.FC = () => {
                     </ModalRow>
                   ))}
                   {(!anonData?.recentVisitors?.length) && (
-                    <EmptyState><Eye size={24} /><span>No anonymous visitors tracked yet</span></EmptyState>
+                    <EmptyState><Eye size={24} /><span>No live visitors right now</span></EmptyState>
                   )}
                 </ModalList>
               </ModalSection>
+
+              {/* Registered Users */}
               <ModalSection>
                 <ModalSectionTitle>
                   <Users size={16} /> Registered Users ({geoData?.visitors?.length || 0})
@@ -528,6 +564,68 @@ const VisitorGeoWidget: React.FC = () => {
                     <EmptyState><Users size={24} /><span>No registered user data yet</span></EmptyState>
                   )}
                 </ModalList>
+              </ModalSection>
+
+              {/* Persistent History from Database */}
+              <ModalSection>
+                <ModalSectionTitle>
+                  <Clock size={16} /> Visitor History {historyData ? `(${historyData.total} total)` : ''}
+                </ModalSectionTitle>
+                {historyLoading && !historyData && (
+                  <LoadingState>Loading visitor history...</LoadingState>
+                )}
+                <ModalList>
+                  {historyData?.visitors?.map((v: any) => (
+                    <ModalRow key={v.id} onClick={() => setSelectedVisitor({
+                      ip: v.ip,
+                      country: v.country || 'Unknown',
+                      countryCode: v.country_code,
+                      city: v.city,
+                      region: v.region,
+                      pages: v.pages || [],
+                      pageCount: v.page_count || 1,
+                      firstSeen: v.first_seen || v.createdAt,
+                      lastSeen: v.last_seen || v.updatedAt,
+                      referrer: v.referrer,
+                    })}>
+                      <LiveDotSmall $recent={false} />
+                      <ModalRowInfo>
+                        <span>{countryFlag(v.country_code)} {v.city || v.country || 'Unknown'}</span>
+                        <ModalRowMeta>
+                          {v.page_count || 1} pages · {timeAgo(v.last_seen || v.createdAt)}
+                        </ModalRowMeta>
+                      </ModalRowInfo>
+                      <ModalRowPages>
+                        {(v.pages || []).slice(-3).map((p: string, j: number) => (
+                          <PageTag key={j}>{pageName(p)}</PageTag>
+                        ))}
+                      </ModalRowPages>
+                    </ModalRow>
+                  ))}
+                  {historyData && historyData.visitors.length === 0 && (
+                    <EmptyState><Clock size={24} /><span>No persistent history yet — data accumulates over time</span></EmptyState>
+                  )}
+                </ModalList>
+                {/* Pagination */}
+                {historyData && historyData.totalPages > 1 && (
+                  <PaginationRow>
+                    <PaginationBtn
+                      disabled={historyData.page <= 1 || historyLoading}
+                      onClick={() => fetchHistory(historyData.page - 1)}
+                    >
+                      Previous
+                    </PaginationBtn>
+                    <PaginationInfo>
+                      Page {historyData.page} of {historyData.totalPages}
+                    </PaginationInfo>
+                    <PaginationBtn
+                      disabled={historyData.page >= historyData.totalPages || historyLoading}
+                      onClick={() => fetchHistory(historyData.page + 1)}
+                    >
+                      Next
+                    </PaginationBtn>
+                  </PaginationRow>
+                )}
               </ModalSection>
             </ModalBody>
           </ModalContent>
@@ -1232,6 +1330,41 @@ const ModalRowPages = styled.div`
   flex-wrap: wrap;
   gap: 3px;
   max-width: 200px;
+`;
+
+const PaginationRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const PaginationBtn = styled.button`
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: ${WING_PURPLE};
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 36px;
+
+  &:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: ${WING_PURPLE};
+  }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 0.78rem;
+  color: rgba(224, 236, 244, 0.5);
+  font-family: 'Fira Code', monospace;
 `;
 
 export default VisitorGeoWidget;
