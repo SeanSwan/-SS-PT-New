@@ -202,8 +202,18 @@ const PriceMismatchModal: React.FC<PriceMismatchModalProps> = ({
   changedItems,
   onAccept,
   onCancel,
-}) => (
-  <Overlay>
+}) => {
+  // Close on Escape key
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onCancel]);
+
+  return (
+  <Overlay role="dialog" aria-modal="true" aria-label="Price update notification">
     <Container>
       <Heading>Itinerary Update</Heading>
       <Description>
@@ -250,6 +260,7 @@ const PriceMismatchModal: React.FC<PriceMismatchModalProps> = ({
       </Actions>
     </Container>
   </Overlay>
-);
+  );
+};
 
 export default PriceMismatchModal;

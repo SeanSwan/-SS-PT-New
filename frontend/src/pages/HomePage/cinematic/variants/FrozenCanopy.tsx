@@ -9,9 +9,9 @@
  * Motion: Medium-high — flowing aurora, parallax, smooth overlaps.
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Dumbbell, Activity, Apple, Heart, Monitor, Users, Trophy, Building,
@@ -669,6 +669,59 @@ const SNOW = Array.from({ length: 15 }, (_, i) => ({
 
 // ─── Component ──────────────────────────────────────────────────────
 
+/**
+ * CountUpStat — Animates a stat value from 0 to target when scrolled into view.
+ * Parses numeric portion from strings like "500+", "12,000+", "8.5M".
+ */
+const CountUpStat: React.FC<{ value: string }> = ({ value }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const [display, setDisplay] = useState('0');
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    // Parse the numeric portion and suffix
+    const cleaned = value.replace(/,/g, '');
+    const match = cleaned.match(/^([\d.]+)(.*)$/);
+    if (!match) { setDisplay(value); return; }
+
+    const target = parseFloat(match[1]);
+    const suffix = match[2]; // e.g. "+", "M", "%"
+    const hasDecimal = match[1].includes('.');
+    const hasCommas = value.includes(',');
+    const duration = 2000;
+    const steps = 60;
+    const stepTime = duration / steps;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const progress = Math.min(step / steps, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = eased * target;
+
+      let formatted: string;
+      if (hasDecimal) {
+        formatted = current.toFixed(1);
+      } else if (hasCommas) {
+        formatted = Math.round(current).toLocaleString();
+      } else {
+        formatted = Math.round(current).toString();
+      }
+
+      setDisplay(formatted + suffix);
+
+      if (step >= steps) clearInterval(timer);
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, [isInView, value]);
+
+  return <span ref={ref}>{display}</span>;
+};
+
 const FrozenCanopy: React.FC = () => {
   const iceReveal = iceCrackReveal(tokens.motion);
   const fadeUp = fadeUpVariants(tokens.motion);
@@ -822,7 +875,7 @@ const FrozenCanopy: React.FC = () => {
           <StatsBanner variants={stagger} initial="hidden" whileInView="visible" viewport={defaultViewport}>
             {content.fitnessStats.stats.map((stat) => (
               <StatCell key={stat.label} variants={item}>
-                <StatValue>{stat.value}</StatValue>
+                <StatValue><CountUpStat value={stat.value} /></StatValue>
                 <StatLabel>{stat.label}</StatLabel>
               </StatCell>
             ))}

@@ -59,25 +59,26 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const idempotencyKey = useRef(uuidv4());
-  const [settings, setSettings] = useState<PaymentSettings>({
-    zelleRecipient: '3239968153',
-    venmoHandle: '',
-    checkPayeeName: 'Sean Swan',
-  });
+  const [settings, setSettings] = useState<PaymentSettings | null>(null);
+  const [settingsStatus, setSettingsStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [priceMismatch, setPriceMismatch] = useState<PriceMismatchData | null>(null);
 
   const methods = getPaymentMethods(total);
 
-  // Fetch payment settings from admin
+  // Fetch payment settings from admin (3-state: loading → loaded | error)
   useEffect(() => {
+    setSettingsStatus('loading');
     api.get('/api/admin/payment-settings/public')
       .then(res => {
         if (res.data?.success && res.data.settings) {
           setSettings(res.data.settings);
+          setSettingsStatus('loaded');
+        } else {
+          setSettingsStatus('error');
         }
       })
       .catch(() => {
-        // Silent — use defaults
+        setSettingsStatus('error');
       });
   }, []);
 
@@ -120,11 +121,12 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
           updatedTotal: pricing.updatedTotal ?? total,
           changedItems: pricing.changedItems,
         });
+        // Price changed = new payload, so new idempotency key
+        idempotencyKey.current = uuidv4();
       } else {
         toastError(data?.message || err.message || 'Failed to place order');
+        // Network errors: keep same key so retry is idempotent (prevents double-billing)
       }
-      // Generate new idempotency key for retry
-      idempotencyKey.current = uuidv4();
     } finally {
       setIsProcessing(false);
     }
@@ -188,7 +190,15 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
       <MethodContent>
         {selectedMethod === 'card' && children}
 
-        {selectedMethod === 'check' && (
+        {selectedMethod !== 'card' && selectedMethod !== 'ach' && settingsStatus === 'loading' && (
+          <SettingsLoadingMsg>Loading payment details...</SettingsLoadingMsg>
+        )}
+
+        {selectedMethod !== 'card' && selectedMethod !== 'ach' && settingsStatus === 'error' && (
+          <SettingsLoadingMsg>Unable to load payment settings. Please refresh and try again.</SettingsLoadingMsg>
+        )}
+
+        {selectedMethod === 'check' && settings && (
           <CheckPayment
             total={total}
             payeeName={settings.checkPayeeName}
@@ -197,7 +207,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
           />
         )}
 
-        {selectedMethod === 'zelle' && (
+        {selectedMethod === 'zelle' && settings && (
           <ZellePayment
             total={total}
             zelleRecipient={settings.zelleRecipient}
@@ -206,7 +216,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
           />
         )}
 
-        {selectedMethod === 'venmo' && (
+        {selectedMethod === 'venmo' && settings && (
           <VenmoPayment
             total={total}
             fee={fee}
@@ -306,17 +316,45 @@ const MethodCard = styled.button<{ $active: boolean }>`
 
 const ZeroFeeBadge = styled.span`
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(139, 92, 246, 0.2);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #8B5CF6;
-  font-size: 0.6rem;
+  top: -10px;
+  right: -10px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--midnight-sapphire, #002060);
+  border: 1px solid var(--wing-purple, #8B5CF6);
+  color: var(--frost-white, #E0ECF4);
+  font-family: var(--font-heading, 'Sora', sans-serif);
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  z-index: 1;
+
+  /* GPU-Accelerated Glow via pseudo-element */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: var(--wing-purple, #8B5CF6);
+    opacity: 0.4;
+    animation: premiumPulse 2s infinite var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+    z-index: -1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+      opacity: 0.3;
+      inset: -1px;
+    }
+  }
+
+  @keyframes premiumPulse {
+    0% { transform: scale(1); opacity: 0.4; }
+    70% { transform: scale(1.25); opacity: 0; }
+    100% { transform: scale(1); opacity: 0; }
+  }
 `;
 
 const MethodIcon = styled.span`
@@ -356,6 +394,14 @@ const MethodContent = styled.div`
   border-top: 1px solid rgba(96, 192, 240, 0.15);
   box-shadow: inset 0 4px 24px rgba(0, 0, 0, 0.2);
   min-height: 200px;
+`;
+
+const SettingsLoadingMsg = styled.div`
+  text-align: center;
+  padding: 32px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(224, 236, 244, 0.6);
 `;
 
 export default PaymentMethodSelector;

@@ -13,7 +13,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { Building2, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { v4 as uuidv4 } from 'uuid';
 import GlowButton from '../../ui/buttons/GlowButton';
 import api from '../../../services/api.service';
@@ -22,7 +22,20 @@ import { useCart } from '../../../context/CartContext';
 import ProcessingOverlay from '../ProcessingOverlay';
 import PriceMismatchModal from '../PriceMismatchModal';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
+// Lazy-load Stripe only when ACH payment is actually initiated (not at module scope)
+// This prevents IntegrationError on Store/Checkout pages when the key is missing
+let stripeInstance: Promise<Stripe | null> | null = null;
+function getStripe() {
+  if (!stripeInstance) {
+    const key = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+    if (!key) {
+      console.warn('[ACH] VITE_STRIPE_PUBLIC_KEY not set — Stripe ACH unavailable');
+      return Promise.resolve(null);
+    }
+    stripeInstance = loadStripe(key);
+  }
+  return stripeInstance;
+}
 
 interface ACHPaymentProps {
   total: number;
@@ -75,7 +88,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
 
       // Step 2: Load Stripe and confirm with bank account
       setStatus('confirming');
-      const stripe = await stripePromise;
+      const stripe = await getStripe();
       if (!stripe) throw new Error('Stripe failed to load');
 
       const { error, paymentIntent } = await stripe.confirmUsBankAccountPayment(clientSecret, {
@@ -120,13 +133,16 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
           changedItems: pricing.changedItems,
         });
         setErrorMsg('Prices have been updated. Please review the changes.');
+        // Price changed = new payload, so new idempotency key
+        idempotencyKey.current = uuidv4();
       } else if (data?.code === 'PAYMENT_INTENT_FAILED') {
         setErrorMsg(data.userMessage || 'Payment processing failed.');
+        // Stripe confirmed failure — safe to regenerate key for retry
+        idempotencyKey.current = uuidv4();
       } else {
         setErrorMsg(err.message || 'ACH payment failed');
+        // Network errors: keep same key so retry is idempotent (prevents double-billing)
       }
-      // Generate new idempotency key for retry
-      idempotencyKey.current = uuidv4();
     }
   }, [status, items, user, total, refreshCart, onSuccess]);
 
@@ -185,7 +201,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
           <AmountValue>${total.toFixed(2)}</AmountValue>
         </AmountRow>
         <AmountRow>
-          <span>ACH Processing Fee (0.8%, max $5)</span>
+          <span>ACH Processing Fee</span>
           <AmountValue>${fee.toFixed(2)}</AmountValue>
         </AmountRow>
         <AmountDivider />
@@ -394,7 +410,7 @@ const StatusBanner = styled.div<{ $type: 'info' | 'success' | 'error' }>`
 
 const Note = styled.p`
   font-size: 0.78rem;
-  color: rgba(224, 236, 244, 0.5);
+  color: rgba(224, 236, 244, 0.75);
   margin: 0;
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.15);

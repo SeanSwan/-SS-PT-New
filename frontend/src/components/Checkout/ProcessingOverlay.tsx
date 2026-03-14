@@ -101,8 +101,8 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
   }, []);
 
   return (
-    <Container>
-      <Card>
+    <Container role="dialog" aria-modal="true" aria-label="Payment processing">
+      <Card role="status" aria-live="polite">
         <Spinner viewBox="0 0 64 64">
           <circle
             cx="32" cy="32" r="28"
