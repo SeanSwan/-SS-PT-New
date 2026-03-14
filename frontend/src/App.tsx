@@ -16,6 +16,7 @@ import { StyleSheetManager } from 'styled-components';
 // Context providers
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './hooks/use-toast'; // FIXED: Use correct ToastProvider with toast() function
+import { SwanToastProvider } from './components/ui/Toast/ToastContainer';
 import { CartProvider } from './context/CartContext';
 import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
@@ -52,6 +53,9 @@ import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup'; // Initialize token cleanup handlers
 import './utils/clearCache'; // Emergency cache clearing utility
 import { monitorRouting } from './utils/routeDebugger'; // Route debugging
+
+// Error Boundary (CTO/CEO consensus: top-level crash protection)
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
 // Styles
 import './App.css';
@@ -212,8 +216,10 @@ const AppContent = () => {
       {/* Development Tools */}
       <ThemeStatusIndicator enabled={process.env.NODE_ENV === 'development'} />
       
-      {/* Main App Router */}
-      <RouterProvider router={router} />
+      {/* Main App Router — wrapped in ErrorBoundary to prevent white-screens */}
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
 
       {/* PWA Install Prompt - DISABLED until fixed */}
       {/* <PWAInstallPrompt /> */}
@@ -233,6 +239,7 @@ const App = () => {
                   <MenuStateProvider>
                     <AuthProvider>
                       <ToastProvider>
+                        <SwanToastProvider>
                         <CartProvider>
                           <SessionProvider>
                             <TouchGestureProvider>
@@ -244,6 +251,7 @@ const App = () => {
                             </TouchGestureProvider>
                           </SessionProvider>
                         </CartProvider>
+                        </SwanToastProvider>
                       </ToastProvider>
                     </AuthProvider>
                   </MenuStateProvider>

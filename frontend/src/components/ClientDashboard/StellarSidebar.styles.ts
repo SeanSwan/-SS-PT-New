@@ -4,23 +4,23 @@ import { NavStatus } from './StellarSidebar.config';
 
 export const stellarTheme = {
   colors: {
-    deepSpace: '#0a0a0f',
-    nebulaPurple: '#1e1e3f',
-    cyberCyan: '#60C0F0',
-    stellarWhite: '#ffffff',
-    cosmicPurple: '#8B5CF6',
-    starGold: '#ffd700',
-    energyBlue: '#00c8ff',
-    plasmaGreen: '#00ff88',
+    deepSpace: '#002060',       // Midnight Sapphire
+    nebulaPurple: '#003080',    // Royal Depth
+    cyberCyan: '#60C0F0',       // Ice Wing
+    stellarWhite: '#E0ECF4',    // Frost White
+    cosmicPurple: '#8B5CF6',    // Wing Purple
+    starGold: '#C6A84B',        // Gilded Fern
+    energyBlue: '#50A0F0',      // Arctic Cyan
+    plasmaGreen: '#60C0F0',     // Ice Wing (replaces retired green)
     warningRed: '#ff416c',
-    voidBlack: '#000000',
+    voidBlack: '#001040',       // Deep Sapphire
   },
   gradients: {
-    stellar: 'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 50%, #ffd700 100%)',
-    nebula: 'linear-gradient(45deg, #1e1e3f 0%, #8B5CF6 50%, #0a0a0f 100%)',
-    cosmic: 'radial-gradient(ellipse at top, #60C0F0 0%, #1e1e3f 50%, #0a0a0f 100%)',
-    aurora: 'linear-gradient(270deg, #60C0F0, #8B5CF6, #ffd700, #60C0F0)',
-    constellation: 'conic-gradient(from 0deg, #60C0F0, #8B5CF6, #ffd700, #60C0F0)',
+    stellar: 'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 50%, #C6A84B 100%)',
+    nebula: 'linear-gradient(45deg, #003080 0%, #8B5CF6 50%, #002060 100%)',
+    cosmic: 'radial-gradient(ellipse at top, #60C0F0 0%, #003080 50%, #002060 100%)',
+    aurora: 'linear-gradient(270deg, #60C0F0, #8B5CF6, #C6A84B, #60C0F0)',
+    constellation: 'conic-gradient(from 0deg, #60C0F0, #8B5CF6, #C6A84B, #60C0F0)',
   },
   shadows: {
     stellar: '0 0 30px rgba(139, 92, 246, 0.6)',
@@ -148,7 +148,7 @@ export const SidebarContainer = styled(motion.aside)<{ isCollapsed: boolean; isM
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.3);
+    background: rgba(0, 16, 48, 0.3);
   }
 
   &::-webkit-scrollbar-thumb {
@@ -168,7 +168,7 @@ export const SidebarHeader = styled(motion.div)<{ isCollapsed: boolean }>`
   justify-content: ${props => (props.isCollapsed ? 'center' : 'space-between')};
   border-bottom: 1px solid rgba(139, 92, 246, 0.2);
   position: relative;
-  background: rgba(30, 30, 63, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(10px);
 `;
 
@@ -390,7 +390,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
     left: 100%;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(10, 10, 15, 0.9);
+    background: rgba(0, 16, 48, 0.9);
     color: ${props => props.theme.colors.stellarWhite};
     padding: 0.5rem 1rem;
     border-radius: 8px;
@@ -411,7 +411,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
       transform: translateY(-50%);
       width: 0;
       height: 0;
-      border-right: 6px solid rgba(10, 10, 15, 0.9);
+      border-right: 6px solid rgba(0, 16, 48, 0.9);
       border-top: 6px solid transparent;
       border-bottom: 6px solid transparent;
     }
@@ -442,7 +442,7 @@ export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: b
 export const SidebarFooter = styled(motion.div)<{ isCollapsed: boolean }>`
   padding: 1.5rem;
   border-top: 1px solid rgba(139, 92, 246, 0.2);
-  background: rgba(30, 30, 63, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(10px);
   text-align: center;
 

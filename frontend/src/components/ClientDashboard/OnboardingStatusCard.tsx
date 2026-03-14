@@ -40,7 +40,7 @@ const shimmer = keyframes`
 
 // === STYLED COMPONENTS ===
 const Card = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(15px);
   border-radius: 20px;
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -216,7 +216,7 @@ const ScoreCircle = styled.div<{ $score: number }>`
     content: '';
     width: 80%;
     height: 80%;
-    background: #0a0a0f;
+    background: #002060;
     border-radius: 50%;
     position: absolute;
   }

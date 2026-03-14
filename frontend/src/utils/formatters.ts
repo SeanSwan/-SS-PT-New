@@ -25,7 +25,7 @@ export const formatDate = (
       : dateInput;
     
     if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+      return 'Date unknown';
     }
     
     return date.toLocaleDateString('en-US', options);

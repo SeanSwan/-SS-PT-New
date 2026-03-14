@@ -2,6 +2,7 @@ import express from "express";
 import Contact from '../models/contact.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import sequelize from '../database.mjs';
+import { createAdminNotification } from '../controllers/notificationController.mjs';
 
 const router = express.Router();
 let contactsPriorityColumnPromise = null;
@@ -108,6 +109,17 @@ router.post("/", async (req, res) => {
     console.log('💾 Saving contact to database...');
     const newContact = await Contact.create(contactData);
     console.log('✅ Contact saved to database:', newContact.id);
+
+    // Notification trigger: New contact form submission for admins
+    try {
+      await createAdminNotification({
+        title: 'New Contact Form Submission',
+        message: `${name.trim()} (${email.trim()}) sent: "${message.trim().substring(0, 100)}"`,
+        type: 'admin'
+      });
+    } catch (notifErr) {
+      console.log('⚠️ Admin notification failed (non-critical):', notifErr.message);
+    }
 
     // 2. SMART EXTERNAL SERVICES: Try to send notifications (but don't fail if they don't work)
     const notificationResults = {

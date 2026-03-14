@@ -1,442 +1,784 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import styled, { keyframes } from 'styled-components';
-import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
+import styled, { keyframes, css } from 'styled-components';
+import { formatDistanceToNow } from 'date-fns';
 
-// Swan primitives
-import {
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  ClickAwayListener,
-  IconButton,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Paper,
-  Popper,
-  Typography,
-} from '../ui/primitives/components';
-
-// Icons (lucide-react replacements for MUI icons)
 import {
   Bell,
   BellOff,
   CheckCircle,
   Dumbbell,
   CalendarCheck,
-  ClipboardList,
   ShoppingCart,
   Info,
   Trash2,
+  MessageSquare,
+  Trophy,
+  Shield,
+  Settings,
+  X,
 } from 'lucide-react';
 
-// Redux and API
-import { RootState } from '../../redux/store';
-import { fetchNotifications, markAsRead, markAllAsRead, removeNotification, Notification } from '../../store/slices/notificationSlice';
+import { RootState, AppDispatch } from '../../redux/store';
+import {
+  fetchNotifications,
+  markAsRead,
+  markAllAsRead,
+  removeNotification,
+  addNotification,
+  setUnreadCount,
+  Notification,
+} from '../../store/slices/notificationSlice';
 import api from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
 
-// Grow animation (CSS replacement for MUI Grow)
-const growIn = keyframes`
+// ─── Design Tokens ───────────────────────────────────────────────
+const TOKENS = {
+  midnightSapphire: '#002060',
+  royalDepth: '#003080',
+  iceWing: '#60C0F0',
+  arcticCyan: '#50A0F0',
+  wingPurple: '#8B5CF6',
+  gildedFern: '#C6A84B',
+  frostWhite: '#E0ECF4',
+  swanLavender: '#4070C0',
+  frozenEmber: '#D97706',
+} as const;
+
+// Notification type → accent color mapping
+const TYPE_COLORS: Record<string, string> = {
+  session: TOKENS.iceWing,
+  workout: TOKENS.iceWing,
+  client: TOKENS.iceWing,
+  social: TOKENS.wingPurple,
+  achievement: TOKENS.wingPurple,
+  orientation: TOKENS.wingPurple,
+  admin: TOKENS.frozenEmber,
+  system: TOKENS.frozenEmber,
+  order: TOKENS.gildedFern,
+  message: TOKENS.arcticCyan,
+};
+
+const getTypeColor = (type: string): string =>
+  TYPE_COLORS[type] ?? TOKENS.iceWing;
+
+// ─── Keyframes ───────────────────────────────────────────────────
+
+const swanPulse = keyframes`
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 20px 8px rgba(139, 92, 246, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 20px rgba(139, 92, 246, 0);
+  }
+`;
+
+const badgePop = keyframes`
+  0% { transform: scale(0.5); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+`;
+
+const dropdownEnter = keyframes`
   from {
     opacity: 0;
-    transform: scale(0.85);
+    transform: translateY(-8px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 `;
 
-// Styled components
-const NotificationBell = styled(IconButton)`
+const slideUpEnter = keyframes`
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+// ─── Styled Components ──────────────────────────────────────────
+
+const BellButton = styled.button<{ $pulsing: boolean }>`
   position: relative;
-  transition: transform 0.2s ease-in-out;
-  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: ${TOKENS.frostWhite};
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+
+  ${({ $pulsing }) =>
+    $pulsing &&
+    css`
+      animation: ${swanPulse} 1.2s ease-in-out 3;
+      border-radius: 50%;
+    `}
 
   &:hover {
+    background: rgba(139, 92, 246, 0.12);
     transform: rotate(8deg);
-    color: var(--accent-primary);
-    background-color: color-mix(in srgb, var(--accent-primary) 5%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${TOKENS.wingPurple};
+    outline-offset: 2px;
   }
 `;
 
-const GrowWrapper = styled.div`
-  transform-origin: top right;
-  animation: ${growIn} 0.2s ease-out;
+const UnreadBadge = styled.span<{ $animate: boolean }>`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: ${TOKENS.wingPurple};
+  color: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+
+  ${({ $animate }) =>
+    $animate &&
+    css`
+      animation: ${badgePop} 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    `}
 `;
 
-const NotificationScrollArea = styled(Box)`
-  max-height: 440px;
+const Backdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1299;
+  background: transparent;
+
+  @media (max-width: 767px) {
+    background: rgba(0, 0, 0, 0.45);
+    animation: ${fadeIn} 0.2s ease;
+  }
+`;
+
+// Desktop dropdown
+const DropdownPanel = styled.div`
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 380px;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1300;
+
+  background: rgba(0, 16, 48, 0.65);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 32px rgba(0, 32, 96, 0.6),
+    0 24px 64px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(224, 236, 244, 0.15);
+  overflow: hidden;
+
+  animation: ${dropdownEnter} 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+`;
+
+// Mobile bottom sheet
+const BottomSheet = styled.div<{ $translateY: number }>`
+  display: none;
+
+  @media (max-width: 767px) {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 85vh;
+    z-index: 1300;
+
+    background: rgba(0, 16, 48, 0.75);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgba(96, 192, 240, 0.15);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow:
+      0 -8px 32px rgba(0, 32, 96, 0.6),
+      0 -24px 64px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(224, 236, 244, 0.15);
+
+    animation: ${slideUpEnter} 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(${({ $translateY }) => $translateY}px);
+    transition: ${({ $translateY }) =>
+      $translateY === 0 ? 'none' : 'transform 0.25s ease'};
+    touch-action: none;
+  }
+`;
+
+const DragHandle = styled.div`
+  display: none;
+
+  @media (max-width: 767px) {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 4px;
+    cursor: grab;
+
+    &::after {
+      content: '';
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(224, 236, 244, 0.3);
+    }
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.1);
+  flex-shrink: 0;
+`;
+
+const HeaderTitle = styled.h3`
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${TOKENS.frostWhite};
+  letter-spacing: -0.01em;
+`;
+
+const MarkAllButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.12);
+  color: ${TOKENS.wingPurple};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  min-height: 32px;
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.22);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${TOKENS.wingPurple};
+    outline-offset: 2px;
+  }
+`;
+
+const ScrollArea = styled.div`
+  flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
+
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent-primary) 30%, transparent) transparent;
+  scrollbar-color: ${TOKENS.wingPurple} transparent;
 
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
-
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-
   &::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--accent-primary) 30%, transparent);
-    border-radius: 3px;
+    background: ${TOKENS.wingPurple};
+    border-radius: 2px;
   }
 `;
 
-const NotificationItem = styled(ListItem)<{ $read: boolean }>`
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-soft);
-  background-color: ${props => props.$read ? 'transparent' : 'color-mix(in srgb, var(--accent-primary) 8%, transparent)'};
-  transition: background-color 0.2s ease;
+const NotificationRow = styled.div<{ $read: boolean; $accentColor: string }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease;
+  background: ${({ $read }) =>
+    $read ? 'transparent' : 'rgba(139, 92, 246, 0.06)'};
 
   &:hover {
-    background-color: color-mix(in srgb, var(--accent-primary) 12%, transparent);
-    cursor: pointer;
+    background: rgba(96, 192, 240, 0.08);
   }
 
-  &:last-child {
-    border-bottom: none;
+  &:not(:last-child) {
+    border-bottom: 1px solid rgba(96, 192, 240, 0.06);
+  }
+
+  /* Unread indicator dot */
+  ${({ $read, $accentColor }) =>
+    !$read &&
+    css`
+      &::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: ${$accentColor};
+        box-shadow: 0 0 6px ${$accentColor};
+      }
+    `}
+`;
+
+const IconCircle = styled.div<{ $color: string }>`
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $color }) => `${$color}18`};
+  color: ${({ $color }) => $color};
+`;
+
+const NotifContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const NotifTitle = styled.p<{ $read: boolean }>`
+  margin: 0 0 2px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: ${({ $read }) => ($read ? 500 : 650)};
+  color: ${({ $read }) => ($read ? TOKENS.frostWhite : '#fff')};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const NotifMessage = styled.p`
+  margin: 0 0 4px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: rgba(224, 236, 244, 0.6);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const NotifTime = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  color: rgba(224, 236, 244, 0.4);
+`;
+
+const DeleteBtn = styled.button`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(224, 236, 244, 0.3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  align-self: center;
+
+  &:hover {
+    background: rgba(236, 72, 153, 0.15);
+    color: #ec4899;
   }
 `;
 
-const EmptyState = styled(Box)`
+const EmptyStateContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 48px 24px;
   text-align: center;
 `;
 
-const DeleteButton = styled(IconButton)`
-  color: var(--text-muted);
-
-  &:hover {
-    color: var(--danger, #ec4899);
-    background-color: rgba(236, 72, 153, 0.08);
-  }
+const EmptyText = styled.p`
+  margin: 16px 0 0;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: rgba(224, 236, 244, 0.85);
 `;
 
-const MarkAllReadButton = styled(Button)`
-  color: var(--accent-primary);
-
-  &:hover {
-    background-color: color-mix(in srgb, var(--accent-primary) 8%, transparent);
-  }
+const EmptySub = styled.p`
+  margin: 8px 0 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(224, 236, 244, 0.45);
+  max-width: 220px;
 `;
 
-// Get icon based on notification type
-const getNotificationIcon = (type: string) => {
-  switch (type) {
-    case 'orientation':
-      return <ClipboardList size={20} style={{ color: '#8B5CF6' }} />;
-    case 'workout':
-      return <Dumbbell size={20} style={{ color: '#00bf8f' }} />;
-    case 'order':
-      return <ShoppingCart size={20} style={{ color: '#ec4899' }} />;
-    case 'client':
-      return <CalendarCheck size={20} style={{ color: '#8B5CF6' }} />;
-    default:
-      return <Info size={20} style={{ color: '#03a9f4' }} />;
-  }
-};
+const LoadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 16, 48, 0.5);
+  z-index: 10;
+`;
 
-// Format the notification date
-const formatNotificationDate = (dateString: string) => {
-  try {
-    const date = new Date(dateString);
+const Spinner = styled.div`
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: ${TOKENS.wingPurple};
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 
-    if (isToday(date)) {
-      return formatDistanceToNow(date, { addSuffix: true });
-    } else if (isYesterday(date)) {
-      return 'Yesterday';
-    } else {
-      return format(date, 'MMM d, yyyy');
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
     }
-  } catch {
-    return 'Unknown date';
+  }
+`;
+
+// ─── Icon Resolver ──────────────────────────────────────────────
+
+const getNotificationIcon = (type: string) => {
+  const size = 18;
+  switch (type) {
+    case 'session':
+    case 'client':
+      return <CalendarCheck size={size} />;
+    case 'workout':
+      return <Dumbbell size={size} />;
+    case 'order':
+      return <ShoppingCart size={size} />;
+    case 'social':
+    case 'achievement':
+      return <Trophy size={size} />;
+    case 'orientation':
+      return <CheckCircle size={size} />;
+    case 'admin':
+      return <Shield size={size} />;
+    case 'system':
+      return <Settings size={size} />;
+    case 'message':
+      return <MessageSquare size={size} />;
+    default:
+      return <Info size={size} />;
   }
 };
 
-/**
- * Enhanced Notification Section Component
- * Shows notifications in a dropdown with animations and real-time updates
- */
-const EnhancedNotificationSection: React.FC = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+// ─── Time Formatter ─────────────────────────────────────────────
 
-  // Local state
-  const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLButtonElement>(null);
+const formatRelativeTime = (dateString: string): string => {
+  try {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  } catch {
+    return '';
+  }
+};
+
+// ─── Component ──────────────────────────────────────────────────
+
+const EnhancedNotificationSection: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { socket } = useSocket();
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const [badgeAnimate, setBadgeAnimate] = useState(false);
+  const previousUnreadRef = useRef(0);
+
+  // Mobile drag state
+  const [dragY, setDragY] = useState(0);
+  const dragStartRef = useRef<number | null>(null);
 
   // Redux state
-  const { notifications, unreadCount, loading, error } = useSelector(
+  const { notifications, unreadCount, loading } = useSelector(
     (state: RootState) => state.notifications
   );
 
-  // Fetch notifications on mount and when the dropdown is opened
+  // ── Swan Pulse: trigger when new unread arrives while dropdown is closed ──
   useEffect(() => {
-    if (open) {
+    if (!isOpen && unreadCount > previousUnreadRef.current) {
+      setIsPulsing(true);
+      setBadgeAnimate(true);
+      const timer = setTimeout(() => {
+        setIsPulsing(false);
+        setBadgeAnimate(false);
+      }, 3700); // 3 cycles of 1.2s animation
+      return () => clearTimeout(timer);
+    }
+    previousUnreadRef.current = unreadCount;
+  }, [unreadCount, isOpen]);
+
+  // ── Socket.IO listeners ──
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (data: Notification) => {
+      dispatch(addNotification(data));
+    };
+
+    const handleNotificationCount = (data: { count: number }) => {
+      dispatch(setUnreadCount(data.count));
+    };
+
+    socket.on('notification:new', handleNewNotification);
+    socket.on('notification:count', handleNotificationCount);
+
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+      socket.off('notification:count', handleNotificationCount);
+    };
+  }, [socket, dispatch]);
+
+  // ── Fetch notifications when dropdown opens ──
+  useEffect(() => {
+    if (isOpen) {
       dispatch(fetchNotifications());
     }
-  }, [dispatch, open]);
+  }, [dispatch, isOpen]);
 
-  // Toggle notification dropdown
-  const handleToggle = () => {
-    setOpen((prevOpen) => !prevOpen);
-  };
+  // ── Click-outside handler ──
+  useEffect(() => {
+    if (!isOpen) return;
 
-  // Close dropdown when clicking away
-  const handleClose = (event: MouseEvent | TouchEvent) => {
-    if (
-      anchorRef.current &&
-      anchorRef.current.contains(event.target as Node)
-    ) {
-      return;
-    }
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
 
-    setOpen(false);
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
-  // Handle notification click
-  const handleNotificationClick = (notification: Notification) => {
-    // Mark as read
-    dispatch(markAsRead(notification.id));
+  // ── Escape key handler ──
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [isOpen]);
 
-    // Navigate to the link if provided
-    if (notification.link) {
-      navigate(notification.link);
-      setOpen(false);
-    }
-  };
+  // ── Handlers ──
+  const toggleOpen = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
 
-  // Handle mark all as read
-  const handleMarkAllAsRead = () => {
+  const handleNotificationClick = useCallback(
+    (notification: Notification) => {
+      dispatch(markAsRead(notification.id));
+      if (notification.link) {
+        navigate(notification.link);
+        setIsOpen(false);
+      }
+    },
+    [dispatch, navigate]
+  );
+
+  const handleMarkAllRead = useCallback(() => {
     dispatch(markAllAsRead());
-  };
+  }, [dispatch]);
 
-  // Handle delete notification
-  const handleDeleteNotification = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent the parent click handler from firing
-    dispatch(removeNotification(id));
+  const handleDelete = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      dispatch(removeNotification(id));
+      api.delete(`/notifications/${id}`).catch(() => {});
+    },
+    [dispatch]
+  );
 
-    // Call API to delete from server
-    api.delete(`/notifications/${id}`).catch(err => {
-      console.error('Failed to delete notification:', err);
-    });
-  };
+  // ── Mobile drag-to-dismiss ──
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartRef.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (dragStartRef.current === null) return;
+    const diff = e.touches[0].clientY - dragStartRef.current;
+    if (diff > 0) {
+      setDragY(diff);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (dragY > 150) {
+      setIsOpen(false);
+    }
+    setDragY(0);
+    dragStartRef.current = null;
+  }, [dragY]);
+
+  // ── Shared content renderer ──
+  const renderContent = () => (
+    <>
+      <Header>
+        <HeaderTitle>Notifications</HeaderTitle>
+        {unreadCount > 0 && (
+          <MarkAllButton onClick={handleMarkAllRead}>
+            <CheckCircle size={14} />
+            Mark all read
+          </MarkAllButton>
+        )}
+      </Header>
+
+      <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+        {loading && (
+          <LoadingOverlay>
+            <Spinner />
+          </LoadingOverlay>
+        )}
+
+        <ScrollArea>
+          {notifications.length === 0 ? (
+            <EmptyStateContainer>
+              <BellOff
+                size={40}
+                style={{ color: 'rgba(224, 236, 244, 0.3)' }}
+              />
+              <EmptyText>You're all caught up</EmptyText>
+              <EmptySub>
+                New activity will appear here when it happens
+              </EmptySub>
+            </EmptyStateContainer>
+          ) : (
+            notifications.map((notif) => {
+              const color = getTypeColor(notif.type);
+              return (
+                <NotificationRow
+                  key={notif.id}
+                  $read={notif.read}
+                  $accentColor={color}
+                  onClick={() => handleNotificationClick(notif)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleNotificationClick(notif);
+                    }
+                  }}
+                >
+                  <IconCircle $color={color}>
+                    {getNotificationIcon(notif.type)}
+                  </IconCircle>
+
+                  <NotifContent>
+                    <NotifTitle $read={notif.read}>{notif.title}</NotifTitle>
+                    <NotifMessage>{notif.message}</NotifMessage>
+                    <NotifTime>{formatRelativeTime(notif.createdAt)}</NotifTime>
+                  </NotifContent>
+
+                  <DeleteBtn
+                    onClick={(e) => handleDelete(e, notif.id)}
+                    aria-label="Delete notification"
+                  >
+                    <Trash2 size={14} />
+                  </DeleteBtn>
+                </NotificationRow>
+              );
+            })
+          )}
+        </ScrollArea>
+      </div>
+    </>
+  );
 
   return (
-    <>
-      <NotificationBell
-        ref={anchorRef}
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <BellButton
+        $pulsing={isPulsing}
+        onClick={toggleOpen}
         aria-haspopup="true"
-        onClick={handleToggle}
+        aria-expanded={isOpen}
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
-        <Badge
-          badgeContent={unreadCount}
-          color="#ec4899"
-        >
-          <Bell size={20} />
-        </Badge>
-      </NotificationBell>
-
-      <Popper
-        open={open}
-        anchorEl={anchorRef.current}
-        placement="bottom-end"
-        style={{ zIndex: 1300 }}
-        modifiers={[
-          {
-            name: 'offset',
-            options: {
-              offset: [0, 10],
-            },
-          },
-        ]}
-      >
-        {() => (
-          <GrowWrapper>
-            <Paper
-              style={{
-                width: 320,
-                maxWidth: '100%',
-                maxHeight: '80vh',
-                overflow: 'hidden',
-                backgroundColor: 'var(--bg-elevated)',
-                border: '1px solid var(--border-soft)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                color: 'var(--text-primary)',
-                borderRadius: '8px',
-              }}
-            >
-              <ClickAwayListener onClickAway={handleClose}>
-                <Box style={{ width: '100%' }}>
-                  <Box
-                    style={{
-                      padding: 16,
-                      borderBottom: '1px solid var(--border-soft)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Typography variant="h6" style={{ fontSize: '1rem', fontWeight: 600 }}>
-                      Notifications
-                    </Typography>
-
-                    {unreadCount > 0 && (
-                      <MarkAllReadButton
-                        size="small"
-                        startIcon={<CheckCircle size={16} />}
-                        onClick={handleMarkAllAsRead}
-                      >
-                        Mark all as read
-                      </MarkAllReadButton>
-                    )}
-                  </Box>
-
-                  <Box style={{ position: 'relative' }}>
-                    {loading && (
-                      <Box
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: 'color-mix(in srgb, var(--bg-base) 70%, transparent)',
-                          zIndex: 10,
-                        }}
-                      >
-                        <CircularProgress size={32} style={{ color: 'var(--accent-primary)' }} />
-                      </Box>
-                    )}
-
-                    <NotificationScrollArea>
-                      {notifications.length === 0 ? (
-                        <EmptyState>
-                          <BellOff size={40} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
-                          <Typography variant="body1" style={{ color: 'var(--text-secondary)' }}>
-                            No notifications yet
-                          </Typography>
-                          <Typography variant="body2" style={{ color: 'var(--text-secondary)', marginTop: 8, maxWidth: 250 }}>
-                            We'll notify you here when there's new activity in your account
-                          </Typography>
-                        </EmptyState>
-                      ) : (
-                        <List style={{ padding: 0 }}>
-                          {notifications.map((notification) => (
-                            <NotificationItem
-                              key={notification.id}
-                              $read={notification.read}
-                              onClick={() => handleNotificationClick(notification)}
-                              secondaryAction={
-                                <DeleteButton
-                                  size="small"
-                                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleDeleteNotification(e, notification.id)}
-                                >
-                                  <Trash2 size={16} />
-                                </DeleteButton>
-                              }
-                            >
-                              <ListItemAvatar>
-                                <Avatar
-                                  style={{
-                                    background: notification.read
-                                      ? 'var(--bg-surface, rgba(255, 255, 255, 0.1))'
-                                      : 'color-mix(in srgb, var(--accent-primary) 15%, transparent)',
-                                  }}
-                                >
-                                  {getNotificationIcon(notification.type)}
-                                </Avatar>
-                              </ListItemAvatar>
-                              <ListItemText
-                                primary={
-                                  <Typography
-                                    variant="subtitle2"
-                                    style={{
-                                      fontWeight: notification.read ? 400 : 600,
-                                      color: notification.read ? 'var(--text-primary)' : 'var(--accent-primary)',
-                                      fontSize: '0.875rem',
-                                      marginBottom: 4,
-                                    }}
-                                  >
-                                    {notification.title}
-                                  </Typography>
-                                }
-                                secondary={
-                                  <Box>
-                                    <Typography
-                                      variant="body2"
-                                      style={{
-                                        color: 'var(--text-secondary)',
-                                        fontSize: '0.8rem',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        overflow: 'hidden',
-                                        marginBottom: 4,
-                                      }}
-                                    >
-                                      {notification.message}
-                                    </Typography>
-                                    <Box
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                      }}
-                                    >
-                                      <Typography
-                                        variant="caption"
-                                        style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}
-                                      >
-                                        {formatNotificationDate(notification.createdAt)}
-                                      </Typography>
-
-                                      {!notification.read && (
-                                        <Chip
-                                          label="New"
-                                          size="small"
-                                          style={{
-                                            height: 18,
-                                            fontSize: '0.65rem',
-                                            backgroundColor: 'var(--accent-primary)',
-                                            color: 'white',
-                                            fontWeight: 600,
-                                          }}
-                                        />
-                                      )}
-                                    </Box>
-                                  </Box>
-                                }
-                              />
-                            </NotificationItem>
-                          ))}
-                        </List>
-                      )}
-                    </NotificationScrollArea>
-                  </Box>
-                </Box>
-              </ClickAwayListener>
-            </Paper>
-          </GrowWrapper>
+        <Bell size={20} />
+        {unreadCount > 0 && (
+          <UnreadBadge $animate={badgeAnimate}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </UnreadBadge>
         )}
-      </Popper>
-    </>
+      </BellButton>
+
+      {isOpen && (
+        <>
+          <Backdrop onClick={() => setIsOpen(false)} />
+
+          {/* Desktop dropdown */}
+          <DropdownPanel>
+            {renderContent()}
+          </DropdownPanel>
+
+          {/* Mobile bottom sheet */}
+          <BottomSheet
+            $translateY={dragY}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <DragHandle />
+            {renderContent()}
+          </BottomSheet>
+        </>
+      )}
+    </div>
   );
 };
 

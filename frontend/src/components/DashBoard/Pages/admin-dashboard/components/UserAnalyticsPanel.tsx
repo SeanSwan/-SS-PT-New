@@ -363,6 +363,9 @@ const LoadingSpinner = styled(motion.div)`
 // CHART CONFIGURATION
 // =====================================================
 
+/** Format a number to `d` decimal places (default 1). */
+const fmt = (n: number, d = 1) => Number(n).toFixed(d);
+
 const chartColors = {
   primary: '#10b981',
   secondary: '#059669',
@@ -514,48 +517,7 @@ const UserAnalyticsPanel: React.FC = () => {
         { page: '/social', views: 24150, uniqueUsers: 4987 }
       ],
       userActivity,
-      liveActivity: [
-        {
-          id: 1,
-          type: 'login',
-          user: 'Sarah M.',
-          action: 'Logged in',
-          time: '2 minutes ago',
-          location: 'New York, NY'
-        },
-        {
-          id: 2,
-          type: 'purchase',
-          user: 'Mike J.',
-          action: 'Purchased Premium Plan',
-          time: '5 minutes ago',
-          location: 'Los Angeles, CA'
-        },
-        {
-          id: 3,
-          type: 'workout',
-          user: 'Jessica L.',
-          action: 'Completed HIIT Workout',
-          time: '7 minutes ago',
-          location: 'Chicago, IL'
-        },
-        {
-          id: 4,
-          type: 'social',
-          user: 'David K.',
-          action: 'Posted progress photo',
-          time: '12 minutes ago',
-          location: 'Miami, FL'
-        },
-        {
-          id: 5,
-          type: 'login',
-          user: 'Emma R.',
-          action: 'First time login',
-          time: '15 minutes ago',
-          location: 'Seattle, WA'
-        }
-      ],
+      liveActivity: [],
       geographicData: [
         { region: 'North America', users: 6847, percentage: 53.3 },
         { region: 'Europe', users: 3245, percentage: 25.3 },
@@ -755,7 +717,7 @@ const UserAnalyticsPanel: React.FC = () => {
               </MetricIcon>
               <MetricChange isPositive={userAnalytics.changes.totalUsers > 0}>
                 {userAnalytics.changes.totalUsers > 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                {Math.abs(userAnalytics.changes.totalUsers)}%
+                {fmt(Math.abs(userAnalytics.changes.totalUsers))}%
               </MetricChange>
             </MetricHeader>
             <MetricValue>{userAnalytics.overview.totalUsers.toLocaleString()}</MetricValue>
@@ -775,7 +737,7 @@ const UserAnalyticsPanel: React.FC = () => {
               </MetricIcon>
               <MetricChange isPositive={userAnalytics.changes.activeUsers > 0}>
                 {userAnalytics.changes.activeUsers > 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                {Math.abs(userAnalytics.changes.activeUsers)}%
+                {fmt(Math.abs(userAnalytics.changes.activeUsers))}%
               </MetricChange>
             </MetricHeader>
             <MetricValue>{userAnalytics.overview.activeToday.toLocaleString()}</MetricValue>
@@ -795,7 +757,7 @@ const UserAnalyticsPanel: React.FC = () => {
               </MetricIcon>
               <MetricChange isPositive={userAnalytics.changes.newUsers > 0}>
                 {userAnalytics.changes.newUsers > 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                {Math.abs(userAnalytics.changes.newUsers)}%
+                {fmt(Math.abs(userAnalytics.changes.newUsers))}%
               </MetricChange>
             </MetricHeader>
             <MetricValue>{userAnalytics.overview.newThisWeek}</MetricValue>
@@ -815,10 +777,10 @@ const UserAnalyticsPanel: React.FC = () => {
               </MetricIcon>
               <MetricChange isPositive={userAnalytics.changes.conversion > 0}>
                 {userAnalytics.changes.conversion > 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                {Math.abs(userAnalytics.changes.conversion)}%
+                {fmt(Math.abs(userAnalytics.changes.conversion))}%
               </MetricChange>
             </MetricHeader>
-            <MetricValue>{userAnalytics.overview.engagementScore}/10</MetricValue>
+            <MetricValue>{fmt(userAnalytics.overview.engagementScore)}/10</MetricValue>
             <MetricLabel>Engagement Score</MetricLabel>
           </MetricCard>
         </UserMetricsGrid>
@@ -945,32 +907,49 @@ const UserAnalyticsPanel: React.FC = () => {
               Live User Activity
             </ChartTitle>
             
-            {userAnalytics.liveActivity.map((activity: any, index: number) => (
-              <ActivityItem 
-                key={activity.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <ActivityIcon type={activity.type}>
-                  {activity.type === 'login' && <UserCheck size={16} />}
-                  {activity.type === 'purchase' && <ShoppingBag size={16} />}
-                  {activity.type === 'workout' && <Activity size={16} />}
-                  {activity.type === 'social' && <MessageSquare size={16} />}
-                </ActivityIcon>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {activity.user}
+            {userAnalytics.liveActivity && userAnalytics.liveActivity.length > 0 ? (
+              userAnalytics.liveActivity.map((activity: any, index: number) => (
+                <ActivityItem
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <ActivityIcon type={activity.type}>
+                    {activity.type === 'login' && <UserCheck size={16} />}
+                    {activity.type === 'purchase' && <ShoppingBag size={16} />}
+                    {activity.type === 'workout' && <Activity size={16} />}
+                    {activity.type === 'social' && <MessageSquare size={16} />}
+                  </ActivityIcon>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                      {activity.user}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                      {activity.action}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      {activity.time} • {activity.location}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                    {activity.action}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    {activity.time} • {activity.location}
-                  </div>
-                </div>
-              </ActivityItem>
-            ))}
+                </ActivityItem>
+              ))
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column' as const,
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2rem 1rem',
+                color: 'rgba(255, 255, 255, 0.5)',
+                textAlign: 'center' as const,
+                gap: '0.75rem'
+              }}>
+                <Clock size={32} style={{ opacity: 0.4 }} />
+                <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>No recent activity</div>
+                <div style={{ fontSize: '0.8rem' }}>User actions will appear here in real time</div>
+              </div>
+            )}
           </LiveActivityCard>
 
           <LiveActivityCard

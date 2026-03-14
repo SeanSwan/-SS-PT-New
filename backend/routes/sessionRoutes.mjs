@@ -28,6 +28,7 @@ import {
 import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import trainerAssignmentService from '../services/TrainerAssignmentService.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
+import { createNotification } from '../controllers/notificationController.mjs';
 import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
 
@@ -1035,6 +1036,35 @@ router.post("/book/:userId", protect, async (req, res) => {
       }
     }
 
+    // Notification trigger: In-app notifications for session booking
+    try {
+      const sessionDateFormatted2 = new Date(session.sessionDate).toLocaleString(
+        'en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+      );
+      let trainerNameForNotif = 'your trainer';
+      if (session.trainerId) {
+        const trainerForNotif = await User.findByPk(session.trainerId, { attributes: ['firstName'] });
+        if (trainerForNotif) trainerNameForNotif = trainerForNotif.firstName;
+      }
+      await createNotification({
+        userId: userId,
+        title: 'Session Booked',
+        message: `Your session with ${trainerNameForNotif} is confirmed for ${sessionDateFormatted2}`,
+        type: 'session',
+        link: '/client-dashboard?tab=schedule'
+      });
+      if (session.trainerId) {
+        await createNotification({
+          userId: session.trainerId,
+          title: 'New Session Booked',
+          message: `${user.firstName} booked a session for ${sessionDateFormatted2}`,
+          type: 'session'
+        });
+      }
+    } catch (notifErr) {
+      logger.warn(`Session booking notification failed: ${notifErr.message}`);
+    }
+
     res.status(200).json({
       message: "Session booked successfully.",
       session
@@ -1207,6 +1237,35 @@ router.post("/:sessionId/book", protect, async (req, res) => {
         }
       ]
     });
+
+    // Notification trigger: In-app notifications for session booking
+    try {
+      const sessionDateFmt = new Date(session.sessionDate).toLocaleString(
+        'en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+      );
+      let trainerNameNotif = 'your trainer';
+      if (session.trainerId) {
+        const tn = await User.findByPk(session.trainerId, { attributes: ['firstName'] });
+        if (tn) trainerNameNotif = tn.firstName;
+      }
+      await createNotification({
+        userId: userId,
+        title: 'Session Booked',
+        message: `Your session with ${trainerNameNotif} is confirmed for ${sessionDateFmt}`,
+        type: 'session',
+        link: '/client-dashboard?tab=schedule'
+      });
+      if (session.trainerId) {
+        await createNotification({
+          userId: session.trainerId,
+          title: 'New Session Booked',
+          message: `${user.firstName} booked a session for ${sessionDateFmt}`,
+          type: 'session'
+        });
+      }
+    } catch (notifErr) {
+      logger.warn(`Session booking notification failed: ${notifErr.message}`);
+    }
 
     res.status(200).json({
       success: true,

@@ -38,6 +38,7 @@ import LeadActivity from '../models/LeadActivity.mjs';
 import PrintOrder from '../models/PrintOrder.mjs';
 import { analyzeForm } from '../services/formAnalysisService.mjs';
 import { getUser } from '../models/index.mjs';
+import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { getClientIp, lookupGeo } from '../services/geoIpService.mjs';
 import { Op, fn, col, literal } from 'sequelize';
 import sequelize from '../database.mjs';
@@ -703,6 +704,17 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
         stripePaymentId: session.id,
       });
 
+      // Notification trigger: Gallery donation received
+      try {
+        await createAdminNotification({
+          title: 'Gallery Donation Received',
+          message: `Visitor #${visitorId} donated $${donationAmount.toFixed(2)} via Stripe`,
+          type: 'admin'
+        });
+      } catch (notifErr) {
+        logger.warn(`Gallery donation notification failed: ${notifErr.message}`);
+      }
+
       return res.json({ success: true, checkoutUrl: session.url });
     }
 
@@ -751,6 +763,17 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
         stripePaymentId: session.id,
       });
 
+      // Notification trigger: Gallery donation received (Venmo)
+      try {
+        await createAdminNotification({
+          title: 'Gallery Donation Received',
+          message: `Visitor #${visitorId} donated $${donationAmount.toFixed(2)} via Venmo`,
+          type: 'admin'
+        });
+      } catch (notifErr) {
+        logger.warn(`Gallery donation notification failed: ${notifErr.message}`);
+      }
+
       return res.json({ success: true, checkoutUrl: session.url });
     }
 
@@ -779,6 +802,18 @@ router.post('/donation/zelle-confirm', requireGalleryAccess, async (req, res) =>
       zelleConfirmed: false, // Admin will confirm
       note: note?.trim() || null,
     });
+
+    // Notification trigger: Zelle donation pending verification
+    try {
+      const zelleAmount = parseFloat(amount) || 0;
+      await createAdminNotification({
+        title: 'Gallery Zelle Donation Pending',
+        message: `Visitor #${visitorId} sent $${zelleAmount.toFixed(2)} via Zelle — please verify`,
+        type: 'admin'
+      });
+    } catch (notifErr) {
+      logger.warn(`Zelle donation notification failed: ${notifErr.message}`);
+    }
 
     return res.json({
       success: true,

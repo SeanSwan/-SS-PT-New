@@ -25,7 +25,7 @@ interface ChallengeActivityChartProps {
 }
 
 const ChartWrapper = styled.div`
-  background: rgba(30, 30, 60, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -131,7 +131,7 @@ const ChallengeActivityChart: React.FC<ChallengeActivityChartProps> = ({ challen
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.completed ? '#00ff88' : '#60C0F0'}
+                fill={entry.completed ? '#60C0F0' : '#50A0F0'}
                 opacity={entry.completed ? 0.9 : 0.7}
               />
             ))}

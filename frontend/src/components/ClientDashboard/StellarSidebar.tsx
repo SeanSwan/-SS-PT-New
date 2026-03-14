@@ -168,7 +168,7 @@ const StellarSidebar: React.FC<StellarSidebarProps> = ({
             <div className="logo-icon">
               <Sparkles size={20} color={stellarTheme.colors.deepSpace} />
             </div>
-            <span className="logo-text">Galaxy</span>
+            <span className="logo-text">Swan</span>
           </LogoContainer>
 
           {!isMobile && (
@@ -244,7 +244,7 @@ const StellarSidebar: React.FC<StellarSidebarProps> = ({
 
         {/* Footer */}
         <SidebarFooter isCollapsed={isMobile ? !isMobileOpen : isCollapsed}>
-          <div className="version-info">Galaxy Dashboard v2.0</div>
+          <div className="version-info">Swan Dashboard v3.0</div>
           <div className="stellar-signature">Designed by Sean Swan</div>
         </SidebarFooter>
       </SidebarContainer>

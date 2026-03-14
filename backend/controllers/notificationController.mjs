@@ -125,6 +125,91 @@ import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { getNotification, getUser } from '../models/index.mjs';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
+import { getIO } from '../socket/socketManager.mjs';
+
+// ==================== SOCKET.IO HELPERS ====================
+
+/**
+ * Emit a notification event via Socket.IO to a specific user room.
+ * Also emits updated unread count. Failures are logged but never propagated.
+ *
+ * @param {number|string} userId - Recipient user ID
+ * @param {object} notification - The notification record to broadcast
+ */
+async function emitNotificationToUser(userId, notification) {
+  try {
+    const io = getIO();
+    if (!io) return; // Socket.IO not initialised yet — skip silently
+
+    // Push the notification payload to the user's personal room
+    io.to(`user:${userId}`).emit('notification:new', notification);
+
+    // Calculate and push the updated unread count
+    const Notification = getNotification();
+    if (Notification) {
+      const unreadCount = await Notification.count({
+        where: { userId, read: false }
+      });
+      io.to(`user:${userId}`).emit('notification:count', { unreadCount });
+    }
+  } catch (err) {
+    // Socket failures must never break notification creation
+    logger.warn(`Socket emit failed for user ${userId}: ${err.message}`);
+  }
+}
+
+/**
+ * Emit a notification event to the 'admin' room (all connected admins).
+ *
+ * @param {object} notification - The notification record to broadcast
+ */
+function emitNotificationToAdminRoom(notification) {
+  try {
+    const io = getIO();
+    if (!io) return;
+
+    io.to('admin').emit('notification:new', notification);
+  } catch (err) {
+    logger.warn(`Socket emit to admin room failed: ${err.message}`);
+  }
+}
+
+// ==================== CENTRALISED CREATE-AND-EMIT ====================
+
+/**
+ * Create a notification in the database AND emit it via Socket.IO.
+ * Designed for use by any controller that needs to notify a user.
+ *
+ * @param {object} options
+ * @param {number|string} options.userId    - Recipient user ID (required)
+ * @param {string}        options.title     - Notification title (required)
+ * @param {string}        options.message   - Notification body  (required)
+ * @param {string}       [options.type]     - system | admin | session | achievement | reward
+ * @param {string|null}  [options.link]     - Deep-link URL
+ * @param {string|null}  [options.image]    - Image URL
+ * @param {number|null}  [options.senderId] - Sender user ID
+ * @returns {Promise<{success: boolean, notification?: object, error?: string}>}
+ */
+export const createAndEmit = async (options) => {
+  const result = await createNotification(options);
+  // Emit is fire-and-forget; errors are caught inside emitNotificationToUser
+  if (result.success && result.notification) {
+    await emitNotificationToUser(options.userId, result.notification);
+  }
+  return result;
+};
+
+/**
+ * Create admin notifications in the database AND emit them via Socket.IO.
+ *
+ * @param {object} options - Same shape as createAdminNotification options
+ * @returns {Promise<{success: boolean, notifications?: object[], error?: string}>}
+ */
+export const createAdminAndEmit = async (options) => {
+  const result = await createAdminNotification(options);
+  // Per-user emits + broadcast to admin room are handled inside createAdminNotification now
+  return result;
+};
 
 /**
  * Get all notifications for a user
@@ -274,8 +359,8 @@ export const createNotification = async (options) => {
 
     logger.info(`Created ${type} notification for user ${userId}`);
 
-    // If you have WebSockets set up, emit a notification event
-    // io.to(userId).emit('notification', notification);
+    // Emit real-time notification via Socket.IO (fire-and-forget)
+    await emitNotificationToUser(userId, notification);
 
     return { success: true, notification };
   } catch (error) {
@@ -331,12 +416,28 @@ export const createAdminNotification = async (options) => {
     }
     
     logger.info(`Created ${type} notification for ${adminUsers.length} admin users`);
-    
-    // If you have WebSockets set up, emit a notification event to each admin
-    // adminUsers.forEach(admin => {
-    //   io.to(admin.id).emit('notification', notifications.find(n => n.userId === admin.id));
-    // });
-    
+
+    // Emit real-time notifications via Socket.IO
+    try {
+      const io = getIO();
+      if (io) {
+        // Broadcast to the admin room so all connected admins get it immediately
+        for (const notification of notifications) {
+          emitNotificationToAdminRoom(notification);
+        }
+        // Also emit per-user so each admin's unread count updates
+        for (const admin of adminUsers) {
+          const adminNotif = notifications.find(n => n.userId === admin.id);
+          if (adminNotif) {
+            await emitNotificationToUser(admin.id, adminNotif);
+          }
+        }
+      }
+    } catch (socketErr) {
+      // Socket failures must never break notification creation
+      logger.warn(`Socket emit to admins failed: ${socketErr.message}`);
+    }
+
     return { success: true, notifications };
   } catch (error) {
     logger.error('Error in createAdminNotification:', error.message, { stack: error.stack });

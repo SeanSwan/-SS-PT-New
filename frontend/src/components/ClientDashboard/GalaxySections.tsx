@@ -49,7 +49,7 @@ import ClientProgressSnapshot from './ClientProgressSnapshot';
 
 // === SHARED STYLED COMPONENTS ===
 const SectionCard = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -127,7 +127,7 @@ const ProgressOrb = styled.div<{ progress: number }>`
     content: '';
     width: 80%;
     height: 80%;
-    background: #0a0a0f;
+    background: #002060;
     border-radius: 50%;
     position: absolute;
   }
@@ -602,7 +602,7 @@ const PersonalStarmap: React.FC = () => {
             <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>Hours Sleep Avg</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#00ff88', fontSize: '1.5rem', fontWeight: 'bold' }}>{goalConsistency}</div>
+            <div style={{ color: '#60C0F0', fontSize: '1.5rem', fontWeight: 'bold' }}>{goalConsistency}</div>
             <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>Goal Consistency</div>
           </div>
         </div>
@@ -899,7 +899,7 @@ const StatusIndicator = styled.div`
 
   &::before {
     content: '*';
-    color: #00ff88;
+    color: #60C0F0;
     font-size: 0.8rem;
     animation: ${pulse} 2s infinite;
   }
@@ -1043,7 +1043,7 @@ const PackageSubscription: React.FC = () => {
               <div style={{ textAlign: 'center' }}>
                 <div
                   style={{
-                    color: '#00ff88',
+                    color: '#60C0F0',
                     fontSize: '2rem',
                     fontWeight: 'bold',
                     textShadow: '0 0 15px rgba(0, 255, 136, 0.8)'
@@ -1216,8 +1216,8 @@ export const OnboardingGalaxy: React.FC = () => {
           <ClipboardList /> Your Fitness Profile
         </SectionTitle>
         <div style={{ padding: '1.5rem', textAlign: 'center' }}>
-          <Award size={48} style={{ color: '#00ff88', marginBottom: '1rem' }} />
-          <h3 style={{ color: '#00ff88', marginBottom: '0.5rem' }}>Profile Complete</h3>
+          <Award size={48} style={{ color: '#60C0F0', marginBottom: '1rem' }} />
+          <h3 style={{ color: '#60C0F0', marginBottom: '0.5rem' }}>Profile Complete</h3>
           <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
             Your fitness profile is set up. Your trainer can now create personalized plans for you.
           </p>

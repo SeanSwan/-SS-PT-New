@@ -64,7 +64,7 @@ class EmergencyDashboard extends React.Component {
   render() {
     const cardStyle = {
       padding: '2rem',
-      background: 'rgba(30, 30, 60, 0.4)',
+      background: 'rgba(0, 32, 96, 0.4)',
       backdropFilter: 'blur(10px)',
       borderRadius: '15px',
       border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -75,17 +75,17 @@ class EmergencyDashboard extends React.Component {
     };
     
     const headerStyle = {
-      color: '#00ffff',
+      color: '#60C0F0',
       fontSize: '2rem',
       marginBottom: '1.5rem'
     };
     
     const buttonStyle = {
-      background: 'linear-gradient(135deg, #00ffff, #00b8ff)',
+      background: 'linear-gradient(135deg, #60C0F0, #50A0F0)',
       border: 'none',
       padding: '0.75rem 1.5rem',
       borderRadius: '8px',
-      color: '#0a0a1a',
+      color: '#002060',
       fontWeight: 'bold',
       cursor: 'pointer',
       margin: '0.5rem',
@@ -123,7 +123,7 @@ class EmergencyDashboard extends React.Component {
           </p>
           
           <div style={infoStyle}>
-            <h3 style={{ color: '#00ffff', marginBottom: '0.5rem' }}>Emergency Status</h3>
+            <h3 style={{ color: '#60C0F0', marginBottom: '0.5rem' }}>Emergency Status</h3>
             <p>
               <strong>Environment:</strong> {process.env.NODE_ENV || 'unknown'}<br />
               <strong>Emergency Mode:</strong> ACTIVE<br />
@@ -133,7 +133,7 @@ class EmergencyDashboard extends React.Component {
           </div>
           
           <div style={{ margin: '2rem 0' }}>
-            <h3 style={{ color: '#00ffff', marginBottom: '1rem' }}>Actions</h3>
+            <h3 style={{ color: '#60C0F0', marginBottom: '1rem' }}>Actions</h3>
             
             <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <button 

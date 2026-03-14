@@ -780,7 +780,7 @@ const SystemHealthPanel: React.FC = () => {
                 Healthy
               </MetricStatus>
             </MetricHeader>
-            <MetricValue>{systemHealth.systemMetrics.uptime}%</MetricValue>
+            <MetricValue>{Number(systemHealth.systemMetrics.uptime).toFixed(2)}%</MetricValue>
             <MetricLabel>System Uptime</MetricLabel>
           </MetricCard>
 
@@ -800,7 +800,7 @@ const SystemHealthPanel: React.FC = () => {
                 Optimal
               </MetricStatus>
             </MetricHeader>
-            <MetricValue>{systemHealth.systemMetrics.responseTime}ms</MetricValue>
+            <MetricValue>{Math.round(systemHealth.systemMetrics.responseTime)}ms</MetricValue>
             <MetricLabel>Avg Response Time</MetricLabel>
           </MetricCard>
 
@@ -840,7 +840,7 @@ const SystemHealthPanel: React.FC = () => {
                 Low
               </MetricStatus>
             </MetricHeader>
-            <MetricValue>{systemHealth.systemMetrics.errorRate}%</MetricValue>
+            <MetricValue>{Number(systemHealth.systemMetrics.errorRate).toFixed(2)}%</MetricValue>
             <MetricLabel>Error Rate</MetricLabel>
           </MetricCard>
         </SystemMetricsGrid>
@@ -871,11 +871,11 @@ const SystemHealthPanel: React.FC = () => {
               
               <ServiceMetrics>
                 <ServiceMetric>
-                  <ServiceMetricValue>{service.responseTime}ms</ServiceMetricValue>
+                  <ServiceMetricValue>{Math.round(service.responseTime)}ms</ServiceMetricValue>
                   <ServiceMetricLabel>Response</ServiceMetricLabel>
                 </ServiceMetric>
                 <ServiceMetric>
-                  <ServiceMetricValue>{service.uptime}%</ServiceMetricValue>
+                  <ServiceMetricValue>{Number(service.uptime).toFixed(2)}%</ServiceMetricValue>
                   <ServiceMetricLabel>Uptime</ServiceMetricLabel>
                 </ServiceMetric>
                 <ServiceMetric>

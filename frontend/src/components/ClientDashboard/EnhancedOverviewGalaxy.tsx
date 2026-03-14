@@ -166,7 +166,7 @@ const ProgressOrb = styled.div<{ progress: number; $isAnimating?: boolean }>`
     content: '';
     width: 85%;
     height: 85%;
-    background: radial-gradient(circle, #0a0a0f 0%, #1a1a2e 100%);
+    background: radial-gradient(circle, #002060 0%, #003080 100%);
     border-radius: 50%;
     position: absolute;
     z-index: 1;
@@ -570,7 +570,7 @@ const EnhancedOverviewGalaxy: React.FC = () => {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: isConnected ? '#00ff88' : connectionStatus === 'connecting' ? '#ffd700' : '#ff6b6b',
+                background: isConnected ? '#60C0F0' : connectionStatus === 'connecting' ? '#ffd700' : '#ff6b6b',
                 boxShadow: isConnected ? '0 0 8px rgba(0, 255, 136, 0.5)' : 
                           connectionStatus === 'connecting' ? '0 0 8px rgba(255, 215, 0, 0.5)' : 
                           '0 0 8px rgba(255, 107, 107, 0.5)',

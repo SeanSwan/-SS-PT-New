@@ -231,6 +231,7 @@ import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { sendEmailNotification } from '../utils/notification.mjs';
 import { getClientIp } from '../services/geoIpService.mjs';
+import { createNotification, createAdminNotification } from './notificationController.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -558,6 +559,24 @@ export const register = async (req, res) => {
       }
     } catch (autoFollowErr) {
       logger.warn(`Auto-follow failed for new user ${user.id}: ${autoFollowErr.message}`);
+    }
+
+    // Notification trigger: Welcome notification for new user + admin alert
+    try {
+      await createAdminNotification({
+        title: 'New User Signup',
+        message: `${firstName} ${lastName} (${email}) registered`,
+        type: 'admin'
+      });
+      await createNotification({
+        userId: user.id,
+        title: 'Welcome to SwanStudios!',
+        message: 'Complete your onboarding to get started',
+        type: 'system',
+        link: '/client-dashboard?tab=onboarding'
+      });
+    } catch (notifErr) {
+      logger.warn(`Registration notification failed for user ${user.id}: ${notifErr.message}`);
     }
 
     // Return user data and token

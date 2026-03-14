@@ -645,7 +645,7 @@ const ContentStudio: React.FC<ContentStudioProps> = memo(({ className }) => {
                 <ContentInfo>
                   <ContentTitle>{item.title}</ContentTitle>
                   <ContentMeta>
-                    <span>{item.uploadDate}</span>
+                    <span>{item.uploadDate || 'Date unknown'}</span>
                     {'duration' in item && <span>{item.duration}</span>}
                     {'client' in item && <span>{item.client}</span>}
                   </ContentMeta>

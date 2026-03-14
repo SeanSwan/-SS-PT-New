@@ -58,25 +58,26 @@ const MessagesGalaxy: React.FC = () => (
   </Suspense>
 );
 
-// === THEME DEFINITION ===
+// === THEME DEFINITION (Crystalline Swan) ===
 const galaxyTheme = {
   colors: {
-    deepSpace: '#0a0a0f',
-    nebulaPurple: '#1e1e3f',
-    cyberCyan: '#60C0F0',
-    stellarWhite: '#ffffff',
-    cosmicPurple: '#8B5CF6',
-    voidBlack: '#000000',
-    starGold: '#ffd700',
-    energyBlue: '#00c8ff',
-    plasmaGreen: '#00ff88',
+    deepSpace: '#002060',       // Midnight Sapphire
+    nebulaPurple: '#003080',    // Royal Depth
+    cyberCyan: '#60C0F0',       // Ice Wing
+    stellarWhite: '#E0ECF4',    // Frost White
+    cosmicPurple: '#8B5CF6',    // Wing Purple
+    voidBlack: '#001040',       // Deep Sapphire
+    starGold: '#C6A84B',        // Gilded Fern
+    energyBlue: '#50A0F0',      // Arctic Cyan
+    plasmaGreen: '#60C0F0',     // Ice Wing (replaces retired green)
     warningRed: '#ff416c'
   },
   gradients: {
-    galaxy: 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a0f 70%)',
-    nebula: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 50%, #1e1e3f 100%)',
-    stellar: 'linear-gradient(45deg, #60C0F0 0%, #ffd700 100%)',
-    cosmic: 'radial-gradient(circle, #60C0F0 0%, #8B5CF6 70%, #0a0a0f 100%)'
+    galaxy: 'radial-gradient(ellipse at center, #003080 0%, #002060 70%)',
+    nebula: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 50%, #003080 100%)',
+    stellar: 'linear-gradient(45deg, #60C0F0 0%, #C6A84B 100%)',
+    cosmic: 'radial-gradient(circle, #60C0F0 0%, #8B5CF6 70%, #002060 100%)',
+    aurora: 'linear-gradient(270deg, #60C0F0, #8B5CF6, #C6A84B, #60C0F0)',
   },
   shadows: {
     stellar: '0 0 20px rgba(139, 92, 246, 0.5)',
@@ -151,7 +152,7 @@ const MainContent = styled(motion.main)`
 `;
 
 const ContentHeader = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.4);
+  background: rgba(0, 32, 96, 0.4);
   backdrop-filter: blur(15px);
   border-radius: 20px;
   border: 1px solid rgba(139, 92, 246, 0.3);
@@ -191,7 +192,7 @@ const ContentHeader = styled(motion.div)`
 `;
 
 const ContentArea = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.3);
+  background: rgba(0, 32, 96, 0.3);
   backdrop-filter: blur(15px);
   border-radius: 20px;
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -204,7 +205,7 @@ const ContentArea = styled(motion.div)`
   }
   
   &::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.5);
+    background: rgba(0, 16, 48, 0.5);
     border-radius: 4px;
   }
   

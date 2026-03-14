@@ -125,7 +125,7 @@ const ErrorContainer = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e3a8a, #0891b2);
+  background: linear-gradient(135deg, #002060, #003080);
   color: white;
   padding: 2rem;
 `;
@@ -188,7 +188,7 @@ const ErrorActions = styled.div`
 `;
 
 const RetryButton = styled.button`
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;

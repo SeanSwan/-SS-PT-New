@@ -17,6 +17,7 @@ import logger from '../utils/logger.mjs';
 import { v4 as uuidv4 } from 'uuid';
 // Session allocation service for payment completion
 import sessionAllocationService from '../services/SessionAllocationService.mjs';
+import { createNotification, createAdminNotification } from '../controllers/notificationController.mjs';
 
 const router = express.Router();
 
@@ -212,6 +213,26 @@ router.post('/create-from-cart', protect, async (req, res) => {
       ]
     });
     
+    // Notification trigger: Order confirmed for client + admin alert
+    try {
+      const User = getUser();
+      const orderUser = await User.findByPk(userId, { attributes: ['id', 'firstName', 'lastName', 'email'] });
+      await createNotification({
+        userId,
+        title: 'Order Confirmed',
+        message: `Your order #${order.orderNumber} has been confirmed`,
+        type: 'system',
+        link: '/client-dashboard?tab=orders'
+      });
+      await createAdminNotification({
+        title: 'New Order Received',
+        message: `${orderUser?.firstName || 'A user'} placed order #${order.orderNumber} for $${totalAmount.toFixed(2)}`,
+        type: 'admin'
+      });
+    } catch (notifErr) {
+      logger.warn(`Order notification failed for order ${order.id}: ${notifErr.message}`);
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Order created successfully',
@@ -459,6 +480,19 @@ router.post('/:id/apply-payment', protect, async (req, res) => {
       totalAmount: order.totalAmount,
       reference
     });
+
+    // Notification trigger: Payment applied - notify the order owner
+    try {
+      await createNotification({
+        userId: order.userId,
+        title: 'Payment Confirmed',
+        message: `Payment for order #${order.orderNumber} has been confirmed via ${method}`,
+        type: 'system',
+        link: '/client-dashboard?tab=orders'
+      });
+    } catch (notifErr) {
+      logger.warn(`Payment notification failed for order ${orderId}: ${notifErr.message}`);
+    }
 
     return res.status(200).json(response);
   } catch (error) {
