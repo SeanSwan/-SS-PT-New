@@ -6,7 +6,7 @@
  * severity-colored markers for active pain entries.
  *
  * Ultra-responsive: scales from 320px phones to 4K ultrawide.
- * Theme-aware with Galaxy-Swan fallbacks.
+ * Theme-aware with Crystalline Swan palette (Midnight Sapphire canvas).
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
@@ -48,8 +48,8 @@ const MapContainer = styled.div`
 `;
 
 const ViewPanel = styled.div`
-  background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.6)'};
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.15)'};
+  background: rgba(0, 32, 96, 0.8);
+  border: 1px solid rgba(64, 112, 192, 0.2);
   border-radius: 16px;
   backdrop-filter: blur(12px);
   padding: 10px;
@@ -76,7 +76,8 @@ const ViewPanel = styled.div`
 `;
 
 const ViewLabel = styled.h4`
-  color: ${({ theme }) => theme.colors?.accent || 'rgba(139, 92, 246, 0.8)'};
+  color: #8B5CF6;
+  font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
@@ -130,16 +131,18 @@ interface RegionEllipseProps {
 
 const RegionEllipse = styled.ellipse<RegionEllipseProps>`
   fill: ${({ $isActive, $severityColor }) =>
-    $isActive && $severityColor ? `${$severityColor}33` : 'rgba(139, 92, 246, 0.03)'};
-  stroke: ${({ $isActive, $isSelected, $severityColor, theme }) =>
+    $isActive && $severityColor ? `${$severityColor}40` : 'rgba(64, 112, 192, 0.05)'};
+  stroke: ${({ $isActive, $isSelected, $severityColor }) =>
     $isSelected
-      ? (theme?.colors?.accent || '#8B5CF6')
+      ? '#8B5CF6'
       : $isActive && $severityColor
         ? $severityColor
-        : 'rgba(139, 92, 246, 0.12)'};
-  stroke-width: ${({ $isSelected }) => ($isSelected ? 2.5 : 1)};
+        : 'rgba(64, 112, 192, 0.15)'};
+  stroke-width: ${({ $isSelected }) => ($isSelected ? 2.5 : 1.5)};
   cursor: pointer;
-  transition: fill 0.2s, stroke 0.2s, stroke-width 0.15s;
+  transition: fill 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke-width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
   ${({ $isActive }) =>
     $isActive &&
@@ -148,22 +151,25 @@ const RegionEllipse = styled.ellipse<RegionEllipseProps>`
     `}
 
   &:hover {
-    fill: rgba(139, 92, 246, 0.15);
-    stroke: ${({ theme }) => theme?.colors?.accent || '#8B5CF6'};
+    fill: rgba(139, 92, 246, 0.18);
+    stroke: #8B5CF6;
     stroke-width: 2;
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
   }
 `;
 
 const PainDot = styled.circle<{ $color: string }>`
   fill: ${({ $color }) => $color};
-  filter: drop-shadow(0 0 4px ${({ $color }) => $color});
+  stroke: #E0ECF4;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px ${({ $color }) => $color});
   pointer-events: none;
 `;
 
 // ── Body outline SVG paths ──────────────────────────────────────────────
 
 const BodyOutlineFront: React.FC = () => (
-  <g stroke="rgba(139, 92, 246,0.25)" strokeWidth="1" fill="none">
+  <g stroke="rgba(64, 112, 192, 0.35)" strokeWidth="1" fill="none">
     {/* Head */}
     <ellipse cx="100" cy="28" rx="16" ry="20" />
     {/* Neck */}
@@ -184,7 +190,7 @@ const BodyOutlineFront: React.FC = () => (
 );
 
 const BodyOutlineBack: React.FC = () => (
-  <g stroke="rgba(139, 92, 246,0.25)" strokeWidth="1" fill="none">
+  <g stroke="rgba(64, 112, 192, 0.35)" strokeWidth="1" fill="none">
     {/* Head */}
     <ellipse cx="100" cy="28" rx="16" ry="20" />
     {/* Neck */}
@@ -243,13 +249,17 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.hypot(dx, dy);
-      const newScale = Math.min(3, Math.max(1, pinchRef.current.startScale * (dist / pinchRef.current.startDist)));
+      const newScale = Math.min(5, Math.max(1, pinchRef.current.startScale * (dist / pinchRef.current.startDist)));
       setScale(newScale);
       if (newScale <= 1) setTranslate({ x: 0, y: 0 });
     } else if (e.touches.length === 1 && panRef.current && scale > 1) {
       const dx = e.touches[0].clientX - panRef.current.startX;
       const dy = e.touches[0].clientY - panRef.current.startY;
-      setTranslate({ x: panRef.current.startTx + dx, y: panRef.current.startTy + dy });
+      // Pan bounds: limit translation to prevent content from leaving viewport
+      const maxPan = (scale - 1) * 150; // 150 ≈ half the SVG rendered width
+      const newX = Math.min(maxPan, Math.max(-maxPan, panRef.current.startTx + dx));
+      const newY = Math.min(maxPan, Math.max(-maxPan, panRef.current.startTy + dy));
+      setTranslate({ x: newX, y: newY });
     }
   }, [scale]);
 
@@ -339,6 +349,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
         >
           <div style={zoomStyle}>
             <ResponsiveSVG viewBox="0 0 200 310" style={{ overflow: 'visible' }}>
+              <rect x="0" y="0" width="200" height="310" rx="8" fill="#002060" />
               <BodyOutlineFront />
               {renderRegions(FRONT_VIEW_REGIONS)}
             </ResponsiveSVG>
@@ -355,6 +366,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
         >
           <div style={zoomStyle}>
             <ResponsiveSVG viewBox="0 0 200 310" style={{ overflow: 'visible' }}>
+              <rect x="0" y="0" width="200" height="310" rx="8" fill="#002060" />
               <BodyOutlineBack />
               {renderRegions(BACK_VIEW_REGIONS)}
             </ResponsiveSVG>

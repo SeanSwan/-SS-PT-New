@@ -2,6 +2,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
+import { releaseConcurrent } from '../services/ai/rateLimiter.mjs';
 import foodScannerService from '../services/foodScannerService.mjs';
 import FoodIngredient from '../models/FoodIngredient.mjs';
 import FoodProduct from '../models/FoodProduct.mjs';
@@ -563,6 +564,9 @@ router.post('/ai-analyze', protect, aiRateLimiter, async (req, res) => {
       message: 'Server error during AI analysis',
       error: 'Internal server error',
     });
+  } finally {
+    // Release concurrent lock so user isn't permanently blocked
+    if (req.user?.id) releaseConcurrent(req.user.id);
   }
 });
 

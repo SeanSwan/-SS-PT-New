@@ -124,11 +124,11 @@ export function getRegionsByView(view: BodyView): BodyRegion[] {
   return ALL_BODY_REGIONS.filter(r => r.view === view);
 }
 
-/** Severity → color mapping for the body map markers */
+/** Severity → color mapping for the body map markers (Crystalline Swan palette) */
 export function getSeverityColor(painLevel: number): string {
-  if (painLevel >= 7) return '#FF3333'; // Red — severe
-  if (painLevel >= 4) return '#FFB833'; // Yellow/Orange — moderate
-  return '#33CC66';                      // Green — mild
+  if (painLevel >= 7) return '#C6A84B'; // Gilded Fern — severe (high visibility on dark)
+  if (painLevel >= 4) return '#50A0F0'; // Arctic Cyan — moderate
+  return '#60C0F0';                      // Ice Wing — mild
 }
 
 /** Pain type labels */

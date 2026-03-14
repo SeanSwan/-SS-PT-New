@@ -860,29 +860,31 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const infoUrl = isSelf && user?.role === 'client'
         ? '/api/workout-forms/my/info'
         : `/api/workout-forms/client/${clientId}/info`;
-      const response = await api.get(infoUrl);
-      
-      if (response.success && response.client) {
+      const axiosResponse = await api.get(infoUrl);
+      // Unwrap Axios response — data is in response.data
+      const data = axiosResponse?.data ?? axiosResponse;
+
+      if (data.success && data.client) {
         setClient({
-          id: response.client.id,
-          firstName: response.client.firstName,
-          lastName: response.client.lastName,
-          email: response.client.email,
-          availableSessions: response.client.availableSessions,
-          phone: response.client.phone
+          id: data.client.id,
+          firstName: data.client.firstName,
+          lastName: data.client.lastName,
+          email: data.client.email,
+          availableSessions: data.client.availableSessions,
+          phone: data.client.phone
         });
-        
+
         // Show warning if client already has a workout today
-        if (response.client.hasWorkoutToday) {
-          toast.warning(`${response.client.firstName} already has a workout logged for today`);
+        if (data.client.hasWorkoutToday) {
+          toast.warning(`${data.client.firstName} already has a workout logged for today`);
         }
-        
+
         // Show warning if client has low sessions
-        if (response.client.availableSessions <= 1) {
-          toast.warning(`${response.client.firstName} has only ${response.client.availableSessions} session(s) remaining`);
+        if (data.client.availableSessions <= 1) {
+          toast.warning(`${data.client.firstName} has only ${data.client.availableSessions} session(s) remaining`);
         }
       } else {
-        throw new Error(response.message || 'Failed to load client data');
+        throw new Error(data.message || 'Failed to load client data');
       }
     } catch (error: any) {
       console.error('Failed to load client data:', error);

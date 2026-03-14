@@ -6,13 +6,18 @@
  *
  * Route chain: protect → aiKillSwitch → aiRateLimiter → generateWorkoutPlan
  *
+ * CRITICAL FIX: Automatically releases the concurrent lock when the response
+ * finishes, so downstream handlers can never forget to release it.
+ * This fixes the bug where a user gets permanently 429'd after one AI request.
+ *
  * Phase 3A — Provider Router (Smart Workout Logger)
  */
-import { checkRateLimit } from '../services/ai/rateLimiter.mjs';
+import { checkRateLimit, releaseConcurrent } from '../services/ai/rateLimiter.mjs';
 
 /**
  * Express middleware that enforces AI generation rate limits.
  * Returns 429 if the request exceeds per-user or global limits.
+ * Auto-releases the concurrent lock when the response completes.
  */
 export function aiRateLimiter(req, res, next) {
   const userId = req.user?.id;
@@ -35,6 +40,17 @@ export function aiRateLimiter(req, res, next) {
       message: result.message,
     });
   }
+
+  // Auto-release concurrent lock when response finishes (or connection closes)
+  // This ensures the lock is ALWAYS released, even if the handler crashes or forgets
+  const releaseOnce = () => {
+    releaseConcurrent(userId);
+    // Remove listeners to prevent double-release
+    res.removeListener('finish', releaseOnce);
+    res.removeListener('close', releaseOnce);
+  };
+  res.on('finish', releaseOnce);
+  res.on('close', releaseOnce);
 
   next();
 }

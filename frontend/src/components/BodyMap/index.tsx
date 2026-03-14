@@ -288,13 +288,13 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId, mode }) => {
               {entries.length} active
             </SummaryBadge>
             {severeCount > 0 && (
-              <SummaryBadge $color="#FF3333">{severeCount} severe</SummaryBadge>
+              <SummaryBadge $color="#C6A84B">{severeCount} severe</SummaryBadge>
             )}
             {moderateCount > 0 && (
-              <SummaryBadge $color="#FFB833">{moderateCount} moderate</SummaryBadge>
+              <SummaryBadge $color="#50A0F0">{moderateCount} moderate</SummaryBadge>
             )}
             {mildCount > 0 && (
-              <SummaryBadge $color="#33CC66">{mildCount} mild</SummaryBadge>
+              <SummaryBadge $color="#60C0F0">{mildCount} mild</SummaryBadge>
             )}
           </div>
         )}
