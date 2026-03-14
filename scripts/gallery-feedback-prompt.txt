@@ -1,0 +1,46 @@
+SwanStudios Photography Gallery — Photo Feedback System (Addition to Photo Request System)
+
+Context:
+We are building a client photo selection and request system for the SwanStudios sports photography gallery. Gemini has already designed the photo detail modal with "Get High-Quality Original" (free) and "Request Professional Edit" (paid) options.
+
+New Feature: Photo Feedback (Thumbs Up / Thumbs Down)
+
+Business Goal:
+When clients browse event photos, they should be able to thumbs-up photos they love and thumbs-down photos they do not care for. This helps the admin:
+1. Know which photos are the "keepers" (popular with families)
+2. Delete unpopular photos to save R2 storage space and reduce clutter
+3. Understand which types of shots resonate (action, posed, candid, etc.)
+
+User Flow:
+1. Client is browsing the photo grid (watermarked JPEGs)
+2. Each photo has a subtle thumbs-up and thumbs-down overlay (appears on hover/tap)
+3. Tapping thumbs-up highlights it in Ice Wing blue with a count
+4. Tapping thumbs-down highlights it in a muted red/gray
+5. A photo can only be voted once per visitor (tracked by visitor session/email)
+6. The vote is anonymous to other visitors but visible to admin
+
+Admin View:
+1. Admin sees vote counts on each photo in the event management view
+2. Can sort photos by "Most Liked" or "Least Liked"
+3. Photos with many thumbs-down and zero thumbs-up can be bulk-deleted
+4. A "Cleanup Suggestions" section highlights photos with negative sentiment
+
+Design Requirements:
+- Thumbs icons must be large enough for grandparents (44px minimum touch target)
+- Non-intrusive: should not cover the photo or interfere with the request buttons
+- Vote counts should be subtle but visible
+- Mobile-first: works great on phone screens
+- Should feel satisfying to tap (micro-animation: scale bounce + color fill)
+- Crystalline Swan palette: thumbs-up = Ice Wing #60C0F0, thumbs-down = muted gray or soft red
+
+Database:
+- New PhotoVote model or add columns to GalleryPhoto: thumbsUp (integer), thumbsDown (integer)
+- Track per-visitor votes to prevent duplicates
+
+Design the styled-components for:
+1. Thumbs overlay on photo grid cards
+2. Vote feedback animation
+3. Admin photo management view with vote data
+4. "Cleanup Suggestions" panel for admin
+
+Use Crystalline Swan palette. Same premium-but-approachable feel as the rest of the gallery.

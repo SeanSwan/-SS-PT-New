@@ -1,0 +1,56 @@
+SwanStudios Photography Gallery — Client Photo Selection & Request System
+
+Business Context:
+SwanStudios photographs youth sports events (basketball, etc.). Parents/grandparents visit the gallery after the event to view photos of their kids. Currently they just browse watermarked JPEGs. We need a system where they can:
+
+1. Browse watermarked JPEG previews (fast-loading, already implemented)
+2. Request HIGH-QUALITY ORIGINAL versions of specific photos (FREE — the original files look significantly better with richer colors, but are 100-120MB each)
+3. Request ENHANCED versions (PAID — admin edits in Adobe Lightroom for color correction, sharpness, etc. This uses one of their enhancement passes)
+
+Two-Tier Request System:
+- Raw Download: Original high-quality file (better colors than JPEG). FREE. Admin uploads the raw file for that specific photo.
+- Enhanced Photo: Professional edit (Lightroom color/sharpness/crop). Uses 1 Enhancement Pass. Admin edits in Lightroom, uploads enhanced version.
+
+User Flow (Client/Visitor Side):
+1. Visit event gallery page (e.g., /gallery/super-nova)
+2. Enter event password
+3. Browse watermarked photo grid
+4. Click a photo to view larger
+5. See two clear buttons/options:
+   - "Get High-Quality Original" (FREE) — explains original file is bigger but looks much better
+   - "Request Professional Edit" (uses 1 pass) — explains this gets color correction, sharpening, etc.
+6. Selected photos go into a "My Requests" cart/list
+7. Submit requests (requires email)
+8. Receive email when files are ready
+
+Admin Flow:
+1. Admin dashboard shows pending requests grouped by event
+2. For FREE raw requests: admin uploads the specific raw files
+3. For PAID enhanced requests: admin downloads, edits in Lightroom, uploads enhanced version
+4. Mark as complete triggers email notification to client
+
+Critical UX Requirements:
+- MUST be understandable by a non-tech grandparent viewing their grandchild's basketball photos
+- No jargon. Use "high-quality original" not "RAW file", "professional edit" not "enhancement"
+- Clear visual comparison showing JPEG vs high-quality original difference
+- Simple icons/illustrations explaining the two options
+- Mobile-first (parents browse on phones at events)
+- The enhancement pass system needs a simple explainer (like "You have 3 edits remaining on your Photo Pass")
+
+Existing Infrastructure:
+- Gallery events with watermarked JPEG photos (already deployed)
+- EnhancementRequest model exists in DB (status: requested/processing/completed/delivered)
+- GalleryVisitor model (email, name, event association)
+- Cloudflare R2 storage for photos
+- Crystalline Swan theme (Midnight Sapphire #002060, Wing Purple #8B5CF6, Ice Wing #60C0F0, Gilded Fern #C6A84B, Frost White #E0ECF4)
+
+Design This:
+1. Photo detail modal/page with the two request options
+2. "My Selections" floating cart/drawer
+3. Request submission flow
+4. Admin request queue view
+5. Email notification templates
+6. Explainer section that a grandma could understand
+7. Mobile-first layouts for all of the above
+
+Use the Crystalline Swan palette. Make it feel premium but approachable. Think Apple Store simplicity meets sports photography energy.
