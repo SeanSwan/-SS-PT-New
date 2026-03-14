@@ -82,7 +82,23 @@ const ViewLabel = styled.h4`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  position: relative;
+  padding-bottom: 8px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    max-width: 120px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #8B5CF6, transparent);
+    border-radius: 1px;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+  }
 `;
 
 const ResponsiveSVG = styled.svg`
@@ -115,13 +131,12 @@ const ZoomContainer = styled.div`
 `;
 
 /**
- * Invisible hit-area expander for small muscle ellipses.
- * Rendered as a transparent rect behind each ellipse to ensure
- * a minimum 44px-equivalent touch target at the rendered SVG scale.
+ * Minimum radius for interactive ellipses to guarantee 44px touch targets.
  * For a 280px-wide SVG mapping to 200 viewBox units:
- *   44px ≈ 31 viewBox units → min hit area = 15.5 rx/ry
+ *   44px → 200/280 * 44/2 = 15.7 viewBox units
+ * Using 22 guarantees 44px diameter at any reasonable scale.
  */
-const HIT_AREA_MIN_R = 12; // Minimum radius in viewBox units (~24 units = ~33px at 280px width)
+const HIT_AREA_MIN_R = 22;
 
 interface RegionEllipseProps {
   $isActive: boolean;
@@ -130,19 +145,17 @@ interface RegionEllipseProps {
 }
 
 const RegionEllipse = styled.ellipse<RegionEllipseProps>`
-  fill: ${({ $isActive, $severityColor }) =>
-    $isActive && $severityColor ? `${$severityColor}40` : 'rgba(64, 112, 192, 0.05)'};
+  fill: transparent;
   stroke: ${({ $isActive, $isSelected, $severityColor }) =>
     $isSelected
       ? '#8B5CF6'
       : $isActive && $severityColor
         ? $severityColor
-        : 'rgba(64, 112, 192, 0.15)'};
+        : 'rgba(64, 112, 192, 0.30)'};
   stroke-width: ${({ $isSelected }) => ($isSelected ? 2.5 : 1.5)};
   cursor: pointer;
-  transition: fill 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              stroke 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              stroke-width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: all;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   ${({ $isActive }) =>
     $isActive &&
@@ -151,10 +164,23 @@ const RegionEllipse = styled.ellipse<RegionEllipseProps>`
     `}
 
   &:hover {
-    fill: rgba(139, 92, 246, 0.18);
     stroke: #8B5CF6;
     stroke-width: 2;
-    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
+    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    stroke: #8B5CF6;
+    stroke-width: 3;
+    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
@@ -301,33 +327,42 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
       const severityColor = painEntry ? getSeverityColor(painEntry.painLevel) : null;
       const { cx, cy, rx, ry } = region.svgCoords;
 
-      // Expand small hit areas to meet 44px min touch target
-      const hitRx = Math.max(rx, HIT_AREA_MIN_R);
-      const hitRy = Math.max(ry, HIT_AREA_MIN_R);
-
       return (
-        <g key={region.id} onClick={() => onRegionClick(region.id)}>
-          {/* Invisible expanded hit area for small muscles */}
+        <g key={region.id}>
+          {/* Single interactive ellipse — handles touch, click, and keyboard */}
+          <RegionEllipse
+            cx={cx}
+            cy={cy}
+            rx={Math.max(rx, HIT_AREA_MIN_R)}
+            ry={Math.max(ry, HIT_AREA_MIN_R)}
+            $isActive={isActive}
+            $isSelected={isSelected}
+            $severityColor={severityColor}
+            onClick={() => onRegionClick(region.id)}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onRegionClick(region.id);
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            aria-label={`Select ${region.label}`}
+          />
+          {/* Visual-only overlay showing true anatomical size (no interaction) */}
           {(rx < HIT_AREA_MIN_R || ry < HIT_AREA_MIN_R) && (
             <ellipse
               cx={cx}
               cy={cy}
-              rx={hitRx}
-              ry={hitRy}
-              fill="transparent"
-              stroke="none"
-              style={{ cursor: 'pointer' }}
+              rx={rx}
+              ry={ry}
+              fill={isActive && severityColor ? `${severityColor}40` : 'rgba(64, 112, 192, 0.05)'}
+              stroke="inherit"
+              strokeWidth="inherit"
+              pointerEvents="none"
+              aria-hidden="true"
             />
           )}
-          <RegionEllipse
-            cx={cx}
-            cy={cy}
-            rx={rx}
-            ry={ry}
-            $isActive={isActive}
-            $isSelected={isSelected}
-            $severityColor={severityColor}
-          />
           {isActive && severityColor && (
             <PainDot cx={cx} cy={cy} r={3} $color={severityColor} />
           )}
