@@ -246,5 +246,12 @@ BROWSER_CONSOLE_TESTS.js
 # Executable installers in frontend assets (scoped to avoid ignoring intentional binaries elsewhere)
 frontend/src/assets/*.exe
 
+# Large media files — raw photos, bulk photo folders
+frontend/src/assets/*.ARW
+frontend/src/assets/Super-Nova-3-8-26/
+
+# Temp login/test artifacts
+_tmp_login.json
+
 # Untracked MCP/AI server directories
 /backend/unified-ai-server/
