@@ -143,18 +143,20 @@ const CopyBtn = styled.button`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  color: rgba(224, 236, 244, 0.5);
+  color: rgba(224, 236, 244, 0.7);
   cursor: pointer;
   padding: 6px;
   display: flex;
   align-items: center;
-  transition: all 0.2s;
+  min-height: 44px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   &:hover { color: #8B5CF6; border-color: rgba(139, 92, 246, 0.3); }
+  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: 2px; }
 `;
 
 const Note = styled.p`
   font-size: 0.8rem;
-  color: rgba(224, 236, 244, 0.4);
+  color: rgba(224, 236, 244, 0.7);
   margin: 0;
   padding: 12px;
   background: rgba(0, 0, 0, 0.15);

@@ -101,6 +101,33 @@ Any AI session that involves frontend UI/UX work MUST read these documents first
 
 ---
 
+## 9-Brain Recursive Consensus System (MANDATORY)
+SwanStudios uses a 9-Brain AI validation pipeline. **Run before every production deploy.**
+
+```bash
+# Run validation on recent changes
+node scripts/validation-orchestrator.mjs
+
+# Run on specific files
+node scripts/validation-orchestrator.mjs --files path/to/file.tsx
+
+# Run on staged changes
+node scripts/validation-orchestrator.mjs --staged
+```
+
+### Architecture
+- **Phase 1:** 7 parallel validators (Gemini 2.5 Flash, Claude Sonnet, Step 3.5 Flash, Gemini 3 Flash, MiniMax M2.1, DeepSeek V3.2, MiniMax M2.5)
+- **Phase 2:** Code quality recursive debate — Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO). Claude = final authority.
+- **Phase 3:** UX/UI design recursive debate — Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet (Collaborator). Gemini = final authority.
+- **Output:** `AI-Village-Documentation/validation-prompts/latest/` (summary, per-track reports, debate logs, fix instructions)
+- **Setup:** `OPENROUTER_API_KEY` in .env (required). `GEMINI_API_KEY` in .env (enables Phase 2+3 debates).
+- **Full docs:** `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`
+
+### When to Run
+- **MANDATORY:** Before pushing to main (production deploys)
+- **MANDATORY:** Before merging PRs with >100 lines changed
+- **RECOMMENDED:** After major refactors or new features
+
 ## AI Coordination
 - This project uses a Multi-AI Swarm (see `.clinerules` for full protocol)
 - **Current task tracker:** `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`

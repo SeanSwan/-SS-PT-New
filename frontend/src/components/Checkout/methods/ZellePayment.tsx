@@ -207,7 +207,7 @@ const DividerLine = styled.div`
 
 const DividerText = styled.span`
   font-size: 0.75rem;
-  color: rgba(224, 236, 244, 0.35);
+  color: rgba(224, 236, 244, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -271,7 +271,7 @@ const CopyBtn = styled.button`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  color: rgba(224, 236, 244, 0.5);
+  color: rgba(224, 236, 244, 0.7);
   cursor: pointer;
   padding: 6px 10px;
   font-size: 0.75rem;
@@ -284,7 +284,7 @@ const CopyBtn = styled.button`
 
 const Note = styled.p`
   font-size: 0.8rem;
-  color: rgba(224, 236, 244, 0.4);
+  color: rgba(224, 236, 244, 0.7);
   margin: 0;
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.15);

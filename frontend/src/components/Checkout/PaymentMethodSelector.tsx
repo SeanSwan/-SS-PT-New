@@ -7,8 +7,9 @@
  *
  * Design: Glassmorphic card grid per Gemini specs.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { css } from 'styled-components';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
@@ -41,6 +42,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
   const { success: toastSuccess, error: toastError } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('card');
   const [isProcessing, setIsProcessing] = useState(false);
+  const idempotencyKey = useRef(uuidv4());
   const [settings, setSettings] = useState<PaymentSettings>({
     zelleRecipient: '3239968153',
     venmoHandle: '',
@@ -83,6 +85,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
         },
         total,
         fee: calculateFee(selectedMethod, total),
+        idempotencyKey: idempotencyKey.current,
       });
 
       if (res.data?.success) {
@@ -92,7 +95,14 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
         throw new Error(res.data?.message || 'Order creation failed');
       }
     } catch (err: any) {
-      toastError(err.message || 'Failed to place order');
+      const data = err.response?.data;
+      if (data?.code === 'PRICE_MISMATCH') {
+        toastError(`Prices have been updated. New total: $${data.updatedTotal?.toFixed(2)}. Please review and try again.`);
+      } else {
+        toastError(data?.message || err.message || 'Failed to place order');
+      }
+      // Generate new idempotency key for retry
+      idempotencyKey.current = uuidv4();
     } finally {
       setIsProcessing(false);
     }
@@ -229,6 +239,11 @@ const MethodCard = styled.button<{ $active: boolean }>`
     border-color: rgba(96, 192, 240, 0.3);
     transform: translateY(-2px);
   }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+  }
 `;
 
 const ZeroFeeBadge = styled.span`
@@ -260,13 +275,13 @@ const MethodLabel = styled.span`
 const MethodFee = styled.span<{ $zero: boolean }>`
   font-size: 0.72rem;
   font-weight: 600;
-  color: ${p => p.$zero ? '#8B5CF6' : 'rgba(224, 236, 244, 0.4)'};
+  color: ${p => p.$zero ? '#8B5CF6' : 'rgba(224, 236, 244, 0.7)'};
 `;
 
 const FeeSummary = styled.div`
   text-align: center;
   font-size: 0.8rem;
-  color: rgba(224, 236, 244, 0.5);
+  color: rgba(224, 236, 244, 0.7);
   padding: 8px;
 
   strong {
@@ -288,7 +303,7 @@ const MethodContent = styled.div`
 const ACHPlaceholder = styled.div`
   text-align: center;
   padding: 40px 16px;
-  color: rgba(224, 236, 244, 0.4);
+  color: rgba(224, 236, 244, 0.7);
   font-size: 0.9rem;
 `;
 

@@ -2,28 +2,34 @@
 
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║         SwanStudios Parallel Validation Orchestrator            ║
- * ║           8-Brain System — OpenRouter + Google GenAI              ║
+ * ║         SwanStudios 9-Brain Recursive Consensus System          ║
+ * ║           OpenRouter + Google GenAI + Recursive Debates          ║
  * ║                                                                  ║
  * ║  Phase 1 — 7 parallel analysts (OpenRouter):                      ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility        (FREE)    ║
  * ║  2. Claude 4.5 Sonnet   → Code Quality               (FREE)    ║
- * ║  3. DeepSeek V3.2        → Security scan              (FREE)    ║
+ * ║  3. Step 3.5 Flash       → Security scan              (FREE)    ║
  * ║  4. Gemini 3 Flash       → Performance review         (FREE)    ║
  * ║  5. MiniMax M2.1         → Competitive intelligence   (FREE)    ║
  * ║  6. DeepSeek V3.2        → User research / personas   (FREE)    ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)  ║
  * ║                                                                  ║
- * ║  Phase 2 — CO-ORCHESTRATOR (Google GenAI):                       ║
- * ║  8. Gemini 3.1 Pro       → Lead Design Authority      (own      ║
- * ║                             vision — Flash is just extra data)   ║
+ * ║  Phase 2 — RECURSIVE CODE QUALITY DEBATE:                       ║
+ * ║  8. Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)             ║
+ * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
+ * ║     Claude = final authority on code decisions                  ║
  * ║                                                                  ║
- * ║  Architecture: Gemini 3.1 Pro + Claude = co-orchestrators        ║
- * ║  Gemini designs, Claude implements. Flash is supplementary.      ║
+ * ║  Phase 3 — RECURSIVE UX/UI DESIGN DEBATE:                      ║
+ * ║  9. Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collaborator)      ║
+ * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
+ * ║     Gemini = final authority on design decisions                ║
+ * ║                                                                  ║
+ * ║  Architecture: Gemini + Claude = recursive co-orchestrators     ║
+ * ║  They DEBATE until consensus. No single-pass reviews.           ║
  * ║                                                                  ║
  * ║  Setup: Add to .env:                                             ║
  * ║    OPENROUTER_API_KEY=sk-or-v1-xxxxx                            ║
- * ║    GEMINI_API_KEY=AIzaSy... (optional — enables 8th brain)      ║
+ * ║    GEMINI_API_KEY=AIzaSy... (enables Phase 2+3 debates)        ║
  * ║                                                                  ║
  * ║  Usage:                                                          ║
  * ║    node scripts/validation-orchestrator.mjs                      ║
@@ -33,10 +39,11 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'fs';
 import { execSync } from 'child_process';
-import { join, extname } from 'path';
+import { join, extname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { runRecursiveConsensus } from './lib/recursive-consensus.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -53,13 +60,14 @@ const MODELS = {
   // ── VERIFIED FREE on OpenRouter ──
   gemini25Flash:  'google/gemini-2.5-flash',           // FREE — fast, great at structured analysis
   gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
-  deepseekV3:     'deepseek/deepseek-v3.2-20251201',  // FREE
+  deepseekV3:     'deepseek/deepseek-v3.2-20251201',  // FREE — user research / personas
+  step35Flash:    'stepfun/step-3.5-flash:free',       // FREE — 256K ctx, 74.4% SWE-bench, security specialist
   minimaxM21:     'minimax/minimax-m2.1',              // FREE
-  claudeSonnet45: 'anthropic/claude-4.5-sonnet-20250929', // FREE on OpenRouter
+  claudeSonnet45: 'anthropic/claude-4.5-sonnet-20250929', // FREE on OpenRouter — also used in Phase 2 debate
   // ── PAID models (clearly marked) ──
   minimaxM25:     'minimax/minimax-m2.5',              // ~$0.005/run — #1 programming
   // ── Google GenAI (direct API, not via OpenRouter) ──
-  gemini31Pro:    'gemini-3.1-pro-preview',            // Direct Google API — best for UI/UX frontend review
+  gemini31Pro:    'gemini-3.1-pro-preview',            // Direct Google API — Phase 2+3 recursive debates
   // ── EXPENSIVE (DO NOT USE in orchestrator) ──
   // claudeOpus:  'anthropic/claude-4.6-opus-20260205' // $5/$25 per M tokens — use via CLI subscription instead
 };
@@ -91,7 +99,11 @@ function loadEnv() {
         const eqIdx = trimmed.indexOf('=');
         if (eqIdx === -1) continue;
         const key = trimmed.slice(0, eqIdx).trim();
-        const val = trimmed.slice(eqIdx + 1).trim();
+        let val = trimmed.slice(eqIdx + 1).trim();
+        // Strip surrounding quotes (single or double)
+        if (/^(['"]).*\1$/.test(val)) {
+          val = val.slice(1, -1);
+        }
         if (!process.env[key]) process.env[key] = val;
       }
     }
@@ -155,7 +167,8 @@ function getRecentFiles(opts) {
         const unitMap = { h: 'hours', d: 'days', m: 'minutes' };
         timeArg = `--since="${num} ${unitMap[unit]} ago"`;
       } else {
-        timeArg = `--since="${since}"`;
+        // Reject invalid formats to prevent command injection
+        throw new Error(`Invalid --since format: "${since}". Use format like 2h, 1d, 30m.`);
       }
       const out = execSync(
         `git log ${timeArg} --diff-filter=ACMR --name-only --pretty=format:""`,
@@ -175,9 +188,14 @@ function getRecentFiles(opts) {
   const files = [];
   let totalChars = 0;
   for (const fp of filePaths) {
-    const fullPath = join(ROOT, fp);
+    const fullPath = resolve(ROOT, fp);
+    // Path traversal guard: ensure resolved path stays within project root
+    if (!fullPath.startsWith(resolve(ROOT))) continue;
     if (!existsSync(fullPath)) continue;
     try {
+      // Skip files larger than 1MB to prevent OOM
+      const stats = statSync(fullPath);
+      if (stats.size > 1024 * 1024) continue;
       const content = readFileSync(fullPath, 'utf-8');
       if (totalChars + content.length > CONFIG.maxCodeChars) {
         const remaining = CONFIG.maxCodeChars - totalChars;
@@ -250,8 +268,8 @@ ${codeBundle}`,
 
     {
       name: 'Security',
-      model: MODELS.deepseekV3,
-      prompt: `You are a security auditor specializing in web application security. ${ctx}
+      model: MODELS.step35Flash,
+      prompt: `You are a security auditor specializing in web application security. You are Step 3.5 Flash — a reasoning model with 74.4% SWE-bench accuracy. Use your deep reasoning to find subtle security flaws. ${ctx}
 
 Review the following code for:
 1. **OWASP Top 10** — XSS, injection, broken auth, SSRF, insecure deserialization
@@ -390,89 +408,104 @@ ${codeBundle}`,
     },
   ];
 
-  // ── 8th Brain: Gemini 3.1 Pro — CO-ORCHESTRATOR (independent design authority) ──
-  // Gemini 3.1 Pro is NOT a reviewer of Flash's work. It creates its OWN
-  // independent design vision from scratch. Flash's notes are appended as
-  // supplementary data only — Gemini does NOT adopt Flash's framework or ratings.
-  // Gemini 3.1 Pro operates at orchestrator level alongside Claude.
-  if (getGeminiKey()) {
-    tracks.push({
-      name: 'Frontend UI/UX Expert',
-      model: MODELS.gemini31Pro,
-      provider: 'gemini-direct',
-      phase2: true,
-      dependsOn: 'UX & Accessibility',
-      buildPrompt: (flashNotes) => `You are a world-class frontend UI/UX engineer, design systems architect, and CO-ORCHESTRATOR for the SwanStudios platform. You specialize in React + TypeScript + styled-components with dark cosmic themes. ${ctx}
-
-## YOUR ROLE — CO-ORCHESTRATOR (Lead Design Authority)
-
-You are the PRIMARY design authority for this platform. You create your OWN independent analysis and design vision FROM SCRATCH. You do NOT refine, iterate on, or adopt any other model's framework.
-
-Your output will be used by Claude (the implementation AI) as authoritative design direction. Claude consults you on architectural plans before executing. You are the Lead UI/UX Architect working alongside a Lead Software Engineer (Claude) — equals, collaborating.
-
-When you identify issues, provide design solutions that Claude can directly implement. Be prescriptive — give exact CSS values, animation specs, pixel measurements, color codes. Claude will follow your design direction.
-
-## YOUR INDEPENDENT ANALYSIS
-
-Analyze this code with YOUR design vision. Be original. Be opinionated. Design from first principles.
-
-1. **Design Vision & Direction** — What should this look like? What's the design philosophy?
-   - Does the current implementation match a premium fitness SaaS aesthetic?
-   - Crystalline Swan token usage (Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6) — maximized or wasted?
-   - RETIRED Galaxy-Swan tokens (#0a0a1a, #00FFFF, #7851A9) — flag any remaining usage as tech debt
-   - What parallax effects, micro-animations, or visual storytelling would elevate this?
-   - Design inspiration from top-tier apps (Apple Fitness+, Peloton, Nike Training Club)
-
-2. **Component Architecture** — How should components be structured?
-   - Design system integrity — tokens vs hardcoded values
-   - 10-breakpoint responsive matrix (320, 375, 430, 768, 1024, 1280, 1440, 1920, 2560, 3840px)
-   - Component decomposition — monolithic vs properly composed
-   - Animation strategy — CSS transforms, Framer Motion, or CSS keyframes?
-
-3. **Interaction Design** — How should this FEEL to use?
-   - Touch targets (44px min), gesture support, feedback choreography
-   - Loading choreography — skeleton screens, staggered reveals, shimmer effects
-   - Form UX — inline validation, focus management, success celebrations
-   - Navigation flow — minimal friction to revenue-critical actions
-   - Micro-interactions — hover states, transitions, scroll-triggered effects
-
-4. **Accessibility (WCAG 2.1 AA)** — Universal usability
-   - Color contrast (4.5:1 text, 3:1 UI), keyboard nav, screen reader support
-   - Focus indicators, skip links, aria labels, live regions
-   - prefers-reduced-motion, prefers-color-scheme respect
-
-5. **Mobile-First UX** — Phone-first design
-   - Bottom-sheet modals, swipe gestures, sticky action bars
-   - Thumb-zone optimization, input types, viewport handling
-
-6. **Performance UX** — Perceived speed
-   - Optimistic updates, code splitting, lazy loading
-   - Image optimization (WebP, srcset), bundle impact
-
-## Output Format — Design Directives for Claude
-
-For each finding, provide SPECIFIC implementation instructions:
-
-- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
-- **File & Location:** Exact file and section
-- **Design Problem:** What's wrong visually or architecturally
-- **Design Solution:** Your specific vision — include styled-component code, CSS values, animation specs, exact measurements. Be prescriptive.
-- **Implementation Notes for Claude:** Step-by-step instructions Claude should follow to execute your vision
-
-Be bold. Be specific. This platform charges premium prices — the UI must justify that price.
-
-CODE TO REVIEW:
-${codeBundle}
-
----
-
-_Supplementary: A secondary scanner (Gemini 2.5 Flash) also checked for basic accessibility issues. Raw notes below for awareness only — do not adopt their framework or ratings. Your analysis is independent._
-
-${flashNotes ? `\`\`\`\n${flashNotes}\n\`\`\`` : '_No supplementary notes._'}`,
-    });
-  }
+  // Phase 2 + 3 are now recursive debates — handled in main() via runRecursiveConsensus()
+  // The old single-pass Gemini track is replaced by debate loops.
 
   return tracks;
+}
+
+// ─────────────────────────────────────────────
+// Phase 2 & 3 Debate Prompt Builders
+// ─────────────────────────────────────────────
+
+function buildPhase2DebatePrompt(codeBundle, ctx, phase1Summary) {
+  return `You are the CTO (Chief Technology Officer) reviewing code for the SwanStudios platform. ${ctx}
+
+## YOUR ROLE — CTO (Code Quality Authority)
+
+You are starting a structured debate with the CEO (Claude) about code quality. Your job is to identify every issue — bugs, architecture flaws, security gaps, performance problems, tech debt.
+
+The CEO will challenge your findings. You must defend with evidence or concede gracefully.
+
+## Phase 1 Context (7 validators already ran)
+
+${phase1Summary}
+
+## Your Analysis — Round 1
+
+Review the code below. For each finding provide:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **File & Line:** Exact location
+- **What's Wrong:** Clear description with evidence
+- **Proposed Fix:** Specific code change
+
+Be thorough. The CEO will push back on anything that isn't well-evidenced.
+
+CODE TO REVIEW:
+${codeBundle}`;
+}
+
+function buildPhase2CEOPrompt(ctx) {
+  return `You are the CEO (Chief Executive Officer) — the FINAL AUTHORITY on code quality decisions for SwanStudios. ${ctx}
+
+## YOUR ROLE — CEO (Final Code Authority)
+
+You are debating with the CTO (Gemini) about code quality findings. Your job is to:
+1. Validate which findings are REAL issues worth fixing
+2. Push back on false positives, nitpicks, or impractical suggestions
+3. Prioritize based on business impact (revenue-critical paths first)
+4. Consider implementation cost vs benefit
+
+You have FINAL SAY on all code decisions. If consensus isn't reached, you decide.`;
+}
+
+function buildPhase3DesignPrompt(codeBundle, ctx, phase1UXReport) {
+  return `You are the Creative Director for SwanStudios — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
+
+## YOUR ROLE — Creative Director (Design Authority)
+
+You are starting a structured debate with a Design Collaborator (Claude) about the UI/UX quality of this code.
+
+You create your OWN independent design vision FROM SCRATCH. You are opinionated, prescriptive, and bold.
+
+## Crystalline Swan Design Tokens (MANDATORY)
+- Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface)
+- Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary)
+- Wing Purple #8B5CF6 (Glow Accent — ALL interactive elements)
+- Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background)
+- Swan Lavender #4070C0 (Tertiary)
+- RETIRED: Galaxy-Swan (#0a0a1a, #00FFFF, #7851A9) — flag any usage
+
+## UX Accessibility Report (from Phase 1)
+${phase1UXReport || '_No Phase 1 UX report available._'}
+
+## Your Analysis — Round 1
+
+For each finding, provide SPECIFIC implementation instructions:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **File & Location:** Exact file and section
+- **Design Problem:** What's wrong visually
+- **Design Solution:** Exact CSS values, animation specs, pixel measurements, color codes
+- **Implementation Notes:** Step-by-step for the implementing engineer
+
+Be bold. This platform charges premium prices — the UI must justify that price.
+
+CODE TO REVIEW:
+${codeBundle}`;
+}
+
+function buildPhase3CollaboratorPrompt(ctx) {
+  return `You are a Design Collaborator reviewing UX/UI findings for SwanStudios. ${ctx}
+
+## YOUR ROLE — Design Collaborator
+
+You are debating with the Creative Director (Gemini) about UI/UX design. Your job is to:
+1. Validate which design findings are practical to implement
+2. Flag any suggestions that would hurt performance or accessibility
+3. Suggest implementation-aware alternatives where the Creative Director's vision is impractical
+4. Ensure mobile-first (44px touch targets, 10-breakpoint responsive matrix)
+
+The Creative Director has FINAL SAY on design decisions. You challenge but ultimately defer to their design authority.`;
 }
 
 // ─────────────────────────────────────────────
@@ -594,7 +627,7 @@ async function runValidator(apiKey, track, index) {
                 (result.outputTokens / 1_000_000 * 12.0);
     }
     // Safety: warn if a "free" model somehow reports cost
-    const isPaidModel = track.model === MODELS.minimaxM25 || track.model === MODELS.gemini31Pro;
+    const isPaidModel = track.model === MODELS.minimaxM25 || track.model === MODELS.gemini31Pro || track.model === MODELS.step35Flash;
     if (!isPaidModel && costUSD > 0.01) {
       console.warn(`    ⚠️  WARNING: "${track.name}" cost $${costUSD.toFixed(4)} — may not be free anymore!`);
     }
@@ -689,8 +722,10 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios Validation Orchestrator v8.0 — AI Village Edition*
-*${successCount} Validators: Gemini 2.5 Flash + Claude 4.5 Sonnet + DeepSeek V3.2 x2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5${getGeminiKey() ? ' + Gemini 3.1 Pro' : ''}*
+*SwanStudios 9-Brain Recursive Consensus System v9.0*
+*Phase 1: Gemini 2.5 Flash + Claude 4.5 Sonnet + Step 3.5 Flash + DeepSeek V3.2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5*
+*Phase 2: Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO) recursive debate*
+*Phase 3: Gemini 3.1 Pro (Creative Dir) ↔ Claude Sonnet (Collaborator) recursive debate*
 `;
 
   return { md, timestamp };
@@ -724,22 +759,29 @@ async function main() {
   loadEnv();
 
   const hasGemini31 = !!getGeminiKey();
-  const brainCount = hasGemini31 ? 8 : 7;
+  const brainCount = hasGemini31 ? 9 : 7;
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
-  console.log('  ║    SwanStudios Parallel Validation Orchestrator         ║');
+  console.log('  ║    SwanStudios 9-Brain Recursive Consensus System       ║');
   const subtitle = hasGemini31
-    ? `${brainCount}-Brain System — Gemini 3.1 Pro ENABLED`
-    : `${brainCount}-Brain System — VERIFIED FREE Edition`;
+    ? `${brainCount}-Brain — Recursive Debates ENABLED`
+    : `7-Brain — Phase 1 only (add GEMINI_API_KEY for 9-Brain)`;
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
-  console.log('  ║    Gemini 2.5 Flash · Claude 4.5 Sonnet · DeepSeek V3.2║');
-  console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · MiniMax M2.5        ║');
+  console.log('  ║    Phase 1: 7 Parallel Validators (OpenRouter)          ║');
+  console.log('  ║    Gemini 2.5 Flash · Claude Sonnet · Step 3.5 Flash   ║');
+  console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · DeepSeek V3.2      ║');
+  console.log('  ║    MiniMax M2.5                                         ║');
   if (hasGemini31) {
-    console.log('  ║    ────── Phase 2: Co-Orchestrator ──────              ║');
-    console.log('  ║    Gemini 3.1 Pro → Lead Design Authority (own vision)║');
-    console.log('  ║    Gemini designs · Claude implements · Flash assists  ║');
+    console.log('  ║                                                          ║');
+    console.log('  ║    Phase 2: Code Quality Recursive Debate              ║');
+    console.log('  ║    Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO)         ║');
+    console.log('  ║    Claude = final authority · max 5 rounds             ║');
+    console.log('  ║                                                          ║');
+    console.log('  ║    Phase 3: UX/UI Design Recursive Debate              ║');
+    console.log('  ║    Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collab)    ║');
+    console.log('  ║    Gemini = final authority · max 5 rounds             ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
@@ -780,15 +822,18 @@ async function main() {
   console.log('');
 
   const codeBundle = formatCodeBundle(files);
+  const fileNames = files.map(f => f.path).join(', ');
+  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Glow Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
   const tracks = buildValidatorTracks(codeBundle, files);
 
-  // Split tracks into Phase 1 (parallel) and Phase 2 (depends on Phase 1 results)
-  const phase1Tracks = tracks.filter(t => !t.phase2);
-  const phase2Tracks = tracks.filter(t => t.phase2);
+  // All tracks are Phase 1 now — Phase 2+3 are recursive debates
+  const phase1Tracks = tracks;
+  const totalPhases = hasGemini31 ? 3 : 1;
 
-  console.log(`  Launching ${phase1Tracks.length} validators — Phase 1 (staggered 2s apart)...`);
-  if (phase2Tracks.length > 0) {
-    console.log(`  Then ${phase2Tracks.length} senior reviewer(s) — Phase 2 (receives Phase 1 reports)...`);
+  console.log(`  Phase 1: Launching ${phase1Tracks.length} validators (staggered 2s apart)...`);
+  if (hasGemini31) {
+    console.log(`  Phase 2: Code Quality recursive debate (Gemini CTO ↔ Claude CEO)...`);
+    console.log(`  Phase 3: UX/UI Design recursive debate (Gemini Creative Dir ↔ Claude Collab)...`);
   }
   console.log('');
 
@@ -796,38 +841,157 @@ async function main() {
   const phase1Results = await Promise.all(phase1Tracks.map(async (track, index) => {
     const tag = track.name.padEnd(35);
     const modelShort = track.model.split('/').pop();
-    console.log(`    [${index + 1}/${tracks.length}] ${tag} -> ${modelShort}`);
+    console.log(`    [P1 ${index + 1}/${phase1Tracks.length}] ${tag} -> ${modelShort}`);
     const result = await runValidator(apiKey, track, index);
     const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
     console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
     return result;
   }));
 
-  // ── Phase 2: Senior reviewers that consume Phase 1 output ──
-  const phase2Results = [];
-  for (const track of phase2Tracks) {
-    // Find the dependency's output
-    const depResult = phase1Results.find(r => r.name === track.dependsOn);
-    const depReport = depResult?.status === 'SUCCESS' ? depResult.text : null;
+  // ── Build Phase 1 summary for Phase 2+3 context ──
+  const phase1Summary = phase1Results
+    .filter(r => r.status === 'SUCCESS')
+    .map(r => `### ${r.name} (${r.model})\n${r.text.slice(0, 2000)}${r.text.length > 2000 ? '\n... (truncated)' : ''}`)
+    .join('\n\n---\n\n');
 
-    // Build the prompt with the dependency's report injected
-    if (track.buildPrompt) {
-      track.prompt = track.buildPrompt(depReport);
+  const uxReport = phase1Results.find(r => r.name === 'UX & Accessibility' && r.status === 'SUCCESS')?.text || null;
+
+  // ── Phase 2: Code Quality Recursive Debate ──
+  const debateResults = [];
+  let phase2DebateLog = null;
+  let phase3DebateLog = null;
+
+  // Helper to call either OpenRouter or Gemini based on provider
+  async function callModelForDebate(provider, model, prompt) {
+    if (provider === 'gemini-direct') {
+      return callGeminiDirect(getGeminiKey(), model, prompt);
+    } else {
+      return callOpenRouter(apiKey, model, prompt);
     }
-
-    const idx = phase1Tracks.length + phase2Results.length;
-    const tag = track.name.padEnd(35);
-    const modelShort = track.model.split('/').pop();
-    const depStatus = depReport ? `(reviewing ${track.dependsOn} report)` : `(${track.dependsOn} failed — independent review)`;
-    console.log(`    [${idx + 1}/${tracks.length}] ${tag} -> ${modelShort} ${depStatus}`);
-
-    const result = await runValidator(apiKey, track, 0); // no stagger needed — single track
-    const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
-    console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
-    phase2Results.push(result);
   }
 
-  const results = [...phase1Results, ...phase2Results];
+  if (hasGemini31) {
+    console.log('');
+    console.log('  ── Phase 2: Code Quality Recursive Debate ──');
+    console.log('  Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)');
+    console.log('  Max 5 rounds · Claude has final authority');
+    console.log('');
+
+    try {
+      const phase2Start = Date.now();
+      const phase2Result = await runRecursiveConsensus({
+        topic: 'Code Quality & Architecture',
+        modelA: {
+          name: 'Gemini 3.1 Pro',
+          model: MODELS.gemini31Pro,
+          provider: 'gemini-direct',
+          role: 'CTO (Chief Technology Officer)',
+        },
+        modelB: {
+          name: 'Claude 4.5 Sonnet',
+          model: MODELS.claudeSonnet45,
+          provider: 'openrouter',
+          role: 'CEO (Chief Executive Officer)',
+        },
+        finalAuthority: 'B', // Claude = CEO = final say on code
+        initialPrompt: buildPhase2DebatePrompt(codeBundle, ctx, phase1Summary),
+        callModel: callModelForDebate,
+        onRound: (round, speaker, text) => {
+          const preview = text.slice(0, 80).replace(/\n/g, ' ');
+          console.log(`    [P2 R${round}] ${speaker.padEnd(20)} ${preview}...`);
+        },
+      });
+
+      const phase2Duration = Date.now() - phase2Start;
+      phase2DebateLog = phase2Result.debateLog;
+      const consensusTag = phase2Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY DECIDED';
+      console.log(`    [${consensusTag}] Phase 2 complete — ${phase2Result.rounds.length} rounds, ${(phase2Duration / 1000).toFixed(1)}s`);
+
+      debateResults.push({
+        name: 'Code Quality Debate (Phase 2)',
+        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+        status: 'SUCCESS',
+        text: phase2Result.finalVerdict,
+        inputTokens: phase2Result.totalTokens.input,
+        outputTokens: phase2Result.totalTokens.output,
+        costUSD: (phase2Result.totalTokens.input / 1_000_000 * 2.0) + (phase2Result.totalTokens.output / 1_000_000 * 12.0),
+        durationMs: phase2Duration,
+        debateLog: phase2Result.debateLog,
+        consensusReached: phase2Result.consensusReached,
+      });
+    } catch (err) {
+      console.error(`    [FAIL] Phase 2 debate error: ${err.message}`);
+      debateResults.push({
+        name: 'Code Quality Debate (Phase 2)',
+        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+        status: 'ERROR',
+        text: `Error: ${err.message}`,
+        inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0,
+      });
+    }
+
+    // ── Phase 3: UX/UI Design Recursive Debate ──
+    console.log('');
+    console.log('  ── Phase 3: UX/UI Design Recursive Debate ──');
+    console.log('  Gemini 3.1 Pro (Creative Director) ↔ Claude 4.5 Sonnet (Collaborator)');
+    console.log('  Max 5 rounds · Gemini has final authority');
+    console.log('');
+
+    try {
+      const phase3Start = Date.now();
+      const phase3Result = await runRecursiveConsensus({
+        topic: 'UX/UI Design Quality',
+        modelA: {
+          name: 'Gemini 3.1 Pro',
+          model: MODELS.gemini31Pro,
+          provider: 'gemini-direct',
+          role: 'Creative Director (Lead Design Authority)',
+        },
+        modelB: {
+          name: 'Claude 4.5 Sonnet',
+          model: MODELS.claudeSonnet45,
+          provider: 'openrouter',
+          role: 'Design Collaborator',
+        },
+        finalAuthority: 'A', // Gemini = Creative Director = final say on design
+        initialPrompt: buildPhase3DesignPrompt(codeBundle, ctx, uxReport),
+        callModel: callModelForDebate,
+        onRound: (round, speaker, text) => {
+          const preview = text.slice(0, 80).replace(/\n/g, ' ');
+          console.log(`    [P3 R${round}] ${speaker.padEnd(20)} ${preview}...`);
+        },
+      });
+
+      const phase3Duration = Date.now() - phase3Start;
+      phase3DebateLog = phase3Result.debateLog;
+      const consensusTag = phase3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY DECIDED';
+      console.log(`    [${consensusTag}] Phase 3 complete — ${phase3Result.rounds.length} rounds, ${(phase3Duration / 1000).toFixed(1)}s`);
+
+      debateResults.push({
+        name: 'UX/UI Design Debate (Phase 3)',
+        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+        status: 'SUCCESS',
+        text: phase3Result.finalVerdict,
+        inputTokens: phase3Result.totalTokens.input,
+        outputTokens: phase3Result.totalTokens.output,
+        costUSD: (phase3Result.totalTokens.input / 1_000_000 * 2.0) + (phase3Result.totalTokens.output / 1_000_000 * 12.0),
+        durationMs: phase3Duration,
+        debateLog: phase3Result.debateLog,
+        consensusReached: phase3Result.consensusReached,
+      });
+    } catch (err) {
+      console.error(`    [FAIL] Phase 3 debate error: ${err.message}`);
+      debateResults.push({
+        name: 'UX/UI Design Debate (Phase 3)',
+        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+        status: 'ERROR',
+        text: `Error: ${err.message}`,
+        inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0,
+      });
+    }
+  }
+
+  const results = [...phase1Results, ...debateResults];
 
   console.log('');
 
@@ -838,25 +1002,53 @@ async function main() {
   // ── Write section-specific files to AI Village ──
   const outputPaths = writeSplitOutput(results, files, md, timestamp);
 
+  // ── Write debate logs (Phase 2 + 3) ──
+  if (phase2DebateLog) {
+    writeFileSync(join(outputPaths.latestDir, 'debate-log.md'), phase2DebateLog, 'utf-8');
+    writeFileSync(join(outputPaths.archiveDir, 'debate-log.md'), phase2DebateLog, 'utf-8');
+  }
+  if (phase3DebateLog) {
+    writeFileSync(join(outputPaths.latestDir, 'design-debate-log.md'), phase3DebateLog, 'utf-8');
+    writeFileSync(join(outputPaths.archiveDir, 'design-debate-log.md'), phase3DebateLog, 'utf-8');
+  }
+
+  // ── Write fix-instructions.md (actionable from Phase 2 consensus) ──
+  const phase2Verdict = debateResults.find(r => r.name.includes('Phase 2'));
+  if (phase2Verdict?.status === 'SUCCESS') {
+    const fixInstructions = `# Fix Instructions — Code Quality Consensus\n\n> Generated from Phase 2 recursive debate (Gemini CTO ↔ Claude CEO)\n> Consensus: ${phase2Verdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2Verdict.text}\n`;
+    writeFileSync(join(outputPaths.latestDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
+    writeFileSync(join(outputPaths.archiveDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
+  }
+
+  // ── Write design-recommendations.md (actionable from Phase 3 consensus) ──
+  const phase3Verdict = debateResults.find(r => r.name.includes('Phase 3'));
+  if (phase3Verdict?.status === 'SUCCESS') {
+    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 3 recursive debate (Gemini Creative Director ↔ Claude Collaborator)\n> Consensus: ${phase3Verdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase3Verdict.text}\n`;
+    writeFileSync(join(outputPaths.latestDir, 'design-recommendations.md'), designRecs, 'utf-8');
+    writeFileSync(join(outputPaths.archiveDir, 'design-recommendations.md'), designRecs, 'utf-8');
+  }
+
   // ── Legacy mirror (backwards compat) ──
   mkdirSync(CONFIG.legacyReportDir, { recursive: true });
   writeFileSync(join(CONFIG.legacyReportDir, 'LATEST.md'), md, 'utf-8');
 
+  const totalValidators = phase1Tracks.length + debateResults.length;
   console.log('  ════════════════════════════════════════════════════════');
+  console.log(`  9-Brain Recursive Consensus System — Complete`);
   console.log(`  AI Village Output:`);
   console.log(`    Latest:     ${outputPaths.latestDir}/`);
   console.log(`    Summary:    ${outputPaths.summary}`);
+  if (phase2DebateLog) console.log(`    Debate Log: latest/debate-log.md`);
+  if (phase3DebateLog) console.log(`    Design Log: latest/design-debate-log.md`);
   console.log(`    Archive:    ${outputPaths.archiveDir}/`);
-  console.log(`  Results:  ${successCount}/${tracks.length} validators passed`);
+  console.log(`  Phase 1:  ${successCount}/${phase1Tracks.length} validators passed`);
+  if (debateResults.length > 0) {
+    const debateSuccess = debateResults.filter(r => r.status === 'SUCCESS').length;
+    console.log(`  Phase 2+3: ${debateSuccess}/${debateResults.length} debates completed`);
+  }
   console.log(`  Cost:     $${totalCost.toFixed(4)}`);
   console.log(`  Time:     ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
   console.log('  ════════════════════════════════════════════════════════');
-  console.log('');
-  console.log('  >> Section-specific prompts are in:');
-  console.log('  >>   AI-Village-Documentation/validation-prompts/latest/');
-  console.log('  >>');
-  console.log('  >> Paste the ONBOARDING.md into Claude Code or Gemini');
-  console.log('  >> and the AI will know where to find everything.');
   console.log('');
 }
 
@@ -873,7 +1065,8 @@ const TRACK_SLUGS = {
   'Competitive Intelligence': '05-competitive-intel',
   'User Research & Persona Alignment': '06-user-research',
   'Architecture & Bug Hunter': '07-architecture-bugs',
-  'Frontend UI/UX Expert': '08-frontend-uiux',
+  'Code Quality Debate (Phase 2)': '08-code-quality-debate',
+  'UX/UI Design Debate (Phase 3)': '09-design-debate',
 };
 
 function writeSplitOutput(results, files, fullReport, timestamp) {
@@ -902,7 +1095,7 @@ ${r.text}
 
 ---
 
-*Part of SwanStudios 7-Brain Validation System*
+*Part of SwanStudios 9-Brain Recursive Consensus System*
 `;
     writeFileSync(join(latestDir, `${slug}.md`), content, 'utf-8');
     writeFileSync(join(archiveDir, `${slug}.md`), content, 'utf-8');
@@ -983,9 +1176,14 @@ Each track has its own file — read only the ones relevant to your task:
 | \`05-competitive-intel.md\` | Feature gaps, market positioning |
 | \`06-user-research.md\` | User flows, persona alignment, onboarding |
 | \`07-architecture-bugs.md\` | Bugs, architecture issues, tech debt |
-| \`08-frontend-uiux.md\` | UI design, components, interactions (Gemini 3.1 Pro) |
+| \`08-code-quality-debate.md\` | Phase 2 recursive debate verdict (Gemini CTO ↔ Claude CEO) |
+| \`09-design-debate.md\` | Phase 3 recursive debate verdict (Gemini Creative Dir ↔ Claude Collab) |
+| \`debate-log.md\` | Full Phase 2 debate transcript (all rounds) |
+| \`design-debate-log.md\` | Full Phase 3 debate transcript (all rounds) |
+| \`fix-instructions.md\` | Actionable code fixes from Phase 2 consensus |
+| \`design-recommendations.md\` | Actionable design fixes from Phase 3 consensus |
 
-*SwanStudios 8-Brain Validation System v8.0*
+*SwanStudios 9-Brain Recursive Consensus System v9.0*
 `;
 }
 
@@ -1040,9 +1238,9 @@ function buildHandoffPrompt(results, files) {
 
   return `# SwanStudios Validation Handoff — Paste This Into Claude Code or Gemini
 
-I just ran 7 parallel AI validators on these files: ${fileNames}
+I just ran the 9-Brain Recursive Consensus System on these files: ${fileNames}
 
-Here is a consolidated summary of all findings from the 7 AI reviewers. Please analyze these findings, prioritize them, create an action plan, and fix the CRITICAL and HIGH issues.
+Here is a consolidated summary of all findings from Phase 1 (7 parallel validators) + Phase 2 (code quality debate) + Phase 3 (design debate). Please analyze these findings, prioritize them, create an action plan, and fix the CRITICAL and HIGH issues.
 
 ---
 

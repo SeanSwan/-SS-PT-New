@@ -1,8 +1,8 @@
-# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v5.0
-## UNIFIED: Swarm Protocols + 5-Brain Review + Cinematic Web Design System + Skills.sh Integration + Security-First + Mobile-First Execution
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v6.0
+## UNIFIED: 9-Brain Recursive Consensus System + Swarm Protocols + Cinematic Web Design + Skills.sh + Security-First + Mobile-First
 
-**LATEST UPDATE:** 2026-03-01 - Added Gamification Architecture section (Octalysis + SDT, leveling, 6 skill trees, achievement templates, rarity system, DB schema, API reference, frontend integration)
-**Previous:** 2026-02-27 — Added SwanStudios Social Master Strategy v4.1, global dark-mode requirements, and cross-app social/training reference linkage
+**LATEST UPDATE:** 2026-03-13 — **9-Brain Recursive Consensus System**: Phase 1 (7 parallel validators) → Phase 2 (code quality Gemini↔Claude debate) → Phase 3 (UX/UI design Gemini↔Claude debate). Replaced DeepSeek V3.2 on Security with Step 3.5 Flash. Added recursive debate loop architecture.
+**Previous:** v5.0 (2026-03-01) — Gamification Architecture (Octalysis + SDT, leveling, 6 skill trees)
 **Previous:** v4.0 (2026-02-15) — Security-First, Mobile-First, Anti-Hallucination
 
 ---
@@ -27,7 +27,7 @@
 - ✅ **Use Cinematic Web Design System for ALL frontend work**
 - ✅ **Read task-relevant skills (by category) before implementation**
 - ✅ Follow Build Gate (design → approval → code)
-- ✅ **Enforce 5-Brain Protocol** (Architect → Builder → QA → Visionary → Logician)
+- ✅ **Enforce 9-Brain Recursive Consensus** (`node scripts/validation-orchestrator.mjs` before every deploy)
 - ✅ Security-first, mobile-first, evidence-based execution
 - ✅ **Build cinematic, pixel-perfect interfaces — not AI slop**
 
@@ -230,66 +230,104 @@ Then build. Don't over-discuss.
 
 ---
 
-## 🤖 AI VILLAGE ROSTER (5-Brain Swarm)
+## 🧠 9-BRAIN RECURSIVE CONSENSUS SYSTEM
 
-| # | AI | Platform | Role | Key Expertise |
-|---|---|----------|------|---------------|
-| 1 | **Claude Code** | Anthropic (Opus 4.6) | Main Orchestrator | Full-stack, architecture, **cinematic frontend** |
-| 2 | **Roo Code** | MinMax 2.5 | Backend Specialist | Node.js/Express, PostgreSQL, **Render MCP** |
-| 3 | **ChatGPT 5.3** | OpenAI (Codex App in VS Code) | QA Engineer | Testing, edge cases, security review |
-| 4 | **Gemini 3** | Google (Gemini 1.5 Pro) | Visionary / Frontend | React, UI/UX, **Cinematic Design Validation** |
-| 5 | **Grok Fast 4.1** | xAI | Logician | Reasoning, optimization, verification |
+The automated validation pipeline that runs BEFORE any major deploy or code review.
 
-**Quick Reference:**
-- **Coding:** Claude Code (main + frontend), Roo Code/MinMax 2.5 (backend), Gemini (frontend review)
-- **Cinematic design:** Claude Code (builds), Gemini (validates cinematic quality)
-- **UX strategy:** MinMax V2 (multi-AI consensus)
-- **Boot camp:** Kilo Code
-- **Testing/QA:** ChatGPT 5.3 (Codex App)
-
-**Hosting:** Render (sswanstudios.com) | Client Sites: Vercel or Netlify
-
-**Status Files:** `docs/ai-workflow/AI-HANDOFF/[AI-NAME]-STATUS.md`
-
----
-
-## 🧠 THE 5-BRAIN PROTOCOL
-
-| # | Brain | Model | Platform | Responsibility |
-|---|---|-------|----------|----------------|
-| 1 | 🧠 Architect | Opus 4.6 | Claude Code | Strategy, planning, **preset selection** |
-| 2 | 🔨 Builder | MinMax 2.5 | Roo Code | Heavy coding, implementation |
-| 3 | 🧪 QA | ChatGPT 5.3 | Codex App (VS Code) | Security, edge cases, testing |
-| 4 | 🎨 Visionary | Gemini 1.5 Pro | Gemini 3 | **Cinematic design validation**, Galaxy-Swan/Enchanted Apex compliance |
-| 5 | ⚡ Logician | Grok Fast 4.1 | xAI | Algorithm verification, optimization |
+### Architecture
 
 ```
-Architect (Plan + Preset) → Builder (Code) → QA (Security) → Visionary (Cinematic QA) → Logician
-        ↑                                                                                    ↓
-        └────────────────────────────── Feedback Loop ──────────────────────────────────────┘
+Phase 1 — 7 Parallel Validators (OpenRouter, ~30s)
+  ┌─ [1] Gemini 2.5 Flash     → UX / Accessibility        (FREE)
+  ├─ [2] Claude 4.5 Sonnet   → Code Quality               (FREE)
+  ├─ [3] Step 3.5 Flash       → Security scan              (FREE, 256K ctx, 74.4% SWE-bench)
+  ├─ [4] Gemini 3 Flash       → Performance review         (FREE)
+  ├─ [5] MiniMax M2.1         → Competitive intelligence   (FREE)
+  ├─ [6] DeepSeek V3.2        → User research / personas   (FREE)
+  └─ [7] MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)
+
+Phase 2 — Code Quality Recursive Debate (Google GenAI + OpenRouter)
+  Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)
+  ├─ Loop until "CONSENSUS REACHED" or MAX 5 rounds
+  ├─ Claude = FINAL AUTHORITY on code decisions
+  └─ Output: fix-instructions.md + debate-log.md
+
+Phase 3 — UX/UI Design Recursive Debate (Google GenAI + OpenRouter)
+  Gemini 3.1 Pro (Creative Director) ↔ Claude 4.5 Sonnet (Collaborator)
+  ├─ Loop until "CONSENSUS REACHED" or MAX 5 rounds
+  ├─ Gemini = FINAL AUTHORITY on design decisions
+  └─ Output: design-recommendations.md + design-debate-log.md
 ```
 
-- Standard code: 3+ brain approvals
-- Critical code (auth, payments, RLS): ALL 5 brains
-- **Frontend/design: Visionary MUST validate cinematic quality**
+### How to Run
 
-### Pre-Commit Checklist
+```bash
+# Recent changes (last 2 hours)
+node scripts/validation-orchestrator.mjs
+
+# Specific files
+node scripts/validation-orchestrator.mjs --files src/App.tsx backend/routes/auth.mjs
+
+# Staged changes
+node scripts/validation-orchestrator.mjs --staged
+
+# Last 24 hours
+node scripts/validation-orchestrator.mjs --since 24h
+```
+
+### Setup
+
+```
+# Add to .env:
+OPENROUTER_API_KEY=sk-or-v1-xxxxx          # Required — Phase 1
+GEMINI_API_KEY=AIzaSy...                    # Optional — enables Phase 2+3 debates
+```
+
+### Output Files
+
+| File | Purpose |
+|------|---------|
+| `01-ux-accessibility.md` | UX/Accessibility findings |
+| `02-code-quality.md` | Code quality review |
+| `03-security.md` | Security audit (Step 3.5 Flash) |
+| `04-performance.md` | Performance analysis |
+| `05-competitive-intel.md` | Market positioning |
+| `06-user-research.md` | Persona alignment |
+| `07-architecture-bugs.md` | Bug hunt + architecture |
+| `08-code-quality-debate.md` | Phase 2 debate verdict |
+| `09-design-debate.md` | Phase 3 debate verdict |
+| `debate-log.md` | Full Phase 2 transcript |
+| `design-debate-log.md` | Full Phase 3 transcript |
+| `fix-instructions.md` | Actionable code fixes |
+| `design-recommendations.md` | Actionable design fixes |
+| `summary.md` | Quick aggregate |
+
+All output goes to: `AI-Village-Documentation/validation-prompts/latest/`
+
+### Authority Hierarchy
+
+| Domain | Final Authority | Role |
+|--------|----------------|------|
+| Code quality, architecture, bugs | Claude (CEO) | Challenges CTO, makes final call |
+| UX/UI design, visual direction | Gemini (Creative Director) | Challenges collaborator, makes final call |
+| Security | Step 3.5 Flash | Phase 1 specialist (74.4% SWE-bench) |
+
+### When to Run
+
+- **MANDATORY:** Before any deploy to production
+- **MANDATORY:** Before merging PRs with >100 lines changed
+- **RECOMMENDED:** After major refactors or new feature branches
+- **ON DEMAND:** `node scripts/validation-orchestrator.mjs --files <changed files>`
+
+### Pre-Deploy Checklist (merged from legacy 5-Brain Protocol)
 - [ ] Tests pass (`npm test` — both frontend and backend)
-- [ ] 3+ brains reviewed (5 for critical)
-- [ ] **Cinematic Design Checklist passed** (if UI)
+- [ ] 9-Brain validation run (all phases pass, CRITICAL findings fixed)
+- [ ] **Cinematic Design Checklist passed** (if UI work)
 - [ ] No console errors, docs updated, security verified
 - [ ] Mobile-first tested 320px-3840px
 - [ ] Skills.sh verification gates passed
 - [ ] No hallucinated claims (evidence attached)
-
-### Cost Optimization
-| Brain | Model | Cost | Use For |
-|-------|-------|------|---------|
-| Builder | MinMax 2.5 | varies | 80% of coding work |
-| Logician | Grok Fast 4.1 | varies | Logic checks, optimization |
-| Visionary | Gemini 2.5 Flash | $0.075/1M | Cinematic design QA |
-| QA | ChatGPT 5.3 (Codex) | varies | Security review |
-| Architect | Claude Opus 4.6 | $3/1M | Architecture + design strategy |
+- [ ] Critical code (auth, payments, RLS): review `fix-instructions.md` + `design-recommendations.md`
 
 ---
 
@@ -390,8 +428,8 @@ D) Skip design, code directly (not recommended)
 ### RULE #2: NO MONOLITHS (500 lines docs, 300 components, 400 services)
 ### RULE #3: LOCK FILES YOU'RE EDITING
 ### RULE #4: UPDATE YOUR STATUS
-### RULE #5: PHASE 0 FOR NEW FEATURES (5 AI approvals)
-### RULE #6: 5-BRAIN PROTOCOL (3+ standard, 5 critical, Visionary required for UI)
+### RULE #5: PHASE 0 FOR NEW FEATURES
+### RULE #6: 9-BRAIN VALIDATION (run `node scripts/validation-orchestrator.mjs` before deploy — all CRITICAL findings must be fixed)
 ### RULE #7: SKILLS-FIRST (Read relevant skills BEFORE implementation — not required for status/onboarding replies)
 
 ---
@@ -641,20 +679,23 @@ See `AI-Village-Documentation/SWANSTUDIOS-SOCIAL-MASTER-STRATEGY-V4.1.md` Sectio
 - [ ] Present options before coding
 - [ ] Get permission → lock files → implement
 - [ ] Run skills.sh verification gates
+- [ ] Run 9-Brain validation: `node scripts/validation-orchestrator.mjs --staged`
+- [ ] Fix all CRITICAL findings from validation output
 - [ ] Unlock + update status
 
 ---
 
-**🎉 WELCOME TO THE AI VILLAGE v5.0!**
+**🎉 WELCOME TO THE AI VILLAGE v6.0!**
 
 **Remember:** Check CURRENT-TASK.md → Present options → Lock files → Read skills → Build cinematic → Run gates → Unlock
 
-**The 5 Brains:** Architect → Builder → QA → Visionary → Logician
+**The 9 Brains:** 7 Parallel Validators → Gemini↔Claude Code Debate → Gemini↔Claude Design Debate
 **The Design System:** Cinematic. Weighted. Textured. No slop.
-**The Primary Preset:** 🌿✨🎮 Enchanted Apex — Nature + Luxury + Gaming
+**The Primary Preset:** 🌿✨🎮 Enchanted Apex: Crystalline Swan — Nature + Luxury + Gaming
+**Validation:** `node scripts/validation-orchestrator.mjs` — run BEFORE every deploy
 
 **Now go read those files and report back ready!** 🚀
 
 ---
 
-**END OF AI VILLAGE MASTER ONBOARDING PROMPT v5.0**
+**END OF AI VILLAGE MASTER ONBOARDING PROMPT v6.0**

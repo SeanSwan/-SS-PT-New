@@ -4,12 +4,18 @@
  * Creates orders for Check, Zelle, and Venmo payments.
  * Orders are created with 'pending' status and manually confirmed by admin.
  *
+ * Security: Server-side price validation using Decimal.js (9-Brain Phase 2 consensus).
+ * The server queries the database for source-of-truth prices and recalculates
+ * totals — never trusts client-provided total/fee.
+ *
  * Endpoints:
  * - POST /api/payments/offline — Create an offline payment order
  */
 import express from 'express';
+import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
 import Order from '../models/Order.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
 import { randomUUID } from 'crypto';
 import logger from '../utils/logger.mjs';
 
@@ -26,10 +32,59 @@ function generateOrderNumber() {
 
 const VALID_METHODS = ['check', 'zelle', 'venmo'];
 
+/** Server-side fee calculation matching frontend PaymentFeeCalculator */
+function calculateServerFee(method, subtotal) {
+  const total = new Decimal(subtotal);
+  switch (method) {
+    case 'check': return new Decimal(0);
+    case 'zelle': return new Decimal(0);
+    case 'venmo': return total.mul('0.019').plus('0.10');
+    default: return new Decimal(0);
+  }
+}
+
+/** Calculate server-side total from database prices */
+async function calculateServerTotal(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('Items array is required and must not be empty');
+  }
+
+  const itemIds = items.map(i => i.storefrontItemId).filter(Boolean);
+  if (itemIds.length === 0) {
+    throw new Error('All items must have a storefrontItemId');
+  }
+
+  // Query database for source-of-truth prices
+  const dbItems = await StorefrontItem.findAll({
+    where: { id: itemIds },
+    attributes: ['id', 'price', 'name'],
+  });
+
+  const priceMap = new Map();
+  for (const item of dbItems) {
+    priceMap.set(item.id, new Decimal(item.price));
+  }
+
+  let total = new Decimal(0);
+  for (const item of items) {
+    const dbPrice = priceMap.get(item.storefrontItemId);
+    if (!dbPrice) {
+      throw new Error(`Item ${item.storefrontItemId} not found in storefront`);
+    }
+    const qty = parseInt(item.quantity, 10);
+    if (!Number.isInteger(qty) || qty < 1) {
+      throw new Error(`Invalid quantity for item ${item.storefrontItemId}`);
+    }
+    total = total.plus(dbPrice.mul(qty));
+  }
+
+  return total;
+}
+
 /**
  * POST /api/payments/offline
  * Create a pending order for offline payment (check/zelle/venmo).
- * Requires authentication.
+ * Requires authentication. Server validates all prices against database.
  */
 router.post('/offline', protect, async (req, res) => {
   try {
@@ -38,8 +93,9 @@ router.post('/offline', protect, async (req, res) => {
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
-    const { paymentMethod, items, customerInfo, total, fee } = req.body;
+    const { paymentMethod, items, customerInfo, total: clientTotal, fee: clientFee, idempotencyKey } = req.body;
 
+    // ── Input Validation ──
     if (!paymentMethod || !VALID_METHODS.includes(paymentMethod)) {
       return res.status(400).json({
         success: false,
@@ -47,18 +103,81 @@ router.post('/offline', protect, async (req, res) => {
       });
     }
 
-    if (!total || total <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid total amount' });
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Items array is required' });
     }
 
+    for (const item of items) {
+      if (!item.storefrontItemId) {
+        return res.status(400).json({ success: false, message: 'Each item must have a storefrontItemId' });
+      }
+      if (!item.quantity || parseInt(item.quantity, 10) < 1) {
+        return res.status(400).json({ success: false, message: 'Each item must have a valid quantity' });
+      }
+    }
+
+    // ── Idempotency Check ──
+    if (idempotencyKey) {
+      const existingOrder = await Order.findOne({ where: { idempotencyKey } });
+      if (existingOrder) {
+        logger.info(`[OfflinePayment] Idempotency hit: returning existing order ${existingOrder.orderNumber}`);
+        return res.json({
+          success: true,
+          order: {
+            id: existingOrder.id,
+            orderNumber: existingOrder.orderNumber,
+            totalAmount: existingOrder.totalAmount,
+            status: existingOrder.status,
+            paymentMethod: existingOrder.paymentMethod,
+          },
+          message: `Order already placed. Your ${paymentMethod} payment is pending confirmation.`,
+        });
+      }
+    }
+
+    // ── Server-Side Price Validation ──
+    let calculatedSubtotal;
+    try {
+      calculatedSubtotal = await calculateServerTotal(items);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+
+    const calculatedFee = calculateServerFee(paymentMethod, calculatedSubtotal);
+    const calculatedTotal = calculatedSubtotal.plus(calculatedFee);
+    const expectedTotal = new Decimal(clientTotal || 0).plus(new Decimal(clientFee || 0));
+
+    // Exact decimal equality — no tolerance (9-Brain Phase 2 consensus)
+    if (!calculatedTotal.equals(expectedTotal)) {
+      logger.warn('[OfflinePayment] Price mismatch detected', {
+        userId,
+        clientTotal,
+        clientFee,
+        expectedTotal: expectedTotal.toNumber(),
+        calculatedSubtotal: calculatedSubtotal.toNumber(),
+        calculatedFee: calculatedFee.toNumber(),
+        calculatedTotal: calculatedTotal.toNumber(),
+        items: items.map(i => ({ id: i.storefrontItemId, clientPrice: i.price })),
+      });
+
+      return res.status(409).json({
+        success: false,
+        code: 'PRICE_MISMATCH',
+        message: 'Prices have been updated. Please review your new total.',
+        updatedSubtotal: calculatedSubtotal.toNumber(),
+        updatedFee: calculatedFee.toNumber(),
+        updatedTotal: calculatedTotal.toNumber(),
+      });
+    }
+
+    // ── Create Order ──
     const orderNumber = generateOrderNumber();
-    const totalWithFee = Number(total) + Number(fee || 0);
 
     const order = await Order.create({
       userId,
-      cartId: null, // Offline orders don't use cart (items stored in notes)
+      cartId: null,
       orderNumber,
-      totalAmount: totalWithFee,
+      totalAmount: calculatedTotal.toNumber(),
       status: 'pending',
       paymentMethod,
       billingEmail: customerInfo?.email || req.user?.email || null,
@@ -66,16 +185,16 @@ router.post('/offline', protect, async (req, res) => {
       notes: JSON.stringify({
         type: 'offline_payment',
         method: paymentMethod,
-        items: items || [],
-        originalTotal: total,
-        processingFee: fee || 0,
+        items: items.map(i => ({ storefrontItemId: i.storefrontItemId, quantity: i.quantity, name: i.name })),
+        subtotal: calculatedSubtotal.toNumber(),
+        processingFee: calculatedFee.toNumber(),
         customerInfo,
         createdVia: 'checkout_payment_selector',
       }),
-      idempotencyKey: randomUUID(),
+      idempotencyKey: idempotencyKey || randomUUID(),
     });
 
-    logger.info(`[OfflinePayment] Order ${orderNumber} created: ${paymentMethod} for $${totalWithFee} by user ${userId}`);
+    logger.info(`[OfflinePayment] Order ${orderNumber} created: ${paymentMethod} for $${calculatedTotal.toNumber()} by user ${userId}`);
 
     return res.json({
       success: true,
