@@ -268,36 +268,38 @@ async function processCompletedOrder(cartId) {
     let totalSessionsAdded = 0;
     let packageNames = [];
     
-    // Process each item purchased
+    // Process each item — collect totals first, then batch DB operations
+    const subscriptionItems = [];
     for (const item of cart.cartItems) {
       const storefrontItem = item.storefrontItem;
-      
       if (!storefrontItem) {
         logger.warn(`StorefrontItem not found for cart item: ${item.id}`);
         continue;
       }
-      
-      // Keep track of package names for notification
       packageNames.push(storefrontItem.name);
-      
-      // Handle different item types
-      switch (storefrontItem.itemType) {
-        case 'TRAINING_PACKAGE_FIXED': 
-          // Add training sessions to user account
-          const sessionsAdded = storefrontItem.sessions || 0;
-          totalSessionsAdded += sessionsAdded;
-          await addSessionsToUserAccount(userId, sessionsAdded);
-          break;
-        case 'TRAINING_PACKAGE_SUBSCRIPTION':
-          // Create subscription record
-          await createSubscription(userId, storefrontItem);
-          break;
-        // Add more item type handling as needed
+      if (storefrontItem.itemType === 'TRAINING_PACKAGE_FIXED') {
+        totalSessionsAdded += storefrontItem.sessions || 0;
+      } else if (storefrontItem.itemType === 'TRAINING_PACKAGE_SUBSCRIPTION') {
+        subscriptionItems.push(storefrontItem);
       }
-      
-      // Trigger gamification rewards for purchase
-      await triggerPurchaseAchievements(userId, item);
     }
+
+    // Batch: single atomic increment for all sessions
+    if (totalSessionsAdded > 0) {
+      await addSessionsToUserAccount(userId, totalSessionsAdded);
+    }
+
+    // Process subscriptions sequentially (rare, usually 1)
+    for (const subItem of subscriptionItems) {
+      await createSubscription(userId, subItem);
+    }
+
+    // Fire gamification rewards in parallel (non-critical, external calls)
+    await Promise.allSettled(
+      cart.cartItems
+        .filter(item => item.storefrontItem)
+        .map(item => triggerPurchaseAchievements(userId, item))
+    );
     
     // Create order record for history
     await createOrderRecord(cart);
@@ -335,42 +337,32 @@ async function processCompletedOrder(cartId) {
         }
       };
       
-      await axios.post(`${mcpUrl}/api/process-sale`, purchaseData).catch(err => {
-        // Log error but don't fail the whole process if MCP is unavailable
-        logger.warn(`Failed to notify MCP server: ${err.message}`);
-      });
-      
-      // Also notify other relevant MCP servers if configured
-      // Client Insights MCP for AI-generated insights (P2 feature)
+      // Fire all MCP notifications in parallel (non-critical, don't block webhook)
+      const mcpCalls = [
+        axios.post(`${mcpUrl}/api/process-sale`, purchaseData).catch(err =>
+          logger.warn(`Failed to notify Financial MCP: ${err.message}`)
+        ),
+      ];
+
       const clientInsightsMcpUrl = process.env.CLIENT_INSIGHTS_MCP_URL;
       if (clientInsightsMcpUrl) {
-        try {
-          await axios.post(`${clientInsightsMcpUrl}/api/enrich-client-profile`, {
-            userId,
-            purchaseData: purchaseData
-          }).catch(err => {
-            logger.warn(`Failed to notify Client Insights MCP: ${err.message}`);
-          });
-        } catch (insightError) {
-          logger.warn(`Error communicating with Client Insights MCP: ${insightError.message}`);
-        }
+        mcpCalls.push(
+          axios.post(`${clientInsightsMcpUrl}/api/enrich-client-profile`, { userId, purchaseData }).catch(err =>
+            logger.warn(`Failed to notify Client Insights MCP: ${err.message}`)
+          )
+        );
       }
-      
-      // Scheduling Assist MCP for automated session suggestions (P1 feature)
+
       const schedulingMcpUrl = process.env.SCHEDULING_ASSIST_MCP_URL;
       if (schedulingMcpUrl && totalSessionsAdded > 0) {
-        try {
-          await axios.post(`${schedulingMcpUrl}/api/suggest-session-slots`, {
-            userId,
-            packageId: cart.id,
-            sessionCount: totalSessionsAdded
-          }).catch(err => {
-            logger.warn(`Failed to notify Scheduling Assist MCP: ${err.message}`);
-          });
-        } catch (schedulingError) {
-          logger.warn(`Error communicating with Scheduling Assist MCP: ${schedulingError.message}`);
-        }
+        mcpCalls.push(
+          axios.post(`${schedulingMcpUrl}/api/suggest-session-slots`, { userId, packageId: cart.id, sessionCount: totalSessionsAdded }).catch(err =>
+            logger.warn(`Failed to notify Scheduling MCP: ${err.message}`)
+          )
+        );
       }
+
+      await Promise.allSettled(mcpCalls);
     } catch (error) {
       logger.warn(`Error communicating with MCP servers: ${error.message}`);
     }

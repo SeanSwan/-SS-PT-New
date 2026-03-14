@@ -19,6 +19,7 @@ import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -109,53 +110,57 @@ router.post('/create-intent', protect, async (req, res) => {
       });
     }
 
-    // Create order record
+    // Wrap Order + Stripe call in transaction to prevent ghost orders
     const orderNumber = generateOrderNumber();
-    const order = await Order.create({
-      userId,
-      orderNumber,
-      totalAmount: totalWithFee.toNumber(),
-      status: 'pending',
-      paymentMethod: 'ach',
-      notes: JSON.stringify({
-        items,
-        customerInfo,
-        subtotal: serverTotal.toNumber(),
-        fee: fee.toNumber(),
-        idempotencyKey,
-      }),
-    });
-
-    // Create Stripe PaymentIntent with us_bank_account
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(totalWithFee.times(100).toNumber()), // cents
-      currency: 'usd',
-      payment_method_types: ['us_bank_account'],
-      payment_method_options: {
-        us_bank_account: {
-          financial_connections: { permissions: ['payment_method'] },
-        },
-      },
-      metadata: {
-        orderId: order.id.toString(),
+    const result = await sequelize.transaction(async (t) => {
+      const order = await Order.create({
+        userId,
         orderNumber,
-        userId: userId.toString(),
-        source: 'swanstudios_ach',
-      },
-    }, {
-      idempotencyKey, // Prevent duplicate PaymentIntents on network retry
+        totalAmount: totalWithFee.toNumber(),
+        status: 'pending',
+        paymentMethod: 'ach',
+        notes: JSON.stringify({
+          items,
+          customerInfo,
+          subtotal: serverTotal.toNumber(),
+          fee: fee.toNumber(),
+          idempotencyKey,
+        }),
+      }, { transaction: t });
+
+      // Create Stripe PaymentIntent with us_bank_account
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(totalWithFee.times(100).toNumber()), // cents
+        currency: 'usd',
+        payment_method_types: ['us_bank_account'],
+        payment_method_options: {
+          us_bank_account: {
+            financial_connections: { permissions: ['payment_method'] },
+          },
+        },
+        metadata: {
+          orderId: order.id.toString(),
+          orderNumber,
+          userId: userId.toString(),
+          source: 'swanstudios_ach',
+        },
+      }, {
+        idempotencyKey, // Prevent duplicate PaymentIntents on network retry
+      });
+
+      // Store the PaymentIntent ID on the order
+      await order.update({ paymentId: paymentIntent.id }, { transaction: t });
+
+      return { order, paymentIntent };
     });
 
-    // Store the PaymentIntent ID on the order
-    await order.update({ paymentId: paymentIntent.id });
-
-    logger.info(`[ACH] PaymentIntent ${paymentIntent.id} created for order ${orderNumber}`);
+    logger.info(`[ACH] PaymentIntent ${result.paymentIntent.id} created for order ${orderNumber}`);
 
     return res.json({
       success: true,
-      clientSecret: paymentIntent.client_secret,
+      clientSecret: result.paymentIntent.client_secret,
       orderNumber,
-      orderId: order.id,
+      orderId: result.order.id,
       subtotal: serverTotal.toNumber(),
       fee: fee.toNumber(),
       total: totalWithFee.toNumber(),
