@@ -15,7 +15,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
-import { releaseConcurrent } from '../services/ai/rateLimiter.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import sequelize from '../database.mjs';
@@ -95,7 +94,10 @@ router.post('/conversations', async (req, res) => {
     } catch (createErr) {
       // If targetUserId column doesn't exist yet, retry without it
       if (createErr.message?.includes('targetUserId') || createErr.original?.code === '42703') {
-        logger.warn('[AIChatRoutes] targetUserId column missing — creating without it');
+        logger.error('MIGRATION REQUIRED: targetUserId column missing from ai_conversations table', {
+          environment: process.env.NODE_ENV,
+          timestamp: new Date().toISOString(),
+        });
         delete createPayload.targetUserId;
         conversation = await AiConversation.create(createPayload);
       } else {
@@ -204,12 +206,10 @@ router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
     const { message } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      releaseConcurrent(req.user.id); // Release lock before early return
       return res.status(400).json({ success: false, error: 'Message is required' });
     }
 
     if (message.length > 5000) {
-      releaseConcurrent(req.user.id); // Release lock before early return
       return res.status(400).json({ success: false, error: 'Message too long (max 5000 characters)' });
     }
 
@@ -222,13 +222,11 @@ router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
     });
 
     if (!conversation) {
-      releaseConcurrent(req.user.id); // Release lock before early return
       return res.status(404).json({ success: false, error: 'Active conversation not found' });
     }
 
     // Guard against unbounded conversation growth
     if (conversation.messages && conversation.messages.length >= 200) {
-      releaseConcurrent(req.user.id); // Release lock before early return
       return res.status(400).json({ success: false, error: 'Conversation limit reached (100 exchanges). Please start a new conversation.' });
     }
 
@@ -316,10 +314,8 @@ router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
   } catch (err) {
     logger.error('[AIChatRoutes] Send message error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to send message' });
-  } finally {
-    // CRITICAL: Always release the concurrent lock so subsequent messages can be sent
-    releaseConcurrent(req.user.id);
   }
+  // Lock auto-released by aiRateLimiter middleware on res finish/close
 });
 
 /**

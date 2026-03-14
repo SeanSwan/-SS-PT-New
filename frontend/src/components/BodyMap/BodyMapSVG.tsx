@@ -10,7 +10,7 @@
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import {
   FRONT_VIEW_REGIONS,
@@ -280,15 +280,18 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
     lastTapRef.current = now;
   }, []);
 
-  // Build a map from bodyRegion → highest pain entry
-  const regionPainMap = new Map<string, PainEntry>();
-  for (const entry of painEntries) {
-    if (!entry.isActive) continue;
-    const existing = regionPainMap.get(entry.bodyRegion);
-    if (!existing || entry.painLevel > existing.painLevel) {
-      regionPainMap.set(entry.bodyRegion, entry);
+  // Build a map from bodyRegion → highest pain entry (memoized to avoid rebuild during gestures)
+  const regionPainMap = useMemo(() => {
+    const map = new Map<string, PainEntry>();
+    for (const entry of painEntries) {
+      if (!entry.isActive) continue;
+      const existing = map.get(entry.bodyRegion);
+      if (!existing || entry.painLevel > existing.painLevel) {
+        map.set(entry.bodyRegion, entry);
+      }
     }
-  }
+    return map;
+  }, [painEntries]);
 
   const renderRegions = (regions: BodyRegion[]) =>
     regions.map((region) => {

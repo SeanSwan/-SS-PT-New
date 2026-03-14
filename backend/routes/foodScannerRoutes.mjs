@@ -2,7 +2,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
-import { releaseConcurrent } from '../services/ai/rateLimiter.mjs';
 import foodScannerService from '../services/foodScannerService.mjs';
 import FoodIngredient from '../models/FoodIngredient.mjs';
 import FoodProduct from '../models/FoodProduct.mjs';
@@ -55,18 +54,25 @@ router.get('/scan/:barcode', async (req, res) => {
 });
 
 /**
- * @route   GET /api/food-scanner/analyze-ingredients
- * @desc    Analyze ingredients from a text string
- * @access  Public
+ * @route   POST /api/food-scanner/analyze-ingredients
+ * @desc    Analyze ingredients from a text string (AI-powered)
+ * @access  Private (requires auth + rate limiting to prevent AI cost abuse)
  */
-router.post('/analyze-ingredients', async (req, res) => {
+router.post('/analyze-ingredients', protect, aiRateLimiter, async (req, res) => {
   try {
     const { ingredients } = req.body;
-    
-    if (!ingredients) {
+
+    if (!ingredients || typeof ingredients !== 'string') {
       return res.status(400).json({
         success: false,
         message: 'Ingredients list is required'
+      });
+    }
+
+    if (ingredients.length > 10000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Text input too large (max 10,000 characters)'
       });
     }
     
@@ -426,10 +432,14 @@ router.get('/stats', async (req, res) => {
 router.post('/log-scan', protect, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { barcode, mealType, date } = req.body;
+    const { barcode, mealType, date, servingSizeGrams = 100 } = req.body;
 
     if (!barcode || !isValidBarcode(barcode)) {
       return res.status(400).json({ success: false, message: 'Valid barcode is required (8-14 digits)' });
+    }
+
+    if (servingSizeGrams < 1 || servingSizeGrams > 10000) {
+      return res.status(400).json({ success: false, message: 'Serving size must be between 1g and 10,000g' });
     }
 
     // Validate mealType if provided
@@ -454,21 +464,24 @@ router.post('/log-scan', protect, async (req, res) => {
     const { processAIDataUpdates } = await import('../services/aiDataWriteService.mjs');
     const sequelizeInstance = (await import('../database.mjs')).default;
 
+    // Scale from per-100g values to actual serving size
+    const multiplier = servingSizeGrams / 100;
+
     const macroLogData = {
       date: date || new Date().toISOString().split('T')[0],
       mealType: mealType || 'snack',
-      description: `${product.name}${product.brand ? ` (${product.brand})` : ''}`,
-      calories: parseFloat(nutri.energy_kcal_100g || nutri['energy-kcal'] || nutri.calories || 0),
-      protein: parseFloat(nutri.proteins_100g || nutri.proteins || nutri.protein || 0),
-      carbs: parseFloat(nutri.carbohydrates_100g || nutri.carbohydrates || nutri.carbs || 0),
-      fat: parseFloat(nutri.fat_100g || nutri.fat || 0),
-      fiber: parseFloat(nutri.fiber_100g || nutri.fiber || 0),
-      sugar: parseFloat(nutri.sugars_100g || nutri.sugars || nutri.sugar || 0),
-      sodium,
-      addedSugar,
-      cholesterol,
-      saturatedFat,
-      transFat,
+      description: `${product.name}${product.brand ? ` (${product.brand})` : ''} (${servingSizeGrams}g)`,
+      calories: parseFloat(nutri.energy_kcal_100g || nutri['energy-kcal'] || nutri.calories || 0) * multiplier,
+      protein: parseFloat(nutri.proteins_100g || nutri.proteins || nutri.protein || 0) * multiplier,
+      carbs: parseFloat(nutri.carbohydrates_100g || nutri.carbohydrates || nutri.carbs || 0) * multiplier,
+      fat: parseFloat(nutri.fat_100g || nutri.fat || 0) * multiplier,
+      fiber: parseFloat(nutri.fiber_100g || nutri.fiber || 0) * multiplier,
+      sugar: parseFloat(nutri.sugars_100g || nutri.sugars || nutri.sugar || 0) * multiplier,
+      sodium: sodium * multiplier,
+      addedSugar: addedSugar * multiplier,
+      cholesterol: cholesterol * multiplier,
+      saturatedFat: saturatedFat * multiplier,
+      transFat: transFat * multiplier,
       novaGroup,
       brandName: product.brand || null,
       mealSource: 'packaged',
@@ -564,10 +577,8 @@ router.post('/ai-analyze', protect, aiRateLimiter, async (req, res) => {
       message: 'Server error during AI analysis',
       error: 'Internal server error',
     });
-  } finally {
-    // Release concurrent lock so user isn't permanently blocked
-    if (req.user?.id) releaseConcurrent(req.user.id);
   }
+  // Lock auto-released by aiRateLimiter middleware on res finish/close
 });
 
 export default router;

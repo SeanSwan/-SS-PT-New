@@ -1633,7 +1633,7 @@ const GalleryPage: React.FC = () => {
                   <EventInfo>
                     <EventName>{event.name}</EventName>
                     <EventMeta>
-                      {event.eventDate && new Date(event.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      {event.eventDate && new Date(event.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       {event.location && ` \u00B7 ${event.location}`}
                     </EventMeta>
                   </EventInfo>
@@ -1706,7 +1706,7 @@ const GalleryPage: React.FC = () => {
           <>
             <PageTitle>{selectedEvent.name}</PageTitle>
             <PageSubtitle>
-              {selectedEvent.eventDate && new Date(selectedEvent.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              {selectedEvent.eventDate && new Date(selectedEvent.eventDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               {selectedEvent.location && ` \u00B7 ${selectedEvent.location}`}
               {` \u00B7 ${photos.length} photos \u00B7 All free to download`}
             </PageSubtitle>

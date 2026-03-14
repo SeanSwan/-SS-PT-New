@@ -578,6 +578,11 @@ const AdminGalleryManager: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: '', sport: '', location: '', password: '', description: '', eventDate: '', isPublished: true });
 
+  // Event edit state
+  const [editEventId, setEditEventId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', sport: '', location: '', eventDate: '', password: '' });
+  const [editSaving, setEditSaving] = useState(false);
+
   // Event message editor
   const [messageEventId, setMessageEventId] = useState<number | null>(null);
   const [messageText, setMessageText] = useState('');
@@ -768,6 +773,42 @@ const AdminGalleryManager: React.FC = () => {
       setMessageText('');
     } catch { /* */ } finally {
       setMessageSaving(false);
+    }
+  };
+
+  const openEditForm = (event: GalleryEvent) => {
+    setEditEventId(event.id);
+    setEditForm({
+      name: event.name,
+      sport: event.sport || '',
+      location: event.location || '',
+      eventDate: event.eventDate || '',
+      password: '',
+    });
+  };
+
+  const saveEventEdit = async () => {
+    if (editEventId === null || !editForm.name.trim()) return;
+    setEditSaving(true);
+    try {
+      const payload: Record<string, string | null> = {
+        name: editForm.name.trim(),
+        sport: editForm.sport.trim() || null,
+        location: editForm.location.trim() || null,
+        eventDate: editForm.eventDate || null,
+      };
+      if (editForm.password.trim()) {
+        payload.password = editForm.password.trim();
+      }
+      await fetch(`${API_BASE}/api/admin/gallery/events/${editEventId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
+      });
+      loadEvents();
+      setEditEventId(null);
+    } catch { /* */ } finally {
+      setEditSaving(false);
     }
   };
 
@@ -1204,7 +1245,7 @@ const AdminGalleryManager: React.FC = () => {
                     <CardTitle style={{ margin: '0 0 4px' }}>{event.name}</CardTitle>
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
                       {event.sport && `${event.sport} · `}
-                      {event.eventDate && `${new Date(event.eventDate).toLocaleDateString()} · `}
+                      {event.eventDate && `${new Date(event.eventDate + 'T00:00:00').toLocaleDateString()} · `}
                       {event.location && `${event.location} · `}
                       {event.photoCount} photos
                       <span
@@ -1228,6 +1269,12 @@ const AdminGalleryManager: React.FC = () => {
                       {uploadEventId === event.id ? 'Close' : 'Upload Photos'}
                     </ActionBtn>
                     <ActionBtn
+                      style={{ background: 'rgba(139,92,246,0.15)', color: '#8B5CF6', borderColor: 'rgba(139,92,246,0.3)' }}
+                      onClick={() => editEventId === event.id ? setEditEventId(null) : openEditForm(event)}
+                    >
+                      {editEventId === event.id ? 'Close Edit' : 'Edit Event'}
+                    </ActionBtn>
+                    <ActionBtn
                       style={{ background: event.description ? 'rgba(96,192,240,0.15)' : 'rgba(198,168,75,0.15)', color: event.description ? '#60C0F0' : '#C6A84B', borderColor: event.description ? 'rgba(96,192,240,0.3)' : 'rgba(198,168,75,0.3)' }}
                       onClick={() => messageEventId === event.id ? setMessageEventId(null) : openMessageEditor(event)}
                     >
@@ -1241,6 +1288,53 @@ const AdminGalleryManager: React.FC = () => {
                     </ActionBtn>
                   </div>
                 </div>
+
+                {/* Edit Event Form */}
+                <AnimatePresence>
+                  {editEventId === event.id && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ marginTop: 12 }}>
+                      <div style={{
+                        padding: 16, borderRadius: 12,
+                        background: 'rgba(139, 92, 246, 0.05)',
+                        border: '1px solid rgba(139, 92, 246, 0.2)',
+                      }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#8B5CF6', marginBottom: 12 }}>
+                          Edit Event Details
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div>
+                            <Label style={{ fontSize: 11 }}>Event Name *</Label>
+                            <Input value={editForm.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(p => ({ ...p, name: e.target.value }))} />
+                          </div>
+                          <div>
+                            <Label style={{ fontSize: 11 }}>Event Date</Label>
+                            <Input type="date" value={editForm.eventDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(p => ({ ...p, eventDate: e.target.value }))} />
+                          </div>
+                          <div>
+                            <Label style={{ fontSize: 11 }}>Sport / Category</Label>
+                            <Input value={editForm.sport} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(p => ({ ...p, sport: e.target.value }))} placeholder="e.g. Youth Football" />
+                          </div>
+                          <div>
+                            <Label style={{ fontSize: 11 }}>Location</Label>
+                            <Input value={editForm.location} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(p => ({ ...p, location: e.target.value }))} placeholder="e.g. Galaxy Arena" />
+                          </div>
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <Label style={{ fontSize: 11 }}>New Password (leave blank to keep current)</Label>
+                            <Input type="password" value={editForm.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(p => ({ ...p, password: e.target.value }))} placeholder="Leave blank to keep current password" />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <ActionBtn $variant="primary" onClick={saveEventEdit} style={{ opacity: editSaving ? 0.6 : 1 }}>
+                            {editSaving ? 'Saving...' : 'Save Changes'}
+                          </ActionBtn>
+                          <ActionBtn onClick={() => setEditEventId(null)} style={{ color: 'rgba(255,255,255,0.4)' }}>
+                            Cancel
+                          </ActionBtn>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Photographer's Note Editor */}
                 <AnimatePresence>
