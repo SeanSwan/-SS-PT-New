@@ -6,7 +6,7 @@
  * Preserves all existing functionality (feed, friends, challenges, gamification).
  */
 
-import React, { useRef, lazy, Suspense } from 'react';
+import React, { useRef, lazy, Suspense, useState, useLayoutEffect, useEffect } from 'react';
 import {
   Home,
   Users,
@@ -31,6 +31,24 @@ import GlowButton from '../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
 const VerticalReels = lazy(() => import('../../components/Social/Reels/VerticalReels'));
+
+// ─── SSR-safe useMediaQuery hook (Issue #2: DOM Bloat) ───────────────
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+const useMediaQuery = (query: string): boolean => {
+  const [matches, setMatches] = useState(false);
+
+  useIsomorphicLayoutEffect(() => {
+    const media = window.matchMedia(query);
+    setMatches(media.matches);
+
+    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [query]);
+
+  return matches;
+};
 
 // ─── Animations ──────────────────────────────────────────────────────
 
@@ -145,15 +163,11 @@ const HeroTitle = styled(TypewriterText)`
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
   letter-spacing: 2px;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0, #C6A84B);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-  animation: ${shimmer} 6s linear infinite;
+  color: #E0ECF4;
+  text-shadow:
+    0 0 20px rgba(139, 92, 246, 0.5),
+    0 0 40px rgba(139, 92, 246, 0.2);
   margin-bottom: 0.5rem;
-  ${reducedMotion}
 
   @media (max-width: 320px) {
     font-size: 1.6rem;
@@ -168,7 +182,7 @@ const HeroTitle = styled(TypewriterText)`
 
 const HeroSubtitle = styled.p`
   font-size: clamp(0.95rem, 2vw, 1.2rem);
-  color: rgba(224, 236, 244, 0.7);
+  color: #50A0F0;
   margin: 0;
   max-width: 500px;
   line-height: 1.6;
@@ -285,9 +299,10 @@ const PointsValue = styled.h3`
 
 const PointsLabel = styled.span`
   font-size: 0.8rem;
-  color: rgba(224, 236, 244, 0.6);
+  color: #50A0F0;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-family: 'Fira Code', monospace;
 `;
 
 const LevelBadge = styled.span`
@@ -309,7 +324,7 @@ const StreakRow = styled.div`
   gap: 8px;
   margin-bottom: 16px;
   font-size: 0.9rem;
-  color: rgba(224, 236, 244, 0.8);
+  color: #E0ECF4;
 
   svg {
     color: #C6A84B;
@@ -335,7 +350,8 @@ const ProgressFill = styled.div<{ $value: number }>`
 
 const ProgressLabel = styled.span`
   font-size: 0.72rem;
-  color: rgba(224, 236, 244, 0.5);
+  color: #50A0F0;
+  font-family: 'Fira Code', monospace;
 `;
 
 // ─── Sidebar Navigation ─────────────────────────────────────────────
@@ -349,7 +365,7 @@ const NavTitle = styled.h4`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: rgba(224, 236, 244, 0.4);
+  color: #4070C0;
   margin: 0 0 12px;
   padding: 0 4px;
 `;
@@ -367,10 +383,10 @@ const NavButton = styled.button<{ $active?: boolean }>`
     $active
       ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(96, 192, 240, 0.06))'
       : 'transparent'};
-  color: ${({ $active }) => ($active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.8)')};
+  color: ${({ $active }) => ($active ? '#8B5CF6' : '#E0ECF4')};
   cursor: pointer;
   font-size: 0.9rem;
-  font-family: inherit;
+  font-family: 'Sora', sans-serif;
   font-weight: ${({ $active }) => ($active ? 600 : 400)};
   transition: all 0.2s ease;
   border: 1px solid ${({ $active }) =>
@@ -401,7 +417,8 @@ const NotifDot = styled.span`
   border-radius: 9px;
   font-size: 0.6rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #C6A84B, #DAC36E);
+  font-family: 'Fira Code', monospace;
+  background: #C6A84B;
   color: #002060;
   margin-left: auto;
 `;
@@ -425,8 +442,8 @@ const QuickActionBtn = styled.button`
   background: transparent;
   cursor: pointer;
   font-size: 0.85rem;
-  color: rgba(224, 236, 244, 0.8);
-  font-family: inherit;
+  color: #E0ECF4;
+  font-family: 'Sora', sans-serif;
   transition: all 0.2s ease;
 
   &:hover {
@@ -476,10 +493,10 @@ const MobileTab = styled.button<{ $active?: boolean }>`
     $active
       ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(96, 192, 240, 0.08))'
       : 'transparent'};
-  color: ${({ $active }) => ($active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.6)')};
+  color: ${({ $active }) => ($active ? '#8B5CF6' : '#50A0F0')};
   cursor: pointer;
   font-size: 0.75rem;
-  font-family: inherit;
+  font-family: 'Sora', sans-serif;
   font-weight: ${({ $active }) => ($active ? 600 : 400)};
   transition: all 0.2s ease;
 
@@ -546,6 +563,7 @@ const SocialPageV3: React.FC = () => {
   });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
+  const isDesktop = useMediaQuery('(min-width: 900px)');
   const notificationCount = 3;
 
   const handleTabChange = (newTab: SocialTab) => {
@@ -597,8 +615,8 @@ const SocialPageV3: React.FC = () => {
 
       {/* ── Main Content ── */}
       <ContentArea>
-        {/* Mobile: Gamification summary — hidden on desktop via CSS */}
-        {profile.data && (
+        {/* Mobile: Gamification summary — conditionally rendered (Issue #2) */}
+        {!isDesktop && profile.data && (
           <MobileGamification>
             <ScrollReveal direction="up" delay={0.05}>
               <GamificationCard>
@@ -624,8 +642,8 @@ const SocialPageV3: React.FC = () => {
           </MobileGamification>
         )}
 
-        {/* Mobile tab bar — hidden on desktop via CSS */}
-        <MobileTabBar>
+        {/* Mobile tab bar — conditionally rendered (Issue #2) */}
+        {!isDesktop && <MobileTabBar>
           <MobileTab
             $active={activeTab === 'feed'}
             onClick={() => handleTabChange('feed')}
@@ -654,12 +672,12 @@ const SocialPageV3: React.FC = () => {
             <Trophy size={20} />
             Challenges
           </MobileTab>
-        </MobileTabBar>
+        </MobileTabBar>}
 
         {/* Desktop grid: sidebar + feed */}
         <DesktopGrid>
-          {/* Sidebar — hidden on mobile via CSS */}
-          <SidebarColumn>
+          {/* Sidebar — conditionally rendered on desktop only (Issue #2) */}
+          {isDesktop && <SidebarColumn>
             {profile.data && (
               <ScrollReveal direction="left" delay={0.1}>
                 <GamificationCard>
@@ -751,7 +769,7 @@ const SocialPageV3: React.FC = () => {
                 </NavSection>
               </GlassSidebar>
             </ScrollReveal>
-          </SidebarColumn>
+          </SidebarColumn>}
 
           {/* Feed */}
           <ScrollReveal direction="up" delay={0.15}>

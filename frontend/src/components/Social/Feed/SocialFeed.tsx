@@ -62,14 +62,16 @@ const LoadMoreButton = styled.button`
   text-transform: uppercase;
   border: 1px solid rgba(139, 92, 246, 0.5);
   border-radius: 8px;
-  color: #8B5CF6;
+  color: #E0ECF4;
   background: transparent;
   cursor: pointer;
+  font-family: 'Sora', sans-serif;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 
   &:hover {
     background: rgba(139, 92, 246, 0.08);
     border-color: #8B5CF6;
+    color: #8B5CF6;
   }
 
   &:disabled {
@@ -102,8 +104,8 @@ const WelcomeTip = styled.div`
   margin-top: 16px;
   padding: 8px 14px;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.05);
+  color: #50A0F0;
+  background: rgba(0, 32, 96, 0.6);
   border-radius: 20px;
 `;
 
@@ -341,8 +343,8 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
       if (p.type === 'workout') acc.workoutPosts++;
       if (p.type === 'achievement') acc.achievementPosts++;
       if (p.type === 'transformation') acc.transformationPosts++;
-      acc.totalLikes += p.likesCount;
-      acc.totalComments += p.commentsCount;
+      acc.totalLikes += p.likesCount ?? 0;
+      acc.totalComments += p.commentsCount ?? 0;
       return acc;
     }, {
       totalPosts: 0, workoutPosts: 0, achievementPosts: 0,
@@ -383,10 +385,10 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
     return (
       <FeedContainer>
         <EmptyFeedMessage>
-          <Heading6 $color="#f44336" $gutterBottom>
+          <Heading6 $color="#C6A84B" $gutterBottom>
             Error loading feed
           </Heading6>
-          <BodyText2 $color="rgba(255,255,255,0.7)" $paragraph>
+          <BodyText2 $color="#E0ECF4" $paragraph>
             Something went wrong while loading your social feed.
           </BodyText2>
           <ContainedButton
@@ -422,7 +424,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
             <Heading6 $fontWeight={700}>
               {profile.data.points?.toLocaleString() || 0}
             </Heading6>
-            <BodyText2 $opacity={0.8}>
+            <BodyText2 $color="#E0ECF4">
               points
             </BodyText2>
           </PointsDisplay>
@@ -449,16 +451,16 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
             <Heading6 $color="#8B5CF6" $fontWeight={600}>
               {feedStats.workoutPosts}
             </Heading6>
-            <CaptionText $color="rgba(255,255,255,0.7)">
+            <CaptionText $color="#50A0F0">
               Workouts
             </CaptionText>
           </StatCard>
 
           <StatCard>
-            <Heading6 $color="#ed6c02" $fontWeight={600}>
+            <Heading6 $color="#C6A84B" $fontWeight={600}>
               {feedStats.achievementPosts}
             </Heading6>
-            <CaptionText $color="rgba(255,255,255,0.7)">
+            <CaptionText $color="#50A0F0">
               Achievements
             </CaptionText>
           </StatCard>
@@ -467,16 +469,16 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
             <Heading6 $color="#8B5CF6" $fontWeight={600}>
               {feedStats.transformationPosts}
             </Heading6>
-            <CaptionText $color="rgba(255,255,255,0.7)">
+            <CaptionText $color="#50A0F0">
               Transformations
             </CaptionText>
           </StatCard>
 
           <StatCard>
-            <Heading6 $color="#d32f2f" $fontWeight={600}>
+            <Heading6 $color="#60C0F0" $fontWeight={600}>
               {feedStats.totalLikes}
             </Heading6>
-            <CaptionText $color="rgba(255,255,255,0.7)">
+            <CaptionText $color="#50A0F0">
               Total Likes
             </CaptionText>
           </StatCard>

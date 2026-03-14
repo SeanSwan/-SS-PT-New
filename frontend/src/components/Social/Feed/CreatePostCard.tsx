@@ -26,7 +26,32 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
+import { useToast } from '../../../hooks/use-toast';
 import styled, { keyframes } from 'styled-components';
+
+// ── Strict TypeScript interfaces for workout API (Issue #4) ─────────
+interface WorkoutSession {
+  id: string;
+  name?: string;
+  workoutName?: string;
+  title?: string;
+  duration?: number;
+  durationMinutes?: number;
+  exerciseCount?: number;
+  exercises?: unknown[];
+  totalWeight?: number;
+  volumeLoad?: number;
+  caloriesBurned?: number;
+  calories?: number;
+  date?: string;
+  sessionDate?: string;
+  createdAt?: string;
+}
+
+interface WorkoutSessionsResponse {
+  data: WorkoutSession[];
+  meta?: { total: number; page: number };
+}
 
 // ── CSS spinner keyframe ──────────────────────────────────────────────
 const spin = keyframes`
@@ -551,6 +576,7 @@ const CreatePostCard: React.FC = () => {
   const { user } = useAuth();
   const { createPost, isCreatingPost } = useSocialFeed();
   const { triggerFromResult } = useCelebrationTriggers();
+  const { error: toastError } = useToast();
   const [postContent, setPostContent] = useState('');
   const [media, setMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -574,7 +600,7 @@ const CreatePostCard: React.FC = () => {
 
   // Workout history state
   const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
-  const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const { authAxios } = useAuth();
@@ -582,9 +608,21 @@ const CreatePostCard: React.FC = () => {
   // AbortController ref for cancelling in-flight workout history requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup any pending fetch on unmount
+  // Cleanup blob URLs + pending fetches on unmount (Issue #1: Memory Leak)
   useEffect(() => {
-    return () => { abortControllerRef.current?.abort(); };
+    return () => {
+      abortControllerRef.current?.abort();
+      if (mediaPreview && mediaPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(mediaPreview);
+      }
+      if (beforePreview && beforePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(beforePreview);
+      }
+      if (afterPreview && afterPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(afterPreview);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchWorkoutHistory = useCallback(async () => {
@@ -597,33 +635,24 @@ const CreatePostCard: React.FC = () => {
 
     setIsLoadingHistory(true);
     try {
-      const res = await authAxios.get('/api/sessions', {
-        params: { limit: 20, status: 'completed' },
-        signal: controller.signal,
-      });
-      const sessions = res.data?.sessions || res.data?.data || res.data || [];
-      setWorkoutHistory(Array.isArray(sessions) ? sessions : []);
+      const res = await authAxios.get<WorkoutSessionsResponse>(
+        '/api/v1/workouts/sessions',
+        {
+          params: { limit: 20, status: 'completed' },
+          signal: controller.signal,
+        }
+      );
+      setWorkoutHistory(res.data.data);
       setShowWorkoutHistory(true);
     } catch (err: any) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.error('Failed to fetch workout history:', err);
-      // Try alternate endpoint
-      try {
-        const res2 = await authAxios.get('/api/workout-sessions', {
-          params: { limit: 20 },
-          signal: controller.signal,
-        });
-        const sessions2 = res2.data?.sessions || res2.data?.data || res2.data || [];
-        setWorkoutHistory(Array.isArray(sessions2) ? sessions2 : []);
-        setShowWorkoutHistory(true);
-      } catch (err2: any) {
-        if (err2.name === 'CanceledError' || err2.name === 'AbortError') return;
-        setWorkoutHistory([]); setShowWorkoutHistory(true);
-      }
+      setWorkoutHistory([]);
+      setShowWorkoutHistory(true);
     } finally { setIsLoadingHistory(false); }
   }, [authAxios, workoutHistory.length]);
 
-  const selectWorkoutFromHistory = (workout: any) => {
+  const selectWorkoutFromHistory = (workout: WorkoutSession) => {
     const dur = workout.duration || workout.durationMinutes || '';
     const exercises = workout.exerciseCount || workout.exercises?.length || '';
     const weight = workout.totalWeight || workout.volumeLoad || '';
@@ -745,13 +774,18 @@ const CreatePostCard: React.FC = () => {
       const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB video, 10MB image
 
       if (file.size > maxSize) {
-        alert(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
+        toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
         return;
       }
 
       if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-        alert('Only image and video files are allowed');
+        toastError('Only image and video files are allowed');
         return;
+      }
+
+      // Revoke previous blob URL to prevent memory leak (Issue #1)
+      if (mediaPreview && mediaPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(mediaPreview);
       }
 
       setMedia(file);
@@ -769,12 +803,39 @@ const CreatePostCard: React.FC = () => {
     }
   };
 
-  // Handle remove media
+  // Handle remove media — revoke blob URL to prevent leak (Issue #1)
   const handleRemoveMedia = () => {
+    if (mediaPreview && mediaPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreview);
+    }
     setMedia(null);
     setMediaPreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle remove before image (Issue #3)
+  const handleRemoveBeforeImage = () => {
+    if (beforePreview && beforePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(beforePreview);
+    }
+    setBeforeImage(null);
+    setBeforePreview(null);
+    if (beforeImageRef.current) {
+      beforeImageRef.current.value = '';
+    }
+  };
+
+  // Handle remove after image (Issue #3)
+  const handleRemoveAfterImage = () => {
+    if (afterPreview && afterPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(afterPreview);
+    }
+    setAfterImage(null);
+    setAfterPreview(null);
+    if (afterImageRef.current) {
+      afterImageRef.current.value = '';
     }
   };
 
@@ -814,8 +875,17 @@ const CreatePostCard: React.FC = () => {
     }));
   };
 
-  // Reset form to initial state
+  // Reset form to initial state — revoke all blob URLs (Issue #1)
   const resetForm = () => {
+    if (mediaPreview && mediaPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreview);
+    }
+    if (beforePreview && beforePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(beforePreview);
+    }
+    if (afterPreview && afterPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(afterPreview);
+    }
     setPostContent('');
     setMedia(null);
     setMediaPreview(null);
@@ -978,7 +1048,7 @@ const CreatePostCard: React.FC = () => {
                       {workoutHistory.length === 0 ? (
                         <WorkoutHistoryEmpty>No completed workouts found</WorkoutHistoryEmpty>
                       ) : (
-                        workoutHistory.slice(0, 10).map((w: any, i: number) => {
+                        workoutHistory.slice(0, 10).map((w: WorkoutSession, i: number) => {
                           const name = w.name || w.workoutName || w.title || 'Workout Session';
                           const date = w.date || w.sessionDate || w.createdAt;
                           const dateStr = date ? new Date(date).toLocaleDateString() : '';
@@ -1056,27 +1126,41 @@ const CreatePostCard: React.FC = () => {
                     onChange={handleAfterImageSelect}
                   />
 
-                  <TransformationImageBox onClick={() => beforeImageRef.current?.click()}>
-                    {beforePreview ? (
-                      <img src={beforePreview} alt="Before" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
-                    ) : (
-                      <PlaceholderContent>
-                        <Camera size={32} />
-                        <BodyText>Before Photo</BodyText>
-                      </PlaceholderContent>
+                  <MediaPreviewWrapper style={{ flex: 1, marginTop: 0 }}>
+                    <TransformationImageBox onClick={() => beforeImageRef.current?.click()}>
+                      {beforePreview ? (
+                        <img src={beforePreview} alt="Before" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
+                      ) : (
+                        <PlaceholderContent>
+                          <Camera size={32} />
+                          <BodyText>Before Photo</BodyText>
+                        </PlaceholderContent>
+                      )}
+                    </TransformationImageBox>
+                    {beforePreview && (
+                      <RemoveMediaButton onClick={handleRemoveBeforeImage} aria-label="Remove before image">
+                        <X size={16} />
+                      </RemoveMediaButton>
                     )}
-                  </TransformationImageBox>
+                  </MediaPreviewWrapper>
 
-                  <TransformationImageBox onClick={() => afterImageRef.current?.click()}>
-                    {afterPreview ? (
-                      <img src={afterPreview} alt="After" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
-                    ) : (
-                      <PlaceholderContent>
-                        <Camera size={32} />
-                        <BodyText>After Photo</BodyText>
-                      </PlaceholderContent>
+                  <MediaPreviewWrapper style={{ flex: 1, marginTop: 0 }}>
+                    <TransformationImageBox onClick={() => afterImageRef.current?.click()}>
+                      {afterPreview ? (
+                        <img src={afterPreview} alt="After" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
+                      ) : (
+                        <PlaceholderContent>
+                          <Camera size={32} />
+                          <BodyText>After Photo</BodyText>
+                        </PlaceholderContent>
+                      )}
+                    </TransformationImageBox>
+                    {afterPreview && (
+                      <RemoveMediaButton onClick={handleRemoveAfterImage} aria-label="Remove after image">
+                        <X size={16} />
+                      </RemoveMediaButton>
                     )}
-                  </TransformationImageBox>
+                  </MediaPreviewWrapper>
                 </TransformationImageContainer>
               )}
 
