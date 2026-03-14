@@ -46,7 +46,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
   const [settings, setSettings] = useState<PaymentSettings>({
     zelleRecipient: '3239968153',
     venmoHandle: '',
-    checkPayeeName: 'SwanStudios',
+    checkPayeeName: 'Sean Swan',
   });
 
   const methods = getPaymentMethods(total);

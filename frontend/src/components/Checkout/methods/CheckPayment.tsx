@@ -35,7 +35,7 @@ const CheckPayment: React.FC<CheckPaymentProps> = ({ total, payeeName, onSubmit,
           <StepText>Make check payable to:</StepText>
         </Step>
         <PayeeBox>
-          <PayeeName>{payeeName || 'SwanStudios'}</PayeeName>
+          <PayeeName>{payeeName || 'Sean Swan'}</PayeeName>
           <CopyBtn onClick={handleCopy} aria-label="Copy payee name">
             {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
           </CopyBtn>
