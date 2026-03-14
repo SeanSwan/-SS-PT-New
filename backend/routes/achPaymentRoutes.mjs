@@ -57,6 +57,11 @@ router.post('/create-intent', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Items and total are required' });
     }
 
+    // Validate idempotency key (must be UUIDv4)
+    if (!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
+      return res.status(400).json({ success: false, message: 'Invalid or missing idempotency key' });
+    }
+
     // Server-side price validation (same as offlinePaymentRoutes)
     const itemIds = items.map(i => i.storefrontItemId);
     const dbItems = await StorefrontItem.findAll({ where: { id: itemIds } });
@@ -78,11 +83,29 @@ router.post('/create-intent', protect, async (req, res) => {
 
     // Allow small rounding tolerance ($0.02)
     if (clientTotal.minus(serverTotal).abs().greaterThan(0.02)) {
+      // Build line-item diff so frontend can show exactly what changed
+      const changedItems = items.reduce((acc, clientItem) => {
+        const dbItem = dbItems.find(i => i.id === clientItem.storefrontItemId);
+        if (!dbItem) {
+          acc.push({ id: clientItem.storefrontItemId, name: clientItem.name || 'Unavailable Item', expectedPrice: clientItem.price, actualPrice: 0, delta: -clientItem.price, status: 'REMOVED' });
+        } else if (Number(dbItem.price) !== clientItem.price) {
+          acc.push({ id: dbItem.id, name: dbItem.name, expectedPrice: clientItem.price, actualPrice: Number(dbItem.price), delta: Number(dbItem.price) - clientItem.price, status: 'PRICE_CHANGED' });
+        }
+        return acc;
+      }, []);
+
       return res.status(409).json({
         success: false,
         code: 'PRICE_MISMATCH',
-        message: 'Prices have been updated. Please refresh and try again.',
-        updatedTotal: serverTotal.toNumber(),
+        message: 'Cart total has been recalculated based on real-time pricing.',
+        actionRequired: 'CONFIRM_NEW_TOTAL',
+        pricingData: {
+          expectedTotal: clientTotal.toNumber(),
+          updatedTotal: serverTotal.toNumber(),
+          delta: serverTotal.minus(clientTotal).toNumber(),
+          currency: 'USD',
+          changedItems,
+        },
       });
     }
 
@@ -119,6 +142,8 @@ router.post('/create-intent', protect, async (req, res) => {
         userId: userId.toString(),
         source: 'swanstudios_ach',
       },
+    }, {
+      idempotencyKey, // Prevent duplicate PaymentIntents on network retry
     });
 
     // Store the PaymentIntent ID on the order
@@ -137,7 +162,15 @@ router.post('/create-intent', protect, async (req, res) => {
     });
   } catch (err) {
     logger.error('[ACH] Create intent error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to create ACH payment' });
+    return res.status(500).json({
+      success: false,
+      code: 'PAYMENT_INTENT_FAILED',
+      userMessage: 'We were unable to process your payment information.',
+      technicalMessage: err.message,
+      errorType: err.type || 'unknown',
+      retryable: ['rate_limit_error', 'api_connection_error'].includes(err.type),
+      supportReference: `ERR-${Date.now().toString(36).toUpperCase()}`,
+    });
   }
 });
 

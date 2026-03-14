@@ -10,10 +10,11 @@
  * 3. User authorizes via Stripe Financial Connections
  * 4. Payment processes asynchronously (webhook handles completion)
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { Building2, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
+import { v4 as uuidv4 } from 'uuid';
 import GlowButton from '../../ui/buttons/GlowButton';
 import api from '../../../services/api.service';
 import { useAuth } from '../../../context/AuthContext';
@@ -36,6 +37,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
   const [status, setStatus] = useState<ACHStatus>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
+  const idempotencyKey = useRef(uuidv4());
 
   const totalWithFee = total + fee;
 
@@ -54,6 +56,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
           userId: user?.id,
         },
         total,
+        idempotencyKey: idempotencyKey.current,
       });
 
       if (!res.data?.success || !res.data?.clientSecret) {
@@ -103,10 +106,15 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
       setStatus('error');
       const data = err.response?.data;
       if (data?.code === 'PRICE_MISMATCH') {
-        setErrorMsg(`Prices updated. New total: $${data.updatedTotal?.toFixed(2)}. Please refresh.`);
+        const pricing = data.pricingData;
+        setErrorMsg(`Prices updated. New total: $${pricing?.updatedTotal?.toFixed(2) || data.updatedTotal?.toFixed(2)}. Please review your cart.`);
+      } else if (data?.code === 'PAYMENT_INTENT_FAILED') {
+        setErrorMsg(data.userMessage || 'Payment processing failed.');
       } else {
         setErrorMsg(err.message || 'ACH payment failed');
       }
+      // Generate new idempotency key for retry
+      idempotencyKey.current = uuidv4();
     }
   }, [status, items, user, total, refreshCart, onSuccess]);
 

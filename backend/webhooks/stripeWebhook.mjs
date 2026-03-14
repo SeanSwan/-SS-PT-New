@@ -44,8 +44,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     
     if (!webhookSecret) {
-      logger.warn('Stripe webhook secret not configured. Skipping signature verification.');
-      event = req.body;
+      logger.error('CRITICAL: Stripe webhook secret not configured. Rejecting request.', {
+        ip: req.ip,
+        bodyPreview: typeof req.body === 'string' ? req.body.substring(0, 200) : JSON.stringify(req.body).substring(0, 200)
+      });
+      return res.status(500).json({ error: 'Webhook configuration error' });
     } else {
       const signature = req.headers['stripe-signature'];
       event = stripeClient.webhooks.constructEvent(
@@ -94,16 +97,35 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           break;
         }
 
-        // Mark cart as completed with sessionsGranted flag
+        // Mark cart as completed — but do NOT set sessionsGranted until fulfillment succeeds
         cart.status = 'completed';
         cart.paymentStatus = 'paid';
         cart.completedAt = new Date();
         cart.checkoutSessionId = session.id;
-        cart.sessionsGranted = true; // IDEMPOTENCY FLAG - set BEFORE processing
-        await cart.save();
 
-        // Process any necessary follow-up actions (e.g., provision digital products, etc.)
-        await processCompletedOrder(cartId);
+        try {
+          // Process fulfillment FIRST
+          await processCompletedOrder(cartId);
+
+          // ONLY mark as granted if fulfillment succeeded
+          cart.sessionsGranted = true;
+          cart.fulfillmentAttempts = (cart.fulfillmentAttempts || 0) + 1;
+          cart.fulfillmentStatus = 'success';
+          await cart.save();
+        } catch (fulfillError) {
+          cart.fulfillmentAttempts = (cart.fulfillmentAttempts || 0) + 1;
+          logger.error('Order fulfillment failed', {
+            cartId,
+            attempt: cart.fulfillmentAttempts,
+            error: fulfillError.message,
+            stack: fulfillError.stack,
+          });
+          if (cart.fulfillmentAttempts >= 5) {
+            cart.fulfillmentStatus = 'failed';
+          }
+          await cart.save();
+          throw fulfillError; // Let Stripe retry
+        }
 
         // Backfill stripeCustomerId (write-if-empty rule)
         if (session.customer && cart.userId) {
@@ -119,7 +141,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         }
 
         logger.info(`Order completed for cart ID: ${cartId} (via webhook)`);
-        console.log(`✅ [Webhook] Sessions granted via webhook (idempotency flag set)`);
         break;
       }
       case 'checkout.session.expired': {
@@ -389,13 +410,14 @@ async function addSessionsToUserAccount(userId, sessions) {
       return;
     }
     
-    // Assuming User model has an availableSessions field
-    user.availableSessions = (user.availableSessions || 0) + sessions;
-    
+    // Atomic increment — prevents race conditions with concurrent purchases/bookings
+    await User.increment('availableSessions', { by: sessions, where: { id: userId } });
+
     // Mark that the user has purchased before for analytics
-    user.hasPurchasedBefore = true;
-    
-    await user.save();
+    await User.update({ hasPurchasedBefore: true }, { where: { id: userId } });
+
+    // Reload user to get updated values for socket emit
+    await user.reload();
     
     // Upgrade user to client role if they purchase training
     await upgradeToClient(userId);
@@ -463,31 +485,29 @@ async function triggerPurchaseAchievements(userId, cartItem) {
  */
 async function createOrderRecord(cart) {
   try {
-    // Assuming you have an Order model
-    // This would be replaced with your actual Order model import and implementation
-    // For demonstration purposes, we're showing what data would be saved
-    
-    // const Order = await import('../models/Order.mjs');
-    // const newOrder = await Order.create({
-    //   userId: cart.userId,
-    //   cartId: cart.id,
-    //   orderStatus: 'completed',
-    //   paymentStatus: 'paid',
-    //   totalAmount: cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-    //   orderItems: cart.cartItems.map(item => ({
-    //     itemId: item.storefrontItemId,
-    //     quantity: item.quantity,
-    //     price: item.price,
-    //     name: item.storefrontItem?.name || 'Unknown Item'
-    //   })),
-    //   completedAt: new Date()
-    // });
-    
-    // Log instead since actual implementation depends on your models
-    logger.info(`Created order record for cart ${cart.id}`);
-    
-    // Optionally notify other systems about the new order
-    // This could be an analytics system, inventory system, etc.
+    const { default: Order } = await import('../models/Order.mjs');
+    const totalAmount = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const orderNumber = `SWAN-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+
+    await Order.create({
+      userId: cart.userId,
+      orderNumber,
+      totalAmount,
+      status: 'completed',
+      paymentMethod: 'card',
+      paymentAppliedAt: new Date(),
+      notes: JSON.stringify({
+        cartId: cart.id,
+        items: cart.cartItems.map(item => ({
+          itemId: item.storefrontItemId,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.storefrontItem?.name || 'Unknown Item',
+        })),
+      }),
+    });
+
+    logger.info(`Created order record ${orderNumber} for cart ${cart.id}`);
   } catch (error) {
     logger.error(`Error creating order record: ${error.message}`);
     // Log but don't throw to avoid blocking the purchase flow
