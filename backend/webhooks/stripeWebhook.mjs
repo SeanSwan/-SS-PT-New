@@ -140,15 +140,66 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         }
         break;
       }
-      // Additional event types to handle:
-      case 'payment_intent.succeeded':
-        // Handle successful payment
-        logger.info(`Payment succeeded: ${event.data.object.id}`);
+      // ── ACH / PaymentIntent Events ──────────────────────────────────
+      case 'payment_intent.processing': {
+        // ACH payments go through a 'processing' state (1-3 business days)
+        const pi = event.data.object;
+        if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
+          logger.info(`[ACH Webhook] Payment processing for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
+          try {
+            const { default: Order } = await import('../models/Order.mjs');
+            await Order.update(
+              { status: 'processing' },
+              { where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id } }
+            );
+          } catch (achErr) {
+            logger.error(`[ACH Webhook] Failed to update order to processing: ${achErr.message}`);
+          }
+        }
         break;
-      case 'payment_intent.payment_failed':
-        // Handle failed payment
-        logger.info(`Payment failed: ${event.data.object.id}`);
+      }
+      case 'payment_intent.succeeded': {
+        const pi = event.data.object;
+        if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
+          logger.info(`[ACH Webhook] Payment succeeded for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
+          try {
+            const { default: Order } = await import('../models/Order.mjs');
+            const order = await Order.findOne({
+              where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id },
+            });
+            if (order && order.status !== 'completed') {
+              await order.update({
+                status: 'completed',
+                paymentAppliedAt: new Date(),
+              });
+              logger.info(`[ACH Webhook] Order ${pi.metadata.orderNumber} marked completed`);
+            }
+          } catch (achErr) {
+            logger.error(`[ACH Webhook] Failed to complete order: ${achErr.message}`);
+          }
+        } else {
+          logger.info(`Payment succeeded: ${pi.id}`);
+        }
         break;
+      }
+      case 'payment_intent.payment_failed': {
+        const pi = event.data.object;
+        if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
+          logger.warn(`[ACH Webhook] Payment FAILED for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
+          try {
+            const { default: Order } = await import('../models/Order.mjs');
+            await Order.update(
+              { status: 'failed' },
+              { where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id } }
+            );
+          } catch (achErr) {
+            logger.error(`[ACH Webhook] Failed to mark order as failed: ${achErr.message}`);
+          }
+        } else {
+          logger.info(`Payment failed: ${pi.id}`);
+        }
+        break;
+      }
       default:
         // Unexpected event type
         logger.info(`Unhandled event type: ${event.type}`);

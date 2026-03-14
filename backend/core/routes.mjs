@@ -42,6 +42,7 @@ import v2PaymentRoutes from '../routes/v2PaymentRoutes.mjs';
 import orderRoutes from '../routes/orderRoutes.mjs';
 import financialRoutes from '../routes/financialRoutes.mjs';
 import offlinePaymentRoutes from '../routes/offlinePaymentRoutes.mjs';
+import achPaymentRoutes from '../routes/achPaymentRoutes.mjs';
 import adminPaymentSettingsRoutes from '../routes/adminPaymentSettingsRoutes.mjs';
 
 // ===================== COMMUNICATION =====================
@@ -272,6 +273,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/orders', orderRoutes);
   app.use('/api/financial', financialRoutes);
   app.use('/api/payments', offlinePaymentRoutes);
+  app.use('/api/payments/ach', achPaymentRoutes);
   app.use('/api/admin/payment-settings', adminPaymentSettingsRoutes);
 
   // ===================== COMMUNICATION ROUTES =====================

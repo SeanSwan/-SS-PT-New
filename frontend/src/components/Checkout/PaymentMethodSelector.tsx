@@ -23,6 +23,7 @@ import {
 import CheckPayment from './methods/CheckPayment';
 import ZellePayment from './methods/ZellePayment';
 import VenmoPayment from './methods/VenmoPayment';
+import ACHPayment from './methods/ACHPayment';
 
 interface PaymentMethodSelectorProps {
   total: number;
@@ -170,9 +171,20 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
         )}
 
         {selectedMethod === 'ach' && (
-          <ACHPlaceholder>
-            ACH / eCheck payments coming soon. Please use another method for now.
-          </ACHPlaceholder>
+          <ACHPayment
+            total={total}
+            fee={fee}
+            items={(cart?.items || []).map(item => ({
+              storefrontItemId: item.storefrontItemId || item.id,
+              quantity: item.quantity,
+              price: item.price,
+              name: item.packageName || item.name,
+            }))}
+            onSuccess={() => {
+              toastSuccess('ACH payment initiated! Processing takes 1-3 business days.');
+              refreshCart();
+            }}
+          />
         )}
       </MethodContent>
     </Container>
@@ -298,13 +310,6 @@ const MethodContent = styled.div`
   border-top: 1px solid rgba(96, 192, 240, 0.15);
   box-shadow: inset 0 4px 24px rgba(0, 0, 0, 0.2);
   min-height: 200px;
-`;
-
-const ACHPlaceholder = styled.div`
-  text-align: center;
-  padding: 40px 16px;
-  color: rgba(224, 236, 244, 0.7);
-  font-size: 0.9rem;
 `;
 
 export default PaymentMethodSelector;
