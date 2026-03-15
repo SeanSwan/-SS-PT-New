@@ -14,100 +14,109 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // Step 1: ALTER TYPE cannot run inside a transaction in PostgreSQL
+    // Do this BEFORE the transaction block
+    try {
+      await queryInterface.sequelize.query(
+        `ALTER TYPE "enum_Achievements_category" ADD VALUE IF NOT EXISTS 'community';`
+      );
+      console.log('Added community to category enum');
+    } catch (e) {
+      // Enum value may already exist or enum type may not exist — safe to skip
+      console.log('Skipping enum alteration:', e.message);
+    }
+
+    // Step 2: Add columns in a transaction (idempotent — check before adding)
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      // ── Achievement model additions ──
+      // Helper: only add column if it doesn't exist yet
+      const safeAddColumn = async (table, column, definition) => {
+        try {
+          const desc = await queryInterface.describeTable(table);
+          if (desc[column]) {
+            console.log(`⏭️  ${table}.${column} already exists, skipping`);
+            return;
+          }
+        } catch (e) { /* table might not exist yet — let addColumn handle it */ }
+        await queryInterface.addColumn(table, column, definition, { transaction });
+        console.log(`➕ Added ${table}.${column}`);
+      };
 
-      // 1. Add targetRoles JSONB
-      await queryInterface.addColumn('Achievements', 'targetRoles', {
+      // ── Achievement model additions ──
+      await safeAddColumn('Achievements', 'targetRoles', {
         type: Sequelize.JSONB,
         allowNull: false,
         defaultValue: ['user'],
         comment: 'Roles eligible for this achievement'
-      }, { transaction });
+      });
 
-      // 2. Add rewardType (STRING to avoid ENUM migration complexity)
-      await queryInterface.addColumn('Achievements', 'rewardType', {
+      await safeAddColumn('Achievements', 'rewardType', {
         type: Sequelize.STRING,
         allowNull: false,
         defaultValue: 'badge'
-      }, { transaction });
+      });
 
-      // 3. Add issuance
-      await queryInterface.addColumn('Achievements', 'issuance', {
+      await safeAddColumn('Achievements', 'issuance', {
         type: Sequelize.STRING,
         allowNull: false,
         defaultValue: 'auto'
-      }, { transaction });
+      });
 
-      // 4. Add rewards JSONB array
-      await queryInterface.addColumn('Achievements', 'rewards', {
+      await safeAddColumn('Achievements', 'rewards', {
         type: Sequelize.JSONB,
         allowNull: false,
         defaultValue: [],
         comment: 'Array of reward objects: [{type, value, description}]'
-      }, { transaction });
-
-      // 5. Expand category ENUM to include 'community'
-      // PostgreSQL: add value to existing enum type
-      await queryInterface.sequelize.query(
-        `ALTER TYPE "enum_Achievements_category" ADD VALUE IF NOT EXISTS 'community';`,
-        { transaction }
-      ).catch(() => {
-        // Enum value may already exist or enum type may not exist — safe to skip
       });
 
-      // 6. Add index on targetRoles for GIN queries
+      // Index on targetRoles for GIN queries
       await queryInterface.addIndex('Achievements', {
         fields: ['targetRoles'],
         using: 'GIN',
         name: 'idx_achievements_target_roles',
         transaction
-      }).catch(() => {}); // Skip if GIN not supported or index exists
+      }).catch(() => {});
 
       // ── User model privacy additions ──
-
-      // 7. Add profileVisibility
-      await queryInterface.addColumn('Users', 'profileVisibility', {
+      await safeAddColumn('Users', 'profileVisibility', {
         type: Sequelize.STRING,
         allowNull: false,
         defaultValue: 'public',
         comment: 'public | friends_only | private'
-      }, { transaction });
+      });
 
-      // 8. Add granular privacy toggles
-      await queryInterface.addColumn('Users', 'showBadges', {
+      await safeAddColumn('Users', 'showBadges', {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: true
-      }, { transaction });
+      });
 
-      await queryInterface.addColumn('Users', 'showAchievements', {
+      await safeAddColumn('Users', 'showAchievements', {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: true
-      }, { transaction });
+      });
 
-      await queryInterface.addColumn('Users', 'showStats', {
+      await safeAddColumn('Users', 'showStats', {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: true
-      }, { transaction });
+      });
 
-      await queryInterface.addColumn('Users', 'showWorkoutHistory', {
+      await safeAddColumn('Users', 'showWorkoutHistory', {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: false
-      }, { transaction });
+      });
 
-      await queryInterface.addColumn('Users', 'showLevel', {
+      await safeAddColumn('Users', 'showLevel', {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: true
-      }, { transaction });
+      });
 
-      // 9. Add index on profileVisibility
+      // Index on profileVisibility
       await queryInterface.addIndex('Users', {
         fields: ['profileVisibility'],
         name: 'idx_users_profile_visibility',

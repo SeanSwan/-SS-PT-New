@@ -42,7 +42,7 @@ const ROOT = join(__dirname, '..');
 // Constants
 // ─────────────────────────────────────────────
 
-const MODEL = 'gemini-2.5-flash-preview-image-generation';
+const MODEL = 'gemini-3.1-flash-image-preview';
 const OUTPUT_DIR = join(ROOT, 'frontend', 'public', 'badges', 'achievements');
 const ACHIEVEMENT_MANIFEST_PATH = join(__dirname, 'achievement-badge-manifest.json');
 const STYLE_MANIFEST_PATH = join(__dirname, 'badge-manifest.json');
