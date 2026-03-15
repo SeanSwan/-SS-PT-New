@@ -134,6 +134,63 @@ const MISSING_COLUMNS = [
     column: 'longitude',
     sql: `ALTER TABLE "gallery_visitors" ADD COLUMN "longitude" DOUBLE PRECISION;`,
   },
+  // Users privacy + client source columns — added in 20260315 migrations
+  {
+    table: 'Users',
+    column: 'clientSource',
+    sql: `ALTER TABLE "Users" ADD COLUMN "clientSource" VARCHAR(50) NOT NULL DEFAULT 'swanstudios';`,
+  },
+  {
+    table: 'Users',
+    column: 'profileVisibility',
+    sql: `ALTER TABLE "Users" ADD COLUMN "profileVisibility" VARCHAR(255) NOT NULL DEFAULT 'public';`,
+  },
+  {
+    table: 'Users',
+    column: 'showBadges',
+    sql: `ALTER TABLE "Users" ADD COLUMN "showBadges" BOOLEAN NOT NULL DEFAULT true;`,
+  },
+  {
+    table: 'Users',
+    column: 'showAchievements',
+    sql: `ALTER TABLE "Users" ADD COLUMN "showAchievements" BOOLEAN NOT NULL DEFAULT true;`,
+  },
+  {
+    table: 'Users',
+    column: 'showStats',
+    sql: `ALTER TABLE "Users" ADD COLUMN "showStats" BOOLEAN NOT NULL DEFAULT true;`,
+  },
+  {
+    table: 'Users',
+    column: 'showWorkoutHistory',
+    sql: `ALTER TABLE "Users" ADD COLUMN "showWorkoutHistory" BOOLEAN NOT NULL DEFAULT false;`,
+  },
+  {
+    table: 'Users',
+    column: 'showLevel',
+    sql: `ALTER TABLE "Users" ADD COLUMN "showLevel" BOOLEAN NOT NULL DEFAULT true;`,
+  },
+  // Achievements enhancement columns — added in 20260315 migrations
+  {
+    table: 'Achievements',
+    column: 'targetRoles',
+    sql: `ALTER TABLE "Achievements" ADD COLUMN "targetRoles" JSONB NOT NULL DEFAULT '["user"]';`,
+  },
+  {
+    table: 'Achievements',
+    column: 'rewardType',
+    sql: `ALTER TABLE "Achievements" ADD COLUMN "rewardType" VARCHAR(255) NOT NULL DEFAULT 'badge';`,
+  },
+  {
+    table: 'Achievements',
+    column: 'issuance',
+    sql: `ALTER TABLE "Achievements" ADD COLUMN "issuance" VARCHAR(255) NOT NULL DEFAULT 'auto';`,
+  },
+  {
+    table: 'Achievements',
+    column: 'rewards',
+    sql: `ALTER TABLE "Achievements" ADD COLUMN "rewards" JSONB NOT NULL DEFAULT '[]';`,
+  },
 ];
 
 const addMissingColumns = async () => {
