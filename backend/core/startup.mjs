@@ -19,6 +19,7 @@ import { runStartupMigrations } from '../utils/startupMigrations.mjs';
 import { syncDatabaseSafely } from '../utils/productionDatabaseSync.mjs';
 import seedStorefrontItems from '../seedStorefrontItems.mjs';
 import seedWaiverVersions from '../seeders/seed-waiver-versions.mjs';
+import { seedExercises } from '../scripts/seedExercises.mjs';
 import logger from '../utils/logger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -249,6 +250,14 @@ const seedInitialData = async () => {
     }
   } catch (waiverSeedError) {
     logger.warn(`⚠️  Waiver version seeding failed (non-critical): ${waiverSeedError.message}`);
+  }
+
+  // Seed exercises — idempotent, skips if exercises already exist
+  try {
+    await seedExercises();
+    logger.info('✅ Exercise seeding check complete');
+  } catch (exerciseSeedError) {
+    logger.warn(`⚠️  Exercise seeding failed (non-critical): ${exerciseSeedError.message}`);
   }
 };
 
