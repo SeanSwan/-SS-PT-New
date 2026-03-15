@@ -52,11 +52,11 @@ export const navigationItems: NavItemData[] = [
   // Core Features
   { id: 'workouts', label: 'Workouts', icon: Activity, section: 'core', status: 'real' },
   { id: 'logger', label: 'Log Workout', icon: Dumbbell, section: 'core', status: 'new' },
-  { id: 'ai-workout', label: 'AI Workout', icon: Brain, section: 'core', status: 'new' },
+  { id: 'ai-workout', label: 'Deep Research', icon: Brain, section: 'core', status: 'new' },
   { id: 'form-check', label: 'Form Check', icon: Video, section: 'core', status: 'new' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, section: 'core', status: 'real' },
   { id: 'health', label: 'Body Map', icon: HeartPulse, section: 'core', status: 'real' },
-  { id: 'food-intel', label: 'Food Intelligence', icon: Apple, section: 'core', status: 'new' },
+  { id: 'food-intel', label: 'Nutrition Intelligence', icon: Apple, section: 'core', status: 'new' },
   { id: 'gamification', label: 'Gamification', icon: Trophy, section: 'core', status: 'real' },
   { id: 'messages', label: 'Messages', icon: MessageSquare, section: 'core', status: 'real' },
 

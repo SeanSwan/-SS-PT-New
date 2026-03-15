@@ -26,7 +26,7 @@ import styled, { ThemeProvider, keyframes, css } from 'styled-components';
 import { 
   Users, UserCheck, BarChart3, Video, MessageSquare, Calendar,
   ChevronLeft, ChevronRight, Menu, X, Dumbbell, Target,
-  Activity, ClipboardCheck, Star, Zap, Brain
+  Activity, ClipboardCheck, Star, Zap, Brain, Apple
 } from 'lucide-react';
 
 // === TRAINER STELLAR THEME ===
@@ -361,11 +361,17 @@ const trainerNavigationConfig = [
         icon: Video,
         description: 'Library of reusable training video content'
       },
-      { 
-        label: 'AI Workout Forge', 
-        path: '/dashboard/trainer/workout-forge', 
+      {
+        label: 'Deep Research — Workout Intelligence',
+        path: '/dashboard/trainer/workout-forge',
         icon: Brain,
-        description: 'Generate AI-powered workout plans using Olympian\'s Forge'
+        description: 'Generate Deep Research-powered workout plans'
+      },
+      {
+        label: 'Nutrition Intelligence',
+        path: '/dashboard/workouts/nutrition',
+        icon: Apple,
+        description: 'Food logging, macro tracking, and nutrition research'
       }
     ]
   },

@@ -92,6 +92,7 @@ import { EnhancedClientProgressView } from '../TrainerDashboard/ClientProgress';
 const UniversalScheduleLazy = React.lazy(() => import('../Schedule/UniversalSchedule'));
 const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard/AiConsentScreen'));
 const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
+const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'));
 
 // === UNIVERSAL THEME SYSTEM ===
 const universalTheme = {
@@ -441,7 +442,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: () => <div>Form Assessments (Coming Soon)</div>, title: 'Form Assessments', description: 'YOLO AI form checking' },
       { path: '/videos', component: () => <div>Training Videos (Coming Soon)</div>, title: 'Training Videos', description: 'Video content library' },
-      { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Olympian\'s Forge interface' },
+      { path: '/workout-forge', component: () => <div>Deep Research — Workout Intelligence (Coming Soon)</div>, title: 'Deep Research — Workout Intelligence', description: 'Deep Research workout generation' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' }
     ],
@@ -452,9 +453,9 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/overview', component: () => <div>Galaxy Overview (Coming Soon)</div>, title: 'Overview', description: 'Your fitness journey hub' },
       { path: '/workouts', component: () => <div>My Workouts (Coming Soon)</div>, title: 'My Workouts', description: 'Assigned workout plans' },
       { path: '/progress', component: () => <NASMProgressCharts clientId={user?.id || 0} />, title: 'My Progress', description: 'NASM progress visualization dashboard' },
-      { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Self-serve workout generation' },
-      { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
-      { path: '/meal-planner', component: () => <div>AI Meal Planner (Coming Soon)</div>, title: 'AI Meal Planner', description: 'Culinary Codex interface' },
+      { path: '/workout-forge', component: () => <div>Deep Research — Workout Intelligence (Coming Soon)</div>, title: 'Deep Research — Workout Intelligence', description: 'Self-serve Deep Research workout generation' },
+      { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'Deep Research Privacy & Consent', description: 'Manage Deep Research data consent' },
+      { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Deep Research — Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: () => <div>Community & Challenges (Coming Soon)</div>, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },

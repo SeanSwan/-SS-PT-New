@@ -341,19 +341,19 @@ const clientNavigationConfig = [
     title: 'MISSION CONTROL',
     items: [
       { 
-        label: 'AI Workout Forge', 
-        path: '/dashboard/client/workout-forge', 
+        label: 'Deep Research — Workout Intelligence',
+        path: '/dashboard/client/workout-forge',
         icon: Brain,
-        description: 'Generate personalized AI workouts (if package allows)'
+        description: 'Generate personalized Deep Research workouts (if package allows)'
       },
       {
-        label: 'AI Meal Planner',
+        label: 'Nutrition Intelligence',
         path: '/dashboard/client/meal-planner',
         icon: UtensilsCrossed,
-        description: 'Access to the Culinary Codex meal planning system'
+        description: 'Log meals, track macros, and explore nutrition data'
       },
       {
-        label: 'AI Privacy & Consent',
+        label: 'Deep Research Privacy & Consent',
         path: '/dashboard/client/ai-consent',
         icon: Shield,
         description: 'Manage your AI data consent and privacy settings'

@@ -22,6 +22,28 @@ const router = express.Router();
 
 router.use(protect);
 
+// ── Security constants ──
+const ALLOWED_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
+const ALLOWED_SOURCES = ['manual', 'ai-chat', 'food-scanner', 'barcode'];
+const MAX_DESCRIPTION_LENGTH = 500;
+const MAX_ITEMS_COUNT = 50;
+const MAX_MACRO_VALUE = 99999; // kcal or mg cap
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_WEEKLY_RANGE_DAYS = 90;
+
+const sanitizeNumber = (val, max = MAX_MACRO_VALUE) => {
+  if (val === null || val === undefined) return null;
+  const n = Number(val);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.min(Math.round(n * 10) / 10, max);
+};
+
+const isValidDate = (str) => {
+  if (!DATE_REGEX.test(str)) return false;
+  const d = new Date(str + 'T00:00:00Z');
+  return !isNaN(d.getTime());
+};
+
 /**
  * POST /api/macros
  * Log a food entry (manual or from AI chat)
@@ -45,28 +67,46 @@ router.post('/', async (req, res) => {
       verified = false,
     } = req.body;
 
+    // Validate description
     if (!description || typeof description !== 'string' || description.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Food description is required' });
     }
+    if (description.trim().length > MAX_DESCRIPTION_LENGTH) {
+      return res.status(400).json({ success: false, error: `Description must be under ${MAX_DESCRIPTION_LENGTH} characters` });
+    }
 
-    const entryDate = date || new Date().toISOString().split('T')[0];
+    // Validate mealType
+    const safeMealType = ALLOWED_MEAL_TYPES.includes(mealType) ? mealType : 'snack';
+
+    // Validate source
+    const safeSource = ALLOWED_SOURCES.includes(source) ? source : 'manual';
+
+    // Validate date
+    const entryDate = date && isValidDate(date) ? date : new Date().toISOString().split('T')[0];
+
+    // Validate items array
+    const safeItems = Array.isArray(items) ? items.slice(0, MAX_ITEMS_COUNT) : [];
+
+    // Validate aiConversationId (string or null, max 100 chars)
+    const safeAiConversationId = (typeof aiConversationId === 'string' && aiConversationId.length <= 100)
+      ? aiConversationId : null;
 
     const entry = await DailyMacroLog.create({
       userId: req.user.id,
       date: entryDate,
-      mealType,
-      description: description.trim(),
-      calories: calories || null,
-      protein: protein || null,
-      carbs: carbs || null,
-      fat: fat || null,
-      fiber: fiber || null,
-      sugar: sugar || null,
-      sodium: sodium || null,
-      items: items || [],
-      source,
-      aiConversationId: aiConversationId || null,
-      verified,
+      mealType: safeMealType,
+      description: description.trim().substring(0, MAX_DESCRIPTION_LENGTH),
+      calories: sanitizeNumber(calories),
+      protein: sanitizeNumber(protein),
+      carbs: sanitizeNumber(carbs),
+      fat: sanitizeNumber(fat),
+      fiber: sanitizeNumber(fiber),
+      sugar: sanitizeNumber(sugar),
+      sodium: sanitizeNumber(sodium),
+      items: safeItems,
+      source: safeSource,
+      aiConversationId: safeAiConversationId,
+      verified: verified === true,
     });
 
     return res.status(201).json({ success: true, entry });
@@ -82,7 +122,8 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const rawDate = req.query.date || new Date().toISOString().split('T')[0];
+    const date = isValidDate(rawDate) ? rawDate : new Date().toISOString().split('T')[0];
 
     const entries = await DailyMacroLog.findAll({
       where: {
@@ -90,6 +131,7 @@ router.get('/', async (req, res) => {
         date,
       },
       order: [['createdAt', 'ASC']],
+      limit: 100,
     });
 
     return res.json({ success: true, date, entries, count: entries.length });
@@ -105,7 +147,8 @@ router.get('/', async (req, res) => {
  */
 router.get('/summary', async (req, res) => {
   try {
-    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const rawDate = req.query.date || new Date().toISOString().split('T')[0];
+    const date = isValidDate(rawDate) ? rawDate : new Date().toISOString().split('T')[0];
 
     const entries = await DailyMacroLog.findAll({
       where: {
@@ -168,13 +211,20 @@ router.get('/summary', async (req, res) => {
  */
 router.get('/weekly', async (req, res) => {
   try {
-    const startDate = req.query.start || (() => {
+    const defaultStart = (() => {
       const d = new Date();
       d.setDate(d.getDate() - 6);
       return d.toISOString().split('T')[0];
     })();
 
-    const endDate = req.query.end || new Date().toISOString().split('T')[0];
+    const startDate = (req.query.start && isValidDate(req.query.start)) ? req.query.start : defaultStart;
+    const endDate = (req.query.end && isValidDate(req.query.end)) ? req.query.end : new Date().toISOString().split('T')[0];
+
+    // Cap query range to prevent unbounded scans
+    const msRange = new Date(endDate).getTime() - new Date(startDate).getTime();
+    if (msRange < 0 || msRange > MAX_WEEKLY_RANGE_DAYS * 24 * 60 * 60 * 1000) {
+      return res.status(400).json({ success: false, error: `Date range must be within ${MAX_WEEKLY_RANGE_DAYS} days` });
+    }
 
     const entries = await DailyMacroLog.findAll({
       where: {
@@ -182,6 +232,7 @@ router.get('/weekly', async (req, res) => {
         date: { [Op.between]: [startDate, endDate] },
       },
       order: [['date', 'ASC'], ['createdAt', 'ASC']],
+      limit: 1000,
     });
 
     // Group by date
@@ -230,24 +281,50 @@ router.get('/weekly', async (req, res) => {
  */
 router.patch('/:id', async (req, res) => {
   try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid entry ID' });
+    }
+
     const entry = await DailyMacroLog.findOne({
-      where: { id: req.params.id, userId: req.user.id },
+      where: { id, userId: req.user.id },
     });
 
     if (!entry) {
       return res.status(404).json({ success: false, error: 'Entry not found' });
     }
 
-    const allowedFields = [
-      'mealType', 'description', 'calories', 'protein', 'carbs', 'fat',
-      'fiber', 'sugar', 'sodium', 'items', 'verified',
-    ];
-
     const updates = {};
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+    const numericFields = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'];
+
+    // Validate mealType
+    if (req.body.mealType !== undefined) {
+      updates.mealType = ALLOWED_MEAL_TYPES.includes(req.body.mealType)
+        ? req.body.mealType : entry.mealType;
+    }
+
+    // Validate description
+    if (req.body.description !== undefined) {
+      if (typeof req.body.description === 'string' && req.body.description.trim().length > 0) {
+        updates.description = req.body.description.trim().substring(0, MAX_DESCRIPTION_LENGTH);
       }
+    }
+
+    // Validate numeric macro fields
+    for (const field of numericFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = sanitizeNumber(req.body[field]);
+      }
+    }
+
+    // Validate items
+    if (req.body.items !== undefined) {
+      updates.items = Array.isArray(req.body.items) ? req.body.items.slice(0, MAX_ITEMS_COUNT) : entry.items;
+    }
+
+    // Validate verified
+    if (req.body.verified !== undefined) {
+      updates.verified = req.body.verified === true;
     }
 
     await entry.update(updates);
@@ -265,8 +342,13 @@ router.patch('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid entry ID' });
+    }
+
     const entry = await DailyMacroLog.findOne({
-      where: { id: req.params.id, userId: req.user.id },
+      where: { id, userId: req.user.id },
     });
 
     if (!entry) {

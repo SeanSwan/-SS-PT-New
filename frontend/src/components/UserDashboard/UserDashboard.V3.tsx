@@ -37,7 +37,8 @@ import {
   TrendingUp,
   Zap,
   Target,
-  Plus
+  Plus,
+  Apple
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +53,7 @@ const CreativeGallery = lazy(() => import('./components/CreativeGallery'));
 const PhotoGallery = lazy(() => import('./components/PhotoGallery'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
 const ActivitySection = lazy(() => import('./components/ActivitySection'));
+const NutritionWorkspace = lazy(() => import('../DashBoard/workspaces/NutritionWorkspace'));
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
 // ─── V3 Enhancement: Cinematic Noise Overlay ───────────────────────────────
@@ -1791,6 +1793,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     { id: 'photos', label: 'Photos', icon: ImageIcon },
                     { id: 'about', label: 'About', icon: Users },
                     { id: 'activity', label: 'Activity', icon: Activity },
+                    { id: 'nutrition', label: 'Nutrition', icon: Apple },
                   ].map((tab) => {
                     const Icon = tab.icon;
                     return (
@@ -1815,6 +1818,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   {activeTab === 'photos' && <PhotoGallery />}
                   {activeTab === 'about' && <AboutSection />}
                   {activeTab === 'activity' && <ActivitySection />}
+                  {activeTab === 'nutrition' && <NutritionWorkspace />}
                 </Suspense>
               </MainContent>
             </ContentGrid>

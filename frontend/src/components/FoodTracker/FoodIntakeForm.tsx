@@ -7,7 +7,7 @@
  * UI: styled-components + lucide-react (zero MUI dependencies)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { checkMcpServersStatus } from '../../utils/mcp-utils';
@@ -271,7 +271,7 @@ const UnitSuffix = styled.span`
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(224, 236, 244, 0.7);
   font-size: 0.85rem;
   pointer-events: none;
 `;
@@ -296,7 +296,7 @@ const StyledInput = styled.input<{ $hasUnit?: boolean }>`
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(224, 236, 244, 0.7);
   }
 
   /* Remove number spinners */
@@ -312,7 +312,7 @@ const StyledInput = styled.input<{ $hasUnit?: boolean }>`
 
 const HelperText = styled.small`
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(224, 236, 244, 0.7);
   margin-top: 2px;
 `;
 
@@ -527,59 +527,52 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
     }
   }, [showSuccessMessage]);
 
-  // Add a new food item
-  const handleAddFoodItem = () => {
-    setFoodItems([
-      ...foodItems,
+  // Add a new food item (functional update to avoid stale closures)
+  const handleAddFoodItem = useCallback(() => {
+    setFoodItems(prev => [
+      ...prev,
       {
-        id: (foodItems.length + 1).toString(),
+        id: Date.now().toString(),
         name: '',
         portion: '',
         calories: 0,
         protein: 0,
         carbs: 0,
         fat: 0,
-        quality: 'medium'
+        quality: 'medium' as const,
       }
     ]);
-  };
+  }, []);
 
-  // Remove a food item
-  const handleRemoveFoodItem = (id: string) => {
-    if (foodItems.length <= 1) {
-      return; // Keep at least one food item
-    }
+  // Remove a food item (functional update)
+  const handleRemoveFoodItem = useCallback((id: string) => {
+    setFoodItems(prev => {
+      if (prev.length <= 1) return prev;
+      return prev.filter(item => item.id !== id);
+    });
+  }, []);
 
-    setFoodItems(foodItems.filter(item => item.id !== id));
-  };
+  // Update a food item (generic type constraint + functional update)
+  const handleFoodItemChange = useCallback(<K extends keyof FoodItem>(
+    id: string, field: K, value: FoodItem[K]
+  ) => {
+    setFoodItems(prev => prev.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  }, []);
 
-  // Update a food item
-  const handleFoodItemChange = (id: string, field: keyof FoodItem, value: any) => {
-    setFoodItems(foodItems.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          [field]: value
-        };
-      }
-      return item;
-    }));
-  };
-
-  // Calculate totals
-  const calculateTotals = () => {
+  // Calculate totals (memoized)
+  const calculateTotals = useCallback(() => {
     return foodItems.reduce(
-      (totals, item) => {
-        return {
-          calories: totals.calories + (item.calories || 0),
-          protein: totals.protein + (item.protein || 0),
-          carbs: totals.carbs + (item.carbs || 0),
-          fat: totals.fat + (item.fat || 0)
-        };
-      },
+      (totals, item) => ({
+        calories: totals.calories + (item.calories || 0),
+        protein: totals.protein + (item.protein || 0),
+        carbs: totals.carbs + (item.carbs || 0),
+        fat: totals.fat + (item.fat || 0),
+      }),
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
-  };
+  }, [foodItems]);
 
   // Submit the form
   const handleSubmit = async (e: React.FormEvent) => {
@@ -591,7 +584,14 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
     }
 
     // Validate form
-    const hasEmptyFields = foodItems.some(item => !item.name.trim() || !item.portion.trim());
+    const hasEmptyFields = foodItems.some(item => {
+      if (import.meta.env.DEV) {
+        if (typeof item.name !== 'string' || typeof item.portion !== 'string') {
+          console.error('Type violation in FoodItem:', item);
+        }
+      }
+      return !(item.name?.trim()) || !(item.portion?.trim());
+    });
     if (hasEmptyFields) {
       setError('Please fill out all food items');
       return;
@@ -610,29 +610,52 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
         items: foodItems
       };
 
-      // Use the integrated hook to handle food intake logging
-      const success = await logFoodIntake(entry);
+      const totals = calculateTotals();
+      const description = foodItems.map(i => `${i.name} (${i.portion})`).join(', ');
 
-      if (success) {
-        // Success feedback
-        setSuccess(true);
-        setShowSuccessMessage(true);
-        setToastExiting(false);
-        resetForm();
+      // Persist to backend database via /api/macros
+      const API_BASE = import.meta.env.VITE_API_BASE
+        || (import.meta.env.PROD ? '' : 'http://localhost:10000');
+      const token = localStorage.getItem('token');
+      const apiRes = await fetch(`${API_BASE}/api/macros`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          date: new Date().toISOString().split('T')[0],
+          mealType: mealType,
+          description,
+          calories: totals.calories,
+          protein: totals.protein,
+          carbs: totals.carbs,
+          fat: totals.fat,
+          items: foodItems,
+          source: 'manual',
+        }),
+      });
+      if (!apiRes.ok) {
+        const errBody = await apiRes.json().catch(() => ({}));
+        console.warn('Backend macro log failed:', errBody);
+      }
 
-        // Callback to parent
-        if (onDataSent) {
-          onDataSent(true);
-        }
-      } else {
-        // Handle failure
-        console.warn('Food intake logging failed');
-        setError('Could not log food intake. Please try again later.');
+      // Also send to MCP if available (non-blocking)
+      try {
+        await logFoodIntake(entry);
+      } catch (mcpErr) {
+        console.warn('MCP food intake logging failed (non-blocking):', mcpErr);
+      }
 
-        // Callback to parent
-        if (onDataSent) {
-          onDataSent(false);
-        }
+      // Success feedback
+      setSuccess(true);
+      setShowSuccessMessage(true);
+      setToastExiting(false);
+      resetForm();
+
+      // Callback to parent
+      if (onDataSent) {
+        onDataSent(true);
       }
     } catch (error: any) {
       console.error('Error submitting food intake:', error);
@@ -673,8 +696,8 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
     }, 300);
   };
 
-  // Calculate totals
-  const totals = calculateTotals();
+  // Memoized totals (avoids recalc on every render)
+  const totals = useMemo(() => calculateTotals(), [calculateTotals]);
 
   return (
     <FormWrapper>

@@ -38,7 +38,7 @@ import { useNavigate } from 'react-router-dom';
 
 const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
 const LazyFormAnalysisGalaxy = lazy(() => import('./sections/FormAnalysisGalaxy'));
-const FoodIntelligenceDashboard = lazy(() => import('../FoodTracker/FoodIntelligenceDashboard'));
+const NutritionWorkspace = lazy(() => import('../DashBoard/workspaces/NutritionWorkspace'));
 
 const FormCheckGalaxy: React.FC = () => (
   <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading form analysis...</div>}>
@@ -47,8 +47,8 @@ const FormCheckGalaxy: React.FC = () => (
 );
 
 const FoodIntelGalaxy: React.FC = () => (
-  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading food intelligence...</div>}>
-    <FoodIntelligenceDashboard />
+  <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading nutrition workspace...</div>}>
+    <NutritionWorkspace />
   </Suspense>
 );
 
@@ -304,11 +304,11 @@ const sectionTitles: Record<string, string> = {
   schedule: 'Time Warp Chamber',
   workouts: 'Training Universe',
   logger: 'Workout Logger',
-  'ai-workout': 'AI Workout Creator',
-  'form-check': 'Form Analysis Hub',
+  'ai-workout': 'Deep Research — Workout Intelligence',
+  'form-check': 'Movement Analysis Hub',
   progress: 'Progress Constellation',
   health: 'Health & Body Map',
-  'food-intel': 'Food Intelligence',
+  'food-intel': 'Deep Research — Nutrition Intelligence',
   gamification: 'Achievement Nebula',
   messages: 'Stellar Messages',
   account: 'My Account',
