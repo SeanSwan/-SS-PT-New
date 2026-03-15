@@ -1,9 +1,10 @@
 import React from 'react';
-import { BarChart3, DollarSign, FileText, TrendingUp, Globe } from 'lucide-react';
+import { BarChart3, DollarSign, FileText, TrendingUp, Globe, PieChart } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 
 const allTabs: WorkspaceTab[] = [
   { id: 'overview', label: 'Overview', icon: <BarChart3 size={18} />, path: '/dashboard/analytics' },
+  { id: 'charts', label: 'Chart Gallery', icon: <PieChart size={18} />, path: '/dashboard/analytics/charts' },
   { id: 'revenue', label: 'Revenue', icon: <DollarSign size={18} />, path: '/dashboard/analytics/revenue' },
   { id: 'performance', label: 'Performance', icon: <FileText size={18} />, path: '/dashboard/analytics/performance' },
   { id: 'bi', label: 'BI Drilldowns', icon: <TrendingUp size={18} />, path: '/dashboard/analytics/bi' },

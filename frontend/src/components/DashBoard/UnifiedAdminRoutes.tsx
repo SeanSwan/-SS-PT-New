@@ -67,6 +67,7 @@ const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CAT
 const PaymentSettingsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PaymentSettingsPanel'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
+const ChartGallery = React.lazy(() => import('../Charts/ChartGallery'));
 
 
 // Workspace containers
@@ -347,6 +348,11 @@ const UnifiedAdminRoutes: React.FC = () => (
 
     <Route path="/analytics" element={<AnalyticsWorkspace />}>
       <Route index element={<UserAnalyticsPanel />} />
+      <Route path="charts" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <ChartGallery />
+        </React.Suspense>
+      } />
       <Route path="revenue" element={<RevenueAnalyticsPanel />} />
       <Route path="performance" element={
         import.meta.env.DEV ? <PerformanceReportsPanel /> : <Navigate to="/dashboard/analytics" replace />
