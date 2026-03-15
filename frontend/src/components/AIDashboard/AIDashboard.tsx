@@ -807,7 +807,7 @@ const EnhancedAIDashboard: React.FC = () => {
         {/* Header */}
         <FlexRow $justify="space-between" $align="center" $mb="2rem" $wrap="wrap" $gap="1rem">
           <div>
-            <Heading1>AI Monitoring Dashboard</Heading1>
+            <Heading1>Deep Research Monitoring</Heading1>
             <Subtitle>Real-time MCP server monitoring and control</Subtitle>
           </div>
 

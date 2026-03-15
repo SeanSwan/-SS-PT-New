@@ -259,6 +259,8 @@ import express from 'express';
 import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import adminClientController from '../controllers/adminClientController.mjs';
+import { validationMiddleware } from '../middleware/validationMiddleware.zod.mjs';
+import { CreateExternalClientSchema } from '../schemas/clientSource.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import { getUser } from '../models/index.mjs';
 import { uploadPhoto } from '../services/photoStorageService.mjs';
@@ -285,6 +287,9 @@ router.get('/clients/:clientId', adminClientController.getClientDetails);
 router.post('/clients', adminClientController.createClient);
 router.put('/clients/:clientId', adminClientController.updateClient);
 router.delete('/clients/:clientId', adminClientController.deleteClient);
+
+// Create external client (Move Fitness, etc.) — Zod validated
+router.post('/clients/create-external', validationMiddleware(CreateExternalClientSchema), adminClientController.createExternalClient);
 
 // Client photo upload
 router.post('/clients/:clientId/upload-photo', photoUpload.single('photo'), async (req, res) => {

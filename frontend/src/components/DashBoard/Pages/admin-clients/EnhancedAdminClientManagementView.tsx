@@ -2079,7 +2079,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             <MessageSquare size={20} />
           </SpeedDialActionBtn>
           <SpeedDialActionBtn
-            title="AI Insights"
+            title="Deep Research Insights"
             onClick={() => {/* TODO: AI insights modal */ setSpeedDialOpen(false); }}
           >
             <Brain size={20} />

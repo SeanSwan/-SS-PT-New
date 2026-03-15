@@ -578,7 +578,7 @@ const ContentStudio: React.FC<ContentStudioProps> = memo(({ className }) => {
             gap: '0.5rem'
           }}>
             <Camera size={20} />
-            ✨ AI-Powered Form Analysis
+            ✨ Deep Research Movement Analysis
           </h4>
           <p style={{
             color: theme.text?.secondary || '#E8F0FF',

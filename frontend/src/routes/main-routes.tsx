@@ -231,7 +231,7 @@ const FoodScannerPage = lazyLoadWithErrorHandling(
 // AI Form Analysis — real-time + upload-based exercise form checking
 const FormAnalysisPage = lazyLoadWithErrorHandling(
   () => import('../components/FormAnalysis/FormAnalysisPage'),
-  'Form Analysis'
+  'Movement Analysis'
 );
 
 // Biomechanics Studio — Custom Exercise Builder (trainer/admin)

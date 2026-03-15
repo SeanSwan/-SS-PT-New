@@ -391,7 +391,7 @@ const WorkoutBuilderPage: React.FC = () => {
     <PageWrapper>
       <TopBar>
         <Title>Intelligent Workout Builder</Title>
-        <Subtitle>AI-powered, NASM-aligned workout generation with pain awareness and compensation correction</Subtitle>
+        <Subtitle>Deep Research-powered, NASM-aligned workout generation with pain awareness and compensation correction</Subtitle>
       </TopBar>
 
       <ThreePane>
@@ -693,7 +693,7 @@ const WorkoutBuilderPage: React.FC = () => {
 
         {/* Right: AI Insights */}
         <Panel>
-          <PanelTitle>AI Insights</PanelTitle>
+          <PanelTitle>Deep Research Insights</PanelTitle>
 
           {workout && workout.explanations.map((exp, i) => (
             <InsightCard key={i} $type={exp.type}>

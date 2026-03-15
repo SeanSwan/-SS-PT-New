@@ -248,7 +248,7 @@ const FormAnalysisOverlay: React.FC<FormAnalysisOverlayProps> = ({
   return (
     <Container>
       <Header>
-        <Title>Swan Form Analysis</Title>
+        <Title>Movement Analysis</Title>
         <CloseBtn onClick={onClose} aria-label="Close analysis">✕</CloseBtn>
       </Header>
 

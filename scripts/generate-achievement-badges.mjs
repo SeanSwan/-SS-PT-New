@@ -3,7 +3,7 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
  * ║  SwanStudios Achievement Badge Generator                        ║
- * ║  Powered by Nano Banana 2 (Gemini 2.5 Flash Image Generation)  ║
+ * ║  Powered by Nano Banana 2 (Gemini 3.1 Flash Image Generation)  ║
  * ║                                                                  ║
  * ║  Generates 3D badge images for each unique achievement template  ║
  * ║  in 3 art styles: claymation, glass, metallic-coin              ║
@@ -433,7 +433,7 @@ async function main() {
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════╗');
   console.log('  ║  SwanStudios Achievement Badge Generator         ║');
-  console.log('  ║  Nano Banana 2 (Gemini 2.5 Flash Image Gen)     ║');
+  console.log('  ║  Nano Banana 2 (Gemini 3.1 Flash Image Gen)     ║');
   console.log('  ╚══════════════════════════════════════════════════╝');
   console.log('');
 

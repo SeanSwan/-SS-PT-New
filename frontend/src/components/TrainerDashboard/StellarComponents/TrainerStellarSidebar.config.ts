@@ -53,7 +53,7 @@ export const trainerNavigationItems: TrainerNavItemData[] = [
 
   // Client Training
   { id: 'clients', label: 'My Clients', icon: Users, section: 'training', status: 'real' },
-  { id: 'form-analysis', label: 'Form Analysis', icon: Video, section: 'training', status: 'real' },
+  { id: 'form-analysis', label: 'Movement Analysis', icon: Video, section: 'training', status: 'real' },
   { id: 'body-map', label: 'Body Map', icon: HeartPulse, section: 'training', status: 'real' },
 
   // Performance

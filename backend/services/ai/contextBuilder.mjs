@@ -51,10 +51,18 @@ export function buildUnifiedContext(inputs = {}) {
     progressContext,
     measurementContext,
     painEntries,
+    nutritionContext,
+    healthHistory,
+    movementAssessments,
+    clientSource,
   } = inputs;
 
   const missingInputs = [];
   const dataSources = [];
+
+  // ── Cap input arrays to prevent excessive CPU/memory usage ──
+  const cappedPainEntries = Array.isArray(painEntries) ? painEntries.slice(0, 100) : painEntries;
+  const cappedMovementAssessments = Array.isArray(movementAssessments) ? movementAssessments.slice(0, 10) : movementAssessments;
 
   // ── Client Profile ──────────────────────────────────────────
   let clientProfile = null;
@@ -115,8 +123,8 @@ export function buildUnifiedContext(inputs = {}) {
 
   // ── Pain & Injury Constraints (NASM CES + Squat University) ──
   let painConstraints = null;
-  if (Array.isArray(painEntries) && painEntries.length > 0) {
-    painConstraints = buildPainConstraints(painEntries);
+  if (Array.isArray(cappedPainEntries) && cappedPainEntries.length > 0) {
+    painConstraints = buildPainConstraints(cappedPainEntries);
     dataSources.push('pain_injury_tracking');
   }
 
@@ -125,6 +133,38 @@ export function buildUnifiedContext(inputs = {}) {
   if (clientProfile?.goals && measurementTrends) {
     goalProgress = buildGoalProgress(clientProfile.goals, measurementTrends, progressSummary);
     if (goalProgress) dataSources.push('goal_progress');
+  }
+
+  // ── Nutrition Context ──────────────────────────────────────
+  let nutritionSummary = null;
+  if (nutritionContext && typeof nutritionContext === 'object') {
+    nutritionSummary = nutritionContext;
+    dataSources.push('nutrition_history');
+  }
+
+  // ── Health History (Waiver/PAR-Q) ─────────────────────────
+  let healthHistorySummary = null;
+  if (healthHistory && typeof healthHistory === 'object') {
+    healthHistorySummary = healthHistory;
+    dataSources.push('health_history');
+  }
+
+  // ── Movement Assessments ──────────────────────────────────
+  let movementContext = null;
+  if (Array.isArray(cappedMovementAssessments) && cappedMovementAssessments.length > 0) {
+    movementContext = {
+      assessmentCount: cappedMovementAssessments.length,
+      latestAssessment: cappedMovementAssessments[0],
+      assessments: cappedMovementAssessments.slice(0, 5), // Last 5
+    };
+    dataSources.push('movement_analysis');
+  }
+
+  // ── Client Source Context ─────────────────────────────────
+  let clientSourceContext = null;
+  if (clientSource) {
+    clientSourceContext = { source: clientSource };
+    dataSources.push('client_source');
   }
 
   // ── Exercise Recommendations (1RM + load) ───────────────────
@@ -170,6 +210,10 @@ export function buildUnifiedContext(inputs = {}) {
     goalProgress,
     exerciseRecommendations,
     safetyConstraints,
+    nutritionSummary,
+    healthHistorySummary,
+    movementContext,
+    clientSourceContext,
     explainability,
   };
 }

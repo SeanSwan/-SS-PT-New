@@ -475,7 +475,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         <ModalHeader>
           <ModalTitle>
             <Sparkles size={20} />
-            AI Workout Copilot {inline ? '' : `- ${clientName}`}
+            Deep Research — Workout Intelligence {inline ? '' : `- ${clientName}`}
           </ModalTitle>
           {!inline && <CloseButton onClick={onClose}><X size={20} /></CloseButton>}
         </ModalHeader>
@@ -507,7 +507,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
           {state === 'idle' && (
             <CenterContent>
               <Sparkles size={48} color={SWAN_CYAN} />
-              <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generate AI Workout Plan</h3>
+              <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generate Deep Research Workout Plan</h3>
               <p style={{ color: '#94a3b8', margin: 0, maxWidth: 400 }}>
                 The AI will analyze {clientName}'s profile, training history, and NASM assessment
                 to generate a personalized workout plan for your review.

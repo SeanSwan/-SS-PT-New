@@ -1320,7 +1320,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       <SectionBox $mb={32}>
         <Heading4 $color={theme.purple}>
           <Brain size={40} />
-          AI Insights &amp; Analytics
+          Deep Research Insights &amp; Analytics
         </Heading4>
         <BodyText style={{ marginTop: 8 }}>
           Advanced AI-powered insights, predictions, and personalized recommendations
@@ -1393,7 +1393,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             onClick={() => setExpandedAccordion(expandedAccordion === 'insights' ? '' : 'insights')}
           >
             <Heading6 $color={theme.purple} style={{ margin: 0 }}>
-              AI Insights ({filteredInsights.length})
+              Deep Research Insights ({filteredInsights.length})
             </Heading6>
             <ChevronDown size={20} />
           </AccordionHeader>

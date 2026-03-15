@@ -105,7 +105,7 @@ const FormAnalysisGalaxy: React.FC = () => {
   return (
     <>
       <InfoCard>
-        <strong>AI Form Analysis</strong> — Upload a workout video or use your camera to get real-time
+        <strong>Movement Analysis</strong> — Upload a workout video or use your camera to get real-time
         form feedback powered by MediaPipe pose detection. Supports 81 exercises with rep counting,
         compensation detection, and corrective recommendations.
       </InfoCard>

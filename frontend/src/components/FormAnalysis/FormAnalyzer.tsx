@@ -486,7 +486,7 @@ class FormAnalyzerErrorBoundary extends React.Component<
           justifyContent: 'center', minHeight: '100vh', background: '#002060',
           color: '#E0ECF4', padding: '24px', textAlign: 'center',
         }}>
-          <h2 style={{ marginBottom: 8 }}>Form Analysis Unavailable</h2>
+          <h2 style={{ marginBottom: 8 }}>Movement Analysis Unavailable</h2>
           <p style={{ color: 'rgba(224, 236, 244, 0.6)', marginBottom: 16 }}>
             Real-time analysis failed to load. You can still upload a video for analysis.
           </p>

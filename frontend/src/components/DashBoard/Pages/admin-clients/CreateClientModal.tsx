@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, Save, XCircle } from 'lucide-react';
-import { CreateClientRequest } from '../../../../services/adminClientService';
+import { CreateClientRequest, ClientSource, CLIENT_SOURCE_LABELS, CLIENT_SOURCE_COLORS } from '../../../../services/adminClientService';
 
 /* ─────────────────────── Keyframes ─────────────────────── */
 
@@ -248,6 +248,46 @@ const FieldError = styled.span`
   min-height: 1em;
 `;
 
+/* ─────────────────────── Source Selector ─────────────────────── */
+
+const SourceSelectorRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const SourceChip = styled.button<{ $active: boolean; $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid ${({ $active, $color }) => ($active ? $color : 'rgba(255, 255, 255, 0.15)')};
+  border-radius: 8px;
+  background: ${({ $active, $color }) =>
+    $active ? `${$color}20` : 'rgba(255, 255, 255, 0.03)'};
+  color: ${({ $active, $color }) => ($active ? $color : '#94a3b8')};
+  font-size: 0.9rem;
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: ${({ $color }) => $color};
+    background: ${({ $color }) => `${$color}10`};
+  }
+`;
+
+const ExternalNote = styled.div`
+  padding: 10px 14px;
+  background: rgba(96, 192, 240, 0.08);
+  border-left: 3px solid #60C0F0;
+  border-radius: 0 8px 8px 0;
+  color: #E0ECF4;
+  font-size: 0.85rem;
+  line-height: 1.5;
+`;
+
 /* ─────────────────────── Buttons ─────────────────────── */
 
 const PrimaryButton = styled.button`
@@ -370,6 +410,9 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
   onSubmit,
   trainers = []
 }) => {
+  const [clientSource, setClientSource] = useState<ClientSource>('swanstudios');
+  const isExternal = clientSource !== 'swanstudios';
+
   const [formData, setFormData] = useState<CreateClientRequest>({
     firstName: '',
     lastName: '',
@@ -386,7 +429,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     healthConcerns: '',
     emergencyContact: '',
     availableSessions: 1,
-    trainerId: ''
+    trainerId: '',
+    clientSource: 'swanstudios'
   });
 
   const [loading, setLoading] = useState(false);
@@ -399,9 +443,12 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     if (!formData.firstName.trim()) errors.firstName = 'First name is required';
     if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
     if (!formData.email.trim()) errors.email = 'Email is required';
-    if (!formData.username.trim()) errors.username = 'Username is required';
-    if (!formData.password.trim()) errors.password = 'Password is required';
-    if (formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
+    // Username/password only required for SwanStudios clients
+    if (!isExternal) {
+      if (!formData.username.trim()) errors.username = 'Username is required';
+      if (!formData.password.trim()) errors.password = 'Password is required';
+      if (formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -427,6 +474,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
       // Clean up data before submission
       const cleanData: CreateClientRequest = {
         ...formData,
+        clientSource,
+        availableSessions: isExternal ? 0 : formData.availableSessions,
         weight: formData.weight || undefined,
         height: formData.height || undefined,
         phone: formData.phone || undefined,
@@ -442,6 +491,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
       await onSubmit(cleanData);
 
       // Reset form on success
+      setClientSource('swanstudios');
       setFormData({
         firstName: '',
         lastName: '',
@@ -458,7 +508,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
         healthConcerns: '',
         emergencyContact: '',
         availableSessions: 1,
-        trainerId: ''
+        trainerId: '',
+        clientSource: 'swanstudios'
       });
     } catch (err: any) {
       setError(err.message || 'Failed to create client');
@@ -489,7 +540,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     <ModalOverlay onClick={handleClose}>
       <ModalPanel onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>Add New Client</ModalTitle>
+          <ModalTitle>{isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'}</ModalTitle>
           <CloseButton onClick={handleClose} disabled={loading} aria-label="Close">
             <X size={20} />
           </CloseButton>
@@ -504,8 +555,42 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
           <form onSubmit={handleSubmit}>
             <FormGrid>
-              {/* Basic Information */}
+              {/* Client Source Selection */}
               <FullWidthCell>
+                <SectionTitle>Client Type</SectionTitle>
+                <SectionDivider />
+                <SourceSelectorRow>
+                  {(Object.entries(CLIENT_SOURCE_LABELS) as [ClientSource, string][]).map(([key, label]) => (
+                    <SourceChip
+                      key={key}
+                      type="button"
+                      $active={clientSource === key}
+                      $color={CLIENT_SOURCE_COLORS[key]}
+                      onClick={() => {
+                        setClientSource(key);
+                        if (key !== 'swanstudios') {
+                          setFormData(prev => ({ ...prev, availableSessions: 0, clientSource: key }));
+                        } else {
+                          setFormData(prev => ({ ...prev, availableSessions: 1, clientSource: key }));
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      {label}
+                    </SourceChip>
+                  ))}
+                </SourceSelectorRow>
+                {isExternal && (
+                  <ExternalNote style={{ marginTop: 10 }}>
+                    {clientSource === 'move_fitness'
+                      ? 'Move Fitness client — gets full tool access (Workout Log, Food Logger, Body Map, Social) with 0 SwanStudios sessions. Username and password auto-generated.'
+                      : 'External client — gets full tool access with 0 SwanStudios sessions.'}
+                  </ExternalNote>
+                )}
+              </FullWidthCell>
+
+              {/* Basic Information */}
+              <FullWidthCell style={{ marginTop: 12 }}>
                 <SectionTitle>Basic Information</SectionTitle>
                 <SectionDivider />
               </FullWidthCell>
@@ -547,30 +632,34 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 {fieldErrors.email && <FieldError>{fieldErrors.email}</FieldError>}
               </FieldGroup>
 
-              <FieldGroup>
-                <FieldLabel htmlFor="ccm-username">Username *</FieldLabel>
-                <StyledInput
-                  id="ccm-username"
-                  $error={!!fieldErrors.username}
-                  value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
-                  disabled={loading}
-                />
-                {fieldErrors.username && <FieldError>{fieldErrors.username}</FieldError>}
-              </FieldGroup>
+              {!isExternal && (
+                <FieldGroup>
+                  <FieldLabel htmlFor="ccm-username">Username *</FieldLabel>
+                  <StyledInput
+                    id="ccm-username"
+                    $error={!!fieldErrors.username}
+                    value={formData.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    disabled={loading}
+                  />
+                  {fieldErrors.username && <FieldError>{fieldErrors.username}</FieldError>}
+                </FieldGroup>
+              )}
 
-              <FieldGroup>
-                <FieldLabel htmlFor="ccm-password">Password *</FieldLabel>
-                <StyledInput
-                  id="ccm-password"
-                  type="password"
-                  $error={!!fieldErrors.password}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  disabled={loading}
-                />
-                {fieldErrors.password && <FieldError>{fieldErrors.password}</FieldError>}
-              </FieldGroup>
+              {!isExternal && (
+                <FieldGroup>
+                  <FieldLabel htmlFor="ccm-password">Password *</FieldLabel>
+                  <StyledInput
+                    id="ccm-password"
+                    type="password"
+                    $error={!!fieldErrors.password}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    disabled={loading}
+                  />
+                  {fieldErrors.password && <FieldError>{fieldErrors.password}</FieldError>}
+                </FieldGroup>
+              )}
 
               <FieldGroup>
                 <FieldLabel htmlFor="ccm-phone">Phone Number</FieldLabel>
@@ -694,41 +783,45 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 </FieldGroup>
               </FullWidthCell>
 
-              {/* Training Setup */}
-              <FullWidthCell style={{ marginTop: 16 }}>
-                <SectionTitle>Training Setup</SectionTitle>
-                <SectionDivider />
-              </FullWidthCell>
+              {/* Training Setup — only for SwanStudios clients */}
+              {!isExternal && (
+                <>
+                  <FullWidthCell style={{ marginTop: 16 }}>
+                    <SectionTitle>Training Setup</SectionTitle>
+                    <SectionDivider />
+                  </FullWidthCell>
 
-              <FieldGroup>
-                <FieldLabel htmlFor="ccm-sessions">Initial Available Sessions</FieldLabel>
-                <StyledInput
-                  id="ccm-sessions"
-                  type="number"
-                  min={0}
-                  value={formData.availableSessions}
-                  onChange={(e) => handleInputChange('availableSessions', Number(e.target.value))}
-                  disabled={loading}
-                />
-              </FieldGroup>
+                  <FieldGroup>
+                    <FieldLabel htmlFor="ccm-sessions">Initial Available Sessions</FieldLabel>
+                    <StyledInput
+                      id="ccm-sessions"
+                      type="number"
+                      min={0}
+                      value={formData.availableSessions}
+                      onChange={(e) => handleInputChange('availableSessions', Number(e.target.value))}
+                      disabled={loading}
+                    />
+                  </FieldGroup>
 
-              {trainers.length > 0 && (
-                <FieldGroup>
-                  <FieldLabel htmlFor="ccm-trainer">Assign Trainer (Optional)</FieldLabel>
-                  <NativeSelect
-                    id="ccm-trainer"
-                    value={formData.trainerId}
-                    onChange={(e) => handleInputChange('trainerId', e.target.value)}
-                    disabled={loading}
-                  >
-                    <option value="">No trainer assigned</option>
-                    {trainers.map((trainer) => (
-                      <option key={trainer.id} value={trainer.id}>
-                        {trainer.firstName} {trainer.lastName}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </FieldGroup>
+                  {trainers.length > 0 && (
+                    <FieldGroup>
+                      <FieldLabel htmlFor="ccm-trainer">Assign Trainer (Optional)</FieldLabel>
+                      <NativeSelect
+                        id="ccm-trainer"
+                        value={formData.trainerId}
+                        onChange={(e) => handleInputChange('trainerId', e.target.value)}
+                        disabled={loading}
+                      >
+                        <option value="">No trainer assigned</option>
+                        {trainers.map((trainer) => (
+                          <option key={trainer.id} value={trainer.id}>
+                            {trainer.firstName} {trainer.lastName}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </FieldGroup>
+                  )}
+                </>
               )}
             </FormGrid>
           </form>

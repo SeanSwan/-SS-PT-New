@@ -571,7 +571,7 @@ const ProgressAnalysis: React.FC<ProgressAnalysisProps> = ({ onClose }) => {
           {/* AI Insights */}
           <SectionTitle>
             <Lightbulb size={20} />
-            AI Insights
+            Deep Research Insights
           </SectionTitle>
 
           <AnalysisCard>

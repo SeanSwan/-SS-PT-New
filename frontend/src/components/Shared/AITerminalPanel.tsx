@@ -40,7 +40,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   context = 'workout_generation',
   clientId,
   equipmentProfileId,
-  placeholder = 'Ask Swan AI to help build your workout...',
+  placeholder = 'Ask Deep Research to help build your workout...',
   compact = false,
   defaultOpen = false,
   onExerciseSelected,
@@ -106,7 +106,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     return (
       <CompactTrigger onClick={() => setIsOpen(!isOpen)} type="button">
         <Bot size={16} />
-        <span>AI Assistant</span>
+        <span>Deep Research</span>
         {isOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
       </CompactTrigger>
     );
@@ -119,7 +119,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
           <AiBadge>
             <Sparkles size={14} />
           </AiBadge>
-          <HeaderTitle>Swan AI Assistant</HeaderTitle>
+          <HeaderTitle>SwanStudios Deep Research</HeaderTitle>
         </HeaderLeft>
         <HeaderToggle>
           {isOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}

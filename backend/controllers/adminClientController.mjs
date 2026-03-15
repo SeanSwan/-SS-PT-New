@@ -305,15 +305,16 @@ class AdminClientController {
   async getClients(req, res) {
     try {
       ensureModels();
-      const { 
-        page = 1, 
-        limit = 10, 
-        search, 
-        status, 
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        status,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
         fitnessGoal,
-        trainer
+        trainer,
+        clientSource
       } = req.query;
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -335,6 +336,10 @@ class AdminClientController {
       
       if (fitnessGoal) {
         whereClause.fitnessGoal = { [Op.iLike]: `%${fitnessGoal}%` };
+      }
+
+      if (clientSource) {
+        whereClause.clientSource = clientSource;
       }
 
       // Include related data
@@ -554,7 +559,7 @@ class AdminClientController {
       return res.status(500).json({
         success: false,
         message: 'Error fetching client details',
-        error: error.message
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
       });
     }
   }
@@ -584,8 +589,28 @@ class AdminClientController {
         emergencyContact,
         availableSessions = 0,
         trainerId,
+        clientSource = 'swanstudios',
         forcePasswordChange = true // Default true for admin-created accounts
       } = req.body;
+
+      // Validate clientSource against allowed values
+      const validSources = ['swanstudios', 'move_fitness', 'external'];
+      if (clientSource && !validSources.includes(clientSource)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid clientSource. Must be one of: ${validSources.join(', ')}`
+        });
+      }
+
+      // Validate password if admin-supplied
+      if (password && password.length < 8) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long'
+        });
+      }
 
       // Determine password: use admin-supplied or generate a secure one
       const passwordSource = password ? 'admin-supplied' : 'generated';
@@ -623,6 +648,7 @@ class AdminClientController {
         healthConcerns,
         emergencyContact,
         availableSessions,
+        clientSource,
         forcePasswordChange,
         role: 'client',
         isActive: true
@@ -667,7 +693,7 @@ class AdminClientController {
         }
       }
 
-      logger.info(`Admin ${req.user.id} created client ${newClient.id} (${email}), passwordSource=${passwordSource}, emailSent=${emailSent}`);
+      logger.info(`Admin ${req.user?.id ?? 'unknown'} created client ${newClient.id} (${email}), passwordSource=${passwordSource}, emailSent=${emailSent}`);
 
       return res.status(201).json({
         success: true,
@@ -691,7 +717,7 @@ class AdminClientController {
       return res.status(500).json({
         success: false,
         message: 'Error creating client',
-        error: error.message
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
       });
     }
   }
@@ -821,10 +847,10 @@ class AdminClientController {
       const { clientId } = req.params;
       const { newPassword } = req.body;
 
-      if (!newPassword || newPassword.length < 6) {
+      if (!newPassword || newPassword.length < 8) {
         return res.status(400).json({
           success: false,
-          message: 'Password must be at least 6 characters long'
+          message: 'Password must be at least 8 characters long'
         });
       }
 
@@ -851,7 +877,7 @@ class AdminClientController {
       return res.status(500).json({
         success: false,
         message: 'Error resetting password',
-        error: error.message
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
       });
     }
   }
@@ -1179,6 +1205,135 @@ class AdminClientController {
         }
       }
     });
+  }
+
+  /**
+   * Create an external client (Move Fitness, etc.)
+   * These clients get 0 sessions, no SwanStudios scheduling, but full tool access
+   */
+  async createExternalClient(req, res) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      ensureModels();
+      const {
+        firstName,
+        lastName,
+        email,
+        phone,
+        dateOfBirth,
+        gender,
+        weight,
+        height,
+        fitnessGoal,
+        trainingExperience,
+        healthConcerns,
+        emergencyContact,
+        clientSource = 'move_fitness',
+        password,
+      } = req.body;
+
+      // Validate clientSource against allowed values
+      const validSources = ['swanstudios', 'move_fitness', 'external'];
+      if (clientSource && !validSources.includes(clientSource)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid clientSource. Must be one of: ${validSources.join(', ')}`
+        });
+      }
+
+      // Validate password if admin-supplied
+      if (password && password.length < 8) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long'
+        });
+      }
+
+      // Generate username from email prefix with high-entropy suffix to prevent collisions
+      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
+      const username = `${baseUsername}_${crypto.randomBytes(4).toString('hex')}`;
+      const effectivePassword = password || crypto.randomBytes(12).toString('base64url');
+      const passwordSource = password ? 'admin-supplied' : 'generated';
+
+      // Check if email already exists
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'A client with this email already exists'
+        });
+      }
+
+      const newClient = await User.create({
+        firstName,
+        lastName,
+        email,
+        username,
+        password: effectivePassword,
+        phone,
+        dateOfBirth,
+        gender,
+        weight,
+        height,
+        fitnessGoal,
+        trainingExperience,
+        healthConcerns,
+        emergencyContact,
+        clientSource,
+        availableSessions: 0, // External clients get 0 sessions
+        forcePasswordChange: true,
+        role: 'client',
+        isActive: true
+      }, { transaction });
+
+      // Create client progress record
+      await ClientProgress.create({
+        userId: newClient.id
+      }, { transaction });
+
+      await transaction.commit();
+
+      // Send welcome email (non-blocking)
+      if (passwordSource === 'generated') {
+        try {
+          const sourceLabel = clientSource === 'move_fitness' ? 'Move Fitness' : 'External';
+          await sendGridEmail({
+            to: email,
+            subject: `Welcome to SwanStudios Tools — ${sourceLabel} Client`,
+            text: `Hi ${firstName},\n\nYour SwanStudios account has been created as a ${sourceLabel} client.\nEmail: ${email}\nTemporary Password: ${effectivePassword}\n\nYou have access to: Workout Log, Food Logger, Body Map, and Social features.\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
+            html: `<p>Hi ${firstName},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${email}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>Please log in and change your password.</p><p>&mdash; SwanStudios Team</p>`,
+          });
+        } catch (emailError) {
+          logger.warn(`Welcome email failed for external client ${email}: ${emailError.message}`);
+        }
+      }
+
+      const { password: _, refreshTokenHash: __, ...clientData } = newClient.toJSON();
+
+      logger.info(`External client created: ${email} (source: ${clientSource}) by admin ${req.user?.id}`);
+
+      return res.status(201).json({
+        success: true,
+        message: `External client created (${clientSource})`,
+        data: {
+          client: clientData,
+          temporaryPassword: passwordSource === 'generated' ? effectivePassword : undefined
+        }
+      });
+
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error creating external client:', error.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating external client',
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+      });
+    }
   }
 }
 

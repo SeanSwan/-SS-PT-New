@@ -532,8 +532,8 @@ const DefaultFeatureText = styled.p`
 const AI_FEATURES = [
   {
     id: 'workout-generator',
-    title: 'AI Workout Generator',
-    description: 'Generate personalized workouts using advanced AI based on client data, goals, and equipment.',
+    title: 'Deep Research — Workout Intelligence',
+    description: 'Generate personalized workouts using SwanStudios Deep Research based on client data, goals, and equipment.',
     icon: Dumbbell,
     color: '#60C0F0',
     colorSecondary: '#46cdcf',
@@ -542,8 +542,8 @@ const AI_FEATURES = [
   },
   {
     id: 'progress-analysis',
-    title: 'Progress Analytics',
-    description: 'AI-powered analysis of client progress with insights and recommendations.',
+    title: 'Deep Research — Progress Intelligence',
+    description: 'SwanStudios Deep Research analysis of client progress with pattern recognition and predictive insights.',
     icon: BarChart3,
     color: '#8B5CF6',
     colorSecondary: '#9c27b0',
@@ -552,8 +552,8 @@ const AI_FEATURES = [
   },
   {
     id: 'nutrition-planning',
-    title: 'Nutrition AI',
-    description: 'Smart nutrition plans tailored to workout programs and dietary preferences.',
+    title: 'Deep Research — Nutrition Intelligence',
+    description: 'SwanStudios Deep Research nutrition plans tailored to workout programs and dietary preferences.',
     icon: UtensilsCrossed,
     color: '#ff6b9d',
     colorSecondary: '#e91e63',
@@ -562,8 +562,8 @@ const AI_FEATURES = [
   },
   {
     id: 'exercise-alternatives',
-    title: 'Exercise Alternatives',
-    description: 'Find optimal exercise substitutions based on equipment and limitations.',
+    title: 'Deep Research — Exercise Intelligence',
+    description: 'SwanStudios Deep Research exercise substitutions based on equipment and limitations.',
     icon: ArrowLeftRight,
     color: '#4caf50',
     colorSecondary: '#66bb6a',
@@ -820,7 +820,7 @@ const AIFeaturesDashboard = () => {
             <TrendingUp size={20} /> Usage Statistics
           </SectionTitle>
           <OutlineButton
-            onClick={() => setSelectedFeature({ title: 'AI Monitoring Dashboard', component: 'AIDashboard' })}
+            onClick={() => setSelectedFeature({ title: 'Deep Research Monitoring', component: 'AIDashboard' })}
           >
             <BarChart3 size={18} />
             View Detailed Analytics

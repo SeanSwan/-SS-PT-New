@@ -11,10 +11,11 @@
 
 import React, { useState, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { X, Plus, Trash2, Dumbbell, Save, Mic } from 'lucide-react';
+import { X, Plus, Trash2, Dumbbell, Save, Mic, Shield } from 'lucide-react';
 import { createAdminClientService } from '../../../../../services/adminClientService';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
+import ExerciseAutocomplete from '../../../../WorkoutLogger/ExerciseAutocomplete';
 
 const VoiceMemoUpload = lazy(() => import('../../../../WorkoutLogger/VoiceMemoUpload'));
 
@@ -251,6 +252,43 @@ const SetRow = styled.div`
   }
 `;
 
+const ExerciseMetaRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const CoreSectionCard = styled.div`
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+`;
+
+const CoreSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #8B5CF6;
+  font-weight: 600;
+  font-size: 0.9rem;
+`;
+
+const CoreBadge = styled.span`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+  letter-spacing: 0.05em;
+`;
+
 const SetLabel = styled.span`
   font-size: 0.8rem;
   font-weight: 700;
@@ -374,7 +412,15 @@ interface WorkoutSet {
 interface Exercise {
   name: string;
   sets: WorkoutSet[];
+  tempo?: string;  // NASM tempo e.g. "4/2/1"
+  rest?: string;   // Rest period in seconds
 }
+
+/* Default stability/core exercises per NASM standards */
+const DEFAULT_CORE_EXERCISES: Exercise[] = [
+  { name: 'Drawing-In Maneuver (Plank)', sets: [{ setNumber: 1, reps: '30', weight: '0' }], tempo: '0/30/0', rest: '30' },
+  { name: 'Floor Bridge (Glute Bridge)', sets: [{ setNumber: 1, reps: '12', weight: '0' }], tempo: '4/2/1', rest: '30' },
+];
 
 interface WorkoutLoggerModalProps {
   open: boolean;
@@ -407,6 +453,9 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
   const [exercises, setExercises] = useState<Exercise[]>([
     { name: '', sets: [{ setNumber: 1, reps: '', weight: '' }] },
   ]);
+  const [coreExercises, setCoreExercises] = useState<Exercise[]>(
+    DEFAULT_CORE_EXERCISES.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<'manual' | 'voice'>('manual');
@@ -468,8 +517,10 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
         duration: Number(duration),
         intensity: Number(intensity),
         notes: notes.trim() || undefined,
-        exercises: exercises.map((ex) => ({
+        exercises: [...coreExercises, ...exercises].map((ex) => ({
           name: ex.name.trim(),
+          tempo: ex.tempo || undefined,
+          rest: ex.rest ? Number(ex.rest) : undefined,
           sets: ex.sets.map((set) => ({
             setNumber: set.setNumber,
             reps: set.reps ? Number(set.reps) : 0,
@@ -552,6 +603,27 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
       [field]: value,
     };
     setExercises(updated);
+  };
+
+  const updateExerciseMeta = (index: number, field: 'tempo' | 'rest', value: string) => {
+    const updated = [...exercises];
+    updated[index] = { ...updated[index], [field]: value };
+    setExercises(updated);
+  };
+
+  const updateCoreExercise = (index: number, field: 'tempo' | 'rest', value: string) => {
+    const updated = [...coreExercises];
+    updated[index] = { ...updated[index], [field]: value };
+    setCoreExercises(updated);
+  };
+
+  const updateCoreSet = (exIndex: number, setIndex: number, field: 'reps' | 'weight', value: string) => {
+    const updated = [...coreExercises];
+    updated[exIndex].sets[setIndex] = {
+      ...updated[exIndex].sets[setIndex],
+      [field]: value,
+    };
+    setCoreExercises(updated);
   };
 
   return (
@@ -679,6 +751,81 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
 
           <Divider />
 
+          {/* ── Mandatory Stability & Core Section ── */}
+          <CoreSectionCard>
+            <CoreSectionHeader>
+              <Shield size={16} />
+              Stability &amp; Core
+              <CoreBadge>NASM Required</CoreBadge>
+            </CoreSectionHeader>
+
+            {coreExercises.map((coreEx, coreIdx) => (
+              <ExerciseCard key={`core-${coreIdx}`} style={{ background: 'rgba(139, 92, 246, 0.03)' }}>
+                <ExerciseHeader>
+                  <FormGroup style={{ flex: 1, marginRight: 8 }}>
+                    <Label>Exercise</Label>
+                    <ExerciseAutocomplete
+                      value={coreEx.name}
+                      onChange={(name) => {
+                        const updated = [...coreExercises];
+                        updated[coreIdx] = { ...updated[coreIdx], name };
+                        setCoreExercises(updated);
+                      }}
+                      placeholder="Search NASM exercises..."
+                      data-testid={`core-exercise-name-${coreIdx}`}
+                    />
+                  </FormGroup>
+                </ExerciseHeader>
+
+                <ExerciseMetaRow>
+                  <FormGroup>
+                    <Label>Tempo</Label>
+                    <SmallInput
+                      placeholder="e.g., 4/2/1"
+                      value={coreEx.tempo || ''}
+                      onChange={(e) => updateCoreExercise(coreIdx, 'tempo', e.target.value)}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Rest (sec)</Label>
+                    <SmallInput
+                      type="number"
+                      min="0"
+                      placeholder="30"
+                      value={coreEx.rest || ''}
+                      onChange={(e) => updateCoreExercise(coreIdx, 'rest', e.target.value)}
+                    />
+                  </FormGroup>
+                </ExerciseMetaRow>
+
+                {coreEx.sets.map((set, setIndex) => (
+                  <SetRow key={setIndex}>
+                    <SetLabel>#{set.setNumber}</SetLabel>
+                    <SmallInput
+                      type="number"
+                      min="0"
+                      placeholder="Reps"
+                      value={set.reps}
+                      onChange={(e) => updateCoreSet(coreIdx, setIndex, 'reps', e.target.value)}
+                    />
+                    <SmallInput
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="Weight (lbs)"
+                      value={set.weight}
+                      onChange={(e) => updateCoreSet(coreIdx, setIndex, 'weight', e.target.value)}
+                    />
+                    <div style={{ minWidth: 44 }} />
+                  </SetRow>
+                ))}
+              </ExerciseCard>
+            ))}
+          </CoreSectionCard>
+
+          <Divider />
+
+          {/* ── Main Exercises ── */}
           <SectionHeader>
             <SectionTitle>Exercises</SectionTitle>
             <AddButton onClick={addExercise} data-testid="add-exercise-btn">
@@ -694,11 +841,11 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
               <ExerciseHeader>
                 <FormGroup style={{ flex: 1, marginRight: 8 }}>
                   <Label>Exercise Name *</Label>
-                  <Input
+                  <ExerciseAutocomplete
                     data-testid={`exercise-name-${exIndex}`}
-                    placeholder="e.g., Bench Press"
+                    placeholder="Search NASM exercises..."
                     value={exercise.name}
-                    onChange={(e) => updateExerciseName(exIndex, e.target.value)}
+                    onChange={(name) => updateExerciseName(exIndex, name)}
                   />
                   {errors[`exercise_${exIndex}_name`] && (
                     <ErrorText>{errors[`exercise_${exIndex}_name`]}</ErrorText>
@@ -714,6 +861,27 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
                   </RemoveButton>
                 )}
               </ExerciseHeader>
+
+              <ExerciseMetaRow>
+                <FormGroup>
+                  <Label>Tempo</Label>
+                  <SmallInput
+                    placeholder="e.g., 4/2/1"
+                    value={exercise.tempo || ''}
+                    onChange={(e) => updateExerciseMeta(exIndex, 'tempo', e.target.value)}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label>Rest (sec)</Label>
+                  <SmallInput
+                    type="number"
+                    min="0"
+                    placeholder="60"
+                    value={exercise.rest || ''}
+                    onChange={(e) => updateExerciseMeta(exIndex, 'rest', e.target.value)}
+                  />
+                </FormGroup>
+              </ExerciseMetaRow>
 
               {exercise.sets.map((set, setIndex) => (
                 <SetRow key={setIndex}>

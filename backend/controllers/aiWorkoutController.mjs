@@ -58,6 +58,20 @@ import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
 import { buildMeasurementContext } from '../services/ai/measurementContextBuilder.mjs';
 import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
 
+/**
+ * fetchOptionalContext — DRY helper for non-blocking context fetches.
+ * Returns null on failure, logs warning instead of crashing.
+ */
+const fetchOptionalContext = async (model, fetchFn, contextName) => {
+  if (!model) return null;
+  try {
+    return await fetchFn();
+  } catch (err) {
+    logger.warn(`Failed to build ${contextName} (non-blocking):`, err.message);
+    return null;
+  }
+};
+
 const ALLOWED_DAY_TYPES = new Set([
   'training',
   'active_recovery',
@@ -202,19 +216,24 @@ const findExerciseByName = async (Exercise, name, transaction) => {
     return null;
   }
 
-  const exactMatch = await Exercise.findOne({
-    where: { name: { [Op.iLike]: trimmed } },
-    transaction,
-  });
+  try {
+    const exactMatch = await Exercise.findOne({
+      where: { name: { [Op.iLike]: trimmed } },
+      transaction,
+    });
 
-  if (exactMatch) {
-    return exactMatch;
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    return await Exercise.findOne({
+      where: { name: { [Op.iLike]: `%${trimmed}%` } },
+      transaction,
+    });
+  } catch (err) {
+    logger.warn('Exercise lookup failed', { name: trimmed, error: err.message });
+    return null;
   }
-
-  return Exercise.findOne({
-    where: { name: { [Op.iLike]: `%${trimmed}%` } },
-    transaction,
-  });
 };
 
 /**
@@ -448,11 +467,13 @@ export const generateWorkoutPlan = async (req, res) => {
     let progressContext = null;
     if (WorkoutSession) {
       try {
-        // Fetch ALL workout sessions — no limit, AI needs complete history
+        // Fetch recent workout sessions — capped at 90 days / 100 sessions for performance
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
         const recentSessions = await WorkoutSession.findAll({
-          where: { userId: targetUserId },
+          where: { userId: targetUserId, date: { [Op.gte]: ninetyDaysAgo } },
           order: [['date', 'DESC']],
-          include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
+          limit: 100,
+          include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs', limit: 20 }] : [],
         });
 
         if (recentSessions && recentSessions.length > 0) {
@@ -471,42 +492,95 @@ export const generateWorkoutPlan = async (req, res) => {
     }
 
     // Phase 11F: Fetch recent body measurements for AI context
-    let measurementContext = null;
-    if (BodyMeasurement) {
-      try {
-        // Fetch ALL body measurements — full trend data for AI
-        const recentMeasurements = await BodyMeasurement.findAll({
-          where: { userId: targetUserId },
-          order: [['measurementDate', 'DESC']],
-        });
-        if (recentMeasurements && recentMeasurements.length > 0) {
-          measurementContext = buildMeasurementContext(recentMeasurements);
-        }
-      } catch (measurementErr) {
-        logger.warn('Failed to build measurement context (non-blocking):', measurementErr.message);
-      }
-    }
+    const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+    const measurementContext = await fetchOptionalContext(BodyMeasurement, async () => {
+      const recentMeasurements = await BodyMeasurement.findAll({
+        where: { userId: targetUserId, measurementDate: { [Op.gte]: sixMonthsAgo } },
+        order: [['measurementDate', 'DESC']],
+        limit: 50,
+      });
+      return recentMeasurements?.length > 0 ? buildMeasurementContext(recentMeasurements) : null;
+    }, 'measurement context');
 
     // Phase 12: Fetch active pain/injury entries for AI context
-    let painEntries = null;
     const { ClientPainEntry } = models;
-    if (ClientPainEntry) {
-      try {
-        painEntries = await ClientPainEntry.findAll({
-          where: { userId: targetUserId, isActive: true },
-          order: [['painLevel', 'DESC']],
+    const painEntries = await fetchOptionalContext(ClientPainEntry, async () => {
+      const entries = await ClientPainEntry.findAll({
+        where: { userId: targetUserId, isActive: true },
+        order: [['painLevel', 'DESC']],
+        limit: 50,
+      });
+      if (entries?.length > 0) {
+        logger.info('[AI Workout] Pain entries found for context', {
+          userId: targetUserId,
+          count: entries.length,
+          severeCount: entries.filter(e => e.painLevel >= 7).length,
         });
-        if (painEntries && painEntries.length > 0) {
-          logger.info('[AI Workout] Pain entries found for context', {
-            userId: targetUserId,
-            count: painEntries.length,
-            severeCount: painEntries.filter(e => e.painLevel >= 7).length,
-          });
-        }
-      } catch (painErr) {
-        logger.warn('Failed to fetch pain entries (non-blocking):', painErr.message);
       }
-    }
+      return entries?.length > 0 ? entries : null;
+    }, 'pain entries');
+
+    // Phase 14: Fetch nutrition history for AI context (non-blocking)
+    const { DailyMacroLog } = models;
+    const nutritionContext = await fetchOptionalContext(DailyMacroLog, async () => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const macroLogs = await DailyMacroLog.findAll({
+        where: { userId: targetUserId, date: { [Op.gte]: thirtyDaysAgo } },
+        order: [['date', 'DESC']],
+        limit: 90, // Up to 3 meals/day × 30 days
+        attributes: ['date', 'mealType', 'calories', 'protein', 'carbs', 'fat', 'fiber'],
+      });
+      if (macroLogs.length === 0) return null;
+      const totalDays = new Set(macroLogs.map(l => l.date?.toISOString?.()?.split('T')[0] || l.date)).size;
+      const totals = macroLogs.reduce((acc, l) => ({
+        calories: acc.calories + (l.calories || 0),
+        protein: acc.protein + (l.protein || 0),
+        carbs: acc.carbs + (l.carbs || 0),
+        fat: acc.fat + (l.fat || 0),
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      logger.info('[AI Workout] Nutrition context built', { userId: targetUserId, daysLogged: totalDays });
+      return {
+        daysLogged: totalDays,
+        totalEntries: macroLogs.length,
+        avgDailyCalories: totalDays > 0 ? Math.round(totals.calories / totalDays) : null,
+        avgDailyProtein: totalDays > 0 ? Math.round(totals.protein / totalDays) : null,
+        avgDailyCarbs: totalDays > 0 ? Math.round(totals.carbs / totalDays) : null,
+        avgDailyFat: totalDays > 0 ? Math.round(totals.fat / totalDays) : null,
+      };
+    }, 'nutrition context');
+
+    // Phase 14: Fetch health history from waiver records (non-blocking)
+    const { WaiverRecord } = models;
+    const healthHistory = await fetchOptionalContext(WaiverRecord, async () => {
+      const waiverRecord = await WaiverRecord.findOne({
+        where: { userId: targetUserId },
+        order: [['createdAt', 'DESC']],
+        attributes: ['activityTypes', 'medicalConditions', 'injuries', 'medications', 'createdAt'],
+      });
+      if (!waiverRecord) return null;
+      logger.info('[AI Workout] Health history loaded from waiver', { userId: targetUserId });
+      return {
+        activityTypes: waiverRecord.activityTypes || [],
+        medicalConditions: waiverRecord.medicalConditions || [],
+        injuries: waiverRecord.injuries || [],
+        medications: waiverRecord.medications || [],
+        waiverDate: waiverRecord.createdAt,
+      };
+    }, 'waiver health history');
+
+    // Phase 14: Fetch movement analysis records (non-blocking)
+    const { MovementAnalysis } = models;
+    const movementAssessments = await fetchOptionalContext(MovementAnalysis, async () => {
+      const analyses = await MovementAnalysis.findAll({
+        where: { userId: targetUserId },
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+      });
+      if (analyses.length === 0) return null;
+      logger.info('[AI Workout] Movement analyses loaded', { userId: targetUserId, count: analyses.length });
+      return analyses.map(a => a.get({ plain: true }));
+    }, 'movement analyses');
 
     // Phase 5A: Build unified generation context
     const unifiedContext = buildUnifiedContext({
@@ -516,6 +590,10 @@ export const generateWorkoutPlan = async (req, res) => {
       progressContext,
       measurementContext,
       painEntries: painEntries || [],
+      nutritionContext,
+      healthHistory,
+      movementAssessments,
+      clientSource: targetUser.clientSource || 'swanstudios',
     });
 
     // Attach progress + unified context to serverConstraints for prompt enrichment
@@ -533,6 +611,18 @@ export const generateWorkoutPlan = async (req, res) => {
     }
     if (unifiedContext.goalProgress) {
       serverConstraints.goalProgress = unifiedContext.goalProgress;
+    }
+    if (unifiedContext.nutritionSummary) {
+      serverConstraints.nutritionSummary = unifiedContext.nutritionSummary;
+    }
+    if (unifiedContext.healthHistorySummary) {
+      serverConstraints.healthHistory = unifiedContext.healthHistorySummary;
+    }
+    if (unifiedContext.movementContext) {
+      serverConstraints.movementAssessments = unifiedContext.movementContext;
+    }
+    if (unifiedContext.clientSourceContext) {
+      serverConstraints.clientSource = unifiedContext.clientSourceContext;
     }
 
     const payloadHash = hashPayload(safePayload);
@@ -740,6 +830,44 @@ export const generateWorkoutPlan = async (req, res) => {
       );
 
       const days = Array.isArray(aiPlan.days) ? aiPlan.days : [];
+
+      // --- Bulk-fetch all exercise names to avoid N+1 queries ---
+      const allExerciseNames = [];
+      for (const day of days) {
+        const exs = Array.isArray(day?.exercises) ? day.exercises : [];
+        for (const ex of exs) {
+          const name = ex?.name ? String(ex.name).trim() : '';
+          if (name) allExerciseNames.push(name);
+        }
+      }
+      const uniqueNames = [...new Set(allExerciseNames)];
+      const exerciseLookupMap = new Map();
+      if (uniqueNames.length > 0 && Exercise) {
+        try {
+          // Exact matches first
+          const exactMatches = await Exercise.findAll({
+            where: { name: { [Op.iLike]: { [Op.any]: uniqueNames } } },
+            transaction,
+          });
+          for (const em of exactMatches) {
+            exerciseLookupMap.set(em.name.toLowerCase(), em);
+          }
+          // Fuzzy match remaining unmatched names
+          const unmatchedNames = uniqueNames.filter(n => !exerciseLookupMap.has(n.toLowerCase()));
+          if (unmatchedNames.length > 0) {
+            for (const name of unmatchedNames) {
+              const fuzzy = await Exercise.findOne({
+                where: { name: { [Op.iLike]: `%${name}%` } },
+                transaction,
+              });
+              if (fuzzy) exerciseLookupMap.set(name.toLowerCase(), fuzzy);
+            }
+          }
+        } catch (lookupErr) {
+          logger.warn('Bulk exercise lookup failed, falling back to individual queries', { error: lookupErr.message });
+        }
+      }
+
       for (let i = 0; i < days.length; i += 1) {
         const day = days[i] || {};
         const dayNumber = Number.isFinite(Number(day.dayNumber)) ? Number(day.dayNumber) : i + 1;
@@ -775,8 +903,12 @@ export const generateWorkoutPlan = async (req, res) => {
         }
         for (let j = 0; j < exercises.length; j += 1) {
           const exercise = exercises[j] || {};
-          const exerciseName = exercise.name ? String(exercise.name) : '';
-          const exerciseRecord = await findExerciseByName(Exercise, exerciseName, transaction);
+          const exerciseName = exercise.name ? String(exercise.name).trim() : '';
+          // Use bulk lookup map; fall back to individual query only if map miss
+          let exerciseRecord = exerciseLookupMap.get(exerciseName.toLowerCase()) || null;
+          if (!exerciseRecord && exerciseName) {
+            exerciseRecord = await findExerciseByName(Exercise, exerciseName, transaction);
+          }
 
           if (!exerciseRecord) {
             unmatchedExercises.push({ dayNumber, name: exerciseName });
@@ -878,7 +1010,9 @@ export const generateWorkoutPlan = async (req, res) => {
     // Finalize audit log so no rows stay stuck in 'pending'
     await updateAuditLog(auditLog, {
       status: 'error',
-      errorCode: 'INTERNAL_ERROR',
+      errorCode: error.code || 'INTERNAL_ERROR',
+      errorMessage: error.message,
+      errorStack: error.stack?.substring(0, 1000),
       durationMs: responseTime,
     });
 
@@ -890,7 +1024,9 @@ export const generateWorkoutPlan = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to generate workout plan',
+      message: process.env.NODE_ENV === 'production'
+        ? 'Failed to generate workout plan'
+        : (error.message || 'Failed to generate workout plan'),
     });
   } finally {
     // Only release if the rate limiter actually acquired a lock for this request

@@ -110,6 +110,22 @@ class AdminClientService {
   }
   
   /**
+   * Create an external client (Move Fitness, etc.) — 0 sessions, full tool access
+   */
+  async createExternalClient(clientData: CreateExternalClientRequest) {
+    try {
+      const response = await api.post('/admin/clients/create-external', clientData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error creating external client:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to create external client');
+    }
+  }
+
+  /**
    * Update existing client information
    */
   async updateClient(clientId, updateData) {
@@ -606,6 +622,102 @@ class AdminClientService {
       errors
     };
   }
+}
+
+// Client source types (AI Village consensus: STRING + Zod validation)
+export type ClientSource = 'swanstudios' | 'move_fitness' | 'external';
+
+export const CLIENT_SOURCE_LABELS: Record<ClientSource, string> = {
+  swanstudios: 'SwanStudios',
+  move_fitness: 'Move Fitness',
+  external: 'External',
+};
+
+export const CLIENT_SOURCE_COLORS: Record<ClientSource, string> = {
+  swanstudios: '#8B5CF6', // Wing Purple
+  move_fitness: '#60C0F0', // Ice Wing
+  external: '#C6A84B',    // Gilded Fern
+};
+
+// Client management types
+export interface AdminClient {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  phone?: string;
+  photo?: string;
+  role: string;
+  isActive: boolean;
+  clientSource?: ClientSource;
+  fitnessGoal?: string;
+  availableSessions?: number;
+  totalWorkouts?: number;
+  totalOrders?: number;
+  createdAt: string;
+  lastWorkout?: any;
+  nextSession?: any;
+  measurementSchedule?: any;
+}
+
+export interface AdminClientFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  fitnessGoal?: string;
+  trainer?: string;
+  clientSource?: ClientSource;
+}
+
+export interface CreateClientRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  password: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  weight?: number;
+  height?: number;
+  fitnessGoal?: string;
+  trainingExperience?: string;
+  healthConcerns?: string;
+  emergencyContact?: string;
+  availableSessions?: number;
+  trainerId?: string;
+  clientSource?: ClientSource;
+}
+
+export interface CreateExternalClientRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  weight?: number;
+  height?: number;
+  fitnessGoal?: string;
+  trainingExperience?: string;
+  healthConcerns?: string;
+  emergencyContact?: string;
+  clientSource?: ClientSource;
+  password?: string;
+}
+
+export interface UpdateClientRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  fitnessGoal?: string;
+  clientSource?: ClientSource;
+  [key: string]: any;
 }
 
 // P0: Billing Overview Types

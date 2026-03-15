@@ -207,9 +207,9 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
       {!open && (
         <>
           {/* Desktop: Cmd+K trigger bar with Swan logo */}
-          <CmdKBar onClick={() => setOpen(true)} aria-label="Open AI Assistant (Ctrl+K)">
+          <CmdKBar onClick={() => setOpen(true)} aria-label="Open Deep Research (Ctrl+K)">
             <img src="/Logo.png" alt="" aria-hidden="true" />
-            <span>Ask Swan AI...</span>
+            <span>Deep Research...</span>
             <KbdStyle>
               <Command size={11} />K
             </KbdStyle>
@@ -217,8 +217,8 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
 
           {/* Mobile/Tablet: Swan logo FAB — positioned above Windows taskbar */}
           <MobileFABWrapper>
-            <FAB onClick={() => setOpen(true)} aria-label="Open AI Assistant" title="Swan AI Assistant">
-              <img src="/Logo.png" alt="Swan AI" />
+            <FAB onClick={() => setOpen(true)} aria-label="Open Deep Research" title="SwanStudios Deep Research">
+              <img src="/Logo.png" alt="Deep Research" />
             </FAB>
           </MobileFABWrapper>
         </>

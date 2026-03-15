@@ -17,7 +17,10 @@ import {
   CreateClientRequest,
   UpdateClientRequest,
   AdminClientServiceInterface,
-  createAdminClientService
+  createAdminClientService,
+  ClientSource,
+  CLIENT_SOURCE_LABELS,
+  CLIENT_SOURCE_COLORS,
 } from '../../../../services/adminClientService';
 import CreateClientModal from './CreateClientModal';
 import AdminOnboardingPanel from './components/AdminOnboardingPanel';
@@ -409,6 +412,21 @@ const StatusBadge = styled.span<{ $status: string }>`
     color: #ff9800;
     border: 1px solid rgba(255, 152, 0, 0.5);
   `}
+`;
+
+// ─── Client Source Badge ────────────────────────────────────
+const SourceBadge = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: ${({ $color }) => `${$color}20`};
+  color: ${({ $color }) => $color};
+  border: 1px solid ${({ $color }) => `${$color}50`};
+  font-family: 'Sora', sans-serif;
 `;
 
 // ─── Check-in Status Dot ────────────────────────────────────
@@ -1010,9 +1028,16 @@ const AdminClientManagementView: React.FC = () => {
                         {getInitials(client.firstName, client.lastName)}
                       </AvatarCircle>
                       <div>
-                        <BodyText $weight={600}>
-                          {client.firstName} {client.lastName}
-                        </BodyText>
+                        <FlexRow $gap="6px" style={{ alignItems: 'center' }}>
+                          <BodyText $weight={600}>
+                            {client.firstName} {client.lastName}
+                          </BodyText>
+                          {(client as any).clientSource && (client as any).clientSource !== 'swanstudios' && (
+                            <SourceBadge $color={CLIENT_SOURCE_COLORS[(client as any).clientSource as ClientSource] || '#C6A84B'}>
+                              {CLIENT_SOURCE_LABELS[(client as any).clientSource as ClientSource] || (client as any).clientSource}
+                            </SourceBadge>
+                          )}
+                        </FlexRow>
                         <BodyText $color="#94a3b8" $size="0.8rem">
                           @{client.username}
                         </BodyText>

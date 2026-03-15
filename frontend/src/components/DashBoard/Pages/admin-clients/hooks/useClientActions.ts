@@ -106,11 +106,15 @@ export function useClientActions({
 
   const handleCreateClient = useCallback(async (data: any) => {
     try {
-      const response = await adminClientService.createClient(data);
+      const isExternal = data.clientSource && data.clientSource !== 'swanstudios';
+      const response = isExternal
+        ? await adminClientService.createExternalClient(data)
+        : await adminClientService.createClient(data);
       if (response.success) {
+        const sourceLabel = isExternal ? ` (${data.clientSource})` : '';
         toast({
           title: 'Success',
-          description: 'Client created successfully',
+          description: `Client created successfully${sourceLabel}`,
           variant: 'default',
         });
         setShowCreateModal(false);

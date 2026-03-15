@@ -741,7 +741,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
   const renderAIInsights = () => (
     <GlassCard>
       <CardTitleRow>
-        <CardTitleWithIcon><Brain size={20} /> AI-Powered Insights</CardTitleWithIcon>
+        <CardTitleWithIcon><Brain size={20} /> Deep Research Insights</CardTitleWithIcon>
         <OutlineButton><RefreshCw size={16} /> Refresh</OutlineButton>
       </CardTitleRow>
 
@@ -820,7 +820,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       {/* Analytics Header */}
       <SectionHeader>
         <Title>Advanced Analytics Dashboard</Title>
-        <Subtitle>AI-powered insights and comprehensive performance analytics</Subtitle>
+        <Subtitle>Deep Research-powered insights and comprehensive performance analytics</Subtitle>
       </SectionHeader>
 
       {/* Control Panel */}

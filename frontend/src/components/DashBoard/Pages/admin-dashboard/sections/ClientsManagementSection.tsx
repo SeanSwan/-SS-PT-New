@@ -1334,7 +1334,7 @@ const ClientsManagementSection: React.FC = () => {
                       onClick={() => openCopilot(client)}
                     >
                       <Sparkles size={14} />
-                      AI Workout Copilot
+                      Deep Research — Workout Intelligence
                     </ActionItem>
                     <MenuDivider />
                     <ActionItem
