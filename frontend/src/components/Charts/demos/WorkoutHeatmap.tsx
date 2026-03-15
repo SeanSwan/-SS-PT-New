@@ -49,12 +49,15 @@ const WorkoutHeatmap: React.FC = () => (
         motionConfig={NIVO_MOTION}
         margin={{ top: 30, right: 10, bottom: 10, left: 40 }}
         valueFormat=">-.0f"
-        colors={[
-          'rgba(64, 112, 192, 0.4)',
-          'rgba(80, 144, 216, 0.6)',
-          'rgba(96, 192, 240, 0.8)',
-          CHART_COLORS.iceWing,
-        ]}
+        colors={{
+          type: 'quantize',
+          colors: [
+            'rgba(64, 112, 192, 0.15)',
+            'rgba(64, 112, 192, 0.4)',
+            'rgba(80, 144, 216, 0.6)',
+            CHART_COLORS.iceWing,
+          ],
+        }}
         emptyColor="rgba(64, 112, 192, 0.05)"
         borderRadius={4}
         borderWidth={2}
