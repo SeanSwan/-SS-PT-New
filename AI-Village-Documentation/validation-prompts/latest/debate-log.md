@@ -1,25 +1,138 @@
 # Code Quality & Architecture — Recursive Consensus Debate Log
 
 > **Consensus:** YES — Models agreed
-> **Rounds:** 5
-> **Tokens:** 30,156 input / 4,385 output
+> **Rounds:** 3
+> **Tokens:** 28,936 input / 4,873 output
 
 ---
 
 ## CTO (Chief Technology Officer) — Round 1
 
-As the CTO, I have reviewed the `BadgeGallery` component, the generation script, and the manifest. While the visual execution aligns well with the "Enchanted Apex" theme, there are several critical architectural, logic, and reliability flaws that will break the application in production or cause severe degradation. 
+As the CTO, I have reviewed the provided documentation, data catalogs, and Sequelize models. While the product vision is strong, the current implementation is riddled with legacy syntax, critical schema mismatches, and severe performance bottlenecks that will cause immediate runtime crashes and database locks if deployed. 
 
-Here is my Round 1 analysis. I expect you to review these carefully—they are backed by strict technical evidence.
+Here is my Round 1 architectural and code quality audit. Prepare your defense, because these need to be fixed before we write another line of code.
 
-### 1. Negative "Pending" Count (Logic/UI Bug)
-- **Severity:** HIGH
-- **File & Line:** `frontend/src/components/Charts/BadgeGallery.tsx`, Lines 130-132
-- **What's Wrong:** The `pendingCount` calculation is mathematically flawed when filters are applied. It calculates `filteredBadges.length - generatedCount - failedImages.size`. However, `generatedCount` is defined as `loadedImages.size`, which is the *global* count of all loaded images, not the filtered subset. If a user filters to the "Swan" category (50 badges), but 500 badges have loaded globally, the math becomes `50 - 500 - 0 = -450`. The UI will display "-450 pending".
-- **Proposed Fix:** Calculate the generated and failed counts based strictly on the filtered subset.
-  ```tsx
-  // Replace lines 130-132 with:
-  const generatedCount = filteredBadges.filter(b => loadedImages.has(b.filename)).length
+---
+
+### 1. ❌ CRITICAL: Legacy Sequelize Syntax Will Cause Runtime Crashes
+* **Severity:** CRITICAL
+* **File & Line:** `Achievement.mjs` (Lines 212-300) and `UserAchievement.mjs` (Lines 333-461)
+* **What's Wrong:** The code defines `instanceMethods` and `classMethods` inside the model definition object. **Sequelize removed this syntax in v4.0.0 (years ago).** If you run this code, none of these methods (`checkPrerequisites`, `updateProgress`, `complete`) will be attached to the models. When the app tries to call `userAchievement.updateProgress()`, it will throw a fatal `TypeError: is not a function` and crash the Node process.
+* **Proposed Fix:** Attach methods directly to the prototype and model object *after* `db.define`.
+
+```javascript
+// Remove instanceMethods and classMethods from the db.define options object.
+// Add them after the definition:
+
+// Instance Methods
+Achievement.prototype.isAvailable = function() {
+  if (!this.isActive) return false;
+  const now = new Date();
+  if (this.availableFrom && now < new Date(this.availableFrom)) return false;
+  if (this.availableUntil && now > new Date(this.availableUntil)) return false;
+  return true;
+};
+
+// Class Methods
+Achievement.getByCategory = async function(category, includeHidden = false) {
+  // ... implementation
+};
+```
+
+### 2. ❌ CRITICAL: Fatal Schema Mismatch (Category ENUMs)
+* **Severity:** CRITICAL
+* **File & Line:** `Achievement.mjs` (Lines 47-51) vs `gamification-rewards.catalog.v1.json` (Lines 18-24)
+* **What's Wrong:** The JSON catalog categorizes achievements by user roles (`user`, `client`, `trainer`, `creator`, `moderator`). However, the database model restricts the `category` column to an ENUM of `('fitness', 'social', 'streak', 'milestone', 'special')`. When the seed script attempts to insert the 82 achievements, PostgreSQL will reject every single row due to ENUM constraint violations.
+* **Proposed Fix:** Align the database schema with the product catalog.
+
+```javascript
+// Achievement.mjs (Line 48)
+category: {
+  type: DataTypes.ENUM('user', 'client', 'trainer', 'creator', 'moderator', 'cross_role'),
+  allowNull: false,
+  defaultValue: 'user'
+},
+```
+
+### 3. ❌ CRITICAL: Corrupted Foreign Key Types (`Users.id`)
+* **Severity:** CRITICAL
+* **File & Line:** `UserAchievement.mjs` (Lines 21-25 vs Lines 299-305)
+* **What's Wrong:** The model defines `userId` as `DataTypes.INTEGER` (Line 21). However, further down in the same file, `verifiedBy` (which also references the `Users` table) is defined as `DataTypes.UUID` (Line 299). A primary key cannot be both. Given that `Achievement.id` is a UUID, it is highly likely `Users.id` is also a UUID in our modern stack. This will cause foreign key constraint failures during migration.
+* **Proposed Fix:** Standardize the foreign key type to match the `User` model's primary key.
+
+```javascript
+// UserAchievement.mjs (Line 21)
+userId: {
+  type: DataTypes.UUID, // Changed from INTEGER
+  allowNull: false,
+  references: {
+    model: 'Users',
+    key: 'id'
+  }
+},
+```
+
+### 4. ⚠️ HIGH: Missing Core Business Logic Fields in Model
+* **Severity:** HIGH
+* **File & Line:** `Achievement.mjs` (Needs insertion around Line 75)
+* **What's Wrong:** The JSON catalog relies heavily on `rewardType` (badge, title, honor, discount, unlock, item) and `issuance` (auto, admin_review, admin_award). The `Achievement` model completely lacks these fields. Without `rewardType`, the frontend won't know if an achievement grants a 10% discount or a profile title, breaking the entire cross-role reward system.
+* **Proposed Fix:** Add the missing fields to the Sequelize model.
+
+```javascript
+// Add to Achievement.mjs
+rewardType: {
+  type: DataTypes.ENUM('badge', 'title', 'honor', 'discount', 'unlock', 'item'),
+  allowNull: false,
+  defaultValue: 'badge'
+},
+issuance: {
+  type: DataTypes.ENUM('auto', 'admin_review', 'admin_award'),
+  allowNull: false,
+  defaultValue: 'auto'
+},
+```
+
+### 5. ⚠️ HIGH: O(N) Database Killer in Statistics Calculation
+* **Severity:** HIGH
+* **File & Line:** `Achievement.mjs` (Lines 240-249)
+* **What's Wrong:** The `updateUnlockStats()` method runs `User.count()` and `UserAchievement.count()` globally. If this is called every time a user unlocks an achievement, a sudden influx of users completing a workout (e.g., a live class ending) will trigger hundreds of full-table counts simultaneously. This will lock the database and crash the API.
+* **Proposed Fix:** Remove this from the instance method. Stats should be calculated asynchronously via a cron job or materialized view.
+
+```javascript
+// Remove updateUnlockStats() from the instance methods entirely.
+// Create a separate background worker or use a PostgreSQL Materialized View:
+// CREATE MATERIALIZED VIEW achievement_stats AS ...
+```
+
+### 6. 🟡 MEDIUM: Unsafe JSONB Mutation in Progress Tracking
+* **Severity:** MEDIUM
+* **File & Line:** `UserAchievement.mjs` (Lines 349-358)
+* **What's Wrong:** `this.progressHistory.push(...)` mutates a JSONB array in place. Sequelize's change tracking mechanism often fails to detect in-place mutations on JSON objects, meaning the new progress history might not actually save to the database unless the array length exceeds 50 (triggering the `slice` reassignment).
+* **Proposed Fix:** Clone the array, mutate, and reassign, or explicitly tell Sequelize the field changed.
+
+```javascript
+// UserAchievement.mjs (Line 349)
+const currentHistory = this.progressHistory || [];
+const newEntry = {
+  date: new Date().toISOString(),
+  progress: this.progress,
+  progressChange: this.progress - oldProgress,
+  percentage: this.progressPercentage,
+  notes: notes
+};
+
+// Reassign to trigger Sequelize setter
+this.progressHistory = [...currentHistory, newEntry].slice(-50);
+```
+
+### 7. 🟡 MEDIUM: Over-engineered E2E Encryption Request
+* **Severity:** MEDIUM (Architecture/Scope)
+* **File & Line:** `BADGE-SYSTEM-ENHANCEMENT-PROMPT.md` (Lines 102-108)
+* **What's Wrong:** The prompt asks for "WhatsApp-style" End-to-End (E2E) encryption for a fitness app's social features. This is massive scope creep. True E2E encryption (like Signal Protocol) means the server cannot read the data. This breaks server-side search, admin moderation (which is a core feature based on the `MOD-501` badges), and analytics.
+* **Proposed Fix:** Reject E2E encryption. Update the documentation to specify **Encryption in Transit (TLS 1.3)**, **Encryption at Rest (AES-256)**, and **Application-Level Privacy Toggles (RBAC/Row-Level Security)**.
+
+---
+**CEO, over to you.** Do you accept these findings, or do you want to debate the Sequelize syntax and schema mismatches?
 
 ---
 
@@ -27,354 +140,250 @@ Here is my Round 1 analysis. I expect you to review these carefully—they are b
 
 # CEO Response — Round 1
 
-## DISAGREEMENT on Severity and Scope Assessment
+## PARTIAL CONSENSUS + STRATEGIC DISPUTES
 
-I acknowledge the CTO's technical finding regarding the `pendingCount` calculation, but I must challenge the characterization and prioritization before we proceed.
+CTO, your audit is thorough and I appreciate the urgency. However, I need to challenge several assumptions and push back on implementation details that could derail our roadmap. Let me break this down:
 
 ---
 
-### 1. Negative "Pending" Count — Severity Dispute
+## ✅ FULL AGREEMENT (No Further Debate Needed)
 
-**CTO's Assessment:** HIGH severity, "will break the application in production"
+### Issues 1, 2, 3, 6: CRITICAL Runtime & Schema Fixes
+I **fully accept** your findings on:
+- **Legacy Sequelize syntax** (Issue #1) — Your prototype attachment fix is correct.
+- **Category ENUM mismatch** (Issue #2) — Align with the catalog's role-based categories.
+- **Foreign key type inconsistency** (Issue #3) — Standardize to UUID.
+- **JSONB mutation safety** (Issue #6) — Clone-and-reassign pattern is the right call.
 
-**My Assessment:** MEDIUM severity — this is a **display bug**, not a breaking architectural flaw.
+**Action:** Implement all four fixes immediately. No debate.
 
-#### Why I'm Moderating the Severity:
+---
 
-1. **Application Doesn't Break**: The component renders, badges display correctly, and core functionality (viewing, filtering, downloading) remains intact. The negative number is a UI cosmetic issue, not a crash or data corruption.
+## ⚠️ STRATEGIC DISPUTES
 
-2. **Edge Case Trigger**: This only manifests when:
-   - A significant number of badges have loaded globally AND
-   - User applies a filter to a small subset AND
-   - The filtered subset has fewer loaded images than the global count
-   
-   In typical usage (no filter or filter-then-load), this won't surface immediately.
+### Issue #4: Missing `rewardType` and `issuance` Fields
+**I PARTIALLY AGREE, but your implementation is incomplete.**
 
-3. **User Impact**: While unprofessional, a negative pending count doesn't prevent badge generation, viewing, or downloading—the primary user workflows.
+**Problem with your fix:**
+You're adding `rewardType` and `issuance` to the `Achievement` model, but the catalog shows these fields are **per-reward**, not per-achievement. Look at `gamification-rewards.catalog.v1.json` lines 45-62: a single achievement (`USR-101`) has **multiple rewards** with different types (badge + title + honor).
 
-#### However, I **AGREE** on the Technical Fix
+**Counter-proposal:**
+We need a **separate `Reward` model** with a many-to-many relationship:
 
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`, Lines 130-132
+```javascript
+// New file: Reward.mjs
+const Reward = db.define('Reward', {
+  id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+  achievementId: { type: DataTypes.UUID, allowNull: false },
+  rewardType: {
+    type: DataTypes.ENUM('badge', 'title', 'honor', 'discount', 'unlock', 'item'),
+    allowNull: false
+  },
+  rewardValue: { type: DataTypes.JSONB }, // e.g., {badgeUrl, discountPercent}
+  issuance: {
+    type: DataTypes.ENUM('auto', 'admin_review', 'admin_award'),
+    allowNull: false,
+    defaultValue: 'auto'
+  }
+});
 
-**Approved Solution:**
-```tsx
-// Replace lines 130-132:
-const generatedCount = filteredBadges.filter(b => loadedImages.has(b.filename)).length;
-const failedCount = filteredBadges.filter(b => failedImages.has(b.filename)).length;
-const pendingCount = filteredBadges.length - generatedCount - failedCount;
+// Achievement.mjs associations
+Achievement.hasMany(Reward, { foreignKey: 'achievementId', as: 'rewards' });
 ```
 
-This ensures counts are scoped to the filtered dataset, eliminating negative values.
+**Why this matters:** Without this, we can't support the "Fitness Trailblazer" achievement (USR-101) that grants a badge, a title, AND 50 honor points. Your flat-field approach forces one reward per achievement.
+
+**Decision needed:** Do you accept the separate `Reward` model, or do you have an alternative that supports multi-reward achievements?
 
 ---
 
-### 2. Request for Complete Analysis
+### Issue #5: Statistics Calculation Performance
+**I DISAGREE with removing the feature entirely.**
 
-CTO, your message appears truncated. You mentioned "several critical architectural, logic, and reliability flaws" but only detailed one issue. 
+**Your concern is valid** (full-table counts are a bottleneck), but your solution is too extreme. The `unlockRate` and `totalUnlocks` stats are **core product features** displayed on achievement detail pages (per the catalog's `metadata` section). Removing them breaks the UI.
 
-**Before I can reach consensus or further dispute, I need:**
-- The remaining issues you identified (you said "several")
-- File/line references for each
-- Proposed fixes for all items
+**Counter-proposal:**
+1. **Keep the fields** in the `Achievement` model (they're already there: lines 67-74).
+2. **Remove the instance method** `updateUnlockStats()` (I agree this is dangerous).
+3. **Implement incremental updates** via database triggers or a Redis counter:
 
-Please provide your complete Round 1 analysis so I can respond comprehensively.
+```sql
+-- PostgreSQL trigger to increment totalUnlocks
+CREATE OR REPLACE FUNCTION increment_achievement_unlocks()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+    UPDATE "Achievements"
+    SET "totalUnlocks" = "totalUnlocks" + 1,
+        "unlockRate" = (("totalUnlocks" + 1)::float / (SELECT COUNT(*) FROM "Users"))
+    WHERE id = NEW."achievementId";
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_achievement_stats
+AFTER UPDATE ON "UserAchievements"
+FOR EACH ROW EXECUTE FUNCTION increment_achievement_unlocks();
+```
+
+**Why this is better:** O(1) updates instead of O(N) counts, stats remain real-time, no cron job lag.
+
+**Decision needed:** Trigger-based incremental updates vs. your materialized view approach?
 
 ---
 
-**Summary:** I accept the pending count fix but dispute its severity classification. Awaiting full issue list to proceed efficiently.
+### Issue #7: E2E Encryption Scope
+**I PARTIALLY AGREE, but you're misreading the requirement.**
+
+**You're correct** that Signal Protocol-style E2E encryption is overkill and breaks moderation. However, the prompt (`BADGE-SYSTEM-ENHANCEMENT-PROMPT.md` lines 102-108) is asking for **privacy controls**, not full E2E encryption. The "WhatsApp-style" reference is about **user experience** (granular privacy toggles), not the underlying crypto.
+
+**What we actually need:**
+1. **TLS 1.3** for data in transit (already standard).
+2. **AES-256** for data at rest (database-level encryption).
+3. **Row-Level Security (RLS)** in PostgreSQL to enforce privacy settings:
+
+```sql
+-- Example RLS policy
+CREATE POLICY achievement_visibility ON "UserAchievements"
+FOR SELECT USING (
+  CASE privacyLevel
+    WHEN 'public' THEN true
+    WHEN 'friends' THEN user_id IN (SELECT friend_id FROM friendships WHERE user_id = current_user_id())
+    WHEN 'private' THEN user_id = current_user_id()
+  END
+);
+```
+
+4. **Application-level privacy toggles** (already in the `UserAchievement` model, line 87: `privacyLevel` ENUM).
+
+**Proposed documentation update:**
+Replace "E2E encryption" with "Privacy-First Architecture: TLS 1.3, AES-256 at rest, PostgreSQL RLS, and user-controlled visibility settings."
+
+**Decision needed:** Do you accept this clarification, or do you still see a security risk?
+
+---
+
+## 📊 SUMMARY: What Needs Resolution
+
+| Issue | CEO Position | Awaiting CTO Response |
+|-------|--------------|----------------------|
+| #1, #2, #3, #6 | ✅ Accepted | Implement immediately |
+| #4 (Reward fields) | ⚠️ Needs separate `Reward` model | Do you accept multi-reward architecture? |
+| #5 (Statistics) | ⚠️ Use DB triggers, not removal | Triggers vs. materialized views? |
+| #7 (Encryption) | ⚠️ Privacy controls, not E2E | Accept clarified requirements? |
+
+**CTO, your move.** Defend your materialized view approach for stats, and tell me how you'd handle multi-reward achievements without a separate model.
 
 ---
 
 ## CTO (Chief Technology Officer) — Round 3
 
-I accept your pushback on the severity of the `pendingCount` bug. You are correct from a business and user-impact perspective: it is a cosmetic display issue that does not halt the core workflow. I agree to downgrade it to MEDIUM severity and we have consensus on the code fix. 
+# CTO Response — Round 2
 
-Apologies for the truncation in my initial report. Here is the remainder of my architectural and reliability analysis regarding the `BadgeGallery`, the generation script, and the manifest. These issues represent genuine threats to performance and stability.
+CEO, I appreciate your strategic pushback. You are absolutely correct that my initial flat-field approach for rewards missed the multi-reward requirement in the catalog. However, while your product instincts are spot-on, your proposed database solutions (Triggers and RLS) will introduce severe scaling bottlenecks and connection pooling nightmares in a Node.js environment. 
 
-### 2. Main-Thread Blocking via Excessive Re-renders (Architecture/Performance)
-- **Severity:** HIGH
-- **File & Line:** `frontend/src/components/Charts/BadgeGallery.tsx`, Lines ~85-95 (Image `onLoad` handler)
-- **What's Wrong:** The component updates the `loadedImages` React state individually for every single image that loads: `setLoadedImages(prev => new Set(prev).add(badge.filename))`. If the manifest contains 500+ "Enchanted Apex" badges, the browser attempts to download them concurrently. As they finish, this triggers 500+ individual React state updates and full-component re-renders in rapid succession. This will cause severe main-thread blocking, freezing the UI and making the filter dropdowns unresponsive during the loading phase.
-- **Proposed Fix:** We must decouple the individual image loading from the global progress state, or batch the updates. 
-  ```tsx
-  // 1. Add native lazy loading to the img tag to prevent fetching off-screen images:
-  <img src={badge.url} loading="lazy" onLoad={() => handleImageLoad(badge.filename)} />
+Here is my technical counter-rebuttal to ensure our architecture actually scales.
 
-  // 2. Batch the state updates in the handler using a ref and a throttled/debounced update:
-  const pendingUpdates = useRef<Set<string>>(new Set());
-  
-  const handleImageLoad = (filename: string) => {
-    pendingUpdates.current.add(filename);
-    if (!updateTimeout.current) {
-      updateTimeout.current = setTimeout(() => {
-        setLoadedImages(prev => new Set([...prev, ...pendingUpdates.current]));
-        pendingUpdates.current.clear();
-        updateTimeout.current = null;
-      }, 500); // Batch updates every 500ms
+---
+
+### Issue #4: Multi-Reward Architecture
+**Status: PARTIAL AGREEMENT — Rejecting the separate table, proposing JSONB.**
+
+**Why your fix is problematic:**
+You are right that achievements have multiple rewards. However, creating a separate `Reward` table and model forces a `JOIN` operation every single time we fetch an achievement. Since rewards are strictly static metadata tied to the achievement definition (they don't change per user), a separate relational table is over-normalization.
+
+**Counter-proposal:**
+PostgreSQL excels at hybrid relational/document storage. We should store `rewards` as a `JSONB` array directly on the `Achievement` model. This gives us the flexibility of multiple rewards without the query overhead of a `JOIN`.
+
+```javascript
+// Achievement.mjs (Insert around Line 75)
+rewards: {
+  type: DataTypes.JSONB,
+  allowNull: false,
+  defaultValue: [],
+  validate: {
+    isValidRewardArray(value) {
+      if (!Array.isArray(value)) throw new Error('Rewards must be an array');
+      // Enforce schema at the application level
+      value.forEach(reward => {
+        if (!['badge', 'title', 'honor', 'discount', 'unlock', 'item'].includes(reward.type)) {
+          throw new Error('Invalid reward type');
+        }
+      });
     }
+  }
+},
+```
+*Decision needed:* Do you accept the `JSONB` approach to save us from unnecessary `JOIN` overhead?
+
+---
+
+### Issue #5: Statistics Calculation Performance (The Trigger Trap)
+**Status: DISAGREE — Rejecting PostgreSQL Triggers due to Lock Contention.**
+
+**Why your fix is problematic:**
+Your proposed PostgreSQL trigger is a classic scaling trap. If a live fitness class ends and 1,000 users unlock the "Marathon Finisher" achievement simultaneously, your trigger will force 1,000 concurrent transactions to attempt an `UPDATE` on the *exact same row* in the `Achievements` table. This will cause massive **Row-Level Lock Contention**, leading to deadlocks and database timeouts. 
+
+**Counter-proposal:**
+Since you rightly pointed out that the UI needs real-time stats, we must decouple the write-heavy increments from the relational database. We should use **Redis** for atomic, in-memory increments, and flush to PostgreSQL asynchronously.
+
+```javascript
+// 1. Real-time atomic increment in Redis (O(1), no row locks)
+await redis.incr(`achievement:${achievementId}:totalUnlocks`);
+
+// 2. Background Cron Job (runs every 5 minutes) to sync to Postgres
+const keys = await redis.keys('achievement:*:totalUnlocks');
+for (const key of keys) {
+  const achievementId = key.split(':')[1];
+  const count = await redis.get(key);
+  
+  await Achievement.update(
+    { totalUnlocks: sequelize.literal(`"totalUnlocks" + ${count}`) },
+    { where: { id: achievementId } }
+  );
+  await redis.del(key); // Reset counter after sync
+}
+```
+*Decision needed:* Do you accept the Redis + Async Sync pattern to protect our database from lock contention during viral/live events?
+
+---
+
+### Issue #7: Privacy Controls & RLS
+**Status: DISAGREE — Rejecting PostgreSQL RLS in favor of Application-Level Filtering.**
+
+**Why your fix is problematic:**
+I agree with your clarification on the requirements (Privacy toggles, not true E2E). However, implementing **Row-Level Security (RLS)** in a Node.js/Sequelize stack is an architectural nightmare. 
+
+To use RLS, we have to inject the `current_user_id` into the PostgreSQL session for *every single query* using `SET LOCAL`. Because Node.js uses connection pooling (via `pg-pool`), connections are reused across different users. If a connection isn't perfectly cleaned up, User A might see User B's data. Managing this requires complex transaction-level hooks (`cls-hooked`) which adds massive latency.
+
+**Counter-proposal:**
+Keep the database dumb and the application smart. We enforce the privacy logic at the API/Service layer using standard Sequelize `WHERE` clauses.
+
+```javascript
+// Application-level privacy filtering (e.g., in UserAchievementService.mjs)
+async function getVisibleAchievements(targetUserId, requestingUserId) {
+  const isSelf = targetUserId === requestingUserId;
+  const isFriend = await Friendship.checkExists(targetUserId, requestingUserId);
+
+  const privacyConditions = isSelf ? {} : {
+    privacyLevel: isFriend ? { [Op.in]: ['public', 'friends'] } : 'public'
   };
-  ```
 
-### 3. Unbounded Concurrency in Generation Script (Reliability)
-- **Severity:** CRITICAL
-- **File & Line:** `scripts/generate_badges.ts`, Lines ~40-45
-- **What's Wrong:** The script iterates over the manifest using `await Promise.all(manifest.map(badge => generateImage(badge)))`. Firing hundreds of concurrent requests to our image generation API (or file system) will result in `429 Too Many Requests` errors, socket hang-ups, or out-of-memory (OOM) crashes on the CI/CD runner.
-- **Proposed Fix:** Introduce a strict concurrency limit to process the manifest in manageable chunks.
-  ```typescript
-  // Replace the Promise.all block with chunked execution:
-  const CONCURRENCY_LIMIT = 5;
-  for (let i = 0; i < manifest.length; i += CONCURRENCY_LIMIT) {
-    const chunk = manifest.slice(i, i + CONCURRENCY_LIMIT);
-    console.log(`Processing badges ${i + 1} to ${Math.min(i + CONCURRENCY_LIMIT, manifest.length)}...`);
-    await Promise.all(chunk.map(badge => generateImage(badge)));
-  }
-  ```
-
-### 4. Unhandled Promise Rejection on Missing Manifest (Logic)
-- **Severity:** MEDIUM
-- **File & Line:** `frontend/src/components/Charts/BadgeGallery.tsx`, Lines ~40-50 (`useEffect` fetch block)
-- **What's Wrong:** The `fetch('/manifest.json')` call lacks a `!response.ok` check and a `.catch()` block. If the manifest fails to generate or the network drops, `await response.json()` throws an unhandled promise rejection. The `isLoading` state never resolves to `false`, leaving the user staring at an infinite loading spinner with no error feedback.
-- **Proposed Fix:** Add proper error boundary state and HTTP status checking.
-  ```tsx
-  // Inside the useEffect:
-  try {
-    const response = await fetch('/manifest.json');
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
-    setManifest(data);
-  } catch (error) {
-    console.error("Failed to load badge manifest:", error);
-    setErrorState("Unable to load the badge gallery. Please try again later.");
-  } finally {
-    setIsLoading(false);
-  }
-  ```
-
-Please review these remaining points. If we can align on these fixes, we will have a highly performant and resilient gallery component ready for production.
-
----
-
-## CEO (Chief Executive Officer) — Round 4
-
-# CEO Response — Round 2
-
-## PARTIAL CONSENSUS with Critical Clarifications
-
-Thank you for the complete analysis, CTO. I appreciate the downgrade on Issue #1 and the detailed technical breakdown. However, I must challenge the severity ratings and implementation approach on several points before we commit engineering resources.
-
----
-
-## ✅ CONSENSUS: Issue #4 — Unhandled Promise Rejection
-
-**Agreed Assessment:** MEDIUM severity, proper error handling is essential for production resilience.
-
-**Approved Fix:** `frontend/src/components/Charts/BadgeGallery.tsx`, Lines ~40-50
-
-```tsx
-try {
-  const response = await fetch('/manifest.json');
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-  const data = await response.json();
-  setManifest(data);
-} catch (error) {
-  console.error("Failed to load badge manifest:", error);
-  setErrorState("Unable to load the badge gallery. Please try again later.");
-} finally {
-  setIsLoading(false);
+  return await UserAchievement.findAll({
+    where: {
+      userId: targetUserId,
+      ...privacyConditions
+    }
+  });
 }
 ```
+This is infinitely easier to cache (e.g., caching public profiles), test, and scale without messing with connection pool state.
 
-**Additional Requirement:** Add a user-facing error state display in the JSX:
-```tsx
-{errorState && <div className="error-banner">{errorState}</div>}
-```
+*Decision needed:* Do you accept moving the privacy enforcement to the Application Layer instead of the Database Layer?
 
 ---
-
-## ⚠️ DISAGREEMENT: Issue #2 — Re-render Performance
-
-**CTO's Assessment:** HIGH severity, "severe main-thread blocking"
-
-**My Counter-Assessment:** MEDIUM severity with a **simpler, less risky solution**
-
-### Why I'm Pushing Back:
-
-1. **Native Lazy Loading is Sufficient**: Your proposed batching mechanism adds significant complexity (refs, timeouts, cleanup logic) that introduces new failure modes. The `loading="lazy"` attribute alone will prevent the 500-concurrent-load scenario by deferring off-screen images.
-
-2. **Real-World Load Pattern**: Users don't see 500 badges simultaneously. With typical viewport sizes (showing ~12-20 badges), lazy loading naturally throttles the load to manageable levels.
-
-3. **Premature Optimization Risk**: The batching logic requires careful cleanup (clearing timeouts on unmount), adds debugging complexity, and may mask actual load failures during the 500ms window.
-
-### **CEO-Approved Solution** (Simpler):
-
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`, Lines ~85-95
-
-```tsx
-// 1. Add lazy loading (AGREED):
-<img 
-  src={badge.url} 
-  loading="lazy" 
-  onLoad={() => handleImageLoad(badge.filename)} 
-  onError={() => handleImageError(badge.filename)}
-/>
-
-// 2. Use React 18's automatic batching (already active if we're on React 18):
-const handleImageLoad = (filename: string) => {
-  setLoadedImages(prev => new Set(prev).add(filename));
-};
-```
-
-**Rationale:** React 18+ automatically batches state updates within event handlers and async functions. Combined with lazy loading, this addresses the issue without custom batching logic.
-
-**Compromise:** If performance testing reveals issues *after* lazy loading implementation, we revisit batching in a follow-up sprint.
-
----
-
-## ⚠️ DISAGREEMENT: Issue #3 — Generation Script Concurrency
-
-**CTO's Assessment:** CRITICAL severity
-
-**My Counter-Assessment:** HIGH severity, but **your fix has a critical flaw**
-
-### The Problem with Your Solution:
-
-Your chunked approach processes sequentially: chunks 1-5, then 6-10, then 11-15. This is **overly conservative** and will make badge generation unacceptably slow for large manifests.
-
-### **CEO-Approved Solution** (Balanced):
-
-**File:** `scripts/generate_badges.ts`, Lines ~40-45
-
-```typescript
-// Use a proper concurrency control library or pattern:
-async function generateWithLimit(manifest: Badge[], limit: number) {
-  const results = [];
-  const executing = [];
-  
-  for (const badge of manifest) {
-    const promise = generateImage(badge).then(result => {
-      executing.splice(executing.indexOf(promise), 1);
-      return result;
-    });
-    
-    results.push(promise);
-    executing.push(promise);
-    
-    if (executing.length >= limit) {
-      await Promise.race(executing);
-    }
-  }
-  
-  return Promise.all(results);
-}
-
-// Usage:
-await generateWithLimit(manifest, 10); // 10 concurrent, not 5 sequential chunks
-```
-
-**Why This is Better:**
-- Maintains constant concurrency (10 simultaneous requests)
-- Doesn't wait for entire chunks to complete
-- 2x faster than your chunked approach
-- Still prevents API overload
-
-**Alternative:** If we want to avoid custom implementation, use the `p-limit` npm package:
-```typescript
-import pLimit from 'p-limit';
-const limit = pLimit(10);
-await Promise.all(manifest.map(badge => limit(() => generateImage(badge))));
-```
-
----
-
-## Summary of Decisions:
-
-| Issue | Severity | Status | Implementation |
-|-------|----------|--------|----------------|
-| #1 Pending Count | MEDIUM | ✅ CONSENSUS | CTO's fix approved |
-| #4 Error Handling | MEDIUM | ✅ CONSENSUS | CTO's fix + error display |
-| #2 Re-renders | MEDIUM | ⚠️ MODIFIED | Lazy loading + React 18 batching (test first) |
-| #3 Concurrency | HIGH | ⚠️ MODIFIED | True concurrent limiting, not sequential chunks |
-
----
-
-**CTO, please confirm:**
-1. Acceptance of the simpler lazy-loading approach for Issue #2 (with agreement to revisit if testing shows problems)
-2. Agreement on true concurrent limiting for Issue #3 (either custom implementation or `p-limit`)
-
-If you can align on these pragmatic adjustments, we have a path to production. **1 round remaining** — let's close this efficiently.
-
----
-
-## CTO (Chief Technology Officer) — Round 5
-
-CONSENSUS REACHED
-
-As CTO, I fully accept your modifications. Your pushback on both outstanding issues is pragmatic, technically sound, and balances performance with maintainability. 
-
-To be technically precise on Issue #2: React 18's automatic batching only applies to updates queued in the same microtask/tick. Because image `onLoad` events fire asynchronously as distinct network requests complete, they will not actually batch together. *However*, your core point stands: by implementing `loading="lazy"`, we restrict the concurrent loads to the viewport (e.g., ~15-20 images). 20 rapid re-renders is well within React's performance budget and eliminates the main-thread blocking risk without the overhead of custom debounce logic. 
-
-On Issue #3, you are completely correct. My chunked `Promise.all` approach suffers from the "slowest sibling" problem, where a single slow generation holds up the next batch. A rolling concurrency window is the superior architectural choice. We will use the `p-limit` package as it is the industry standard, heavily tested, and keeps our script clean.
-
-Here are the final, merged architectural directives for the engineering team:
-
-### Merged Findings & Implementation Plan
-
-**1. Negative "Pending" Count (Severity: MEDIUM)**
-*   **File:** `frontend/src/components/Charts/BadgeGallery.tsx` (Lines 130-132)
-*   **Resolution:** Scope generation counts strictly to the filtered dataset to prevent negative UI values.
-*   **Code:**
-    ```tsx
-    const generatedCount = filteredBadges.filter(b => loadedImages.has(b.filename)).length;
-    const failedCount = filteredBadges.filter(b => failedImages.has(b.filename)).length;
-    const pendingCount = filteredBadges.length - generatedCount - failedCount;
-    ```
-
-**2. Unhandled Promise Rejection on Manifest Load (Severity: MEDIUM)**
-*   **File:** `frontend/src/components/Charts/BadgeGallery.tsx` (Lines ~40-50)
-*   **Resolution:** Implement strict HTTP status checking, a `catch` block, and a user-facing error boundary.
-*   **Code:**
-    ```tsx
-    try {
-      const response = await fetch('/manifest.json');
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-      setManifest(data);
-    } catch (error) {
-      console.error("Failed to load badge manifest:", error);
-      setErrorState("Unable to load the badge gallery. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-    // In JSX:
-    // {errorState && <div className="error-banner">{errorState}</div>}
-    ```
-
-**3. Main-Thread Blocking via Excessive Re-renders (Severity: MEDIUM)**
-*   **File:** `frontend/src/components/Charts/BadgeGallery.tsx` (Lines ~85-95)
-*   **Resolution:** Prevent mass concurrent downloading and rendering by utilizing native browser lazy loading. We will monitor performance and only introduce state batching if viewport-level rendering causes frame drops.
-*   **Code:**
-    ```tsx
-    <img 
-      src={badge.url} 
-      loading="lazy" 
-      onLoad={() => setLoadedImages(prev => new Set(prev).add(badge.filename))} 
-      onError={() => handleImageError(badge.filename)}
-    />
-    ```
-
-**4. Unbounded Concurrency in Generation Script (Severity: HIGH)**
-*   **File:** `scripts/generate_badges.ts` (Lines ~40-45)
-*   **Resolution:** Implement a rolling concurrency limit using `p-limit` to maximize throughput while protecting the API/runner from OOM and 429 errors.
-*   **Code:**
-    ```typescript
-    import pLimit from 'p-limit';
-    
-    // Limit to 10 concurrent generation tasks
-    const limit = pLimit(10); 
-    await Promise.all(manifest.map(badge => limit(() => generateImage(badge))));
-    ```
-
-This represents a solid, production-ready compromise. I will authorize the engineering team to begin implementation immediately based on this merged plan.
+**CEO, over to you.** If you agree to JSONB for rewards, Redis for stats, and App-Level filtering for privacy, we have a rock-solid, scalable architecture and can reach full consensus.
 
 ---
 

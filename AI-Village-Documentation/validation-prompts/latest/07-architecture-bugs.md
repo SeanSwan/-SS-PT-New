@@ -1,440 +1,323 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 93.5s
-> **Files:** frontend/src/components/Charts/BadgeGallery.tsx, scripts/generate-badges.mjs, scripts/badge-manifest.json
-> **Generated:** 3/14/2026, 10:27:46 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 42.2s
+> **Files:** docs/ai-workflow/blueprints/BADGE-SYSTEM-ENHANCEMENT-PROMPT.md, docs/ai-workflow/gamification/gamification-rewards.catalog.v1.json, backend/models/Achievement.mjs, backend/models/UserAchievement.mjs
+> **Generated:** 3/15/2026, 8:55:03 AM
 
 ---
 
-# Deep Code Review: SwanStudios Badge System
-
-**Reviewer:** Principal Software Engineer  
-**Files:** `frontend/src/components/Charts/BadgeGallery.tsx`, `scripts/generate-badges.mjs`, `scripts/badge-manifest.json`  
-**Theme:** Enchanted Apex: Crystalline Swan  
-**Production URL:** sswanstudios.com
+# Deep Architecture Review & Bug Hunt Report
+## SwanStudios Gamification System
 
 ---
 
 ## Executive Summary
 
-This review identifies **4 CRITICAL bugs**, **3 HIGH severity issues**, **6 MEDIUM issues**, and **8 LOW issues** across the three files. The badge gallery has fundamental data integrity issues and missing production safeguards. The generation script has architectural problems and potential credential exposure.
+I've conducted a thorough review of the provided files. This codebase has **CRITICAL integration mismatches** between the JSON catalog and the Sequelize models, plus several architectural flaws that will cause runtime failures. The most severe issue: the achievement category system is completely misaligned between the data catalog and the database model.
 
 ---
 
 ## 1. Bug Detection
 
-### CRITICAL
+### CRITICAL: Category Enum Mismatch Between Catalog and Model
 
-#### 1.1 Empty Styles Array Crash
-| Severity | File | Line |
-|----------|------|------|
-| **CRITICAL** | BadgeGallery.tsx | 46 |
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | `Achievement.mjs` lines 47-51 vs `gamification-rewards.catalog.v1.json` entire catalog | The Achievement model defines category ENUM as `['fitness', 'social', 'streak', 'milestone', 'special']` but the JSON catalog uses completely different categories: `['user', 'client', 'trainer', 'creator', 'moderator']`. Every single achievement in the catalog will fail validation when Sequelize tries to insert them. | Change Achievement model category ENUM to match catalog: `['user', 'client', 'trainer', 'creator', 'moderator', 'cross_role']` |
 
-**What's Wrong:** The `buildBadgeList` function divides by zero and crashes when `manifest.styles` is empty:
-```typescript
-const style = manifest.styles[i % manifest.styles.length];  // NaN when empty
-```
-
-**Fix:**
-```typescript
-if (manifest.styles.length === 0) {
-  return items; // Early return with empty array
-}
-const style = manifest.styles[i % manifest.styles.length];
-```
-
----
-
-#### 1.2 Image State Collision (Load + Fail)
-| Severity | File | Line |
-|----------|------|------|
-| **CRITICAL** | BadgeGallery.tsx | 162-167 |
-
-**What's Wrong:** If an image fails to load (`failedImages`), and the user triggers a re-render (e.g., changing filters), the component re-attempts to load the same failed URL. There's no mechanism to "un-fail" an image, but worse: there's no way to retry a failed load without clearing the entire state.
-
-**Fix:** Add a retry mechanism for failed images:
-```typescript
-const handleImageError = useCallback((filename: string) => {
-  setFailedImages(prev => new Set(prev).add(filename));
-  // Optional: Auto-retry after 5 seconds
-  setTimeout(() => {
-    setFailedImages(prev => {
-      const next = new Set(prev);
-      next.delete(filename);
-      return next;
-    });
-  }, 5000);
-}, []);
-```
-
----
-
-#### 1.3 Missing Import - `CHART_COLORS.textSecondary`
-| Severity | File | Line |
-|----------|------|------|
-| **CRITICAL** | BadgeGallery.tsx | 9 |
-
-**What's Wrong:** The component imports `CHART_COLORS` and uses `CHART_COLORS.textSecondary` extensively (lines 230, 252, 267, 277, 286, 340, 361), but this key is NOT in the provided color palette:
-- Midnight Sapphire, Royal Depth, Ice Wing, Arctic Cyan, Gilded Fern, Frost White, Swan Lavender, Wing Purple
-
-**Fix:** Either add `textSecondary` to `chartTheme.ts`:
-```typescript
-textSecondary: '#8A9BB8', // Add appropriate color
-```
-Or replace all usages with an existing color like `arcticCyan` or computed value.
-
----
-
-#### 1.4 Hardcoded API Key Variable Name
-| Severity | File | Line |
-|----------|------|------|
-| **CRITICAL** | generate-badges.mjs | 36 |
-
-**What's Wrong:** The script expects `GEMINI_API_KEY` but there's no validation that this exact env var exists. If `.env` is missing or misspelled, the error message is unhelpful:
 ```javascript
-if (!API_KEY) {
-  console.error('❌ GEMINI_API_KEY not found in .env'); // But doesn't say WHERE it looked
-  process.exit(1);
+// CURRENT (broken):
+category: {
+  type: DataTypes.ENUM('fitness', 'social', 'streak', 'milestone', 'special'),
+  allowNull: false,
+  defaultValue: 'fitness'
 }
-```
 
-**Fix:**
-```javascript
-const API_KEY = process.env.GEMINI_API_KEY;
-if (!API_KEY) {
-  console.error('❌ GEMINI_API_KEY not found in .env');
-  console.error('Checked paths:', [join(ROOT, '.env'), join(ROOT, 'backend', '.env')]);
-  process.exit(1);
+// SHOULD BE:
+category: {
+  type: DataTypes.ENUM('user', 'client', 'trainer', 'creator', 'moderator', 'cross_role'),
+  allowNull: false,
+  defaultValue: 'user'
 }
 ```
 
 ---
 
-### HIGH
+### CRITICAL: Foreign Key Type Mismatch
 
-#### 1.5 Race Condition: Favorites State Desync
-| Severity | File | Line |
-|----------|------|------|
-| HIGH | BadgeGallery.tsx | 93-96 |
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | `UserAchievement.mjs` line 27-32 | `userId` is defined as `DataTypes.INTEGER` but Achievement model uses `DataTypes.UUID`. This will cause join failures and foreign key constraint errors. | Change to `DataTypes.UUID` to match User model primary key |
 
-**What's Wrong:** The favorites persistence useEffect runs on every `favorites` change, but localStorage writes are async and can fail. If a user rapidly toggles favorites, there's no debouncing and writes can race:
-```typescript
-useEffect(() => {
-  localStorage.setItem('ss-badge-favorites', JSON.stringify([...favorites]));
-}, [favorites]); // Fires immediately on every change
+```javascript
+// CURRENT:
+userId: {
+  type: DataTypes.INTEGER,  // WRONG - User model uses UUID
+  allowNull: false,
+  references: { model: 'Users', key: 'id' }
+}
+
+// SHOULD BE:
+userId: {
+  type: DataTypes.UUID,
+  allowNull: false,
+  references: { model: 'Users', key: 'id' }
+}
 ```
 
-**Fix:** Add debouncing:
-```typescript
-useEffect(() => {
-  const timeoutId = setTimeout(() => {
-    try {
-      localStorage.setItem('ss-badge-favorites', JSON.stringify([...favorites]));
-    } catch (e) {
-      console.error('Failed to persist favorites:', e);
+---
+
+### HIGH: Missing Transaction in UserAchievement.complete()
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `UserAchievement.mjs` lines 238-267 | The `complete()` method updates both UserAchievement and User.gamification in separate operations without a transaction. If the second save fails, data becomes inconsistent (achievement marked complete but XP not awarded). | Wrap in database transaction |
+
+```javascript
+// Add transaction wrapper:
+async complete() {
+  const transaction = await db.transaction();
+  try {
+    // ... existing logic ...
+    
+    // Update user's total XP within same transaction
+    if (user && user.gamification) {
+      await user.gamification.update({
+        totalXp: user.gamification.totalXp + this.xpAwarded,
+        totalPoints: user.gamification.totalPoints + this.pointsAwarded
+      }, { transaction });
     }
-  }, 500);
-  return () => clearTimeout(timeoutId);
-}, [favorites]);
-```
-
----
-
-#### 1.6 Manifest Fetch Has No Loading State
-| Severity | File | Line |
-|----------|------|------|
-| HIGH | BadgeGallery.tsx | 77-87 |
-
-**What's Wrong:** The component shows a "Loading badge manifest..." subtitle but doesn't actually track loading state separately from the manifest data. If the fetch is slow, there's no spinner or skeleton - just the text. More critically, if the fallback import also fails, the component renders the empty state with NO indication that loading failed vs. still loading.
-
-**Fix:** Add explicit loading/error states:
-```typescript
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState<string | null>(null);
-
-useEffect(() => {
-  setLoading(true);
-  fetch('/badge-manifest.json')
-    .then(r => r.ok ? r.json() : Promise.reject('not found'))
-    .then(data => {
-      setManifest(data);
-      setLoading(false);
-    })
-    .catch(err => {
-      // Fallback logic...
-      setLoading(false);
-      setError(err.message);
-    });
-}, []);
-```
-
----
-
-#### 1.7 Missing Input Validation on CLI Args
-| Severity | File | Line |
-|----------|------|------|
-| HIGH | generate-badges.mjs | 44-50 |
-
-**What's Wrong:** The `getArg` and `hasFlag` functions don't validate input types:
-```typescript
-const batchNum = getArg('batch');  // Returns string | null
-// Later:
-const start = parseInt(batchNum) * batchSize;  // If batchNum is "abc", parseInt returns NaN
-```
-
-**Fix:**
-```typescript
-const getArg = (name: string): string | null => {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : null;
-};
-
-const batchNum = getArg('batch');
-const batchNumInt = batchNum !== null ? parseInt(batchNum, 10) : null;
-if (batchNumInt !== null && (isNaN(batchNumInt) || batchNumInt < 0)) {
-  console.error('Invalid batch number:', batchNum);
-  process.exit(1);
-}
-```
-
----
-
-### MEDIUM
-
-#### 1.8 Unused Variable in buildQueue
-| Severity | File | Line |
-|----------|------|------|
-| MEDIUM | generate-badges.mjs | 57 |
-
-```javascript
-const subjectsPerStyle = Math.ceil(500 / styles.length);  // NEVER USED
-```
-
-**Fix:** Remove the unused variable.
-
----
-
-#### 1.9 Prop Drilling: `CHART_COLORS` Implicit Dependency
-| Severity | File | Line |
-|----------|------|------|
-| MEDIUM | BadgeGallery.tsx | 9, throughout |
-
-**What's Wrong:** The component imports `CHART_COLORS` from `./chartTheme` but doesn't validate its shape. If `chartTheme.ts` is refactored, this component will silently break.
-
-**Fix:** Add runtime validation or TypeScript guard:
-```typescript
-import { CHART_COLORS, hexAlpha } from './chartTheme';
-
-// Runtime validation
-const requiredColors = ['wingPurple', 'gildedFern', 'iceWing', 'frostWhite'];
-for (const color of requiredColors) {
-  if (!(color in CHART_COLORS)) {
-    throw new Error(`Missing required color: ${color}`);
+    
+    await this.save({ transaction });
+    await transaction.commit();
+    return this;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
   }
 }
 ```
 
 ---
 
-#### 1.10 Modal Escape Key Not Handled
-| Severity | File | Line |
-|----------|------|------|
-| MEDIUM | BadgeGallery.tsx | 189-240 |
+### HIGH: Sequelize OR Logic Bug in getAvailableForUser
 
-**What's Wrong:** The modal opens when `selectedBadge` is set, but there's no keyboard handler to close it with Escape key. Users expect Escape to close modals.
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `Achievement.mjs` lines 309-327 | The `[Op.or]` array with multiple conditions doesn't work as intended in Sequelize. When you pass an array to `Op.or`, it creates `(field1 OR field2)` but you're also using it at the top level which creates incorrect SQL. The availability date logic is broken. | Use explicit `[Op.and]` grouping |
 
-**Fix:** Add useEffect for keyboard handling:
-```typescript
-useEffect(() => {
-  if (!selectedBadge) return;
-  
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') setSelectedBadge(null);
-  };
-  window.addEventListener('keydown', handleEscape);
-  return () => window.removeEventListener('keydown', handleEscape);
-}, [selectedBadge]);
-```
+```javascript
+// CURRENT (broken logic):
+[Op.or]: [
+  { availableFrom: null },
+  { availableFrom: { [Op.lte]: now } }
+],
+[Op.or]: [
+  { availableUntil: null },
+  { availableUntil: { [Op.gte]: now } }
+]
 
----
-
-#### 1.11 Generated Count Calculation Bug
-| Severity | File | Line |
-|----------|------|------|
-| MEDIUM | BadgeGallery.tsx | 113 |
-
-```typescript
-const pendingCount = filteredBadges.length - generatedCount - failedImages.size;
-```
-
-**What's Wrong:** `generatedCount` is `loadedImages.size` (total loaded across ALL badges), but `filteredBadges.length` is the current filter view. This comparison is invalid - it's comparing apples to oranges.
-
-**Fix:**
-```typescript
-const filteredLoaded = filteredBadges.filter(b => loadedImages.has(b.filename)).length;
-const filteredFailed = filteredBadges.filter(b => failedImages.has(b.filename)).length;
-const pendingCount = filteredBadges.length - filteredLoaded - filteredFailed;
-```
-
----
-
-#### 1.12 Accessibility: Missing Focus Trap in Modal
-| Severity | File | Line |
-|----------|------|------|
-| MEDIUM | BadgeGallery.tsx | 189-240 |
-
-**What's Wrong:** When the modal opens, focus isn't programmatically moved to it, and there's no focus trap - users can tab outside the modal while it's open.
-
-**Fix:** Use a focus trap library or implement basic focus management:
-```typescript
-const modalRef = useRef<HTMLDivElement>(null);
-
-useEffect(() => {
-  if (selectedBadge && modalRef.current) {
-    modalRef.current.focus();
+// SHOULD BE:
+[Op.and]: [
+  {
+    [Op.or]: [
+      { availableFrom: null },
+      { availableFrom: { [Op.lte]: now } }
+    ]
+  },
+  {
+    [Op.or]: [
+      { availableUntil: null },
+      { availableUntil: { [Op.gte]: now } }
+    ]
   }
-}, [selectedBadge]);
-```
-
----
-
-### LOW
-
-#### 1.13 Inconsistent Error Handling in Fetch Chain
-| Severity | File | Line |
-|----------|------|------|
-| LOW | BadgeGallery.tsx | 79-87 |
-
-**What's Wrong:** The `.catch()` swallows errors without logging:
-```typescript
-.catch(() => {
-  import('../../../../scripts/badge-manifest.json')
-    .then(...)
-    .catch(() => setManifest(null)); // Silent failure
-});
-```
-
-**Fix:** Add proper error logging:
-```typescript
-.catch((err) => {
-  console.warn('Failed to fetch manifest, trying fallback:', err);
-  import(...)
-    .catch((fallbackErr) => {
-      console.error('All manifest sources failed:', fallbackErr);
-      setManifest(null);
-    });
-});
-```
-
----
-
-#### 1.14 Magic Numbers
-| Severity | File | Line |
-|----------|------|------|
-| LOW | generate-badges.mjs | 52, 53 |
-
-```javascript
-const batchSize = 25;
-// ...
-await new Promise(r => setTimeout(r, 1500));
-```
-
-**Fix:** Extract to named constants:
-```javascript
-const BATCH_SIZE = 25;
-const RATE_LIMIT_DELAY_MS = 1500;
-```
-
----
-
-## 2. Architecture Flaws
-
-### HIGH
-
-#### 2.1 God Component - BadgeGallery.tsx
-| Severity | File | Lines |
-|----------|------|-------|
-| HIGH | BadgeGallery.tsx | 62-248 (186 lines of logic) |
-
-**What's Wrong:** The component handles: manifest loading, filtering logic, search, favorites management, image loading tracking, modal state, accessibility, and rendering. This violates Single Responsibility Principle.
-
-**Fix:** Extract into smaller components:
-- `useBadgeManifest` hook for data loading
-- `useBadgeFilters` hook for filter state
-- `BadgeCard` component (already styled, but logic can be extracted)
-- `BadgeModal` component
-- `FilterBar` component
-
----
-
-#### 2.2 Mixed Concerns in generate-badges.mjs
-| Severity | File | Lines |
-|----------|------|-------|
-| HIGH | generate-badges.mjs | All |
-
-**What's Wrong:** One file contains: env loading, CLI parsing, queue building, API communication, file I/O, and main orchestration. Impossible to unit test individual functions.
-
-**Fix:** Refactor into modules:
-```
-scripts/
-  badge-generator/
-    config.ts          # Env loading
-    cli.ts             # Argument parsing
-    queue.ts           # Queue building
-    api.ts             # Gemini API client
-    index.ts           # Main orchestration
-```
-
----
-
-### MEDIUM
-
-#### 2.3 buildBadgeList Duplication
-| Severity | File | Line |
-|----------|------|------|
-| MEDIUM | BadgeGallery.tsx | 27-52, generate-badges.mjs | 56-83 |
-
-**What's Wrong:** The badge list building logic is duplicated between the frontend (`buildBadgeList`) and the script (`buildQueue`). They have slightly different implementations and could drift.
-
-**Fix:** Create a shared module or generate the manifest with pre-computed badge entries:
-```typescript
-// In badge-manifest.json, add:
-"badges": [
-  { "styleId": "claymation", "categoryId": "swan", "subject": "baby swan...", "filename": "..." }
 ]
 ```
 
 ---
 
+### MEDIUM: Null Reference in getCompletionSpeedScore
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `UserAchievement.mjs` lines 298-310 | The method accesses `this.Achievement` assuming it's eager-loaded, but there's no guarantee the association is included when querying. Will return undefined and cause runtime errors. | Add null check or require explicit include |
+
+```javascript
+getCompletionSpeedScore() {
+  if (!this.isCompleted || !this.timeToComplete) return 0;
+  
+  // FIXED: Add null check
+  const achievement = this.Achievement || await db.models.Achievement.findByPk(this.achievementId);
+  if (!achievement || !achievement.averageTimeToUnlock) return 5;
+  
+  const ratio = this.timeToComplete / achievement.averageTimeToUnlock;
+  // ... rest of logic
+}
+```
+
+---
+
+### MEDIUM: Expensive Count Query in updateUnlockStats
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `Achievement.mjs` lines 204-214 | `updateUnlockStats()` calls `db.models.User.count()` on every unlock which is O(n) expensive operation. With 82 achievements and potentially thousands of users, this will cause performance issues. | Cache total user count or update stats asynchronously via background job |
+
+---
+
+## 2. Architecture Flaws
+
+### CRITICAL: Circular Dependency Risk
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | `Achievement.mjs` lines 195-214, `UserAchievement.mjs` lines 225-267 | Both models reference `db.models.User` and `db.models.Achievement` inside instance methods. If models aren't fully initialized when called, this will throw "Model not initialized" errors. This is a classic Sequelize circular dependency anti-pattern. | Move cross-model logic to service layer or use hooks/events |
+
+**Recommended Pattern:**
+```javascript
+// Instead of instance methods doing cross-model queries:
+// backend/services/AchievementService.mjs
+export class AchievementService {
+  static async checkPrerequisites(achievementId, userId) {
+    const achievement = await Achievement.findByPk(achievementId);
+    // ... logic here
+  }
+  
+  static async completeAchievement(userAchievementId) {
+    // ... transaction-wrapped logic here
+  }
+}
+```
+
+---
+
+### HIGH: Duplicate/Confusing XP Fields
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `Achievement.mjs` lines 63-77 | Model has both `xpReward` AND `requiredPoints` fields with similar purposes. The JSON catalog uses `pointsRequired`. This creates confusion about which field to use and will cause bugs. The `getTotalXpReward()` method multiplies `xpReward` by rarity, but the catalog expects `pointsRequired` to be used. | Consolidate to single field: rename `xpReward` to `xpReward` and remove `requiredPoints`, or map `pointsRequired` from JSON to `requiredPoints` in model |
+
+---
+
+### MEDIUM: God Model Syndrome
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `Achievement.mjs` entire file, `UserAchievement.mjs` entire file | Both models have 50+ fields with instance methods doing complex business logic. This violates Single Responsibility Principle. Achievement model handles display, analytics, prerequisites, skill trees, business intelligence - way too much for a data model. | Split into: AchievementModel (data), AchievementAnalytics (stats), AchievementService (business logic), AchievementValidation (rules) |
+
+---
+
 ## 3. Integration Issues
 
-### HIGH
+### CRITICAL: JSON Catalog Fields Don't Match Model Schema
 
-#### 3.1 Frontend-Backend Contract Mismatch
-| Severity | File | Line |
-|----------|------|------|
-| HIGH | BadgeGallery.tsx | 46-47 |
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **CRITICAL** | `gamification-rewards.catalog.v1.json` entire file vs `Achievement.mjs` | The JSON catalog has fields that don't exist in the model: `legacyId`, `code`, `ageGroup`, `rewardType`, `pointsRequired`, `spendRequiredUsd`, `unlockRules`, `issuance`, `priority`, `phase`, `enabled`, `antiAbuseChecks`. The model has fields the catalog doesn't use: `name`, `iconUrl`, `rarity`, `maxProgress`, `progressUnit`, `unlockConditions`, `prerequisiteAchievements`, `isHidden`, `isSecret`, `isLimited`, `availableFrom`, `availableUntil`, `shareCount`, `allowSharing`, `isPremium`, `premiumBenefits`, `difficulty`, `estimatedDuration`, `tags`, `businessValue`, `conversionImpact`, `skillTree`, `skillTreeOrder`, `templateId`, `tierLevel`. | Create a migration/transformation layer that maps JSON catalog fields to model fields, or extend model to include all catalog fields |
 
-**What's Wrong:** The `buildBadgeList` function generates filenames using:
-```typescript
-const filename = `badge_${style.id}_${categoryId}_${slug}.png`;
-```
-
-But `generate-badges.mjs` uses:
+**Field Mapping Required:**
 ```javascript
-const filename = `badge_${style.id}_${categoryId}_${slug}.png`;
+// backend/services/CatalogMigration.mjs
+function mapCatalogToModel(achievement) {
+  return {
+    name: achievement.code,           // code -> name
+    xpReward: achievement.pointsRequired,  // pointsRequired -> xpReward
+    category: achievement.category,   // already matches after fix
+    rarity: mapPriorityToRarity(achievement.priority),
+    requirements: achievement.unlockRules,
+    isActive: achievement.enabled,
+    // ... etc
+  };
+}
 ```
 
-These MUST match exactly. However, the manifest `namingConvention` says `badge_{style}_{category}_{subject}.png` but uses `style.id` (e.g., "claymation") not "style" - potential confusion.
+---
 
-**Fix:** Add validation test:
-```typescript
-// In buildBadgeList, validate against manifest's namingConvention pattern
-const expectedPattern = manifest.meta.namingConvention
-  .replace('{style}', '(\\w+)')
-  .replace('{category}', '(\\w+)')
-  .replace('{subject}', '([\\w-]+)');
-//
+### HIGH: Missing Loading/Error States Design
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `BADGE-SYSTEM-ENHANCEMENT-PROMPT.md` | The enhancement prompt describes UI components (AchievementShowcase, BadgeGallery, UserProfilePage) but doesn't specify loading states, error boundaries, or empty states. This is a design gap that will cause poor UX. | Add to enhancement spec: "All async badge operations must show skeleton loaders, error boundaries with retry, and empty state illustrations" |
+
+---
+
+## 4. Dead Code & Tech Debt
+
+### LOW: Unused Model Fields
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **LOW** | `Achievement.mjs` lines 145-150 | `templateId` field exists but there's no template system implemented. Dead field. | Remove or implement template system |
+| **LOW** | `Achievement.mjs` lines 151-156 | `tierLevel` exists but no tier progression UI exists. Dead field. | Remove or implement tier system |
+
+---
+
+### MEDIUM: TODO/FIXME Comments
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `UserAchievement.mjs` line ~310 (truncated file) | The file is truncated in the provided code - ends with `if (filters.` - indicates incomplete implementation. | Complete the `getUserAchievements` class method |
+
+---
+
+## 5. Production Readiness
+
+### HIGH: Console.log Likely Present
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | Unknown - not in provided files | No console.log statements visible in provided snippets, but the prompt mentions "Console.log statements that shouldn't ship" as a general concern. | Audit full codebase for console.log and replace with proper logger |
+
+---
+
+### MEDIUM: No Rate Limiting on Achievement Unlocks
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `Achievement.mjs` instance methods | The `checkPrerequisites` and `updateUnlockStats` methods could be called frequently. No rate limiting or caching. Could be abused or cause performance issues under load. | Add caching (Redis) for unlock stats, rate limit API endpoints |
+
+---
+
+### MEDIUM: Missing Input Validation
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `UserAchievement.mjs` `updateProgress` method | No validation that `newProgress` doesn't exceed `maxProgress`. Method clamps to 100% but doesn't validate input type (could receive string "50" instead of number 50). | Add explicit type checking and input sanitization |
+
+```javascript
+async updateProgress(newProgress, notes = null) {
+  // ADD VALIDATION:
+  if (typeof newProgress !== 'number' || isNaN(newProgress)) {
+    throw new Error('Progress must be a valid number');
+  }
+  // ... rest of method
+}
+```
+
+---
+
+## Summary of Critical Issues
+
+| Priority | Issue | Impact |
+|----------|-------|--------|
+| **P0** | Category ENUM mismatch | All 82 achievements fail to insert |
+| **P0** | userId type mismatch (INTEGER vs UUID) | Foreign key constraint failures |
+| **P1** | Missing transactions in complete() | Data inconsistency on failures |
+| **P1** | Sequelize OR logic bug | Availability dates don't work |
+| **P1** | JSON catalog fields not mapped | Import will fail silently or corrupt data |
+| **P2** | Circular dependency risk | Runtime model initialization errors |
+| **P2** | Duplicate XP fields | Confusion and potential bugs |
+
+---
+
+## Recommended Fix Order
+
+1. **Immediate**: Fix category ENUM in Achievement.mjs to match catalog
+2. **Immediate**: Fix userId type in UserAchievement.mjs to UUID
+3. **Before Import**: Create CatalogMigration service to map JSON fields to model
+4. **Before Deploy**: Add transaction wrappers to complete() method
+5. **Before Deploy**: Fix Sequelize OR logic in getAvailableForUser
+6. **Post-MVP**: Refactor instance methods to service layer to eliminate circular dependencies
 
 ---
 

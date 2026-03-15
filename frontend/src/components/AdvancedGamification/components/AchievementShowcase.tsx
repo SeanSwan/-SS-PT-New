@@ -1,106 +1,112 @@
 /**
- * 🏆 ACHIEVEMENT SHOWCASE - USER ACHIEVEMENTS DISPLAY
- * =================================================== 
- * Interactive showcase for user achievements with animations, categories,
- * progress tracking, and social sharing capabilities
+ * AchievementShowcase — User Achievements Display
+ * =================================================
+ * Interactive showcase with 3D badge art (iconUrl), emoji fallback,
+ * Crystalline Swan theming, rarity animations, and category filters.
+ *
+ * Theme: Enchanted Apex — Crystalline Swan
+ * AI Village 9-Brain Consensus (2026-03-15): WCAG contrast fixes,
+ * prefers-reduced-motion, GPU-accelerated legendary pulse,
+ * focus-visible Wing Purple glow, 44px touch targets.
  */
 
-import React, { useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
+import React, { useState } from 'react';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GamificationCard } from '../shared/GamificationCard';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
 
-// ================================================================
-// ANIMATION KEYFRAMES
-// ================================================================
+// ── Crystalline Swan Tokens ──
+const T = {
+  midnightSapphire: '#002060',
+  royalDepth: '#003080',
+  iceWing: '#60C0F0',
+  arcticCyan: '#50A0F0',
+  gildedFern: '#C6A84B',
+  frostWhite: '#E0ECF4',
+  swanLavender: '#4070C0',
+  wingPurple: '#8B5CF6',
+};
+
+// Rarity colors mapped to Crystalline Swan
+const RARITY = {
+  common:    { color: T.swanLavender, glow: 'rgba(64, 112, 192, 0.4)',  label: 'Cygnus Initiate' },
+  rare:      { color: T.gildedFern,   glow: 'rgba(198, 168, 75, 0.4)',  label: 'Frostwing Ascendant' },
+  epic:      { color: T.wingPurple,   glow: 'rgba(139, 92, 246, 0.5)',  label: 'Gilded Sovereign' },
+  legendary: { color: T.gildedFern,   glow: 'rgba(198, 168, 75, 0.6)',  label: 'Amethyst Apex' },
+};
+
+// ── Animations ──
 
 const achievementUnlock = keyframes`
-  0% { 
-    transform: scale(0.8) rotate(-5deg);
-    opacity: 0;
-  }
-  50% { 
-    transform: scale(1.1) rotate(2deg);
-    opacity: 0.8;
-  }
-  100% { 
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-`;
-
-const starBurst = keyframes`
-  0% { 
-    transform: scale(0) rotate(0deg);
-    opacity: 1;
-  }
-  100% { 
-    transform: scale(1.5) rotate(360deg);
-    opacity: 0;
-  }
-`;
-
-const rarityGlow = keyframes`
-  0%, 100% { 
-    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3));
-  }
-  50% { 
-    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.6));
-  }
+  0%   { transform: scale(0.8) rotate(-5deg); opacity: 0; }
+  50%  { transform: scale(1.08) rotate(2deg); opacity: 0.9; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 `;
 
 const legendaryPulse = keyframes`
-  0%, 100% { 
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4),
-                0 0 60px rgba(255, 215, 0, 0.2),
-                inset 0 0 30px rgba(255, 215, 0, 0.1);
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(198, 168, 75, 0.3),
+                0 0 40px rgba(198, 168, 75, 0.15),
+                inset 0 0 20px rgba(198, 168, 75, 0.05);
   }
-  50% { 
-    box-shadow: 0 0 50px rgba(255, 215, 0, 0.7),
-                0 0 100px rgba(255, 215, 0, 0.3),
-                inset 0 0 50px rgba(255, 215, 0, 0.2);
+  50% {
+    box-shadow: 0 0 36px rgba(198, 168, 75, 0.5),
+                0 0 72px rgba(198, 168, 75, 0.25),
+                inset 0 0 36px rgba(198, 168, 75, 0.1);
   }
 `;
 
-// ================================================================
-// TYPES AND INTERFACES
-// ================================================================
+const shimmer = keyframes`
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+`;
+
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
+
+// ── Types ──
 
 export interface Achievement {
   id: string;
   title: string;
+  name?: string;
   description: string;
   iconEmoji: string;
+  iconUrl?: string | null;
   xpReward: number;
   unlockedAt?: string;
   progress: number;
   maxProgress: number;
-  category: 'fitness' | 'social' | 'streak' | 'milestone' | 'special';
+  category: 'fitness' | 'social' | 'streak' | 'milestone' | 'special' | 'community';
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   requirements: string[];
   shareCount?: number;
   isNew?: boolean;
+  skillTree?: string;
 }
 
 export interface AchievementShowcaseProps {
   achievements: Achievement[];
   onShareAchievement?: (achievement: Achievement) => void;
+  onBadgeClick?: (achievement: Achievement) => void;
   className?: string;
 }
 
-export type CategoryFilter = 'all' | 'fitness' | 'social' | 'streak' | 'milestone' | 'special';
+export type CategoryFilter = 'all' | 'fitness' | 'social' | 'streak' | 'milestone' | 'special' | 'community';
 export type RarityFilter = 'all' | 'common' | 'rare' | 'epic' | 'legendary';
 
-// ================================================================
-// STYLED COMPONENTS
-// ================================================================
+// ── Styled Components (Crystalline Swan) ──
 
 const ShowcaseContainer = styled(motion.div)`
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  font-family: 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif;
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -113,47 +119,35 @@ const ShowcaseHeader = styled(motion.div)`
 `;
 
 const Title = styled(motion.h2)`
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, 
-    #FFD700 0%, 
-    #8B5CF6 50%, 
-    #8B5CF6 100%
-  );
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: ${T.frostWhite};
   margin-bottom: 1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 `;
 
 const StatsRow = styled(motion.div)`
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  gap: 1rem;
   margin-bottom: 2rem;
   flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    gap: 1rem;
-  }
 `;
 
 const StatBadge = styled(motion.div)`
-  background: linear-gradient(135deg, 
-    rgba(139, 92, 246, 0.1),
-    rgba(139, 92, 246, 0.1)
-  );
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 20px;
   padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #8B5CF6;
-  backdrop-filter: blur(10px);
+  color: ${T.frostWhite};
+  font-family: 'Fira Code', monospace;
+  backdrop-filter: blur(8px);
 `;
 
 const FilterSection = styled(motion.div)`
@@ -165,17 +159,19 @@ const FilterGroup = styled.div`
 `;
 
 const FilterLabel = styled.h4`
-  color: rgba(255, 255, 255, 0.8);
+  color: ${T.iceWing};
+  opacity: 0.75;
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-family: 'Sora', sans-serif;
 `;
 
 const AchievementsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -183,229 +179,266 @@ const AchievementsGrid = styled(motion.div)`
   }
 `;
 
-const AchievementCard = styled(motion.div)<{ 
-  rarity: Achievement['rarity'];
-  isUnlocked: boolean;
-  isNew?: boolean;
+const AchievementCard = styled(motion.div)<{
+  $rarity: Achievement['rarity'];
+  $unlocked: boolean;
+  $isNew?: boolean;
 }>`
   position: relative;
-  background: ${props => {
-    if (!props.isUnlocked) return 'rgba(50, 50, 50, 0.3)';
-    
-    switch (props.rarity) {
-      case 'legendary':
-        return 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.05))';
-      case 'epic':
-        return 'linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.05))';
-      case 'rare':
-        return 'linear-gradient(135deg, rgba(0, 191, 255, 0.1), rgba(30, 144, 255, 0.05))';
-      default:
-        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(139, 92, 246, 0.05))';
-    }
+  background: ${T.royalDepth};
+  border: 1px solid ${({ $unlocked, $rarity }) => {
+    if (!$unlocked) return 'rgba(64, 112, 192, 0.1)';
+    return `${RARITY[$rarity].color}33`;
   }};
-  
-  border: 1px solid ${props => {
-    if (!props.isUnlocked) return 'rgba(100, 100, 100, 0.2)';
-    
-    switch (props.rarity) {
-      case 'legendary': return 'rgba(255, 215, 0, 0.5)';
-      case 'epic': return 'rgba(138, 43, 226, 0.4)';
-      case 'rare': return 'rgba(0, 191, 255, 0.4)';
-      default: return 'rgba(139, 92, 246, 0.2)';
-    }
-  }};
-
   border-radius: 16px;
   padding: 1.5rem;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
+  min-height: 44px;
+  transition: all 0.25s ease;
+  ${reducedMotion}
 
-  ${props => props.rarity === 'legendary' && props.isUnlocked && `
+  ${({ $rarity, $unlocked }) => $rarity === 'legendary' && $unlocked && css`
     animation: ${legendaryPulse} 3s ease-in-out infinite;
+    will-change: box-shadow;
   `}
 
-  ${props => props.isNew && `
-    animation: ${achievementUnlock} 1s ease-out;
+  ${({ $isNew }) => $isNew && css`
+    animation: ${achievementUnlock} 0.8s ease-out;
   `}
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px ${props => {
-      if (!props.isUnlocked) return 'rgba(0, 0, 0, 0.3)';
-      
-      switch (props.rarity) {
-        case 'legendary': return 'rgba(255, 215, 0, 0.3)';
-        case 'epic': return 'rgba(138, 43, 226, 0.3)';
-        case 'rare': return 'rgba(0, 191, 255, 0.3)';
-        default: return 'rgba(139, 92, 246, 0.2)';
-      }
-    }};
+    transform: translateY(-3px);
+    border-color: ${({ $rarity }) => `${RARITY[$rarity].color}66`};
+    box-shadow: 0 8px 32px ${({ $rarity }) => RARITY[$rarity].glow};
   }
 
-  ${props => !props.isUnlocked && `
-    filter: grayscale(70%);
-    opacity: 0.6;
+  &:focus-visible {
+    outline: 2px solid ${T.wingPurple};
+    outline-offset: 2px;
+  }
+
+  ${({ $unlocked }) => !$unlocked && css`
+    filter: grayscale(60%);
+    opacity: 0.55;
   `}
 `;
 
-const AchievementIcon = styled(motion.div)<{ rarity: Achievement['rarity'] }>`
-  font-size: 3rem;
-  text-align: center;
-  margin-bottom: 1rem;
-  
-  ${props => props.rarity === 'legendary' && `
-    animation: ${rarityGlow} 2s ease-in-out infinite;
-  `}
+// Badge icon: supports 3D image or emoji fallback
+const BadgeIconWrap = styled.div<{ $rarity: Achievement['rarity'] }>`
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
 
-  ${props => props.rarity === 'epic' && `
-    filter: drop-shadow(0 0 15px rgba(138, 43, 226, 0.5));
+  ${({ $rarity }) => $rarity === 'legendary' && css`
+    border: 2px solid ${T.gildedFern};
   `}
-
-  ${props => props.rarity === 'rare' && `
-    filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.4));
+  ${({ $rarity }) => $rarity === 'epic' && css`
+    border: 2px solid rgba(139, 92, 246, 0.4);
+  `}
+  ${({ $rarity }) => $rarity === 'rare' && css`
+    border: 2px solid rgba(198, 168, 75, 0.3);
+  `}
+  ${({ $rarity }) => $rarity === 'common' && css`
+    border: 2px solid rgba(64, 112, 192, 0.2);
   `}
 `;
 
-const AchievementTitle = styled.h3<{ isUnlocked: boolean }>`
-  font-size: 1.2rem;
+const BadgeImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+`;
+
+const BadgeSkeleton = styled.div`
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    ${T.royalDepth} 0px,
+    ${T.swanLavender}33 40px,
+    ${T.royalDepth} 80px
+  );
+  background-size: 200px 100%;
+  animation: ${shimmer} 1.4s infinite linear;
+  ${reducedMotion}
+`;
+
+const BadgeEmoji = styled.span`
+  font-size: 2.5rem;
+  line-height: 1;
+`;
+
+const AchievementTitle = styled.h3<{ $unlocked: boolean }>`
+  font-size: 1rem;
   font-weight: 700;
-  color: ${props => props.isUnlocked ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'};
-  margin-bottom: 0.5rem;
+  color: ${({ $unlocked }) => $unlocked ? T.frostWhite : `${T.frostWhite}80`};
+  margin-bottom: 0.4rem;
   text-align: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 `;
 
-const AchievementDescription = styled.p<{ isUnlocked: boolean }>`
-  font-size: 0.9rem;
-  color: ${props => props.isUnlocked ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.4)'};
-  margin-bottom: 1rem;
+const AchievementDescription = styled.p<{ $unlocked: boolean }>`
+  font-size: 0.8rem;
+  color: ${({ $unlocked }) => $unlocked ? `${T.frostWhite}cc` : `${T.frostWhite}55`};
+  margin-bottom: 0.75rem;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.45;
 `;
 
-const ProgressSection = styled.div<{ isUnlocked: boolean }>`
-  margin-bottom: 1rem;
-  opacity: ${props => props.isUnlocked ? 1 : 0.6};
+const ProgressSection = styled.div`
+  margin-bottom: 0.75rem;
 `;
 
 const ProgressBar = styled.div`
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(96, 192, 240, 0.08);
   border-radius: 3px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   overflow: hidden;
 `;
 
-const ProgressFill = styled(motion.div)<{ progress: number; rarity: Achievement['rarity'] }>`
+const ProgressFill = styled(motion.div)<{ $pct: number; $rarity: Achievement['rarity'] }>`
   height: 100%;
   border-radius: 3px;
-  background: ${props => {
-    switch (props.rarity) {
-      case 'legendary': return 'linear-gradient(90deg, #FFD700, #FFA500)';
-      case 'epic': return 'linear-gradient(90deg, #8A2BE2, #4B0082)';
-      case 'rare': return 'linear-gradient(90deg, #00BFFF, #1E90FF)';
-      default: return 'linear-gradient(90deg, #8B5CF6, #8B5CF6)';
+  background: ${({ $rarity }) => {
+    switch ($rarity) {
+      case 'legendary': return `linear-gradient(90deg, ${T.gildedFern}, ${T.wingPurple})`;
+      case 'epic':      return `linear-gradient(90deg, ${T.wingPurple}, ${T.arcticCyan})`;
+      case 'rare':      return `linear-gradient(90deg, ${T.gildedFern}, ${T.iceWing})`;
+      default:          return `linear-gradient(90deg, ${T.swanLavender}, ${T.iceWing})`;
     }
   }};
-  width: ${props => props.progress}%;
-  transition: width 1s ease;
+  width: ${({ $pct }) => $pct}%;
 `;
 
 const ProgressText = styled.div`
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  color: ${T.iceWing};
+  opacity: 0.6;
   text-align: center;
+  font-family: 'Fira Code', monospace;
 `;
 
-const XpReward = styled.div<{ rarity: Achievement['rarity'] }>`
+const XpReward = styled.div<{ $rarity: Achievement['rarity'] }>`
   text-align: center;
   font-weight: 600;
-  color: ${props => {
-    switch (props.rarity) {
-      case 'legendary': return '#FFD700';
-      case 'epic': return '#8A2BE2';
-      case 'rare': return '#00BFFF';
-      default: return '#8B5CF6';
-    }
-  }};
-  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: ${({ $rarity }) => RARITY[$rarity].color};
+  margin-bottom: 0.75rem;
+  font-family: 'Fira Code', monospace;
 `;
 
-const ShareButton = styled(AnimatedButton)`
+const ShareBtn = styled(AnimatedButton)`
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 `;
 
-const RarityBadge = styled.div<{ rarity: Achievement['rarity'] }>`
+const RarityTag = styled.div<{ $rarity: Achievement['rarity'] }>`
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: ${props => {
-    switch (props.rarity) {
-      case 'legendary': return 'linear-gradient(135deg, #FFD700, #FFA500)';
-      case 'epic': return 'linear-gradient(135deg, #8A2BE2, #4B0082)';
-      case 'rare': return 'linear-gradient(135deg, #00BFFF, #1E90FF)';
-      default: return 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
-    }
-  }};
-  color: ${props => props.rarity === 'legendary' ? '#000' : '#FFF'};
-  padding: 0.25rem 0.5rem;
+  background: ${({ $rarity }) => `${RARITY[$rarity].color}22`};
+  border: 1px solid ${({ $rarity }) => `${RARITY[$rarity].color}44`};
+  color: ${T.frostWhite};
+  padding: 2px 8px;
   border-radius: 8px;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-family: 'Sora', sans-serif;
 `;
 
-const NewBadge = styled(motion.div)`
+const NewTag = styled(motion.div)`
   position: absolute;
-  top: -0.5rem;
-  left: -0.5rem;
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
-  color: white;
-  padding: 0.25rem 0.5rem;
+  top: -4px;
+  left: -4px;
+  background: linear-gradient(135deg, ${T.wingPurple}, ${T.iceWing});
+  color: ${T.frostWhite};
+  padding: 2px 8px;
   border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   z-index: 2;
+  font-family: 'Sora', sans-serif;
 `;
 
-// ================================================================
-// MAIN COMPONENT
-// ================================================================
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 48px 24px;
+  color: ${T.swanLavender};
+  opacity: 0.6;
+  font-family: 'Sora', sans-serif;
+`;
+
+// ── Badge Image Component with loading state ──
+
+const BadgeIcon: React.FC<{
+  iconUrl?: string | null;
+  iconEmoji: string;
+  rarity: Achievement['rarity'];
+  title: string;
+}> = ({ iconUrl, iconEmoji, rarity, title }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <BadgeIconWrap $rarity={rarity}>
+      {iconUrl && !error ? (
+        <>
+          {!loaded && <BadgeSkeleton />}
+          <BadgeImage
+            src={iconUrl}
+            alt={`${title} badge`}
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            onError={() => setError(true)}
+            style={{ display: loaded ? 'block' : 'none' }}
+          />
+        </>
+      ) : (
+        <BadgeEmoji role="img" aria-label={title}>
+          {iconEmoji}
+        </BadgeEmoji>
+      )}
+    </BadgeIconWrap>
+  );
+};
+
+// ── Main Component ──
 
 export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
   achievements,
   onShareAchievement,
-  className
+  onBadgeClick,
+  className,
 }) => {
-  // ================================================================
-  // STATE MANAGEMENT
-  // ================================================================
-
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
 
-  // ================================================================
-  // COMPUTED VALUES
-  // ================================================================
-
   const unlockedAchievements = achievements.filter(a => a.progress >= a.maxProgress);
   const totalXpEarned = unlockedAchievements.reduce((sum, a) => sum + a.xpReward, 0);
+  const completionPct = achievements.length > 0
+    ? Math.round((unlockedAchievements.length / achievements.length) * 100)
+    : 0;
 
-  const filteredAchievements = achievements.filter(achievement => {
-    const categoryMatch = categoryFilter === 'all' || achievement.category === categoryFilter;
-    const rarityMatch = rarityFilter === 'all' || achievement.rarity === rarityFilter;
-    return categoryMatch && rarityMatch;
+  const filteredAchievements = achievements.filter(a => {
+    if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+    if (rarityFilter !== 'all' && a.rarity !== rarityFilter) return false;
+    return true;
   });
-
-  // ================================================================
-  // TAB OPTIONS
-  // ================================================================
 
   const categoryOptions = [
     { id: 'all', label: 'All', icon: '🏆' },
@@ -413,78 +446,36 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
     { id: 'social', label: 'Social', icon: '👥' },
     { id: 'streak', label: 'Streaks', icon: '🔥' },
     { id: 'milestone', label: 'Milestones', icon: '🎯' },
-    { id: 'special', label: 'Special', icon: '⭐' }
+    { id: 'special', label: 'Special', icon: '⭐' },
+    { id: 'community', label: 'Community', icon: '🏛️' },
   ];
 
   const rarityOptions = [
-    { id: 'all', label: 'All', icon: '🎨' },
-    { id: 'common', label: 'Common', icon: '🔵' },
-    { id: 'rare', label: 'Rare', icon: '🟢' },
-    { id: 'epic', label: 'Epic', icon: '🟣' },
-    { id: 'legendary', label: 'Legendary', icon: '🟡' }
+    { id: 'all', label: 'All Rarities', icon: '🎨' },
+    { id: 'common', label: 'Cygnus Initiate', icon: '🔵' },
+    { id: 'rare', label: 'Frostwing', icon: '🟡' },
+    { id: 'epic', label: 'Gilded Sovereign', icon: '🟣' },
+    { id: 'legendary', label: 'Amethyst Apex', icon: '💎' },
   ];
-
-  // ================================================================
-  // EVENT HANDLERS
-  // ================================================================
-
-  const handleShareAchievement = (achievement: Achievement) => {
-    onShareAchievement?.(achievement);
-  };
-
-  const getRarityColor = (rarity: Achievement['rarity']) => {
-    switch (rarity) {
-      case 'legendary': return '#FFD700';
-      case 'epic': return '#8A2BE2';
-      case 'rare': return '#00BFFF';
-      default: return '#8B5CF6';
-    }
-  };
-
-  // ================================================================
-  // ANIMATION VARIANTS
-  // ================================================================
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut"
-      }
-    }
+    hidden: { opacity: 0, y: 16 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
   };
 
-  // ================================================================
-  // MAIN RENDER
-  // ================================================================
-
   return (
-    <ShowcaseContainer className={className}>
+    <ShowcaseContainer className={className} role="region" aria-label="Achievement gallery">
       <ShowcaseHeader>
-        <Title>🏆 Achievement Gallery</Title>
+        <Title>Achievement Gallery</Title>
         <StatsRow>
-          <StatBadge>
-            {unlockedAchievements.length} / {achievements.length} Unlocked
-          </StatBadge>
-          <StatBadge>
-            {totalXpEarned.toLocaleString()} XP Earned
-          </StatBadge>
-          <StatBadge>
-            {Math.round((unlockedAchievements.length / achievements.length) * 100)}% Complete
-          </StatBadge>
+          <StatBadge>{unlockedAchievements.length} / {achievements.length} Unlocked</StatBadge>
+          <StatBadge>{totalXpEarned.toLocaleString()} XP</StatBadge>
+          <StatBadge>{completionPct}% Complete</StatBadge>
         </StatsRow>
       </ShowcaseHeader>
 
@@ -492,103 +483,109 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
         <FilterGroup>
           <FilterLabel>Category</FilterLabel>
           <TabNavigation
-            options={categoryOptions}
+            tabs={categoryOptions.map(o => ({ id: o.id, label: o.label, icon: o.icon }))}
             activeTab={categoryFilter}
             onTabChange={(tab) => setCategoryFilter(tab as CategoryFilter)}
-            variant="minimal"
+            variant="pills"
             orientation="horizontal"
           />
         </FilterGroup>
-
         <FilterGroup>
           <FilterLabel>Rarity</FilterLabel>
           <TabNavigation
-            options={rarityOptions}
+            tabs={rarityOptions.map(o => ({ id: o.id, label: o.label, icon: o.icon }))}
             activeTab={rarityFilter}
             onTabChange={(tab) => setRarityFilter(tab as RarityFilter)}
-            variant="outline"
+            variant="pills"
             orientation="horizontal"
           />
         </FilterGroup>
       </FilterSection>
 
-      <AchievementsGrid
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <AchievementsGrid variants={containerVariants} initial="hidden" animate="visible">
         <AnimatePresence>
-          {filteredAchievements.map((achievement) => {
-            const isUnlocked = achievement.progress >= achievement.maxProgress;
-            const progressPercentage = Math.min((achievement.progress / achievement.maxProgress) * 100, 100);
+          {filteredAchievements.length === 0 ? (
+            <EmptyState>No achievements match these filters</EmptyState>
+          ) : (
+            filteredAchievements.map((achievement) => {
+              const isUnlocked = achievement.progress >= achievement.maxProgress;
+              const pct = Math.min((achievement.progress / achievement.maxProgress) * 100, 100);
 
-            return (
-              <AchievementCard
-                key={achievement.id}
-                variants={cardVariants}
-                layout
-                rarity={achievement.rarity}
-                isUnlocked={isUnlocked}
-                isNew={achievement.isNew}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {achievement.isNew && (
-                  <NewBadge
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                  >
-                    NEW!
-                  </NewBadge>
-                )}
+              return (
+                <AchievementCard
+                  key={achievement.id}
+                  variants={cardVariants}
+                  layout
+                  $rarity={achievement.rarity}
+                  $unlocked={isUnlocked}
+                  $isNew={achievement.isNew}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onBadgeClick?.(achievement)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${achievement.title} — ${isUnlocked ? 'Unlocked' : `${Math.round(pct)}% progress`} — ${RARITY[achievement.rarity].label}`}
+                >
+                  {achievement.isNew && (
+                    <NewTag initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                      NEW
+                    </NewTag>
+                  )}
 
-                <RarityBadge rarity={achievement.rarity}>
-                  {achievement.rarity}
-                </RarityBadge>
+                  <RarityTag $rarity={achievement.rarity}>
+                    {RARITY[achievement.rarity].label}
+                  </RarityTag>
 
-                <AchievementIcon rarity={achievement.rarity}>
-                  {achievement.iconEmoji}
-                </AchievementIcon>
+                  <BadgeIcon
+                    iconUrl={achievement.iconUrl}
+                    iconEmoji={achievement.iconEmoji}
+                    rarity={achievement.rarity}
+                    title={achievement.title}
+                  />
 
-                <AchievementTitle isUnlocked={isUnlocked}>
-                  {achievement.title}
-                </AchievementTitle>
+                  <AchievementTitle $unlocked={isUnlocked}>
+                    {achievement.title}
+                  </AchievementTitle>
 
-                <AchievementDescription isUnlocked={isUnlocked}>
-                  {achievement.description}
-                </AchievementDescription>
+                  <AchievementDescription $unlocked={isUnlocked}>
+                    {achievement.description}
+                  </AchievementDescription>
 
-                <XpReward rarity={achievement.rarity}>
-                  +{achievement.xpReward} XP
-                </XpReward>
+                  <XpReward $rarity={achievement.rarity}>
+                    +{achievement.xpReward} XP
+                  </XpReward>
 
-                <ProgressSection isUnlocked={isUnlocked}>
-                  <ProgressBar>
-                    <ProgressFill
-                      progress={progressPercentage}
-                      rarity={achievement.rarity}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progressPercentage}%` }}
-                      transition={{ duration: 1, delay: 0.2 }}
-                    />
-                  </ProgressBar>
-                  <ProgressText>
-                    {achievement.progress} / {achievement.maxProgress}
-                  </ProgressText>
-                </ProgressSection>
+                  <ProgressSection>
+                    <ProgressBar>
+                      <ProgressFill
+                        $pct={pct}
+                        $rarity={achievement.rarity}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.8, delay: 0.15 }}
+                      />
+                    </ProgressBar>
+                    <ProgressText>
+                      {achievement.progress} / {achievement.maxProgress}
+                    </ProgressText>
+                  </ProgressSection>
 
-                {isUnlocked && (
-                  <ShareButton
-                    variant="outline"
-                    size="small"
-                    onClick={() => handleShareAchievement(achievement)}
-                  >
-                    Share Achievement
-                  </ShareButton>
-                )}
-              </AchievementCard>
-            );
-          })}
+                  {isUnlocked && onShareAchievement && (
+                    <ShareBtn
+                      variant="outline"
+                      size="small"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onShareAchievement(achievement);
+                      }}
+                    >
+                      Share Achievement
+                    </ShareBtn>
+                  )}
+                </AchievementCard>
+              );
+            })
+          )}
         </AnimatePresence>
       </AchievementsGrid>
     </ShowcaseContainer>

@@ -2,6 +2,7 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 import bcrypt from 'bcryptjs';
+import logger from '../utils/logger.mjs';
 
 /**
  * Enhanced User Model
@@ -298,6 +299,60 @@ User.init(
     // Remove the problematic foreign key reference
     // badgesPrimary field removed
     
+    // ========== CLIENT SOURCE TRACKING ==========
+    // Tracks where the client comes from (AI Village consensus: STRING + Zod, not ENUM)
+    clientSource: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: 'swanstudios',
+      validate: {
+        isIn: [['swanstudios', 'move_fitness', 'external']]
+      },
+      comment: 'Client origin: swanstudios (package holder), move_fitness (gym client), external (other)'
+    },
+
+    // ========== PROFILE PRIVACY SETTINGS ==========
+    // AI Village 9-Brain Consensus (2026-03-15): app-level privacy, not DB RLS
+    profileVisibility: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'public',
+      validate: {
+        isIn: [['public', 'friends_only', 'private']]
+      },
+      comment: 'Profile visibility: public (anyone), friends_only (accepted friends), private (self only)'
+    },
+    showBadges: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether badges/achievements are visible on public profile'
+    },
+    showAchievements: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether achievement progress is visible on public profile'
+    },
+    showStats: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether workout stats are visible on public profile'
+    },
+    showWorkoutHistory: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Whether detailed workout history is visible (default off for privacy)'
+    },
+    showLevel: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether level and XP are visible on public profile'
+    },
+
     // ========== STRIPE INTEGRATION FIELDS ==========
     // Stripe customer ID for payment processing
     stripeCustomerId: {
@@ -355,17 +410,16 @@ User.init(
 User.beforeCreate(async (user) => {
   try {
     // Skip if password is null, empty, or already a bcrypt hash
+    // Only hash if password exists and is not empty
     if (!user.password || user.password.length === 0) {
       return;
     }
-    // Prevent double-hashing when callers pre-hash before User.create()
-    if (user.password.startsWith('$2')) {
-      return;
-    }
+    // Hash the password — user.changed() is not reliable in beforeCreate
+    // so we always hash on creation
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
   } catch (err) {
-    console.error("Error in beforeCreate hook:", err);
+    logger.error('Error in beforeCreate hook', { error: err.message, stack: err.stack });
     throw err;
   }
 });
@@ -373,15 +427,13 @@ User.beforeCreate(async (user) => {
 // Hash password before updating if it changed
 User.beforeUpdate(async (user) => {
   try {
-    // Only hash if password changed, is non-empty, and is not already hashed
+    // Only hash if password field was actually changed (prevents double-hashing)
     if (user.changed('password') && user.password && user.password.length > 0) {
-      if (!user.password.startsWith('$2')) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(user.password, salt);
     }
   } catch (err) {
-    console.error("Error in beforeUpdate hook:", err);
+    logger.error('Error in beforeUpdate hook', { error: err.message, stack: err.stack });
     throw err;
   }
 });

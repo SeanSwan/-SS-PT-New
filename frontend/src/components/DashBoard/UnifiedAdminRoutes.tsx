@@ -68,7 +68,7 @@ const PaymentSettingsPanel = React.lazy(() => import('./Pages/admin-dashboard/co
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
 const ChartGallery = React.lazy(() => import('../Charts/ChartGallery'));
-const BadgeGallery = React.lazy(() => import('../Charts/BadgeGallery'));
+const BadgeArtGallery = React.lazy(() => import('../BadgeGallery/BadgeArtGallery'));
 
 
 // Workspace containers
@@ -356,7 +356,7 @@ const UnifiedAdminRoutes: React.FC = () => (
       } />
       <Route path="badges" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <BadgeGallery />
+          <BadgeArtGallery />
         </React.Suspense>
       } />
       <Route path="revenue" element={<RevenueAnalyticsPanel />} />

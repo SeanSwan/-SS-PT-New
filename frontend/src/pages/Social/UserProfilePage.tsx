@@ -2,13 +2,37 @@
  * UserProfilePage.tsx
  * Public profile view for viewing another user's profile.
  * Fetched via /api/profile/:userId and /api/profile/:userId/posts
- * Galaxy-Swan themed with styled-components.
+ *
+ * Theme: Crystalline Swan (Enchanted Apex)
+ * AI Village 9-Brain Consensus (2026-03-15): Galaxy-Swan purge,
+ * Midnight Sapphire backgrounds, Royal Depth surfaces, Frost White text.
  */
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-import { ArrowLeft, MapPin, Calendar, Award, Users, Dumbbell } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { ArrowLeft, MapPin, Calendar, Award, Lock } from 'lucide-react';
 import api from '../../services/api';
+
+// ── Crystalline Swan Tokens ──
+const TOKENS = {
+  midnightSapphire: '#002060',
+  royalDepth: '#003080',
+  iceWing: '#60C0F0',
+  arcticCyan: '#50A0F0',
+  gildedFern: '#C6A84B',
+  frostWhite: '#E0ECF4',
+  swanLavender: '#4070C0',
+  wingPurple: '#8B5CF6',
+};
+
+interface UserBadge {
+  id: string;
+  title: string;
+  iconEmoji: string;
+  iconUrl?: string | null;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  earnedAt?: string;
+}
 
 interface UserProfile {
   id: string | number;
@@ -27,6 +51,10 @@ interface UserProfile {
   points?: number;
   level?: number;
   streakDays?: number;
+  profileVisibility?: string;
+  showBadges?: boolean;
+  showStats?: boolean;
+  showLevel?: boolean;
 }
 
 interface UserPost {
@@ -38,32 +66,46 @@ interface UserPost {
   commentsCount?: number;
 }
 
-// Galaxy-Swan styled components
+// ── Animations ──
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+// ── Styled Components (Crystalline Swan) ──
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #002060 0%, #1a1a3e 50%, #002060 100%);
-  color: #e2e8f0;
+  background: ${TOKENS.midnightSapphire};
+  color: ${TOKENS.frostWhite};
   padding-bottom: 48px;
+  font-family: 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif;
 `;
 
 const BackButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(14, 165, 233, 0.1);
-  border: 1px solid rgba(14, 165, 233, 0.3);
-  color: #7dd3fc;
+  background: rgba(96, 192, 240, 0.08);
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  color: ${TOKENS.iceWing};
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
+  font-family: 'Sora', sans-serif;
   margin: 16px 24px;
   min-height: 44px;
   min-width: 44px;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(14, 165, 233, 0.2);
+    background: rgba(96, 192, 240, 0.15);
+    border-color: rgba(96, 192, 240, 0.4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${TOKENS.wingPurple};
+    outline-offset: 2px;
   }
 `;
 
@@ -73,8 +115,18 @@ const BannerSection = styled.div<{ $src?: string }>`
   background: ${({ $src }) =>
     $src
       ? `url(${$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #8B5CF6 0%, #0ea5e9 50%, #8B5CF6 100%)'};
+      : `linear-gradient(135deg, ${TOKENS.royalDepth} 0%, ${TOKENS.swanLavender} 50%, ${TOKENS.midnightSapphire} 100%)`};
   position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(transparent, ${TOKENS.midnightSapphire});
+  }
 `;
 
 const ProfileHeader = styled.div`
@@ -83,6 +135,7 @@ const ProfileHeader = styled.div`
   padding: 0 24px;
   position: relative;
   z-index: 1;
+  animation: ${fadeIn} 0.4s ease-out;
 `;
 
 const AvatarRow = styled.div`
@@ -96,15 +149,18 @@ const AvatarCircle = styled.div<{ $src?: string }>`
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid #002060;
+  border: 3px solid ${TOKENS.royalDepth};
+  box-shadow: 0 0 20px rgba(96, 192, 240, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.2);
   background: ${({ $src }) =>
-    $src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #8B5CF6, #0ea5e9)'};
+    $src
+      ? `url(${$src}) center/cover no-repeat`
+      : `linear-gradient(135deg, ${TOKENS.swanLavender}, ${TOKENS.wingPurple})`};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #fff;
+  color: ${TOKENS.frostWhite};
   flex-shrink: 0;
 `;
 
@@ -116,20 +172,38 @@ const DisplayName = styled.h1`
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
-  color: #f1f5f9;
+  color: ${TOKENS.frostWhite};
+  font-family: 'Plus Jakarta Sans', sans-serif;
 `;
 
 const Username = styled.p`
   font-size: 0.95rem;
-  color: #94a3b8;
+  color: ${TOKENS.iceWing};
   margin: 4px 0 0;
+  opacity: 0.8;
+`;
+
+const LevelBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: ${TOKENS.frostWhite};
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-family: 'Fira Code', monospace;
+  margin-left: 8px;
+  vertical-align: middle;
 `;
 
 const Bio = styled.p`
   max-width: 960px;
   margin: 16px auto 0;
   padding: 0 24px;
-  color: #cbd5e1;
+  color: ${TOKENS.frostWhite};
+  opacity: 0.85;
   font-size: 0.95rem;
   line-height: 1.6;
 `;
@@ -141,8 +215,9 @@ const MetaRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  color: #94a3b8;
+  color: ${TOKENS.iceWing};
   font-size: 0.85rem;
+  opacity: 0.7;
 `;
 
 const MetaItem = styled.span`
@@ -158,26 +233,36 @@ const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
+  animation: ${fadeIn} 0.5s ease-out 0.1s both;
 `;
 
 const StatCard = styled.div`
-  background: rgba(14, 165, 233, 0.08);
-  border: 1px solid rgba(14, 165, 233, 0.2);
+  background: ${TOKENS.royalDepth};
+  border: 1px solid rgba(96, 192, 240, 0.12);
   border-radius: 12px;
   padding: 16px;
   text-align: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(96, 192, 240, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 32, 96, 0.4);
+  }
 `;
 
 const StatValue = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #7dd3fc;
+  color: ${TOKENS.iceWing};
+  font-family: 'Fira Code', monospace;
 `;
 
 const StatLabel = styled.div`
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: ${TOKENS.frostWhite};
+  opacity: 0.6;
   margin-top: 4px;
+  font-family: 'Sora', sans-serif;
 `;
 
 const SectionTitle = styled.h2`
@@ -186,7 +271,8 @@ const SectionTitle = styled.h2`
   padding: 0 24px;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: ${TOKENS.frostWhite};
+  font-family: 'Plus Jakarta Sans', sans-serif;
 `;
 
 const PostsList = styled.div`
@@ -196,17 +282,24 @@ const PostsList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  animation: ${fadeIn} 0.5s ease-out 0.2s both;
 `;
 
 const PostCard = styled.div`
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(14, 165, 233, 0.15);
+  background: ${TOKENS.royalDepth};
+  border: 1px solid rgba(96, 192, 240, 0.1);
   border-radius: 12px;
   padding: 20px;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: rgba(96, 192, 240, 0.2);
+  }
 `;
 
 const PostContent = styled.p`
-  color: #cbd5e1;
+  color: ${TOKENS.frostWhite};
+  opacity: 0.9;
   margin: 0 0 12px;
   line-height: 1.5;
 `;
@@ -214,14 +307,118 @@ const PostContent = styled.p`
 const PostMeta = styled.div`
   display: flex;
   gap: 16px;
-  color: #64748b;
+  color: ${TOKENS.iceWing};
+  opacity: 0.5;
   font-size: 0.8rem;
+  font-family: 'Fira Code', monospace;
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 48px 24px;
-  color: #64748b;
+  color: ${TOKENS.swanLavender};
+  opacity: 0.6;
+`;
+
+// ── Badge Showcase Components ──
+
+const RARITY_COLORS: Record<string, string> = {
+  common: TOKENS.swanLavender,
+  rare: TOKENS.gildedFern,
+  epic: TOKENS.wingPurple,
+  legendary: TOKENS.gildedFern,
+};
+
+const BadgesGrid = styled.div`
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  animation: ${fadeIn} 0.5s ease-out 0.15s both;
+`;
+
+const BadgeItem = styled.div<{ $rarity: string }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: ${TOKENS.royalDepth};
+  border: 1px solid ${({ $rarity }) => `${RARITY_COLORS[$rarity] || TOKENS.swanLavender}33`};
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  min-height: 44px;
+
+  &:hover {
+    border-color: ${({ $rarity }) => `${RARITY_COLORS[$rarity] || TOKENS.swanLavender}66`};
+    box-shadow: 0 4px 16px rgba(0, 32, 96, 0.4);
+    transform: translateY(-2px);
+  }
+`;
+
+const BadgeIconWrap = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const BadgeImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+`;
+
+const BadgeEmojiIcon = styled.span`
+  font-size: 2rem;
+  line-height: 1;
+`;
+
+const BadgeName = styled.span`
+  font-size: 0.65rem;
+  color: ${TOKENS.frostWhite};
+  opacity: 0.7;
+  text-align: center;
+  line-height: 1.2;
+  font-family: 'Sora', sans-serif;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+`;
+
+const PrivateProfileNotice = styled.div`
+  max-width: 960px;
+  margin: 60px auto;
+  padding: 40px 24px;
+  text-align: center;
+  color: ${TOKENS.frostWhite};
+  opacity: 0.7;
+
+  svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    margin: 0 0 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  p {
+    font-size: 0.9rem;
+    opacity: 0.6;
+    margin: 0;
+  }
 `;
 
 const LoadingSpinner = styled.div`
@@ -233,8 +430,8 @@ const LoadingSpinner = styled.div`
     content: '';
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(14, 165, 233, 0.2);
-    border-top-color: #0ea5e9;
+    border: 3px solid rgba(96, 192, 240, 0.15);
+    border-top-color: ${TOKENS.iceWing};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -250,8 +447,8 @@ const ErrorMessage = styled.div`
   padding: 32px 24px;
   text-align: center;
   color: #f87171;
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  background: rgba(248, 113, 113, 0.06);
+  border: 1px solid rgba(248, 113, 113, 0.15);
   border-radius: 12px;
 `;
 
@@ -260,8 +457,10 @@ const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<UserPost[]>([]);
+  const [badges, setBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -269,14 +468,22 @@ const UserProfilePage: React.FC = () => {
     const fetchProfile = async () => {
       setLoading(true);
       setError(null);
+      setIsPrivate(false);
       try {
-        const [profileRes, postsRes] = await Promise.allSettled([
+        const [profileRes, postsRes, badgesRes] = await Promise.allSettled([
           api.get(`/api/profile/${userId}`),
           api.get(`/api/profile/${userId}/posts`),
+          api.get(`/api/profile/${userId}/badges`),
         ]);
 
         if (profileRes.status === 'fulfilled' && profileRes.value.data?.success) {
-          setProfile(profileRes.value.data.data || profileRes.value.data.user);
+          const data = profileRes.value.data.data || profileRes.value.data.user;
+          setProfile(data);
+
+          // Handle privacy — if profile is private and not self/friend, show notice
+          if (data.profileVisibility === 'private') {
+            setIsPrivate(true);
+          }
         } else {
           setError('User not found');
           return;
@@ -284,6 +491,10 @@ const UserProfilePage: React.FC = () => {
 
         if (postsRes.status === 'fulfilled' && postsRes.value.data?.success) {
           setPosts(postsRes.value.data.posts || postsRes.value.data.data || []);
+        }
+
+        if (badgesRes.status === 'fulfilled' && badgesRes.value.data?.success) {
+          setBadges(badgesRes.value.data.badges || badgesRes.value.data.data || []);
         }
       } catch {
         setError('Failed to load profile');
@@ -298,10 +509,10 @@ const UserProfilePage: React.FC = () => {
   if (loading) {
     return (
       <PageWrapper>
-        <BackButton onClick={() => navigate(-1)}>
+        <BackButton onClick={() => navigate(-1)} aria-label="Go back">
           <ArrowLeft size={18} /> Back
         </BackButton>
-        <LoadingSpinner />
+        <LoadingSpinner aria-label="Loading profile" />
       </PageWrapper>
     );
   }
@@ -309,10 +520,10 @@ const UserProfilePage: React.FC = () => {
   if (error || !profile) {
     return (
       <PageWrapper>
-        <BackButton onClick={() => navigate(-1)}>
+        <BackButton onClick={() => navigate(-1)} aria-label="Go back">
           <ArrowLeft size={18} /> Back
         </BackButton>
-        <ErrorMessage>{error || 'User not found'}</ErrorMessage>
+        <ErrorMessage role="alert">{error || 'User not found'}</ErrorMessage>
       </PageWrapper>
     );
   }
@@ -322,9 +533,14 @@ const UserProfilePage: React.FC = () => {
     ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : null;
 
+  // Privacy-aware visibility
+  const canShowStats = profile.showStats !== false;
+  const canShowLevel = profile.showLevel !== false;
+  const canShowBadges = profile.showBadges !== false;
+
   return (
     <PageWrapper>
-      <BackButton onClick={() => navigate(-1)}>
+      <BackButton onClick={() => navigate(-1)} aria-label="Go back">
         <ArrowLeft size={18} /> Back
       </BackButton>
 
@@ -336,77 +552,120 @@ const UserProfilePage: React.FC = () => {
             {!profile.photo && initials}
           </AvatarCircle>
           <NameBlock>
-            <DisplayName>{profile.firstName} {profile.lastName}</DisplayName>
+            <DisplayName>
+              {profile.firstName} {profile.lastName}
+              {canShowLevel && profile.level && (
+                <LevelBadge>Lv.{profile.level}</LevelBadge>
+              )}
+            </DisplayName>
             <Username>@{profile.username}</Username>
           </NameBlock>
         </AvatarRow>
       </ProfileHeader>
 
-      {profile.bio && <Bio>{profile.bio}</Bio>}
+      {isPrivate ? (
+        <PrivateProfileNotice>
+          <Lock size={48} />
+          <h3>This profile is private</h3>
+          <p>Only this user can see their full profile.</p>
+        </PrivateProfileNotice>
+      ) : (
+        <>
+          {profile.bio && <Bio>{profile.bio}</Bio>}
 
-      <MetaRow>
-        {profile.location && (
-          <MetaItem><MapPin size={14} /> {profile.location}</MetaItem>
-        )}
-        {joinDate && (
-          <MetaItem><Calendar size={14} /> Joined {joinDate}</MetaItem>
-        )}
-        {profile.role && (
-          <MetaItem><Award size={14} /> {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}</MetaItem>
-        )}
-      </MetaRow>
+          <MetaRow>
+            {profile.location && (
+              <MetaItem><MapPin size={14} /> {profile.location}</MetaItem>
+            )}
+            {joinDate && (
+              <MetaItem><Calendar size={14} /> Joined {joinDate}</MetaItem>
+            )}
+            {profile.role && (
+              <MetaItem><Award size={14} /> {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}</MetaItem>
+            )}
+          </MetaRow>
 
-      <StatsGrid>
-        {profile.followers !== undefined && (
-          <StatCard>
-            <StatValue>{profile.followers}</StatValue>
-            <StatLabel>Followers</StatLabel>
-          </StatCard>
-        )}
-        {profile.following !== undefined && (
-          <StatCard>
-            <StatValue>{profile.following}</StatValue>
-            <StatLabel>Following</StatLabel>
-          </StatCard>
-        )}
-        {profile.totalWorkouts !== undefined && (
-          <StatCard>
-            <StatValue>{profile.totalWorkouts}</StatValue>
-            <StatLabel>Workouts</StatLabel>
-          </StatCard>
-        )}
-        {profile.points !== undefined && (
-          <StatCard>
-            <StatValue>{profile.points.toLocaleString()}</StatValue>
-            <StatLabel>Points</StatLabel>
-          </StatCard>
-        )}
-        {profile.streakDays !== undefined && profile.streakDays > 0 && (
-          <StatCard>
-            <StatValue>{profile.streakDays}</StatValue>
-            <StatLabel>Day Streak</StatLabel>
-          </StatCard>
-        )}
-      </StatsGrid>
+          {canShowStats && (
+            <StatsGrid>
+              {profile.followers !== undefined && (
+                <StatCard>
+                  <StatValue>{profile.followers}</StatValue>
+                  <StatLabel>Followers</StatLabel>
+                </StatCard>
+              )}
+              {profile.following !== undefined && (
+                <StatCard>
+                  <StatValue>{profile.following}</StatValue>
+                  <StatLabel>Following</StatLabel>
+                </StatCard>
+              )}
+              {profile.totalWorkouts !== undefined && (
+                <StatCard>
+                  <StatValue>{profile.totalWorkouts}</StatValue>
+                  <StatLabel>Workouts</StatLabel>
+                </StatCard>
+              )}
+              {profile.points !== undefined && (
+                <StatCard>
+                  <StatValue>{profile.points.toLocaleString()}</StatValue>
+                  <StatLabel>Points</StatLabel>
+                </StatCard>
+              )}
+              {profile.streakDays !== undefined && profile.streakDays > 0 && (
+                <StatCard>
+                  <StatValue>{profile.streakDays}</StatValue>
+                  <StatLabel>Day Streak</StatLabel>
+                </StatCard>
+              )}
+            </StatsGrid>
+          )}
 
-      <SectionTitle>Posts</SectionTitle>
+          {canShowBadges && badges.length > 0 && (
+            <>
+              <SectionTitle>Badges ({badges.length})</SectionTitle>
+              <BadgesGrid>
+                {badges.slice(0, 20).map((badge) => (
+                  <BadgeItem key={badge.id} $rarity={badge.rarity}>
+                    <BadgeIconWrap>
+                      {badge.iconUrl ? (
+                        <BadgeImg
+                          src={badge.iconUrl}
+                          alt={`${badge.title} badge`}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <BadgeEmojiIcon role="img" aria-label={badge.title}>
+                          {badge.iconEmoji}
+                        </BadgeEmojiIcon>
+                      )}
+                    </BadgeIconWrap>
+                    <BadgeName>{badge.title}</BadgeName>
+                  </BadgeItem>
+                ))}
+              </BadgesGrid>
+            </>
+          )}
 
-      <PostsList>
-        {posts.length === 0 ? (
-          <EmptyState>No posts yet</EmptyState>
-        ) : (
-          posts.map((post) => (
-            <PostCard key={post.id}>
-              <PostContent>{post.content}</PostContent>
-              <PostMeta>
-                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                {post.likesCount !== undefined && <span>{post.likesCount} likes</span>}
-                {post.commentsCount !== undefined && <span>{post.commentsCount} comments</span>}
-              </PostMeta>
-            </PostCard>
-          ))
-        )}
-      </PostsList>
+          <SectionTitle>Posts</SectionTitle>
+
+          <PostsList>
+            {posts.length === 0 ? (
+              <EmptyState>No posts yet</EmptyState>
+            ) : (
+              posts.map((post) => (
+                <PostCard key={post.id}>
+                  <PostContent>{post.content}</PostContent>
+                  <PostMeta>
+                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                    {post.likesCount !== undefined && <span>{post.likesCount} likes</span>}
+                    {post.commentsCount !== undefined && <span>{post.commentsCount} comments</span>}
+                  </PostMeta>
+                </PostCard>
+              ))
+            )}
+          </PostsList>
+        </>
+      )}
     </PageWrapper>
   );
 };

@@ -1,782 +1,552 @@
 # UX/UI Design Quality — Recursive Consensus Debate Log
 
 > **Consensus:** YES — Models agreed
-> **Rounds:** 4
-> **Tokens:** 38,633 input / 8,806 output
+> **Rounds:** 3
+> **Tokens:** 31,867 input / 6,373 output
 
 ---
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-**FROM:** Creative Director, SwanStudios
-**TO:** Engineering & UI/UX Team
-**SUBJECT:** Design Authority Review — Badge Gallery (Round 1)
+Listen to me carefully. We are building **SwanStudios**, a premium, high-ticket personal training platform. Our users are paying for luxury, precision, and results. If our UI looks like a cheap mobile game from 2014, we lose them instantly. 
 
-Team, I have reviewed the UX Accessibility Report and the current implementation of the `BadgeGallery.tsx` component. 
+I have reviewed the UX Accessibility Report and the underlying code. There are glaring inconsistencies, accessibility violations, and remnants of a dead design system that are actively sabotaging our brand. 
 
-Let me be clear: what we have right now is a functional prototype, but it is **not** SwanStudios. We charge a premium for this platform. Our users expect the "Enchanted Apex" experience—a seamless blend of a frozen enchanted forest, a deep-ocean luxury vault, and a high-stakes competitive arena. 
-
-Right now, we have hardcoded colors, failing contrast ratios, microscopic touch targets, and a complete lack of the dramatic typography we established in our design system. Furthermore, **Wing Purple (#8B5CF6)** is our MANDATORY glow accent for ALL interactive elements, and its usage here is inconsistent and weak.
-
-Here are my prescriptive, non-negotiable design directives to elevate this component to production quality.
+As your Creative Director, here is my Round 1 Analysis and the **mandatory** design directives to fix them. No compromises.
 
 ---
 
-### 1. CRITICAL: The "Deep-Ocean Vault" Contrast & Hardcoded Colors
+### 1. THE GALAXY-SWAN PURGE
 **Severity:** CRITICAL
-**File & Location:** `frontend/src/components/Charts/BadgeGallery.tsx` (Styled Components section)
-**Design Problem:** The component is floating in space without a defined background, relying on hardcoded `rgba` values that break our Crystalline Swan token system. Text contrast is failing across the board because `textSecondary` is undefined and used improperly.
+**File & Location:** `frontend/src/pages/Social/UserProfilePage.tsx` (Referenced in Prompt)
+**Design Problem:** The prompt explicitly states the User Profile Page is still using the "OLD Galaxy-Swan theme colors" (`#0a0a1a`, `#00FFFF`, `#7851A9`). This is a fireable offense. It breaks the entire Crystalline Swan immersion.
 **Design Solution:** 
-We must anchor the gallery in `Midnight Sapphire` and use `Royal Depth` for our surface elements. `textSecondary` must be a high-contrast icy blue/grey.
-
+Nuke the old theme. The profile page must be rebuilt using the Crystalline Swan tokens.
+*   **Background:** Frost White `#E0ECF4` (for light mode/clean look) or Midnight Sapphire `#002060` (for the premium vault look). Let's use **Midnight Sapphire** for the profile background to make the 3D badges pop.
+*   **Surface Cards:** Royal Depth `#003080` with a 1px solid border of `rgba(96, 192, 240, 0.2)` (Ice Wing at 20% opacity).
+*   **Typography:** Headings in **Plus Jakarta Sans** (Frost White `#E0ECF4`), Stats/Data in **Fira Code** (Ice Wing `#60C0F0`).
 **Implementation Notes:**
-1. Update `GalleryRoot` to explicitly use the primary background:
-   ```css
-   background: ${CHART_COLORS.midnightSapphire};
-   color: ${CHART_COLORS.frostWhite};
-   ```
-2. Define `textSecondary` in your theme file (or locally if needed) as `hexAlpha(CHART_COLORS.frostWhite, 0.7)`.
-3. **PURGE ALL HARDCODED RGBA.** 
-   - Replace `rgba(0, 48, 128, 0.4)` with `${hexAlpha(CHART_COLORS.royalDepth, 0.8)}`.
-   - Replace `rgba(0, 32, 96, 0.95)` (ModalContent) with `${hexAlpha(CHART_COLORS.midnightSapphire, 0.95)}`.
-   - Replace `rgba(0, 0, 0, 0.7)` (ModalOverlay) with `${hexAlpha(CHART_COLORS.midnightSapphire, 0.85)}`.
-4. Fix `StyleTag` and `CategoryTag` contrast. Colored text on a low-opacity colored background fails WCAG AA.
-   ```css
-   /* Apply to StyleTag and CategoryTag */
-   color: ${CHART_COLORS.frostWhite};
-   border: 1px solid ${hexAlpha(CHART_COLORS.iceWing, 0.4)}; /* Use gildedFern for Category */
-   background: ${hexAlpha(CHART_COLORS.iceWing, 0.15)};
-   ```
+1. Open `UserProfilePage.tsx`.
+2. Delete any hardcoded hex codes or references to `theme.colors.galaxy...`.
+3. Wrap the main container in a styled-component using `background-color: ${({ theme }) => theme.colors.midnightSapphire};`.
 
-### 2. HIGH: Wing Purple Interactive Glow & Focus Traps
+### 2. THE WING PURPLE CONTRAST CRISIS
+**Severity:** CRITICAL
+**File & Location:** Global Theme / Badge Detail Modal
+**Design Problem:** Wing Purple (`#8B5CF6`) fails WCAG AA contrast on Midnight Sapphire (`#002060`) with a ratio of 2.5:1. The report correctly flags this. We cannot use our "Epic" rarity color for text on dark backgrounds.
+**Design Solution:** 
+Wing Purple is a **Glow Accent**, not a base text color. 
+*   **Text Solution:** If an Epic badge title needs to be displayed on a dark background, the text must be **Frost White (`#E0ECF4`)**.
+*   **The Glow (CSS):** Apply the Wing Purple as a text-shadow or box-shadow to convey the rarity.
+```css
+/* Epic Badge Card Style */
+.badge-card--epic {
+  background: ${({ theme }) => theme.colors.royalDepth};
+  border: 1px solid ${({ theme }) => theme.colors.wingPurple};
+  box-shadow: 0 0 16px 0 rgba(139, 92, 246, 0.4), 
+              inset 0 0 8px 0 rgba(139, 92, 246, 0.2);
+}
+.badge-title--epic {
+  font-family: 'Sora', sans-serif;
+  color: ${({ theme }) => theme.colors.frostWhite};
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+}
+```
+**Implementation Notes:** Update the `AchievementShowcase` and `BadgeDetailModal` components to enforce this CSS pattern for all Epic-tier items.
+
+### 3. DEFINING THE "LEGENDARY" GRADIENT
 **Severity:** HIGH
-**File & Location:** `frontend/src/components/Charts/BadgeGallery.tsx` (Interactive Elements & Modal)
-**Design Problem:** Focus states are either missing or too subtle. Wing Purple `#8B5CF6` is our designated interactive glow, and it must scream "clickable" to keyboard and screen-reader users. The modal also lacks a focus trap and Escape-key support.
+**File & Location:** Global Theme Tokens / `AchievementShowcase.tsx`
+**Design Problem:** The prompt asks for a "Gold gradient, pulse animation" for Legendary badges, but provides no hex codes. We cannot leave this up to developer interpretation.
 **Design Solution:** 
-Every interactive element (`SearchBox input`, `FilterSelect`, `ToggleButton`, `BadgeCard`, `ActionButton`) must share a unified Wing Purple focus state.
+We will use our Gilded Fern (`#C6A84B`) as the base, elevated with pure gold and bright highlights to create a true "Amethyst Apex / Legendary" feel.
+```css
+/* Add to theme.ts */
+legendaryGradient: 'linear-gradient(135deg, #C6A84B 0%, #FFF3C7 40%, #D4AF37 60%, #8A6300 100%)',
 
-**Implementation Notes:**
-1. Inject this universal focus state into ALL interactive styled components:
-   ```css
-   &:focus-visible {
-     outline: 2px solid ${CHART_COLORS.wingPurple};
-     outline-offset: 2px;
-     box-shadow: 0 0 16px ${hexAlpha(CHART_COLORS.wingPurple, 0.4)};
-   }
-   ```
-2. Add the Escape key listener to the `BadgeGallery` component:
-   ```tsx
-   useEffect(() => {
-     const handleKeyDown = (e: KeyboardEvent) => {
-       if (e.key === 'Escape') setSelectedBadge(null);
-     };
-     if (selectedBadge) window.addEventListener('keydown', handleKeyDown);
-     return () => window.removeEventListener('keydown', handleKeyDown);
-   }, [selectedBadge]);
-   ```
+/* Animation for Legendary Badges */
+@keyframes legendaryPulse {
+  0% { box-shadow: 0 0 15px 2px rgba(198, 168, 75, 0.4); }
+  50% { box-shadow: 0 0 30px 5px rgba(198, 168, 75, 0.8); }
+  100% { box-shadow: 0 0 15px 2px rgba(198, 168, 75, 0.4); }
+}
 
-### 3. HIGH: Premium Mobile Touch Targets
+.badge-card--legendary {
+  background: ${({ theme }) => theme.colors.royalDepth};
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  animation: legendaryPulse 3s infinite ease-in-out;
+}
+.badge-card--legendary::before {
+  content: '';
+  position: absolute;
+  top: -2px; right: -2px; bottom: -2px; left: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: ${({ theme }) => theme.gradients.legendaryGradient};
+}
+```
+**Implementation Notes:** Inject this directly into the styled-components for the badge rendering engine.
+
+### 4. DATA MODEL SCHIZOPHRENIA (CATEGORY MISMATCH)
 **Severity:** HIGH
-**File & Location:** `frontend/src/components/Charts/BadgeGallery.tsx` (`FavoriteButton`, `ClearButton`, `ModalClose`)
-**Design Problem:** 32px and 36px buttons are unacceptable for mobile UX. They feel cheap and cause misclicks.
+**File & Location:** `backend/models/Achievement.mjs` (Lines 55-59)
+**Design Problem:** The UI and Catalog are built around roles: `user`, `client`, `trainer`, `creator`, `moderator`. But the database model is hardcoded to: `ENUM('fitness', 'social', 'streak', 'milestone', 'special')`. This will break the frontend filtering and the Badge Gallery UI.
 **Design Solution:** 
-Force a minimum 44x44px touch target for all icon buttons, centering the icon visually.
-
+Align the backend with the business reality.
 **Implementation Notes:**
-1. Update `FavoriteButton`:
-   ```css
-   width: 44px;
-   height: 44px;
-   /* Keep the icon at size={18} or size={20} to balance the larger button */
-   ```
-2. Update `ModalClose`:
-   ```css
-   width: 44px;
-   height: 44px;
-   top: 12px;
-   right: 12px;
-   ```
-3. Update `ClearButton` to have `min-width: 44px; min-height: 44px; justify-content: center;`.
+Change `backend/models/Achievement.mjs` to:
+```javascript
+  category: {
+    type: DataTypes.ENUM('user', 'client', 'trainer', 'creator', 'moderator', 'cross-role'),
+    allowNull: false,
+    defaultValue: 'user'
+  },
+```
+*Note: I added `cross-role` because it's explicitly listed in the prompt's catalog breakdown (XRL-601, etc.). Update the JSON catalog schema to include it as well.*
 
-### 4. MEDIUM: Injecting "Drama" Typography
-**Severity:** MEDIUM
-**File & Location:** `frontend/src/components/Charts/BadgeGallery.tsx` (`EmptyState`, `ModalDetails`)
-**Design Problem:** We defined `Cormorant Garamond Italic` for "drama" in our design system, but it is completely absent. The UI feels too clinical.
-**Design Solution:** 
-Use the drama font for empty states and the modal subtitle to bring in the "luxury vault" aesthetic.
-
-**Implementation Notes:**
-1. Update `EmptyState` text:
-   ```css
-   font-family: 'Cormorant Garamond', serif;
-   font-style: italic;
-   font-size: 22px;
-   color: ${CHART_COLORS.gildedFern};
-   letter-spacing: 0.02em;
-   ```
-2. In `ModalDetails`, add a dramatic subtitle under the `h2`:
-   ```tsx
-   {/* Add this below <h2>{selectedBadge.subject}</h2> */}
-   <DramaSubtitle>A Crystalline Swan Artifact</DramaSubtitle>
-   ```
-   ```css
-   const DramaSubtitle = styled.p`
-     font-family: 'Cormorant Garamond', serif;
-     font-style: italic;
-     font-size: 18px;
-     color: ${CHART_COLORS.gildedFern};
-     margin: -8px 0 16px 0;
-   `;
-   ```
-
-### 5. MEDIUM: Tactile Feedback for Favorites
-**Severity:** MEDIUM
-**File & Location:** `frontend/src/components/Charts/BadgeGallery.tsx` (`FavoriteButton`)
-**Design Problem:** Clicking the favorite button just instantly swaps a color. There is no magic, no tactile satisfaction.
-**Design Solution:** 
-Add a "crystal pulse" animation when a badge is favorited.
-
-**Implementation Notes:**
-1. Add this keyframe to the top of your styled components:
-   ```css
-   const crystalPulse = keyframes`
-     0% { transform: scale(1); box-shadow: 0 0 0 0 ${hexAlpha(CHART_COLORS.wingPurple, 0.7)}; }
-     50% { transform: scale(1.15); box-shadow: 0 0 12px 4px ${hexAlpha(CHART_COLORS.wingPurple, 0.4)}; }
-     100% { transform: scale(1); box-shadow: 0 0 0 0 ${hexAlpha(CHART_COLORS.wingPurple, 0)}; }
-   `;
-   ```
-2. Apply it to the `FavoriteButton` when active:
-   ```css
-   animation: ${({ $active }) => $active ? css`${crystalPulse} 0.4s cubic-bezier(0.16, 1, 0.3, 1)` : 'none'};
-   ```
-
-### 6. HIGH: Initial Skeleton Loading State
+### 5. THE 3D BADGE LOADING EXPERIENCE
 **Severity:** HIGH
-**File & Location:** `frontend/src/components/Charts/BadgeGallery.tsx` (Initial `if (!manifest)` return block)
-**Design Problem:** Showing a raw text "Loading badge manifest..." is jarring and breaks the illusion of a premium app.
+**File & Location:** `frontend/src/components/AdvancedGamification/components/AchievementShowcase.tsx`
+**Design Problem:** Loading 82+ high-res 3D generated images will cause massive layout shifts and a jarring UX on mobile.
 **Design Solution:** 
-Use the existing `ShimmerBar` animation to create a skeleton grid while the JSON manifest loads.
+We need a premium skeleton loader. No generic grey boxes. We use a Crystalline shimmer.
+```css
+@keyframes crystallineShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 
-**Implementation Notes:**
-Replace the current `if (!manifest)` block with a skeleton layout that mimics the grid:
-```tsx
-if (!manifest) {
-  return (
-    <GalleryRoot>
-      <Header>
-        <IconWrap><Award size={28} /></IconWrap>
-        <div>
-          <Title>Badge Art Gallery</Title>
-          <ShimmerBar style={{ width: '150px', height: '14px', marginTop: '8px' }} />
-        </div>
-      </Header>
-      <BadgeGrid>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <BadgeCard key={i} style={{ pointerEvents: 'none' }}>
-            <BadgeImageWrap>
-              <ShimmerBar style={{ width: '100%', height: '100%', borderRadius: '12px' }} />
-            </BadgeImageWrap>
-            <ShimmerBar style={{ width: '80%', height: '14px', marginBottom: '6px' }} />
-            <ShimmerBar style={{ width: '40%', height: '12px' }} />
-          </BadgeCard>
-        ))}
-      </BadgeGrid>
-    </GalleryRoot>
+.badge-skeleton {
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg, 
+    ${({ theme }) => theme.colors.royalDepth} 25%, 
+    ${({ theme }) => theme.colors.swanLavender} 50%, 
+    ${({ theme }) => theme.colors.royalDepth} 75%
   );
+  background-size: 200% 100%;
+  animation: crystallineShimmer 2s infinite linear;
+  border: 1px solid rgba(224, 236, 244, 0.1); /* Frost White low opacity */
+}
+```
+**Implementation Notes:** Create a `<BadgeSkeleton />` component. Render this while the `iconUrl` is resolving. Ensure `loading="lazy"` is applied to the actual `<img>` tags once they mount.
+
+### 6. MOBILE TOUCH TARGET ENFORCEMENT
+**Severity:** HIGH
+**File & Location:** Global UI Components / Privacy Toggles
+**Design Problem:** The new granular privacy toggles (`showBadges`, `showAchievements`) and badge grid items will fail mobile accessibility if they are too small.
+**Design Solution:** 
+Every interactive element MUST have a minimum hit area of 44x44px.
+**Implementation Notes:**
+For the Privacy Settings toggles:
+```css
+.privacy-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px; /* Exceeds 44px minimum */
+  padding: 12px 16px;
+  background: ${({ theme }) => theme.colors.royalDepth};
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+/* The actual toggle switch must have a pseudo-element to expand its clickable area if the visual switch is smaller than 44px */
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: -10px; right: -10px; bottom: -10px; left: -10px;
 }
 ```
 
 ---
 
-### Final Note to Engineering
-Do **not** use any of the retired Galaxy-Swan colors (`#0a0a1a`, `#00FFFF`, `#7851A9`). I will reject the PR immediately if I see them. Stick strictly to the Crystalline Swan tokens provided. 
+### Summary Directive to the Engineering Team:
+Do not write a single line of frontend code for the new Badge System until the `Achievement.mjs` ENUM is fixed and the Galaxy-Swan theme is entirely ripped out of the profile page. 
 
-Make these updates and send it back to me for Round 2 review. Let's build something beautiful. 
-
-**— Creative Director, SwanStudios**
+I want to see the Legendary gradient and the Skeleton loader in a staging environment by end of week. Make it look expensive.
 
 ---
 
 ## Design Collaborator — Round 2
 
-# Design Collaborator Response — Round 1
+## Design Collaborator (Claude 4.5 Sonnet) — Round 1 Response
 
-## Overall Assessment
-
-I appreciate the Creative Director's thorough review and commitment to the "Enchanted Apex" experience. The focus on premium UX is exactly what SwanStudios users expect. However, I have **both agreements and critical concerns** about implementation approach and accessibility trade-offs.
+I appreciate the thorough analysis and the clear vision for premium positioning. I **AGREE** with the strategic direction and most technical implementations, but I have **CRITICAL REFINEMENTS** on execution and **ONE MAJOR DISAGREEMENT** on data modeling.
 
 ---
 
-## ✅ FULL AGREEMENT
+### ✅ FULL AGREEMENT
 
-### 1. Hardcoded Colors & Token System (Issue #1)
-**AGREED.** The purge of hardcoded RGBA values is essential for maintainability and brand consistency. The proposed token replacements are correct:
-- `GalleryRoot` background: `CHART_COLORS.midnightSapphire` ✓
-- Modal overlay: `hexAlpha(CHART_COLORS.midnightSapphire, 0.85)` ✓
-- Surface elements: `CHART_COLORS.royalDepth` ✓
-
-**Action:** Implement as specified.
-
-### 2. Touch Target Sizes (Issue #3)
-**AGREED.** 44x44px is the iOS/WCAG standard. Current 32px buttons fail accessibility guidelines and feel cheap on mobile.
-
-**Action:** Implement all button size updates as specified.
-
-### 3. Skeleton Loading State (Issue #6)
-**AGREED.** The raw "Loading..." text breaks immersion. The skeleton grid approach is industry-standard and maintains the premium feel.
-
-**Action:** Implement the 12-card skeleton grid with `ShimmerBar` components.
-
-### 4. Escape Key Support (Issue #2, partial)
-**AGREED.** Modal dismissal via Escape is a fundamental UX pattern.
-
-**Action:** Add the `useEffect` keyboard listener as specified.
+**Points 1, 2, 3, 5, 6:** Galaxy-Swan purge, Wing Purple contrast solution, Legendary gradient implementation, skeleton loader, and mobile touch targets are all **approved as specified**. The CSS implementations are production-ready and align with WCAG standards while maintaining premium aesthetics.
 
 ---
 
-## ⚠️ PARTIAL AGREEMENT WITH MODIFICATIONS
+### ⚠️ CRITICAL DISAGREEMENT
 
-### 5. Wing Purple Focus States (Issue #2)
-**AGREEMENT:** Wing Purple (#8B5CF6) should be the primary interactive accent.  
-**CONCERN:** The proposed `outline-offset: 2px` combined with `box-shadow: 0 0 16px` creates **excessive visual noise** and may cause layout shift on focus.
+### **POINT 4: DATA MODEL "SCHIZOPHRENIA" — INCORRECT DIAGNOSIS**
 
-**COUNTER-PROPOSAL:**
-```css
-&:focus-visible {
-  outline: 3px solid ${CHART_COLORS.wingPurple};
-  outline-offset: 0; /* Prevents layout shift */
-  box-shadow: 0 0 8px ${hexAlpha(CHART_COLORS.wingPurple, 0.5)},
-              inset 0 0 0 1px ${hexAlpha(CHART_COLORS.frostWhite, 0.1)};
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+**File:** `backend/models/Achievement.mjs` (Lines 55-59)
+
+**Your Proposal:** Change category ENUM from `('fitness', 'social', 'streak', 'milestone', 'special')` to `('user', 'client', 'trainer', 'creator', 'moderator', 'cross-role')`
+
+**My Position:** This conflates **achievement categories** with **user roles** and will create a data architecture nightmare.
+
+#### Why This Is Wrong:
+
+1. **Semantic Confusion:** A "fitness" achievement (e.g., "First Workout Complete") can be earned by ANY role (client, trainer, creator). The category describes WHAT the achievement is for, not WHO can earn it.
+
+2. **Loss of Filtering Capability:** Users want to filter by achievement TYPE ("Show me all my fitness milestones"), not by role. Your proposal eliminates this.
+
+3. **Breaking Change:** The existing catalog structure in the prompt uses categories like:
+   - `USR-101` (User Onboarding) → category: `milestone`
+   - `CLT-201` (First Workout) → category: `fitness`
+   - `TRN-301` (First Client) → category: `social`
+
+4. **The Real Problem:** The mismatch isn't category vs. role — it's that we need BOTH dimensions in our data model.
+
+#### The Correct Solution:
+
+**Add a NEW field** for role targeting, don't replace category:
+
+```javascript
+// backend/models/Achievement.mjs
+{
+  category: {
+    type: DataTypes.ENUM('fitness', 'social', 'streak', 'milestone', 'special', 'community'),
+    allowNull: false,
+    comment: 'Achievement type/theme'
+  },
+  targetRoles: {
+    type: DataTypes.JSON, // Array of roles
+    allowNull: false,
+    defaultValue: ['user'], // Who can earn this
+    comment: 'Roles eligible for this achievement',
+    validate: {
+      isValidRoles(value) {
+        const validRoles = ['user', 'client', 'trainer', 'creator', 'moderator'];
+        if (!Array.isArray(value) || !value.every(r => validRoles.includes(r))) {
+          throw new Error('Invalid target roles');
+        }
+      }
+    }
+  },
+  // ... rest of model
 }
 ```
-**Rationale:** Tighter outline prevents reflow, reduced glow intensity (8px vs 16px) maintains elegance, inset shadow adds depth without aggression.
 
----
+**Example Achievement Records:**
+```javascript
+{
+  id: 'CLT-201',
+  name: 'First Workout Complete',
+  category: 'fitness',        // WHAT it is
+  targetRoles: ['client'],    // WHO can earn it
+  rarity: 'common'
+}
 
-## 🚨 CRITICAL DISAGREEMENTS
-
-### 6. Tag Contrast Solution (Issue #1, StyleTag/CategoryTag)
-**DISAGREEMENT:** The proposed fix **still fails WCAG AA** for small text.
-
-**Problem Analysis:**
-```css
-/* Proposed by Creative Director */
-color: ${CHART_COLORS.frostWhite}; /* #FFFFFF */
-background: ${hexAlpha(CHART_COLORS.iceWing, 0.15)}; /* ~15% opacity blue */
-```
-This creates approximately **2.1:1 contrast ratio** against the `midnightSapphire` background—well below the required 4.5:1 for small text.
-
-**ALTERNATIVE SOLUTION:**
-```css
-/* For StyleTag (iceWing accent) */
-const StyleTag = styled.span`
-  color: ${CHART_COLORS.frostWhite};
-  background: ${hexAlpha(CHART_COLORS.iceWing, 0.35)}; /* Increased opacity */
-  border: 1px solid ${hexAlpha(CHART_COLORS.iceWing, 0.6)};
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-/* For CategoryTag (gildedFern accent) */
-const CategoryTag = styled.span`
-  color: ${CHART_COLORS.midnightSapphire}; /* Dark text on light bg */
-  background: ${hexAlpha(CHART_COLORS.gildedFern, 0.85)}; /* High opacity */
-  border: 1px solid ${CHART_COLORS.gildedFern};
-  /* ...rest same as StyleTag */
-`;
+{
+  id: 'XRL-601', 
+  name: 'Community Champion',
+  category: 'community',       // WHAT it is
+  targetRoles: ['client', 'trainer', 'creator'], // WHO can earn it
+  rarity: 'legendary'
+}
 ```
 
-**Rationale:**  
-- `StyleTag`: Increased background opacity (0.35) + border (0.6) creates sufficient contrast while maintaining the icy aesthetic
-- `CategoryTag`: Inverted color scheme (dark-on-light) guarantees WCAG AAA compliance and creates visual hierarchy differentiation from StyleTag
+**Frontend Filtering Implementation:**
+```typescript
+// frontend/src/components/AdvancedGamification/AchievementShowcase.tsx
 
-**Request:** Creative Director must approve this contrast adjustment or provide an alternative that meets WCAG AA.
-
----
-
-### 7. Drama Typography Overuse (Issue #4)
-**DISAGREEMENT:** Injecting `Cormorant Garamond Italic` into the modal subtitle risks **typographic chaos**.
-
-**Problem Analysis:**
-The modal already contains:
-- Badge title (likely bold sans-serif)
-- Description text (body sans-serif)
-- Metadata labels (small caps/uppercase)
-
-Adding a fourth typographic voice ("A Crystalline Swan Artifact") creates visual competition and dilutes the drama effect.
-
-**COUNTER-PROPOSAL:**
-1. **Keep** the `EmptyState` drama font—this is perfect for that context
-2. **Remove** the modal subtitle entirely
-3. **Instead**, apply drama typography to the badge **description** in the modal:
-   ```tsx
-   <ModalDescription>
-     {selectedBadge.description}
-   </ModalDescription>
-   ```
-   ```css
-   const ModalDescription = styled.p`
-     font-family: 'Cormorant Garamond', serif;
-     font-style: italic;
-     font-size: 18px;
-     line-height: 1.6;
-     color: ${hexAlpha(CHART_COLORS.frostWhite, 0.85)};
-     margin: 16px 0 24px 0;
-   `;
-   ```
-
-**Rationale:** The description is the natural place for storytelling. A generic subtitle ("A Crystalline Swan Artifact") adds no semantic value and wastes prime real estate.
-
----
-
-### 8. Favorite Button Animation Performance (Issue #5)
-**AGREEMENT:** Tactile feedback is essential.  
-**CONCERN:** The proposed animation triggers on **every render** when `$active` is true, not just on state change.
-
-**CORRECTED IMPLEMENTATION:**
-```tsx
-// In BadgeGallery component
-const [recentlyFavorited, setRecentlyFavorited] = useState<string | null>(null);
-
-const handleFavorite = (badgeId: string) => {
-  const newFavorites = favorites.includes(badgeId)
-    ? favorites.filter(id => id !== badgeId)
-    : [...favorites, badgeId];
-  
-  setFavorites(newFavorites);
-  
-  if (!favorites.includes(badgeId)) {
-    setRecentlyFavorited(badgeId);
-    setTimeout(() => setRecentlyFavorited(null), 400);
-  }
+const filterAchievements = (achievements: Achievement[], filters: FilterState) => {
+  return achievements.filter(ach => {
+    // Filter by category (fitness, social, etc.)
+    if (filters.category && ach.category !== filters.category) return false;
+    
+    // Filter by user's current role
+    if (filters.roleSpecific && !ach.targetRoles.includes(currentUser.role)) return false;
+    
+    // Filter by rarity
+    if (filters.rarity && ach.rarity !== filters.rarity) return false;
+    
+    return true;
+  });
 };
-
-// In FavoriteButton styled component
-const FavoriteButton = styled.button<{ $active: boolean; $animate: boolean }>`
-  /* ...existing styles... */
-  animation: ${({ $animate }) => 
-    $animate ? css`${crystalPulse} 0.4s cubic-bezier(0.16, 1, 0.3, 1)` : 'none'
-  };
-`;
-
-// In JSX
-<FavoriteButton
-  $active={favorites.includes(badge.id)}
-  $animate={recentlyFavorited === badge.id}
-  onClick={(e) => {
-    e.stopPropagation();
-    handleFavorite(badge.id);
-  }}
->
 ```
 
-**Rationale:** Separating `$active` (state) from `$animate` (transition trigger) prevents animation loops and improves performance.
+**Migration Path:**
+```sql
+-- Add new column without breaking existing data
+ALTER TABLE achievements 
+ADD COLUMN target_roles JSON DEFAULT '["user"]';
+
+-- Populate based on achievement ID prefix
+UPDATE achievements 
+SET target_roles = '["client"]' 
+WHERE id LIKE 'CLT-%';
+
+UPDATE achievements 
+SET target_roles = '["trainer"]' 
+WHERE id LIKE 'TRN-%';
+
+-- Cross-role achievements
+UPDATE achievements 
+SET target_roles = '["client","trainer","creator"]' 
+WHERE id LIKE 'XRL-%';
+```
 
 ---
 
-## 📋 CLARIFICATION REQUESTS
+### 🔧 REFINEMENTS TO AGREED POINTS
 
-### 9. textSecondary Definition Location
-**Question:** Should `textSecondary` be added to:
-- A) `frontend/src/styles/theme.ts` (global theme)
-- B) `frontend/src/components/Charts/chartColors.ts` (chart-specific)
-- C) Locally in `BadgeGallery.tsx`
+### **POINT 2 ENHANCEMENT: Wing Purple Accessibility**
 
-**Recommendation:** Option B (chartColors.ts) for consistency with other chart components, defined as:
-```ts
-export const CHART_TEXT = {
-  primary: CHART_COLORS.frostWhite,
-  secondary: hexAlpha(CHART_COLORS.frostWhite, 0.7),
-  muted: hexAlpha(CHART_COLORS.frostWhite, 0.5),
-} as const;
+Your glow solution is correct, but we need a **fallback pattern** for users with `prefers-reduced-motion`:
+
+```css
+.badge-title--epic {
+  font-family: 'Sora', sans-serif;
+  color: ${({ theme }) => theme.colors.frostWhite};
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-title--epic {
+    text-shadow: none;
+    border-left: 3px solid ${({ theme }) => theme.colors.wingPurple};
+    padding-left: 8px;
+  }
+  
+  .badge-card--epic {
+    box-shadow: none;
+    border: 2px solid ${({ theme }) => theme.colors.wingPurple};
+  }
+}
 ```
 
-### 10. Focus Trap Implementation
-**Question:** The Creative Director mentioned "focus trap" but didn't provide implementation. Should we add:
-```tsx
+### **POINT 3 ENHANCEMENT: Legendary Animation Performance**
+
+The pulse animation is visually correct but could cause performance issues on lower-end devices with 82+ badges rendering. Add GPU acceleration:
+
+```css
+@keyframes legendaryPulse {
+  0% { box-shadow: 0 0 15px 2px rgba(198, 168, 75, 0.4); }
+  50% { box-shadow: 0 0 30px 5px rgba(198, 168, 75, 0.8); }
+  100% { box-shadow: 0 0 15px 2px rgba(198, 168, 75, 0.4); }
+}
+
+.badge-card--legendary {
+  /* ... existing styles ... */
+  animation: legendaryPulse 3s infinite ease-in-out;
+  will-change: box-shadow; /* GPU acceleration hint */
+}
+
+/* Only animate badges in viewport */
+.badge-card--legendary:not(.in-viewport) {
+  animation: none;
+}
+```
+
+**Implementation:** Use Intersection Observer to add `.in-viewport` class only when badge is visible.
+
+---
+
+### 📋 ADDITIONAL CRITICAL ISSUE
+
+### **POINT 7: BADGE DETAIL MODAL FOCUS TRAP**
+
+**Severity:** CRITICAL (Accessibility)  
+**File:** `frontend/src/components/AdvancedGamification/components/BadgeDetailModal.tsx`
+
+**Problem:** The modal implementation doesn't trap focus, violating WCAG 2.1.2 (No Keyboard Trap).
+
+**Solution:**
+```typescript
+import { useEffect, useRef } from 'react';
 import FocusTrap from 'focus-trap-react';
 
-// In modal render
-{selectedBadge && (
-  <FocusTrap>
-    <ModalOverlay onClick={() => setSelectedBadge(null)}>
-      {/* ...modal content... */}
-    </ModalOverlay>
-  </FocusTrap>
-)}
+export const BadgeDetailModal: React.FC<Props> = ({ badge, onClose }) => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  
+  useEffect(() => {
+    // Focus close button on mount
+    closeButtonRef.current?.focus();
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+  
+  return (
+    <FocusTrap>
+      <ModalOverlay onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="badge-title">
+        <ModalContent onClick={e => e.stopPropagation()}>
+          <CloseButton ref={closeButtonRef} onClick={onClose} aria-label="Close badge details">
+            ×
+          </CloseButton>
+          <BadgeTitle id="badge-title">{badge.name}</BadgeTitle>
+          {/* ... rest of modal ... */}
+        </ModalContent>
+      </ModalOverlay>
+    </FocusTrap>
+  );
+};
 ```
 
-**Request:** Confirm if `focus-trap-react` is approved or if a custom solution is preferred.
+---
+
+### 🎯 REVISED IMPLEMENTATION PRIORITY
+
+1. **IMMEDIATE (Block All Other Work):**
+   - Galaxy-Swan theme purge (Point 1) ✅
+   - Add `targetRoles` field to Achievement model (Point 4 - MY VERSION)
+   - Focus trap for modal (Point 7)
+
+2. **THIS WEEK (Staging Deploy):**
+   - Wing Purple contrast fixes with reduced-motion fallback (Point 2 + Enhancement)
+   - Legendary gradient with viewport-aware animation (Point 3 + Enhancement)
+   - Crystalline skeleton loader (Point 5) ✅
+
+3. **BEFORE PRODUCTION:**
+   - Mobile touch target audit (Point 6) ✅
+   - Full keyboard navigation testing
+   - Screen reader testing with NVDA/JAWS
 
 ---
 
-## 🎯 SUMMARY FOR ROUND 2
-
-**Implement Immediately (No Changes):**
-- Issues #1 (token system), #3 (touch targets), #6 (skeleton), #2 (Escape key)
-
-**Awaiting Creative Director Approval:**
-- Modified focus state design (reduced glow intensity)
-- Tag contrast solution (increased opacity + inverted CategoryTag)
-- Drama typography placement (description vs. subtitle)
-- Favorite animation implementation (state-triggered vs. prop-triggered)
-- `textSecondary` location and focus trap library choice
-
-**Estimated Implementation Time:** 4-6 hours after approvals
-
----
-
-**— Design Collaborator, SwanStudios Engineering**
+**Direct Question to Creative Director:** Do you agree that we need BOTH `category` (achievement type) AND `targetRoles` (eligibility), or do you have a different vision for how users should filter/discover achievements? This is the only blocking disagreement.
 
 ---
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-**FROM:** Creative Director, SwanStudios
-**TO:** Engineering & UI/UX Team
-**SUBJECT:** Design Authority Review — Badge Gallery (Round 2)
+CONSENSUS REACHED
 
-Excellent pushback. This is exactly why we have this review process. Your catch on the WCAG AA failure for the tags is exactly the kind of rigorous accessibility standard I expect from this team. 
+As Creative Director, I know when to recognize a superior architectural solution. Your correction on **Point 4 (Data Model)** is spot on. Conflating "what" the achievement is (Category) with "who" can earn it (Role) would have destroyed our filtering UX. Adding `targetRoles` while preserving `category` is the exact right move for a scalable, premium platform. 
 
-We are aligned on the token purge, touch targets, skeleton loading, and Escape key support. Let's address the outstanding disputes and clarifications so you can begin implementation.
+Furthermore, your additions for `prefers-reduced-motion`, GPU acceleration (`will-change`), and the Modal Focus Trap are the exact level of rigorous, high-end engineering SwanStudios requires. 
+
+Here are the **Merged Findings and Final Directives** for the Engineering Team. Execute this blueprint exactly as written.
 
 ---
 
-### 1. DISPUTE: Wing Purple Focus States (Your Issue #5)
-**Status:** PARTIAL AGREEMENT / MODIFIED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
+### FINAL DESIGN & ARCHITECTURE BLUEPRINT
 
-**My Take:** I love the addition of the inset shadow (`inset 0 0 0 1px ${hexAlpha(CHART_COLORS.frostWhite, 0.1)}`)—it adds a beautiful, premium depth. However, I must correct a technical assumption: `outline` and `outline-offset` **do not** affect the CSS box model and do not cause layout shifts (reflows). Setting `outline-offset: 0` makes the focus ring bleed into the element's border, which looks muddy. 
+#### 1. DATA MODELING: THE DUAL-AXIS SYSTEM
+**File:** `backend/models/Achievement.mjs`
+We will implement the dual-axis classification system to allow rich frontend filtering.
+*   **Action:** Retain `category` for the achievement theme, and add `targetRoles` as a JSON array for eligibility.
+```javascript
+// backend/models/Achievement.mjs
+  category: {
+    type: DataTypes.ENUM('fitness', 'social', 'streak', 'milestone', 'special', 'community'),
+    allowNull: false,
+    comment: 'Achievement type/theme'
+  },
+  targetRoles: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: ['user'],
+    comment: 'Roles eligible for this achievement',
+    validate: {
+      isValidRoles(value) {
+        const validRoles = ['user', 'client', 'trainer', 'creator', 'moderator'];
+        if (!Array.isArray(value) || !value.every(r => validRoles.includes(r))) {
+          throw new Error('Invalid target roles');
+        }
+      }
+    }
+  },
+```
 
-**Directive:** We will use your inset shadow and transition, but we are keeping a 2px offset for breathing room, and setting the glow to 12px (a compromise between your 8px and my 16px).
+#### 2. VISUAL THEMING: THE GALAXY-SWAN PURGE
+**File:** `frontend/src/pages/Social/UserProfilePage.tsx`
+*   **Action:** Completely remove all legacy Galaxy-Swan hex codes (`#0a0a1a`, `#00FFFF`, `#7851A9`).
+*   **Implementation:** Rebuild the profile container using the Crystalline Swan tokens: `Midnight Sapphire (#002060)` for backgrounds, `Royal Depth (#003080)` for surface cards, and `Frost White (#E0ECF4)` for typography.
 
+#### 3. TIER RENDERING & ACCESSIBILITY (EPIC & LEGENDARY)
+**Files:** `theme.ts`, `AchievementShowcase.tsx`
+*   **Epic Tier (Wing Purple):** Wing Purple (`#8B5CF6`) is restricted to glows/borders due to WCAG contrast limits on dark backgrounds. Text must be Frost White.
+*   **Legendary Tier (Amethyst Apex):** Implement the Gilded Fern gradient with a 3s pulsing box-shadow.
+*   **Performance & A11y Action:** Implement GPU acceleration, Viewport-only animation, and Reduced Motion fallbacks.
 ```css
-&:focus-visible {
-  outline: 2px solid ${CHART_COLORS.wingPurple};
-  outline-offset: 2px; 
-  box-shadow: 0 0 12px ${hexAlpha(CHART_COLORS.wingPurple, 0.6)},
-              inset 0 0 0 1px ${hexAlpha(CHART_COLORS.frostWhite, 0.1)};
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Epic Tier with Reduced Motion Fallback */
+.badge-title--epic {
+  font-family: 'Sora', sans-serif;
+  color: ${({ theme }) => theme.colors.frostWhite};
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
 }
-```
-
-### 2. DISPUTE: Tag Contrast Solution (Your Issue #6)
-**Status:** FULLY APPROVED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**My Take:** You are 100% correct. My initial opacity proposal failed WCAG AA. Your solution to invert the `CategoryTag` (Midnight Sapphire text on 85% Gilded Fern background) is brilliant. It not only passes AAA but creates a stunning visual hierarchy that separates Categories from Styles. 
-
-**Directive:** Implement your exact CSS for both `StyleTag` and `CategoryTag`. 
-
-### 3. DISPUTE: Drama Typography Overuse (Your Issue #7)
-**Status:** REJECTED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**My Take:** I understand your concern about typographic chaos, but moving `Cormorant Garamond Italic` to the body description is a severe accessibility violation. Reading a full paragraph of serif italics on a screen causes eye strain and fails our readability standards for dense lore/mechanics text. 
-
-The subtitle ("A Crystalline Swan Artifact") is flavor text. It exists purely to set the "luxury vault" mood before the user reads the clinical description. 
-
-**Directive:** 
-1. The `ModalDescription` MUST remain our highly readable primary sans-serif font.
-2. We will keep the `DramaSubtitle`, but I will concede to reducing its size and margin to minimize visual competition.
-
-```tsx
-// In BadgeGallery.tsx
-const DramaSubtitle = styled.p`
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-size: 16px; /* Reduced from 18px */
-  color: ${CHART_COLORS.gildedFern};
-  margin: -4px 0 16px 0; /* Tighter grouping with the H2 */
-  letter-spacing: 0.02em;
-`;
-```
-
-### 4. DISPUTE: Favorite Button Animation Performance (Your Issue #8)
-**Status:** FULLY APPROVED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**My Take:** Excellent engineering catch. Tying the CSS animation directly to the `$active` state without a timeout would indeed cause the pulse to re-fire on unrelated component re-renders. 
-
-**Directive:** Implement your `recentlyFavorited` state logic and the `$animate` prop exactly as proposed.
-
----
-
-### 5. CLARIFICATIONS (Your Issues #9 & #10)
-
-**Regarding `textSecondary` Location:**
-**APPROVED.** Option B is the correct architectural choice. Add it to `frontend/src/components/Charts/chartColors.ts`.
-```ts
-export const CHART_TEXT = {
-  primary: CHART_COLORS.frostWhite,
-  secondary: hexAlpha(CHART_COLORS.frostWhite, 0.7),
-  muted: hexAlpha(CHART_COLORS.frostWhite, 0.5),
-} as const;
-```
-
-**Regarding Focus Trap Implementation:**
-**APPROVED.** Using `focus-trap-react` is the industry standard and prevents us from reinventing the wheel with custom `useEffect` tab-routing logic. 
-*Note:* Ensure `focus-trap-react` is added to `package.json` if it isn't already in the project. Wrap the `ModalOverlay` exactly as you proposed.
-
----
-
-### SUMMARY FOR ROUND 3
-We are nearly at the finish line. 
-- Implement the compromised Focus State (12px glow, 2px offset).
-- Keep the `DramaSubtitle` (at 16px) and leave the description as sans-serif.
-- Proceed with all your approved engineering optimizations (Tags, Animation State, CHART_TEXT, FocusTrap).
-
-Review these final tweaks and confirm consensus so we can ship this.
-
-**— Creative Director, SwanStudios**
-
----
-
-## Design Collaborator — Round 4
-
-# Design Collaborator Response — Round 2
-
-## CONSENSUS REACHED
-
-I am pleased to confirm **full alignment** on all remaining issues. The Creative Director's Round 2 responses demonstrate both design authority and technical pragmatism. We can proceed to implementation.
-
----
-
-## ✅ FINAL AGREEMENTS
-
-### 1. Wing Purple Focus States — ACCEPTED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**Acknowledgment:** I stand corrected on the `outline-offset` layout shift concern. The Creative Director is technically accurate—CSS outlines do not affect box model calculations. The 2px offset provides necessary visual breathing room without the "muddy bleed" I would have created.
-
-**Final Implementation:**
-```css
-&:focus-visible {
-  outline: 2px solid ${CHART_COLORS.wingPurple};
-  outline-offset: 2px; 
-  box-shadow: 0 0 12px ${hexAlpha(CHART_COLORS.wingPurple, 0.6)},
-              inset 0 0 0 1px ${hexAlpha(CHART_COLORS.frostWhite, 0.1)};
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-```
-**Status:** Ready to implement across all interactive elements (`SearchBox`, `FilterSelect`, `ToggleButton`, `BadgeCard`, `ActionButton`, `FavoriteButton`, `ModalClose`).
-
----
-
-### 2. Tag Contrast Solution — APPROVED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**Acknowledgment:** Full approval received for the inverted `CategoryTag` design and increased opacity on `StyleTag`.
-
-**Final Implementation:**
-```css
-const StyleTag = styled.span`
-  color: ${CHART_COLORS.frostWhite};
-  background: ${hexAlpha(CHART_COLORS.iceWing, 0.35)};
-  border: 1px solid ${hexAlpha(CHART_COLORS.iceWing, 0.6)};
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const CategoryTag = styled.span`
-  color: ${CHART_COLORS.midnightSapphire};
-  background: ${hexAlpha(CHART_COLORS.gildedFern, 0.85)};
-  border: 1px solid ${CHART_COLORS.gildedFern};
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-```
-**Status:** WCAG AAA compliant, ready to implement.
-
----
-
-### 3. Drama Typography Placement — ACCEPTED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**Acknowledgment:** The Creative Director's accessibility argument is sound. I concede that applying italic serif to body text would create readability issues, particularly for users with dyslexia or visual processing disorders. The reduced-size subtitle (16px) strikes the right balance between drama and hierarchy.
-
-**Final Implementation:**
-```tsx
-// Add to styled components
-const DramaSubtitle = styled.p`
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-size: 16px;
-  color: ${CHART_COLORS.gildedFern};
-  margin: -4px 0 16px 0;
-  letter-spacing: 0.02em;
-`;
-
-// In ModalDetails JSX
-<ModalDetails onClick={(e) => e.stopPropagation()}>
-  <h2>{selectedBadge.subject}</h2>
-  <DramaSubtitle>A Crystalline Swan Artifact</DramaSubtitle>
-  <ModalDescription>{selectedBadge.description}</ModalDescription>
-  {/* ...rest of modal content... */}
-</ModalDetails>
-```
-**Status:** Ready to implement. `ModalDescription` remains sans-serif for readability.
-
----
-
-### 4. Favorite Button Animation — APPROVED
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**Acknowledgment:** Full approval for the state-triggered animation approach.
-
-**Final Implementation:**
-```tsx
-// Add to component state
-const [recentlyFavorited, setRecentlyFavorited] = useState<string | null>(null);
-
-// Update handleFavorite function
-const handleFavorite = (badgeId: string) => {
-  const newFavorites = favorites.includes(badgeId)
-    ? favorites.filter(id => id !== badgeId)
-    : [...favorites, badgeId];
-  
-  setFavorites(newFavorites);
-  
-  if (!favorites.includes(badgeId)) {
-    setRecentlyFavorited(badgeId);
-    setTimeout(() => setRecentlyFavorited(null), 400);
+@media (prefers-reduced-motion: reduce) {
+  .badge-title--epic {
+    text-shadow: none;
+    border-left: 3px solid ${({ theme }) => theme.colors.wingPurple};
+    padding-left: 8px;
   }
-};
+  .badge-card--epic {
+    box-shadow: none;
+    border: 2px solid ${({ theme }) => theme.colors.wingPurple};
+  }
+}
 
-// Update FavoriteButton styled component
-const FavoriteButton = styled.button<{ $active: boolean; $animate: boolean }>`
-  /* ...existing styles... */
-  animation: ${({ $animate }) => 
-    $animate ? css`${crystalPulse} 0.4s cubic-bezier(0.16, 1, 0.3, 1)` : 'none'
-  };
-`;
-
-// Update JSX
-<FavoriteButton
-  $active={favorites.includes(badge.id)}
-  $animate={recentlyFavorited === badge.id}
-  onClick={(e) => {
-    e.stopPropagation();
-    handleFavorite(badge.id);
-  }}
-  aria-label={favorites.includes(badge.id) ? 'Remove from favorites' : 'Add to favorites'}
->
-  <Heart size={18} fill={favorites.includes(badge.id) ? CHART_COLORS.wingPurple : 'none'} />
-</FavoriteButton>
+/* Legendary Tier with Performance Guards */
+.badge-card--legendary {
+  background: ${({ theme }) => theme.colors.royalDepth};
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  animation: legendaryPulse 3s infinite ease-in-out;
+  will-change: box-shadow; /* GPU Acceleration */
+}
+/* Intersection Observer class requirement */
+.badge-card--legendary:not(.in-viewport) {
+  animation: none;
+}
 ```
-**Status:** Performance-optimized, ready to implement.
 
----
+#### 4. PREMIUM LOADING UX
+**File:** `frontend/src/components/AdvancedGamification/components/AchievementShowcase.tsx`
+*   **Action:** Implement the `<BadgeSkeleton />` component to prevent layout shifts when loading 82+ 3D assets.
+*   **Implementation:** Use a 120x120px container with a `crystallineShimmer` linear gradient transitioning between Royal Depth and Swan Lavender. Ensure `loading="lazy"` is on the final `<img>` tags.
 
-### 5. Clarifications — RESOLVED
-
-#### textSecondary Location
-**File:** `frontend/src/components/Charts/chartColors.ts`
-
-**Final Implementation:**
-```ts
-export const CHART_TEXT = {
-  primary: CHART_COLORS.frostWhite,
-  secondary: hexAlpha(CHART_COLORS.frostWhite, 0.7),
-  muted: hexAlpha(CHART_COLORS.frostWhite, 0.5),
-} as const;
-```
-**Status:** Architectural decision confirmed, ready to implement.
-
-#### Focus Trap
-**File:** `frontend/src/components/Charts/BadgeGallery.tsx`
-
-**Final Implementation:**
-```tsx
+#### 5. INTERACTION & ACCESSIBILITY ENFORCEMENT
+**Files:** Global UI Components, `BadgeDetailModal.tsx`
+*   **Mobile Touch Targets:** All interactive elements (especially Privacy Toggles and Badge Grid items) MUST have a minimum hit area of 44x44px. Use pseudo-elements (`::after`) to expand clickable areas if the visual element is smaller.
+*   **Modal Focus Trap (WCAG 2.1.2):** The Badge Detail Modal must trap keyboard focus and prevent background scrolling.
+```typescript
+// frontend/src/components/AdvancedGamification/components/BadgeDetailModal.tsx
 import FocusTrap from 'focus-trap-react';
+import { useEffect, useRef } from 'react';
 
-// In modal render
-{selectedBadge && (
-  <FocusTrap
-    focusTrapOptions={{
-      initialFocus: false,
-      allowOutsideClick: true,
-      escapeDeactivates: true,
-    }}
-  >
-    <ModalOverlay onClick={() => setSelectedBadge(null)}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        {/* ...modal content... */}
-      </ModalContent>
-    </ModalOverlay>
-  </FocusTrap>
-)}
+export const BadgeDetailModal: React.FC<Props> = ({ badge, onClose }) => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, []);
+  
+  return (
+    <FocusTrap>
+      <ModalOverlay onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="badge-title">
+        <ModalContent onClick={e => e.stopPropagation()}>
+          <CloseButton ref={closeButtonRef} onClick={onClose} aria-label="Close badge details">×</CloseButton>
+          <BadgeTitle id="badge-title">{badge.name}</BadgeTitle>
+          {/* Content */}
+        </ModalContent>
+      </ModalOverlay>
+    </FocusTrap>
+  );
+};
 ```
-**Dependency Check:** Confirm `focus-trap-react` is in `package.json`. If not, add:
-```bash
-npm install focus-trap-react
-```
-**Status:** Library approved, ready to implement.
 
----
-
-## 📦 COMPLETE IMPLEMENTATION CHECKLIST
-
-### Phase 1: Token System & Colors (2 hours)
-- [ ] Add `CHART_TEXT` constants to `chartColors.ts`
-- [ ] Replace all hardcoded RGBA values in `BadgeGallery.tsx`
-- [ ] Update `GalleryRoot`, `ModalOverlay`, `ModalContent` backgrounds
-- [ ] Implement `StyleTag` and `CategoryTag` contrast fixes
-
-### Phase 2: Interactive States (1.5 hours)
-- [ ] Apply Wing Purple focus state to all 7 interactive elements
-- [ ] Update all button sizes to 44x44px minimum
-- [ ] Implement favorite animation with `recentlyFavorited` state
-- [ ] Add Escape key listener for modal dismissal
-
-### Phase 3: Premium Polish (1.5 hours)
-- [ ] Create skeleton loading grid with `ShimmerBar`
-- [ ] Add `DramaSubtitle` to modal
-- [ ] Update `EmptyState` typography
-- [ ] Install and configure `focus-trap-react`
-
-### Phase 4: Testing & QA (1 hour)
-- [ ] Keyboard navigation audit (Tab, Shift+Tab, Escape, Enter)
-- [ ] Screen reader testing (NVDA/JAWS)
-- [ ] Mobile touch target testing (iOS Safari, Chrome Android)
-- [ ] Contrast verification with axe DevTools
-- [ ] Animation performance check (Chrome DevTools Performance tab)
-
-**Total Estimated Time:** 6 hours  
-**Target Completion:** End of current sprint
-
----
-
-## 🎯 FINAL STATEMENT
-
-All disputes have been resolved through collaborative design reasoning. The Creative Director's technical corrections on CSS outlines and accessibility concerns about italic body text demonstrate the value of this review process. 
-
-We now have a production-ready specification that:
-- ✅ Maintains the "Enchanted Apex" premium aesthetic
-- ✅ Meets WCAG AAA contrast standards
-- ✅ Provides tactile, performant interactions
-- ✅ Implements proper focus management and keyboard navigation
-- ✅ Uses the Crystalline Swan design system consistently
-
-**No further design authority review required.** Proceeding to implementation.
-
----
-
-**— Design Collaborator, SwanStudios Engineering**  
-**Status:** CONSENSUS REACHED — Ready for Development
+**Final Sign-off:** The design system and technical architecture are now fully aligned. Engineering is cleared to begin implementation in the priority order established in Round 1. Excellent collaboration.
 
 ---
 

@@ -64,9 +64,63 @@ const Achievement = db.define('Achievement', {
   
   // Achievement Classification
   category: {
-    type: DataTypes.ENUM('fitness', 'social', 'streak', 'milestone', 'special'),
+    type: DataTypes.ENUM('fitness', 'social', 'streak', 'milestone', 'special', 'community'),
     allowNull: false,
     defaultValue: 'fitness'
+  },
+
+  // Role targeting — who can earn this achievement
+  targetRoles: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: ['user'],
+    comment: 'Roles eligible for this achievement',
+    validate: {
+      isValidRoles(value) {
+        const validRoles = ['user', 'client', 'trainer', 'creator', 'moderator'];
+        if (!Array.isArray(value) || !value.every(r => validRoles.includes(r))) {
+          throw new Error('Invalid target roles');
+        }
+      }
+    }
+  },
+
+  // Reward type and issuance
+  rewardType: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'badge',
+    validate: {
+      isIn: [['badge', 'title', 'honor', 'discount', 'unlock', 'item']]
+    }
+  },
+
+  issuance: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'auto',
+    validate: {
+      isIn: [['auto', 'admin_review', 'admin_award']]
+    }
+  },
+
+  // Multi-reward support (JSONB array for flexibility without JOIN overhead)
+  rewards: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: [],
+    comment: 'Array of reward objects: [{type, value, description}]',
+    validate: {
+      isValidRewardArray(value) {
+        if (!Array.isArray(value)) throw new Error('Rewards must be an array');
+        const validTypes = ['badge', 'title', 'honor', 'discount', 'unlock', 'item'];
+        value.forEach(reward => {
+          if (!validTypes.includes(reward.type)) {
+            throw new Error(`Invalid reward type: ${reward.type}`);
+          }
+        });
+      }
+    }
   },
   
   rarity: {
@@ -343,125 +397,86 @@ const Achievement = db.define('Achievement', {
     }
   ],
   
-  // Instance Methods
-  instanceMethods: {
-    // Check if achievement is available
-    isAvailable() {
-      if (!this.isActive) return false;
-      
-      const now = new Date();
-      if (this.availableFrom && now < new Date(this.availableFrom)) return false;
-      if (this.availableUntil && now > new Date(this.availableUntil)) return false;
-      
-      return true;
-    },
-    
-    // Calculate rarity multiplier for XP
-    getRarityMultiplier() {
-      const multipliers = {
-        'common': 1.0,
-        'rare': 1.5,
-        'epic': 2.0,
-        'legendary': 3.0
-      };
-      return multipliers[this.rarity] || 1.0;
-    },
-    
-    // Get total XP reward with rarity bonus
-    getTotalXpReward() {
-      return Math.floor(this.xpReward * this.getRarityMultiplier());
-    },
-    
-    // Check if user meets prerequisites
-    async checkPrerequisites(userId) {
-      if (!this.prerequisiteAchievements || this.prerequisiteAchievements.length === 0) {
-        return true;
-      }
-      
-      const userAchievements = await db.models.UserAchievement.findAll({
-        where: {
-          userId,
-          achievementId: { [Op.in]: this.prerequisiteAchievements }
-        }
-      });
-      
-      return userAchievements.length >= this.prerequisiteAchievements.length;
-    },
-    
-    // Update unlock statistics
-    async updateUnlockStats() {
-      const totalUsers = await db.models.User.count();
-      const unlockedCount = await db.models.UserAchievement.count({
-        where: { achievementId: this.id }
-      });
-      
-      this.totalUnlocked = unlockedCount;
-      this.unlockRate = totalUsers > 0 ? (unlockedCount / totalUsers) * 100 : 0;
-      
-      await this.save();
-    }
-  },
-  
-  // Class Methods
-  classMethods: {
-    // Get achievements by category
-    async getByCategory(category, includeHidden = false) {
-      const whereClause = {
-        category,
-        isActive: true
-      };
-      
-      if (!includeHidden) {
-        whereClause.isHidden = false;
-      }
-      
-      return this.findAll({
-        where: whereClause,
-        order: [['rarity', 'DESC'], ['xpReward', 'DESC']]
-      });
-    },
-    
-    // Get available achievements for user
-    async getAvailableForUser(userId) {
-      const now = new Date();
-      const userAchievements = await db.models.UserAchievement.findAll({
-        where: { userId },
-        attributes: ['achievementId']
-      });
-      
-      const unlockedIds = userAchievements.map(ua => ua.achievementId);
-      
-      return this.findAll({
-        where: {
-          isActive: true,
-          isHidden: false,
-          id: { [Op.notIn]: unlockedIds },
-          [Op.or]: [
-            { availableFrom: null },
-            { availableFrom: { [Op.lte]: now } }
-          ],
-          [Op.or]: [
-            { availableUntil: null },
-            { availableUntil: { [Op.gte]: now } }
-          ]
-        },
-        order: [['difficulty', 'ASC'], ['xpReward', 'ASC']]
-      });
-    },
-    
-    // Get trending achievements
-    async getTrending(limit = 10) {
-      return this.findAll({
-        where: {
-          isActive: true,
-          isHidden: false
-        },
-        order: [['shareCount', 'DESC'], ['totalUnlocked', 'DESC']],
-        limit
-      });
-    }
-  }
 });
+
+// ── Instance Methods (attached to prototype for Sequelize v4+) ──
+
+Achievement.prototype.isAvailable = function () {
+  if (!this.isActive) return false;
+  const now = new Date();
+  if (this.availableFrom && now < new Date(this.availableFrom)) return false;
+  if (this.availableUntil && now > new Date(this.availableUntil)) return false;
+  return true;
+};
+
+Achievement.prototype.getRarityMultiplier = function () {
+  const multipliers = { common: 1.0, rare: 1.5, epic: 2.0, legendary: 3.0 };
+  return multipliers[this.rarity] || 1.0;
+};
+
+Achievement.prototype.getTotalXpReward = function () {
+  return Math.floor(this.xpReward * this.getRarityMultiplier());
+};
+
+Achievement.prototype.checkPrerequisites = async function (userId) {
+  if (!this.prerequisiteAchievements || this.prerequisiteAchievements.length === 0) {
+    return true;
+  }
+  const userAchievements = await db.models.UserAchievement.findAll({
+    where: {
+      userId,
+      achievementId: { [Op.in]: this.prerequisiteAchievements }
+    }
+  });
+  return userAchievements.length >= this.prerequisiteAchievements.length;
+};
+
+// NOTE: updateUnlockStats removed per AI Village consensus — O(N) full-table count
+// is a performance bottleneck. Stats should be updated via Redis increments + async sync.
+
+// ── Class Methods ──
+
+Achievement.getByCategory = async function (category, includeHidden = false) {
+  const whereClause = { category, isActive: true };
+  if (!includeHidden) whereClause.isHidden = false;
+  return this.findAll({
+    where: whereClause,
+    order: [['rarity', 'DESC'], ['xpReward', 'DESC']]
+  });
+};
+
+Achievement.getAvailableForUser = async function (userId) {
+  const now = new Date();
+  const userAchievements = await db.models.UserAchievement.findAll({
+    where: { userId },
+    attributes: ['achievementId']
+  });
+  const unlockedIds = userAchievements.map(ua => ua.achievementId);
+  return this.findAll({
+    where: {
+      isActive: true,
+      isHidden: false,
+      id: { [Op.notIn]: unlockedIds },
+      [Op.or]: [
+        { availableFrom: null },
+        { availableFrom: { [Op.lte]: now } }
+      ],
+      [Op.or]: [
+        { availableUntil: null },
+        { availableUntil: { [Op.gte]: now } }
+      ]
+    },
+    order: [['difficulty', 'ASC'], ['xpReward', 'ASC']]
+  });
+};
+
+Achievement.getTrending = async function (limit = 10) {
+  return this.findAll({
+    where: { isActive: true, isHidden: false },
+    order: [['shareCount', 'DESC'], ['totalUnlocked', 'DESC']],
+    limit
+  });
+};
 
 // Model associations will be defined in associations.mjs
 
