@@ -29,7 +29,8 @@
  * Rate limiting: 1.5s delay between requests, exponential backoff on 429
  */
 
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -73,7 +74,9 @@ function loadEnv() {
         const eqIdx = trimmed.indexOf('=');
         if (eqIdx === -1) continue;
         const key = trimmed.slice(0, eqIdx).trim();
-        const val = trimmed.slice(eqIdx + 1).trim();
+        // Strip surrounding quotes (single or double) per AI Village consensus
+        const raw = trimmed.slice(eqIdx + 1).trim();
+        const val = raw.replace(/^["']|["']$/g, '');
         if (!process.env[key]) process.env[key] = val;
       }
     }
@@ -310,9 +313,11 @@ function buildWorkPlan(templates, styleConfigs, opts) {
 
 /**
  * Build the image generation prompt for a template + style combo.
+ * AI Village consensus: inject Crystalline Swan aesthetic constraints.
  */
 function buildPrompt(template, style) {
-  return `${style.promptPrefix} a ${template.visual}, badge icon, collectible, beautiful, ${style.promptSuffix}`;
+  const aesthetic = 'premium 3D collectible artifact, color palette midnight sapphire blue and frost white with gold accents, deep-ocean volumetric lighting with crystalline rim-lighting, NOT cyberpunk NOT neon NOT pure black';
+  return `${style.promptPrefix} a ${template.visual}, badge icon, collectible, beautiful, ${aesthetic}, ${style.promptSuffix}`;
 }
 
 // ─────────────────────────────────────────────
@@ -374,16 +379,25 @@ async function generateImage(apiKey, prompt) {
 }
 
 /**
- * Generate with retry + exponential backoff on 429.
+ * Generate with retry + exponential backoff on 429, 5xx, timeouts, network errors.
+ * AI Village consensus: retry on transient failures, not just 429.
  */
 async function generateWithRetry(apiKey, prompt, retries = MAX_RETRIES) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await generateImage(apiKey, prompt);
     } catch (err) {
-      if (err.status === 429 && attempt < retries) {
-        const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
-        console.log(`    429 rate-limited, backing off ${(backoff / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries})...`);
+      const isRetryable = err.status === 429
+        || (err.status >= 500 && err.status < 600)
+        || err.name === 'AbortError'
+        || err.code === 'ECONNRESET'
+        || err.code === 'ETIMEDOUT'
+        || err.code === 'UND_ERR_CONNECT_TIMEOUT';
+
+      if (isRetryable && attempt < retries) {
+        const jitter = Math.random() * 1000;
+        const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt) + jitter;
+        console.log(`\n    Retryable error (${err.status || err.code || err.name}), backing off ${(backoff / 1000).toFixed(1)}s (attempt ${attempt + 1}/${retries})...`);
         await sleep(backoff);
         continue;
       }
@@ -523,12 +537,13 @@ async function main() {
     const progress = `[${i + 1}/${toGenerate.length}]`;
 
     process.stdout.write(`  ${progress} ${job.fileName} ...`);
+    const requestStart = Date.now();
 
     try {
       const result = await generateWithRetry(apiKey, job.prompt);
 
-      // Write image
-      writeFileSync(job.outputPath, result.data);
+      // Async file I/O per AI Village consensus
+      await writeFile(job.outputPath, result.data);
 
       const size = (result.data.length / 1024).toFixed(0);
       console.log(` OK (${size} KB)`);
@@ -539,9 +554,14 @@ async function main() {
       failures.push({ fileName: job.fileName, error: err.message });
     }
 
-    // Rate limit delay (skip after last item)
+    // Rate limit: account for elapsed time, 500ms hard floor
     if (i < toGenerate.length - 1) {
-      await sleep(RATE_LIMIT_MS);
+      const elapsed = Date.now() - requestStart;
+      const remainingDelay = Math.max(500, RATE_LIMIT_MS - elapsed);
+      if (elapsed < RATE_LIMIT_MS) {
+        console.log(`    ⏱️  Rate limit: sleeping ${remainingDelay}ms (request took ${elapsed}ms)`);
+      }
+      await sleep(remainingDelay);
     }
   }
 

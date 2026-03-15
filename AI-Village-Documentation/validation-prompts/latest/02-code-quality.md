@@ -1,524 +1,468 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 46.5s
-> **Files:** docs/ai-workflow/blueprints/BADGE-SYSTEM-ENHANCEMENT-PROMPT.md, docs/ai-workflow/gamification/gamification-rewards.catalog.v1.json, backend/models/Achievement.mjs, backend/models/UserAchievement.mjs
-> **Generated:** 3/15/2026, 8:55:03 AM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 53.7s
+> **Files:** scripts/generate-achievement-badges.mjs, scripts/achievement-badge-manifest.json
+> **Generated:** 3/15/2026, 9:49:10 AM
 
 ---
 
-# SwanStudios Code Quality Review
+# Code Review: SwanStudios Achievement Badge Generator
 
-## Executive Summary
-Reviewing gamification system documentation and models. Overall structure is solid, but several critical issues found related to TypeScript typing, model definitions, and architectural decisions.
+## CRITICAL Issues
+
+### C1. Missing Error Handling for File Operations
+**Location:** Multiple locations (writeFileSync, readFileSync, mkdirSync)  
+**Issue:** File system operations lack try/catch blocks. A write failure (permissions, disk full) will crash the entire script with no recovery or meaningful error message.
+
+```mjs
+// Current (line ~380)
+writeFileSync(job.outputPath, result.data);
+
+// Should be:
+try {
+  writeFileSync(job.outputPath, result.data);
+} catch (err) {
+  throw new Error(`Failed to write ${job.fileName}: ${err.message}`);
+}
+```
+
+**Impact:** Script crashes mid-generation, losing progress and leaving partial state.
 
 ---
 
-## 1. DOCUMENTATION ISSUES
+### C2. API Key Exposure Risk
+**Location:** Lines 66-72 (getGeminiKey)  
+**Issue:** No validation that the key is properly formatted. Invalid keys will only fail after rate-limiting delays, wasting time and potentially exposing key format in error messages.
 
-### docs/ai-workflow/blueprints/BADGE-SYSTEM-ENHANCEMENT-PROMPT.md
-
-#### ❌ CRITICAL: Scope Creep and Unclear Requirements
-**Issue:** This document mixes feature planning with AI prompt engineering, creating confusion about what's being reviewed vs. what's being requested.
-
-**Problems:**
-- Document title says "Full Enhancement Prompt" but it's stored in a code repository
-- Mixes current state documentation with future feature requests
-- Contains AI Village validation requests that don't belong in code docs
-- E2E encryption discussion is premature without security audit
-
-**Recommendation:**
-```
-SPLIT INTO:
-1. docs/features/gamification/badge-system-spec.md (technical spec)
-2. docs/planning/badge-enhancement-roadmap.md (feature requests)
-3. docs/ai-prompts/ (if AI generation prompts are needed)
-```
-
-**Rating:** CRITICAL
-
----
-
-#### ⚠️ HIGH: Theme Color References Without Validation
-**Issue:** Document references 8 theme colors but doesn't validate they exist in the actual theme configuration.
-
-```md
-- Midnight Sapphire #002060 (Primary)
-- Royal Depth #003080 (Surface)
-// ... etc
-```
-
-**Missing:**
-- Reference to actual theme file location
-- Validation that these colors are exported from styled-components theme
-- No mention of color contrast ratios (WCAG compliance)
-
-**Recommendation:**
-```typescript
-// Should reference: frontend/src/styles/theme.ts
-export const crystallineSwanTheme = {
-  colors: {
-    midnightSapphire: '#002060',
-    royalDepth: '#003080',
-    // ... with TypeScript types
+```mjs
+function getGeminiKey() {
+  const key = process.env.GEMINI_API_KEY || 
+              process.env.GOOGLE_AI_API_KEY || 
+              process.env.GOOGLE_API_KEY || 
+              null;
+  
+  // Add validation
+  if (key && !/^[A-Za-z0-9_-]{20,}$/.test(key)) {
+    console.error('  Warning: API key format looks invalid');
   }
-} as const;
-```
-
-**Rating:** HIGH
-
----
-
-#### ⚠️ MEDIUM: Missing Privacy Model Schema
-**Issue:** Document mentions privacy features but doesn't define the data model.
-
-```md
-### MISSING Features (Identified)
-- NO profileVisibility field on User model
-- NO showBadges, showAchievements, showStats privacy toggles
-```
-
-**Should include:**
-```typescript
-interface UserPrivacySettings {
-  profileVisibility: 'public' | 'friends_only' | 'private';
-  showBadges: boolean;
-  showAchievements: boolean;
-  showStats: boolean;
-  showWorkoutHistory: boolean;
-  showLevel: boolean;
+  
+  return key;
 }
 ```
 
-**Rating:** MEDIUM
-
 ---
 
-## 2. JSON CATALOG ISSUES
+### C3. Unhandled Fetch Timeout
+**Location:** Line 284 (AbortSignal.timeout)  
+**Issue:** Timeout errors are not explicitly caught and will show as generic network errors, making debugging difficult.
 
-### docs/ai-workflow/gamification/gamification-rewards.catalog.v1.json
+```mjs
+// Current
+signal: AbortSignal.timeout(120_000),
 
-#### ❌ CRITICAL: No TypeScript Type Definitions
-**Issue:** JSON catalog has no corresponding TypeScript types, making it impossible to validate at compile time.
-
-**Current State:**
-```json
-{
-  "schema": {
-    "requiredFields": ["legacyId", "code", "title", ...],
-    "categoryEnum": ["user", "client", "trainer", ...]
+// Should wrap in try/catch with specific timeout handling:
+try {
+  const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+} catch (err) {
+  if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+    throw new Error(`Request timed out after 120s`);
   }
+  throw err;
 }
 ```
 
-**Required:**
-```typescript
-// backend/types/gamification.types.ts
-export interface AchievementCatalogEntry {
-  legacyId: number;
-  code: string; // Should be branded type: `${Category}-${number}`
-  title: string;
-  category: AchievementCategory;
-  ageGroup: AgeGroup;
-  rewardType: RewardType;
-  pointsRequired: number;
-  spendRequiredUsd: number;
-  description: string;
-  unlockRules: UnlockRule[];
-  issuance: IssuanceType;
-  priority: Priority;
-  phase: Phase;
-  enabled: boolean;
-  antiAbuseChecks?: string[];
+---
+
+## HIGH Issues
+
+### H1. Race Condition in File Existence Check
+**Location:** Line 238 (buildWorkPlan)  
+**Issue:** `existsSync(outputPath)` check happens during planning, but file could be created/deleted before generation. Multiple parallel runs could overwrite each other.
+
+```mjs
+// Current
+skip: existsSync(outputPath),
+
+// Should check again before write:
+if (!job.skip && existsSync(job.outputPath)) {
+  console.log(` SKIP (created by another process)`);
+  continue;
 }
-
-export type AchievementCategory = 'user' | 'client' | 'trainer' | 'creator' | 'moderator';
-export type RewardType = 'badge' | 'title' | 'honor' | 'discount' | 'unlock' | 'item';
-export type IssuanceType = 'auto' | 'admin_review' | 'admin_award';
-export type Phase = 'mvp' | 'phase2' | 'phase3';
-export type Priority = 'high' | 'medium' | 'low';
-export type AgeGroup = 'all' | '14-17' | '50+';
-
-// Branded type for achievement codes
-export type AchievementCode = `${Uppercase<AchievementCategory>}-${number}`;
 ```
-
-**Rating:** CRITICAL
 
 ---
 
-#### ⚠️ HIGH: Inconsistent Unlock Rules Format
-**Issue:** `unlockRules` are stored as string arrays with pseudo-code, making them impossible to validate or execute.
+### H2. No Progress Persistence
+**Location:** Main generation loop (lines 380-400)  
+**Issue:** If script crashes after generating 200/750 images, there's no way to resume. Must regenerate all or manually track failures.
 
-**Current:**
-```json
-"unlockRules": [
-  "profile_completion == 100",
-  "qualified_activity_count >= 1"
-]
+**Recommendation:** Write a progress file after each successful generation:
+```mjs
+const progressFile = join(OUTPUT_DIR, '.generation-progress.json');
+// After each success:
+const progress = JSON.parse(readFileSync(progressFile, 'utf-8') || '{}');
+progress[job.fileName] = { generated: new Date().toISOString() };
+writeFileSync(progressFile, JSON.stringify(progress, null, 2));
 ```
-
-**Should be:**
-```typescript
-interface UnlockRule {
-  field: string;
-  operator: '==' | '>=' | '<=' | '>' | '<' | '!=';
-  value: number | string | boolean;
-  logicalOperator?: 'AND' | 'OR';
-}
-
-// Example:
-"unlockRules": [
-  { "field": "profile_completion", "operator": "==", "value": 100 },
-  { "field": "qualified_activity_count", "operator": ">=", "value": 1, "logicalOperator": "AND" }
-]
-```
-
-**Rating:** HIGH
 
 ---
 
-#### ⚠️ MEDIUM: Missing Validation Schema
-**Issue:** No JSON Schema or Zod validation for catalog entries.
+### H3. Memory Leak Risk with Large Batches
+**Location:** Line 312 (Buffer.from base64)  
+**Issue:** Generating 750 images keeps all job objects in memory. Each base64 decode creates a large buffer. For 750 × ~500KB images, this could consume 375MB+ RAM.
 
-**Recommendation:**
-```typescript
-// backend/schemas/achievement-catalog.schema.ts
-import { z } from 'zod';
-
-export const achievementCatalogEntrySchema = z.object({
-  legacyId: z.number().int().positive(),
-  code: z.string().regex(/^(USR|CLT|TRN|CRT|MOD|XRL)-\d{3}$/),
-  title: z.string().min(3).max(100),
-  category: z.enum(['user', 'client', 'trainer', 'creator', 'moderator']),
-  ageGroup: z.enum(['all', '14-17', '50+']),
-  rewardType: z.enum(['badge', 'title', 'honor', 'discount', 'unlock', 'item']),
-  pointsRequired: z.number().int().min(0),
-  spendRequiredUsd: z.number().min(0),
-  description: z.string().min(10).max(500),
-  unlockRules: z.array(unlockRuleSchema),
-  issuance: z.enum(['auto', 'admin_review', 'admin_award']),
-  priority: z.enum(['high', 'medium', 'low']),
-  phase: z.enum(['mvp', 'phase2', 'phase3']),
-  enabled: z.boolean(),
-  antiAbuseChecks: z.array(z.string()).optional()
-});
-
-export const achievementCatalogSchema = z.object({
-  meta: z.object({
-    version: z.string(),
-    createdAt: z.string(),
-    source: z.string(),
-    notes: z.array(z.string())
-  }),
-  schema: z.object({
-    requiredFields: z.array(z.string()),
-    categoryEnum: z.array(z.string()),
-    rewardTypeEnum: z.array(z.string()),
-    issuanceEnum: z.array(z.string()),
-    phaseEnum: z.array(z.string())
-  }),
-  catalog: z.array(achievementCatalogEntrySchema)
-});
+**Recommendation:** Process in batches or clear completed jobs:
+```mjs
+// After successful write:
+job.template = null; // Release reference
+job.prompt = null;
 ```
-
-**Rating:** MEDIUM
 
 ---
 
-## 3. BACKEND MODEL ISSUES
+### H4. Insufficient Retry Logic
+**Location:** Lines 321-336 (generateWithRetry)  
+**Issue:** Only retries on 429 errors. Network failures (ECONNRESET, ETIMEDOUT) are not retried, causing unnecessary failures.
 
-### backend/models/Achievement.mjs
-
-#### ❌ CRITICAL: Using `.mjs` Without ES Module Package Configuration
-**Issue:** Files use `.mjs` extension but there's no indication that `package.json` has `"type": "module"`.
-
-**Problems:**
-- Mixing CommonJS and ES modules can cause runtime errors
-- Import paths may not resolve correctly
-- Sequelize associations may fail to load
-
-**Recommendation:**
-```json
-// package.json
-{
-  "type": "module",
-  "exports": {
-    "./models/*": "./backend/models/*.mjs"
+```mjs
+async function generateWithRetry(apiKey, prompt, retries = MAX_RETRIES) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await generateImage(apiKey, prompt);
+    } catch (err) {
+      const isRetryable = err.status === 429 || 
+                          err.code === 'ECONNRESET' ||
+                          err.code === 'ETIMEDOUT' ||
+                          err.name === 'TimeoutError';
+      
+      if (isRetryable && attempt < retries) {
+        const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
+        console.log(`    Retrying (${err.message.slice(0, 50)})...`);
+        await sleep(backoff);
+        continue;
+      }
+      throw err;
+    }
   }
 }
 ```
 
-**Rating:** CRITICAL
+---
+
+### H5. Hardcoded Model Name
+**Location:** Line 31 (MODEL constant)  
+**Issue:** Model name is hardcoded. If Gemini updates the model ID or user wants to test different models, requires code change.
+
+**Recommendation:** Make it configurable:
+```mjs
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-preview-image-generation';
+```
 
 ---
 
-#### ❌ CRITICAL: Missing TypeScript Definitions
-**Issue:** Models are written in JavaScript without corresponding TypeScript definitions.
+## MEDIUM Issues
 
-**Current:**
-```javascript
-const Achievement = db.define('Achievement', { ... });
-```
+### M1. No TypeScript Types (Script is .mjs)
+**Location:** Entire file  
+**Issue:** This is a JavaScript file, not TypeScript. No type safety for API responses, manifest structure, or function parameters.
 
-**Should be:**
+**Recommendation:** Convert to `.ts` with proper types:
 ```typescript
-// backend/models/Achievement.ts
-import { Model, DataTypes, Optional } from 'sequelize';
-import { sequelize } from '../database';
-
-interface AchievementAttributes {
-  id: string;
-  title: string;
+interface AchievementTemplate {
   name: string;
+  title: string;
   description: string;
-  iconEmoji: string;
-  iconUrl: string | null;
-  category: 'fitness' | 'social' | 'streak' | 'milestone' | 'special';
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  xpReward: number;
-  requiredPoints: number;
-  bonusRewards: unknown[];
-  maxProgress: number;
-  progressUnit: string;
-  requirements: unknown[];
-  unlockConditions: Record<string, unknown>;
-  prerequisiteAchievements: string[];
-  isActive: boolean;
-  isHidden: boolean;
-  isSecret: boolean;
-  isLimited: boolean;
-  availableFrom: Date | null;
-  availableUntil: Date | null;
-  totalUnlocked: number;
-  unlockRate: number;
-  averageTimeToUnlock: number;
-  shareCount: number;
-  allowSharing: boolean;
-  isPremium: boolean;
-  premiumBenefits: Record<string, unknown>;
-  difficulty: number;
-  estimatedDuration: number | null;
-  tags: string[];
-  businessValue: number;
-  conversionImpact: number;
-  skillTree: 'awakening' | 'forge_nasm' | 'iron_gravity' | 'tribe_social' | 'free_spirit' | 'unbroken_streaks' | null;
-  skillTreeOrder: number | null;
-  templateId: string | null;
-  tierLevel: number | null;
-  createdAt: Date;
-  updatedAt: Date;
+  visual: string;
+  emoji: string;
+  skillTree: string;
+  category: string;
 }
 
-interface AchievementCreationAttributes extends Optional<AchievementAttributes, 
-  'id' | 'iconUrl' | 'bonusRewards' | 'requirements' | 'unlockConditions' | 
-  'prerequisiteAchievements' | 'availableFrom' | 'availableUntil' | 'estimatedDuration' |
-  'skillTree' | 'skillTreeOrder' | 'templateId' | 'tierLevel' | 'createdAt' | 'updatedAt'> {}
-
-class Achievement extends Model<AchievementAttributes, AchievementCreationAttributes> 
-  implements AchievementAttributes {
-  
-  declare id: string;
-  declare title: string;
-  // ... all other properties
-  
-  // Instance methods
-  isAvailable(): boolean {
-    if (!this.isActive) return false;
-    
-    const now = new Date();
-    if (this.availableFrom && now < this.availableFrom) return false;
-    if (this.availableUntil && now > this.availableUntil) return false;
-    
-    return true;
-  }
-  
-  getRarityMultiplier(): number {
-    const multipliers: Record<AchievementAttributes['rarity'], number> = {
-      'common': 1.0,
-      'rare': 1.5,
-      'epic': 2.0,
-      'legendary': 3.0
-    };
-    return multipliers[this.rarity];
-  }
-  
-  getTotalXpReward(): number {
-    return Math.floor(this.xpReward * this.getRarityMultiplier());
-  }
-  
-  async checkPrerequisites(userId: number): Promise<boolean> {
-    if (!this.prerequisiteAchievements || this.prerequisiteAchievements.length === 0) {
-      return true;
-    }
-    
-    const userAchievements = await UserAchievement.findAll({
-      where: {
-        userId,
-        achievementId: this.prerequisiteAchievements
-      }
-    });
-    
-    return userAchievements.length >= this.prerequisiteAchievements.length;
-  }
+interface StyleConfig {
+  id: string;
+  name: string;
+  promptPrefix: string;
+  promptSuffix: string;
 }
 
-Achievement.init({
-  // ... field definitions
-}, {
-  sequelize,
-  tableName: 'Achievements',
-  timestamps: true
-});
-
-export default Achievement;
+interface GenerationJob {
+  template: AchievementTemplate;
+  style: StyleConfig;
+  fileName: string;
+  outputPath: string;
+  prompt: string;
+  skip: boolean;
+  skipReason?: string;
+}
 ```
-
-**Rating:** CRITICAL
 
 ---
 
-#### ⚠️ HIGH: Sequelize Instance Methods Defined Incorrectly
-**Issue:** Instance methods are defined in `instanceMethods` option, which is deprecated in Sequelize v4+.
+### M2. Magic Numbers Without Constants
+**Location:** Multiple locations  
+**Issue:** Hardcoded values like `120_000` (timeout), `0.04` (cost estimate), `200` (error slice length) scattered throughout.
 
-**Current (WRONG):**
-```javascript
-{
-  instanceMethods: {
-    isAvailable() { ... }
-  }
+```mjs
+// Should be:
+const REQUEST_TIMEOUT_MS = 120_000;
+const ESTIMATED_COST_PER_IMAGE = 0.04;
+const ERROR_MESSAGE_MAX_LENGTH = 200;
+```
+
+---
+
+### M3. Inconsistent Error Message Formatting
+**Location:** Lines 287, 295, 303, 314  
+**Issue:** Some errors slice to 200 chars, others to 300, others to 100. Inconsistent user experience.
+
+```mjs
+// Standardize:
+function formatError(err: unknown, maxLength = 150): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.length > maxLength ? msg.slice(0, maxLength) + '...' : msg;
 }
 ```
 
-**Should be:**
-```javascript
-// Define methods on the class prototype AFTER model initialization
-Achievement.prototype.isAvailable = function() {
-  if (!this.isActive) return false;
-  // ...
+---
+
+### M4. No Validation of Manifest Structure
+**Location:** Lines 161-168 (loadAchievementManifest)  
+**Issue:** Assumes manifest has correct structure. If `templates` is missing or malformed, script crashes with cryptic error.
+
+```mjs
+function loadAchievementManifest() {
+  if (!existsSync(ACHIEVEMENT_MANIFEST_PATH)) {
+    console.error(`  Error: Achievement manifest not found`);
+    process.exit(1);
+  }
+  
+  const data = JSON.parse(readFileSync(ACHIEVEMENT_MANIFEST_PATH, 'utf-8'));
+  
+  // Validate structure
+  if (!Array.isArray(data.templates)) {
+    console.error('  Error: Manifest missing "templates" array');
+    process.exit(1);
+  }
+  
+  if (data.templates.length === 0) {
+    console.error('  Error: Manifest has no templates');
+    process.exit(1);
+  }
+  
+  return data;
+}
+```
+
+---
+
+### M5. Prompt Construction Lacks Escaping
+**Location:** Line 251 (buildPrompt)  
+**Issue:** Template visual strings are directly interpolated. If a visual contains special characters or is maliciously crafted, could cause issues.
+
+```mjs
+function buildPrompt(template: AchievementTemplate, style: StyleConfig): string {
+  // Sanitize visual description
+  const sanitized = template.visual
+    .replace(/[^\w\s,.-]/g, '') // Remove special chars
+    .slice(0, 500); // Limit length
+  
+  return `${style.promptPrefix} a ${sanitized}, badge icon, collectible, beautiful, ${style.promptSuffix}`;
+}
+```
+
+---
+
+### M6. No Dry-Run Validation of API Key
+**Location:** Lines 354-361 (dry-run mode)  
+**Issue:** Dry-run mode doesn't validate API key. User might preview 750 prompts, then discover key is missing when running for real.
+
+```mjs
+if (opts.dryRun) {
+  // Validate key exists even in dry-run
+  const apiKey = getGeminiKey();
+  if (!apiKey) {
+    console.warn('  Warning: No API key found (dry-run will work, but real run will fail)');
+  }
+  // ... rest of dry-run logic
+}
+```
+
+---
+
+### M7. Cost Estimate Ignores Failures
+**Location:** Line 413  
+**Issue:** Cost estimate uses `successCount`, but user might want to know total attempted cost (including failed requests that still consumed quota).
+
+```mjs
+console.log(`  Cost:    ~$${(successCount * 0.04).toFixed(2)} (successful)`);
+console.log(`  Attempted: ~$${((successCount + failCount) * 0.04).toFixed(2)} (total)`);
+```
+
+---
+
+## LOW Issues
+
+### L1. Console.log Instead of Structured Logging
+**Location:** Throughout  
+**Issue:** All output uses `console.log`. No log levels, no timestamps, difficult to parse programmatically.
+
+**Recommendation:** Use a simple logger:
+```mjs
+const log = {
+  info: (msg) => console.log(`[INFO] ${new Date().toISOString()} ${msg}`),
+  warn: (msg) => console.warn(`[WARN] ${new Date().toISOString()} ${msg}`),
+  error: (msg) => console.error(`[ERROR] ${new Date().toISOString()} ${msg}`),
 };
-
-// OR use TypeScript class syntax (preferred)
-class Achievement extends Model {
-  isAvailable(): boolean {
-    // ...
-  }
-}
 ```
-
-**Rating:** HIGH
 
 ---
 
-#### ⚠️ HIGH: Class Methods Defined Incorrectly
-**Issue:** `classMethods` option is also deprecated. Should use static methods.
+### L2. No Version Check for Node.js
+**Location:** Top of file  
+**Issue:** Uses modern features (AbortSignal.timeout requires Node 17.3+, top-level await requires 14.8+). No check for compatible version.
 
-**Current (WRONG):**
-```javascript
-{
-  classMethods: {
-    async getByCategory(category) { ... }
-  }
+```mjs
+// Add at top:
+const MIN_NODE_VERSION = 17.3;
+const currentVersion = parseFloat(process.version.slice(1));
+if (currentVersion < MIN_NODE_VERSION) {
+  console.error(`Error: Node.js ${MIN_NODE_VERSION}+ required (current: ${process.version})`);
+  process.exit(1);
 }
 ```
-
-**Should be:**
-```typescript
-class Achievement extends Model {
-  static async getByCategory(
-    category: AchievementAttributes['category'], 
-    includeHidden = false
-  ): Promise<Achievement[]> {
-    const whereClause: any = {
-      category,
-      isActive: true
-    };
-    
-    if (!includeHidden) {
-      whereClause.isHidden = false;
-    }
-    
-    return this.findAll({
-      where: whereClause,
-      order: [['rarity', 'DESC'], ['xpReward', 'DESC']]
-    });
-  }
-}
-```
-
-**Rating:** HIGH
 
 ---
 
-#### ⚠️ MEDIUM: JSONB Fields Without Type Safety
-**Issue:** Fields like `bonusRewards`, `requirements`, `unlockConditions` use `JSONB` with no schema validation.
+### L3. Unused Variable in Help Text
+**Location:** Line 120 (printHelp)  
+**Issue:** Help text mentions `--help` and `-h` but doesn't show that both work in the examples section.
 
-**Current:**
-```javascript
-bonusRewards: {
-  type: DataTypes.JSONB,
-  allowNull: true,
-  defaultValue: []
-}
+---
+
+### L4. Inconsistent Spacing in Output
+**Location:** Lines 343-350  
+**Issue:** Some log lines have 2-space indent, others have 4. Inconsistent visual hierarchy.
+
+```mjs
+// Standardize:
+console.log('  ── Section Header ──');
+console.log('    Detail line');
+console.log('      Sub-detail');
 ```
 
-**Should be:**
-```typescript
-// Define schemas
-interface BonusReward {
-  type: 'xp' | 'points' | 'item' | 'discount';
-  value: number | string;
-  description: string;
-}
+---
 
-interface UnlockCondition {
-  field: string;
-  operator: string;
-  value: any;
-}
+### L5. No Emoji Validation
+**Location:** Manifest templates  
+**Issue:** Emoji field is not validated. If missing or invalid, could cause display issues in frontend.
 
-// In model:
-bonusRewards: {
-  type: DataTypes.JSONB,
-  allowNull: true,
-  defaultValue: [],
-  validate: {
-    isValidBonusRewards(value: unknown) {
-      if (!Array.isArray(value)) {
-        throw new Error('bonusRewards must be an array');
-      }
-      // Use Zod or JSON Schema for validation
-      bonusRewardsSchema.parse(value);
-    }
+```mjs
+function validateTemplate(tpl: AchievementTemplate): boolean {
+  if (!tpl.emoji || tpl.emoji.length === 0) {
+    console.warn(`  Warning: Template "${tpl.name}" missing emoji`);
+    return false;
   }
+  return true;
 }
 ```
 
-**Rating:** MEDIUM
-
 ---
 
-#### ⚠️ MEDIUM: Missing Indexes for Common Queries
-**Issue:** Model has indexes but missing some critical ones for performance.
+### L6. formatDuration Doesn't Handle Hours
+**Location:** Lines 344-350  
+**Issue:** If generation takes >60 minutes, displays as "65m 30s" instead of "1h 5m 30s".
 
-**Missing indexes:**
-```javascript
-{
-  fields: ['skillTree', 'skillTreeOrder'] // For skill tree queries
-},
-{
-  fields: ['templateId'] // For template-based queries
-},
-{
-  fields: ['category', 'isActive', 'isHidden'] // Composite for common filters
+```mjs
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 3_600_000) {
+    const min = Math.floor(ms / 60_000);
+    const sec = Math.round((ms % 60_000) / 1000);
+    return `${min}m ${sec}s`;
+  }
+  const hrs = Math.floor(ms / 3_600_000);
+  const min = Math.floor((ms % 3_600_000) / 60_000);
+  return `${hrs}h ${min}m`;
 }
 ```
 
-**Rating:** MEDIUM
+---
+
+### L7. No Output Directory Cleanup Option
+**Location:** Main function  
+**Issue:** No way to clean/regenerate existing badges. Must manually delete files.
+
+**Recommendation:** Add `--clean` flag:
+```mjs
+case '--clean':
+  opts.clean = true;
+  break;
+
+// In main:
+if (opts.clean) {
+  console.log('  Cleaning existing badges...');
+  const files = readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.png'));
+  for (const file of files) {
+    unlinkSync(join(OUTPUT_DIR, file));
+  }
+  console.log(`  Removed ${files.length} files`);
+}
+```
 
 ---
 
-#### ⚠️ LOW: Inconsistent Naming Convention
-**Issue:** Some fields use camel
+### L8. Manifest JSON Truncated in Review
+**Location:** achievement-badge-manifest.json line ~250  
+**Issue:** JSON is incomplete (ends mid-object). Cannot validate full structure.
+
+---
+
+## Summary Statistics
+
+| Severity | Count | Must Fix Before Production |
+|----------|-------|---------------------------|
+| CRITICAL | 3 | ✅ Yes |
+| HIGH | 5 | ✅ Yes |
+| MEDIUM | 7 | ⚠️ Recommended |
+| LOW | 8 | ❌ Optional |
+
+---
+
+## Recommended Fix Priority
+
+1. **C1, C3** - Add error handling for file ops and fetch timeouts
+2. **H2** - Add progress persistence (prevents re-work on crashes)
+3. **H4** - Improve retry logic for network errors
+4. **M1** - Convert to TypeScript for type safety
+5. **M4** - Add manifest validation
+6. **H1** - Fix race condition in file checks
+7. **M5** - Sanitize prompt inputs
+8. **All others** - Address as time permits
+
+---
+
+## Positive Observations
+
+✅ **Good CLI argument parsing** with validation  
+✅ **Comprehensive help text** with examples  
+✅ **Rate limiting** properly implemented  
+✅ **Exponential backoff** on 429 errors  
+✅ **Idempotent** - skips existing files  
+✅ **Dry-run mode** for testing  
+✅ **Clear progress output** during generation  
+✅ **Cost estimation** helps users plan  
+
+---
+
+## Architecture Concerns
+
+**Not a TypeScript/React review** - This is a Node.js script, not part of the React frontend. The review criteria (React hooks, styled-components, etc.) don't apply here. However, the generated images will be consumed by the React app, so ensure:
+
+1. **Naming convention** matches frontend expectations (`{name}_{style}.png`)
+2. **Output directory** is correctly mapped to public assets
+3. **Manifest structure** matches what the frontend achievement system expects
+4. **Error states** are communicated (missing images should have fallbacks in UI)
 
 ---
 
