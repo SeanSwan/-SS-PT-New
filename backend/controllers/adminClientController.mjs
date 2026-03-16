@@ -317,7 +317,9 @@ class AdminClientController {
         clientSource
       } = req.query;
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const safePage = Math.max(1, parseInt(page) || 1);
+      const safeLimit = Math.max(1, Math.min(100, parseInt(limit) || 10));
+      const offset = (safePage - 1) * safeLimit;
       const whereClause = { role: 'client' };
       
       // Build search conditions
@@ -395,7 +397,7 @@ class AdminClientController {
       const { count, rows: clients } = await User.findAndCountAll({
         where: whereClause,
         include: includeOptions,
-        limit: parseInt(limit),
+        limit: safeLimit,
         offset,
         order: [[sortBy, sortOrder.toUpperCase()]],
         attributes: { exclude: ['password', 'refreshTokenHash'] }
@@ -713,6 +715,9 @@ class AdminClientController {
       });
     } catch (error) {
       await transaction.rollback();
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ success: false, message: 'Email or username already exists' });
+      }
       logger.error('Error creating client:', error);
       return res.status(500).json({
         success: false,
@@ -733,8 +738,16 @@ class AdminClientController {
       const { clientId } = req.params;
       const updates = req.body;
 
-      // Remove sensitive fields that shouldn't be updated this way
-      const { password, refreshTokenHash, ...safeUpdates } = updates;
+      // Strict whitelist — isActive excluded to force changes through soft-delete endpoint
+      const allowedFields = [
+        'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender',
+        'weight', 'height', 'fitnessGoal', 'trainingExperience',
+        'healthConcerns', 'emergencyContact'
+      ];
+      const safeUpdates = {};
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) safeUpdates[field] = updates[field];
+      }
 
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
@@ -749,7 +762,7 @@ class AdminClientController {
         });
       }
 
-      // Update client data
+      // Update client data (whitelisted fields only)
       await client.update(safeUpdates, { transaction });
 
       // MCP servers decommissioned — profile already saved via client.update() above
@@ -799,9 +812,6 @@ class AdminClientController {
       }
 
       if (softDelete) {
-        // Soft delete - deactivate and cancel future sessions
-        await client.update({ isActive: false }, { transaction });
-
         // Cancel any future scheduled sessions for this client
         const cancelledCount = await Session.update(
           { status: 'cancelled', notes: 'Auto-cancelled: client account deactivated' },
@@ -815,10 +825,17 @@ class AdminClientController {
           }
         );
 
-        logger.info(`Deactivated client ${clientId}, cancelled ${cancelledCount[0]} future sessions`);
+        // Deactivate and zero out sessions to prevent corrupted math on reactivation
+        await client.update({ isActive: false, availableSessions: 0 }, { transaction });
+
+        logger.info(`Deactivated client ${clientId}, cancelled ${cancelledCount[0]} future sessions, zeroed availableSessions`);
       } else {
-        // Hard delete - remove completely (paranoid soft delete in model)
-        await client.destroy({ transaction });
+        // Hard delete removed for compliance (financial & liability retention)
+        await transaction.rollback();
+        return res.status(403).json({
+          success: false,
+          message: 'Hard deletion is disabled for compliance. Use soft delete (isActive=false) instead.'
+        });
       }
 
       await transaction.commit();
@@ -977,14 +994,18 @@ class AdminClientController {
       const { clientId } = req.params;
       const { startDate, endDate } = req.query;
 
-      // Build date filter for both queries
+      // Validate and sanitize date inputs (prevent object injection + invalid date crashes)
+      const isValidDate = (d) => d && !isNaN(Date.parse(String(d)));
+      const safeStartDate = isValidDate(startDate) ? new Date(String(startDate)).toISOString() : null;
+      const safeEndDate = isValidDate(endDate) ? new Date(String(endDate)).toISOString() : null;
+
       const dateFilter = {};
-      if (startDate && endDate) {
-        dateFilter.date = { [Op.between]: [startDate, endDate] };
-      } else if (startDate) {
-        dateFilter.date = { [Op.gte]: startDate };
-      } else if (endDate) {
-        dateFilter.date = { [Op.lte]: endDate };
+      if (safeStartDate && safeEndDate) {
+        dateFilter.date = { [Op.between]: [safeStartDate, safeEndDate] };
+      } else if (safeStartDate) {
+        dateFilter.date = { [Op.gte]: safeStartDate };
+      } else if (safeEndDate) {
+        dateFilter.date = { [Op.lte]: safeEndDate };
       }
 
       const [totalWorkouts, totalForms, recentWorkouts] = await Promise.all([
@@ -1012,7 +1033,7 @@ class AdminClientController {
             intensity: w.intensity || 0,
             notes: w.notes || null,
           })),
-          dateRange: { startDate: startDate || null, endDate: endDate || null }
+          dateRange: { startDate: safeStartDate, endDate: safeEndDate }
         }
       });
     } catch (error) {
