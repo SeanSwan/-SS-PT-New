@@ -23,6 +23,7 @@ html {
   margin: 0;
   padding: 0;
   scroll-behavior: smooth; /* Smooth scrolling for better UX */
+  color-scheme: dark light; /* Tell Dark Reader this app handles its own theme */
 }
 
 body {

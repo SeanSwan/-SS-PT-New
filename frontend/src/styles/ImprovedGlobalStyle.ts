@@ -39,8 +39,8 @@ const ImprovedGlobalStyle = createGlobalStyle`
   
   body, html {
     font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #002060, #1e1e3f);
-    color: white;
+    background: var(--bg-primary, #002060);
+    color: var(--text-primary, white);
     min-height: 100vh;
     margin: 0;
     padding: 0;
@@ -50,10 +50,10 @@ const ImprovedGlobalStyle = createGlobalStyle`
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   /* Main root container */
   #root {
-    background: linear-gradient(135deg, #002060, #1e1e3f);
+    background: var(--bg-primary, #002060);
     min-height: 100vh;
     width: 100%;
     isolation: isolate;
@@ -66,7 +66,7 @@ const ImprovedGlobalStyle = createGlobalStyle`
     margin-bottom: 0.5rem;
     font-weight: 600;
     line-height: 1.2;
-    color: white;
+    color: var(--text-heading, white);
   }
   
   h1 { font-size: clamp(2rem, 5vw, 3rem); }
