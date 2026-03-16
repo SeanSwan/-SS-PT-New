@@ -8,6 +8,7 @@ import {
   Target, Building2, Star, Sparkles, Clock, Award,
   TrendingUp, Music, Palette, Gamepad2, Flame, MapPin,
   Shield, Brain, Zap, Crosshair, Mic2, Mic, Laugh, Paintbrush,
+  Camera, UserCircle, FileSignature, PlayCircle, Globe,
 } from 'lucide-react';
 
 import GlowButton from '../../../components/ui/buttons/GlowButton';
@@ -285,6 +286,35 @@ const HeroButtons = styled.div`
   gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
+`;
+
+const QuickNav = styled.nav`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  max-width: 520px;
+
+  /* Pill-style overrides for GlowButton children */
+  & button {
+    font-size: 0.72rem !important;
+    padding: 6px 14px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 16px !important;
+    letter-spacing: 0.3px;
+  }
+
+  @media (max-width: 430px) {
+    gap: 0.4rem;
+    & button {
+      font-size: 0.68rem !important;
+      padding: 5px 10px !important;
+      height: 30px !important;
+      min-height: 30px !important;
+    }
+  }
 `;
 
 const Section = styled.section<{ $alt?: boolean }>`
@@ -931,6 +961,43 @@ const HomePageV3: React.FC = () => {
 
       {/* ── 1. HERO ──────────────────────────────────── */}
       <ParallaxHero videoSrc="/Swans.mp4" overlayOpacity={0.55} minHeight="100vh">
+        <QuickNav aria-label="Quick navigation">
+          <GlowButton
+            text="Social Profile"
+            variant="accent"
+            size="small"
+            leftIcon={<Globe size={14} />}
+            onClick={() => navigate('/social')}
+          />
+          <GlowButton
+            text="Dashboard"
+            variant="primary"
+            size="small"
+            leftIcon={<UserCircle size={14} />}
+            onClick={() => navigate('/dashboard')}
+          />
+          <GlowButton
+            text="Photography"
+            variant="gilded"
+            size="small"
+            leftIcon={<Camera size={14} />}
+            onClick={() => navigate('/gallery')}
+          />
+          <GlowButton
+            text="Waiver"
+            variant="ghost"
+            size="small"
+            leftIcon={<FileSignature size={14} />}
+            onClick={() => navigate('/waiver')}
+          />
+          <GlowButton
+            text="Video Library"
+            variant="ghost"
+            size="small"
+            leftIcon={<PlayCircle size={14} />}
+            onClick={() => navigate('/video-library')}
+          />
+        </QuickNav>
         <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         <HeroHeadline>
           <TypewriterText text="Where Excellence Meets Precision" as="span" speed={50} />
