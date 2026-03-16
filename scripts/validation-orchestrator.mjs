@@ -2,10 +2,10 @@
 
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║         SwanStudios 9-Brain Recursive Consensus System          ║
+ * ║         SwanStudios 10-Brain Recursive Consensus System         ║
  * ║           OpenRouter + Google GenAI + Recursive Debates          ║
  * ║                                                                  ║
- * ║  Phase 1 — 7 parallel analysts (OpenRouter):                      ║
+ * ║  Phase 1 — 8 parallel analysts (OpenRouter):                      ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility        (FREE)    ║
  * ║  2. Claude 4.5 Sonnet   → Code Quality               (FREE)    ║
  * ║  3. Step 3.5 Flash       → Security scan              (FREE)    ║
@@ -13,14 +13,15 @@
  * ║  5. MiniMax M2.1         → Competitive intelligence   (FREE)    ║
  * ║  6. DeepSeek V3.2        → User research / personas   (FREE)    ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)  ║
+ * ║  8. Gemini 3.1 Flash     → Frontend UX & Code Patterns (FREE)  ║
  * ║                                                                  ║
  * ║  Phase 2 — RECURSIVE CODE QUALITY DEBATE:                       ║
- * ║  8. Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)             ║
+ * ║  9. Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)             ║
  * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
  * ║     Claude = final authority on code decisions                  ║
  * ║                                                                  ║
  * ║  Phase 3 — RECURSIVE UX/UI DESIGN DEBATE:                      ║
- * ║  9. Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collaborator)      ║
+ * ║  10. Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collaborator)     ║
  * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
  * ║     Gemini = final authority on design decisions                ║
  * ║                                                                  ║
@@ -60,6 +61,7 @@ const MODELS = {
   // ── VERIFIED FREE on OpenRouter ──
   gemini25Flash:  'google/gemini-2.5-flash',           // FREE — fast, great at structured analysis
   gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
+  gemini31Flash:  'google/gemini-3.1-flash-preview',   // FREE — latest Flash, strong at code review
   deepseekV3:     'deepseek/deepseek-v3.2-20251201',  // FREE — user research / personas
   step35Flash:    'stepfun/step-3.5-flash:free',       // FREE — 256K ctx, 74.4% SWE-bench, security specialist
   minimaxM21:     'minimax/minimax-m2.1',              // FREE
@@ -224,7 +226,7 @@ function formatCodeBundle(files) {
 
 function buildValidatorTracks(codeBundle, fileList) {
   const fileNames = fileList.map(f => f.path).join(', ');
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Glow Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
+  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent — buttons, hovers, animations), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
 
   const tracks = [
     {
@@ -406,6 +408,26 @@ Output as structured markdown. Be ruthless — this codebase ships to production
 CODE TO REVIEW:
 ${codeBundle}`,
     },
+
+    {
+      name: 'Frontend UX & Code Patterns',
+      model: MODELS.gemini31Flash,
+      prompt: `You are Gemini 3.1 Flash — a fast, high-capability code and UX reviewer. ${ctx}
+
+Review the following code for:
+1. **React Component Patterns** — proper component composition, hooks hygiene, render optimization
+2. **styled-components Best Practices** — theme token consistency, no inline styles, glassmorphism patterns
+3. **Animation & Interaction** — Framer Motion usage, CSS transitions, hover/focus states, reduced-motion support
+4. **Form UX** — validation feedback, autofill compatibility, error messages, progressive disclosure
+5. **State Management** — appropriate use of useState vs useReducer vs context, derived state anti-patterns
+6. **Accessibility Gaps** — missing ARIA roles, keyboard traps, color-only indicators, skip navigation
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
   ];
 
   // Phase 2 + 3 are now recursive debates — handled in main() via runRecursiveConsensus()
@@ -427,7 +449,7 @@ You are starting a structured debate with the CEO (Claude) about code quality. Y
 
 The CEO will challenge your findings. You must defend with evidence or concede gracefully.
 
-## Phase 1 Context (7 validators already ran)
+## Phase 1 Context (8 validators already ran)
 
 ${phase1Summary}
 
@@ -723,7 +745,7 @@ ${extractFindings(results, 'HIGH')}
 ---
 
 *SwanStudios 9-Brain Recursive Consensus System v9.0*
-*Phase 1: Gemini 2.5 Flash + Claude 4.5 Sonnet + Step 3.5 Flash + DeepSeek V3.2 + Gemini 3 Flash + MiniMax M2.1 + MiniMax M2.5*
+*Phase 1: Gemini 2.5 Flash + Claude 4.5 Sonnet + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.5*
 *Phase 2: Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO) recursive debate*
 *Phase 3: Gemini 3.1 Pro (Creative Dir) ↔ Claude Sonnet (Collaborator) recursive debate*
 `;
@@ -759,20 +781,20 @@ async function main() {
   loadEnv();
 
   const hasGemini31 = !!getGeminiKey();
-  const brainCount = hasGemini31 ? 9 : 7;
+  const brainCount = hasGemini31 ? 10 : 8;
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
-  console.log('  ║    SwanStudios 9-Brain Recursive Consensus System       ║');
+  console.log('  ║    SwanStudios 10-Brain Recursive Consensus System      ║');
   const subtitle = hasGemini31
     ? `${brainCount}-Brain — Recursive Debates ENABLED`
-    : `7-Brain — Phase 1 only (add GEMINI_API_KEY for 9-Brain)`;
+    : `8-Brain — Phase 1 only (add GEMINI_API_KEY for 10-Brain)`;
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
-  console.log('  ║    Phase 1: 7 Parallel Validators (OpenRouter)          ║');
+  console.log('  ║    Phase 1: 8 Parallel Validators (OpenRouter)          ║');
   console.log('  ║    Gemini 2.5 Flash · Claude Sonnet · Step 3.5 Flash   ║');
-  console.log('  ║    Gemini 3 Flash · MiniMax M2.1 · DeepSeek V3.2      ║');
-  console.log('  ║    MiniMax M2.5                                         ║');
+  console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · DeepSeek V3.2  ║');
+  console.log('  ║    MiniMax M2.1 · MiniMax M2.5                          ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 2: Code Quality Recursive Debate              ║');
@@ -823,7 +845,7 @@ async function main() {
 
   const codeBundle = formatCodeBundle(files);
   const fileNames = files.map(f => f.path).join(', ');
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Glow Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
+  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent — buttons, hovers, animations), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
   const tracks = buildValidatorTracks(codeBundle, files);
 
   // All tracks are Phase 1 now — Phase 2+3 are recursive debates
@@ -1240,7 +1262,7 @@ function buildHandoffPrompt(results, files) {
 
 I just ran the 9-Brain Recursive Consensus System on these files: ${fileNames}
 
-Here is a consolidated summary of all findings from Phase 1 (7 parallel validators) + Phase 2 (code quality debate) + Phase 3 (design debate). Please analyze these findings, prioritize them, create an action plan, and fix the CRITICAL and HIGH issues.
+Here is a consolidated summary of all findings from Phase 1 (8 parallel validators) + Phase 2 (code quality debate) + Phase 3 (design debate). Please analyze these findings, prioritize them, create an action plan, and fix the CRITICAL and HIGH issues.
 
 ---
 

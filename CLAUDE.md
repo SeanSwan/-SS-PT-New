@@ -85,7 +85,7 @@ Any AI session that involves frontend UI/UX work MUST read these documents first
 | 4 | QA + Launch | All KPIs green, no Critical/High regressions |
 
 ### Design Constraints
-- **Crystalline Swan identity** must be preserved (frozen enchanted forest + luxury vault aesthetic, Ice Wing `#60C0F0` accents, Wing Purple `#8B5CF6` glows, Midnight Sapphire `#002060` surfaces)
+- **Crystalline Swan identity** must be preserved (frozen enchanted forest + luxury vault aesthetic, Ice Wing `#60C0F0` accents, Arctic Cyan `#50A0F0` glows, Midnight Sapphire `#002060` surfaces)
 - **Monetization flows are sacred** - checkout, booking, store get component-level diff thresholds (0.5%)
 - **No "AI slop"** - Avoid generic gradients, stock patterns, cookie-cutter layouts
 - **Runtime feature flag** (`useNewTheme` via `/api/feature-flags`) with localStorage cache + 1.5s timeout
@@ -101,8 +101,8 @@ Any AI session that involves frontend UI/UX work MUST read these documents first
 
 ---
 
-## 9-Brain Recursive Consensus System (MANDATORY)
-SwanStudios uses a 9-Brain AI validation pipeline. **Run before every production deploy.**
+## 10-Brain Recursive Consensus System (MANDATORY)
+SwanStudios uses a 10-Brain AI validation pipeline. **Run before every production deploy.**
 
 ```bash
 # Run validation on recent changes
@@ -116,7 +116,7 @@ node scripts/validation-orchestrator.mjs --staged
 ```
 
 ### Architecture
-- **Phase 1:** 7 parallel validators (Gemini 2.5 Flash, Claude Sonnet, Step 3.5 Flash, Gemini 3 Flash, MiniMax M2.1, DeepSeek V3.2, MiniMax M2.5)
+- **Phase 1:** 8 parallel validators (Gemini 2.5 Flash, Claude Sonnet, Step 3.5 Flash, Gemini 3 Flash, Gemini 3.1 Flash, MiniMax M2.1, DeepSeek V3.2, MiniMax M2.5)
 - **Phase 2:** Code quality recursive debate — Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO). Claude = final authority.
 - **Phase 3:** UX/UI design recursive debate — Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet (Collaborator). Gemini = final authority.
 - **Output:** `AI-Village-Documentation/validation-prompts/latest/` (summary, per-track reports, debate logs, fix instructions)
