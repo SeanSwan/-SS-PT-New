@@ -35,7 +35,7 @@ nav a::after {
   left: 0 !important;
   width: 100% !important; /* Make underline full width of text */
   height: 2px !important;
-  background: var(--neon-blue, #00ffff) !important;
+  background: var(--neon-blue, #60c0f0) !important;
   transform: scaleX(0) !important; /* Initially hidden */
   transform-origin: center !important;
   transition: transform 0.3s ease !important;

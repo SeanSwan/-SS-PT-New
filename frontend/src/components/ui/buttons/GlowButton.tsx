@@ -1,11 +1,9 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { motion } from "framer-motion";
 
-// Import the raw context so we can do a safe useContext (no throw) inside the
-// component.  The module itself always resolves — it is the *provider* that
-// may or may not be mounted higher in the tree.
-import { useUniversalTheme as _useUniversalTheme } from '../../../context/ThemeContext/UniversalThemeContext';
+// Import the raw context for safe direct useContext (no throw when provider is missing)
+import { ThemeContext } from '../../../context/ThemeContext/UniversalThemeContext';
 
 // ─── Crystalline Swan Palette ──────────────────────────────────────────────────
 // New 6-variant color scheme aligned with the Crystalline Swan design direction.
@@ -60,6 +58,7 @@ export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 
 interface ButtonTheme {
   background: string;
+  backgroundLoading?: string;
   color: string;
   shadow: string;
   shineLeft: string;
@@ -97,29 +96,32 @@ const resolveVariant = (v: string): CanonicalVariant => {
 
 // ─── Crystalline Swan button themes ────────────────────────────────────────────
 const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
-  // PRIMARY — Midnight Sapphire base, Ice Wing glow
+  // PRIMARY — Midnight Sapphire base, Wing Purple glow (Gemini 3.1 Pro directive)
   primary: {
     background: "#002060",
+    backgroundLoading: "#001840",
     color: "#E0ECF4",
-    shadow: "rgba(0, 32, 96, 0.35)",
-    shineLeft: "rgba(96, 192, 240, 0.5)",   // Ice Wing
-    shineRight: "rgba(80, 160, 240, 0.65)",  // Arctic Cyan
+    shadow: "rgba(0, 24, 64, 0.5)",
+    shineLeft: "rgba(139, 92, 246, 0.5)",    // Wing Purple
+    shineRight: "rgba(139, 92, 246, 0.65)",  // Wing Purple
+    glowStart: "#8B5CF6",                    // Wing Purple
+    glowEnd: "#60C0F0",                      // Ice Wing (gradient endpoint)
+  },
+  // ACCENT — Wing Purple base, Cosmic Cyan glow (dual-button system)
+  accent: {
+    background: "#8B5CF6",
+    backgroundLoading: "#5A32A8",
+    color: "#FFFFFF",
+    shadow: "rgba(139, 92, 246, 0.35)",
+    shineLeft: "rgba(96, 192, 240, 0.55)",   // Ice Wing cyan glow
+    shineRight: "rgba(80, 160, 240, 0.7)",   // Arctic Cyan glow
     glowStart: "#60C0F0",                    // Ice Wing
     glowEnd: "#50A0F0",                      // Arctic Cyan
-  },
-  // ACCENT — Royal Depth base, Arctic Cyan glow
-  accent: {
-    background: "#003080",
-    color: "#E0ECF4",
-    shadow: "rgba(0, 48, 128, 0.35)",
-    shineLeft: "rgba(80, 160, 240, 0.55)",   // Arctic Cyan
-    shineRight: "rgba(96, 192, 240, 0.7)",   // Ice Wing
-    glowStart: "#50A0F0",                    // Arctic Cyan
-    glowEnd: "#60C0F0",                      // Ice Wing
   },
   // GILDED — Dark gold base, Gilded Fern glow (premium / CTA / checkout)
   gilded: {
     background: "#1A1505",
+    backgroundLoading: "#120E03",
     color: "#E0ECF4",
     shadow: "rgba(198, 168, 75, 0.25)",
     shineLeft: "rgba(198, 168, 75, 0.55)",   // Gilded Fern
@@ -130,6 +132,7 @@ const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
   // SUCCESS — Dark green base, green glow
   success: {
     background: "#0A1E10",
+    backgroundLoading: "#061208",
     color: "#E0ECF4",
     shadow: "rgba(34, 197, 94, 0.2)",
     shineLeft: "rgba(34, 197, 94, 0.5)",
@@ -140,6 +143,7 @@ const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
   // DANGER — Dark red base, red glow
   danger: {
     background: "#1E0A0A",
+    backgroundLoading: "#140606",
     color: "#E0ECF4",
     shadow: "rgba(239, 68, 68, 0.2)",
     shineLeft: "rgba(239, 68, 68, 0.5)",
@@ -157,15 +161,16 @@ const BUTTON_THEMES: Record<CanonicalVariant, ButtonTheme> = {
     glowStart: "#4070C0",                    // Swan Lavender
     glowEnd: "#60C0F0",                      // Ice Wing
   },
-  // COSMIC GRADIENT — Animated cyan→purple gradient border, deep space base
+  // COSMIC GRADIENT — Animated purple→cyan gradient border, Cosmic Nebula
   cosmicGradient: {
-    background: "#002060",
-    color: "#E0ECF4",
+    background: "linear-gradient(135deg, #8B5CF6, #60C0F0)",
+    backgroundLoading: "#5A32A8",
+    color: "#FFFFFF",
     shadow: "rgba(139, 92, 246, 0.15)",
-    shineLeft: "rgba(139, 92, 246, 0.5)",     // Cyan
-    shineRight: "rgba(139, 92, 246, 0.65)",  // Cosmic Purple
-    glowStart: "#8B5CF6",                    // Swan Cyan
-    glowEnd: "#8B5CF6",                      // Cosmic Purple
+    shineLeft: "rgba(139, 92, 246, 0.5)",     // Wing Purple
+    shineRight: "rgba(96, 192, 240, 0.65)",   // Ice Wing
+    glowStart: "#8B5CF6",                     // Wing Purple
+    glowEnd: "#60C0F0",                       // Ice Wing
   },
 };
 
@@ -182,11 +187,11 @@ const LIGHT_THEME_OVERRIDES: Record<CanonicalVariant, Partial<ButtonTheme>> = {
     shineRight: "rgba(80, 160, 240, 0.4)",
   },
   accent: {
-    background: "#50A0F0",
+    background: "#8B5CF6",
     color: "#FFFFFF",
-    shadow: "rgba(0, 48, 128, 0.18)",
-    shineLeft: "rgba(0, 48, 128, 0.3)",
-    shineRight: "rgba(96, 192, 240, 0.4)",
+    shadow: "rgba(139, 92, 246, 0.18)",
+    shineLeft: "rgba(96, 192, 240, 0.3)",
+    shineRight: "rgba(80, 160, 240, 0.4)",
   },
   gilded: {
     background: "#C6A84B",
@@ -217,35 +222,35 @@ const LIGHT_THEME_OVERRIDES: Record<CanonicalVariant, Partial<ButtonTheme>> = {
     shineRight: "rgba(64, 112, 192, 0.25)",
   },
   cosmicGradient: {
-    background: "linear-gradient(135deg, #00BFFF, #8B5CF6)",
+    background: "linear-gradient(135deg, #8B5CF6, #60C0F0)",
     color: "#FFFFFF",
-    shadow: "rgba(0, 191, 255, 0.18)",
-    shineLeft: "rgba(0, 191, 255, 0.3)",
-    shineRight: "rgba(139, 92, 246, 0.4)",
+    shadow: "rgba(139, 92, 246, 0.18)",
+    shineLeft: "rgba(139, 92, 246, 0.3)",
+    shineRight: "rgba(96, 192, 240, 0.4)",
   },
 };
 
-// Button sizes
+// Button sizes — Gemini 3.1 Pro directive: 44/48/56px scale (44px mobile-first minimum)
 const BUTTON_SIZES: Record<GlowButtonSize, ButtonSize> = {
   small: {
     fontSize: "14px",
-    padding: "8px 16px",
+    padding: "10px 20px",
     width: "100px",
-    height: "36px",
-    borderRadius: "8px",
+    height: "44px",
+    borderRadius: "10px",
   },
   medium: {
     fontSize: "16px",
-    padding: "10px 20px",
+    padding: "12px 24px",
     width: "140px",
-    height: "44px",
-    borderRadius: "11px",
+    height: "48px",
+    borderRadius: "12px",
   },
   large: {
     fontSize: "18px",
-    padding: "12px 24px",
+    padding: "14px 28px",
     width: "160px",
-    height: "52px",
+    height: "56px",
     borderRadius: "14px",
   },
 };
@@ -283,6 +288,7 @@ const generateButtonVars = (
   isLightTheme?: boolean,
 ) => css`
   --button-background: ${theme.background};
+  --button-background-loading: ${theme.backgroundLoading || theme.background};
   --button-color: ${theme.color};
   --button-shadow: ${theme.shadow};
   --button-shine-left: ${theme.shineLeft};
@@ -396,9 +402,9 @@ const StyledGlowButton = styled.button.withConfig({
         : '0 10px 25px var(--button-shadow)'};
   }
 
-  &:focus {
-    outline: 2px solid var(--button-glow-end);
-    outline-offset: 2px;
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 4px;
   }
 
   &:disabled {
@@ -436,13 +442,17 @@ const Gradient = styled.div`
     border-radius: 50%;
     background: linear-gradient(90deg, var(--button-shine-left), var(--button-shine-right));
     animation: ${rotate} linear 2s infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 `;
 
 // Button text with glow effect
 const ButtonSpan = styled.span.withConfig({
-  shouldForwardProp: (prop) => prop !== 'isAnimating'
-})<{ isAnimating?: boolean }>`
+  shouldForwardProp: (prop) => !['isAnimating', '$isLoading'].includes(prop)
+})<{ isAnimating?: boolean; $isLoading?: boolean }>`
   z-index: 1;
   position: relative;
   display: flex;
@@ -451,13 +461,18 @@ const ButtonSpan = styled.span.withConfig({
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background-color: var(--button-background);
+  background: ${({ $isLoading }) =>
+    $isLoading ? 'var(--button-background-loading)' : 'var(--button-background)'};
   overflow: hidden;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 
   ${({ isAnimating }) => isAnimating && css`
     animation: ${pulse} 2s infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `}
 
   &:before {
@@ -488,6 +503,10 @@ const Ripple = styled.span<{ $x: number; $y: number }>`
   transform: translate(-50%, -50%) scale(0);
   animation: ${ripple} 0.6s linear;
   pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 // Loading spinner
@@ -520,19 +539,11 @@ interface RippleData {
 }
 
 // ─── Safe theme hook ───────────────────────────────────────────────────────────
-// Returns the current theme id, falling back to null when the GlowButton is
-// rendered outside a UniversalThemeProvider (e.g. in Storybook or tests).
-// We cannot wrap useContext in try/catch because hooks must not be called
-// conditionally, so instead we call useContext unconditionally but tolerate
-// `undefined` when the provider is missing.
+// Uses useContext directly on the raw ThemeContext. Returns null when the
+// provider is absent (Storybook, tests). No try/catch — no Rules of Hooks risk.
 function useSafeTheme(): string | null {
-  try {
-    const ctx = _useUniversalTheme();
-    return ctx?.currentTheme ?? null;
-  } catch {
-    // Provider not mounted — fall through to default (dark) behavior
-    return null;
-  }
+  const ctx = useContext(ThemeContext);
+  return ctx?.currentTheme ?? null;
 }
 
 /**
@@ -660,6 +671,7 @@ const GlowButton: React.FC<GlowButtonProps> = ({
       >
         <StyledGlowButton
           ref={buttonRef}
+          type="button"
           onClick={handleClick}
           disabled={disabled || isLoading}
           $theme={buttonTheme}
@@ -675,7 +687,7 @@ const GlowButton: React.FC<GlowButtonProps> = ({
           aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}
         >
           <Gradient />
-          <ButtonSpan isAnimating={isAnimating}>
+          <ButtonSpan isAnimating={isAnimating} $isLoading={isLoading}>
             {isLoading && <Spinner />}
             {!isLoading && resolvedLeftIcon && (
               <IconContainer position="left">{resolvedLeftIcon}</IconContainer>

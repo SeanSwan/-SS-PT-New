@@ -49,14 +49,25 @@ export const theme = {
   },
 
   /**
-   * Color System
-   * Brand colors, semantic colors, session status colors
+   * Color System — Enchanted Apex: Crystalline Swan
+   * Brand colors, glow system, semantic colors, session status colors
    */
   colors: {
     brand: {
-      cyan: '#60c0f0',    // Primary brand color — Ice Wing (was #00ffff)
-      purple: '#8b5cf6',  // Secondary brand color — Wing Purple (was #7851a9)
-      gradient: 'linear-gradient(135deg, #60c0f0, #8b5cf6)' // Brand gradient
+      cyan: '#60c0f0',    // Ice Wing — gaming/data accent
+      purple: '#8b5cf6',  // Wing Purple — primary glow/interactive accent
+      gradient: 'linear-gradient(135deg, #8b5cf6, #60c0f0)' // Cosmic Nebula gradient (purple → cyan)
+    },
+    surface: {
+      midnightSapphire: '#002060', // Primary surfaces
+      royalDepth: '#003080',       // Elevated surfaces
+      abyssalNavy: '#001840',      // WCAG-compliant dark backgrounds
+    },
+    glow: {
+      primary: '#8b5cf6',   // Wing Purple — glow on blue buttons, focus rings, active nav
+      cyan: '#60c0f0',      // Ice Wing Cyan — glow on purple buttons, XP bars, gaming accents
+      secondary: '#50a0f0', // Arctic Cyan — charts, data viz, cold metrics only
+      luxury: '#c6a84b',    // Gilded Fern — gold borders, luxury accents
     },
     semantic: {
       success: '#22c55e', // Green - success states
@@ -75,8 +86,38 @@ export const theme = {
     text: {
       primary: '#ffffff',                  // White - main text
       secondary: 'rgba(255, 255, 255, 0.7)', // 70% white - secondary text
-      disabled: 'rgba(255, 255, 255, 0.5)'   // 50% white - disabled text
+      disabled: 'rgba(255, 255, 255, 0.5)',  // 50% white - disabled text
+      frost: '#e0ecf4',                      // Frost White — headings, emphasis
     }
+  },
+
+  /**
+   * Dual-Button Glow System
+   * Blue buttons get purple glow, purple buttons get cyan glow.
+   * This creates visual variety and breaks up solid-blue monotony.
+   */
+  buttons: {
+    primary: { bg: '#002060', glow: '#8b5cf6' },   // Midnight Sapphire + Wing Purple glow
+    accent:  { bg: '#8b5cf6', glow: '#60c0f0' },   // Wing Purple + Ice Wing Cyan glow
+    cosmic:  { bg: 'linear-gradient(135deg, #8b5cf6, #60c0f0)', glow: '#8b5cf6' }, // Nebula gradient
+  },
+
+  /**
+   * Shadow System — Gemini 3.1 Pro approved multi-layer glow tokens
+   */
+  shadows: {
+    glowPrimary: '0 4px 12px rgba(0, 24, 64, 0.5), 0 0 12px 0 rgba(139, 92, 246, 0.4), 0 0 24px 0 rgba(139, 92, 246, 0.2)',
+    glowPrimaryHover: '0 6px 16px rgba(0, 24, 64, 0.6), 0 0 16px 2px rgba(139, 92, 246, 0.6), 0 0 32px 4px rgba(139, 92, 246, 0.3)',
+    glowSecondary: '0 4px 12px rgba(0, 24, 64, 0.5), 0 0 12px 0 rgba(80, 160, 240, 0.4), 0 0 24px 0 rgba(80, 160, 240, 0.2)',
+    glowGaming: '0 4px 12px rgba(0, 24, 64, 0.5), 0 0 12px 0 rgba(96, 192, 240, 0.4), 0 0 24px 0 rgba(96, 192, 240, 0.2)',
+  },
+
+  /**
+   * Animation Easing — Gemini 3.1 Pro approved
+   */
+  easing: {
+    premiumSnap: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
   },
 
   /**

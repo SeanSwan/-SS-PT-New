@@ -50,7 +50,7 @@ const GeneratorContainer = styled.div`
     inset: 0;
     border-radius: 16px;
     padding: 1px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #8b5cf6, #60c0f0);
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -76,7 +76,7 @@ const GeneratorTitle = styled.h4`
     to right,
     #a9f8fb,
     #46cdcf,
-    #7b2cbf,
+    #8b5cf6,
     #c8b6ff
   );
   background-clip: text;
@@ -260,7 +260,7 @@ const ActionButton = styled.button`
   gap: 0.5rem;
   min-height: 44px;
   padding: 0.625rem 1.5rem;
-  background: linear-gradient(90deg, #0ea5e9, #7851a9);
+  background: linear-gradient(90deg, #0ea5e9, #8b5cf6);
   color: white;
   border: none;
   border-radius: 8px;
@@ -271,7 +271,7 @@ const ActionButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(90deg, #7851a9, #0ea5e9);
+    background: linear-gradient(90deg, #8b5cf6, #0ea5e9);
   }
 
   &:disabled {

@@ -58,7 +58,7 @@ const SuccessCircle = styled(motion.div)`
   width: 120%;
   height: 120%;
   border-radius: 50%;
-  border: 3px solid #00ffff;
+  border: 3px solid #60c0f0;
   animation: ${glow} 2s infinite ease-in-out;
 `;
 
@@ -66,7 +66,7 @@ const SuccessTitle = styled(motion.h1)`
   font-size: 2.5rem;
   margin: 1rem 0;
   font-weight: 700;
-  background: linear-gradient(90deg, #00ffff, #0099ff, #00ffff);
+  background: linear-gradient(90deg, #60c0f0, #0099ff, #60c0f0);
   background-size: 200% auto;
   color: #fff;
   background-clip: text;
@@ -119,7 +119,7 @@ const ButtonContainer = styled(motion.div)`
 `;
 
 const StyledButton = styled.button`
-  background: linear-gradient(90deg, #0099ff, #00ffff);
+  background: linear-gradient(90deg, #8b5cf6, #60c0f0);
   color: white;
   font-weight: bold;
   border: none;
@@ -180,7 +180,7 @@ const CheckoutSuccessAnimation = () => {
   
   // Generate confetti
   useEffect(() => {
-    const colors = ['#00ffff', '#0099ff', '#ffffff', '#ff9900', '#ff00ff'];
+    const colors = ['#60c0f0', '#0099ff', '#ffffff', '#ff9900', '#8b5cf6'];
     const types = ['circle', 'square'];
     const newConfetti = [];
     

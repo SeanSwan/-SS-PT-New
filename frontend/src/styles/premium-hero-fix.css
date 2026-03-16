@@ -49,7 +49,7 @@ h1.main-title,
   -webkit-background-clip: text !important;
   color: transparent !important;
   animation: gradientText 10s ease infinite !important;
-  text-shadow: 0 5px 30px rgba(120, 81, 169, 0.5) !important;
+  text-shadow: 0 5px 30px rgba(139, 92, 246, 0.5) !important;
 }
 
 @keyframes gradientText {
@@ -82,7 +82,7 @@ h1.main-title,
   white-space: normal !important;
   overflow: visible !important;
   display: inline !important;
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
   font-weight: 500 !important;
 }
 
@@ -151,7 +151,7 @@ h1.main-title,
   padding: 16px 36px !important;
   font-size: 1.1rem !important;
   border-radius: 8px !important;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9)) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(139, 92, 246, 0.9)) !important;
   border: none !important;
   color: white !important;
   position: relative !important;

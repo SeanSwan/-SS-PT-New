@@ -31,7 +31,7 @@ nav div a::after {
   left: 50% !important;
   width: 80% !important; /* Not full width for softer look */
   height: 2px !important;
-  background: var(--neon-blue, #00ffff) !important;
+  background: var(--neon-blue, #60c0f0) !important;
   transform: translateX(-50%) scaleX(0) !important; /* Center the underline */
   transform-origin: center !important;
   transition: transform 0.3s ease !important;
@@ -51,7 +51,7 @@ nav div a.active::after {
 nav a.active,
 .StyledNavLink.active,
 nav div a.active {
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
 }
 
 /* Apply consistent margins to header container */
@@ -101,7 +101,7 @@ footer::before,
     to right,
     transparent,
     rgba(139, 92, 246, 0.7), 
-    rgba(120, 81, 169, 0.7),
+    rgba(139, 92, 246, 0.7),
     transparent
   ) !important;
   z-index: 1 !important;

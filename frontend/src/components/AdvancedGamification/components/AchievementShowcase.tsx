@@ -10,11 +10,12 @@
  * focus-visible Wing Purple glow, 44px touch targets.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
+import { getBadgeImage } from '../../../utils/badgeImageResolver';
 
 // ── Crystalline Swan Tokens ──
 const T = {
@@ -159,8 +160,7 @@ const FilterGroup = styled.div`
 `;
 
 const FilterLabel = styled.h4`
-  color: ${T.iceWing};
-  opacity: 0.75;
+  color: #b8c9db;
   margin-bottom: 0.5rem;
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -289,7 +289,7 @@ const AchievementTitle = styled.h3<{ $unlocked: boolean }>`
 
 const AchievementDescription = styled.p<{ $unlocked: boolean }>`
   font-size: 0.8rem;
-  color: ${({ $unlocked }) => $unlocked ? `${T.frostWhite}cc` : `${T.frostWhite}55`};
+  color: ${({ $unlocked }) => $unlocked ? '#b8c9db' : `${T.frostWhite}55`};
   margin-bottom: 0.75rem;
   text-align: center;
   line-height: 1.45;
@@ -324,8 +324,7 @@ const ProgressFill = styled(motion.div)<{ $pct: number; $rarity: Achievement['ra
 
 const ProgressText = styled.div`
   font-size: 0.75rem;
-  color: ${T.iceWing};
-  opacity: 0.6;
+  color: #b8c9db;
   text-align: center;
   font-family: 'Fira Code', monospace;
 `;
@@ -378,8 +377,7 @@ const NewTag = styled(motion.div)`
 const EmptyState = styled.div`
   text-align: center;
   padding: 48px 24px;
-  color: ${T.swanLavender};
-  opacity: 0.6;
+  color: #b8c9db;
   font-family: 'Sora', sans-serif;
 `;
 
@@ -393,6 +391,12 @@ const BadgeIcon: React.FC<{
 }> = ({ iconUrl, iconEmoji, rarity, title }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+
+  // Reset state when iconUrl changes to prevent stale fallback
+  useEffect(() => {
+    setLoaded(false);
+    setError(false);
+  }, [iconUrl]);
 
   return (
     <BadgeIconWrap $rarity={rarity}>
@@ -428,13 +432,22 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
 
-  const unlockedAchievements = achievements.filter(a => a.progress >= a.maxProgress);
+  // Enrich achievements with badge images from manifest
+  const enrichedAchievements = useMemo(() =>
+    achievements.map(a => ({
+      ...a,
+      iconUrl: a.iconUrl || getBadgeImage(a.name, 'glass'),
+    })),
+    [achievements]
+  );
+
+  const unlockedAchievements = enrichedAchievements.filter(a => a.progress >= a.maxProgress);
   const totalXpEarned = unlockedAchievements.reduce((sum, a) => sum + a.xpReward, 0);
-  const completionPct = achievements.length > 0
-    ? Math.round((unlockedAchievements.length / achievements.length) * 100)
+  const completionPct = enrichedAchievements.length > 0
+    ? Math.round((unlockedAchievements.length / enrichedAchievements.length) * 100)
     : 0;
 
-  const filteredAchievements = achievements.filter(a => {
+  const filteredAchievements = enrichedAchievements.filter(a => {
     if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
     if (rarityFilter !== 'all' && a.rarity !== rarityFilter) return false;
     return true;
@@ -473,7 +486,7 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
       <ShowcaseHeader>
         <Title>Achievement Gallery</Title>
         <StatsRow>
-          <StatBadge>{unlockedAchievements.length} / {achievements.length} Unlocked</StatBadge>
+          <StatBadge>{unlockedAchievements.length} / {enrichedAchievements.length} Unlocked</StatBadge>
           <StatBadge>{totalXpEarned.toLocaleString()} XP</StatBadge>
           <StatBadge>{completionPct}% Complete</StatBadge>
         </StatsRow>
@@ -509,7 +522,9 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
           ) : (
             filteredAchievements.map((achievement) => {
               const isUnlocked = achievement.progress >= achievement.maxProgress;
-              const pct = Math.min((achievement.progress / achievement.maxProgress) * 100, 100);
+              const pct = achievement.maxProgress > 0
+                ? Math.min((achievement.progress / achievement.maxProgress) * 100, 100)
+                : 0;
 
               return (
                 <AchievementCard

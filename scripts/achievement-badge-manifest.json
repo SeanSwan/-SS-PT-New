@@ -1,13 +1,13 @@
 {
   "meta": {
     "version": "1.0.0",
-    "totalTemplates": 250,
+    "totalTemplates": 242,
     "styles": 3,
-    "totalImages": 750,
+    "totalImages": 726,
     "outputDir": "frontend/public/badges/achievements",
     "namingConvention": "{templateName}_{style}.png",
     "createdAt": "2026-03-15",
-    "description": "Achievement badge image manifest for SwanStudios gamification system. 250 unique templates x 3 art styles = 750 badge images."
+    "description": "Achievement badge image manifest for SwanStudios gamification system. 242 unique templates x 3 art styles = 726 badge images."
   },
   "styles": ["claymation", "glass", "metallic"],
   "skillTrees": {
@@ -15,7 +15,7 @@
     "forge_nasm": { "name": "The Forge / NASM", "templateCount": 35, "category": "milestone" },
     "iron_gravity": { "name": "Iron & Gravity", "templateCount": 40, "category": "fitness" },
     "tribe_social": { "name": "The Tribe / Social", "templateCount": 40, "category": "social" },
-    "free_spirit": { "name": "The Free Spirit", "templateCount": 35, "category": "special" },
+    "free_spirit": { "name": "The Free Spirit", "templateCount": 27, "category": "special" },
     "unbroken_streaks": { "name": "The Unbroken", "templateCount": 35, "category": "streak" },
     "hidden": { "name": "Hidden / Secret", "templateCount": 50, "category": "mixed" }
   },
@@ -35,7 +35,6 @@
     { "name": "first_week", "title": "One Week Strong", "description": "Be active for 7 consecutive days", "visual": "seven glowing pillars in a row forming a bridge, weekly strength", "emoji": "📅", "skillTree": "awakening", "category": "milestone" },
     { "name": "customize_profile", "title": "Personal Touch", "description": "Customize your profile background", "visual": "an artist palette with magical brushstrokes creating a personalized masterpiece", "emoji": "🎨", "skillTree": "awakening", "category": "milestone" },
     { "name": "read_tutorial", "title": "Knowledge Seeker", "description": "Read the getting started guide", "visual": "an open book radiating knowledge light, seeker reading ancient wisdom", "emoji": "📖", "skillTree": "awakening", "category": "milestone" },
-
     { "name": "complete_assessment", "title": "First Assessment", "description": "Complete your first NASM assessment", "visual": "a clipboard with checkmarks glowing, first assessment completed with a stamp of approval", "emoji": "📋", "skillTree": "forge_nasm", "category": "milestone" },
     { "name": "watch_tutorial_1", "title": "Tutorial Viewer", "description": "Watch your first tutorial video", "visual": "a glowing screen playing a tutorial video with an eye watching intently", "emoji": "📺", "skillTree": "forge_nasm", "category": "milestone" },
     { "name": "watch_tutorial_5", "title": "Avid Learner", "description": "Watch 5 tutorial videos", "visual": "a stack of five glowing video screens, avid learning energy radiating", "emoji": "📺", "skillTree": "forge_nasm", "category": "milestone" },
@@ -71,7 +70,6 @@
     { "name": "exercise_science_cert", "title": "Exercise Scientist", "description": "Complete the exercise science certification track", "visual": "a microscope examining a muscle fiber with exercise science certification glow", "emoji": "🔬", "skillTree": "forge_nasm", "category": "milestone" },
     { "name": "behavior_change_cert", "title": "Behavior Change Pro", "description": "Complete the behavior change certification track", "visual": "a brain transforming with behavioral change arrows and certification badge", "emoji": "🧠", "skillTree": "forge_nasm", "category": "milestone" },
     { "name": "program_design_cert", "title": "Program Designer", "description": "Complete the program design certification track", "visual": "an architect's drafting triangle over a workout program blueprint with certification seal", "emoji": "📐", "skillTree": "forge_nasm", "category": "milestone" },
-
     { "name": "workout_count_10", "title": "Getting Started", "description": "Complete 10 workouts", "visual": "ten small dumbbells arranged in a rising staircase pattern with glow", "emoji": "🏋️", "skillTree": "iron_gravity", "category": "fitness" },
     { "name": "workout_count_25", "title": "Gym Regular", "description": "Complete 25 workouts", "visual": "a gym membership card glowing with 25 workout stamps", "emoji": "🏋️", "skillTree": "iron_gravity", "category": "fitness" },
     { "name": "workout_count_50", "title": "Dedicated Lifter", "description": "Complete 50 workouts", "visual": "a dedicated lifter silhouette with fifty iron plates stacked behind them", "emoji": "🏋️", "skillTree": "iron_gravity", "category": "fitness" },
@@ -112,7 +110,6 @@
     { "name": "flexibility_pro", "title": "Flexibility Pro", "description": "Complete 30 flexibility/mobility sessions", "visual": "a flexible figure in a perfect split with flowing energy ribbons", "emoji": "🧘", "skillTree": "iron_gravity", "category": "fitness" },
     { "name": "morning_warrior", "title": "Morning Warrior", "description": "Complete 25 workouts before 8 AM", "visual": "a warrior silhouette against a sunrise with a sword made of morning light", "emoji": "🌅", "skillTree": "iron_gravity", "category": "fitness" },
     { "name": "weekend_warrior", "title": "Weekend Warrior", "description": "Complete 20 weekend workouts", "visual": "a weekend calendar page with a warrior shield and crossed dumbbells", "emoji": "💪", "skillTree": "iron_gravity", "category": "fitness" },
-
     { "name": "post_count_5", "title": "New Poster", "description": "Create 5 social posts", "visual": "five colorful social post cards fanning out with fresh creation energy", "emoji": "📝", "skillTree": "tribe_social", "category": "social" },
     { "name": "post_count_10", "title": "Active Poster", "description": "Create 10 social posts", "visual": "ten social posts arranged in an active scrolling feed with engagement glow", "emoji": "📝", "skillTree": "tribe_social", "category": "social" },
     { "name": "post_count_25", "title": "Prolific Writer", "description": "Create 25 social posts", "visual": "a prolific writer's desk overflowing with 25 glowing post scrolls", "emoji": "📝", "skillTree": "tribe_social", "category": "social" },
@@ -153,15 +150,10 @@
     { "name": "community_pillar", "title": "Community Pillar", "description": "Be active every day for 30 days and help 10 members", "visual": "a mighty pillar supporting a community dome with 30 day marks and 10 helping hands", "emoji": "🏛️", "skillTree": "tribe_social", "category": "social" },
     { "name": "first_group_post", "title": "Group Voice", "description": "Create your first post in a group", "visual": "a speech bubble emerging from within a group circle with first-voice energy", "emoji": "📣", "skillTree": "tribe_social", "category": "social" },
     { "name": "profile_visitor", "title": "Profile Visitor", "description": "Visit 20 other members' profiles", "visual": "a pair of eyes visiting 20 glowing profile cards in an explorer's journey", "emoji": "👀", "skillTree": "tribe_social", "category": "social" },
-
     { "name": "log_nutrition_1", "title": "First Fuel Log", "description": "Log your nutrition for the first time", "visual": "a glowing apple with a nutrition log checkmark and first-time sparkle", "emoji": "🍎", "skillTree": "free_spirit", "category": "special" },
     { "name": "log_nutrition_7", "title": "Week of Fuel", "description": "Log your nutrition for 7 days", "visual": "seven days of colorful meal plates arranged in a weekly rainbow arc", "emoji": "🍎", "skillTree": "free_spirit", "category": "special" },
     { "name": "log_nutrition_30", "title": "Month of Mindful Eating", "description": "Log your nutrition for 30 days", "visual": "a mindful eating calendar with 30 checkmarks and a zen food mandala", "emoji": "🍎", "skillTree": "free_spirit", "category": "special" },
     { "name": "log_nutrition_90", "title": "Quarterly Nutrition", "description": "Log your nutrition for 90 days", "visual": "a quarterly nutrition journal with 90 pages of logged meals and golden seal", "emoji": "🍎", "skillTree": "free_spirit", "category": "special" },
-    { "name": "log_meditation_1", "title": "First Calm", "description": "Log your first meditation session", "visual": "a serene lotus flower opening for the first time with calm light radiating", "emoji": "🧘", "skillTree": "free_spirit", "category": "special" },
-    { "name": "log_meditation_7", "title": "Inner Peace Week", "description": "Meditate for 7 days", "visual": "seven meditation stones stacked in a peaceful zen tower with weekly peace energy", "emoji": "🧘", "skillTree": "free_spirit", "category": "special" },
-    { "name": "log_meditation_30", "title": "Zen Master", "description": "Meditate for 30 days", "visual": "a zen master meditating on a lotus with 30 energy rings orbiting in harmony", "emoji": "🧘", "skillTree": "free_spirit", "category": "special" },
-    { "name": "log_meditation_90", "title": "Enlightened", "description": "Meditate for 90 days", "visual": "an enlightened figure in deep meditation with 90 days of accumulated golden light aura", "emoji": "🧘", "skillTree": "free_spirit", "category": "special" },
     { "name": "log_sleep_1", "title": "Sleep Tracker", "description": "Log your sleep for the first time", "visual": "a sleeping crescent moon with a tracking clipboard and first-log sparkle", "emoji": "😴", "skillTree": "free_spirit", "category": "special" },
     { "name": "log_sleep_7", "title": "Sleep Conscious", "description": "Log your sleep for 7 days", "visual": "seven peaceful moons in a week arc with conscious sleep tracking lines", "emoji": "😴", "skillTree": "free_spirit", "category": "special" },
     { "name": "log_sleep_30", "title": "Sleep Scientist", "description": "Log your sleep for 30 days", "visual": "a scientific sleep chart with 30 data points forming a perfect sleep pattern", "emoji": "😴", "skillTree": "free_spirit", "category": "special" },
@@ -176,12 +168,9 @@
     { "name": "outdoor_workout_1", "title": "Fresh Air", "description": "Complete your first outdoor workout", "visual": "a figure working out under an open sky with fresh air wind swirls and tree", "emoji": "🌲", "skillTree": "free_spirit", "category": "special" },
     { "name": "outdoor_workout_10", "title": "Nature Athlete", "description": "Complete 10 outdoor workouts", "visual": "an athlete running through ten nature scenes with forest and mountain backdrop", "emoji": "🌲", "skillTree": "free_spirit", "category": "special" },
     { "name": "outdoor_workout_25", "title": "Outdoor Champion", "description": "Complete 25 outdoor workouts", "visual": "a champion's trophy surrounded by outdoor nature elements and 25 trail markers", "emoji": "🌲", "skillTree": "free_spirit", "category": "special" },
-    { "name": "yoga_session_1", "title": "First Flow", "description": "Complete your first yoga session", "visual": "a figure in tree pose with first flowing energy ribbons unfurling", "emoji": "🧘‍♀️", "skillTree": "free_spirit", "category": "special" },
-    { "name": "yoga_session_10", "title": "Yoga Practitioner", "description": "Complete 10 yoga sessions", "visual": "ten yoga pose silhouettes in a mandala pattern with practitioner energy", "emoji": "🧘‍♀️", "skillTree": "free_spirit", "category": "special" },
-    { "name": "yoga_session_30", "title": "Yoga Devotee", "description": "Complete 30 yoga sessions", "visual": "a devoted yogi in lotus position with 30 chakra points illuminated", "emoji": "🧘‍♀️", "skillTree": "free_spirit", "category": "special" },
     { "name": "stretching_routine_10", "title": "Stretch Starter", "description": "Complete 10 stretching routines", "visual": "a figure stretching with ten flexibility ribbons extending outward", "emoji": "🤸‍♀️", "skillTree": "free_spirit", "category": "special" },
     { "name": "stretching_routine_30", "title": "Flexibility Fanatic", "description": "Complete 30 stretching routines", "visual": "a super-flexible figure in an extreme stretch with 30 flexibility stars", "emoji": "🤸‍♀️", "skillTree": "free_spirit", "category": "special" },
-    { "name": "rest_day_honored", "title": "Rest Day Honored", "description": "Take a scheduled rest day instead of overtraining", "visual": "a peaceful stop sign with a meditation cushion and honored rest laurel wreath", "emoji": "🛑", "skillTree": "free_spirit", "category": "special" },
+    { "name": "rest_day_honored", "title": "Rest Day Honored", "description": "Take a scheduled rest day instead of overtraining", "visual": "a peaceful stop sign with a recovery cushion and honored rest laurel wreath", "emoji": "🛑", "skillTree": "free_spirit", "category": "special" },
     { "name": "stress_management", "title": "Stress Slayer", "description": "Log 10 stress management activities", "visual": "a warrior slaying a stress monster with a calm sword and ten defeated stress orbs", "emoji": "🧧", "skillTree": "free_spirit", "category": "special" },
     { "name": "healthy_meal_prep_5", "title": "Meal Prepper", "description": "Log 5 meal prep sessions", "visual": "five colorful meal prep containers arranged neatly with healthy food glow", "emoji": "🥗", "skillTree": "free_spirit", "category": "special" },
     { "name": "healthy_meal_prep_20", "title": "Meal Prep Pro", "description": "Log 20 meal prep sessions", "visual": "a professional kitchen setup with 20 perfectly prepared meal containers", "emoji": "🥗", "skillTree": "free_spirit", "category": "special" },
@@ -189,7 +178,6 @@
     { "name": "supplement_tracking_30", "title": "Supplement Consistent", "description": "Track supplements for 30 days", "visual": "a monthly supplement calendar fully checked with consistency crown", "emoji": "💊", "skillTree": "free_spirit", "category": "special" },
     { "name": "wellness_journal_7", "title": "Journal Beginner", "description": "Write in your wellness journal for 7 days", "visual": "a journal with seven glowing pages and beginner's pen writing wellness entries", "emoji": "📓", "skillTree": "free_spirit", "category": "special" },
     { "name": "wellness_journal_30", "title": "Journal Master", "description": "Write in your wellness journal for 30 days", "visual": "a master's journal overflowing with 30 days of golden wellness wisdom pages", "emoji": "📓", "skillTree": "free_spirit", "category": "special" },
-
     { "name": "login_streak_3", "title": "Three-Day Spark", "description": "Log in for 3 consecutive days", "visual": "three sparking flames in a streak chain with growing fire energy", "emoji": "🔥", "skillTree": "unbroken_streaks", "category": "streak" },
     { "name": "login_streak_7", "title": "Weekly Ritual", "description": "Log in for 7 consecutive days", "visual": "seven ritual candles burning in a weekly circle formation with streak glow", "emoji": "🔥", "skillTree": "unbroken_streaks", "category": "streak" },
     { "name": "login_streak_14", "title": "Two-Week Flame", "description": "Log in for 14 consecutive days", "visual": "a two-week flame growing taller with fourteen day markers in its core", "emoji": "🔥", "skillTree": "unbroken_streaks", "category": "streak" },
@@ -225,7 +213,6 @@
     { "name": "evening_warrior_7", "title": "Night Owl", "description": "Work out after 8 PM for 7 consecutive days", "visual": "an owl perched on a barbell under seven consecutive moonlit night skies", "emoji": "🌙", "skillTree": "unbroken_streaks", "category": "streak" },
     { "name": "weekend_streak_4", "title": "Weekend Regular", "description": "Work out every weekend for 4 weeks", "visual": "four weekend calendar blocks connected by a regular streak chain with iron energy", "emoji": "💪", "skillTree": "unbroken_streaks", "category": "streak" },
     { "name": "double_streak", "title": "Double Threat", "description": "Maintain workout + nutrition streaks simultaneously for 14 days", "visual": "two intertwined streak flames, one for workout one for nutrition, forming a double helix", "emoji": "💫", "skillTree": "unbroken_streaks", "category": "streak" },
-
     { "name": "midnight_warrior", "title": "Midnight Warrior", "description": "Complete a workout between midnight and 4 AM", "visual": "a warrior training in moonlight at midnight with a clock showing 2 AM", "emoji": "🌙", "skillTree": "iron_gravity", "category": "hidden" },
     { "name": "holiday_hero", "title": "Holiday Hero", "description": "Complete a workout on Christmas Day", "visual": "a hero lifting weights next to a Christmas tree with candy cane barbell", "emoji": "🎄", "skillTree": "iron_gravity", "category": "hidden" },
     { "name": "leap_day_warrior", "title": "Leap Day Warrior", "description": "Complete a workout on February 29", "visual": "a frog warrior leaping over a barbell on a special 29th calendar page", "emoji": "🐸", "skillTree": "iron_gravity", "category": "hidden" },
@@ -252,11 +239,10 @@
     { "name": "mutual_follow_10", "title": "Mutual Respect", "description": "Have 10 mutual follows", "visual": "ten pairs of arrows pointing at each other in a mutual respect circle", "emoji": "🤝", "skillTree": "tribe_social", "category": "hidden" },
     { "name": "every_group", "title": "Everywhere At Once", "description": "Join every available group", "visual": "a globe with connection pins in every group location glowing simultaneously", "emoji": "🌍", "skillTree": "tribe_social", "category": "hidden" },
     { "name": "first_to_comment", "title": "First!", "description": "Be the first to comment on 10 different posts", "visual": "a golden number one trophy with speed lines and ten first-place ribbons", "emoji": "☝️", "skillTree": "tribe_social", "category": "hidden" },
-    { "name": "zen_streak_21", "title": "Zen Master", "description": "Meditate for 21 consecutive days", "visual": "a zen master in deep meditation with 21 orbiting peace symbols", "emoji": "🕎", "skillTree": "free_spirit", "category": "hidden" },
     { "name": "sleep_8_hours_7", "title": "Well Rested", "description": "Log 8+ hours of sleep for 7 consecutive days", "visual": "a well-rested figure on a cloud bed with seven 8-hour sleep clocks", "emoji": "🛌", "skillTree": "free_spirit", "category": "hidden" },
     { "name": "no_sugar_7", "title": "Sugar Free", "description": "Log zero added sugar for 7 consecutive days", "visual": "a candy with a red X and seven sugar-free day checkmarks in a chain", "emoji": "🍬", "skillTree": "free_spirit", "category": "hidden" },
     { "name": "gallon_a_day", "title": "Gallon Gang", "description": "Drink a gallon of water in a single day", "visual": "a massive gallon jug overflowing with crystal water and hydration power glow", "emoji": "💧", "skillTree": "free_spirit", "category": "hidden" },
-    { "name": "mindful_eating_14", "title": "Mindful Eater", "description": "Practice mindful eating for 14 consecutive days", "visual": "a peaceful figure eating mindfully with 14 zen food bowls in a meditation circle", "emoji": "🧘", "skillTree": "free_spirit", "category": "hidden" },
+    { "name": "mindful_eating_14", "title": "Mindful Eater", "description": "Practice mindful eating for 14 consecutive days", "visual": "a peaceful figure eating mindfully with 14 zen food bowls in a mindfulness circle", "emoji": "🍽️", "skillTree": "free_spirit", "category": "hidden" },
     { "name": "unbreakable_180", "title": "Unbreakable", "description": "Maintain a 180-day workout streak", "visual": "an unbreakable diamond chain of 180 links with indestructible energy aura", "emoji": "💎", "skillTree": "unbroken_streaks", "category": "hidden" },
     { "name": "never_skip_leg_day", "title": "Never Skip Leg Day", "description": "Include legs in every workout for 30 days", "visual": "powerful legs with a never-skip badge and 30 day-stamps on a leg day calendar", "emoji": "🦵", "skillTree": "iron_gravity", "category": "hidden" },
     { "name": "five_am_club_30", "title": "5 AM Club", "description": "Work out before 5 AM for 30 days", "visual": "an alarm clock showing 5:00 AM with a 30-day club membership card glowing", "emoji": "⏰", "skillTree": "unbroken_streaks", "category": "hidden" },

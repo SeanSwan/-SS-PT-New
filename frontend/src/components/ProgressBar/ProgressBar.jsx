@@ -9,7 +9,7 @@ const ProgressContainer = styled.div`
 const ProgressBarWrapper = styled.div`
   width: 100%;
   height: 4px;
-  background: rgba(120, 81, 169, 0.3);
+  background: rgba(139, 92, 246, 0.3);
   border-radius: 2px;
   overflow: hidden;
   position: relative;
@@ -23,8 +23,8 @@ const ProgressBarFill = styled.div`
   height: 100%;
   background: linear-gradient(
     to right,
-    #00ffff,
-    #7851a9
+    #8b5cf6,
+    #60c0f0
   );
   width: ${props => props['data-percent'] || '0%'};
   transition: width 0.5s ease;

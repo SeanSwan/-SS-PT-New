@@ -2,10 +2,10 @@
 
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║         SwanStudios 10-Brain Recursive Consensus System         ║
+ * ║         SwanStudios 11-Brain Recursive Consensus System         ║
  * ║           OpenRouter + Google GenAI + Recursive Debates          ║
  * ║                                                                  ║
- * ║  Phase 1 — 8 parallel analysts (OpenRouter):                      ║
+ * ║  Phase 1 — 9 parallel analysts (OpenRouter):                      ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility        (FREE)    ║
  * ║  2. Claude 4.5 Sonnet   → Code Quality               (FREE)    ║
  * ║  3. Step 3.5 Flash       → Security scan              (FREE)    ║
@@ -14,14 +14,15 @@
  * ║  6. DeepSeek V3.2        → User research / personas   (FREE)    ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)  ║
  * ║  8. Gemini 3.1 Flash     → Frontend UX & Code Patterns (FREE)  ║
+ * ║  9. Claude 4.5 Sonnet   → Data Safety & Integrity     (FREE)  ║
  * ║                                                                  ║
  * ║  Phase 2 — RECURSIVE CODE QUALITY DEBATE:                       ║
- * ║  9. Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)             ║
+ * ║  10. Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)            ║
  * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
  * ║     Claude = final authority on code decisions                  ║
  * ║                                                                  ║
  * ║  Phase 3 — RECURSIVE UX/UI DESIGN DEBATE:                      ║
- * ║  10. Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collaborator)     ║
+ * ║  11. Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collaborator)     ║
  * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
  * ║     Gemini = final authority on design decisions                ║
  * ║                                                                  ║
@@ -61,7 +62,7 @@ const MODELS = {
   // ── VERIFIED FREE on OpenRouter ──
   gemini25Flash:  'google/gemini-2.5-flash',           // FREE — fast, great at structured analysis
   gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
-  gemini31Flash:  'google/gemini-3.1-flash-preview',   // FREE — latest Flash, strong at code review
+  gemini31Flash:  'google/gemini-3.1-flash-lite-preview', // FREE — latest Flash lite, strong at code review
   deepseekV3:     'deepseek/deepseek-v3.2-20251201',  // FREE — user research / personas
   step35Flash:    'stepfun/step-3.5-flash:free',       // FREE — 256K ctx, 74.4% SWE-bench, security specialist
   minimaxM21:     'minimax/minimax-m2.1',              // FREE
@@ -428,6 +429,65 @@ Output as structured markdown.
 CODE TO REVIEW:
 ${codeBundle}`,
     },
+
+    {
+      name: 'Data Safety & Integrity',
+      model: MODELS.claudeSonnet45,
+      prompt: `You are a DATA SAFETY AUDITOR for a production SaaS platform (SwanStudios — personal training). This is the MOST CRITICAL track. The platform owner's #1 fear is accidentally wiping user data, login credentials, or purchase history during deployments and code changes. ${ctx}
+
+TREAT EVERY FINDING AS IF IT COULD DESTROY A REAL USER'S DATA IN PRODUCTION.
+
+Review the following code with EXTREME paranoia for:
+
+1. **Destructive Database Operations** — THE TOP PRIORITY:
+   - Any \`DELETE\`, \`TRUNCATE\`, \`DROP\`, \`bulkDelete\`, \`destroy\`, \`removeAll\` without explicit WHERE clauses
+   - Seeders or migrations that wipe tables before re-inserting (data loss on redeploy)
+   - \`sync({ force: true })\` or \`sync({ alter: true })\` that could drop columns/tables
+   - Missing \`updateOnDuplicate\` / upsert patterns (should NEVER delete-then-reinsert)
+   - CASCADE deletes that could orphan related records (UserAchievements, Orders, Sessions)
+
+2. **Authentication & Session Data Safety**:
+   - Any code that could wipe or corrupt the Users table
+   - Password hash storage — are hashes ever overwritten with plaintext?
+   - JWT secret rotation — would it invalidate all existing sessions?
+   - Session/token storage — could a migration drop the sessions table?
+   - OAuth tokens — are refresh tokens preserved during schema changes?
+
+3. **Transaction Safety**:
+   - Multi-table operations without transaction wrappers (partial writes = corrupted state)
+   - Missing rollback on failure (data left in inconsistent state)
+   - Batch operations that could timeout and leave partial data
+   - Race conditions where two requests modify the same user record
+
+4. **Migration Safety**:
+   - Migrations that ALTER TYPE on columns with existing data (can fail and leave table locked)
+   - Migrations that rename columns (breaks any code referencing old name until deploy completes)
+   - Missing \`down()\` functions (can't rollback if something goes wrong)
+   - Migrations that run inside transactions when they shouldn't (e.g., ALTER TYPE in PostgreSQL)
+
+5. **Data Exposure & Leaks**:
+   - User PII (email, phone, address) in console.log, error messages, or API responses
+   - Order/payment data exposed to wrong roles (client seeing other clients' data)
+   - Admin endpoints without proper RBAC middleware
+
+6. **Backup & Recovery Gaps**:
+   - Is there any mechanism to prevent accidental mass-delete? (e.g., row count check before DELETE)
+   - Are destructive admin endpoints behind confirmation flows?
+   - Could a single bad API call wipe all records in a table?
+
+For each finding, provide:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **Data at Risk:** What specific user data could be lost/corrupted
+- **Blast Radius:** How many users would be affected (1 user, all users, all data)
+- **File & Line:** Exact location
+- **What's Wrong:** Clear description
+- **Fix:** Specific code change to make it safe
+
+BE RUTHLESS. This platform has real paying customers. A single destructive bug could lose years of workout history, payment records, or lock users out of their accounts permanently.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
   ];
 
   // Phase 2 + 3 are now recursive debates — handled in main() via runRecursiveConsensus()
@@ -449,7 +509,7 @@ You are starting a structured debate with the CEO (Claude) about code quality. Y
 
 The CEO will challenge your findings. You must defend with evidence or concede gracefully.
 
-## Phase 1 Context (8 validators already ran)
+## Phase 1 Context (9 validators already ran)
 
 ${phase1Summary}
 
@@ -744,7 +804,7 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios 9-Brain Recursive Consensus System v9.0*
+*SwanStudios 11-Brain Recursive Consensus System v11.0*
 *Phase 1: Gemini 2.5 Flash + Claude 4.5 Sonnet + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.5*
 *Phase 2: Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO) recursive debate*
 *Phase 3: Gemini 3.1 Pro (Creative Dir) ↔ Claude Sonnet (Collaborator) recursive debate*
@@ -781,20 +841,20 @@ async function main() {
   loadEnv();
 
   const hasGemini31 = !!getGeminiKey();
-  const brainCount = hasGemini31 ? 10 : 8;
+  const brainCount = hasGemini31 ? 11 : 9;
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
-  console.log('  ║    SwanStudios 10-Brain Recursive Consensus System      ║');
+  console.log('  ║    SwanStudios 11-Brain Recursive Consensus System      ║');
   const subtitle = hasGemini31
     ? `${brainCount}-Brain — Recursive Debates ENABLED`
-    : `8-Brain — Phase 1 only (add GEMINI_API_KEY for 10-Brain)`;
+    : `9-Brain — Phase 1 only (add GEMINI_API_KEY for 11-Brain)`;
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
-  console.log('  ║    Phase 1: 8 Parallel Validators (OpenRouter)          ║');
+  console.log('  ║    Phase 1: 9 Parallel Validators (OpenRouter)          ║');
   console.log('  ║    Gemini 2.5 Flash · Claude Sonnet · Step 3.5 Flash   ║');
   console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · DeepSeek V3.2  ║');
-  console.log('  ║    MiniMax M2.1 · MiniMax M2.5                          ║');
+  console.log('  ║    MiniMax M2.1 · MiniMax M2.5 · Data Safety (Claude) ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 2: Code Quality Recursive Debate              ║');
@@ -1056,7 +1116,7 @@ async function main() {
 
   const totalValidators = phase1Tracks.length + debateResults.length;
   console.log('  ════════════════════════════════════════════════════════');
-  console.log(`  9-Brain Recursive Consensus System — Complete`);
+  console.log(`  11-Brain Recursive Consensus System — Complete`);
   console.log(`  AI Village Output:`);
   console.log(`    Latest:     ${outputPaths.latestDir}/`);
   console.log(`    Summary:    ${outputPaths.summary}`);
@@ -1117,7 +1177,7 @@ ${r.text}
 
 ---
 
-*Part of SwanStudios 9-Brain Recursive Consensus System*
+*Part of SwanStudios 11-Brain Recursive Consensus System*
 `;
     writeFileSync(join(latestDir, `${slug}.md`), content, 'utf-8');
     writeFileSync(join(archiveDir, `${slug}.md`), content, 'utf-8');
@@ -1205,7 +1265,7 @@ Each track has its own file — read only the ones relevant to your task:
 | \`fix-instructions.md\` | Actionable code fixes from Phase 2 consensus |
 | \`design-recommendations.md\` | Actionable design fixes from Phase 3 consensus |
 
-*SwanStudios 9-Brain Recursive Consensus System v9.0*
+*SwanStudios 11-Brain Recursive Consensus System v11.0*
 `;
 }
 
@@ -1260,7 +1320,7 @@ function buildHandoffPrompt(results, files) {
 
   return `# SwanStudios Validation Handoff — Paste This Into Claude Code or Gemini
 
-I just ran the 9-Brain Recursive Consensus System on these files: ${fileNames}
+I just ran the 11-Brain Recursive Consensus System on these files: ${fileNames}
 
 Here is a consolidated summary of all findings from Phase 1 (8 parallel validators) + Phase 2 (code quality debate) + Phase 3 (design debate). Please analyze these findings, prioritize them, create an action plan, and fix the CRITICAL and HIGH issues.
 

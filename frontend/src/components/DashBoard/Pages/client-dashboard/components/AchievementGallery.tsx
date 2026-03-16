@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Award } from 'lucide-react';
+import { getBadgeImage } from '../../../../../utils/badgeImageResolver';
 
 const GalleryContainer = styled(motion.div)`
   display: grid;
@@ -59,13 +60,16 @@ const AchievementGallery: React.FC<{ achievements: any[] }> = ({ achievements })
 
   return (
     <GalleryContainer variants={{ visible: { transition: { staggerChildren: 0.05 } } }} initial="hidden" animate="visible">
-      {achievements.map((ach, index) => (
+      {achievements.map((ach, index) => {
+        const resolvedImage = ach.imageUrl || getBadgeImage(ach.name || ach.templateId, 'glass');
+        return (
         <BadgeCard key={index} variants={itemVariants}>
-          {ach.imageUrl ? <BadgeImage src={ach.imageUrl} alt={ach.name} /> : <div style={{ width: 80, height: 80, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Award size={48} color="#fbbf24" /></div>}
+          {resolvedImage ? <BadgeImage src={resolvedImage} alt={ach.name} /> : <div style={{ width: 80, height: 80, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Award size={48} color="#fbbf24" /></div>}
           <BadgeName>{ach.name}</BadgeName>
           <BadgeDescription>{ach.description}</BadgeDescription>
         </BadgeCard>
-      ))}
+        );
+      })}
     </GalleryContainer>
   );
 };

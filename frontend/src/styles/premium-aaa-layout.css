@@ -95,7 +95,7 @@ header, .header, .MuiAppBar-root {
   -webkit-background-clip: text !important;
   color: transparent !important;
   animation: gradient 10s ease infinite !important;
-  text-shadow: 0 5px 30px rgba(120, 81, 169, 0.5) !important;
+  text-shadow: 0 5px 30px rgba(139, 92, 246, 0.5) !important;
 }
 
 @keyframes gradient {
@@ -134,7 +134,7 @@ header, .header, .MuiAppBar-root {
   font-weight: 500 !important;
   letter-spacing: 0.5px !important;
   border-radius: 8px !important;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(120, 81, 169, 0.9)) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(139, 92, 246, 0.9)) !important;
   border: none !important;
   color: white !important;
   cursor: pointer !important;
@@ -207,7 +207,7 @@ footer::before, .footer::before, .FooterContainer::before {
     to right,
     transparent,
     rgba(139, 92, 246, 0.7),
-    rgba(120, 81, 169, 0.7),
+    rgba(139, 92, 246, 0.7),
     transparent
   ) !important;
 }
@@ -240,7 +240,7 @@ footer h4::after, .footer h4::after, .FooterHeading::after {
   bottom: -8px !important;
   width: 40px !important;
   height: 2px !important;
-  background: linear-gradient(to right, rgba(139, 92, 246, 0.8), rgba(120, 81, 169, 0.8)) !important;
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.8)) !important;
   transition: width 0.3s ease !important;
 }
 
@@ -261,7 +261,7 @@ footer h4:hover::after, .footer h4:hover::after, .FooterHeading:hover::after {
 }
 
 .footer-links a:hover, footer a:hover, .FooterNav a:hover {
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
   transform: translateX(5px) !important;
 }
 
@@ -279,7 +279,7 @@ footer h4:hover::after, .footer h4:hover::after, .FooterHeading:hover::after {
 }
 
 .contact-info svg, .ContactItem svg, .contact-item svg {
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
   margin-right: 12px !important;
   font-size: 1.2rem !important;
 }
@@ -308,7 +308,7 @@ footer h4:hover::after, .footer h4:hover::after, .FooterHeading:hover::after {
   background: rgba(139, 92, 246, 0.2) !important;
   transform: translateY(-5px) !important;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
 }
 
 /* Copyright section premium styling */
@@ -336,7 +336,7 @@ footer h4:hover::after, .footer h4:hover::after, .FooterHeading:hover::after {
 }
 
 .footer-links-bottom a:hover, .footer-bottom a:hover {
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
 }
 
 /* Ensure content fills space between header and footer */
@@ -364,7 +364,7 @@ section {
   bottom: 0 !important;
   background: 
     radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1), transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(120, 81, 169, 0.1), transparent 40%) !important;
+    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1), transparent 40%) !important;
   z-index: -1 !important;
   pointer-events: none !important;
 }
@@ -404,14 +404,14 @@ nav a::after, .nav-link::after, .StyledNavLink::after {
   left: 50% !important;
   width: 0 !important;
   height: 2px !important;
-  background: var(--neon-blue, #00ffff) !important;
+  background: var(--neon-blue, #60c0f0) !important;
   transition: all 0.3s ease !important;
   transform: translateX(-50%) !important;
 }
 
 nav a:hover, .nav-link:hover, .StyledNavLink:hover,
 nav a.active, .nav-link.active, .StyledNavLink.active {
-  color: var(--neon-blue, #00ffff) !important;
+  color: var(--neon-blue, #60c0f0) !important;
 }
 
 nav a:hover::after, .nav-link:hover::after, .StyledNavLink:hover::after,
@@ -428,7 +428,7 @@ nav a.active::after, .nav-link.active::after, .StyledNavLink.active::after {
 .logo-text, .LogoText, .header-logo span {
   font-size: 1.5rem !important;
   font-weight: 700 !important;
-  background: linear-gradient(to right, #00ffff, #7851a9) !important;
+  background: linear-gradient(to right, #8b5cf6, #60c0f0) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;

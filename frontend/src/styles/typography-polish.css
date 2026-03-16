@@ -25,7 +25,7 @@ h1.main-title {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  text-shadow: 0 5px 25px rgba(120, 81, 169, 0.3);
+  text-shadow: 0 5px 25px rgba(139, 92, 246, 0.3);
 }
 
 /* Subtitles and taglines */
@@ -40,7 +40,7 @@ h2.subtitle {
 
 /* Highlight important words */
 .highlight {
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60c0f0);
   font-weight: 500;
 }
 
@@ -66,12 +66,12 @@ a:not(.btn):after {
   height: 1px;
   bottom: -2px;
   left: 0;
-  background: var(--neon-blue, #00ffff);
+  background: var(--neon-blue, #60c0f0);
   transition: width 0.3s ease;
 }
 
 a:not(.btn):hover {
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #60c0f0);
 }
 
 a:not(.btn):hover:after {

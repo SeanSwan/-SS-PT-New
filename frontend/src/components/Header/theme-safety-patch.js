@@ -8,7 +8,7 @@
 
 const themeSafetyPatches = {
   // Common theme fallbacks for galaxy header
-  primaryColor: '#00ffff',
+  primaryColor: '#60c0f0',
   accentColor: '#ff6b9d', 
   backgroundColor: 'rgba(10, 10, 26, 0.9)',
   textColor: 'rgba(255, 255, 255, 0.9)',

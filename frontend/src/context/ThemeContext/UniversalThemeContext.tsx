@@ -640,7 +640,7 @@ interface ThemeContextType {
   availableThemes: Array<{ id: ThemeId; name: string }>;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // === THEME PROVIDER ===
 interface UniversalThemeProviderProps {

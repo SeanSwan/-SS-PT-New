@@ -19,7 +19,7 @@ const LogButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #8b5cf6, #60c0f0);
   color: white;
   border: none;
   border-radius: 8px;
@@ -30,7 +30,7 @@ const LogButton = styled.button`
   min-height: 44px;
 
   &:hover {
-    background: linear-gradient(90deg, #7851a9, #00ffff);
+    background: linear-gradient(90deg, #60c0f0, #8b5cf6);
   }
 
   &:disabled {
@@ -43,7 +43,7 @@ const LogMobileButton = styled.button`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #8b5cf6, #60c0f0);
   color: white;
   width: 60px;
   height: 60px;
@@ -57,7 +57,7 @@ const LogMobileButton = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: linear-gradient(90deg, #7851a9, #00ffff);
+    background: linear-gradient(90deg, #60c0f0, #8b5cf6);
   }
 
   &:disabled {

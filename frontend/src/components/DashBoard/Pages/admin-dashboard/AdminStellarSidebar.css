@@ -6,7 +6,7 @@
   left: 0;
   height: calc(100vh - 56px);
   width: 280px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #00ffff 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60c0f0 100%);
   backdrop-filter: blur(20px);
   border-right: 2px solid rgba(59, 130, 246, 0.2);
   z-index: 999;
@@ -40,7 +40,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #00ffff);
+  background: linear-gradient(135deg, #3b82f6, #60c0f0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,10 +189,10 @@
 }
 
 .admin-nav::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #3b82f6, #00ffff);
+  background: linear-gradient(135deg, #3b82f6, #60c0f0);
   border-radius: 3px;
 }
 
 .admin-nav::-webkit-scrollbar-thumb:hover {
-  background: #00ffff;
+  background: #60c0f0;
 }

@@ -41,8 +41,8 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:50
 
 // UI Constants
 export const defaultFont = "'Roboto', sans-serif";
-export const PRIMARY_COLOR = '#00ffff'; // Cyan/teal color from your app
-export const SECONDARY_COLOR = '#7b2cbf'; // Purple color from your app
+export const PRIMARY_COLOR = '#60c0f0'; // Ice Wing — Crystalline Swan palette
+export const SECONDARY_COLOR = '#8b5cf6'; // Wing Purple — Crystalline Swan palette
 export const BACKGROUND_COLOR = '#1a1a1a'; // Dark background
 export const TEXT_PRIMARY = '#ffffff'; // White text
 export const TEXT_SECONDARY = '#b3b3b3'; // Light gray text

@@ -87,12 +87,12 @@
 }
 
 .MuiTab-root.Mui-selected {
-  color: #00ffff !important;
+  color: #60c0f0 !important;
 }
 
 /* Fix the Drawer sidebar background */
 .MuiDrawer-paper {
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f) !important;
+  background: linear-gradient(135deg, #001840, #1e1e3f) !important;
 }
 
 /* Login form specific adjustments */

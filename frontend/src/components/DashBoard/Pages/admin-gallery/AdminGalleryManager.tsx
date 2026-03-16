@@ -465,7 +465,7 @@ const EmptyState = styled.div`
 
 // ── Messages Table Styled Components ──────────────────────────────────────
 const MessagesTableContainer = styled.div`
-  background: #0a0a1a;
+  background: #001840;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   overflow-x: auto;

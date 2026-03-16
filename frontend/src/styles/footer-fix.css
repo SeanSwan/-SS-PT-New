@@ -26,7 +26,7 @@ footer::before,
     to right,
     transparent,
     rgba(139, 92, 246, 0.5), 
-    rgba(120, 81, 169, 0.5),
+    rgba(139, 92, 246, 0.5),
     transparent
   ) !important;
   z-index: 1 !important;
@@ -74,7 +74,7 @@ footer h4::after,
   left: 0 !important;
   width: 40px !important;
   height: 2px !important;
-  background: linear-gradient(to right, #00ffff, #7851a9) !important;
+  background: linear-gradient(to right, #8b5cf6, #60c0f0) !important;
 }
 
 /* Footer links improved spacing */

@@ -485,7 +485,8 @@ Too many tabs/sections may exist. Need AI Village to analyze:
 ## DESIGN STANDARDS
 
 - **Theme:** Enchanted Apex: Crystalline Swan (unchanged)
-- **Palette:** Midnight Sapphire, Royal Depth, Ice Wing, Arctic Cyan, Gilded Fern, Frost White, Swan Lavender, Wing Purple
+- **Palette:** Midnight Sapphire `#002060`, Royal Depth `#003080`, Ice Wing `#60C0F0`, Arctic Cyan `#50A0F0` (data viz only), Gilded Fern `#C6A84B`, Frost White `#E0ECF4`, Swan Lavender `#4070C0`, Wing Purple `#8B5CF6`, Abyssal Navy `#001840`
+- **Dual-Button Glow System:** Blue buttons (`#002060`) → Wing Purple glow. Purple buttons (`#8B5CF6`) → Ice Wing Cyan glow. Cosmic Nebula gradient for hero CTAs.
 - **Typography:** Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI)
 - **Touch targets:** 44px minimum on ALL interactive elements
 - **Mobile-first:** Design for phone, enhance for desktop

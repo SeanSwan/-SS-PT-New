@@ -137,7 +137,7 @@ const runtimeTests = {
     error: 'Cannot read property \'primary\' of undefined',
     likelihood: '🟡 MEDIUM',
     cause: 'Theme object structure differences',
-    prevention: 'Should add fallback values: theme.colors?.primary || \'#00ffff\''
+    prevention: 'Should add fallback values: theme.colors?.primary || \'#60c0f0\''
   },
   'Framer Motion': {
     error: 'Je.create is not a function',
@@ -228,7 +228,7 @@ const criticalIssues = [
     priority: 'HIGH',
     issue: 'Theme Property Safety',
     description: 'Add fallback values for theme properties to prevent undefined errors',
-    fix: 'Add || fallbacks: theme.colors?.primary || \'#00ffff\''
+    fix: 'Add || fallbacks: theme.colors?.primary || \'#60c0f0\''
   },
   {
     priority: 'MEDIUM', 

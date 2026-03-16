@@ -6,14 +6,20 @@ SwanStudios (SS-PT) is a production personal training SaaS platform deployed on 
 - **Theme:** Enchanted Apex: Crystalline Swan (frozen enchanted forest + deep-ocean luxury vault + competitive arena)
 - **RETIRED:** Galaxy-Swan theme (cosmic gradients, `#0a0a1a`, `#00FFFF`, `#7851A9`) — do NOT use these tokens for new work
 - **Active Palette:**
-  - Midnight Sapphire `#002060` (Primary — logo deep navy)
-  - Royal Depth `#003080` (Surface — logo circle background)
-  - Ice Wing `#60C0F0` (Gaming Accent — logo wing highlight)
-  - Arctic Cyan `#50A0F0` (Glow Accent — all glow buttons, hover states, accent animations)
+  - Midnight Sapphire `#002060` (Primary — logo deep navy, blue button background)
+  - Royal Depth `#003080` (Surface — logo circle background, elevated cards)
+  - Ice Wing `#60C0F0` (Cyan Glow — glow on purple buttons, XP bars, gaming accents)
+  - Arctic Cyan `#50A0F0` (Data Only — charts, data viz, cold metrics. NOT for buttons/glow)
   - Gilded Fern `#C6A84B` (Luxury Accent — gold contrast)
   - Frost White `#E0ECF4` (Background — logo head highlight)
   - Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
-  - Wing Purple `#8B5CF6` (Secondary Accent — logo purple wing gradient)
+  - Wing Purple `#8B5CF6` (Glow Accent — purple button bg, glow on blue buttons, focus rings, hover states)
+  - Abyssal Navy `#001840` (WCAG Dark — compliant dark backgrounds)
+- **Dual-Button Glow System:**
+  - Blue buttons (`#002060` bg) → Wing Purple `#8B5CF6` glow
+  - Purple buttons (`#8B5CF6` bg) → Ice Wing Cyan `#60C0F0` glow
+  - Cosmic Nebula gradient (`#8B5CF6 → #60C0F0`) → for premium/hero CTAs
+  - This breaks up solid-blue monotony and reflects both logo colors
 - **Typography:** Headings: "Plus Jakarta Sans". Drama: "Cormorant Garamond" Italic. Data: "Fira Code". UI/Gaming: "Sora"
 - **Rarity System:** Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient (sapphire→purple→cyan→gold)
 
@@ -101,8 +107,8 @@ Any AI session that involves frontend UI/UX work MUST read these documents first
 
 ---
 
-## 10-Brain Recursive Consensus System (MANDATORY)
-SwanStudios uses a 10-Brain AI validation pipeline. **Run before every production deploy.**
+## 11-Brain Recursive Consensus System (MANDATORY)
+SwanStudios uses an 11-Brain AI validation pipeline. **Run before every production deploy.**
 
 ```bash
 # Run validation on recent changes
@@ -116,7 +122,7 @@ node scripts/validation-orchestrator.mjs --staged
 ```
 
 ### Architecture
-- **Phase 1:** 8 parallel validators (Gemini 2.5 Flash, Claude Sonnet, Step 3.5 Flash, Gemini 3 Flash, Gemini 3.1 Flash, MiniMax M2.1, DeepSeek V3.2, MiniMax M2.5)
+- **Phase 1:** 9 parallel validators (Gemini 2.5 Flash, Claude Sonnet, Step 3.5 Flash, Gemini 3 Flash, Gemini 3.1 Flash, MiniMax M2.1, DeepSeek V3.2, MiniMax M2.5, Claude Sonnet [Data Safety])
 - **Phase 2:** Code quality recursive debate — Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO). Claude = final authority.
 - **Phase 3:** UX/UI design recursive debate — Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet (Collaborator). Gemini = final authority.
 - **Output:** `AI-Village-Documentation/validation-prompts/latest/` (summary, per-track reports, debate logs, fix instructions)

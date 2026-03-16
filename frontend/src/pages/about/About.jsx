@@ -92,7 +92,7 @@ const AboutPage = styled(motion.div)`
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background-color: #0a0a1a;
+  background-color: #001840;
   color: white;
   overflow-x: hidden;
   position: relative;
@@ -291,7 +291,7 @@ const ScrollToTopButton = styled(motion.button)`
     inset: 0;
     border-radius: 50%;
     padding: 2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9);
+    background: linear-gradient(45deg, #60c0f0, #8b5cf6);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -306,7 +306,7 @@ const ScrollToTopButton = styled(motion.button)`
     content: "↑";
     font-size: 1.5rem;
     font-weight: 300;
-    color: #00ffff;
+    color: #60c0f0;
     text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
     transition: all 0.3s ease;
   }
@@ -344,7 +344,7 @@ const LoadingOverlay = styled(motion.div)`
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #001840, #1e1e3f);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -357,7 +357,7 @@ const SpinnerOuter = styled.div`
   height: 60px;
   border-radius: 50%;
   border: 3px solid rgba(139, 92, 246, 0.1);
-  border-top-color: #00ffff;
+  border-top-color: #60c0f0;
   animation: ${spin} 1s linear infinite;
 `;
 
@@ -369,7 +369,7 @@ const SpinnerInner = styled.div`
   left: 9px;
   border-radius: 50%;
   border: 3px solid rgba(120, 81, 169, 0.1);
-  border-top-color: #7851a9;
+  border-top-color: #8b5cf6;
   animation: ${spin} 1.5s linear infinite reverse;
 `;
 
@@ -426,7 +426,7 @@ const FloatingCTAText = styled.div`
     position: relative;
     display: inline-block;
     margin-left: 0.5rem;
-    color: #00ffff;
+    color: #60c0f0;
     
     &:after {
       content: '';
@@ -435,7 +435,7 @@ const FloatingCTAText = styled.div`
       bottom: 0;
       width: 100%;
       height: 2px;
-      background: #00ffff;
+      background: #60c0f0;
       animation: ${revealText} 2s ease-in-out;
     }
   }
@@ -568,7 +568,7 @@ export default function About() {
             width: 100% !important;
             max-width: 100vw !important;
             overflow-x: hidden !important;
-            background: #0a0a1a;
+            background: #001840;
             color: white;
             scroll-behavior: smooth;
           }

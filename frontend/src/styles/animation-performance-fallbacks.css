@@ -77,7 +77,7 @@
   .animated-name,
   .cosmic-title {
     animation: none !important;
-    color: #00ffff !important; /* Static cyan color */
+    color: #60c0f0 !important; /* Static Ice Wing color */
     text-shadow: none !important;
   }
   
@@ -249,10 +249,10 @@
   @media (min-width: 1024px) {
     .advanced-gradients {
       background: conic-gradient(from 180deg at 50% 50%, 
-        #00ffff 0deg, 
-        #7851a9 120deg, 
-        #ff416c 240deg, 
-        #00ffff 360deg);
+        #8b5cf6 0deg,
+        #60c0f0 120deg,
+        #ff416c 240deg,
+        #8b5cf6 360deg);
     }
   }
 }

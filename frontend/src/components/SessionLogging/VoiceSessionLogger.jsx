@@ -75,7 +75,7 @@ const LoggerHeader = styled.div`
       to right,
       #a9f8fb,
       #46cdcf,
-      #7b2cbf,
+      #8b5cf6,
       #c8b6ff
     );
     background-clip: text;
@@ -271,13 +271,13 @@ const VoiceButton = styled.button`
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  background: ${({ $isRecording }) => $isRecording ? 'linear-gradient(135deg, #ff5252, #ff1744)' : 'linear-gradient(135deg, #00ffff, #7851a9)'};
+  background: ${({ $isRecording }) => $isRecording ? 'linear-gradient(135deg, #ff5252, #ff1744)' : 'linear-gradient(135deg, #8b5cf6, #60c0f0)'};
   color: white;
   animation: ${({ $isRecording }) => $isRecording ? pulse : 'none'} 1s infinite;
   transition: background 0.3s ease;
 
   &:hover {
-    background: ${({ $isRecording }) => $isRecording ? 'linear-gradient(135deg, #ff1744, #d50000)' : 'linear-gradient(135deg, #7851a9, #00ffff)'};
+    background: ${({ $isRecording }) => $isRecording ? 'linear-gradient(135deg, #ff1744, #d50000)' : 'linear-gradient(135deg, #60c0f0, #8b5cf6)'};
   }
 
   &:disabled {
@@ -369,7 +369,7 @@ const LogTypeButton = styled.button`
   justify-content: center;
   gap: 0.5rem;
   min-height: 44px;
-  background: ${({ $active }) => $active ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(15, 23, 42, 0.7)'};
+  background: ${({ $active }) => $active ? 'linear-gradient(90deg, #8b5cf6, #60c0f0)' : 'rgba(15, 23, 42, 0.7)'};
   color: #e2e8f0;
   border-radius: 8px;
   border: 1px solid rgba(14, 165, 233, 0.2);
@@ -381,7 +381,7 @@ const LogTypeButton = styled.button`
   transition: background 0.2s ease;
 
   &:hover {
-    background: ${({ $active }) => $active ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(50, 50, 80, 0.7)'};
+    background: ${({ $active }) => $active ? 'linear-gradient(90deg, #8b5cf6, #60c0f0)' : 'rgba(50, 50, 80, 0.7)'};
   }
 `;
 

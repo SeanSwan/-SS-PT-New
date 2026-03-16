@@ -44,9 +44,9 @@ export const glow = keyframes`
 
 export const AnimatedPath = styled.path`
   fill: ${props => props.fill || 'none'};
-  stroke: ${props => props.strokeColor || '#00ffff'};
+  stroke: ${props => props.strokeColor || '#60c0f0'};
   stroke-width: 2;
-  --color: ${props => props.strokeColor || '#00ffff'};
+  --color: ${props => props.strokeColor || '#60c0f0'};
   animation: ${flicker} 5s infinite alternate, ${glow} 3s infinite;
   transition: all 0.3s ease;
   vector-effect: non-scaling-stroke;
@@ -143,9 +143,9 @@ const GlassTubeEffect = styled.div`
  * @param {string} props.glowIntensity - Intensity of the glow effect ("low", "medium", "high")
  */
 const SwanStudiosNeonSign = ({
-  colors = ['#00ffff', '#7851a9'], // Default cyan and purple
-  mainColor = '#00ffff',
-  accentColor = '#7851a9',
+  colors = ['#60c0f0', '#8b5cf6'], // Default Ice Wing and Wing Purple
+  mainColor = '#60c0f0',
+  accentColor = '#8b5cf6',
   maxWidth = '900px',
   letterWidth = '80px',
   mobileWidth = '50px',
