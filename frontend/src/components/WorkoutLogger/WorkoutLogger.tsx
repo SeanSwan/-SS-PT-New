@@ -84,15 +84,16 @@ const CS = {
   cardSolid: '#00275a',
   accent: '#C6A84B',          // Gilded Fern (luxury)
   gaming: '#60C0F0',          // Ice Wing
-  secondary: '#50A0F0',       // Arctic Cyan
+  glow: '#50A0F0',            // Arctic Cyan — GLOW ACCENT (buttons, hovers, animations)
+  glowLight: '#7CB8F4',       // Arctic Cyan Light (WCAG AA on dark)
+  secondary: '#8B5CF6',       // Wing Purple — secondary accent
+  secondaryLight: '#A78BFA',  // Wing Purple Light
   tertiary: '#4070C0',        // Swan Lavender
-  purple: '#8B5CF6',          // Wing Purple — glow accent
-  purpleLight: '#A78BFA',     // Wing Purple Light (WCAG dark)
   text: '#E0ECF4',            // Frost White
   textSecondary: '#b8c9db',   // Meets WCAG AA on dark
-  border: 'rgba(96, 192, 240, 0.2)',
+  border: 'rgba(80, 160, 240, 0.2)',
   borderSolid: '#4a6382',
-  glassBorder: 'rgba(96, 192, 240, 0.15)',
+  glassBorder: 'rgba(80, 160, 240, 0.15)',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
@@ -100,9 +101,9 @@ const CS = {
 };
 
 const stellarGlow = keyframes`
-  0% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
-  50% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.5), 0 0 48px rgba(96, 192, 240, 0.1); }
-  100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
+  0% { box-shadow: 0 0 8px rgba(80, 160, 240, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
+  50% { box-shadow: 0 0 24px rgba(80, 160, 240, 0.5), 0 0 48px rgba(96, 192, 240, 0.1); }
+  100% { box-shadow: 0 0 8px rgba(80, 160, 240, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
 `;
 
 const shimmer = keyframes`
@@ -170,7 +171,7 @@ const Header = styled.div`
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, ${CS.purple}, ${CS.gaming}, ${CS.accent});
+    background: linear-gradient(90deg, ${CS.glow}, ${CS.gaming}, ${CS.accent});
   }
 
   &::after {
@@ -240,17 +241,17 @@ const InfoBadge = styled.div<{ type: 'warning' | 'info' | 'success' }>`
   background: ${props =>
     props.type === 'warning' ? 'rgba(245, 158, 11, 0.12)' :
     props.type === 'success' ? 'rgba(16, 185, 129, 0.12)' :
-    'rgba(139, 92, 246, 0.12)'
+    'rgba(80, 160, 240, 0.12)'
   };
   border: 1px solid ${props =>
     props.type === 'warning' ? 'rgba(245, 158, 11, 0.35)' :
     props.type === 'success' ? 'rgba(16, 185, 129, 0.35)' :
-    'rgba(139, 92, 246, 0.35)'
+    'rgba(80, 160, 240, 0.35)'
   };
   color: ${props =>
     props.type === 'warning' ? '#fbbf24' :
     props.type === 'success' ? '#34d399' :
-    CS.purpleLight
+    CS.glowLight
   };
 
   svg {
@@ -284,8 +285,8 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${CS.purple};
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 24px rgba(139, 92, 246, 0.1);
+    border-color: ${CS.glow};
+    box-shadow: 0 0 0 3px rgba(80, 160, 240, 0.15), 0 0 24px rgba(80, 160, 240, 0.1);
   }
 
   &::placeholder {
@@ -326,15 +327,15 @@ const ExerciseCard = styled(motion.div)`
     bottom: 1rem;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: linear-gradient(180deg, ${CS.purple}, ${CS.gaming});
+    background: linear-gradient(180deg, ${CS.glow}, ${CS.gaming});
     opacity: 0.6;
     transition: opacity 0.3s;
   }
 
   &:hover {
-    border-color: rgba(139, 92, 246, 0.3);
+    border-color: rgba(80, 160, 240, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.08);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(80, 160, 240, 0.08);
 
     &::before {
       opacity: 1;
@@ -457,7 +458,7 @@ const SetRow = styled.div`
   }
 
   &:hover {
-    background: rgba(139, 92, 246, 0.06);
+    background: rgba(80, 160, 240, 0.06);
   }
 
   @media (max-width: 768px) {
@@ -504,8 +505,8 @@ const NumberInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${CS.purple};
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    border-color: ${CS.glow};
+    box-shadow: 0 0 0 2px rgba(80, 160, 240, 0.15);
   }
 
   &::-webkit-outer-spin-button,
@@ -539,8 +540,8 @@ const TextInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${CS.purple};
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    border-color: ${CS.glow};
+    box-shadow: 0 0 0 2px rgba(80, 160, 240, 0.15);
   }
 
   &::placeholder {
@@ -583,7 +584,7 @@ const StarButton = styled.button<{ filled: boolean }>`
   }
 
   &:focus-visible {
-    outline: 2px solid ${CS.purple};
+    outline: 2px solid ${CS.glow};
     outline-offset: 2px;
     border-radius: 0.375rem;
   }
@@ -593,7 +594,7 @@ const SliderInput = styled.input`
   width: 100%;
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(90deg, rgba(96, 192, 240, 0.15), rgba(139, 92, 246, 0.2));
+  background: linear-gradient(90deg, rgba(96, 192, 240, 0.15), rgba(80, 160, 240, 0.2));
   outline: none;
   appearance: none;
 
@@ -602,9 +603,9 @@ const SliderInput = styled.input`
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
+    background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4), 0 0 12px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 2px 8px rgba(80, 160, 240, 0.4), 0 0 12px rgba(80, 160, 240, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.2);
   }
 
@@ -612,17 +613,17 @@ const SliderInput = styled.input`
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
+    background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
     cursor: pointer;
     border: 2px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 2px 8px rgba(80, 160, 240, 0.4);
   }
 `;
 
 const SliderValue = styled.span`
   font-size: 0.85rem;
   font-weight: 700;
-  color: ${CS.purpleLight};
+  color: ${CS.glowLight};
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   min-width: 2.5rem;
@@ -634,10 +635,10 @@ const AddSetButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
-  background: rgba(139, 92, 246, 0.08);
-  border: 2px dashed rgba(139, 92, 246, 0.3);
+  background: rgba(80, 160, 240, 0.08);
+  border: 2px dashed rgba(80, 160, 240, 0.3);
   border-radius: 0.75rem;
-  color: ${CS.purpleLight};
+  color: ${CS.glowLight};
   font-weight: 600;
   font-family: 'Sora', sans-serif;
   cursor: pointer;
@@ -647,8 +648,8 @@ const AddSetButton = styled(motion.button)`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(80, 160, 240, 0.15);
+    border-color: rgba(80, 160, 240, 0.5);
     border-style: solid;
     transform: translateY(-1px);
   }
@@ -756,8 +757,8 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: ${CS.purple};
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    border-color: ${CS.glow};
+    box-shadow: 0 0 0 2px rgba(80, 160, 240, 0.15);
   }
 
   &::placeholder {
@@ -796,9 +797,9 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   ${props => props.variant === 'primary' && `
-    background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
+    background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
     color: #ffffff;
-    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 20px rgba(80, 160, 240, 0.3);
 
     &::after {
       content: '';
@@ -872,7 +873,7 @@ const AddExerciseButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 1.25rem 2rem;
-  background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
+  background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
   border: none;
   border-radius: 1rem;
   color: #ffffff;
@@ -886,7 +887,7 @@ const AddExerciseButton = styled(motion.button)`
   min-height: 52px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 4px 24px rgba(80, 160, 240, 0.25);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -903,7 +904,7 @@ const AddExerciseButton = styled(motion.button)`
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 36px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 8px 36px rgba(80, 160, 240, 0.4);
   }
 
   &:active {
@@ -1355,7 +1356,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                           transition: 'background 0.2s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
+                          e.currentTarget.style.background = 'rgba(80, 160, 240, 0.12)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = 'transparent';

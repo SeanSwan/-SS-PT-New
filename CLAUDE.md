@@ -9,11 +9,11 @@ SwanStudios (SS-PT) is a production personal training SaaS platform deployed on 
   - Midnight Sapphire `#002060` (Primary — logo deep navy)
   - Royal Depth `#003080` (Surface — logo circle background)
   - Ice Wing `#60C0F0` (Gaming Accent — logo wing highlight)
-  - Arctic Cyan `#50A0F0` (Secondary Accent — logo bright feathers)
+  - Arctic Cyan `#50A0F0` (Glow Accent — all glow buttons, hover states, accent animations)
   - Gilded Fern `#C6A84B` (Luxury Accent — gold contrast)
   - Frost White `#E0ECF4` (Background — logo head highlight)
   - Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
-  - Wing Purple `#8B5CF6` (Glow Accent — all glow buttons, hover states, accent animations)
+  - Wing Purple `#8B5CF6` (Secondary Accent — logo purple wing gradient)
 - **Typography:** Headings: "Plus Jakarta Sans". Drama: "Cormorant Garamond" Italic. Data: "Fira Code". UI/Gaming: "Sora"
 - **Rarity System:** Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient (sapphire→purple→cyan→gold)
 

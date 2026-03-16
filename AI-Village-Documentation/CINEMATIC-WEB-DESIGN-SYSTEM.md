@@ -148,19 +148,19 @@ Each preset ships a complete design system: palette, typography, image mood, ide
   - Midnight Sapphire `#002060` (Primary — logo deep navy)
   - Royal Depth `#003080` (Surface — logo circle background)
   - Ice Wing `#60C0F0` (Gaming Accent — logo wing highlight)
-  - Arctic Cyan `#50A0F0` (Secondary Accent — logo bright feathers)
+  - Arctic Cyan `#50A0F0` (Glow Accent — all glow buttons, hover states, accent animations, focus rings)
   - Gilded Fern `#C6A84B` (Luxury Accent — gold contrast against blues)
   - Frost White `#E0ECF4` (Background — derived from logo head highlight)
   - Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
-  - Wing Purple `#8B5CF6` (Glow Accent — derived from logo purple wing gradient, used for all glow buttons, hover states, and accent animations)
+  - Wing Purple `#8B5CF6` (Secondary Accent — derived from logo purple wing gradient)
 - **Typography:** Same as Preset F — Headings: "Plus Jakarta Sans" (tight tracking). Drama: "Cormorant Garamond" Italic. Data/Mono: "Fira Code". UI/Gaming: "Sora".
 - **Image Mood:** frozen forests, ice caves, crystalline formations, aurora borealis, deep ocean, sapphire gemstones, snow-covered luxury architecture, geometric wildlife, low-poly landscapes
 - **Hero Pattern:** "[Nature noun] meets" (Bold Sans) / "[Power word]." (Massive Serif Italic, gilded accent, ice-blue glow behind)
 - **Special Rules:**
-  - **Nature Layer (Crystalline):** Floating ice crystal particles (subtle geometric shapes at 0.03 opacity instead of pollen), aurora gradient flows (sapphire `#002060` → wing purple `#8B5CF6` → cyan `#60C0F0` → lavender `#4070C0`), crystalline SVG dividers (geometric frost patterns instead of moss/vines). All glow/pulse button animations use Wing Purple `#8B5CF6` as the primary glow color.
+  - **Nature Layer (Crystalline):** Floating ice crystal particles (subtle geometric shapes at 0.03 opacity instead of pollen), aurora gradient flows (sapphire `#002060` → arctic cyan `#50A0F0` → ice wing `#60C0F0` → lavender `#4070C0`), crystalline SVG dividers (geometric frost patterns instead of moss/vines). All glow/pulse button animations use Arctic Cyan `#50A0F0` as the primary glow color.
   - **Luxury Layer:** Gold borders on sapphire glass (`border-[#C6A84B]/20` on `bg-[#002060]/60 backdrop-blur-xl`), premium spacing, serif drama font with frost-white text on deep navy surfaces
-  - **Gaming Layer:** Rarity system recolored: Common=Swan Lavender `#4070C0`, Rare=Gilded Fern `#C6A84B`, Epic=Wing Purple `#8B5CF6`, Legendary=animated gradient (sapphire→purple→cyan→gold). XP bars use arctic cyan fill on midnight sapphire track. Level-up animations have a crystalline shatter effect with Wing Purple `#8B5CF6` particle bursts.
-  - **Logo Integration:** The low-poly swan logo now features a purple-to-blue wing gradient — Wing Purple `#8B5CF6` is the primary glow/accent color across all interactive elements (buttons, FABs, hover states, focus rings, loading animations). Every UI element will feel native to the brand mark. Nav logo renders cleanly on `#002060` backgrounds. Accent glows use Wing Purple `#8B5CF6` for the primary pulse and Cosmic Purple `#7851A9` as a secondary depth shadow.
+  - **Gaming Layer:** Rarity system recolored: Common=Swan Lavender `#4070C0`, Rare=Gilded Fern `#C6A84B`, Epic=Wing Purple `#8B5CF6`, Legendary=animated gradient (sapphire→purple→cyan→gold). XP bars use arctic cyan fill on midnight sapphire track. Level-up animations have a crystalline shatter effect with Arctic Cyan `#50A0F0` particle bursts.
+  - **Logo Integration:** The low-poly swan logo features a purple-to-blue wing gradient — Arctic Cyan `#50A0F0` is the primary glow/accent color across all interactive elements (buttons, FABs, hover states, focus rings, loading animations). Wing Purple `#8B5CF6` serves as the secondary accent. Every UI element will feel native to the brand mark. Nav logo renders cleanly on `#002060` backgrounds. Accent glows use Arctic Cyan `#50A0F0` for the primary pulse and Wing Purple `#8B5CF6` as a secondary depth accent.
 - **Use For:** SwanStudios (brand-exact match), any project where the swan logo appears, AI onboarding prompts
 
 ### Preset G — "Custom" (User-Defined)

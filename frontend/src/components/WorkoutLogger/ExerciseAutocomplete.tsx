@@ -20,11 +20,13 @@ const CS = {
   surface: '#003080',
   card: 'rgba(0, 32, 96, 0.85)',
   gaming: '#60C0F0',
-  purple: '#8B5CF6',
-  purpleLight: '#A78BFA',
+  glow: '#50A0F0',            // Arctic Cyan — GLOW ACCENT
+  glowLight: '#7CB8F4',       // Arctic Cyan Light (WCAG AA)
+  secondary: '#8B5CF6',       // Wing Purple — secondary
+  secondaryLight: '#A78BFA',
   text: '#E0ECF4',
   textSecondary: '#b8c9db',
-  glassBorder: 'rgba(96, 192, 240, 0.15)',
+  glassBorder: 'rgba(80, 160, 240, 0.15)',
   accent: '#C6A84B',
 };
 
@@ -71,8 +73,8 @@ const StyledInput = styled.input<{ $error?: boolean }>`
 
   &:focus {
     outline: none;
-    border-color: ${CS.purple};
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 20px rgba(139, 92, 246, 0.08);
+    border-color: ${CS.glow};
+    box-shadow: 0 0 0 3px rgba(80, 160, 240, 0.15), 0 0 20px rgba(80, 160, 240, 0.08);
   }
 
   &::placeholder {
@@ -99,8 +101,8 @@ const Dropdown = styled.ul`
   background: rgba(0, 24, 72, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(80, 160, 240, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 40px rgba(80, 160, 240, 0.06);
   list-style: none;
   animation: ${slideDown} 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -111,7 +113,7 @@ const Dropdown = styled.ul`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.25);
+    background: rgba(80, 160, 240, 0.25);
     border-radius: 3px;
   }
 `;
@@ -124,12 +126,12 @@ const DropdownItem = styled.li<{ $highlighted: boolean }>`
   gap: 3px;
   cursor: pointer;
   transition: background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  background: ${({ $highlighted }) => ($highlighted ? 'rgba(139, 92, 246, 0.12)' : 'transparent')};
-  border-left: 3px solid ${({ $highlighted }) => ($highlighted ? CS.purple : 'transparent')};
+  background: ${({ $highlighted }) => ($highlighted ? 'rgba(80, 160, 240, 0.12)' : 'transparent')};
+  border-left: 3px solid ${({ $highlighted }) => ($highlighted ? CS.glow : 'transparent')};
 
   &:hover {
-    background: rgba(139, 92, 246, 0.1);
-    border-left-color: rgba(139, 92, 246, 0.4);
+    background: rgba(80, 160, 240, 0.1);
+    border-left-color: rgba(80, 160, 240, 0.4);
   }
 `;
 
@@ -157,9 +159,9 @@ const TypeBadge = styled.span`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(96, 192, 240, 0.1));
-  color: ${CS.purpleLight};
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: linear-gradient(135deg, rgba(80, 160, 240, 0.15), rgba(96, 192, 240, 0.1));
+  color: ${CS.glowLight};
+  border: 1px solid rgba(80, 160, 240, 0.2);
   margin-right: 6px;
 `;
 
