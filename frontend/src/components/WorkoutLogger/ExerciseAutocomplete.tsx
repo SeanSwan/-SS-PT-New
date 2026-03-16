@@ -4,15 +4,34 @@
  * Searchable autocomplete for NASM exercise database.
  * Calls GET /api/exercises/search?q=... with debounce.
  *
- * Theme: Crystalline Swan (Wing Purple accents)
+ * Theme: Crystalline Swan — Cinematic glassmorphism
  * Touch targets: 44px minimum
  * WCAG AA contrast compliant
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { Search } from 'lucide-react';
 import { ApiService } from '../../services/api.service';
+
+/* ─── Crystalline Swan Palette ─── */
+const CS = {
+  bg: '#002060',
+  surface: '#003080',
+  card: 'rgba(0, 32, 96, 0.85)',
+  gaming: '#60C0F0',
+  purple: '#8B5CF6',
+  purpleLight: '#A78BFA',
+  text: '#E0ECF4',
+  textSecondary: '#b8c9db',
+  glassBorder: 'rgba(96, 192, 240, 0.15)',
+  accent: '#C6A84B',
+};
+
+const slideDown = keyframes`
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
 
 /* ─── Styled Components ─── */
 
@@ -27,97 +46,120 @@ const InputRow = styled.div`
   align-items: center;
 `;
 
-const SearchIcon = styled(Search)`
+const SearchIconStyled = styled(Search)`
   position: absolute;
-  left: 12px;
-  color: #94a3b8;
+  left: 14px;
+  color: ${CS.gaming};
   pointer-events: none;
+  z-index: 1;
 `;
 
 const StyledInput = styled.input<{ $error?: boolean }>`
   width: 100%;
-  min-height: 44px;
-  padding: 10px 14px 10px 38px;
-  border-radius: 8px;
-  border: 1px solid ${({ $error }) => ($error ? '#ff6b6b' : 'rgba(255, 255, 255, 0.12)')};
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  min-height: 48px;
+  padding: 12px 16px 12px 42px;
+  border-radius: 0.75rem;
+  border: 1.5px solid ${({ $error }) => ($error ? '#ef4444' : CS.glassBorder)};
+  background: rgba(0, 48, 128, 0.4);
+  backdrop-filter: blur(12px);
+  color: ${CS.text};
   font-size: 0.95rem;
-  transition: border-color 0.2s;
+  font-family: 'Sora', sans-serif;
   box-sizing: border-box;
+  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus {
     outline: none;
-    border-color: #8B5CF6;
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    border-color: ${CS.purple};
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 20px rgba(139, 92, 246, 0.08);
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(224, 236, 244, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
 const Dropdown = styled.ul`
   position: absolute;
-  top: 100%;
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   z-index: 100;
-  max-height: 240px;
+  max-height: 280px;
   overflow-y: auto;
-  margin: 4px 0 0;
-  padding: 4px 0;
-  border-radius: 8px;
-  background: rgba(29, 31, 43, 0.98);
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  margin: 0;
+  padding: 6px 0;
+  border-radius: 1rem;
+  background: rgba(0, 24, 72, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.06);
   list-style: none;
+  animation: ${slideDown} 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &::-webkit-scrollbar {
     width: 6px;
   }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
   &::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.3);
+    background: rgba(139, 92, 246, 0.25);
     border-radius: 3px;
   }
 `;
 
 const DropdownItem = styled.li<{ $highlighted: boolean }>`
-  padding: 10px 14px;
+  padding: 12px 16px;
   min-height: 44px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   background: ${({ $highlighted }) => ($highlighted ? 'rgba(139, 92, 246, 0.12)' : 'transparent')};
+  border-left: 3px solid ${({ $highlighted }) => ($highlighted ? CS.purple : 'transparent')};
 
   &:hover {
-    background: rgba(139, 92, 246, 0.12);
+    background: rgba(139, 92, 246, 0.1);
+    border-left-color: rgba(139, 92, 246, 0.4);
   }
 `;
 
 const ExName = styled.span`
-  color: #e2e8f0;
+  color: ${CS.text};
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 `;
 
 const ExMeta = styled.span`
-  color: #94a3b8;
+  color: ${CS.textSecondary};
   font-size: 0.75rem;
   font-family: 'Sora', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const TypeBadge = styled.span`
   display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 1rem;
+  font-size: 0.6rem;
+  font-weight: 700;
   text-transform: uppercase;
-  background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(96, 192, 240, 0.1));
+  color: ${CS.purpleLight};
+  border: 1px solid rgba(139, 92, 246, 0.2);
   margin-right: 6px;
 `;
 
@@ -167,7 +209,6 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       return;
     }
 
-    // Cancel any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -187,7 +228,6 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       }
     } catch (err: any) {
       if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
-      // Silently fail — user can still type freely
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
@@ -227,7 +267,6 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     }
   };
 
-  // Close on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
@@ -238,7 +277,6 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -249,7 +287,7 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   return (
     <Wrapper ref={wrapperRef}>
       <InputRow>
-        <SearchIcon size={16} />
+        <SearchIconStyled size={16} />
         <StyledInput
           value={value}
           onChange={handleInputChange}

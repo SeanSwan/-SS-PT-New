@@ -21,9 +21,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled, { ThemeProvider, keyframes } from 'styled-components';
-import { 
-  Plus, Minus, Search, Save, X, AlertTriangle, CheckCircle, 
+import styled, { keyframes } from 'styled-components';
+import {
+  Plus, Minus, Search, Save, X, AlertTriangle, CheckCircle,
   Activity, Dumbbell, Clock, Target, Star, BarChart3,
   User, Calendar, MessageSquare, Zap, Timer, Weight,
   RotateCcw, ArrowLeft, ArrowRight, Info, HelpCircle, Download
@@ -74,66 +74,92 @@ interface Client {
   phone?: string;
 }
 
-// ==================== STYLED COMPONENTS ====================
+// ==================== CRYSTALLINE SWAN CINEMATIC THEME ====================
+
+/* ─── Palette: Crystalline Swan (Preset F-Alt) ─── */
+const CS = {
+  bg: '#002060',             // Midnight Sapphire
+  surface: '#003080',         // Royal Depth
+  card: 'rgba(0, 32, 96, 0.75)',  // Glass
+  cardSolid: '#00275a',
+  accent: '#C6A84B',          // Gilded Fern (luxury)
+  gaming: '#60C0F0',          // Ice Wing
+  secondary: '#50A0F0',       // Arctic Cyan
+  tertiary: '#4070C0',        // Swan Lavender
+  purple: '#8B5CF6',          // Wing Purple — glow accent
+  purpleLight: '#A78BFA',     // Wing Purple Light (WCAG dark)
+  text: '#E0ECF4',            // Frost White
+  textSecondary: '#b8c9db',   // Meets WCAG AA on dark
+  border: 'rgba(96, 192, 240, 0.2)',
+  borderSolid: '#4a6382',
+  glassBorder: 'rgba(96, 192, 240, 0.15)',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  inputBg: 'rgba(0, 48, 128, 0.5)',
+};
 
 const stellarGlow = keyframes`
-  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), 0 0 30px rgba(139, 92, 246, 0.4); }
-  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
+  0% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
+  50% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.5), 0 0 48px rgba(96, 192, 240, 0.1); }
+  100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
 `;
 
-const workoutTheme = {
-  colors: {
-    primary: '#8B5CF6',       // Wing Purple — brand accent
-    secondary: '#002060',     // Midnight Sapphire
-    accent: '#60C0F0',        // Ice Wing
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444',
-    background: '#0a1628',    // Deep navy aligned with Crystalline Swan
-    surface: '#1a2744',
-    cardBg: '#243352',
-    text: '#E0ECF4',          // Frost White
-    textSecondary: '#b8c9db', /* Boosted contrast — meets WCAG AA on dark surfaces */
-    border: '#4a6382',        // Meets 3:1 UI contrast on surface/cardBg
-    inputBg: '#3d5275',
-    buttonPrimary: '#8B5CF6', // Wing Purple
-    buttonSecondary: '#4070C0' // Swan Lavender
-  },
-  spacing: {
-    xs: '0.25rem',
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem',
-    xl: '2rem',
-    xxl: '3rem'
-  },
-  borderRadius: {
-    sm: '0.375rem',
-    md: '0.5rem',
-    lg: '0.75rem',
-    xl: '1rem'
-  }
-};
+const shimmer = keyframes`
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+`;
+
+const crystallinePulse = keyframes`
+  0% { opacity: 0.03; }
+  50% { opacity: 0.08; }
+  100% { opacity: 0.03; }
+`;
 
 const WorkoutLoggerContainer = styled(motion.div)`
   min-height: 100vh;
-  background: linear-gradient(135deg, ${workoutTheme.colors.background} 0%, #1a202c 100%);
-  padding: ${workoutTheme.spacing.lg};
-  color: ${workoutTheme.colors.text};
+  background: linear-gradient(165deg, ${CS.bg} 0%, #001040 40%, #001848 100%);
+  padding: 2rem;
+  color: ${CS.text};
   font-family: 'Sora', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+
+  /* Noise texture overlay */
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
 
   @media (max-width: 768px) {
-    padding: ${workoutTheme.spacing.md};
+    padding: 1rem;
+  }
+
+  @media (max-width: 430px) {
+    padding: 0.75rem;
   }
 `;
 
 const Header = styled.div`
-  background: ${workoutTheme.colors.surface};
-  border-radius: ${workoutTheme.borderRadius.lg};
-  padding: ${workoutTheme.spacing.xl};
-  margin-bottom: ${workoutTheme.spacing.xl};
-  border: 1px solid ${workoutTheme.colors.border};
+  background: ${CS.card};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid ${CS.glassBorder};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 80px rgba(96, 192, 240, 0.03);
   position: relative;
   overflow: hidden;
 
@@ -143,135 +169,190 @@ const Header = styled.div`
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, ${workoutTheme.colors.primary}, ${workoutTheme.colors.accent});
+    height: 3px;
+    background: linear-gradient(90deg, ${CS.purple}, ${CS.gaming}, ${CS.accent});
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(180deg, rgba(96, 192, 240, 0.04) 0%, transparent 100%);
+    pointer-events: none;
   }
 
   @media (max-width: 430px) {
-    padding: ${workoutTheme.spacing.md};
-    margin-bottom: ${workoutTheme.spacing.md};
-    border-radius: ${workoutTheme.borderRadius.md};
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-radius: 1rem;
   }
 `;
 
 const ClientInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${workoutTheme.spacing.sm};
+  gap: 0.5rem;
 
   h2 {
     margin: 0;
     font-size: 1.5rem;
-    font-weight: 600;
-    color: ${workoutTheme.colors.text};
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: ${CS.text};
     display: flex;
     align-items: center;
-    gap: ${workoutTheme.spacing.sm};
+    gap: 0.5rem;
+    letter-spacing: -0.02em;
+
+    svg {
+      color: ${CS.gaming};
+    }
   }
 `;
 
 const SessionInfo = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${workoutTheme.spacing.lg};
-  margin-top: ${workoutTheme.spacing.md};
-  font-size: 0.9rem;
-  color: ${workoutTheme.colors.textSecondary};
+  gap: 0.75rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: ${workoutTheme.spacing.sm};
+    gap: 0.5rem;
   }
 `;
 
 const InfoBadge = styled.div<{ type: 'warning' | 'info' | 'success' }>`
   display: flex;
   align-items: center;
-  gap: ${workoutTheme.spacing.xs};
-  padding: ${workoutTheme.spacing.xs} ${workoutTheme.spacing.sm};
-  border-radius: ${workoutTheme.borderRadius.md};
-  font-weight: 500;
-  background: ${props => 
-    props.type === 'warning' ? `${workoutTheme.colors.warning}20` :
-    props.type === 'success' ? `${workoutTheme.colors.success}20` :
-    `${workoutTheme.colors.primary}20`
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 2rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  backdrop-filter: blur(8px);
+  background: ${props =>
+    props.type === 'warning' ? 'rgba(245, 158, 11, 0.12)' :
+    props.type === 'success' ? 'rgba(16, 185, 129, 0.12)' :
+    'rgba(139, 92, 246, 0.12)'
   };
-  border: 1px solid ${props => 
-    props.type === 'warning' ? workoutTheme.colors.warning :
-    props.type === 'success' ? workoutTheme.colors.success :
-    workoutTheme.colors.primary
+  border: 1px solid ${props =>
+    props.type === 'warning' ? 'rgba(245, 158, 11, 0.35)' :
+    props.type === 'success' ? 'rgba(16, 185, 129, 0.35)' :
+    'rgba(139, 92, 246, 0.35)'
   };
-  color: ${props => 
-    props.type === 'warning' ? workoutTheme.colors.warning :
-    props.type === 'success' ? workoutTheme.colors.success :
-    workoutTheme.colors.primary
+  color: ${props =>
+    props.type === 'warning' ? '#fbbf24' :
+    props.type === 'success' ? '#34d399' :
+    CS.purpleLight
   };
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 const ExerciseSection = styled.div`
-  margin-bottom: ${workoutTheme.spacing.xl};
+  margin-bottom: 2rem;
 `;
 
 const ExerciseSearchBar = styled.div`
   position: relative;
-  margin-bottom: ${workoutTheme.spacing.xl};
+  margin-bottom: 2rem;
 `;
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: ${workoutTheme.spacing.md} ${workoutTheme.spacing.md} ${workoutTheme.spacing.md} 3rem;
-  background: ${workoutTheme.colors.inputBg};
-  border: 2px solid ${workoutTheme.colors.border};
-  border-radius: ${workoutTheme.borderRadius.lg};
-  color: ${workoutTheme.colors.text};
+  padding: 1rem 1rem 1rem 3.25rem;
+  background: ${CS.inputBg};
+  backdrop-filter: blur(12px);
+  border: 2px solid ${CS.glassBorder};
+  border-radius: 1rem;
+  color: ${CS.text};
   font-size: 1rem;
-  transition: all 0.3s ease;
+  font-family: 'Sora', sans-serif;
+  min-height: 52px;
+  box-sizing: border-box;
+  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus {
     outline: none;
-    border-color: ${workoutTheme.colors.primary};
-    box-shadow: 0 0 0 3px ${workoutTheme.colors.primary}20;
+    border-color: ${CS.purple};
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 24px rgba(139, 92, 246, 0.1);
   }
 
   &::placeholder {
-    color: ${workoutTheme.colors.textSecondary};
+    color: rgba(224, 236, 244, 0.45);
   }
 `;
 
 const SearchIcon = styled(Search)`
   position: absolute;
-  left: ${workoutTheme.spacing.md};
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: ${workoutTheme.colors.textSecondary};
+  color: ${CS.gaming};
   pointer-events: none;
 `;
 
 const ExerciseCard = styled(motion.div)`
-  background: ${workoutTheme.colors.cardBg};
-  border-radius: ${workoutTheme.borderRadius.lg};
-  padding: ${workoutTheme.spacing.xl};
-  margin-bottom: ${workoutTheme.spacing.lg};
-  border: 1px solid ${workoutTheme.colors.border};
+  background: ${CS.card};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid ${CS.glassBorder};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 60px rgba(96, 192, 240, 0.02);
   position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Subtle gradient bar on left */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 1rem;
+    left: 0;
+    bottom: 1rem;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, ${CS.purple}, ${CS.gaming});
+    opacity: 0.6;
+    transition: opacity 0.3s;
+  }
 
   &:hover {
-    border-color: ${workoutTheme.colors.primary};
-    animation: ${stellarGlow} 2s ease-in-out infinite;
+    border-color: rgba(139, 92, 246, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.08);
+
+    &::before {
+      opacity: 1;
+    }
   }
 
   @media (max-width: 430px) {
-    padding: ${workoutTheme.spacing.md};
-    border-radius: ${workoutTheme.borderRadius.md};
+    padding: 1.25rem;
+    border-radius: 1rem;
   }
 `;
 
 const ExerciseHeader = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: ${workoutTheme.spacing.lg};
-  gap: ${workoutTheme.spacing.md};
+  margin-bottom: 1.5rem;
+  gap: 1rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -280,38 +361,44 @@ const ExerciseHeader = styled.div`
 
 const ExerciseTitle = styled.div`
   flex: 1;
-  
+
   h3 {
-    margin: 0 0 ${workoutTheme.spacing.xs} 0;
+    margin: 0 0 0.25rem 0;
     font-size: 1.25rem;
-    font-weight: 600;
-    color: ${workoutTheme.colors.text};
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: ${CS.text};
     display: flex;
     align-items: center;
-    gap: ${workoutTheme.spacing.sm};
+    gap: 0.5rem;
+    letter-spacing: -0.01em;
+
+    svg {
+      color: ${CS.gaming};
+    }
   }
 
   p {
     margin: 0;
-    color: ${workoutTheme.colors.textSecondary};
-    font-size: 0.9rem;
+    color: ${CS.textSecondary};
+    font-size: 0.875rem;
   }
 `;
 
 const ExerciseRatings = styled.div`
   display: flex;
-  gap: ${workoutTheme.spacing.lg};
+  gap: 1.5rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: ${workoutTheme.spacing.md};
+    gap: 1rem;
   }
 `;
 
 const RatingGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${workoutTheme.spacing.xs};
+  gap: 0.375rem;
   min-width: 120px;
 
   @media (max-width: 430px) {
@@ -320,30 +407,36 @@ const RatingGroup = styled.div`
   }
 
   label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: ${workoutTheme.colors.textSecondary};
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: ${CS.textSecondary};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: 'Sora', sans-serif;
   }
 `;
 
 const SetsTable = styled.div`
-  background: ${workoutTheme.colors.surface};
-  border-radius: ${workoutTheme.borderRadius.md};
+  background: rgba(0, 16, 48, 0.5);
+  border-radius: 1rem;
   overflow: hidden;
-  margin-bottom: ${workoutTheme.spacing.lg};
+  margin-bottom: 1.5rem;
+  border: 1px solid ${CS.glassBorder};
 `;
 
 const TableHeader = styled.div`
   display: grid;
   grid-template-columns: 60px 100px 80px 80px 100px 100px 1fr 50px;
-  gap: ${workoutTheme.spacing.sm};
-  padding: ${workoutTheme.spacing.md};
-  background: ${workoutTheme.colors.background};
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: ${workoutTheme.colors.textSecondary};
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  background: rgba(0, 32, 96, 0.6);
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: ${CS.gaming};
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.1em;
+  font-family: 'Sora', sans-serif;
+  border-bottom: 1px solid ${CS.glassBorder};
 
   @media (max-width: 768px) {
     display: none;
@@ -353,17 +446,18 @@ const TableHeader = styled.div`
 const SetRow = styled.div`
   display: grid;
   grid-template-columns: 60px 100px 80px 80px 100px 100px 1fr 50px;
-  gap: ${workoutTheme.spacing.sm};
-  padding: ${workoutTheme.spacing.md};
-  border-bottom: 1px solid ${workoutTheme.colors.border};
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.08);
   align-items: center;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: ${workoutTheme.colors.border}30;
+    background: rgba(139, 92, 246, 0.06);
   }
 
   @media (max-width: 768px) {
@@ -385,29 +479,35 @@ const SetRow = styled.div`
 `;
 
 const SetNumber = styled.div`
-  font-weight: 600;
-  color: ${workoutTheme.colors.primary};
+  font-weight: 700;
+  color: ${CS.gaming};
   font-size: 1.1rem;
   text-align: center;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
 `;
 
 const NumberInput = styled.input`
   width: 100%;
-  padding: ${workoutTheme.spacing.sm};
-  background: ${workoutTheme.colors.inputBg};
-  border: 1px solid ${workoutTheme.colors.border};
-  border-radius: ${workoutTheme.borderRadius.sm};
-  color: ${workoutTheme.colors.text};
+  padding: 0.5rem;
+  background: rgba(0, 48, 128, 0.4);
+  border: 1px solid ${CS.glassBorder};
+  border-radius: 0.5rem;
+  color: ${CS.text};
   text-align: center;
   font-size: 0.9rem;
+  font-family: 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
   min-height: 44px;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 
   &:focus {
     outline: none;
-    border-color: ${workoutTheme.colors.primary};
+    border-color: ${CS.purple};
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
-  /* Remove number input arrows */
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -426,21 +526,25 @@ const NumberInput = styled.input`
 
 const TextInput = styled.input`
   width: 100%;
-  padding: ${workoutTheme.spacing.sm};
-  background: ${workoutTheme.colors.inputBg};
-  border: 1px solid ${workoutTheme.colors.border};
-  border-radius: ${workoutTheme.borderRadius.sm};
-  color: ${workoutTheme.colors.text};
+  padding: 0.5rem;
+  background: rgba(0, 48, 128, 0.4);
+  border: 1px solid ${CS.glassBorder};
+  border-radius: 0.5rem;
+  color: ${CS.text};
   font-size: 0.9rem;
+  font-family: 'Sora', sans-serif;
   min-height: 44px;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 
   &:focus {
     outline: none;
-    border-color: ${workoutTheme.colors.primary};
+    border-color: ${CS.purple};
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
-    color: ${workoutTheme.colors.textSecondary};
+    color: rgba(224, 236, 244, 0.4);
   }
 
   @media (max-width: 430px) {
@@ -463,105 +567,120 @@ const StarButton = styled.button<{ filled: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   svg {
     width: 20px;
     height: 20px;
-    fill: ${props => props.filled ? workoutTheme.colors.warning : 'none'};
-    stroke: ${workoutTheme.colors.warning};
+    fill: ${props => props.filled ? CS.accent : 'none'};
+    stroke: ${CS.accent};
+    transition: fill 0.15s, transform 0.15s;
   }
 
   &:hover svg {
-    fill: ${workoutTheme.colors.warning};
-    transform: scale(1.1);
+    fill: ${CS.accent};
+    transform: scale(1.15);
   }
 
   &:focus-visible {
-    outline: 2px solid ${workoutTheme.colors.primary};
+    outline: 2px solid ${CS.purple};
     outline-offset: 2px;
-    border-radius: ${workoutTheme.borderRadius.sm};
+    border-radius: 0.375rem;
   }
 `;
 
 const SliderInput = styled.input`
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: ${workoutTheme.colors.border};
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(96, 192, 240, 0.15), rgba(139, 92, 246, 0.2));
   outline: none;
   appearance: none;
 
   &::-webkit-slider-thumb {
     appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: ${workoutTheme.colors.primary};
+    background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4), 0 0 12px rgba(139, 92, 246, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
   }
 
   &::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: ${workoutTheme.colors.primary};
+    background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
     cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
   }
 `;
 
 const SliderValue = styled.span`
   font-size: 0.85rem;
-  font-weight: 600;
-  color: ${workoutTheme.colors.primary};
+  font-weight: 700;
+  color: ${CS.purpleLight};
+  font-family: 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5rem;
+  text-align: right;
 `;
 
 const AddSetButton = styled(motion.button)`
   display: flex;
   align-items: center;
-  gap: ${workoutTheme.spacing.sm};
-  padding: ${workoutTheme.spacing.md} ${workoutTheme.spacing.lg};
-  background: ${workoutTheme.colors.primary}20;
-  border: 2px dashed ${workoutTheme.colors.primary};
-  border-radius: ${workoutTheme.borderRadius.md};
-  color: ${workoutTheme.colors.primary};
-  font-weight: 500;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: rgba(139, 92, 246, 0.08);
+  border: 2px dashed rgba(139, 92, 246, 0.3);
+  border-radius: 0.75rem;
+  color: ${CS.purpleLight};
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
   cursor: pointer;
   width: 100%;
   justify-content: center;
-  transition: all 0.3s ease;
+  min-height: 44px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: ${workoutTheme.colors.primary}30;
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
     border-style: solid;
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 `;
 
 const RemoveSetButton = styled.button`
-  background: ${workoutTheme.colors.error}20;
-  border: 1px solid ${workoutTheme.colors.error};
-  border-radius: ${workoutTheme.borderRadius.sm};
-  color: ${workoutTheme.colors.error};
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  color: #f87171;
   cursor: pointer;
-  padding: ${workoutTheme.spacing.xs};
+  padding: 0.25rem;
   min-width: 44px;
   min-height: 44px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:hover {
-    background: ${workoutTheme.colors.error}40;
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
   }
 
   &:focus-visible {
-    outline: 2px solid ${workoutTheme.colors.error};
+    outline: 2px solid #f87171;
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
   }
 
   svg {
@@ -571,25 +690,39 @@ const RemoveSetButton = styled.button`
 `;
 
 const SessionSummary = styled.div`
-  background: ${workoutTheme.colors.surface};
-  border-radius: ${workoutTheme.borderRadius.lg};
-  padding: ${workoutTheme.spacing.xl};
-  margin-bottom: ${workoutTheme.spacing.xl};
-  border: 1px solid ${workoutTheme.colors.border};
+  background: ${CS.card};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid ${CS.glassBorder};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 430px) {
+    padding: 1.25rem;
+    border-radius: 1rem;
+  }
 `;
 
 const SummaryTitle = styled.h3`
-  margin: 0 0 ${workoutTheme.spacing.lg} 0;
+  margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
-  font-weight: 600;
-  color: ${workoutTheme.colors.text};
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: ${CS.text};
   display: flex;
   align-items: center;
-  gap: ${workoutTheme.spacing.sm};
+  gap: 0.5rem;
+  letter-spacing: -0.01em;
+
+  svg {
+    color: ${CS.accent};
+  }
 `;
 
 const SummaryField = styled.div`
-  margin-bottom: ${workoutTheme.spacing.lg};
+  margin-bottom: 1.5rem;
 
   &:last-child {
     margin-bottom: 0;
@@ -597,39 +730,46 @@ const SummaryField = styled.div`
 
   label {
     display: block;
-    font-weight: 500;
-    color: ${workoutTheme.colors.textSecondary};
-    margin-bottom: ${workoutTheme.spacing.sm};
+    font-weight: 600;
+    color: ${CS.textSecondary};
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: 'Sora', sans-serif;
   }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
   min-height: 100px;
-  padding: ${workoutTheme.spacing.md};
-  background: ${workoutTheme.colors.inputBg};
-  border: 1px solid ${workoutTheme.colors.border};
-  border-radius: ${workoutTheme.borderRadius.md};
-  color: ${workoutTheme.colors.text};
+  padding: 1rem;
+  background: rgba(0, 48, 128, 0.4);
+  border: 1px solid ${CS.glassBorder};
+  border-radius: 0.75rem;
+  color: ${CS.text};
   font-size: 0.9rem;
-  font-family: inherit;
+  font-family: 'Sora', sans-serif;
   resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 
   &:focus {
     outline: none;
-    border-color: ${workoutTheme.colors.primary};
+    border-color: ${CS.purple};
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
-    color: ${workoutTheme.colors.textSecondary};
+    color: rgba(224, 236, 244, 0.4);
   }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: ${workoutTheme.spacing.md};
+  gap: 1rem;
   justify-content: flex-end;
-  margin-top: ${workoutTheme.spacing.xl};
+  margin-top: 2rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -637,38 +777,69 @@ const ActionButtons = styled.div`
 `;
 
 const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'danger' }>`
-  padding: ${workoutTheme.spacing.md} ${workoutTheme.spacing.xl};
-  border-radius: ${workoutTheme.borderRadius.md};
+  padding: 0.875rem 2rem;
+  border-radius: 1rem;
   font-weight: 600;
   font-size: 1rem;
+  font-family: 'Sora', sans-serif;
   cursor: pointer;
   border: none;
   display: flex;
   align-items: center;
-  gap: ${workoutTheme.spacing.sm};
-  transition: all 0.3s ease;
+  gap: 0.5rem;
   min-width: 140px;
+  min-height: 48px;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  background: ${props => 
-    props.variant === 'primary' ? workoutTheme.colors.primary :
-    props.variant === 'danger' ? workoutTheme.colors.error :
-    workoutTheme.colors.buttonSecondary
-  };
-  
-  color: ${workoutTheme.colors.text};
+  ${props => props.variant === 'primary' && `
+    background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+      background-size: 200% 100%;
+      animation: ${shimmer} 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+  `}
+
+  ${props => props.variant === 'secondary' && `
+    background: transparent;
+    color: ${CS.text};
+    border: 1.5px solid ${CS.glassBorder};
+    backdrop-filter: blur(8px);
+
+    &:hover {
+      border-color: rgba(96, 192, 240, 0.4);
+      background: rgba(96, 192, 240, 0.06);
+    }
+  `}
+
+  ${props => props.variant === 'danger' && `
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  `}
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${props => 
-      props.variant === 'primary' ? `${workoutTheme.colors.primary}40` :
-      props.variant === 'danger' ? `${workoutTheme.colors.error}40` :
-      `${workoutTheme.colors.buttonSecondary}40`
-    };
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -677,46 +848,66 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
   @media (max-width: 430px) {
     min-width: unset;
     width: 100%;
-    min-height: 44px;
+    min-height: 48px;
     font-size: 0.9rem;
-    padding: ${workoutTheme.spacing.md};
   }
+`;
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
 `;
 
 const LoadingSpinner = styled.div`
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid ${workoutTheme.colors.border};
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  border-top-color: ${workoutTheme.colors.text};
-  animation: spin 1s ease-in-out infinite;
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  border-top-color: #ffffff;
+  animation: ${spin} 0.8s ease-in-out infinite;
 `;
 
 const AddExerciseButton = styled(motion.button)`
   display: flex;
   align-items: center;
-  gap: ${workoutTheme.spacing.sm};
-  padding: ${workoutTheme.spacing.lg} ${workoutTheme.spacing.xl};
-  background: linear-gradient(135deg, ${workoutTheme.colors.primary}, ${workoutTheme.colors.accent});
+  gap: 0.5rem;
+  padding: 1.25rem 2rem;
+  background: linear-gradient(135deg, ${CS.purple}, ${CS.gaming});
   border: none;
-  border-radius: ${workoutTheme.borderRadius.lg};
-  color: ${workoutTheme.colors.text};
-  font-weight: 600;
-  font-size: 1.1rem;
+  border-radius: 1rem;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   cursor: pointer;
   width: 100%;
   justify-content: center;
-  margin-bottom: ${workoutTheme.spacing.xl};
-  transition: all 0.3s ease;
+  margin-bottom: 2rem;
+  min-height: 52px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.25);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    background-size: 200% 100%;
+    animation: ${shimmer} 3s ease-in-out infinite;
+    pointer-events: none;
+  }
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px ${workoutTheme.colors.primary}40;
+    box-shadow: 0 8px 36px rgba(139, 92, 246, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 `;
 
@@ -1064,7 +1255,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }
 
   return (
-    <ThemeProvider theme={workoutTheme}>
+    <>
       <WorkoutLoggerContainer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1134,55 +1325,56 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                     top: '100%',
                     left: 0,
                     right: 0,
-                    background: workoutTheme.colors.surface,
-                    border: `1px solid ${workoutTheme.colors.border}`,
-                    borderRadius: workoutTheme.borderRadius.md,
+                    background: CS.card,
+                    backdropFilter: 'blur(20px)',
+                    border: `1px solid ${CS.glassBorder}`,
+                    borderRadius: '1rem',
                     maxHeight: '300px',
                     overflowY: 'auto',
                     zIndex: 1000,
-                    marginTop: workoutTheme.spacing.xs
+                    marginTop: '0.25rem'
                   }}
                 >
                   {isLoadingExercises ? (
                     <div style={{ 
-                      padding: workoutTheme.spacing.lg, 
-                      textAlign: 'center', 
-                      color: workoutTheme.colors.textSecondary 
+                      padding: '1.5rem',
+                      textAlign: 'center',
+                      color: CS.textSecondary
                     }}>
                       <LoadingSpinner style={{ margin: '0 auto' }} />
-                      <div style={{ marginTop: workoutTheme.spacing.sm }}>Searching exercises...</div>
+                      <div style={{ marginTop: '0.5rem' }}>Searching exercises...</div>
                     </div>
                   ) : availableExercises.length > 0 ? (
                     availableExercises.map((exercise) => (
                       <div
                         key={exercise.id}
                         style={{
-                          padding: workoutTheme.spacing.md,
+                          padding: '1rem',
                           cursor: 'pointer',
-                          borderBottom: `1px solid ${workoutTheme.colors.border}`,
+                          borderBottom: `1px solid ${CS.glassBorder}`,
                           transition: 'background 0.2s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = `${workoutTheme.colors.primary}20`;
+                          e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = 'transparent';
                         }}
                         onClick={() => addExercise(exercise)}
                       >
-                        <div style={{ fontWeight: 600, color: workoutTheme.colors.text }}>
+                        <div style={{ fontWeight: 600, color: CS.text, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                           {exercise.name}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: workoutTheme.colors.textSecondary, marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.8rem', color: CS.textSecondary, marginTop: '4px', fontFamily: "'Sora', sans-serif" }}>
                           {exercise.exerciseType} • {exercise.muscleGroups.join(', ')}
                         </div>
                       </div>
                     ))
                   ) : (
                     <div style={{ 
-                      padding: workoutTheme.spacing.lg, 
-                      textAlign: 'center', 
-                      color: workoutTheme.colors.textSecondary 
+                      padding: '1.5rem',
+                      textAlign: 'center',
+                      color: CS.textSecondary
                     }}>
                       {searchQuery.length >= 2 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
                     </div>
@@ -1253,12 +1445,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                       onClick={() => removeExercise(exerciseIndex)}
                       aria-label={`Remove ${exercise.exerciseName}`}
                       style={{
-                        background: `${workoutTheme.colors.error}20`,
-                        border: `1px solid ${workoutTheme.colors.error}`,
-                        borderRadius: workoutTheme.borderRadius.sm,
-                        color: workoutTheme.colors.error,
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '0.5rem',
+                        color: '#f87171',
                         cursor: 'pointer',
-                        padding: workoutTheme.spacing.sm,
+                        padding: '0.5rem',
                         alignSelf: 'flex-start',
                         minWidth: '44px',
                         minHeight: '44px',
@@ -1407,8 +1599,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-              gap: workoutTheme.spacing.md,
-              marginTop: workoutTheme.spacing.lg 
+              gap: '0.75rem',
+              marginTop: '1.5rem' 
             }}>
               <InfoBadge type="info">
                 <Activity size={16} />
@@ -1468,7 +1660,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           </Button>
         </ActionButtons>
       </WorkoutLoggerContainer>
-    </ThemeProvider>
+    </>
   );
 };
 
