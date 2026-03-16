@@ -21,7 +21,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import {
   Plus, Minus, Search, Save, X, AlertTriangle, CheckCircle,
   Activity, Dumbbell, Clock, Target, Star, BarChart3,
@@ -90,7 +90,7 @@ const CS = {
   secondaryLight: '#A78BFA',  // Wing Purple Light
   tertiary: '#4070C0',        // Swan Lavender
   text: '#E0ECF4',            // Frost White
-  textSecondary: '#b8c9db',   // Meets WCAG AA on dark
+  textSecondary: '#c8d6e5',   // Meets WCAG AA on dark + translucent backgrounds
   border: 'rgba(80, 160, 240, 0.2)',
   borderSolid: '#4a6382',
   glassBorder: 'rgba(80, 160, 240, 0.15)',
@@ -290,7 +290,7 @@ const SearchInput = styled.input`
   }
 
   &::placeholder {
-    color: rgba(224, 236, 244, 0.45);
+    color: rgba(224, 236, 244, 0.65);
   }
 `;
 
@@ -672,11 +672,13 @@ const RemoveSetButton = styled.button`
   &:hover {
     background: rgba(239, 68, 68, 0.2);
     border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
   }
 
   &:focus-visible {
     outline: 2px solid #f87171;
     outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
   }
 
   &:disabled {
@@ -796,7 +798,7 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  ${props => props.variant === 'primary' && `
+  ${props => props.variant === 'primary' && css`
     background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
     color: #ffffff;
     box-shadow: 0 4px 20px rgba(80, 160, 240, 0.3);
@@ -813,7 +815,7 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
     }
   `}
 
-  ${props => props.variant === 'secondary' && `
+  ${props => props.variant === 'secondary' && css`
     background: transparent;
     color: ${CS.text};
     border: 1.5px solid ${CS.glassBorder};
@@ -825,7 +827,7 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
     }
   `}
 
-  ${props => props.variant === 'danger' && `
+  ${props => props.variant === 'danger' && css`
     background: rgba(239, 68, 68, 0.15);
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.3);
@@ -1356,7 +1358,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                           transition: 'background 0.2s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(80, 160, 240, 0.12)';
+                          e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = 'transparent';

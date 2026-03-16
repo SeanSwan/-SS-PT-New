@@ -85,31 +85,59 @@ router.get('/notifications', protect, adminOnly, async (req, res) => {
     }
 
     const adminCount = await User.count({ where: { role: 'admin' } });
-    const notifications = await AdminNotification.findAll({
-      where: {
-        [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }]
-      },
-      order: [['createdAt', 'DESC']],
-      limit: 200,
-      raw: true
-    });
 
-    const summary = AdminNotification.getNotificationSummary
-      ? await AdminNotification.getNotificationSummary()
-      : {
-          total: notifications.length,
-          unread: notifications.filter((item) => !item.isRead).length,
-          highPriority: notifications.filter((item) =>
-            ['high', 'critical'].includes(item.priority)
-          ).length,
-          actionRequired: notifications.filter((item) => item.actionRequired && !item.actionTaken).length
-        };
+    let notifications = [];
+    try {
+      notifications = await AdminNotification.findAll({
+        where: {
+          [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }]
+        },
+        order: [['createdAt', 'DESC']],
+        limit: 200,
+        raw: true
+      });
+    } catch (findErr) {
+      console.warn('[adminNotifications] findAll failed (table may be missing columns):', findErr.message);
+      // Return empty gracefully instead of 500
+      return res.status(200).json({
+        success: true,
+        notifications: [],
+        stats: { total: 0, unread: 0, highPriority: 0, actionRequired: 0 },
+        degraded: true
+      });
+    }
+
+    let summary;
+    try {
+      summary = AdminNotification.getNotificationSummary
+        ? await AdminNotification.getNotificationSummary()
+        : {
+            total: notifications.length,
+            unread: notifications.filter((item) => !item.isRead).length,
+            highPriority: notifications.filter((item) =>
+              ['high', 'critical'].includes(item.priority)
+            ).length,
+            actionRequired: notifications.filter((item) => item.actionRequired && !item.actionTaken).length
+          };
+    } catch (summaryErr) {
+      console.warn('[adminNotifications] getNotificationSummary failed:', summaryErr.message);
+      summary = {
+        total: notifications.length,
+        unread: notifications.filter((item) => !item.isRead).length,
+        highPriority: 0,
+        actionRequired: 0
+      };
+    }
 
     return res.status(200).json({
       success: true,
-      notifications: notifications.map((notification) =>
-        serializeAdminNotification(notification, adminCount)
-      ),
+      notifications: notifications.map((notification) => {
+        try {
+          return serializeAdminNotification(notification, adminCount);
+        } catch {
+          return { id: notification.id, title: notification.title || 'Notification', content: notification.message || '', type: 'system' };
+        }
+      }),
       stats: summary
     });
   } catch (error) {

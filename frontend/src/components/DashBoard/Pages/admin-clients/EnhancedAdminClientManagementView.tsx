@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import styled, { keyframes, css } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
+import adminClientService from '../../../../services/adminClientService';
 import CreateClientModal from './CreateClientModal';
 import ClientDetailsModal from './components/ClientDetailsModal';
 import ClientAnalyticsPanel from './components/ClientAnalyticsPanel';
@@ -2019,7 +2020,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         <>
           <DropdownOverlay onClick={handleMenuClose} />
           <DropdownMenu $x={menuPos.x} $y={menuPos.y}>
-            <DropdownItem onClick={() => menuClient && handleViewDetails(menuClient)}>
+            <DropdownItem onClick={() => {
+              if (menuClient) handleViewDetails(menuClient);
+              handleMenuClose();
+            }}>
               <Eye size={18} />
               View Full Profile
             </DropdownItem>
@@ -2091,15 +2095,31 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       <CreateClientModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSubmit={(data) => {
-          // TODO: Handle client creation
-          console.log('Creating client:', data);
-          setShowCreateModal(false);
-          toast({
-            title: "Success",
-            description: "Client created successfully",
-            variant: "default"
-          });
+        onSubmit={async (data) => {
+          try {
+            const result = data.clientSource && data.clientSource !== 'swanstudios'
+              ? await adminClientService.createExternalClient(data as any)
+              : await adminClientService.createClient(data);
+            setShowCreateModal(false);
+            toast({
+              title: "Success",
+              description: `Client ${data.firstName} ${data.lastName} created successfully`,
+              variant: "default"
+            });
+            // Refresh client list
+            const refreshed = await adminClientService.getClients({ page: currentPage + 1, limit: rowsPerPage });
+            if (refreshed.clients?.length) {
+              setClients(refreshed.clients as any);
+              setTotalCount(refreshed.stats?.totalClients || refreshed.clients.length);
+            }
+          } catch (error: any) {
+            toast({
+              title: "Error",
+              description: error.message || "Failed to create client",
+              variant: "destructive"
+            });
+            throw error; // Re-throw so modal can show error state
+          }
         }}
         trainers={[]} // TODO: Add trainers list
       />

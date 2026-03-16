@@ -132,7 +132,9 @@ function parseArgs() {
     if (args[i] === '--files' && args[i + 1]) {
       i++;
       while (i < args.length && !args[i].startsWith('--')) {
-        opts.files.push(args[i]);
+        // Support comma-separated file lists: --files "a.tsx,b.mjs,c.ts"
+        const parts = args[i].split(',').map(f => f.trim()).filter(Boolean);
+        opts.files.push(...parts);
         i++;
       }
       i--;
@@ -895,7 +897,9 @@ async function main() {
     console.error('    node scripts/validation-orchestrator.mjs                    # recent changes (2h)');
     console.error('    node scripts/validation-orchestrator.mjs --since 24h        # last 24 hours');
     console.error('    node scripts/validation-orchestrator.mjs --staged            # git staged files');
-    console.error('    node scripts/validation-orchestrator.mjs --files src/App.tsx  # specific files');
+    console.error('    node scripts/validation-orchestrator.mjs --files src/App.tsx  # specific file');
+    console.error('    node scripts/validation-orchestrator.mjs --files a.tsx b.mjs  # multiple files (space-separated)');
+    console.error('    node scripts/validation-orchestrator.mjs --files a.tsx,b.mjs  # multiple files (comma-separated)');
     process.exit(1);
   }
 
