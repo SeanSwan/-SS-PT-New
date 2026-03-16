@@ -17,7 +17,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Zap, Moon } from 'lucide-react';
+import { Sparkles, Sun, Zap, Moon, Flame, Snowflake } from 'lucide-react';
 import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
@@ -52,7 +52,7 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
   width: 44px;
   height: 44px;
   border-radius: ${({ $currentTheme }) =>
-    $currentTheme === 'crystalline-light' ? '12px' : '50%'
+    ($currentTheme === 'crystalline-light' || $currentTheme === 'frozen-aurora') ? '12px' : '50%'
   };
   border: ${({ $currentTheme }) => {
     switch ($currentTheme) {
@@ -64,6 +64,10 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '2px solid rgba(34, 211, 238, 0.4)';
       case 'crystalline-mono':
         return '2px solid rgba(255, 255, 255, 0.4)';
+      case 'cinematic-ember':
+        return '2px solid rgba(245, 158, 11, 0.4)';
+      case 'frozen-aurora':
+        return '2px solid rgba(99, 102, 241, 0.3)';
       default:
         return '2px solid transparent';
     }
@@ -78,6 +82,10 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return 'linear-gradient(135deg, #030712, #22D3EE)';
       case 'crystalline-mono':
         return '#000000';
+      case 'cinematic-ember':
+        return 'linear-gradient(135deg, #1A0F0A, #F59E0B)';
+      case 'frozen-aurora':
+        return 'linear-gradient(135deg, #E2E8F0, #6366F1)';
       default:
         return 'linear-gradient(135deg, #001545, #60C0F0)';
     }
@@ -100,6 +108,10 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '#22D3EE';
       case 'crystalline-mono':
         return '#FFFFFF';
+      case 'cinematic-ember':
+        return '#FFF5EB';
+      case 'frozen-aurora':
+        return '#4F46E5';
       default:
         return '#E0ECF4';
     }
@@ -116,6 +128,10 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '0 0 25px rgba(34, 211, 238, 0.5), 0 0 50px rgba(167, 139, 250, 0.2)';
       case 'crystalline-mono':
         return '0 0 8px rgba(255, 255, 255, 0.15)';
+      case 'cinematic-ember':
+        return '0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(225, 29, 72, 0.2)';
+      case 'frozen-aurora':
+        return '0 2px 12px rgba(99, 102, 241, 0.2)';
       default:
         return '0 0 20px rgba(96, 192, 240, 0.4)';
     }
@@ -131,20 +147,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
       switch ($currentTheme) {
         case 'crystalline-default':
           return '#C6A84B';
-        case 'crystalline-light':
-          return 'transparent';
         case 'crystalline-dark':
           return '#F59E0B';
-        case 'crystalline-mono':
-          return 'transparent';
+        case 'cinematic-ember':
+          return '#E11D48';
         default:
-          return '#C6A84B';
+          return 'transparent';
       }
     }};
     border-radius: 50%;
     animation: ${orbitingParticles} 3s linear infinite;
     opacity: ${({ $currentTheme }) =>
-      ($currentTheme === 'crystalline-light' || $currentTheme === 'crystalline-mono') ? '0' : '0.8'
+      ['crystalline-light', 'crystalline-mono', 'frozen-aurora'].includes($currentTheme) ? '0' : '0.8'
     };
   }
 
@@ -158,28 +172,26 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
       switch ($currentTheme) {
         case 'crystalline-default':
           return '#60C0F0';
-        case 'crystalline-light':
-          return 'transparent';
         case 'crystalline-dark':
           return '#A78BFA';
-        case 'crystalline-mono':
-          return 'transparent';
+        case 'cinematic-ember':
+          return '#F59E0B';
         default:
-          return '#60C0F0';
+          return 'transparent';
       }
     }};
     border-radius: 50%;
     animation: ${orbitingParticles} 4s linear infinite reverse;
     animation-delay: -1s;
     opacity: ${({ $currentTheme }) =>
-      ($currentTheme === 'crystalline-light' || $currentTheme === 'crystalline-mono') ? '0' : '0.6'
+      ['crystalline-light', 'crystalline-mono', 'frozen-aurora'].includes($currentTheme) ? '0' : '0.6'
     };
   }
 
   &:hover {
     transform: scale(1.1);
     animation: ${({ $currentTheme }) =>
-      ($currentTheme === 'crystalline-light' || $currentTheme === 'crystalline-mono') ? 'none' : stellarPulse
+      ['crystalline-light', 'crystalline-mono', 'frozen-aurora'].includes($currentTheme) ? 'none' : stellarPulse
     } 2s ease-in-out infinite;
     box-shadow: ${({ $currentTheme }) => {
       switch ($currentTheme) {
@@ -191,6 +203,10 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '0 0 35px rgba(34, 211, 238, 0.7), 0 0 70px rgba(167, 139, 250, 0.3)';
         case 'crystalline-mono':
           return '0 0 12px rgba(255, 255, 255, 0.25)';
+        case 'cinematic-ember':
+          return '0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(225, 29, 72, 0.3)';
+        case 'frozen-aurora':
+          return '0 4px 16px rgba(99, 102, 241, 0.3)';
         default:
           return '0 0 30px rgba(96, 192, 240, 0.6)';
       }
@@ -208,6 +224,10 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '#F59E0B';
         case 'crystalline-mono':
           return '#FFFFFF';
+        case 'cinematic-ember':
+          return '#E11D48';
+        case 'frozen-aurora':
+          return '#6366F1';
         default:
           return '#C6A84B';
       }
@@ -314,6 +334,10 @@ const getThemeIcon = (themeId: ThemeId, size = 20) => {
       return <Zap size={size} />;
     case 'crystalline-mono':
       return <Moon size={size} />;
+    case 'cinematic-ember':
+      return <Flame size={size} />;
+    case 'frozen-aurora':
+      return <Snowflake size={size} />;
     default:
       return <Sparkles size={size} />;
   }
@@ -329,6 +353,10 @@ const getThemeDescription = (themeId: ThemeId) => {
       return 'Void Crystal';
     case 'crystalline-mono':
       return 'Monochrome';
+    case 'cinematic-ember':
+      return 'Obsidian Ember';
+    case 'frozen-aurora':
+      return 'Frozen Aurora';
     default:
       return 'Crystalline Swan';
   }
