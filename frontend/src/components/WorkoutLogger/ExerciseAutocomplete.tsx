@@ -6,14 +6,13 @@
  *
  * Theme: Crystalline Swan (Wing Purple accents)
  * Touch targets: 44px minimum
+ * WCAG AA contrast compliant
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Search } from 'lucide-react';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+import { ApiService } from '../../services/api.service';
 
 /* ─── Styled Components ─── */
 
@@ -31,7 +30,7 @@ const InputRow = styled.div`
 const SearchIcon = styled(Search)`
   position: absolute;
   left: 12px;
-  color: #64748b;
+  color: #94a3b8;
   pointer-events: none;
 `;
 
@@ -54,7 +53,7 @@ const StyledInput = styled.input<{ $error?: boolean }>`
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.45);
   }
 `;
 
@@ -105,7 +104,7 @@ const ExName = styled.span`
 `;
 
 const ExMeta = styled.span`
-  color: #64748b;
+  color: #94a3b8;
   font-size: 0.75rem;
   font-family: 'Sora', sans-serif;
 `;
@@ -117,8 +116,8 @@ const TypeBadge = styled.span`
   font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
   margin-right: 6px;
 `;
 
@@ -159,6 +158,7 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   const [loading, setLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const abortRef = useRef<AbortController>();
 
   const search = useCallback(async (query: string) => {
     if (query.length < 2) {
@@ -167,22 +167,31 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       return;
     }
 
+    // Cancel any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/exercises/search`, {
+      const api = new ApiService();
+      const res = await api.get(`/api/exercises/search`, {
         params: { q: query, limit: 15 },
-        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       if (res.data.success && res.data.exercises) {
         setResults(res.data.exercises);
         setIsOpen(true);
         setHighlightIndex(-1);
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
       // Silently fail — user can still type freely
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -229,9 +238,11 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -248,12 +259,13 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
           $error={error}
           disabled={disabled}
           autoComplete="off"
+          aria-label="Search exercises"
           data-testid={rest['data-testid']}
         />
       </InputRow>
 
       {isOpen && results.length > 0 && (
-        <Dropdown role="listbox">
+        <Dropdown role="listbox" aria-label="Exercise search results">
           {results.map((ex, i) => (
             <DropdownItem
               key={ex.id}

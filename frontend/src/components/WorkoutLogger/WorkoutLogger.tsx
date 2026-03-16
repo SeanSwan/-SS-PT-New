@@ -19,7 +19,7 @@
  * Designed for SwanStudios Platform - Production Ready
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import { 
@@ -95,7 +95,7 @@ const workoutTheme = {
     cardBg: '#243352',
     text: '#E0ECF4',          // Frost White
     textSecondary: '#b8c9db', /* Boosted contrast — meets WCAG AA on dark surfaces */
-    border: '#3d5275',
+    border: '#4a6382',        // Meets 3:1 UI contrast on surface/cardBg
     inputBg: '#3d5275',
     buttonPrimary: '#8B5CF6', // Wing Purple
     buttonSecondary: '#4070C0' // Swan Lavender
@@ -735,6 +735,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
@@ -928,44 +929,40 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }), []);
 
   const addSet = useCallback((exerciseIndex: number) => {
-    setExercises(prev => {
-      const updated = [...prev];
-      const exercise = updated[exerciseIndex];
+    setExercises(prev => prev.map((exercise, i) => {
+      if (i !== exerciseIndex) return exercise;
       const newSetNumber = exercise.sets.length + 1;
-      exercise.sets.push(createEmptySet(newSetNumber));
-      return updated;
-    });
+      return { ...exercise, sets: [...exercise.sets, createEmptySet(newSetNumber)] };
+    }));
   }, [createEmptySet]);
 
   const removeSet = useCallback((exerciseIndex: number, setIndex: number) => {
-    setExercises(prev => {
-      const updated = [...prev];
-      const exercise = updated[exerciseIndex];
-      if (exercise.sets.length > 1) {
-        exercise.sets.splice(setIndex, 1);
-        // Renumber remaining sets
-        exercise.sets.forEach((set, index) => {
-          set.setNumber = index + 1;
-        });
-      }
-      return updated;
-    });
+    setExercises(prev => prev.map((exercise, i) => {
+      if (i !== exerciseIndex) return exercise;
+      if (exercise.sets.length <= 1) return exercise;
+      const newSets = exercise.sets
+        .filter((_, si) => si !== setIndex)
+        .map((set, idx) => ({ ...set, setNumber: idx + 1 }));
+      return { ...exercise, sets: newSets };
+    }));
   }, []);
 
   const updateSet = useCallback((exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => {
-    setExercises(prev => {
-      const updated = [...prev];
-      updated[exerciseIndex].sets[setIndex][field] = value;
-      return updated;
-    });
+    setExercises(prev => prev.map((exercise, i) => {
+      if (i !== exerciseIndex) return exercise;
+      return {
+        ...exercise,
+        sets: exercise.sets.map((set, si) =>
+          si !== setIndex ? set : { ...set, [field]: value }
+        ),
+      };
+    }));
   }, []);
 
   const updateExercise = useCallback((exerciseIndex: number, field: keyof ExerciseEntry, value: any) => {
-    setExercises(prev => {
-      const updated = [...prev];
-      updated[exerciseIndex][field] = value;
-      return updated;
-    });
+    setExercises(prev => prev.map((exercise, i) =>
+      i !== exerciseIndex ? exercise : { ...exercise, [field]: value }
+    ));
   }, []);
 
   const removeExercise = useCallback((exerciseIndex: number) => {
@@ -990,6 +987,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [exercises, client, user, sessionNotes, overallIntensity]);
 
   const handleSubmit = async () => {
+    // Ref-based guard: atomic, prevents double-submit on fast taps
+    if (isSubmittingRef.current) return;
+
     if (exercises.length === 0) {
       toast.error('Please add at least one exercise');
       return;
@@ -1006,8 +1006,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
 
     // Validate that all exercises have at least one complete set
-    const hasIncompleteExercises = exercises.some(exercise => 
-      exercise.sets.length === 0 || 
+    const hasIncompleteExercises = exercises.some(exercise =>
+      exercise.sets.length === 0 ||
       exercise.sets.some(set => set.weight === 0 && set.reps === 0)
     );
 
@@ -1016,6 +1016,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -1039,6 +1040,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       console.error('Error submitting workout form:', error);
       toast.error(error.message || 'Failed to submit workout form');
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
