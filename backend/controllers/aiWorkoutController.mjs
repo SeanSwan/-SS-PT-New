@@ -72,61 +72,24 @@ const fetchOptionalContext = async (model, fetchFn, contextName) => {
   }
 };
 
-const ALLOWED_DAY_TYPES = new Set([
-  'training',
-  'active_recovery',
-  'rest',
-  'assessment',
-  'specialization',
-]);
-const ALLOWED_OPT_PHASES = new Set([
-  'stabilization_endurance',
-  'strength_endurance',
-  'hypertrophy',
-  'maximal_strength',
-  'power',
-]);
-const OPT_PHASE_KEY_BY_NUMBER = {
-  1: 'stabilization_endurance',
-  2: 'strength_endurance',
-  3: 'hypertrophy',
-  4: 'maximal_strength',
-  5: 'power',
-};
+// Shared workout plan utilities (DRY — used by both generate and approve flows)
+import { findExerciseByName, buildExerciseLookupMap } from '../utils/exerciseLookup.mjs';
+import {
+  ALLOWED_DAY_TYPES,
+  ALLOWED_OPT_PHASES,
+  OPT_PHASE_KEY_BY_NUMBER,
+  normalizeDayType,
+  normalizeOptPhase,
+  toOptPhaseKey,
+  preflightValidatePlan,
+  persistWorkoutPlan,
+} from '../utils/workoutPlanPersistence.mjs';
 
 const isPlainObject = (value) => {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 };
 
-const normalizeDayType = (dayType) => {
-  if (!dayType || typeof dayType !== 'string') {
-    return 'training';
-  }
-  return ALLOWED_DAY_TYPES.has(dayType) ? dayType : 'training';
-};
-
-const normalizeOptPhase = (optPhase) => {
-  if (!optPhase || typeof optPhase !== 'string') {
-    return null;
-  }
-  return ALLOWED_OPT_PHASES.has(optPhase) ? optPhase : null;
-};
-
-const toOptPhaseKey = (optPhase) => {
-  if (!optPhase) {
-    return null;
-  }
-  if (typeof optPhase === 'string') {
-    return normalizeOptPhase(optPhase);
-  }
-  if (typeof optPhase === 'number') {
-    return OPT_PHASE_KEY_BY_NUMBER[optPhase] || null;
-  }
-  if (typeof optPhase === 'object' && typeof optPhase.phase === 'number') {
-    return OPT_PHASE_KEY_BY_NUMBER[optPhase.phase] || null;
-  }
-  return null;
-};
+// normalizeDayType, normalizeOptPhase, toOptPhaseKey imported from workoutPlanPersistence.mjs
 
 const OHSA_LABELS = {
   feetTurnout: 'feet turnout',
@@ -206,35 +169,7 @@ const buildNasmConstraints = (baseline, masterPrompt) => {
   };
 };
 
-const findExerciseByName = async (Exercise, name, transaction) => {
-  if (!name) {
-    return null;
-  }
-
-  const trimmed = String(name).trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  try {
-    const exactMatch = await Exercise.findOne({
-      where: { name: { [Op.iLike]: trimmed } },
-      transaction,
-    });
-
-    if (exactMatch) {
-      return exactMatch;
-    }
-
-    return await Exercise.findOne({
-      where: { name: { [Op.iLike]: `%${trimmed}%` } },
-      transaction,
-    });
-  } catch (err) {
-    logger.warn('Exercise lookup failed', { name: trimmed, error: err.message });
-    return null;
-  }
-};
+// findExerciseByName imported from utils/exerciseLookup.mjs
 
 /**
  * Update the audit log entry. Non-blocking — failures are logged but don't break the request.
@@ -809,146 +744,27 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     }
 
-    // --- Persist workout plan (unchanged from Phase 1) ---
+    // --- Pre-flight validation (before any transaction) ---
+    const preflight = preflightValidatePlan(aiPlan);
+    if (!preflight.valid) {
+      return res.status(preflight.error.status).json(preflight.error.body);
+    }
+
+    // --- Persist workout plan (shared utility + manual transaction) ---
     const transaction = await sequelize.transaction();
-    const unmatchedExercises = [];
-    let createdExerciseCount = 0;
+    let workoutPlan, createdExerciseCount, unmatchedExercises;
 
     try {
-      const durationWeeks = Number.isFinite(Number(aiPlan.durationWeeks))
-        ? Math.max(1, Number(aiPlan.durationWeeks))
-        : 4;
-
-      const workoutPlan = await WorkoutPlan.create(
-        {
-          userId: targetUserId,
-          title: aiPlan.planName || 'AI Workout Plan',
-          description: aiPlan.summary || 'AI-generated workout plan',
-          durationWeeks,
-          status: 'active',
-          tags: ['ai_generated'],
-        },
-        { transaction }
-      );
-
-      const days = Array.isArray(aiPlan.days) ? aiPlan.days : [];
-
-      // --- Bulk-fetch all exercise names to avoid N+1 queries ---
-      const allExerciseNames = [];
-      for (const day of days) {
-        const exs = Array.isArray(day?.exercises) ? day.exercises : [];
-        for (const ex of exs) {
-          const name = ex?.name ? String(ex.name).trim() : '';
-          if (name) allExerciseNames.push(name);
-        }
-      }
-      const uniqueNames = [...new Set(allExerciseNames)];
-      const exerciseLookupMap = new Map();
-      if (uniqueNames.length > 0 && Exercise) {
-        try {
-          // Exact matches first
-          const exactMatches = await Exercise.findAll({
-            where: { name: { [Op.iLike]: { [Op.any]: uniqueNames } } },
-            transaction,
-          });
-          for (const em of exactMatches) {
-            exerciseLookupMap.set(em.name.toLowerCase(), em);
-          }
-          // Fuzzy match remaining unmatched names
-          const unmatchedNames = uniqueNames.filter(n => !exerciseLookupMap.has(n.toLowerCase()));
-          if (unmatchedNames.length > 0) {
-            for (const name of unmatchedNames) {
-              const fuzzy = await Exercise.findOne({
-                where: { name: { [Op.iLike]: `%${name}%` } },
-                transaction,
-              });
-              if (fuzzy) exerciseLookupMap.set(name.toLowerCase(), fuzzy);
-            }
-          }
-        } catch (lookupErr) {
-          logger.warn('Bulk exercise lookup failed, falling back to individual queries', { error: lookupErr.message });
-        }
-      }
-
-      for (let i = 0; i < days.length; i += 1) {
-        const day = days[i] || {};
-        const dayNumber = Number.isFinite(Number(day.dayNumber)) ? Number(day.dayNumber) : i + 1;
-
-        const workoutPlanDay = await WorkoutPlanDay.create(
-          {
-            workoutPlanId: workoutPlan.id,
-            dayNumber,
-            name: day.name || `Day ${dayNumber}`,
-            focus: day.focus || null,
-            dayType: normalizeDayType(day.dayType),
-            optPhase: normalizeOptPhase(day.optPhase),
-            notes: day.notes || null,
-            warmupInstructions: day.warmupInstructions || null,
-            cooldownInstructions: day.cooldownInstructions || null,
-            estimatedDuration: Number.isFinite(Number(day.estimatedDuration))
-              ? Number(day.estimatedDuration)
-              : null,
-            sortOrder: Number.isFinite(Number(day.sortOrder)) ? Number(day.sortOrder) : i + 1,
-          },
-          { transaction }
-        );
-
-        const exercises = Array.isArray(day.exercises) ? day.exercises : [];
-        const MAX_EXERCISES_PER_DAY = 50;
-        if (exercises.length > MAX_EXERCISES_PER_DAY) {
-          await transaction.rollback();
-          return res.status(422).json({
-            success: false,
-            message: `Day ${dayNumber} has ${exercises.length} exercises, which exceeds the maximum of ${MAX_EXERCISES_PER_DAY}`,
-            code: 'EXERCISE_LIMIT_EXCEEDED',
-          });
-        }
-        for (let j = 0; j < exercises.length; j += 1) {
-          const exercise = exercises[j] || {};
-          const exerciseName = exercise.name ? String(exercise.name).trim() : '';
-          // Use bulk lookup map; fall back to individual query only if map miss
-          let exerciseRecord = exerciseLookupMap.get(exerciseName.toLowerCase()) || null;
-          if (!exerciseRecord && exerciseName) {
-            exerciseRecord = await findExerciseByName(Exercise, exerciseName, transaction);
-          }
-
-          if (!exerciseRecord) {
-            unmatchedExercises.push({ dayNumber, name: exerciseName });
-            continue;
-          }
-
-          await WorkoutPlanDayExercise.create(
-            {
-              workoutPlanDayId: workoutPlanDay.id,
-              exerciseId: exerciseRecord.id,
-              orderInWorkout: Number.isFinite(Number(exercise.orderInWorkout))
-                ? Number(exercise.orderInWorkout)
-                : j + 1,
-              setScheme: exercise.setScheme || null,
-              repGoal: exercise.repGoal || null,
-              restPeriod: Number.isFinite(Number(exercise.restPeriod))
-                ? Number(exercise.restPeriod)
-                : null,
-              tempo: exercise.tempo || null,
-              intensityGuideline: exercise.intensityGuideline || null,
-              notes: exercise.notes || null,
-              isOptional: Boolean(exercise.isOptional),
-            },
-            { transaction }
-          );
-
-          createdExerciseCount += 1;
-        }
-      }
-
-      if (createdExerciseCount === 0) {
-        await transaction.rollback();
-        return res.status(422).json({
-          success: false,
-          message: 'No exercises matched existing library entries',
-          unmatchedExercises,
-        });
-      }
+      const persistResult = await persistWorkoutPlan({
+        plan: aiPlan,
+        userId: targetUserId,
+        models: { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, Exercise },
+        transaction,
+        tags: ['ai_generated'],
+      });
+      workoutPlan = persistResult.workoutPlan;
+      createdExerciseCount = persistResult.createdExerciseCount;
+      unmatchedExercises = persistResult.unmatchedExercises;
 
       await transaction.commit();
 
@@ -1003,6 +819,13 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     } catch (error) {
       await transaction.rollback();
+      if (error.code === 'NO_EXERCISE_MATCHES') {
+        return res.status(422).json({
+          success: false,
+          message: 'No exercises matched existing library entries',
+          unmatchedExercises: error.unmatchedExercises || [],
+        });
+      }
       throw error;
     }
   } catch (error) {
@@ -1173,96 +996,27 @@ export const approveDraftPlan = async (req, res) => {
       });
     }
 
-    // --- 8. Persist validated draft ---
+    // --- 8. Pre-flight + persist validated draft ---
     const approvedPlan = draftValidation.normalizedDraft;
+    const approvePreflight = preflightValidatePlan(approvedPlan);
+    if (!approvePreflight.valid) {
+      return res.status(approvePreflight.error.status).json(approvePreflight.error.body);
+    }
+
     const transaction = await sequelize.transaction();
-    const unmatchedExercises = [];
-    let createdExerciseCount = 0;
+    let workoutPlan, createdExerciseCount, unmatchedExercises;
 
     try {
-      const durationWeeks = Number.isFinite(Number(approvedPlan.durationWeeks))
-        ? Math.max(1, Number(approvedPlan.durationWeeks))
-        : 4;
-
-      const workoutPlan = await WorkoutPlan.create(
-        {
-          userId: parsedUserId,
-          title: approvedPlan.planName || 'AI Workout Plan (Coach Approved)',
-          description: approvedPlan.summary || 'AI-generated workout plan approved by coach',
-          durationWeeks,
-          status: 'active',
-          tags: ['ai_generated', 'coach_approved'],
-        },
-        { transaction }
-      );
-
-      const days = Array.isArray(approvedPlan.days) ? approvedPlan.days : [];
-      for (let i = 0; i < days.length; i += 1) {
-        const day = days[i] || {};
-        const dayNumber = Number.isFinite(Number(day.dayNumber)) ? Number(day.dayNumber) : i + 1;
-
-        const workoutPlanDay = await WorkoutPlanDay.create(
-          {
-            workoutPlanId: workoutPlan.id,
-            dayNumber,
-            name: day.name || `Day ${dayNumber}`,
-            focus: day.focus || null,
-            dayType: normalizeDayType(day.dayType),
-            optPhase: normalizeOptPhase(day.optPhase),
-            notes: day.notes || null,
-            warmupInstructions: day.warmupInstructions || null,
-            cooldownInstructions: day.cooldownInstructions || null,
-            estimatedDuration: Number.isFinite(Number(day.estimatedDuration))
-              ? Number(day.estimatedDuration)
-              : null,
-            sortOrder: Number.isFinite(Number(day.sortOrder)) ? Number(day.sortOrder) : i + 1,
-          },
-          { transaction }
-        );
-
-        const exercises = Array.isArray(day.exercises) ? day.exercises : [];
-        for (let j = 0; j < exercises.length; j += 1) {
-          const exercise = exercises[j] || {};
-          const exerciseName = exercise.name ? String(exercise.name) : '';
-          const exerciseRecord = await findExerciseByName(Exercise, exerciseName, transaction);
-
-          if (!exerciseRecord) {
-            unmatchedExercises.push({ dayNumber, name: exerciseName });
-            continue;
-          }
-
-          await WorkoutPlanDayExercise.create(
-            {
-              workoutPlanDayId: workoutPlanDay.id,
-              exerciseId: exerciseRecord.id,
-              orderInWorkout: Number.isFinite(Number(exercise.orderInWorkout))
-                ? Number(exercise.orderInWorkout)
-                : j + 1,
-              setScheme: exercise.setScheme || null,
-              repGoal: exercise.repGoal || null,
-              restPeriod: Number.isFinite(Number(exercise.restPeriod))
-                ? Number(exercise.restPeriod)
-                : null,
-              tempo: exercise.tempo || null,
-              intensityGuideline: exercise.intensityGuideline || null,
-              notes: exercise.notes || null,
-              isOptional: Boolean(exercise.isOptional),
-            },
-            { transaction }
-          );
-
-          createdExerciseCount += 1;
-        }
-      }
-
-      if (createdExerciseCount === 0) {
-        await transaction.rollback();
-        return res.status(422).json({
-          success: false,
-          message: 'No exercises matched existing library entries',
-          unmatchedExercises,
-        });
-      }
+      const persistResult = await persistWorkoutPlan({
+        plan: approvedPlan,
+        userId: parsedUserId,
+        models: { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, Exercise },
+        transaction,
+        tags: ['ai_generated', 'coach_approved'],
+      });
+      workoutPlan = persistResult.workoutPlan;
+      createdExerciseCount = persistResult.createdExerciseCount;
+      unmatchedExercises = persistResult.unmatchedExercises;
 
       await transaction.commit();
 
@@ -1313,6 +1067,13 @@ export const approveDraftPlan = async (req, res) => {
       });
     } catch (error) {
       await transaction.rollback();
+      if (error.code === 'NO_EXERCISE_MATCHES') {
+        return res.status(422).json({
+          success: false,
+          message: 'No exercises matched existing library entries',
+          unmatchedExercises: error.unmatchedExercises || [],
+        });
+      }
       throw error;
     }
   } catch (error) {

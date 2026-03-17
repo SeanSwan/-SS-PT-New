@@ -66,6 +66,7 @@ export interface ToastData {
   type: ToastType;
   title: string;
   message?: string;
+  errorCode?: string; // Machine-readable error code (displayed in Fira Code)
   duration?: number; // ms, 0 = manual dismiss only
 }
 
@@ -96,7 +97,7 @@ const ACCENT_MAP: Record<ToastType, string> = {
 
 const DEFAULT_DURATIONS: Record<string, number> = {
   success: 3000,
-  error: 5000,
+  error: 12000, // Crystalline Vault: 12s for errors — adequate reading time
   warning: 4000,
   info: 3000,
 };
@@ -306,6 +307,17 @@ const ToastMessage = styled.p`
   text-overflow: ellipsis;
 `;
 
+const ErrorCode = styled.span`
+  display: inline-block;
+  margin-top: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #F4D58D;
+  letter-spacing: 0.1em;
+  opacity: 0.85;
+`;
+
 const CloseBtn = styled.button`
   flex-shrink: 0;
   display: flex;
@@ -453,6 +465,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
       <ToastBody>
         <ToastTitle>{toast.title}</ToastTitle>
         {toast.message && <ToastMessage>{toast.message}</ToastMessage>}
+        {toast.errorCode && <ErrorCode>{toast.errorCode}</ErrorCode>}
       </ToastBody>
 
       <CloseBtn onClick={dismiss} aria-label="Dismiss">
