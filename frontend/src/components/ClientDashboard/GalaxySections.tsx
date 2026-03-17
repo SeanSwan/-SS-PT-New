@@ -535,7 +535,6 @@ const PersonalStarmap: React.FC = () => {
   const isClient = user?.role === 'client';
   const { data: clientStats } = useClientStats(user?.id, isClient);
   const displayName =
-    user?.spiritName ||
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
     'SwanStudios Member';
   const initials = displayName

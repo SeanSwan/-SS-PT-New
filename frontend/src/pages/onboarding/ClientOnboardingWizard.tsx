@@ -565,11 +565,11 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
               <ModalTitle>Welcome to SwanStudios!</ModalTitle>
 
               <ModalText>
-                Your onboarding is complete. You have been assigned a Spirit Name:
+                Your onboarding is complete. Your anonymous client ID has been assigned:
               </ModalText>
 
               <HighlightText>
-                {submissionResult.spiritName}
+                {submissionResult.clientId || `Client #${submissionResult.userId}`}
               </HighlightText>
 
               <CredentialsBox>

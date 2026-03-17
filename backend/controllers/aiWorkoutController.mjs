@@ -420,7 +420,7 @@ export const generateWorkoutPlan = async (req, res) => {
 
     // --- Phase 1: De-identify masterPromptJson before AI call ---
     const deIdResult = deIdentify(resolvedMasterPrompt, {
-      spiritName: targetUser.spiritName || undefined,
+      clientId: targetUser.id,
     });
 
     if (!deIdResult) {

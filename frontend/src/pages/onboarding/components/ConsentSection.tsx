@@ -204,8 +204,9 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
       </SectionHeader>
 
       <SectionSubtitle>
-        SwanStudios uses AI to create personalized workout plans. Before we can use
-        these features, we need your consent. Review the details below.
+        SwanStudios uses AI to create personalized workout plans. Your identity is
+        never shared — the AI only receives your anonymous client ID. Review the
+        details below.
       </SectionSubtitle>
 
       {/* What AI does */}
@@ -227,7 +228,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
         <ProtectionsList>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>
-            <div><strong>De-identified data only.</strong> Your name, email, and personal identifiers are stripped before reaching the AI.</div>
+            <div><strong>Identity hidden from AI.</strong> Your name, email, and personal details are never sent. The AI only receives your anonymous client ID.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Eye size={16} /></ProtectionIcon>
@@ -235,7 +236,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Lock size={16} /></ProtectionIcon>
-            <div><strong>You stay anonymous.</strong> The AI only knows your SwanStudios spirit name.</div>
+            <div><strong>You stay anonymous.</strong> The AI has no way to identify who you are — it only sees a numeric client ID and your fitness profile.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>
@@ -251,10 +252,11 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           Consent Disclosure (v1.0)
         </ConsentDisclosureTitle>
         By enabling AI features, you agree that SwanStudios may process your
-        de-identified fitness profile through an AI provider (currently OpenAI) to
-        generate personalized workout plans. Your personal identifiers are never
-        shared with the AI provider. You may withdraw consent at any time from the
-        AI Privacy & Consent page in your dashboard.
+        fitness profile through an AI provider (currently OpenAI) to generate
+        personalized workout plans. Only your anonymous client ID and fitness data
+        are shared — your name, email, and personal identifiers are never sent to
+        the AI provider. You may withdraw consent at any time from the AI Privacy
+        &amp; Consent page in your dashboard.
       </ConsentDisclosure>
 
       {/* Toggle */}
@@ -276,7 +278,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           </TogglePrimary>
           <ToggleSecondary>
             {isConsentGranted
-              ? 'Your de-identified profile will be used for AI workout generation.'
+              ? 'Your anonymous fitness profile will be used for AI workout generation.'
               : 'Toggle on to opt in to AI-generated workout plans.'}
           </ToggleSecondary>
         </ToggleLabel>

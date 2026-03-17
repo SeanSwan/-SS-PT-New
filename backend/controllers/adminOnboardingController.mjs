@@ -134,10 +134,9 @@ export const saveOrSubmitOnboarding = async (req, res) => {
       }, { transaction });
     }
 
-    // Build master prompt + spirit name
+    // Build master prompt with anonymous client ID
     const masterPromptJson = transformQuestionnaireToMasterPrompt(responsesJson, clientId);
-    const spiritName = generateSpiritName(responsesJson);
-    masterPromptJson.client.alias = spiritName;
+    const anonymousAlias = `Client #${clientId}`;
 
     // Profile coercion — safe null-aware updates
     const parsedWeight = parseFloat(responsesJson.currentWeight);
@@ -155,7 +154,7 @@ export const saveOrSubmitOnboarding = async (req, res) => {
 
     await user.update({
       masterPromptJson,
-      spiritName,
+      spiritName: anonymousAlias,
       isOnboardingComplete: true,
       phone: phoneVal !== null ? phoneVal : user.phone,
       gender: genderVal !== null ? genderVal : user.gender,
@@ -180,7 +179,7 @@ export const saveOrSubmitOnboarding = async (req, res) => {
         completedAt: questionnaire.completedAt,
       },
       masterPromptCreated: true,
-      spiritName,
+      clientId: anonymousAlias,
     });
   } catch (error) {
     await transaction.rollback();

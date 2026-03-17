@@ -4,7 +4,7 @@
  * Strips PII from masterPromptJson before it reaches any AI provider.
  *
  * Strategy:
- *   - Replace client.name / client.preferredName with spiritName or generic alias
+ *   - Replace client.name / client.preferredName with anonymous "Client #ID" label
  *   - Remove client.contact.* (email, phone)
  *   - Remove direct health identifiers that are not needed for workout generation
  *     (bloodType, medications — kept: medical conditions summary for safety)
@@ -144,7 +144,8 @@ export function hashPayload(payload) {
  *
  * @param {Object} masterPromptJson - Raw master prompt JSON from User model
  * @param {Object} options
- * @param {string} [options.spiritName] - Privacy-preserving alias (from User.spiritName)
+ * @param {number|string} [options.clientId] - Anonymous client ID (from User.id)
+ * @param {string} [options.spiritName] - DEPRECATED: kept for backward compat, ignored if clientId provided
  * @returns {{ deIdentified: Object, strippedFields: string[] } | null}
  *   Returns null if the payload is empty/unsafe after stripping (fail-closed).
  */
@@ -156,18 +157,21 @@ export function deIdentify(masterPromptJson, options = {}) {
 
   const payload = deepClone(masterPromptJson);
   const strippedFields = [];
-  const { spiritName } = options;
+  const { clientId, spiritName } = options;
 
-  // 1. Replace name fields with spiritName or generic alias
+  // Anonymous label: prefer clientId, fall back to generic
+  const anonymousLabel = clientId ? `Client #${clientId}` : 'Client';
+
+  // 1. Replace name fields with anonymous client ID
   const originalName = getNestedValue(payload, 'client.name');
   if (originalName !== undefined) {
-    setNestedValue(payload, 'client.name', spiritName || 'Client');
+    setNestedValue(payload, 'client.name', anonymousLabel);
     strippedFields.push('client.name');
   }
 
   const originalPreferred = getNestedValue(payload, 'client.preferredName');
   if (originalPreferred !== undefined) {
-    setNestedValue(payload, 'client.preferredName', spiritName || 'Client');
+    setNestedValue(payload, 'client.preferredName', anonymousLabel);
     strippedFields.push('client.preferredName');
   }
 
@@ -184,15 +188,14 @@ export function deIdentify(masterPromptJson, options = {}) {
   // 3. Deep PII scan: search all string values for email/phone patterns and redact
   scanAndRedactPII(payload, strippedFields);
 
-  // 4. Verify spirit name does not contain real name fragments
-  if (spiritName) {
-    const originalNameLower = (originalName || '').toLowerCase();
-    const spiritLower = spiritName.toLowerCase();
-    if (originalNameLower && originalNameLower.length > 2 && spiritLower.includes(originalNameLower)) {
-      logger.warn('[DeIdentification] Spirit name contains real name fragment — using generic alias');
-      setNestedValue(payload, 'client.name', 'Client');
-      setNestedValue(payload, 'client.preferredName', 'Client');
-      strippedFields.push('spirit_name_contained_real_name');
+  // 4. Double-check: ensure no real name leaked into the anonymous label
+  if (originalName && typeof originalName === 'string' && originalName.length > 2) {
+    const currentName = getNestedValue(payload, 'client.name') || '';
+    if (typeof currentName === 'string' && currentName.toLowerCase().includes(originalName.toLowerCase())) {
+      logger.warn('[DeIdentification] Real name leaked into label — using generic fallback');
+      setNestedValue(payload, 'client.name', anonymousLabel);
+      setNestedValue(payload, 'client.preferredName', anonymousLabel);
+      strippedFields.push('name_leak_corrected');
     }
   }
 

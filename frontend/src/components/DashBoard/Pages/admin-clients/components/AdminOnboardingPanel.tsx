@@ -320,7 +320,7 @@ const AdminOnboardingPanel: React.FC<AdminOnboardingPanelProps> = ({
   const handleComplete = (data: any) => {
     toast({
       title: 'Onboarding Complete',
-      description: `${clientName}'s onboarding submitted. Spirit name: ${data?.spiritName || 'assigned'}.`,
+      description: `${clientName}'s onboarding submitted. Client ID: ${data?.clientId || 'assigned'}.`,
       variant: 'success',
     });
     onComplete?.();

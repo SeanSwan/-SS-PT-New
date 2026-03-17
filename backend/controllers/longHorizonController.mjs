@@ -281,7 +281,7 @@ export const generateLongHorizonPlan = async (req, res) => {
 
     // ── Step 11: De-identification (fail-closed) ────────────────
     const deIdResult = deIdentify(resolvedMasterPrompt, {
-      spiritName: targetUser.spiritName || undefined,
+      clientId: targetUser.id,
     });
 
     if (!deIdResult) {

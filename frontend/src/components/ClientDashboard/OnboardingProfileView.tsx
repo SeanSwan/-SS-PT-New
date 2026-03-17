@@ -51,7 +51,7 @@ interface MasterPromptJson {
 
 interface OnboardingProfileViewProps {
   masterPromptJson: MasterPromptJson | null;
-  spiritName?: string;
+  clientAlias?: string;
 }
 
 // === STYLED COMPONENTS ===
@@ -129,7 +129,7 @@ const renderObjectFields = (obj: Record<string, any> | undefined, prefix = '') =
 };
 
 // === COMPONENT ===
-const OnboardingProfileView: React.FC<OnboardingProfileViewProps> = ({ masterPromptJson, spiritName }) => {
+const OnboardingProfileView: React.FC<OnboardingProfileViewProps> = ({ masterPromptJson, clientAlias }) => {
   if (!masterPromptJson) {
     return (
       <ProfileSection initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -150,7 +150,7 @@ const OnboardingProfileView: React.FC<OnboardingProfileViewProps> = ({ masterPro
         <SectionHeader><User size={20} /> Basic Info</SectionHeader>
         <FieldGrid>
           <Field label="Name" value={mp.client?.preferredName || mp.client?.name} />
-          <Field label="Spirit Name" value={spiritName || mp.client?.alias} />
+          <Field label="Client ID" value={clientAlias || mp.client?.alias} />
           <Field label="Age" value={mp.client?.age} />
           <Field label="Gender" value={mp.client?.gender} />
           <Field label="Contact" value={mp.client?.contact?.email} />

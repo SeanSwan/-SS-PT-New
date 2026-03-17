@@ -611,7 +611,7 @@ const AiConsentScreen: React.FC = () => {
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><ShieldCheck size={18} /></PrivacyIcon>
-            <div><strong>Your spirit name is used.</strong> The AI only knows you by your SwanStudios spirit name — your real identity stays private.</div>
+            <div><strong>Your identity is hidden.</strong> The AI only knows you by an anonymous client ID — your real name and personal details stay private.</div>
           </PrivacyItem>
         </PrivacyList>
       </Card>

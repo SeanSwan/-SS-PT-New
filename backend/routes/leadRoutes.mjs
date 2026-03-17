@@ -22,22 +22,7 @@ const getModels = async () => {
   return { Lead, LeadActivity };
 };
 
-// Spirit name generator for de-identification
-const SPIRIT_NAMES = [
-  'Golden Hawk', 'Silver Crane', 'Thunder Phoenix', 'Mountain Bear',
-  'Rising Eagle', 'Wise Owl', 'Stone Bison', 'Young Falcon',
-  'Crimson Wolf', 'Emerald Dragon', 'Azure Lion', 'Amber Tiger',
-  'Sapphire Fox', 'Ruby Leopard', 'Jade Panther', 'Pearl Lynx',
-  'Storm Raven', 'Midnight Heron', 'Dawn Sparrow', 'Iron Stag',
-];
-
-const generateSpiritName = () => {
-  const adjectives = ['Cosmic', 'Stellar', 'Radiant', 'Nebula', 'Aurora', 'Crystal', 'Diamond', 'Onyx'];
-  const animals = ['Hawk', 'Crane', 'Phoenix', 'Bear', 'Eagle', 'Owl', 'Wolf', 'Dragon', 'Lion', 'Tiger', 'Fox', 'Panther'];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-  return `${adj} ${animal}`;
-};
+// Spirit name system removed — using anonymous Client #ID system instead
 
 /**
  * GET /api/leads
@@ -199,7 +184,7 @@ router.post('/', async (req, res) => {
       notes: notes || null,
       goals: goals || null,
       tags: tags || [],
-      spiritName: generateSpiritName(),
+      spiritName: null, // Spirit names deprecated — client ID system used instead
       assignedTrainerId: req.user.role === 'trainer' ? req.user.id : null,
     });
 

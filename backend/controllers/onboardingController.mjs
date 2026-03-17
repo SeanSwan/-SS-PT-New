@@ -14,24 +14,14 @@ import { generateChallengesFromGoals } from '../services/gamification/goalChalle
  */
 
 /**
- * Generate spirit name from preferences or auto-generate
+ * Generate anonymous client alias using client ID.
+ * Spirit name system has been retired — we now use numeric IDs
+ * so the AI never sees any identifying information.
+ *
+ * @deprecated Use clientId directly. Kept for backward compat in API responses.
  */
-export const generateSpiritName = (formData) => {
-  // If client provided a preferred alias, use it
-  if (formData.preferredAlias) {
-    return formData.preferredAlias;
-  }
-
-  // Otherwise auto-generate based on goals/personality
-  const celestialNames = [
-    'Golden Hawk', 'Silver Crane', 'Thunder Phoenix', 'Mountain Bear',
-    'Rising Eagle', 'Wise Owl', 'Stone Bison', 'Young Falcon',
-    'Crimson Wolf', 'Emerald Dragon', 'Azure Lion', 'Amber Tiger',
-    'Sapphire Fox', 'Ruby Leopard', 'Jade Panther', 'Pearl Lynx'
-  ];
-
-  // Use a random spirit name (in production, you might use a more sophisticated algorithm)
-  return celestialNames[Math.floor(Math.random() * celestialNames.length)];
+export const generateSpiritName = (_formData, userId) => {
+  return userId ? `Client #${userId}` : 'Client';
 };
 
 /**
@@ -47,7 +37,7 @@ export const transformQuestionnaireToMasterPrompt = (formData, userId) => {
     client: {
       name: formData.fullName, // Will be REDACTED before AI processing
       preferredName: formData.preferredName || formData.fullName,
-      alias: formData.spiritName, // Privacy-preserving alias
+      alias: null, // Cleared — AI only sees client ID via de-identification
       age: formData.age,
       gender: formData.gender,
       bloodType: formData.bloodType || 'Unknown',
@@ -253,19 +243,16 @@ export const createClientOnboarding = async (req, res) => {
       });
     }
 
-    // Generate spirit name for privacy
-    const spiritName = generateSpiritName(formData);
-
     // Transform questionnaire data to Master Prompt JSON
     const masterPromptJson = transformQuestionnaireToMasterPrompt(formData, null);
-
-    // Add the generated spirit name to the master prompt
-    masterPromptJson.client.alias = spiritName;
 
     // Check if user already exists
     let user = await User.findOne({ where: { email: formData.email } });
 
     if (user) {
+      // Generate anonymous alias using client ID
+      const anonymousAlias = `Client #${user.id}`;
+
       // Update existing user
       await user.update({
         firstName: formData.fullName.split(' ')[0],
@@ -273,7 +260,7 @@ export const createClientOnboarding = async (req, res) => {
         phone: formData.phone,
         role: 'client',
         masterPromptJson: masterPromptJson,
-        spiritName: spiritName,
+        spiritName: anonymousAlias, // Store client ID alias (replaces spirit name)
         // Update other client-specific fields
         dateOfBirth: formData.dateOfBirth || null,
         gender: formData.gender,
@@ -295,7 +282,7 @@ export const createClientOnboarding = async (req, res) => {
         replacements: {
           clientId: clientId,
           realName: formData.fullName,
-          spiritName: spiritName
+          spiritName: anonymousAlias
         }
       });
 
@@ -305,7 +292,6 @@ export const createClientOnboarding = async (req, res) => {
         data: {
           userId: user.id,
           clientId: `PT-${String(user.id).padStart(5, '0')}`,
-          spiritName: spiritName,
           email: user.email,
           masterPromptCreated: true
         }
@@ -324,7 +310,6 @@ export const createClientOnboarding = async (req, res) => {
         phone: formData.phone,
         role: 'client',
         masterPromptJson: masterPromptJson,
-        spiritName: spiritName,
         // Client-specific fields
         dateOfBirth: formData.dateOfBirth || null,
         gender: formData.gender,
@@ -333,6 +318,10 @@ export const createClientOnboarding = async (req, res) => {
         fitnessGoal: formData.primaryGoal,
         isActive: true
       });
+
+      // Now set the anonymous alias using the auto-generated user ID
+      const anonymousAlias = `Client #${user.id}`;
+      await user.update({ spiritName: anonymousAlias });
 
       // Create PII record
       const clientId = `PT-${String(user.id).padStart(5, '0')}`;
@@ -343,7 +332,7 @@ export const createClientOnboarding = async (req, res) => {
         replacements: {
           clientId: clientId,
           realName: formData.fullName,
-          spiritName: spiritName,
+          spiritName: anonymousAlias,
           currentProgram: formData.primaryGoal,
           createdBy: req.user?.id || null
         }
@@ -368,7 +357,6 @@ export const createClientOnboarding = async (req, res) => {
         data: {
           userId: user.id,
           clientId: `PT-${String(user.id).padStart(5, '0')}`,
-          spiritName: spiritName,
           email: user.email,
           tempPassword: tempPassword, // Send this via secure channel (email)
           masterPromptCreated: true
@@ -415,7 +403,7 @@ export const getClientMasterPrompt = async (req, res) => {
       success: true,
       data: {
         userId: user.id,
-        spiritName: user.spiritName,
+        clientId: `Client #${user.id}`,
         email: user.email,
         masterPrompt: user.masterPromptJson
       }
@@ -460,13 +448,12 @@ export const createClientSelfOnboarding = async (req, res) => {
     formData.email = formData.email || user.email;
     formData.phone = formData.phone || user.phone;
 
-    const spiritName = generateSpiritName(formData);
+    const anonymousAlias = `Client #${userId}`;
     const masterPromptJson = transformQuestionnaireToMasterPrompt(formData, userId);
-    masterPromptJson.client.alias = spiritName;
 
     await user.update({
       masterPromptJson,
-      spiritName,
+      spiritName: anonymousAlias,
       phone: formData.phone || user.phone,
       dateOfBirth: formData.dateOfBirth || user.dateOfBirth,
       gender: formData.gender || user.gender,
@@ -490,7 +477,7 @@ export const createClientSelfOnboarding = async (req, res) => {
       replacements: {
         clientId,
         realName: fullName,
-        spiritName
+        spiritName: anonymousAlias
       }
     });
 
@@ -504,7 +491,7 @@ export const createClientSelfOnboarding = async (req, res) => {
       message: 'Profile completed successfully',
       data: {
         userId,
-        spiritName,
+        clientId: `Client #${userId}`,
         masterPromptCreated: true
       }
     });
