@@ -255,3 +255,8 @@ _tmp_login.json
 
 # Untracked MCP/AI server directories
 /backend/unified-ai-server/
+
+# QA screenshots & Playwright test artifacts
+qa-screenshots/
+playwright-qa-full/
+playwright-qa-screenshots/
