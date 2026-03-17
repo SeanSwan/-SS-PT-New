@@ -17,7 +17,7 @@
  */
 
 import express from 'express';
-import { protect, trainerOrAdminOnly, adminOnly } from '../middleware/authMiddleware.mjs';
+import { protect, trainerOrAdminOnly, adminOnly, checkTrainerClientRelationship } from '../middleware/authMiddleware.mjs';
 import {
   getDailyWorkoutForm,
   getUser,
@@ -378,7 +378,7 @@ const processMCPIntegration = async (formId, formData) => {
  * @access  Trainer (with edit_workouts permission), Admin, or Client (self only)
  * @body    { clientId, date, exercises, sessionNotes?, overallIntensity? }
  */
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {

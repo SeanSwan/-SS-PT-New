@@ -4,7 +4,7 @@
  * cosmic empty state, and floating active-client header.
  */
 
-import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -57,15 +57,18 @@ const WorkoutsWorkspace: React.FC = () => {
   const location = useLocation();
 
   // Listen for AI "Apply to Logger" navigation event
+  // Use ref for location.pathname to avoid re-registering listener on every navigation
+  const locationRef = useRef(location.pathname);
+  locationRef.current = location.pathname;
   useEffect(() => {
     const handler = () => {
-      if (location.pathname !== '/dashboard/workouts/logger') {
+      if (locationRef.current !== '/dashboard/workouts/logger') {
         navigate('/dashboard/workouts/logger');
       }
     };
     window.addEventListener('navigateToWorkoutLogger', handler);
     return () => window.removeEventListener('navigateToWorkoutLogger', handler);
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   const handleClientSelect = useCallback((client: any) => {
     setSelectedClient({

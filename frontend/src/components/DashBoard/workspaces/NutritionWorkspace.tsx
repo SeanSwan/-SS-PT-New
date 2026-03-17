@@ -9,13 +9,15 @@
 import React, { useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Utensils, Search, Apple } from 'lucide-react';
+import { Utensils, Search, Apple, ScanBarcode } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
+import ErrorBoundary from '../../../utils/error-boundary';
 
 const FoodIntakeForm = lazy(() => import('../../FoodTracker/FoodIntakeForm'));
 const FoodIntelligenceDashboard = lazy(() => import('../../FoodTracker/FoodIntelligenceDashboard'));
+const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'));
 
-type Tab = 'log' | 'intelligence';
+type Tab = 'log' | 'intelligence' | 'search';
 
 const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('log');
@@ -44,6 +46,18 @@ const NutritionWorkspace: React.FC = () => {
           Log Meal
         </TabBtn>
         <TabBtn
+          $active={activeTab === 'search'}
+          onClick={() => setActiveTab('search')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          role="tab"
+          aria-selected={activeTab === 'search'}
+          aria-controls="nutrition-tab-search"
+        >
+          <ScanBarcode size={16} />
+          Food Search
+        </TabBtn>
+        <TabBtn
           $active={activeTab === 'intelligence'}
           onClick={() => setActiveTab('intelligence')}
           whileHover={{ scale: 1.02 }}
@@ -58,10 +72,13 @@ const NutritionWorkspace: React.FC = () => {
       </TabRow>
 
       <ContentArea role="tabpanel" id={`nutrition-tab-${activeTab}`}>
-        <Suspense fallback={<CosmicSuspenseLoader />}>
-          {activeTab === 'log' && <FoodIntakeForm />}
-          {activeTab === 'intelligence' && <FoodIntelligenceDashboard />}
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<CosmicSuspenseLoader />}>
+            {activeTab === 'log' && <FoodIntakeForm />}
+            {activeTab === 'search' && <FoodSearchPanel />}
+            {activeTab === 'intelligence' && <FoodIntelligenceDashboard />}
+          </Suspense>
+        </ErrorBoundary>
       </ContentArea>
     </WorkspaceRoot>
   );

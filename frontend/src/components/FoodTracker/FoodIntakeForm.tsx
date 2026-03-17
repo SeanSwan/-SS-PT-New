@@ -8,10 +8,11 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { checkMcpServersStatus } from '../../utils/mcp-utils';
 import useMcpIntegration from '../../hooks/useMcpIntegration';
+import { theme } from '../../theme/tokens';
 
 // Icons (lucide-react replacements for MUI icons)
 import {
@@ -92,21 +93,27 @@ const toastSlideOut = keyframes`
   }
 `;
 
+const errorShake = keyframes`
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+`;
+
 // ─── Styled Components ───────────────────────────────────────────────────────
 
 const FormWrapper = styled.div`
   padding: 24px;
   border-radius: 12px;
-  background: rgba(29, 31, 43, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  color: white;
+  background: rgba(0, 32, 96, 0.75);
+  border: 1px solid rgba(96, 192, 240, 0.12);
+  backdrop-filter: blur(16px);
+  color: ${theme.colors.text.primary};
 `;
 
 const Title = styled.h2`
   font-size: 1.5rem;
   font-weight: 600;
-  color: white;
+  color: ${theme.colors.text.frost};
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -129,11 +136,11 @@ const Chip = styled.span<{ $active?: boolean }>`
   font-size: 0.8rem;
   font-weight: 500;
   background: ${({ $active }) =>
-    $active ? 'rgba(0, 200, 83, 0.15)' : 'rgba(255, 255, 255, 0.08)'};
+    $active ? `rgba(34, 197, 94, 0.15)` : 'rgba(255, 255, 255, 0.08)'};
   color: ${({ $active }) =>
-    $active ? '#00e676' : 'rgba(255, 255, 255, 0.6)'};
+    $active ? theme.colors.semantic.success : theme.colors.text.disabled};
   border: 1px solid ${({ $active }) =>
-    $active ? 'rgba(0, 200, 83, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
+    $active ? `rgba(34, 197, 94, 0.3)` : 'rgba(255, 255, 255, 0.1)'};
 
   svg {
     width: 14px;
@@ -142,12 +149,12 @@ const Chip = styled.span<{ $active?: boolean }>`
 `;
 
 const ErrorAlert = styled.div`
-  background: rgba(211, 47, 47, 0.15);
-  border: 1px solid rgba(211, 47, 47, 0.4);
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  color: #ff8a80;
+  color: ${theme.colors.semantic.error};
   font-size: 0.9rem;
 `;
 
@@ -166,7 +173,7 @@ const FieldGroup = styled.div`
 const Label = styled.label`
   font-size: 0.85rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${theme.colors.text.secondary};
 `;
 
 const StyledSelect = styled.select`
@@ -175,7 +182,7 @@ const StyledSelect = styled.select`
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.05);
-  color: white;
+  color: ${theme.colors.text.primary};
   font-size: 0.95rem;
   outline: none;
   appearance: auto;
@@ -183,13 +190,13 @@ const StyledSelect = styled.select`
   transition: border-color 0.2s ease;
 
   &:focus {
-    border-color: #8B5CF6;
+    border-color: ${theme.colors.brand.purple};
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   option {
-    background: #1d1f2b;
-    color: white;
+    background: ${theme.colors.surface.abyssalNavy};
+    color: ${theme.colors.text.primary};
   }
 `;
 
@@ -210,7 +217,7 @@ const FoodCardHeader = styled.div`
 const FoodCardTitle = styled.span`
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: ${theme.colors.text.frost};
 `;
 
 const IconBtn = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
@@ -224,15 +231,15 @@ const IconBtn = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
   border-radius: 50%;
   border: none;
   background: ${({ $danger }) =>
-    $danger ? 'rgba(211, 47, 47, 0.15)' : 'rgba(255, 255, 255, 0.08)'};
-  color: ${({ $danger }) => ($danger ? '#ff8a80' : 'rgba(255, 255, 255, 0.7)')};
+    $danger ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.08)'};
+  color: ${({ $danger }) => ($danger ? theme.colors.semantic.error : theme.colors.text.secondary)};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.35 : 1)};
   transition: background 0.2s ease, color 0.2s ease;
 
   &:hover:not(:disabled) {
     background: ${({ $danger }) =>
-      $danger ? 'rgba(211, 47, 47, 0.3)' : 'rgba(255, 255, 255, 0.15)'};
+      $danger ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.15)'};
   }
 
   svg {
@@ -271,32 +278,38 @@ const UnitSuffix = styled.span`
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(224, 236, 244, 0.7);
+  color: ${theme.colors.text.secondary};
   font-size: 0.85rem;
   pointer-events: none;
 `;
 
-const StyledInput = styled.input<{ $hasUnit?: boolean }>`
+const StyledInput = styled.input<{ $hasUnit?: boolean; $hasError?: boolean }>`
   width: 100%;
   padding: 12px 14px;
   padding-right: ${({ $hasUnit }) => ($hasUnit ? '48px' : '14px')};
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid ${({ $hasError }) => $hasError ? theme.colors.semantic.error : 'rgba(255, 255, 255, 0.15)'};
   background: rgba(255, 255, 255, 0.05);
-  color: white;
+  color: ${theme.colors.text.primary};
   font-size: 0.95rem;
   outline: none;
   min-height: 44px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
-    border-color: #8B5CF6;
+    border-color: ${theme.colors.brand.purple};
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
-    color: rgba(224, 236, 244, 0.7);
+    color: ${theme.colors.text.secondary};
+  }
+
+  &[aria-invalid="true"] {
+    border-color: ${theme.colors.semantic.error};
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+    animation: ${errorShake} 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   }
 
   /* Remove number spinners */
@@ -312,8 +325,16 @@ const StyledInput = styled.input<{ $hasUnit?: boolean }>`
 
 const HelperText = styled.small`
   font-size: 0.78rem;
-  color: rgba(224, 236, 244, 0.7);
+  color: ${theme.colors.text.secondary};
   margin-top: 2px;
+`;
+
+const FieldError = styled.span`
+  display: block;
+  font-size: 0.78rem;
+  color: ${theme.colors.semantic.error};
+  margin-top: 2px;
+  min-height: 0;
 `;
 
 const AddButton = styled.button`
@@ -327,7 +348,7 @@ const AddButton = styled.button`
   border-radius: 8px;
   border: 1px dashed rgba(139, 92, 246, 0.4);
   background: transparent;
-  color: #8B5CF6;
+  color: ${theme.colors.brand.purple};
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -335,7 +356,7 @@ const AddButton = styled.button`
 
   &:hover {
     background: rgba(139, 92, 246, 0.06);
-    border-color: #8B5CF6;
+    border-color: ${theme.colors.brand.purple};
   }
 
   svg {
@@ -347,7 +368,7 @@ const AddButton = styled.button`
 const SummaryHeading = styled.h3`
   font-size: 1.15rem;
   font-weight: 600;
-  color: white;
+  color: ${theme.colors.text.frost};
   margin: 0 0 12px 0;
 `;
 
@@ -373,7 +394,7 @@ const SummaryLabel = styled.span`
   display: block;
   font-size: 0.8rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${theme.colors.text.disabled};
   margin-bottom: 4px;
 `;
 
@@ -381,7 +402,7 @@ const SummaryValue = styled.span`
   display: block;
   font-size: 1.15rem;
   font-weight: 700;
-  color: white;
+  color: ${theme.colors.text.primary};
 `;
 
 const SubmitButton = styled.button<{ $loading?: boolean }>`
@@ -394,16 +415,19 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #8B5CF6 0%, #8B5CF6 100%);
-  color: white;
+  background: ${theme.colors.brand.purple};
+  color: ${theme.colors.text.primary};
   font-size: 1rem;
   font-weight: 600;
   cursor: ${({ $loading }) => ($loading ? 'wait' : 'pointer')};
   opacity: ${({ $loading }) => ($loading ? 0.75 : 1)};
-  transition: opacity 0.2s ease, transform 0.1s ease;
+  pointer-events: ${({ $loading }) => ($loading ? 'none' : 'auto')};
+  transition: opacity 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 12px rgba(96, 192, 240, 0.3);
 
   &:hover:not(:disabled) {
     opacity: 0.9;
+    box-shadow: 0 0 20px rgba(96, 192, 240, 0.5);
   }
 
   &:active:not(:disabled) {
@@ -413,6 +437,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    pointer-events: none;
   }
 
   svg {
@@ -426,7 +451,7 @@ const Spinner = styled.span`
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border-top-color: ${theme.colors.text.primary};
   border-radius: 50%;
   animation: ${spin} 0.6s linear infinite;
 `;
@@ -447,12 +472,12 @@ const ToastContent = styled.div`
   gap: 10px;
   padding: 14px 24px;
   border-radius: 10px;
-  background: rgba(0, 200, 83, 0.2);
-  border: 1px solid rgba(0, 200, 83, 0.4);
-  color: #69f0ae;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: ${theme.colors.semantic.success};
   font-size: 0.9rem;
   font-weight: 500;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
 `;
@@ -498,6 +523,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [toastExiting, setToastExiting] = useState(false);
 
@@ -557,6 +583,16 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
     setFoodItems(prev => prev.map(item =>
       item.id === id ? { ...item, [field]: value } : item
     ));
+    // Clear field error on change
+    const fieldKey = `food-${field}-${id}`;
+    setFieldErrors(prev => {
+      if (prev[fieldKey]) {
+        const next = { ...prev };
+        delete next[fieldKey];
+        return next;
+      }
+      return prev;
+    });
   }, []);
 
   // Calculate totals (memoized)
@@ -581,17 +617,24 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       return;
     }
 
-    // Validate form
-    const hasEmptyFields = foodItems.some(item => {
+    // Field-level validation
+    const errors: Record<string, string> = {};
+    foodItems.forEach(item => {
       if (import.meta.env.DEV) {
         if (typeof item.name !== 'string' || typeof item.portion !== 'string') {
           console.error('Type violation in FoodItem:', item);
         }
       }
-      return !(item.name?.trim()) || !(item.portion?.trim());
+      if (!(item.name?.trim())) {
+        errors[`food-name-${item.id}`] = 'Food name is required';
+      }
+      if (!(item.portion?.trim())) {
+        errors[`food-portion-${item.id}`] = 'Portion size is required';
+      }
     });
-    if (hasEmptyFields) {
-      setError('Please fill out all food items');
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError('Please fill out all required fields');
       return;
     }
 
@@ -634,8 +677,8 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
         }),
       });
       if (!apiRes.ok) {
-        const errBody = await apiRes.json().catch(() => ({}));
-        console.warn('Backend macro log failed:', errBody);
+        const errBody = await apiRes.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errBody.message || `Failed to save nutrition data (${apiRes.status})`);
       }
 
       // Also send to MCP if available (non-blocking)
@@ -655,9 +698,9 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       if (onDataSent) {
         onDataSent(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting food intake:', error);
-      setError(error.message || 'Error submitting food intake');
+      setError(error instanceof Error ? error.message : 'Error submitting food intake');
 
       // Callback to parent
       if (onDataSent) {
@@ -766,7 +809,15 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
                     onChange={(e) => handleFoodItemChange(item.id, 'name', e.target.value)}
                     required
                     placeholder="e.g., Grilled Chicken"
+                    aria-invalid={!!fieldErrors[`food-name-${item.id}`]}
+                    aria-describedby={fieldErrors[`food-name-${item.id}`] ? `food-name-${item.id}-error` : undefined}
+                    $hasError={!!fieldErrors[`food-name-${item.id}`]}
                   />
+                  {fieldErrors[`food-name-${item.id}`] && (
+                    <FieldError id={`food-name-${item.id}-error`} role="alert">
+                      {fieldErrors[`food-name-${item.id}`]}
+                    </FieldError>
+                  )}
                 </FieldGroup>
                 <FieldGroup>
                   <Label htmlFor={`food-portion-${item.id}`}>Portion/Serving Size</Label>
@@ -777,7 +828,15 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
                     onChange={(e) => handleFoodItemChange(item.id, 'portion', e.target.value)}
                     required
                     placeholder="e.g., 1 cup, 100g"
+                    aria-invalid={!!fieldErrors[`food-portion-${item.id}`]}
+                    aria-describedby={fieldErrors[`food-portion-${item.id}`] ? `food-portion-${item.id}-error` : undefined}
+                    $hasError={!!fieldErrors[`food-portion-${item.id}`]}
                   />
+                  {fieldErrors[`food-portion-${item.id}`] && (
+                    <FieldError id={`food-portion-${item.id}-error`} role="alert">
+                      {fieldErrors[`food-portion-${item.id}`]}
+                    </FieldError>
+                  )}
                 </FieldGroup>
               </FoodFieldGrid>
 
