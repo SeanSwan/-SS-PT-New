@@ -28,7 +28,6 @@ import ClientProgressDashboard from './components/ClientProgressDashboard';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import GamificationOverview from './components/GamificationOverview';
 import CommunicationCenter from './components/CommunicationCenter';
-import InlineOnboardingTab from './components/InlineOnboardingTab';
 
 // lucide-react icons
 import {
@@ -1976,10 +1975,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             <MessageSquare size={18} />
             Communication
           </TabButton>
-          <TabButton $active={currentTab === 6} onClick={() => setCurrentTab(6)}>
-            <ClipboardList size={18} />
-            Onboarding
-          </TabButton>
         </TabBar>
 
         {/* Tab Panels */}
@@ -2008,12 +2003,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   variant: "default"
                 });
               }}
-            />
-          )}
-          {currentTab === 6 && selectedClient && (
-            <InlineOnboardingTab
-              clientId={selectedClient.id}
-              clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
             />
           )}
           {/* Show message if no client is selected for other tabs */}
