@@ -151,6 +151,10 @@ export const saveOrSubmitOnboarding = async (req, res) => {
     const fitnessGoalVal = typeof primaryGoal === 'string' && primaryGoal ? primaryGoal : null;
 
     const user = await User.findByPk(clientId, { transaction });
+    if (!user) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Client user not found' });
+    }
 
     await user.update({
       masterPromptJson,
@@ -261,8 +265,30 @@ export const resetOnboarding = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No questionnaire found to reset' });
     }
 
-    await questionnaire.update({ status: 'in_progress', completedAt: null }, { transaction });
-    await User.update({ isOnboardingComplete: false }, { where: { id: clientId }, transaction });
+    // Preserve completion timestamp for audit trail before resetting
+    const previousCompletedAt = questionnaire.completedAt;
+
+    await questionnaire.update({
+      status: 'in_progress',
+      completedAt: null,
+    }, { transaction });
+
+    // CRITICAL FIX: Use findByPk + instance update instead of bulk User.update
+    // Bulk update with null/undefined clientId could affect all rows
+    const userToReset = await User.findByPk(clientId, { transaction });
+    if (!userToReset) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Client user not found for onboarding reset' });
+    }
+    await userToReset.update({ isOnboardingComplete: false }, { transaction });
+
+    // Audit log the reset
+    logger.warn('[AdminOnboarding] Questionnaire reset', {
+      questionnaireId: questionnaire.id,
+      userId: clientId,
+      previousCompletedAt,
+      resetBy: req.user?.id,
+    });
 
     await transaction.commit();
 

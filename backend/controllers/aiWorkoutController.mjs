@@ -473,7 +473,7 @@ export const generateWorkoutPlan = async (req, res) => {
           where: { userId: targetUserId, date: { [Op.gte]: ninetyDaysAgo } },
           order: [['date', 'DESC']],
           limit: 100,
-          include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs', limit: 20 }] : [],
+          include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs', limit: 20, separate: true, order: [['createdAt', 'DESC']] }] : [],
         });
 
         if (recentSessions && recentSessions.length > 0) {
@@ -593,7 +593,9 @@ export const generateWorkoutPlan = async (req, res) => {
       nutritionContext,
       healthHistory,
       movementAssessments,
-      clientSource: targetUser.clientSource || 'swanstudios',
+      clientSource: ['swanstudios', 'move_fitness', 'external'].includes(targetUser.clientSource)
+        ? targetUser.clientSource
+        : 'swanstudios',
     });
 
     // Attach progress + unified context to serverConstraints for prompt enrichment
