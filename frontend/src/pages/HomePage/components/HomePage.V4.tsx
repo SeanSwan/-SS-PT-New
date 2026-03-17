@@ -22,6 +22,7 @@ import {
   Shield, Brain, Zap, Sparkles, Music, Palette,
   Gamepad2, Flame, MapPin, Award, TrendingUp, Check,
   Mic2, Mic, Laugh, Paintbrush,
+  Camera, LayoutDashboard, FileSignature, UserCircle, Share2,
 } from 'lucide-react';
 import GlowButton from '../../../components/ui/buttons/GlowButton';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
@@ -464,6 +465,70 @@ const ButtonGroup = styled(motion.div)`
   @media (min-width: 2560px) {
     gap: 32px;
     max-width: 700px;
+  }
+`;
+
+/* ── Quick-Nav Capsule Buttons ── */
+const QuickNavRow = styled(motion.div)`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 640px;
+
+  @media (min-width: 768px) {
+    gap: 10px;
+    margin-top: 20px;
+  }
+`;
+
+const CapsuleButton = styled(motion.button)<{ $gilded?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid ${p => p.$gilded ? 'rgba(198, 168, 75, 0.35)' : 'rgba(96, 192, 240, 0.2)'};
+  background: ${p => p.$gilded ? 'rgba(198, 168, 75, 0.1)' : 'rgba(0, 32, 96, 0.5)'};
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: ${p => p.$gilded ? '#C6A84B' : '#E0ECF4'};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  min-height: 36px;
+  white-space: nowrap;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+
+  svg { flex-shrink: 0; opacity: 0.8; }
+
+  &:hover {
+    border-color: ${p => p.$gilded ? 'rgba(198, 168, 75, 0.6)' : 'rgba(139, 92, 246, 0.5)'};
+    background: ${p => p.$gilded ? 'rgba(198, 168, 75, 0.18)' : 'rgba(0, 32, 96, 0.7)'};
+    box-shadow: 0 0 16px ${p => p.$gilded ? 'rgba(198, 168, 75, 0.3)' : 'rgba(139, 92, 246, 0.2)'};
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: scale(0.97); }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.$gilded ? '#C6A84B' : '#8B5CF6'};
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 430px) {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    min-height: 32px;
+    gap: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -1365,6 +1430,51 @@ const HomePageV4: React.FC = () => {
                 aria-label="Book a free consultation"
               />
             </ButtonGroup>
+
+            {/* Quick-Nav Capsule Buttons */}
+            <QuickNavRow variants={reveal}>
+              <CapsuleButton
+                onClick={() => navigate('/trainer-dashboard')}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <LayoutDashboard size={14} />
+                Trainer Dashboard
+              </CapsuleButton>
+              <CapsuleButton
+                onClick={() => navigate('/client-dashboard')}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <UserCircle size={14} />
+                Client Dashboard
+              </CapsuleButton>
+              <CapsuleButton
+                $gilded
+                onClick={() => navigate('/gallery')}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <Camera size={14} />
+                SwanStudios Photography
+              </CapsuleButton>
+              <CapsuleButton
+                onClick={() => navigate('/waiver')}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <FileSignature size={14} />
+                Waiver
+              </CapsuleButton>
+              <CapsuleButton
+                onClick={() => navigate('/user-dashboard')}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <Share2 size={14} />
+                Social Media
+              </CapsuleButton>
+            </QuickNavRow>
           </HeroContent>
 
           {showScroll && (
