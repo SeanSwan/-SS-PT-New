@@ -14,6 +14,7 @@ export interface User {
   username?: string;
   phone?: string;
   role: 'user' | 'admin' | 'trainer' | 'client';
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   profilePicture?: string;
   profileImage?: string;
   isActive?: boolean;

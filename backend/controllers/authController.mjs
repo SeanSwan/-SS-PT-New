@@ -319,6 +319,8 @@ const sanitizeUser = (user) => {
   if (user.lastActive) sanitized.lastActive = user.lastActive;
   // Include session count so frontend can route gallery funnel correctly
   if (user.availableSessions !== undefined) sanitized.availableSessions = user.availableSessions;
+  // Include client source so frontend can adapt UI (move_fitness vs swanstudios)
+  if (user.clientSource) sanitized.clientSource = user.clientSource;
 
   return sanitized;
 };

@@ -853,11 +853,13 @@ const EnhancedClientDashboard: React.FC = () => {
         onViewAllRewards={handleViewAllRewards}
       />
       
-      {/* Scheduled Sessions Card */}
-      <ScheduledSessionsCard 
-        sessions={scheduledSessions}
-        onScheduleMore={handleScheduleNewSession}
-      />
+      {/* Scheduled Sessions Card — hidden for Move Fitness clients (no session monitoring) */}
+      {user?.clientSource !== 'move_fitness' && (
+        <ScheduledSessionsCard
+          sessions={scheduledSessions}
+          onScheduleMore={handleScheduleNewSession}
+        />
+      )}
       
       {/* Achievement Notification */}
       <AchievementNotification 

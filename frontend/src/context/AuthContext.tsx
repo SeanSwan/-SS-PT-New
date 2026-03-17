@@ -20,6 +20,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: 'admin' | 'trainer' | 'client' | 'user';
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   profileImageUrl?: string;
   isActive: boolean;
   createdAt: string;

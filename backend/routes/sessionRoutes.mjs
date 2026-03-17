@@ -4231,12 +4231,20 @@ router.post("/book", protect, async (req, res) => {
     // Get client information
     const client = await User.findByPk(req.user.id);
     if (!client) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Client not found" 
+        message: "Client not found"
       });
     }
-    
+
+    // Move Fitness clients cannot book trainer sessions
+    if (client.clientSource === 'move_fitness') {
+      return res.status(403).json({
+        success: false,
+        message: "Move Fitness clients do not have session booking access. Use the Workout Logger to track your training."
+      });
+    }
+
     // Book the session
     session.userId = client.id;
     session.status = "scheduled";
@@ -5196,6 +5204,15 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Client not found"
+      });
+    }
+
+    // Move Fitness clients cannot have sessions booked
+    if (client.clientSource === 'move_fitness') {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "Move Fitness clients do not have session booking. They track training via the Workout Logger."
       });
     }
 

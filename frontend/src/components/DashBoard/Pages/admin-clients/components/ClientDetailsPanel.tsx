@@ -648,6 +648,7 @@ interface Client {
   healthConcerns?: string;
   emergencyContact?: string;
   availableSessions: number;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -810,16 +811,18 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   // Render Tab Content
   const renderPersonalInfo = () => (
     <SectionPadding>
-      <GridContainer $columns="1fr" $gap={24}>
-        {/* P0: Billing & Sessions Card - Prominent at top */}
-        <GridItem>
-          <BillingSessionsCard
-            clientId={client.id}
-            clientName={`${client.firstName} ${client.lastName}`}
-            onUpdate={handleBillingUpdate}
-          />
-        </GridItem>
-      </GridContainer>
+      {!isMoveFitness && (
+        <GridContainer $columns="1fr" $gap={24}>
+          {/* P0: Billing & Sessions Card - Hidden for Move Fitness clients */}
+          <GridItem>
+            <BillingSessionsCard
+              clientId={client.id}
+              clientName={`${client.firstName} ${client.lastName}`}
+              onUpdate={handleBillingUpdate}
+            />
+          </GridItem>
+        </GridContainer>
+      )}
 
       <GridContainer $columns="1fr 2fr" $gap={24} style={{ marginTop: 24 }}>
         <GlassCard>
@@ -1148,6 +1151,48 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
     </SectionPadding>
   );
 
+  const renderMoveFitnessWorkouts = () => (
+    <SectionPadding>
+      <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
+        <SectionTitle style={{ marginBottom: 0 }}>Workout Log — Move Fitness</SectionTitle>
+        <StatusChip $status="info">Move Fitness Client</StatusChip>
+      </FlexRow>
+
+      <GridContainer $columns="1fr 1fr" $gap={24}>
+        <GlassCard>
+          <CardBody>
+            <SectionTitle style={{ marginBottom: 16 }}>Workout Statistics</SectionTitle>
+            <BodyText>Total Workouts Logged: {sessions.filter((s: any) => s.status === 'completed').length}</BodyText>
+            <BodyText>Total Sessions Trained: {sessions.length}</BodyText>
+            <Divider />
+            <BodyText style={{ color: 'rgba(96, 192, 240, 0.9)', fontSize: '0.85rem', marginTop: 8 }}>
+              Move Fitness clients track training via the Workout Logger.
+              Session scheduling is not available for this client type.
+            </BodyText>
+          </CardBody>
+        </GlassCard>
+
+        <GlassCard>
+          <CardBody>
+            <SectionTitle style={{ marginBottom: 16 }}>Recent Workouts</SectionTitle>
+            {sessions.length === 0 ? (
+              <BodyText>No workouts logged yet.</BodyText>
+            ) : (
+              sessions.slice(0, 5).map((session: any) => (
+                <FlexRow key={session.id} $justify="space-between" $align="center" style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <BodyText>{new Date(session.sessionDate || session.date).toLocaleDateString()}</BodyText>
+                  <StatusChip $status={session.status === 'completed' ? 'success' : 'default'}>
+                    {session.status}
+                  </StatusChip>
+                </FlexRow>
+              ))
+            )}
+          </CardBody>
+        </GlassCard>
+      </GridContainer>
+    </SectionPadding>
+  );
+
   const renderPayments = () => (
     <SectionPadding>
       <SectionTitle>Payment History</SectionTitle>
@@ -1210,10 +1255,12 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   );
 
   // Tab definitions
+  const isMoveFitness = client.clientSource === 'move_fitness';
+
   const tabs = [
     { icon: <User size={18} />, label: 'Personal' },
     { icon: <Dumbbell size={18} />, label: 'Health & Fitness' },
-    { icon: <Clock size={18} />, label: 'Sessions' },
+    { icon: <Clock size={18} />, label: isMoveFitness ? 'Workout Log' : 'Sessions' },
     { icon: <CreditCard size={18} />, label: 'Payments' },
     { icon: <TrendingUp size={18} />, label: 'Progress' },
     { icon: <MessageSquare size={18} />, label: 'Notes' },
@@ -1311,7 +1358,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
         </TabPanel>
 
         <TabPanel value={activeTab} index={2}>
-          {renderSessions()}
+          {isMoveFitness ? renderMoveFitnessWorkouts() : renderSessions()}
         </TabPanel>
 
         <TabPanel value={activeTab} index={3}>
