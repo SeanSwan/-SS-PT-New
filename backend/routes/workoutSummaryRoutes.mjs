@@ -1,0 +1,155 @@
+/**
+ * workoutSummaryRoutes.mjs
+ * ════════════════════════════════════════════════════════════════
+ * POST /api/workout-summaries — Generate workout summary + optionally email to client.
+ *
+ * Per AI Village consensus: POST (not GET) for summary generation,
+ * with async job queue capability (future BullMQ integration).
+ *
+ * Phase: Master Prompt Implementation — Session Logger post-workout flow.
+ */
+
+import { Router } from 'express';
+import { protect, trainerOrAdminOnly } from '../middleware/auth.mjs';
+import { getAllModels } from '../models/index.mjs';
+import logger from '../utils/logger.mjs';
+
+const router = Router();
+
+/**
+ * POST /api/workout-summaries
+ * Generates a workout summary from exercise data and optionally emails it.
+ */
+router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const {
+      clientId,
+      formId,
+      exercises = [],
+      sessionNotes = '',
+      overallIntensity = 5,
+      sendEmail = false,
+    } = req.body;
+
+    if (!clientId) {
+      return res.status(400).json({ success: false, message: 'clientId is required' });
+    }
+
+    if (!exercises.length && !formId) {
+      return res.status(400).json({ success: false, message: 'exercises or formId is required' });
+    }
+
+    const models = getAllModels();
+    const { User, DailyWorkoutForm } = models;
+
+    // Fetch client info
+    const client = await User.findByPk(clientId, {
+      attributes: ['id', 'firstName', 'lastName', 'email'],
+    });
+
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Build summary from provided exercises
+    const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets?.length || 0), 0);
+    const totalVolume = exercises.reduce((sum, ex) => {
+      return sum + (ex.sets || []).reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0);
+    }, 0);
+
+    const avgRpe = exercises.length > 0
+      ? exercises.reduce((sum, ex) => {
+          const rpes = (ex.sets || []).filter(s => s.rpe > 0).map(s => s.rpe);
+          return sum + (rpes.length > 0 ? rpes.reduce((a, b) => a + b, 0) / rpes.length : 0);
+        }, 0) / exercises.length
+      : 0;
+
+    const avgFormRating = exercises.length > 0
+      ? exercises.reduce((sum, ex) => sum + (ex.formRating || 0), 0) / exercises.length
+      : 0;
+
+    const date = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    const exerciseLines = exercises.map(ex => {
+      const sets = ex.sets?.length || 0;
+      const topSet = (ex.sets || []).reduce((best, s) => {
+        const vol = (s.weight || 0) * (s.reps || 0);
+        return vol > best.vol ? { vol, weight: s.weight, reps: s.reps } : best;
+      }, { vol: 0, weight: 0, reps: 0 });
+
+      return `  - ${ex.exerciseName}: ${sets} set${sets !== 1 ? 's' : ''}${
+        topSet.weight > 0 ? ` (top: ${topSet.weight}lbs × ${topSet.reps})` : ''
+      }`;
+    });
+
+    const summaryText = [
+      `Workout Summary — ${date}`,
+      `Client: ${client.firstName} ${client.lastName}`,
+      ``,
+      `Exercises (${exercises.length}):`,
+      ...exerciseLines,
+      ``,
+      `Stats:`,
+      `  Total Sets: ${totalSets}`,
+      `  Total Volume: ${Math.round(totalVolume).toLocaleString()} lbs`,
+      avgRpe > 0 ? `  Average RPE: ${avgRpe.toFixed(1)}/10` : null,
+      avgFormRating > 0 ? `  Average Form: ${avgFormRating.toFixed(1)}/5` : null,
+      `  Overall Intensity: ${overallIntensity}/10`,
+      sessionNotes ? `\nTrainer Notes: ${sessionNotes}` : null,
+      ``,
+      `Great work today, ${client.firstName}! Keep up the momentum.`,
+    ].filter(Boolean).join('\n');
+
+    // Persist summary to form if formId provided
+    if (formId && DailyWorkoutForm) {
+      try {
+        await DailyWorkoutForm.update(
+          { clientSummary: summaryText },
+          { where: { id: formId } }
+        );
+      } catch (persistErr) {
+        logger.warn('[WorkoutSummary] Failed to persist summary to form:', persistErr.message);
+      }
+    }
+
+    // Email summary to client (non-blocking)
+    let emailSent = false;
+    if (sendEmail && client.email) {
+      try {
+        // Use existing email service if available
+        const { sendEmail: sendEmailFn } = await import('../services/emailService.mjs').catch(() => ({}));
+        if (sendEmailFn) {
+          await sendEmailFn({
+            to: client.email,
+            subject: `Your Workout Summary — ${date}`,
+            text: summaryText,
+            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${summaryText}</pre>`,
+          });
+          emailSent = true;
+          logger.info('[WorkoutSummary] Email sent', { clientId, email: client.email });
+        } else {
+          logger.warn('[WorkoutSummary] Email service not available');
+        }
+      } catch (emailErr) {
+        logger.warn('[WorkoutSummary] Email failed (non-blocking):', emailErr.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      summary: summaryText,
+      emailSent,
+      formId: formId || null,
+    });
+  } catch (error) {
+    logger.error('[WorkoutSummary] Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to generate summary' });
+  }
+});
+
+export default router;

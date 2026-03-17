@@ -146,6 +146,7 @@ import clientProgressApiRoutes from '../routes/clientProgressApiRoutes.mjs';
 
 // ===================== PHASE 2 TASK 5 - DASHBOARD TAB ROUTES =====================
 import clientWorkoutRoutes from '../routes/clientWorkoutRoutes.mjs';
+import workoutSummaryRoutes from '../routes/workoutSummaryRoutes.mjs';
 import clientNutritionRoutes from '../routes/clientNutritionRoutes.mjs';
 import clientPhotoRoutes from '../routes/clientPhotoRoutes.mjs';
 import clientNoteRoutes from '../routes/clientNoteRoutes.mjs';
@@ -392,6 +393,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== PHASE 2 TASK 5 - DASHBOARD TAB ROUTES =====================
   app.use('/api/workouts', clientWorkoutRoutes);      // GET /api/workouts/:userId/current
+  app.use('/api/workout-summaries', workoutSummaryRoutes); // POST /api/workout-summaries
   app.use('/api/nutrition', clientNutritionRoutes);   // GET /api/nutrition/:userId/current
   app.use('/api/photos', clientPhotoRoutes);          // GET /api/photos/:userId
   app.use('/api/notes', clientNoteRoutes);            // GET/POST /api/notes/:userId

@@ -11,7 +11,6 @@ import {
   Dumbbell,
   ClipboardList,
   Activity,
-  Brain,
   User,
   ChevronDown,
   Zap,
@@ -20,7 +19,6 @@ import {
   Users,
   Camera,
   Apple,
-  ScanBarcode,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import WorkoutClientDrawer from './WorkoutClientDrawer';
@@ -40,16 +38,14 @@ interface SelectedClient {
 // ---- Tabs ----
 
 const TABS = [
-  { id: 'plans', label: 'Plans', icon: <Dumbbell size={16} />, path: '/dashboard/workouts' },
-  { id: 'logger', label: 'Logger', icon: <ClipboardList size={16} />, path: '/dashboard/workouts/logger' },
-  { id: 'movement', label: 'Movement', icon: <Activity size={16} />, path: '/dashboard/workouts/movement' },
-  { id: 'ai', label: 'Workout Intelligence', icon: <Brain size={16} />, path: '/dashboard/workouts/ai' },
-  { id: 'form-analysis', label: 'Movement Analysis', icon: <Video size={16} />, path: '/dashboard/workouts/form-analysis' },
+  { id: 'planner', label: 'Workout Planner', icon: <Dumbbell size={16} />, path: '/dashboard/workouts' },
+  { id: 'logger', label: 'Session Logger', icon: <ClipboardList size={16} />, path: '/dashboard/workouts/logger' },
+  { id: 'assessments', label: 'Assessments', icon: <Activity size={16} />, path: '/dashboard/workouts/movement' },
+  { id: 'form-analysis', label: 'Form Analysis', icon: <Video size={16} />, path: '/dashboard/workouts/form-analysis' },
   { id: 'body-map', label: 'Body Map', icon: <HeartPulse size={16} />, path: '/dashboard/workouts/body-map' },
-  { id: 'bootcamp', label: 'Boot Camp', icon: <Users size={16} />, path: '/dashboard/workouts/bootcamp' },
   { id: 'equipment', label: 'Equipment', icon: <Camera size={16} />, path: '/dashboard/workouts/equipment' },
+  { id: 'bootcamp', label: 'Boot Camp', icon: <Users size={16} />, path: '/dashboard/workouts/bootcamp' },
   { id: 'nutrition', label: 'Nutrition', icon: <Apple size={16} />, path: '/dashboard/workouts/nutrition' },
-  { id: 'food-scanner', label: 'Scanner', icon: <ScanBarcode size={16} />, path: '/dashboard/workouts/food-scanner' },
 ];
 
 // ---- Component ----
@@ -84,10 +80,10 @@ const WorkoutsWorkspace: React.FC = () => {
     try { sessionStorage.setItem('ai_target_client_id', String(client.id)); } catch { /* ignore */ }
   }, []);
 
-  const activeTabId = TABS.find((t) => location.pathname === t.path)?.id || 'plans';
+  const activeTabId = TABS.find((t) => location.pathname === t.path)?.id || 'planner';
 
   // Tabs that don't require client selection (e.g., group class builder, equipment manager)
-  const clientFreeTab = activeTabId === 'bootcamp' || activeTabId === 'equipment' || activeTabId === 'nutrition' || activeTabId === 'food-scanner';
+  const clientFreeTab = activeTabId === 'bootcamp' || activeTabId === 'equipment' || activeTabId === 'nutrition';
 
   return (
     <WorkspaceRoot>

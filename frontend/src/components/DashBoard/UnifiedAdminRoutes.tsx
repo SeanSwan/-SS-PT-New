@@ -294,7 +294,8 @@ const UnifiedAdminRoutes: React.FC = () => (
           <MovementAnalysisWizard />
         </React.Suspense>
       } />
-      <Route path="ai" element={<NASMCompliancePanel />} />
+      {/* Redirect legacy /ai route to planner (AI Generator merged into Workout Planner tab) */}
+      <Route path="ai" element={<Navigate to="/dashboard/workouts" replace />} />
       <Route path="form-analysis" element={
         <React.Suspense fallback={<CosmicSuspenseLoader />}>
           <FormAnalysisPage />
@@ -316,11 +317,8 @@ const UnifiedAdminRoutes: React.FC = () => (
           <NutritionWorkspace />
         </React.Suspense>
       } />
-      <Route path="food-scanner" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <FoodScannerPage />
-        </React.Suspense>
-      } />
+      {/* food-scanner merged into nutrition tab */}
+      <Route path="food-scanner" element={<Navigate to="/dashboard/workouts/nutrition" replace />} />
     </Route>
 
     {/* Phase 3 consolidation: AdminGamificationView manages its own internal tabs,

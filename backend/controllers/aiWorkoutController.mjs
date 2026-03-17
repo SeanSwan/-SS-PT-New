@@ -517,6 +517,49 @@ export const generateWorkoutPlan = async (req, res) => {
       return analyses.map(a => a.get({ plain: true }));
     }, 'movement analyses');
 
+    // Phase 15: Fetch equipment profiles for AI context (names only — 84% token reduction per consensus)
+    const { EquipmentProfile, EquipmentItem } = models;
+    const equipmentContext = await fetchOptionalContext(EquipmentProfile, async () => {
+      // Find trainer's default profile (or any active profile)
+      const trainerId = requesterRole === 'trainer' ? requesterId
+        : requesterRole === 'admin' ? requesterId : null;
+      if (!trainerId) return null;
+
+      const profiles = await EquipmentProfile.findAll({
+        where: { trainerId, isActive: true },
+        order: [['isDefault', 'DESC'], ['updatedAt', 'DESC']],
+        limit: 3,
+        include: EquipmentItem ? [{
+          model: EquipmentItem,
+          as: 'items',
+          where: { isActive: true, approvalStatus: 'approved' },
+          required: false,
+          attributes: ['name', 'category', 'resistanceType'],
+        }] : [],
+      });
+      if (!profiles?.length) return null;
+
+      // Flatten to unique equipment names by category (minimal tokens)
+      const byCategory = {};
+      for (const profile of profiles) {
+        for (const item of (profile.items || [])) {
+          const cat = item.category || 'other';
+          if (!byCategory[cat]) byCategory[cat] = new Set();
+          byCategory[cat].add(item.name);
+        }
+      }
+      const result = {};
+      for (const [cat, names] of Object.entries(byCategory)) {
+        result[cat] = [...names];
+      }
+      logger.info('[AI Workout] Equipment context built', {
+        userId: targetUserId,
+        categories: Object.keys(result).length,
+        totalItems: Object.values(result).reduce((s, arr) => s + arr.length, 0),
+      });
+      return result;
+    }, 'equipment context');
+
     // Phase 5A: Build unified generation context
     const unifiedContext = buildUnifiedContext({
       deIdentifiedPayload: safePayload,
@@ -528,6 +571,7 @@ export const generateWorkoutPlan = async (req, res) => {
       nutritionContext,
       healthHistory,
       movementAssessments,
+      equipmentContext,
       clientSource: ['swanstudios', 'move_fitness', 'external'].includes(targetUser.clientSource)
         ? targetUser.clientSource
         : 'swanstudios',
@@ -554,6 +598,9 @@ export const generateWorkoutPlan = async (req, res) => {
     }
     if (unifiedContext.healthHistorySummary) {
       serverConstraints.healthHistory = unifiedContext.healthHistorySummary;
+    }
+    if (equipmentContext) {
+      serverConstraints.availableEquipment = equipmentContext;
     }
     if (unifiedContext.movementContext) {
       serverConstraints.movementAssessments = unifiedContext.movementContext;

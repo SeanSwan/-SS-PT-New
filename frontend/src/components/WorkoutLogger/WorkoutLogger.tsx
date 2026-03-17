@@ -502,7 +502,7 @@ const SetsTable = styled.div`
 
 const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 60px 100px 80px 80px 100px 100px 1fr 50px;
+  grid-template-columns: 60px 100px 80px 90px 80px 100px 100px 1fr 50px;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   background: rgba(0, 32, 96, 0.6);
@@ -521,7 +521,7 @@ const TableHeader = styled.div`
 
 const SetRow = styled.div`
   display: grid;
-  grid-template-columns: 60px 100px 80px 80px 100px 100px 1fr 50px;
+  grid-template-columns: 60px 100px 80px 90px 80px 100px 100px 1fr 50px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(96, 192, 240, 0.08);
@@ -945,6 +945,38 @@ const LoadingSpinner = styled.div`
   animation: ${spin} 0.8s ease-in-out infinite;
 `;
 
+const LoadPlanRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+`;
+
+const LoadPlanButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  min-height: 44px;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  color: #8B5CF6;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 const AddExerciseButton = styled(motion.button)`
   display: flex;
   align-items: center;
@@ -1010,6 +1042,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [popularExercises, setPopularExercises] = useState<Exercise[]>([]);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
 
   // ── NASM Protocol Sections ──
   interface NASMItem { name: string; notes?: string; completed: boolean }
@@ -1204,6 +1239,62 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   };
 
+  // Load Today's Plan — fetches the active workout plan and prefills exercises
+  const loadTodaysPlan = useCallback(async () => {
+    setIsLoadingPlan(true);
+    try {
+      const api = new ApiService();
+      const response = await api.get(`/api/workouts/${clientId}/current`);
+      const data = response?.data ?? response;
+
+      if (!data?.plan?.days?.length) {
+        toast.info('No active workout plan found for this client');
+        return;
+      }
+
+      // Find today's day-of-week (0=Sun, 1=Mon, ...) and match to plan day
+      const dayOfWeek = new Date().getDay();
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const todayName = dayNames[dayOfWeek];
+
+      // Try to find a matching day by name, or fall back to day index
+      const planDay = data.plan.days.find(
+        (d: any) => d.dayName?.toLowerCase() === todayName.toLowerCase()
+      ) || data.plan.days[dayOfWeek % data.plan.days.length];
+
+      if (!planDay?.exercises?.length) {
+        toast.info(`No exercises scheduled for ${todayName} in the active plan`);
+        return;
+      }
+
+      const prefilled: ExerciseEntry[] = planDay.exercises.map((ex: any) => ({
+        exerciseId: ex.exerciseId || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
+        sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+          setNumber: i + 1,
+          weight: ex.weight || 0,
+          reps: ex.targetReps || ex.reps || 10,
+          rpe: 5,
+          tempo: ex.tempo || '',
+          restTime: ex.restTime || 60,
+          formQuality: 3,
+          notes: '',
+        })),
+        formRating: 3,
+        painLevel: 0,
+        performanceNotes: '',
+      }));
+
+      setExercises(prev => [...prev, ...prefilled]);
+      toast.success(`Loaded ${prefilled.length} exercises from ${todayName}'s plan`);
+    } catch (error: any) {
+      console.error('Failed to load today\'s plan:', error);
+      toast.error('Could not load today\'s workout plan');
+    } finally {
+      setIsLoadingPlan(false);
+    }
+  }, [clientId]);
+
   const addExercise = useCallback((exercise: Exercise) => {
     const newExercise: ExerciseEntry = {
       exerciseId: exercise.id,
@@ -1334,6 +1425,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
       if (response.success && response.data) {
         toast.success('Workout logged successfully! Session deducted and points earned.');
+        setSubmittedFormId(response.data.id || response.data.formId || null);
         onComplete(response.data);
       } else {
         throw new Error(response.message || 'Failed to submit workout form');
@@ -1346,6 +1438,53 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  // Generate & Send Summary — post-workout flow
+  const handleGenerateSummary = useCallback(async () => {
+    if (!submittedFormId && exercises.length === 0) {
+      toast.error('Submit the workout first before generating a summary');
+      return;
+    }
+
+    setIsGeneratingSummary(true);
+    try {
+      const api = new ApiService();
+      const payload = {
+        clientId,
+        formId: submittedFormId,
+        exercises: exercises.map(ex => ({
+          exerciseName: ex.exerciseName,
+          sets: ex.sets.map(s => ({
+            weight: s.weight,
+            reps: s.reps,
+            rpe: s.rpe,
+            tempo: s.tempo,
+          })),
+          formRating: ex.formRating,
+          painLevel: ex.painLevel,
+        })),
+        sessionNotes,
+        overallIntensity,
+        sendEmail: true, // Request email to client
+      };
+
+      const response = await api.post('/api/workout-summaries', payload);
+      const data = response?.data ?? response;
+
+      if (data.success) {
+        toast.success(data.emailSent
+          ? 'Summary generated and sent to client!'
+          : 'Summary generated successfully!');
+      } else {
+        throw new Error(data.message || 'Failed to generate summary');
+      }
+    } catch (error: any) {
+      console.error('Failed to generate summary:', error);
+      toast.error(error.message || 'Failed to generate workout summary');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  }, [clientId, submittedFormId, exercises, sessionNotes, overallIntensity]);
 
   const totalSets = useMemo(() => {
     return exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0);
@@ -1451,6 +1590,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         </NASMSectionCard>
 
         <ExerciseSection>
+          <LoadPlanRow>
+            <LoadPlanButton
+              onClick={loadTodaysPlan}
+              disabled={isLoadingPlan}
+            >
+              <Download size={16} />
+              {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
+            </LoadPlanButton>
+          </LoadPlanRow>
           <ExerciseSearchBar>
             <SearchIcon />
             <SearchInput
@@ -1616,6 +1764,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                     <div>Set</div>
                     <div>Weight (lbs)</div>
                     <div>Reps</div>
+                    <div>Tempo</div>
                     <div>RPE (1-10)</div>
                     <div>Form (1-5)</div>
                     <div>Rest (sec)</div>
@@ -1638,6 +1787,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                         onChange={(e) => updateSet(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
                         placeholder="0"
                         aria-label={`Set ${set.setNumber} reps`}
+                      />
+                      <TextInput
+                        value={set.tempo || ''}
+                        onChange={(e) => updateSet(exerciseIndex, setIndex, 'tempo', e.target.value)}
+                        placeholder="3-1-2-0"
+                        aria-label={`Set ${set.setNumber} tempo (eccentric-pause-concentric-pause)`}
+                        style={{ maxWidth: '90px' }}
                       />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <SliderInput
@@ -1877,6 +2033,24 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               </>
             )}
           </Button>
+          {submittedFormId && (
+            <Button
+              variant="secondary"
+              onClick={handleGenerateSummary}
+              disabled={isGeneratingSummary}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isGeneratingSummary ? (
+                <LoadingSpinner />
+              ) : (
+                <>
+                  <MessageSquare size={18} />
+                  Generate & Send Summary
+                </>
+              )}
+            </Button>
+          )}
         </ActionButtons>
       </WorkoutLoggerContainer>
     </>

@@ -54,6 +54,7 @@ export function buildUnifiedContext(inputs = {}) {
     nutritionContext,
     healthHistory,
     movementAssessments,
+    equipmentContext,
     clientSource,
   } = inputs;
 
@@ -160,6 +161,13 @@ export function buildUnifiedContext(inputs = {}) {
     dataSources.push('movement_analysis');
   }
 
+  // ── Equipment Context (names only — per AI Village consensus) ──
+  let equipmentSummary = null;
+  if (equipmentContext && typeof equipmentContext === 'object' && Object.keys(equipmentContext).length > 0) {
+    equipmentSummary = equipmentContext;
+    dataSources.push('equipment_profiles');
+  }
+
   // ── Client Source Context ─────────────────────────────────
   let clientSourceContext = null;
   if (clientSource) {
@@ -213,6 +221,7 @@ export function buildUnifiedContext(inputs = {}) {
     nutritionSummary,
     healthHistorySummary,
     movementContext,
+    equipmentSummary,
     clientSourceContext,
     explainability,
   };
