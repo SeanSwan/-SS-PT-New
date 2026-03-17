@@ -25,7 +25,7 @@ const NutritionWorkspace: React.FC = () => {
       <Header>
         <HeaderIcon><Apple size={28} /></HeaderIcon>
         <div>
-          <HeaderTitle>Deep Research — Nutrition Intelligence</HeaderTitle>
+          <HeaderTitle>Nutrition Intelligence</HeaderTitle>
           <HeaderSubtitle>Log meals, track macros, and explore food data</HeaderSubtitle>
         </div>
       </Header>

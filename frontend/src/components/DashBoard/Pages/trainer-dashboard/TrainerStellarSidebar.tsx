@@ -362,10 +362,10 @@ const trainerNavigationConfig = [
         description: 'Library of reusable training video content'
       },
       {
-        label: 'Deep Research — Workout Intelligence',
+        label: 'Workout Intelligence',
         path: '/dashboard/trainer/workout-forge',
         icon: Brain,
-        description: 'Generate Deep Research-powered workout plans'
+        description: 'Generate AI-powered workout plans'
       },
       {
         label: 'Nutrition Intelligence',

@@ -974,7 +974,7 @@ const WorkoutGenerator = ({ client, onSave, onClose }) => {
     <GeneratorContainer>
       <GeneratorTitle>
         <Dumbbell size={28} />
-        Deep Research — Workout Intelligence
+        Workout Intelligence
       </GeneratorTitle>
 
       {/* Error Alert */}

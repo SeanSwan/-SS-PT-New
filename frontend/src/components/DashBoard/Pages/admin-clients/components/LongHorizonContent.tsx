@@ -595,7 +595,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
               context="workout_generation"
               clientId={clientId}
               equipmentProfileId={equipmentProfileId}
-              placeholder="Ask Deep Research about long-horizon planning..."
+              placeholder="Ask AI about long-horizon planning..."
               defaultOpen={false}
             />
           </FormGroup>

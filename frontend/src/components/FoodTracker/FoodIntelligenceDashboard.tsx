@@ -319,7 +319,7 @@ const FoodIntelligenceDashboard: React.FC = () => {
     <Dashboard>
       <Header>
         <Title>Food Intelligence</Title>
-        <Subtitle>Deep Research-powered nutrition analysis, food safety, and smart eating guidance</Subtitle>
+        <Subtitle>AI-powered nutrition analysis, food safety, and smart eating guidance</Subtitle>
       </Header>
 
       <TabRow>

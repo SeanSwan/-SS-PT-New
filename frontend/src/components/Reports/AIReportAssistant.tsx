@@ -796,7 +796,7 @@ export const AIReportAssistant: React.FC<AIReportAssistantProps> = ({
         </ContentSection>
 
         <FeedbackContainer>
-          <div>Deep Research trained specifically for security operations reporting</div>
+          <div>AI trained specifically for security operations reporting</div>
           <FeedbackActions>
             <FeedbackButton
               className={feedbackGiven[-1] === 'helpful' ? 'active' : ''}

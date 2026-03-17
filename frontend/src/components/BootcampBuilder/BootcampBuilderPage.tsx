@@ -407,7 +407,7 @@ const BootcampBuilderPage: React.FC = () => {
       <TopBar>
         <div>
           <Title>Boot Camp Class Builder</Title>
-          <Subtitle>Deep Research-powered group fitness class generation with station planning and overflow management</Subtitle>
+          <Subtitle>AI-powered group fitness class generation with station planning and overflow management</Subtitle>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {bootcamp && (
@@ -657,11 +657,11 @@ const BootcampBuilderPage: React.FC = () => {
             </>
           )}
 
-          <SectionDivider>Deep Research</SectionDivider>
+          <SectionDivider>AI Assistant</SectionDivider>
           <AITerminalPanel
             context="workout_generation"
             equipmentProfileId={equipmentProfileId}
-            placeholder="Ask Deep Research to modify this bootcamp class..."
+            placeholder="Ask AI to modify this bootcamp class..."
             defaultOpen={false}
           />
         </Panel>

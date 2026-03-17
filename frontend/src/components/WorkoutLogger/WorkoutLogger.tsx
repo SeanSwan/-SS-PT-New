@@ -26,7 +26,8 @@ import {
   Plus, Minus, Search, Save, X, AlertTriangle, CheckCircle,
   Activity, Dumbbell, Clock, Target, Star, BarChart3,
   User, Calendar, MessageSquare, Zap, Timer, Weight,
-  RotateCcw, ArrowLeft, ArrowRight, Info, HelpCircle, Download
+  RotateCcw, ArrowLeft, ArrowRight, Info, HelpCircle, Download,
+  ChevronDown, Heart, Shield
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -261,6 +262,80 @@ const InfoBadge = styled.div<{ type: 'warning' | 'info' | 'success' }>`
 
 const ExerciseSection = styled.div`
   margin-bottom: 2rem;
+`;
+
+/* ─── NASM Protocol Section Styles ─── */
+const NASMSectionCard = styled.div`
+  background: rgba(0, 48, 128, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  box-shadow: inset 0 1px 0 0 rgba(224, 236, 244, 0.1);
+  border-radius: 16px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+`;
+
+const NASMSectionHeader = styled.button<{ $open: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  color: ${CS.text};
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 56px;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover { background: rgba(96, 192, 240, 0.05); }
+
+  svg:last-child {
+    margin-left: auto;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(${p => p.$open ? '180deg' : '0deg'});
+  }
+`;
+
+const NASMSectionBody = styled(motion.div)`
+  padding: 0 20px 16px;
+`;
+
+const NASMItemRow = styled.label<{ $done: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.08);
+  min-height: 44px;
+  opacity: ${p => p.$done ? 0.5 : 1};
+  text-decoration: ${p => p.$done ? 'line-through' : 'none'};
+  transition: opacity 0.2s;
+  font-size: 0.9rem;
+  color: ${CS.text};
+
+  &:last-child { border-bottom: none; }
+`;
+
+const NASMCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  width: 20px;
+  height: 20px;
+  accent-color: ${CS.gaming};
+  cursor: pointer;
+  flex-shrink: 0;
+`;
+
+const NASMSectionBadge = styled.span`
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #A78BFA;
+  font-weight: 600;
 `;
 
 const ExerciseSearchBar = styled.div`
@@ -936,6 +1011,39 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [popularExercises, setPopularExercises] = useState<Exercise[]>([]);
 
+  // ── NASM Protocol Sections ──
+  interface NASMItem { name: string; notes?: string; completed: boolean }
+  const [warmupItems, setWarmupItems] = useState<NASMItem[]>([
+    { name: 'Foam Roll — IT Band / TFL', completed: false },
+    { name: 'Foam Roll — Calves', completed: false },
+    { name: 'Static Stretch — Hip Flexors (30s each)', completed: false },
+    { name: 'Static Stretch — Chest / Anterior Deltoid (30s)', completed: false },
+    { name: 'Dynamic Warmup — Leg Swings (10 each)', completed: false },
+    { name: 'Dynamic Warmup — Arm Circles (10 each direction)', completed: false },
+  ]);
+  const [balanceCoreItems, setBalanceCoreItems] = useState<NASMItem[]>([
+    { name: 'Single-Leg Balance — 30s each side', completed: false },
+    { name: 'Single-Leg Balance Reach — 10 each side', completed: false },
+    { name: 'Plank Hold — 30-60s', completed: false },
+    { name: 'Dead Bug — 10 each side', completed: false },
+    { name: 'Pallof Press — 10 each side', completed: false },
+  ]);
+  const [cooldownItems, setCooldownItems] = useState<NASMItem[]>([
+    { name: 'Static Stretch — Hamstrings (30s each)', completed: false },
+    { name: 'Static Stretch — Quadriceps (30s each)', completed: false },
+    { name: 'Static Stretch — Chest & Shoulders (30s each)', completed: false },
+    { name: 'Deep Breathing — 5 breaths, box pattern', completed: false },
+  ]);
+  const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<string, boolean>>({
+    warmup: true, balanceCore: false, cooldown: false,
+  });
+  const toggleNasmSection = (key: string) =>
+    setNasmSectionsOpen(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleNasmItem = (
+    setter: React.Dispatch<React.SetStateAction<NASMItem[]>>,
+    index: number,
+  ) => setter(prev => prev.map((item, i) => i === index ? { ...item, completed: !item.completed } : item));
+
   // Load exercises from API based on search
   const loadExercises = useCallback(async (searchQuery: string) => {
     if (!searchQuery || searchQuery.trim().length < 2) {
@@ -1276,7 +1384,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           context="workout_generation"
           clientId={clientId}
           equipmentProfileId={equipmentProfileId}
-          placeholder="Ask Deep Research to suggest exercises for this client..."
+          placeholder="Ask AI to suggest exercises for this client..."
         />
 
         <Header>
@@ -1305,6 +1413,42 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             </SessionInfo>
           </ClientInfo>
         </Header>
+
+        {/* ── NASM Section: Warmup & Corrective ── */}
+        <NASMSectionCard>
+          <NASMSectionHeader
+            $open={nasmSectionsOpen.warmup}
+            onClick={() => toggleNasmSection('warmup')}
+            aria-expanded={nasmSectionsOpen.warmup}
+          >
+            <Heart size={18} style={{ color: CS.gaming }} />
+            Warmup & Corrective
+            <NASMSectionBadge>
+              {warmupItems.filter(i => i.completed).length}/{warmupItems.length}
+            </NASMSectionBadge>
+            <ChevronDown size={18} />
+          </NASMSectionHeader>
+          <AnimatePresence>
+            {nasmSectionsOpen.warmup && (
+              <NASMSectionBody
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              >
+                {warmupItems.map((item, idx) => (
+                  <NASMItemRow key={idx} $done={item.completed}>
+                    <NASMCheckbox
+                      checked={item.completed}
+                      onChange={() => toggleNasmItem(setWarmupItems, idx)}
+                    />
+                    {item.name}
+                  </NASMItemRow>
+                ))}
+              </NASMSectionBody>
+            )}
+          </AnimatePresence>
+        </NASMSectionCard>
 
         <ExerciseSection>
           <ExerciseSearchBar>
@@ -1567,6 +1711,78 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             </AddExerciseButton>
           )}
         </ExerciseSection>
+
+        {/* ── NASM Section: Balance & Core ── */}
+        <NASMSectionCard>
+          <NASMSectionHeader
+            $open={nasmSectionsOpen.balanceCore}
+            onClick={() => toggleNasmSection('balanceCore')}
+            aria-expanded={nasmSectionsOpen.balanceCore}
+          >
+            <Shield size={18} style={{ color: '#8B5CF6' }} />
+            Balance, Core & Stability
+            <NASMSectionBadge>
+              {balanceCoreItems.filter(i => i.completed).length}/{balanceCoreItems.length}
+            </NASMSectionBadge>
+            <ChevronDown size={18} />
+          </NASMSectionHeader>
+          <AnimatePresence>
+            {nasmSectionsOpen.balanceCore && (
+              <NASMSectionBody
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              >
+                {balanceCoreItems.map((item, idx) => (
+                  <NASMItemRow key={idx} $done={item.completed}>
+                    <NASMCheckbox
+                      checked={item.completed}
+                      onChange={() => toggleNasmItem(setBalanceCoreItems, idx)}
+                    />
+                    {item.name}
+                  </NASMItemRow>
+                ))}
+              </NASMSectionBody>
+            )}
+          </AnimatePresence>
+        </NASMSectionCard>
+
+        {/* ── NASM Section: Cooldown ── */}
+        <NASMSectionCard>
+          <NASMSectionHeader
+            $open={nasmSectionsOpen.cooldown}
+            onClick={() => toggleNasmSection('cooldown')}
+            aria-expanded={nasmSectionsOpen.cooldown}
+          >
+            <RotateCcw size={18} style={{ color: CS.accent }} />
+            Cooldown & Recovery
+            <NASMSectionBadge>
+              {cooldownItems.filter(i => i.completed).length}/{cooldownItems.length}
+            </NASMSectionBadge>
+            <ChevronDown size={18} />
+          </NASMSectionHeader>
+          <AnimatePresence>
+            {nasmSectionsOpen.cooldown && (
+              <NASMSectionBody
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              >
+                {cooldownItems.map((item, idx) => (
+                  <NASMItemRow key={idx} $done={item.completed}>
+                    <NASMCheckbox
+                      checked={item.completed}
+                      onChange={() => toggleNasmItem(setCooldownItems, idx)}
+                    />
+                    {item.name}
+                  </NASMItemRow>
+                ))}
+              </NASMSectionBody>
+            )}
+          </AnimatePresence>
+        </NASMSectionCard>
 
         {exercises.length > 0 && (
           <SessionSummary>

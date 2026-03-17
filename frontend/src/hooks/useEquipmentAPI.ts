@@ -2,7 +2,7 @@
  * useEquipmentAPI — React hook for Equipment Profile Manager CRUD + AI scan.
  * Phase 7: Communicates with /api/equipment-profiles endpoints.
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const API_BASE = '/api/equipment-profiles';
 
@@ -238,13 +238,19 @@ export function useEquipmentAPI() {
     return apiFetch<{ success: boolean; stats: EquipmentStats }>(`${API_BASE}/stats`);
   }, []);
 
-  return {
+  return useMemo(() => ({
     listProfiles, getProfile, createProfile, updateProfile, deleteProfile,
     listItems, addItem, updateItem, deleteItem,
     scanEquipment, approveItem, rejectItem,
     listExerciseMappings, addExerciseMapping, removeExerciseMapping, confirmExerciseMapping,
     getStats,
-  };
+  }), [
+    listProfiles, getProfile, createProfile, updateProfile, deleteProfile,
+    listItems, addItem, updateItem, deleteItem,
+    scanEquipment, approveItem, rejectItem,
+    listExerciseMappings, addExerciseMapping, removeExerciseMapping, confirmExerciseMapping,
+    getStats,
+  ]);
 }
 
 export default useEquipmentAPI;

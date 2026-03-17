@@ -384,7 +384,7 @@ const ClientAIWorkoutCreator: React.FC = () => {
         <SectionCard>
           <SectionTitle>
             <Brain size={28} color={SWAN_CYAN} />
-            Deep Research — Workout Intelligence
+            Workout Intelligence
           </SectionTitle>
           <Subtitle>
             Generate a personalized workout plan powered by AI, based on your goals,

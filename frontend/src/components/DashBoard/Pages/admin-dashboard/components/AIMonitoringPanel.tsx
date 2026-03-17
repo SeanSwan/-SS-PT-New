@@ -1273,7 +1273,7 @@ const AIMonitoringPanel: React.FC = () => {
               <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
                 <SectionTitle style={{ margin: 0 }}>
                   <Lightbulb size={20} />
-                  Deep Research Insights
+                  AI Insights
                 </SectionTitle>
                 <RoundButton title="Download insights">
                   <Download size={18} />
@@ -1595,7 +1595,7 @@ const AIMonitoringPanel: React.FC = () => {
       <PageRoot style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <FlexCol $align="center" $gap={16}>
           <Spinner $size={60} />
-          <SectionTitle>Loading Deep Research Monitoring Data...</SectionTitle>
+          <SectionTitle>Loading AI Monitoring Data...</SectionTitle>
         </FlexCol>
       </PageRoot>
     );
@@ -1606,7 +1606,7 @@ const AIMonitoringPanel: React.FC = () => {
       <PageRoot>
         <AlertBox $severity="error">
           <div style={{ flex: 1 }}>
-            <MetricValue style={{ marginBottom: 4 }}>Failed to Load Deep Research Monitoring Data</MetricValue>
+            <MetricValue style={{ marginBottom: 4 }}>Failed to Load AI Monitoring Data</MetricValue>
             <BodyText>{errors.overview}</BodyText>
           </div>
           <ActionButton $small onClick={fetchMCPHealthData} disabled={isLoadingData('overview')}>
@@ -1627,7 +1627,7 @@ const AIMonitoringPanel: React.FC = () => {
   return (
     <PageRoot>
       <PageHeader>
-        <PageTitle>Deep Research Monitoring</PageTitle>
+        <PageTitle>AI Monitoring</PageTitle>
         <PageSubtitle>
           Comprehensive monitoring of AI models, performance metrics, and intelligent insights
         </PageSubtitle>

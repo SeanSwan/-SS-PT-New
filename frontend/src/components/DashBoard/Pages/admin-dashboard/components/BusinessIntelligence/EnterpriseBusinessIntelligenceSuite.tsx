@@ -893,7 +893,7 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
           <InsightsPanel>
             <h3>
               <Sparkles size={20} />
-              Deep Research Business Insights
+              AI Business Insights
             </h3>
             
             {mockPredictiveInsights.growthOpportunities.map((opportunity, index) => (

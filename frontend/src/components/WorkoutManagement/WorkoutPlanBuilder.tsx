@@ -23,21 +23,21 @@ import {
 import ExerciseLibrary from './ExerciseLibrary';
 
 /* ------------------------------------------------------------------ */
-/*  Galaxy-Swan Design Tokens                                          */
+/*  Crystalline Swan Design Tokens                                     */
 /* ------------------------------------------------------------------ */
 const TOKENS = {
-  bg: 'rgba(15,23,42,0.95)',
-  bgSolid: '#0f172a',
-  border: 'rgba(14,165,233,0.2)',
-  borderHover: 'rgba(14,165,233,0.45)',
-  text: '#e2e8f0',
+  bg: 'rgba(0,32,96,0.95)',
+  bgSolid: '#002060',
+  border: 'rgba(96,192,240,0.2)',
+  borderHover: 'rgba(96,192,240,0.45)',
+  text: '#E0ECF4',
   muted: '#94a3b8',
-  accent: '#0ea5e9',
-  accentHover: '#38bdf8',
+  accent: '#60C0F0',
+  accentHover: '#8B5CF6',
   danger: '#ef4444',
   dangerHover: '#f87171',
-  surface: 'rgba(15,23,42,0.7)',
-  glass: 'rgba(15,23,42,0.55)',
+  surface: 'rgba(0,48,128,0.92)',
+  glass: 'rgba(0,48,128,0.55)',
   radius: '12px',
   radiusSm: '8px',
   shadow: '0 4px 24px rgba(0,0,0,0.35)',
@@ -654,6 +654,13 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
     equipment: [] as string[]
   });
 
+  // Sync clientId prop to plan state (fixes "Next" button staying disabled)
+  useEffect(() => {
+    if (clientId && clientId !== plan.clientId) {
+      setPlan(prev => ({ ...prev, clientId }));
+    }
+  }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Accordion open state tracking
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
 
@@ -708,6 +715,10 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
   }, [existingPlan, mode]);
 
   const handleNext = () => {
+    // Step 0 (Plan Details) requires name and client
+    if (activeStep === 0 && (!plan.name.trim() || !plan.clientId)) {
+      return; // Validation handled by input highlighting
+    }
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
@@ -1398,7 +1409,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
             ) : (
               <PrimaryButton
                 onClick={handleNext}
-                disabled={!plan.name || !plan.clientId}
+                disabled={activeStep === 0 && (!plan.name.trim() || !plan.clientId)}
               >
                 Next
               </PrimaryButton>

@@ -121,7 +121,7 @@ const FormAnalysisPage: React.FC = () => {
     <PageWrapper>
       <Header>
         <Title>Movement Analysis</Title>
-        <Subtitle>Deep Research-powered exercise form checking</Subtitle>
+        <Subtitle>AI-powered exercise form checking</Subtitle>
       </Header>
 
       <TabBar>

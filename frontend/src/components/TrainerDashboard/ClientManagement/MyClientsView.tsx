@@ -1065,8 +1065,8 @@ const MyClientsView: React.FC = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         title={client.totalSessionsCompleted === 0
-                          ? 'Generate first Deep Research workout plan'
-                          : 'Deep Research — Workout Intelligence'}
+                          ? 'Generate first AI workout plan'
+                          : 'Workout Intelligence'}
                       >
                         <Sparkles size={16} />
                       </ActionButton>

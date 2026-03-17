@@ -868,7 +868,7 @@ const ContentStudio: React.FC = () => {
           fontSize: '1.1rem',
           fontWeight: 600
         }}>
-          ✨ Deep Research Movement Analysis
+          ✨ AI Movement Analysis
         </h4>
         <p style={{
           color: theme.text?.secondary || '#E8F0FF',

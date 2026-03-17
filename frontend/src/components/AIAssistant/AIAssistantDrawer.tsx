@@ -576,7 +576,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             <IconBtn onClick={() => setView(view === 'list' ? 'chat' : 'list')} aria-label="Conversation history" title="History">
               <MessageSquare size={18} />
             </IconBtn>
-            <IconBtn onClick={onClose} aria-label="Close Deep Research">
+            <IconBtn onClick={onClose} aria-label="Close AI Assistant">
               <X size={20} />
             </IconBtn>
           </HeaderActions>
@@ -653,7 +653,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             <EmptyState>
               <EmptyIcon><Sparkles size={28} /></EmptyIcon>
               <WelcomeTitle>
-                {CONTEXTS[selectedContext]?.label || 'Deep Research'}
+                {CONTEXTS[selectedContext]?.label || 'AI Assistant'}
               </WelcomeTitle>
               <WelcomeText>{CONTEXTS[selectedContext]?.description}</WelcomeText>
               <SendBtn $active onClick={() => handleStartChat(selectedContext)} style={{ width: 'auto', padding: '0 24px', borderRadius: 999 }}>

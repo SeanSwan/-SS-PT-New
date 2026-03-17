@@ -667,7 +667,7 @@ const NutritionPlanning = ({ onClose }: { onClose: () => void }) => {
       <HeaderRow>
         <PageTitle>
           <UtensilsCrossed size={32} />
-          Deep Research — Nutrition Intelligence
+          Nutrition Intelligence
         </PageTitle>
         <CloseButton onClick={onClose}>
           <X size={18} />

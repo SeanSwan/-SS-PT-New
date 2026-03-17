@@ -341,10 +341,10 @@ const clientNavigationConfig = [
     title: 'MISSION CONTROL',
     items: [
       { 
-        label: 'Deep Research — Workout Intelligence',
+        label: 'Workout Intelligence',
         path: '/dashboard/client/workout-forge',
         icon: Brain,
-        description: 'Generate personalized Deep Research workouts (if package allows)'
+        description: 'Generate personalized AI workouts (if package allows)'
       },
       {
         label: 'Nutrition Intelligence',
@@ -353,7 +353,7 @@ const clientNavigationConfig = [
         description: 'Log meals, track macros, and explore nutrition data'
       },
       {
-        label: 'Deep Research Privacy & Consent',
+        label: 'AI Privacy & Consent',
         path: '/dashboard/client/ai-consent',
         icon: Shield,
         description: 'Manage your AI data consent and privacy settings'
