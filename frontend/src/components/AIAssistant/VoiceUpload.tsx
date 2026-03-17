@@ -7,13 +7,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Paperclip, Loader2 } from 'lucide-react';
-
-const CS = {
-  wingPurple: '#8B5CF6',
-  iceWing: '#60C0F0',
-  textMuted: '#94a3b8',
-  borderSubtle: 'rgba(139, 92, 246, 0.12)',
-};
+import { CS } from '../../styles/crystallineSwanTheme';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }

@@ -8,15 +8,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { Dumbbell, Utensils, TrendingUp, Ruler, Brain } from 'lucide-react';
 import type { AIContext } from '../../hooks/useAIChat';
-
-const CS = {
-  wingPurple: '#8B5CF6',
-  iceWing: '#60C0F0',
-  textPrimary: '#E0ECF4',
-  textMuted: '#94a3b8',
-  borderSubtle: 'rgba(139, 92, 246, 0.12)',
-  hoverBg: 'rgba(139, 92, 246, 0.08)',
-};
+import { CS } from '../../styles/crystallineSwanTheme';
 
 const ActionsBar = styled.div`
   display: flex;
@@ -37,7 +29,7 @@ const ActionChip = styled.button`
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 999px;
   border: 1px solid ${CS.borderSubtle};
   background: rgba(0, 32, 96, 0.4);

@@ -4,24 +4,10 @@
  * Searchable client dropdown for trainer/admin use in the AI drawer.
  * Fetches client list and allows selection of a target client for AI context.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { Search, X, User, ChevronDown } from 'lucide-react';
-
-const CS = {
-  wingPurple: '#8B5CF6',
-  midnightSapphire: '#002060',
-  iceWing: '#60C0F0',
-  frostWhite: '#E0ECF4',
-  glassBg: 'rgba(0, 32, 96, 0.92)',
-  textPrimary: '#E0ECF4',
-  textSecondary: '#cbd5e1',
-  textMuted: '#94a3b8',
-  borderSubtle: 'rgba(139, 92, 246, 0.12)',
-  borderActive: 'rgba(139, 92, 246, 0.4)',
-  hoverBg: 'rgba(139, 92, 246, 0.08)',
-  activePillBg: 'rgba(139, 92, 246, 0.15)',
-};
+import { CS } from '../../styles/crystallineSwanTheme';
 
 // ── Styled Components ──
 const PickerWrapper = styled.div`
@@ -178,8 +164,10 @@ const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectCli
   const [search, setSearch] = useState('');
   const [clients, setClients] = useState<ClientInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const focusedItemRef = useRef<HTMLButtonElement>(null);
 
   // Fetch clients on mount
   useEffect(() => {
@@ -230,17 +218,45 @@ const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectCli
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen]);
 
-  const filtered = clients.filter(c => {
-    if (!search) return true;
+  const filtered = useMemo(() => {
+    if (!search) return clients;
     const q = search.toLowerCase();
-    return `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
-  });
+    return clients.filter(c =>
+      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    );
+  }, [clients, search]);
+
+  // Reset focused index when search changes
+  useEffect(() => { setFocusedIndex(-1); }, [search]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIndex >= 0 && focusedItemRef.current) {
+      focusedItemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [focusedIndex]);
 
   const handleSelect = useCallback((client: ClientInfo) => {
     onSelectClient(client);
     setIsOpen(false);
     setSearch('');
+    setFocusedIndex(-1);
   }, [onSelectClient]);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev < filtered.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter' && focusedIndex >= 0 && filtered[focusedIndex]) {
+      e.preventDefault();
+      handleSelect(filtered[focusedIndex]);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  }, [filtered, focusedIndex, handleSelect]);
 
   const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -279,20 +295,29 @@ const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectCli
               ref={searchRef}
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search clients..."
+              role="combobox"
+              aria-expanded={isOpen}
+              aria-controls="client-listbox"
+              aria-activedescendant={focusedIndex >= 0 && filtered[focusedIndex] ? `client-item-${filtered[focusedIndex].id}` : undefined}
               aria-label="Search clients"
             />
           </SearchBar>
-          <ClientList>
+          <ClientList role="listbox" id="client-listbox">
             {loading ? (
               <NoResults>Loading clients...</NoResults>
             ) : filtered.length === 0 ? (
               <NoResults>No clients found</NoResults>
             ) : (
-              filtered.map(client => (
+              filtered.map((client, index) => (
                 <ClientItem
                   key={client.id}
-                  $selected={selectedClient?.id === client.id}
+                  id={`client-item-${client.id}`}
+                  ref={index === focusedIndex ? focusedItemRef : null}
+                  role="option"
+                  aria-selected={selectedClient?.id === client.id}
+                  $selected={selectedClient?.id === client.id || focusedIndex === index}
                   onClick={() => handleSelect(client)}
                 >
                   <Avatar>

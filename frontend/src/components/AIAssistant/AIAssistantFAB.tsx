@@ -264,4 +264,36 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
   );
 };
 
-export default AIAssistantFAB;
+// ── Error Boundary wrapper (prevents AI crash from taking down app) ──
+class AIAssistantErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[AIAssistant] Caught error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null; // Silently hide — main app continues working
+    }
+    return this.props.children;
+  }
+}
+
+const AIAssistantFABSafe: React.FC<AIAssistantFABProps> = (props) => (
+  <AIAssistantErrorBoundary>
+    <AIAssistantFAB {...props} />
+  </AIAssistantErrorBoundary>
+);
+
+export default AIAssistantFABSafe;

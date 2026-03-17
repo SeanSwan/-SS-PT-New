@@ -25,39 +25,8 @@ const VoiceUpload = React.lazy(() => import('./VoiceUpload'));
 import { parseAIWorkoutPlan, dispatchApplyToLogger } from '../../utils/parseAIWorkoutPlan';
 import { parseAIActions, stripActionBlocks, ACTION_META, type AIAction } from '../../utils/parseAIActions';
 
-// ── Crystalline Swan Theme Tokens ──
-const CS = {
-  // Brand colors
-  wingPurple: '#8B5CF6',
-  midnightSapphire: '#002060',
-  royalDepth: '#003080',
-  iceWing: '#60C0F0',
-  arcticCyan: '#50A0F0',
-  gildedFern: '#C6A84B',
-  frostWhite: '#E0ECF4',
-  // Surfaces
-  glassBg: 'rgba(0, 32, 96, 0.92)',
-  headerBg: 'rgba(0, 32, 96, 0.85)',
-  inputBg: 'rgba(0, 24, 64, 0.8)',
-  // Text
-  textPrimary: '#E0ECF4',
-  textSecondary: '#cbd5e1',
-  textMuted: '#94a3b8',
-  textDisabled: '#64748b',
-  // Borders
-  borderSubtle: 'rgba(139, 92, 246, 0.12)',
-  borderActive: 'rgba(139, 92, 246, 0.4)',
-  borderGlass: 'rgba(96, 192, 240, 0.12)',
-  // Semantic
-  errorBg: 'rgba(153, 27, 27, 0.3)',
-  errorBorder: 'rgba(248, 113, 113, 0.35)',
-  errorText: '#fca5a5',
-  // Interactive
-  hoverBg: 'rgba(139, 92, 246, 0.08)',
-  activePillBg: 'rgba(139, 92, 246, 0.15)',
-  userBubbleBg: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(96, 192, 240, 0.08))',
-  assistantBubbleBg: 'rgba(0, 32, 96, 0.5)',
-};
+// ── Crystalline Swan Theme Tokens (centralized) ──
+import { CS, FONTS } from '../../styles/crystallineSwanTheme';
 
 // ── Animations ──
 const slideIn = keyframes`
@@ -138,8 +107,10 @@ const HeaderTitle = styled.div`
   align-items: center;
   gap: 8px;
   color: ${CS.wingPurple};
+  font-family: ${FONTS.heading};
   font-weight: 600;
   font-size: 1rem;
+  letter-spacing: -0.02em;
   min-width: 0;
 `;
 
@@ -195,8 +166,10 @@ const ContextPill = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) => $active ? CS.wingPurple : CS.borderSubtle};
   background: ${({ $active }) => $active ? CS.activePillBg : 'rgba(0, 32, 96, 0.3)'};
   color: ${({ $active }) => $active ? CS.wingPurple : CS.textSecondary};
+  font-family: ${FONTS.ui};
   font-size: 0.7rem;
   font-weight: 600;
+  letter-spacing: 0.03em;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
@@ -499,8 +472,10 @@ const EmptyIcon = styled.div`
 `;
 
 const WelcomeTitle = styled.h3`
-  color: ${CS.textPrimary};
-  font-size: 1.1rem;
+  color: ${CS.iceWing};
+  font-family: ${FONTS.drama};
+  font-style: italic;
+  font-size: 1.4rem;
   margin: 0;
 `;
 
@@ -745,10 +720,13 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const drawerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
-  // Available contexts for this role
-  const availableContexts = Object.entries(CONTEXTS)
-    .filter(([, cfg]) => cfg.roles.includes(userRole))
-    .map(([key]) => key as AIContext);
+  // Available contexts for this role (memoized)
+  const availableContexts = useMemo(() =>
+    Object.entries(CONTEXTS)
+      .filter(([, cfg]) => cfg.roles.includes(userRole))
+      .map(([key]) => key as AIContext),
+    [userRole]
+  );
 
   // Load conversations on open
   useEffect(() => {
@@ -953,7 +931,14 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
         {error && (
           <ErrorBanner>
             <span>{error}</span>
-            <IconBtn onClick={clearError} aria-label="Dismiss error"><X size={14} /></IconBtn>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <IconBtn onClick={() => { clearError(); handleSend(); }} aria-label="Retry" title="Retry">
+                <Send size={14} />
+              </IconBtn>
+              <IconBtn onClick={clearError} aria-label="Dismiss error">
+                <X size={14} />
+              </IconBtn>
+            </div>
           </ErrorBanner>
         )}
 
