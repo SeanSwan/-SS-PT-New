@@ -234,6 +234,82 @@ export function useAIChat() {
   }, [activeConversation]);
 
   /**
+   * Atomic send: creates conversation if needed, then sends message.
+   * Eliminates the race condition where sendMessage fires before
+   * createConversation's state update has been applied.
+   */
+  const sendMessageWithConversation = useCallback(async (
+    message: string,
+    context: AIContext = 'general',
+    title?: string,
+    targetUserId?: number | string | null,
+    responseStyle: ResponseStyle = 'both',
+  ) => {
+    // Cancel any in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+
+    setSending(true);
+    setError(null);
+
+    try {
+      // Step 1: Ensure we have a conversation (create if needed)
+      let convId = activeConversation?.id;
+      if (!convId) {
+        const payload: Record<string, unknown> = { context, title, responseStyle };
+        if (targetUserId) payload.targetUserId = targetUserId;
+        const createRes = await fetch(`${API_BASE}/api/ai-chat/conversations`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+          signal: abortRef.current.signal,
+        });
+        const createData = await createRes.json();
+        if (!createData.success) throw new Error(createData.error || 'Failed to create conversation');
+        convId = createData.conversation.id;
+        const newConv: Conversation = { ...createData.conversation, messages: [], role: '', metadata: {} };
+        setActiveConversation(newConv);
+      }
+
+      // Step 2: Optimistic user message
+      const optimisticUserMsg: Message = { role: 'user', content: message, timestamp: new Date().toISOString() };
+      setActiveConversation(prev => prev ? { ...prev, messages: [...prev.messages, optimisticUserMsg] } : prev);
+
+      // Step 3: Send message using the conversation ID we have (not from state)
+      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${convId}/messages`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ message }),
+        signal: abortRef.current.signal,
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to send message');
+
+      setActiveConversation(prev => {
+        if (!prev) return prev;
+        const messagesWithoutOptimistic = prev.messages.slice(0, -1);
+        return {
+          ...prev,
+          messages: [...messagesWithoutOptimistic, data.userMessage, data.assistantMessage],
+          messageCount: data.messageCount,
+          title: prev.title || data.userMessage.content.slice(0, 47),
+          lastMessageAt: data.assistantMessage.timestamp,
+        };
+      });
+      return data.assistantMessage;
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return null;
+      const msg = err instanceof Error ? err.message : 'Failed to send message';
+      setError(msg);
+      // Remove optimistic message on error
+      setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
+      return { failed: true, originalMessage: message } as any;
+    } finally {
+      setSending(false);
+    }
+  }, [activeConversation]);
+
+  /**
    * Start a fresh conversation (clear active)
    */
   const newChat = useCallback(() => {
@@ -255,6 +331,7 @@ export function useAIChat() {
     listConversations,
     loadConversation,
     sendMessage,
+    sendMessageWithConversation,
     deleteConversation,
     newChat,
     clearError,

@@ -18,6 +18,7 @@ import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
 import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
+import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './AdminOverview.types';
 
 const AdminOverviewPanel: React.FC = () => {
@@ -171,6 +172,12 @@ const AdminOverviewPanel: React.FC = () => {
 
   return (
     <div>
+      <AITerminalPanel
+        context="data_management"
+        label="Admin Assistant"
+        emptyHint="I'm your Admin Assistant. Ask about client analytics, revenue insights, system health, or any business operations."
+        defaultOpen={false}
+      />
       <VisitorGeoWidget />
       <PendingPaymentsWidget />
       <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />

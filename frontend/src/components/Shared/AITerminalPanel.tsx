@@ -1,11 +1,11 @@
 /**
- * AITerminalPanel — Inline AI Chat for Workout Builders
- * ======================================================
- * Embeddable AI chat panel that uses useAIChat hook with
- * context-aware props. Designed for Workout Logger, Bootcamp
- * Builder, and Long Horizon Builder.
+ * AITerminalPanel — Embeddable AI Chat for All Dashboard Tabs
+ * ============================================================
+ * Context-aware AI chat panel using useAIChat hook.
+ * Embeds in: Workout Logger, Bootcamp, Scheduling, Clients & Teams,
+ * Admin Overview, Client Dashboard, Trainer Dashboard, Canada Immigration.
  *
- * Galaxy-Swan theme: Midnight Sapphire, Swan Cyan, 44px touch targets.
+ * Crystalline Swan theme: Midnight Sapphire, Ice Wing, 44px touch targets.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
@@ -28,6 +28,8 @@ export interface AITerminalPanelProps {
   clientId?: number;
   equipmentProfileId?: number | null;
   placeholder?: string;
+  label?: string;
+  emptyHint?: string;
   compact?: boolean;
   defaultOpen?: boolean;
   onExerciseSelected?: (exercise: any) => void;
@@ -36,11 +38,23 @@ export interface AITerminalPanelProps {
 
 // ── Component ─────────────────────────────────────────────────────────
 
+const CONTEXT_LABELS: Record<string, string> = {
+  general: 'AI Assistant',
+  macro_logging: 'Nutrition Assistant',
+  form_tips: 'Form Coach',
+  workout_suggestions: 'Workout Assistant',
+  workout_generation: 'Workout Builder',
+  client_review: "Coach's Assistant",
+  data_management: 'Data Assistant',
+};
+
 const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   context = 'workout_generation',
   clientId,
   equipmentProfileId,
-  placeholder = 'Ask Deep Research to help build your workout...',
+  placeholder,
+  label,
+  emptyHint,
   compact = false,
   defaultOpen = false,
   onExerciseSelected,
@@ -48,32 +62,25 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
 }) => {
   const {
     messages,
-    activeConversation,
     sending,
     error,
-    createConversation,
-    sendMessage,
+    sendMessageWithConversation,
     clearError,
   } = useAIChat();
+
+  const displayLabel = label || CONTEXT_LABELS[context] || 'AI Assistant';
+  const displayPlaceholder = placeholder || `Ask ${displayLabel} anything...`;
+  const displayHint = emptyHint || `I'm your ${displayLabel}. Ask me anything about ${context === 'general' ? 'this workspace' : context.replace(/_/g, ' ')}.`;
 
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const conversationStartedRef = useRef(false);
 
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Create conversation when panel opens — pass clientId as targetUserId for AI enrichment
-  useEffect(() => {
-    if (isOpen && !activeConversation && !conversationStartedRef.current) {
-      conversationStartedRef.current = true;
-      createConversation(context, `Workout Builder — ${context}`, clientId || null);
-    }
-  }, [isOpen, activeConversation, context, createConversation, clientId]);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
@@ -89,8 +96,9 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     }
 
     setInputValue('');
-    await sendMessage(enrichedMessage);
-  }, [inputValue, sending, clientId, equipmentProfileId, sendMessage]);
+    // Atomic: creates conversation if needed + sends message in one call
+    await sendMessageWithConversation(enrichedMessage, context, `${displayLabel} — ${context}`, clientId || null);
+  }, [inputValue, sending, clientId, equipmentProfileId, context, displayLabel, sendMessageWithConversation]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -106,7 +114,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     return (
       <CompactTrigger onClick={() => setIsOpen(!isOpen)} type="button">
         <Bot size={16} />
-        <span>Deep Research</span>
+        <span>{displayLabel}</span>
         {isOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
       </CompactTrigger>
     );
@@ -119,7 +127,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
           <AiBadge>
             <Sparkles size={14} />
           </AiBadge>
-          <HeaderTitle>SwanStudios Deep Research</HeaderTitle>
+          <HeaderTitle>SwanStudios {displayLabel}</HeaderTitle>
         </HeaderLeft>
         <HeaderToggle>
           {isOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -132,11 +140,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
             {messages.length === 0 && (
               <EmptyHint>
                 <Bot size={24} />
-                <p>
-                  Ask me to generate exercises, suggest modifications, or build
-                  a complete workout plan based on your client&apos;s profile and
-                  available equipment.
-                </p>
+                <p>{displayHint}</p>
               </EmptyHint>
             )}
             {messages.map((msg, i) => (
@@ -183,7 +187,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={placeholder}
+              placeholder={displayPlaceholder}
               rows={1}
               disabled={sending}
             />

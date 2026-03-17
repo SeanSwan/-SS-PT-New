@@ -3,7 +3,7 @@
  * =================
  * Slide-in drawer from the right side for AI chat.
  * Supports multiple conversation contexts, voice dictation, and message history.
- * Galaxy-Swan themed with glass surfaces and cyan accents.
+ * Crystalline Swan themed with glass surfaces and Wing Purple accents.
  *
  * Usage:
  *   <AIAssistantDrawer open={showAI} onClose={() => setShowAI(false)} userRole="client" />
@@ -342,7 +342,7 @@ const SendBtn = styled.button<{ $active: boolean }>`
   border-radius: 12px;
   border: none;
   background: ${({ $active }) => $active
-    ? `linear-gradient(135deg, ${SWAN_CYAN}, #00aadd)`
+    ? `linear-gradient(135deg, ${SWAN_CYAN}, #60C0F0)`
     : 'rgba(255, 255, 255, 0.06)'};
   color: ${({ $active }) => $active ? GALAXY_CORE : '#64748b'};
   cursor: ${({ $active }) => $active ? 'pointer' : 'default'};

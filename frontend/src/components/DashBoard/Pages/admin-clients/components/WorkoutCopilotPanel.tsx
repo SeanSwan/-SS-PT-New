@@ -410,40 +410,47 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   // ── Plan editing helpers ────────────────────────────────────
 
   const updatePlanField = (field: keyof WorkoutPlan, value: any) => {
-    if (!editedPlan) return;
-    setEditedPlan({ ...editedPlan, [field]: value });
+    setEditedPlan(prev => prev ? { ...prev, [field]: value } : null);
   };
 
   const updateDay = (dayIdx: number, field: keyof WorkoutDay, value: any) => {
-    if (!editedPlan) return;
-    const days = [...editedPlan.days];
-    days[dayIdx] = { ...days[dayIdx], [field]: value };
-    setEditedPlan({ ...editedPlan, days });
+    setEditedPlan(prev => {
+      if (!prev) return null;
+      const days = [...prev.days];
+      days[dayIdx] = { ...days[dayIdx], [field]: value };
+      return { ...prev, days };
+    });
   };
 
   const updateExercise = (dayIdx: number, exIdx: number, field: keyof Exercise, value: any) => {
-    if (!editedPlan) return;
-    const days = [...editedPlan.days];
-    const exercises = [...days[dayIdx].exercises];
-    exercises[exIdx] = { ...exercises[exIdx], [field]: value };
-    days[dayIdx] = { ...days[dayIdx], exercises };
-    setEditedPlan({ ...editedPlan, days });
+    setEditedPlan(prev => {
+      if (!prev) return null;
+      const days = [...prev.days];
+      const exercises = [...days[dayIdx].exercises];
+      exercises[exIdx] = { ...exercises[exIdx], [field]: value };
+      days[dayIdx] = { ...days[dayIdx], exercises };
+      return { ...prev, days };
+    });
   };
 
   const addExercise = (dayIdx: number) => {
-    if (!editedPlan) return;
-    const days = [...editedPlan.days];
-    const exercises = [...days[dayIdx].exercises, { name: '', setScheme: '', repGoal: '', restPeriod: 60 }];
-    days[dayIdx] = { ...days[dayIdx], exercises };
-    setEditedPlan({ ...editedPlan, days });
+    setEditedPlan(prev => {
+      if (!prev) return null;
+      const days = [...prev.days];
+      const exercises = [...days[dayIdx].exercises, { name: '', setScheme: '', repGoal: '', restPeriod: 60 }];
+      days[dayIdx] = { ...days[dayIdx], exercises };
+      return { ...prev, days };
+    });
   };
 
   const removeExercise = (dayIdx: number, exIdx: number) => {
-    if (!editedPlan) return;
-    const days = [...editedPlan.days];
-    const exercises = days[dayIdx].exercises.filter((_, i) => i !== exIdx);
-    days[dayIdx] = { ...days[dayIdx], exercises };
-    setEditedPlan({ ...editedPlan, days });
+    setEditedPlan(prev => {
+      if (!prev) return null;
+      const days = [...prev.days];
+      const exercises = days[dayIdx].exercises.filter((_: any, i: number) => i !== exIdx);
+      days[dayIdx] = { ...days[dayIdx], exercises };
+      return { ...prev, days };
+    });
   };
 
   const toggleDay = (dayIdx: number) => {

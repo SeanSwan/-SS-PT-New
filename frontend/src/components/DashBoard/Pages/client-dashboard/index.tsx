@@ -58,6 +58,7 @@ import {
 
 // Import layout components
 import DashboardLayout from './components/layout/DashboardLayout';
+import AITerminalPanel from '../../../Shared/AITerminalPanel';
 
 // Import card components
 import OverallProgressCard from './components/cards/OverallProgressCard';
@@ -811,6 +812,13 @@ const EnhancedClientDashboard: React.FC = () => {
       onViewChallenges={() => setShowChallengesDialog(true)}
       onViewRewards={() => setShowRewardsDialog(true)}
     >
+      <AITerminalPanel
+        context="workout_suggestions"
+        label="Fitness Assistant"
+        emptyHint="I'm your Fitness Assistant. Ask about workout plans, exercise form, nutrition tips, or progress insights."
+        defaultOpen={false}
+      />
+
       {/* Overall Progress Card */}
       <OverallProgressCard 
         overallLevel={overallLevel}

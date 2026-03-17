@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import styled from 'styled-components';
+import AITerminalPanel from '../../../Shared/AITerminalPanel';
 
 const CardContainer = styled.div`
   border-radius: 12px;
@@ -36,6 +37,12 @@ const InfoBanner = styled.div`
 const TrainerClients: React.FC = () => {
   return (
     <div>
+      <AITerminalPanel
+        context="client_review"
+        label="Trainer Assistant"
+        emptyHint="I'm your Trainer Assistant. Ask about client programs, workout modifications, progress reviews, or training strategies."
+        defaultOpen={false}
+      />
       <CardContainer>
         <CardBody>
           <Title>My Clients</Title>

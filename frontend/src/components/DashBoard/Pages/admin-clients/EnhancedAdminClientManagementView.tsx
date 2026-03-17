@@ -11,7 +11,7 @@
  * - Professional assessment tools
  *
  * Migrated from MUI to styled-components + lucide-react
- * Galaxy-Swan theme (bg: rgba(15,23,42,0.95), border: rgba(14,165,233,0.2), text: #e2e8f0, accent: #0ea5e9)
+ * Crystalline Swan theme (bg: #002060, border: rgba(96,192,240,0.2), text: #E0ECF4, accent: #60C0F0)
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -24,6 +24,7 @@ import ClientDetailsModal from './components/ClientDetailsModal';
 import ClientAnalyticsPanel from './components/ClientAnalyticsPanel';
 import ClientAssessmentModal from './components/ClientAssessmentModal';
 import BulkActionDialog from './components/BulkActionDialog';
+import AITerminalPanel from '../../../Shared/AITerminalPanel';
 import ClientProgressDashboard from './components/ClientProgressDashboard';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import GamificationOverview from './components/GamificationOverview';
@@ -117,7 +118,7 @@ const slideUp = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Galaxy-Swan Theme Tokens ─────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ────────────────────────────────
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
   bgSolid: '#002060',
@@ -1696,6 +1697,12 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   return (
     <PageRoot>
       <PageContent>
+        <AITerminalPanel
+          context="client_review"
+          label="Coach's Assistant"
+          emptyHint="I'm your Coach's Assistant. Ask about client progress, workout plans, assessment insights, or team management."
+          defaultOpen={false}
+        />
         {/* Enhanced Header with Breadcrumbs */}
         <div style={{ marginBottom: 32 }}>
           <BreadcrumbNav aria-label="breadcrumb">

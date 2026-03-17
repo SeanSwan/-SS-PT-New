@@ -19,6 +19,7 @@ import CRSCalculator from './CRSCalculator';
 import StudyPlatform from './StudyPlatform';
 import ResourceHub from './ResourceHub';
 import ImmigrationTimeline from './ImmigrationTimeline';
+import AITerminalPanel from '../../../Shared/AITerminalPanel';
 
 /* ────────── API helpers ────────── */
 
@@ -437,6 +438,13 @@ const CanadaImmigrationTab: React.FC = () => {
           </TabButton>
         ))}
       </TabBar>
+
+      <AITerminalPanel
+        context="general"
+        label="Research Assistant"
+        emptyHint="I'm your Research Assistant. Ask about immigration processes, CRS scores, document requirements, study resources, or anything else."
+        defaultOpen={false}
+      />
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
