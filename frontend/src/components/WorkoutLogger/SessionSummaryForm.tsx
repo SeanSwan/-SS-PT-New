@@ -156,6 +156,11 @@ const SliderInput = styled.input`
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 2px 8px rgba(80, 160, 240, 0.4);
   }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.gaming};
+    outline-offset: 4px;
+  }
 `;
 
 const SliderValue = styled.span`
@@ -203,18 +208,18 @@ const InfoBadge = styled.div<{ type: 'warning' | 'info' | 'success' }>`
   min-height: 44px;
   backdrop-filter: blur(8px);
   background: ${props =>
-    props.type === 'warning' ? 'rgba(245, 158, 11, 0.12)' :
-    props.type === 'success' ? 'rgba(16, 185, 129, 0.12)' :
-    'rgba(80, 160, 240, 0.12)'
+    props.type === 'warning' ? CS.warningBg :
+    props.type === 'success' ? CS.successBg :
+    CS.infoBg
   };
   border: 1px solid ${props =>
-    props.type === 'warning' ? 'rgba(245, 158, 11, 0.35)' :
-    props.type === 'success' ? 'rgba(16, 185, 129, 0.35)' :
-    'rgba(80, 160, 240, 0.35)'
+    props.type === 'warning' ? CS.warningBorder :
+    props.type === 'success' ? CS.successBorder :
+    CS.infoBorder
   };
   color: ${props =>
-    props.type === 'warning' ? '#fbbf24' :
-    props.type === 'success' ? '#34d399' :
+    props.type === 'warning' ? CS.warningText :
+    props.type === 'success' ? CS.successText :
     CS.glowLight
   };
   svg { flex-shrink: 0; }

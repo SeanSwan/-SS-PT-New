@@ -33,7 +33,7 @@ const WorkoutLoggerHeader: React.FC<WorkoutLoggerHeaderProps> = React.memo(({
           <Calendar size={16} />
           Date: {new Date().toLocaleDateString()}
         </InfoBadge>
-        <InfoBadge type={availableSessions > 3 ? 'success' : 'warning'}>
+        <InfoBadge type={availableSessions > 3 ? 'success' : 'warning'} aria-live="polite" aria-atomic="true">
           <Activity size={16} />
           Sessions Remaining: {availableSessions}
         </InfoBadge>
@@ -140,18 +140,18 @@ const InfoBadge = styled.div<{ type: 'warning' | 'info' | 'success' }>`
   min-height: 44px;
   backdrop-filter: blur(8px);
   background: ${props =>
-    props.type === 'warning' ? 'rgba(245, 158, 11, 0.12)' :
-    props.type === 'success' ? 'rgba(16, 185, 129, 0.12)' :
-    'rgba(80, 160, 240, 0.12)'
+    props.type === 'warning' ? CS.warningBg :
+    props.type === 'success' ? CS.successBg :
+    CS.infoBg
   };
   border: 1px solid ${props =>
-    props.type === 'warning' ? 'rgba(245, 158, 11, 0.35)' :
-    props.type === 'success' ? 'rgba(16, 185, 129, 0.35)' :
-    'rgba(80, 160, 240, 0.35)'
+    props.type === 'warning' ? CS.warningBorder :
+    props.type === 'success' ? CS.successBorder :
+    CS.infoBorder
   };
   color: ${props =>
-    props.type === 'warning' ? '#fbbf24' :
-    props.type === 'success' ? '#34d399' :
+    props.type === 'warning' ? CS.warningText :
+    props.type === 'success' ? CS.successText :
     CS.glowLight
   };
   svg { flex-shrink: 0; }

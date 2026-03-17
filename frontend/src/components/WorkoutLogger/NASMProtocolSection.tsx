@@ -9,6 +9,7 @@ import { ChevronDown } from 'lucide-react';
 import { CS } from './WorkoutLoggerCS';
 
 export interface NASMItem {
+  id: string;
   name: string;
   notes?: string;
   completed: boolean;
@@ -50,7 +51,7 @@ const NASMProtocolSection: React.FC<NASMProtocolSectionProps> = React.memo(({
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
             {items.map((item, idx) => (
-              <ItemRow key={idx} $done={item.completed}>
+              <ItemRow key={item.id} $done={item.completed}>
                 <Checkbox
                   checked={item.completed}
                   onChange={() => onToggleItem(idx)}
@@ -97,6 +98,12 @@ const SectionHeader = styled.button<{ $open: boolean }>`
   transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover { background: rgba(96, 192, 240, 0.05); }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.gaming};
+    outline-offset: -2px;
+    border-radius: 16px;
+  }
 
   svg:last-child {
     margin-left: auto;

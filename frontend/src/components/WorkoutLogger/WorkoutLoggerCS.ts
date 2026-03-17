@@ -1,10 +1,23 @@
 /**
  * WorkoutLogger Crystalline Swan Color Palette
  * Shared across all WorkoutLogger sub-components
+ *
+ * Derived tokens (Bg/Border variants) are computed once at module load
+ * via withAlpha() — zero runtime overhead per AI Village Phase 3 consensus.
  */
-import { keyframes } from 'styled-components';
+import { keyframes, css } from 'styled-components';
+
+/** Convert hex color to rgba string at a given opacity */
+export const withAlpha = (hex: string, opacity: number): string => {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
 
 export const CS = {
+  // ── Base Semantic Colors ──
   bg: '#002060',             // Midnight Sapphire
   surface: '#003080',         // Royal Depth
   card: 'rgba(0, 32, 96, 0.75)',  // Glass
@@ -25,7 +38,42 @@ export const CS = {
   warning: '#f59e0b',
   error: '#ef4444',
   inputBg: 'rgba(0, 48, 128, 0.5)',
+
+  // ── Derived Badge Tokens (calculated once at module load) ──
+  warningBg: withAlpha('#f59e0b', 0.12),
+  successBg: withAlpha('#10b981', 0.12),
+  errorBg: withAlpha('#ef4444', 0.12),
+  infoBg: withAlpha('#50a0f0', 0.12),
+
+  warningBorder: withAlpha('#f59e0b', 0.35),
+  successBorder: withAlpha('#10b981', 0.35),
+  errorBorder: withAlpha('#ef4444', 0.35),
+  infoBorder: withAlpha('#50a0f0', 0.35),
+
+  // WCAG-safe badge text colors (high contrast on dark)
+  warningText: '#fbbf24',
+  successText: '#34d399',
+  errorText: '#f87171',
 };
+
+/** Duration constants */
+export const MINUTES_PER_SET = 3;
+export const MAX_WORKOUT_DURATION = 120;
+
+/** Standardized error message extraction */
+export const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return fallback;
+};
+
+/** Reduced motion CSS mixin — wraps animations to respect prefers-reduced-motion */
+export const reducedMotionSafe = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+`;
 
 export const stellarGlow = keyframes`
   0% { box-shadow: 0 0 8px rgba(80, 160, 240, 0.2), 0 0 0 rgba(96, 192, 240, 0); }

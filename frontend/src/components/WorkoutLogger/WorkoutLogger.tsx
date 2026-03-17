@@ -38,7 +38,7 @@ import {
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
 // Sub-components
-import { CS, shimmer } from './WorkoutLoggerCS';
+import { CS, shimmer, getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION, reducedMotionSafe } from './WorkoutLoggerCS';
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import NASMProtocolSection, { type NASMItem } from './NASMProtocolSection';
 import ExerciseCardComponent from './ExerciseCardComponent';
@@ -98,28 +98,30 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
+  const [isLoadingClient, setIsLoadingClient] = useState(true);
+  const [searchHighlightIndex, setSearchHighlightIndex] = useState(-1);
 
-  // ── NASM Protocol State ──
+  // ── NASM Protocol State (stable IDs for React reconciliation) ──
   const [warmupItems, setWarmupItems] = useState<NASMItem[]>([
-    { name: 'Foam Roll — IT Band / TFL', completed: false },
-    { name: 'Foam Roll — Calves', completed: false },
-    { name: 'Static Stretch — Hip Flexors (30s each)', completed: false },
-    { name: 'Static Stretch — Chest / Anterior Deltoid (30s)', completed: false },
-    { name: 'Dynamic Warmup — Leg Swings (10 each)', completed: false },
-    { name: 'Dynamic Warmup — Arm Circles (10 each direction)', completed: false },
+    { id: 'warmup-1', name: 'Foam Roll — IT Band / TFL', completed: false },
+    { id: 'warmup-2', name: 'Foam Roll — Calves', completed: false },
+    { id: 'warmup-3', name: 'Static Stretch — Hip Flexors (30s each)', completed: false },
+    { id: 'warmup-4', name: 'Static Stretch — Chest / Anterior Deltoid (30s)', completed: false },
+    { id: 'warmup-5', name: 'Dynamic Warmup — Leg Swings (10 each)', completed: false },
+    { id: 'warmup-6', name: 'Dynamic Warmup — Arm Circles (10 each direction)', completed: false },
   ]);
   const [balanceCoreItems, setBalanceCoreItems] = useState<NASMItem[]>([
-    { name: 'Single-Leg Balance — 30s each side', completed: false },
-    { name: 'Single-Leg Balance Reach — 10 each side', completed: false },
-    { name: 'Plank Hold — 30-60s', completed: false },
-    { name: 'Dead Bug — 10 each side', completed: false },
-    { name: 'Pallof Press — 10 each side', completed: false },
+    { id: 'balance-1', name: 'Single-Leg Balance — 30s each side', completed: false },
+    { id: 'balance-2', name: 'Single-Leg Balance Reach — 10 each side', completed: false },
+    { id: 'balance-3', name: 'Plank Hold — 30-60s', completed: false },
+    { id: 'balance-4', name: 'Dead Bug — 10 each side', completed: false },
+    { id: 'balance-5', name: 'Pallof Press — 10 each side', completed: false },
   ]);
   const [cooldownItems, setCooldownItems] = useState<NASMItem[]>([
-    { name: 'Static Stretch — Hamstrings (30s each)', completed: false },
-    { name: 'Static Stretch — Quadriceps (30s each)', completed: false },
-    { name: 'Static Stretch — Chest & Shoulders (30s each)', completed: false },
-    { name: 'Deep Breathing — 5 breaths, box pattern', completed: false },
+    { id: 'cooldown-1', name: 'Static Stretch — Hamstrings (30s each)', completed: false },
+    { id: 'cooldown-2', name: 'Static Stretch — Quadriceps (30s each)', completed: false },
+    { id: 'cooldown-3', name: 'Static Stretch — Chest & Shoulders (30s each)', completed: false },
+    { id: 'cooldown-4', name: 'Deep Breathing — 5 breaths, box pattern', completed: false },
   ]);
   const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<string, boolean>>({
     warmup: true, balanceCore: false, cooldown: false,
@@ -235,6 +237,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // ── Client Data ──
   const loadClientData = async () => {
+    setIsLoadingClient(true);
     try {
       const api = new ApiService();
       const isSelf = user?.id === clientId;
@@ -262,7 +265,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       } else {
         throw new Error(data.message || 'Failed to load client data');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load client data:', error);
       setClient({
         id: clientId,
@@ -272,7 +275,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         availableSessions: 0,
         phone: ''
       });
-      toast.error(error.message || 'Failed to load client information');
+      toast.error(getErrorMessage(error, 'Failed to load client information'));
+    } finally {
+      setIsLoadingClient(false);
     }
   };
 
@@ -322,9 +327,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
       setExercises(prev => [...prev, ...prefilled]);
       toast.success(`Loaded ${prefilled.length} exercises from ${todayName}'s plan`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load today\'s plan:', error);
-      toast.error('Could not load today\'s workout plan');
+      toast.error(getErrorMessage(error, 'Could not load today\'s workout plan'));
     } finally {
       setIsLoadingPlan(false);
     }
@@ -389,6 +394,30 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.info('Exercise removed from workout');
   }, []);
 
+  // ── Keyboard navigation for search dropdown ──
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showExerciseSearch || availableExercises.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSearchHighlightIndex(prev =>
+        prev < availableExercises.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSearchHighlightIndex(prev =>
+        prev > 0 ? prev - 1 : availableExercises.length - 1
+      );
+    } else if (e.key === 'Enter' && searchHighlightIndex >= 0) {
+      e.preventDefault();
+      addExercise(availableExercises[searchHighlightIndex]);
+      setSearchHighlightIndex(-1);
+    } else if (e.key === 'Escape') {
+      setShowExerciseSearch(false);
+      setSearchHighlightIndex(-1);
+    }
+  }, [showExerciseSearch, availableExercises, searchHighlightIndex, addExercise]);
+
   // ── Export PDF ──
   const handleExportPDF = useCallback(() => {
     if (exercises.length === 0) {
@@ -409,11 +438,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // ── Submit with AbortSignal timeout (Phase 3 fix) ──
   const handleSubmit = async () => {
     if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true; // Set IMMEDIATELY after check to close race window
+    setIsSubmitting(true);
 
-    if (exercises.length === 0) { toast.error('Please add at least one exercise'); return; }
-    if (!client) { toast.error('Client information not loaded'); return; }
+    if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
+    if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
     if (client.availableSessions <= 0 && user?.role !== 'admin') {
-      toast.error('Client has no available sessions remaining'); return;
+      toast.error('Client has no available sessions remaining'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
     const hasIncompleteExercises = exercises.some(exercise =>
@@ -421,11 +452,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       exercise.sets.some(set => set.weight === 0 && set.reps === 0)
     );
     if (hasIncompleteExercises) {
-      toast.error('Please complete all exercise sets before submitting'); return;
+      toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
-
-    isSubmittingRef.current = true;
-    setIsSubmitting(true);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -448,12 +476,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       } else {
         throw new Error(response.message || 'Failed to submit workout form');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting workout form:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         toast.error('Workout submission timed out. Please try again.');
       } else {
-        toast.error(error.message || 'Failed to submit workout form');
+        toast.error(getErrorMessage(error, 'Failed to submit workout form'));
       }
     } finally {
       clearTimeout(timeoutId);
@@ -494,9 +522,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       } else {
         throw new Error(data.message || 'Failed to generate summary');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to generate summary:', error);
-      toast.error(error.message || 'Failed to generate workout summary');
+      toast.error(getErrorMessage(error, 'Failed to generate workout summary'));
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -507,7 +535,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0), [exercises]);
 
   const estimatedDuration = useMemo(() =>
-    Math.min(totalSets * 3, 120), [totalSets]);
+    Math.min(totalSets * MINUTES_PER_SET, MAX_WORKOUT_DURATION), [totalSets]);
 
   // ── Loading State ──
   if (!client) {
@@ -577,13 +605,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               type="text"
               placeholder="Search exercises by name, type, or muscle group..."
               aria-label="Search exercises"
+              aria-expanded={showExerciseSearch}
+              aria-controls="exercise-search-dropdown"
+              aria-activedescendant={searchHighlightIndex >= 0 ? `search-result-${searchHighlightIndex}` : undefined}
+              role="combobox"
+              aria-autocomplete="list"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setSearchHighlightIndex(-1); }}
               onFocus={() => setShowExerciseSearch(true)}
+              onKeyDown={handleSearchKeyDown}
             />
             <AnimatePresence>
               {showExerciseSearch && (
                 <SearchDropdown
+                  id="exercise-search-dropdown"
+                  role="listbox"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
@@ -594,9 +630,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                       <div style={{ marginTop: '0.5rem' }}>Searching exercises...</div>
                     </DropdownMessage>
                   ) : availableExercises.length > 0 ? (
-                    availableExercises.map((exercise) => (
+                    availableExercises.map((exercise, idx) => (
                       <SearchResultItem
                         key={exercise.id}
+                        id={`search-result-${idx}`}
+                        role="option"
+                        aria-selected={idx === searchHighlightIndex}
+                        $highlighted={idx === searchHighlightIndex}
                         onClick={() => addExercise(exercise)}
                       >
                         <SearchResultName>{exercise.name}</SearchResultName>
@@ -627,7 +667,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           ) : (
             exercises.map((exercise, exerciseIndex) => (
               <ExerciseCardComponent
-                key={exerciseIndex}
+                key={exercise.exerciseId || exerciseIndex}
                 exercise={exercise}
                 exerciseIndex={exerciseIndex}
                 onUpdateExercise={updateExercise}
@@ -683,6 +723,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             estimatedDuration={estimatedDuration}
           />
         )}
+
+        {/* ARIA Live Region for screen readers */}
+        <LiveRegion role="status" aria-live="polite" aria-atomic="true">
+          {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
+        </LiveRegion>
 
         {/* Footer Actions */}
         <WorkoutLoggerFooter
@@ -834,11 +879,12 @@ const DropdownMessage = styled.div`
   color: ${CS.textSecondary};
 `;
 
-const SearchResultItem = styled.div`
+const SearchResultItem = styled.div<{ $highlighted?: boolean }>`
   padding: 1rem;
   cursor: pointer;
   border-bottom: 1px solid ${CS.glassBorder};
   transition: background 0.2s ease;
+  background: ${props => props.$highlighted ? 'rgba(139, 92, 246, 0.18)' : 'transparent'};
 
   &:hover { background: rgba(139, 92, 246, 0.12); }
 `;
@@ -895,4 +941,14 @@ const AddExerciseButton = styled(motion.button)`
     box-shadow: 0 8px 36px rgba(80, 160, 240, 0.4);
   }
   &:active { transform: scale(0.98); }
+
+  ${reducedMotionSafe}
+`;
+
+const LiveRegion = styled.div`
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 `;

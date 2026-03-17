@@ -6,7 +6,7 @@ import React from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Download, Save, MessageSquare } from 'lucide-react';
-import { CS, shimmer } from './WorkoutLoggerCS';
+import { CS, shimmer, reducedMotionSafe } from './WorkoutLoggerCS';
 
 interface WorkoutLoggerFooterProps {
   onCancel: () => void;
@@ -174,12 +174,19 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
   &:hover { transform: translateY(-2px); }
   &:active { transform: scale(0.97); }
 
+  &:focus-visible {
+    outline: 2px solid ${CS.gaming};
+    outline-offset: 2px;
+  }
+
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
   }
+
+  ${reducedMotionSafe}
 
   @media (max-width: 430px) {
     min-width: unset;

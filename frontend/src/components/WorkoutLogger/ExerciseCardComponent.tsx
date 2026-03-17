@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import styled, { css } from 'styled-components';
 import { Dumbbell, Star, Plus, Minus, X } from 'lucide-react';
 import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
-import { CS } from './WorkoutLoggerCS';
+import { CS, withAlpha, reducedMotionSafe } from './WorkoutLoggerCS';
 
 interface ExerciseCardComponentProps {
   exercise: ExerciseEntry;
@@ -224,6 +224,8 @@ const CardContainer = styled(motion.div)`
     &::before { opacity: 1; }
   }
 
+  ${reducedMotionSafe}
+
   @media (max-width: 430px) {
     padding: 1.25rem;
     border-radius: 1rem;
@@ -349,6 +351,11 @@ const SliderInput = styled.input`
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 2px 8px rgba(80, 160, 240, 0.4);
   }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.gaming};
+    outline-offset: 4px;
+  }
 `;
 
 const SliderValue = styled.span`
@@ -362,10 +369,10 @@ const SliderValue = styled.span`
 `;
 
 const RemoveExerciseBtn = styled.button`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: ${CS.errorBg};
+  border: 1px solid ${CS.errorBorder};
   border-radius: 0.5rem;
-  color: #f87171;
+  color: ${CS.errorText};
   cursor: pointer;
   padding: 0.5rem;
   align-self: flex-start;
@@ -376,9 +383,21 @@ const RemoveExerciseBtn = styled.button`
   justify-content: center;
   transition: all 0.2s;
 
-  &:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.5);
+  &:hover:not(:disabled) {
+    background: ${withAlpha('#ef4444', 0.25)};
+    border-color: ${withAlpha('#ef4444', 0.5)};
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.error};
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px ${CS.errorBg};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;
 
