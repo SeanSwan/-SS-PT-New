@@ -63,6 +63,8 @@ export function useAIChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const convCacheTimeRef = useRef<number>(0);
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -103,7 +105,11 @@ export function useAIChat() {
   /**
    * List user's conversations
    */
-  const listConversations = useCallback(async (status = 'active') => {
+  const listConversations = useCallback(async (status = 'active', force = false) => {
+    // Skip fetch if cache is fresh (unless forced)
+    if (!force && conversations.length > 0 && Date.now() - convCacheTimeRef.current < CACHE_TTL) {
+      return conversations;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -113,6 +119,7 @@ export function useAIChat() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to list conversations');
       setConversations(data.conversations);
+      convCacheTimeRef.current = Date.now();
       return data.conversations;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to list conversations';
@@ -121,7 +128,7 @@ export function useAIChat() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [conversations]);
 
   /**
    * Load a specific conversation with full message history

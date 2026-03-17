@@ -41,6 +41,15 @@ const OrbButton = styled.button<{ $listening: boolean }>`
     opacity: 0.3;
     cursor: not-allowed;
   }
+
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 interface DictationOrbProps {
@@ -64,6 +73,7 @@ const DictationOrb: React.FC<DictationOrbProps> = ({ onTranscript, onInterimTran
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -98,6 +108,10 @@ const DictationOrb: React.FC<DictationOrbProps> = ({ onTranscript, onInterimTran
 
     return () => {
       recognition.abort();
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognitionRef.current = null;
     };
   }, [onTranscript, onInterimTranscript]);
 

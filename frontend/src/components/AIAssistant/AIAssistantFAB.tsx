@@ -61,6 +61,7 @@ const FAB = styled.button`
   align-items: center;
   justify-content: center;
   transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
   animation: ${nebulaGlow} 3s ease-in-out infinite,
              ${floatIdle} 2s ease-in-out infinite;
   padding: 0;
@@ -84,6 +85,11 @@ const FAB = styled.button`
     transform: scale(0.95);
   }
 
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 3px;
+  }
+
   /* Desktop: slightly larger, well clear of Windows taskbar */
   @media (min-width: 1024px) {
     bottom: 90px;
@@ -98,6 +104,12 @@ const FAB = styled.button`
     right: 16px;
     width: 48px;
     height: 48px;
+  }
+
+  /* Reduce animations for accessibility / low-end devices */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    will-change: auto;
   }
 `;
 
@@ -136,8 +148,17 @@ const CmdKBar = styled.button`
     background: rgba(0, 32, 96, 0.8);
   }
 
+  &:focus-visible {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+  }
+
   @media (max-width: 1023px) {
     display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 
