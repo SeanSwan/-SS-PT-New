@@ -484,17 +484,27 @@ const QuickNavRow = styled(motion.div)`
   }
 `;
 
-const CapsuleButton = styled(motion.button)<{ $gilded?: boolean }>`
+type CapsuleVariant = 'default' | 'gilded' | 'wingPurple' | 'arcticCyan' | 'royalDepth';
+
+const capsuleColors: Record<CapsuleVariant, { border: string; bg: string; color: string; hoverBorder: string; hoverBg: string; glow: string; focus: string }> = {
+  default:    { border: 'rgba(96,192,240,0.2)',  bg: 'rgba(0,32,96,0.5)',    color: '#E0ECF4', hoverBorder: 'rgba(139,92,246,0.5)',  hoverBg: 'rgba(0,32,96,0.7)',    glow: 'rgba(139,92,246,0.2)',  focus: '#8B5CF6' },
+  gilded:     { border: 'rgba(198,168,75,0.35)', bg: 'rgba(198,168,75,0.1)', color: '#C6A84B', hoverBorder: 'rgba(198,168,75,0.6)',  hoverBg: 'rgba(198,168,75,0.18)', glow: 'rgba(198,168,75,0.3)',  focus: '#C6A84B' },
+  wingPurple: { border: 'rgba(139,92,246,0.35)', bg: 'rgba(139,92,246,0.12)', color: '#8B5CF6', hoverBorder: 'rgba(139,92,246,0.6)', hoverBg: 'rgba(139,92,246,0.22)', glow: 'rgba(139,92,246,0.3)', focus: '#8B5CF6' },
+  arcticCyan: { border: 'rgba(80,160,240,0.35)', bg: 'rgba(80,160,240,0.12)', color: '#50A0F0', hoverBorder: 'rgba(80,160,240,0.6)', hoverBg: 'rgba(80,160,240,0.22)', glow: 'rgba(80,160,240,0.3)', focus: '#50A0F0' },
+  royalDepth: { border: 'rgba(0,48,128,0.5)',    bg: 'rgba(0,48,128,0.25)',  color: '#60C0F0', hoverBorder: 'rgba(0,48,128,0.8)',   hoverBg: 'rgba(0,48,128,0.4)',   glow: 'rgba(96,192,240,0.2)',  focus: '#60C0F0' },
+};
+
+const CapsuleButton = styled(motion.button)<{ $variant?: CapsuleVariant }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1px solid ${p => p.$gilded ? 'rgba(198, 168, 75, 0.35)' : 'rgba(96, 192, 240, 0.2)'};
-  background: ${p => p.$gilded ? 'rgba(198, 168, 75, 0.1)' : 'rgba(0, 32, 96, 0.5)'};
+  border: 1px solid ${p => capsuleColors[p.$variant || 'default'].border};
+  background: ${p => capsuleColors[p.$variant || 'default'].bg};
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: ${p => p.$gilded ? '#C6A84B' : '#E0ECF4'};
+  color: ${p => capsuleColors[p.$variant || 'default'].color};
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
@@ -507,16 +517,16 @@ const CapsuleButton = styled(motion.button)<{ $gilded?: boolean }>`
   svg { flex-shrink: 0; opacity: 0.8; }
 
   &:hover {
-    border-color: ${p => p.$gilded ? 'rgba(198, 168, 75, 0.6)' : 'rgba(139, 92, 246, 0.5)'};
-    background: ${p => p.$gilded ? 'rgba(198, 168, 75, 0.18)' : 'rgba(0, 32, 96, 0.7)'};
-    box-shadow: 0 0 16px ${p => p.$gilded ? 'rgba(198, 168, 75, 0.3)' : 'rgba(139, 92, 246, 0.2)'};
+    border-color: ${p => capsuleColors[p.$variant || 'default'].hoverBorder};
+    background: ${p => capsuleColors[p.$variant || 'default'].hoverBg};
+    box-shadow: 0 0 16px ${p => capsuleColors[p.$variant || 'default'].glow};
     transform: translateY(-1px);
   }
 
   &:active { transform: scale(0.97); }
 
   &:focus-visible {
-    outline: 2px solid ${p => p.$gilded ? '#C6A84B' : '#8B5CF6'};
+    outline: 2px solid ${p => capsuleColors[p.$variant || 'default'].focus};
     outline-offset: 2px;
   }
 
@@ -1434,6 +1444,7 @@ const HomePageV4: React.FC = () => {
             {/* Quick-Nav Capsule Buttons */}
             <QuickNavRow variants={reveal}>
               <CapsuleButton
+                $variant="wingPurple"
                 onClick={() => navigate('/trainer-dashboard')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
@@ -1442,6 +1453,7 @@ const HomePageV4: React.FC = () => {
                 Trainer Dashboard
               </CapsuleButton>
               <CapsuleButton
+                $variant="arcticCyan"
                 onClick={() => navigate('/client-dashboard')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
@@ -1450,7 +1462,7 @@ const HomePageV4: React.FC = () => {
                 Client Dashboard
               </CapsuleButton>
               <CapsuleButton
-                $gilded
+                $variant="gilded"
                 onClick={() => navigate('/gallery')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
@@ -1467,12 +1479,13 @@ const HomePageV4: React.FC = () => {
                 Waiver
               </CapsuleButton>
               <CapsuleButton
+                $variant="royalDepth"
                 onClick={() => navigate('/user-dashboard')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >
                 <Share2 size={14} />
-                Social Media
+                SwanStudios Social
               </CapsuleButton>
             </QuickNavRow>
           </HeroContent>
