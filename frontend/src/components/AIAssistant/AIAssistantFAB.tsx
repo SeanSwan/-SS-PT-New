@@ -17,7 +17,7 @@
  *   <AIAssistantFAB userRole="client" />
  *   <AIAssistantFAB userRole="trainer" defaultContext="workout_generation" />
  */
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Command } from 'lucide-react';
 import type { AIContext } from '../../hooks/useAIChat';
@@ -191,6 +191,13 @@ export interface AIAssistantFABProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+// Detect low-end devices for animation reduction
+function isLowEndDevice(): boolean {
+  const cores = navigator.hardwareConcurrency ?? 4;
+  const mem = (navigator as any).deviceMemory ?? 4;
+  return cores < 4 || mem < 4;
+}
+
 const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
   userRole,
   defaultContext = 'general',
@@ -198,6 +205,7 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
   onOpenChange,
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
 
   const setOpen = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
@@ -228,7 +236,7 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
       {!open && (
         <>
           {/* Desktop: Cmd+K trigger bar with Swan logo */}
-          <CmdKBar onClick={() => setOpen(true)} aria-label="Open AI Assistant (Ctrl+K)">
+          <CmdKBar onClick={() => setOpen(true)} aria-label="Open AI Assistant (Ctrl+K)" style={lowEnd ? { animation: 'none' } : undefined}>
             <img src="/Logo.png" alt="" aria-hidden="true" />
             <span>AI Assistant...</span>
             <KbdStyle>
@@ -238,7 +246,7 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
 
           {/* Mobile/Tablet: Swan logo FAB — positioned above Windows taskbar */}
           <MobileFABWrapper>
-            <FAB onClick={() => setOpen(true)} aria-label="Open AI Assistant" title="SwanStudios AI Assistant">
+            <FAB onClick={() => setOpen(true)} aria-label="Open AI Assistant" title="SwanStudios AI Assistant" style={lowEnd ? { animation: 'none', backdropFilter: 'none' } : undefined}>
               <img src="/Logo.png" alt="AI Assistant" />
             </FAB>
           </MobileFABWrapper>

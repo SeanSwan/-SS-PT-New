@@ -13,13 +13,29 @@
  *   DELETE /api/ai-chat/conversations/:id       - Soft-delete conversation
  */
 import express from 'express';
+import multer from 'multer';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
+import { transcribeAudio, isAudioFile } from '../services/voiceTranscriptionService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { processAIDataUpdates } from '../services/aiDataWriteService.mjs';
+
+// Multer config for audio uploads (memory storage, 25MB max)
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/flac', 'audio/m4a', 'audio/x-m4a'];
+    if (allowed.includes(file.mimetype) || file.originalname.match(/\.(mp3|m4a|wav|webm|ogg|flac)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported audio format. Accepted: mp3, m4a, wav, webm, ogg, flac'));
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -373,6 +389,42 @@ router.delete('/conversations/:id', async (req, res) => {
   } catch (err) {
     logger.error('[AIChatRoutes] Delete conversation error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to delete conversation' });
+  }
+});
+
+/**
+ * POST /api/ai-chat/transcribe
+ * Transcribe an uploaded audio file using OpenAI Whisper.
+ * Rate limited to 10 requests per hour per user.
+ */
+router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No audio file provided' });
+    }
+
+    logger.info('[AI Chat] Transcription request', {
+      userId: req.user?.id,
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
+
+    const transcript = await transcribeAudio(req.file.buffer, req.file.originalname);
+
+    return res.json({
+      success: true,
+      text: transcript,
+      metadata: {
+        filename: req.file.originalname,
+        size: req.file.size,
+        duration: null, // Whisper doesn't return duration in text mode
+      },
+    });
+  } catch (err) {
+    logger.error('[AI Chat] Transcription failed', { error: err.message, userId: req.user?.id });
+    const status = err.message?.includes('not configured') ? 503 : 500;
+    return res.status(status).json({ success: false, error: err.message || 'Transcription failed' });
   }
 });
 

@@ -8,7 +8,7 @@
  * Usage:
  *   <AIAssistantDrawer open={showAI} onClose={() => setShowAI(false)} userRole="client" />
  */
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -21,7 +21,9 @@ import { useAIChat, type AIContext, type ResponseStyle } from '../../hooks/useAI
 import DictationOrb from './DictationOrb';
 import ClientPicker, { type ClientInfo } from './ClientPicker';
 import QuickActions from './QuickActions';
+const VoiceUpload = React.lazy(() => import('./VoiceUpload'));
 import { parseAIWorkoutPlan, dispatchApplyToLogger } from '../../utils/parseAIWorkoutPlan';
+import { parseAIActions, stripActionBlocks, ACTION_META, type AIAction } from '../../utils/parseAIActions';
 
 // ── Crystalline Swan Theme Tokens ──
 const CS = {
@@ -539,6 +541,58 @@ const CONTEXTS: Record<AIContext, ContextConfig> = {
   data_management: { label: 'Data Manager', icon: Database, description: 'Review, analyze, and manage platform data', roles: ['admin'] },
 };
 
+// ── Action Confirmation Card ──
+const ActionCard = styled.div<{ $color: string }>`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  border-radius: 12px;
+  border: 1px solid ${({ $color }) => $color}33;
+  background: ${({ $color }) => $color}0D;
+  align-self: flex-start;
+  max-width: 88%;
+
+  @media (min-width: 480px) {
+    max-width: 85%;
+  }
+`;
+
+const ActionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: ${CS.textPrimary};
+`;
+
+const ActionConfirmBtn = styled.button<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid ${({ $color }) => $color}66;
+  background: ${({ $color }) => $color}1A;
+  color: ${({ $color }) => $color};
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+
+  &:hover {
+    background: ${({ $color }) => $color}33;
+    box-shadow: 0 0 12px ${({ $color }) => $color}26;
+  }
+
+  &:active { transform: scale(0.97); }
+  &:focus-visible { outline: 2px solid ${({ $color }) => $color}; outline-offset: 2px; }
+`;
+
 // ── Memoized Chat Message (prevents re-parsing on every render) ──
 interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -551,10 +605,66 @@ const ChatMessage = React.memo<ChatMessageProps>(({ role, content }) => {
     [role, content]
   );
 
+  const actions = useMemo(
+    () => role === 'assistant' ? parseAIActions(content) : [],
+    [role, content]
+  );
+
+  const displayContent = useMemo(
+    () => actions.length > 0 ? stripActionBlocks(content) : content,
+    [content, actions]
+  );
+
+  const handleActionConfirm = useCallback(async (action: AIAction) => {
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
+
+      if (action.type === 'CREATE_WORKOUT') {
+        // Use existing workout plan parser flow
+        if (parsedExercises && parsedExercises.length > 0) {
+          dispatchApplyToLogger(parsedExercises);
+          toast.success(`Sent ${parsedExercises.length} exercises to Workout Logger`);
+        }
+        return;
+      }
+
+      // For other action types, send to the data write endpoint
+      const typeMap: Record<string, string> = {
+        LOG_NUTRITION: 'macro_log',
+        UPDATE_MEASUREMENTS: 'body_measurement',
+        ADD_NOTE: 'client_note',
+        CREATE_PLAN: 'goal',
+      };
+
+      const updateType = typeMap[action.type];
+      if (!updateType) return;
+
+      const res = await fetch(`${API_BASE}/api/ai-chat/data-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ updateType, data: action.data }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        toast.success(`${ACTION_META[action.type].label} saved successfully`);
+      } else {
+        toast.error(result.error || 'Failed to save');
+      }
+    } catch {
+      toast.error('Failed to execute action');
+    }
+  }, [parsedExercises]);
+
   return (
     <>
-      <MessageBubble $role={role}>{content}</MessageBubble>
-      {parsedExercises && parsedExercises.length > 0 && (
+      <MessageBubble $role={role}>{displayContent}</MessageBubble>
+      {/* Legacy: workout exercise parser (works even without action blocks) */}
+      {parsedExercises && parsedExercises.length > 0 && actions.length === 0 && (
         <ApplyToLoggerBtn
           onClick={() => {
             dispatchApplyToLogger(parsedExercises);
@@ -565,6 +675,32 @@ const ChatMessage = React.memo<ChatMessageProps>(({ role, content }) => {
           Apply {parsedExercises.length} exercises to Logger
         </ApplyToLoggerBtn>
       )}
+      {/* Structured action cards */}
+      {actions.map((action, idx) => {
+        const meta = ACTION_META[action.type];
+        return (
+          <ActionCard key={idx} $color={meta.color}>
+            <ActionHeader>
+              <span style={{ fontSize: '1rem' }}>
+                {action.type === 'CREATE_WORKOUT' ? '💪' :
+                 action.type === 'LOG_NUTRITION' ? '🥗' :
+                 action.type === 'UPDATE_MEASUREMENTS' ? '📏' :
+                 action.type === 'ADD_NOTE' ? '📝' : '📋'}
+              </span>
+              {meta.label}
+            </ActionHeader>
+            <div style={{ fontSize: '0.78rem', color: CS.textSecondary, lineHeight: 1.4 }}>
+              {action.type === 'CREATE_WORKOUT' && parsedExercises
+                ? `${parsedExercises.length} exercises detected`
+                : `Ready to save`
+              }
+            </div>
+            <ActionConfirmBtn $color={meta.color} onClick={() => handleActionConfirm(action)}>
+              {meta.confirmLabel}
+            </ActionConfirmBtn>
+          </ActionCard>
+        );
+      })}
     </>
   );
 });
@@ -955,6 +1091,9 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             {/* Input */}
             <InputArea>
               <DictationOrb onTranscript={handleDictation} onInterimTranscript={handleInterim} disabled={sending} />
+              <Suspense fallback={null}>
+                <VoiceUpload onTranscript={handleDictation} disabled={sending} />
+              </Suspense>
               <ChatInput
                 ref={inputRef}
                 value={inputValue}
