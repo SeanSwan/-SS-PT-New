@@ -6,7 +6,10 @@
  */
 
 import axios, { AxiosError } from 'axios';
-import { toast } from '../../../components/ui/toast';
+// Toast function stub — shadcn toast infrastructure not fully wired
+const toast = (opts: { title: string; description: string; variant?: string; duration?: number }) => {
+  console.warn(`[MCP Toast] ${opts.title}: ${opts.description}`);
+};
 
 // Error types
 export enum McpErrorType {

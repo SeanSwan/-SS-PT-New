@@ -11,7 +11,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { checkMcpServersStatus } from '../../utils/mcp-utils';
-import useClientDashboardMcp from '../../hooks/useClientDashboardMcp';
+import useMcpIntegration from '../../hooks/useMcpIntegration';
 
 // Icons (lucide-react replacements for MUI icons)
 import {
@@ -492,9 +492,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
   ]);
 
   // Use the client dashboard MCP hook for integrated functionality
-  const { mcpStatus, logFoodIntake } = useClientDashboardMcp({
-    showToasts: false // We'll handle toast notifications ourselves
-  });
+  const { mcpStatus, logFoodIntake } = useMcpIntegration();
 
   // UI state
   const [loading, setLoading] = useState<boolean>(false);

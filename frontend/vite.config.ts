@@ -23,7 +23,8 @@ export default defineConfig({
     dedupe: ['styled-components', 'react', 'react-dom'],
     alias: {
       // Force all imports to use the same styled-components instance
-      'styled-components': 'styled-components'
+      'styled-components': 'styled-components',
+      '@': path.resolve(__dirname, './src'),
     }
   },
   build: {
