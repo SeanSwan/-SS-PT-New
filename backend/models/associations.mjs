@@ -767,8 +767,10 @@ const setupAssociations = async () => {
     // ENHANCED EXISTING ASSOCIATIONS
     // ==============================
     // Challenge -> Goals (challenges can have related goals)
-    Challenge.hasMany(Goal, { foreignKey: 'challengeId', as: 'relatedGoals', constraints: false });
-    Goal.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'relatedChallenge', constraints: false });
+    // NOTE: Disabled — challengeId column does not exist in production goals table.
+    // Re-enable after challenges feature is deployed with proper migration.
+    // Challenge.hasMany(Goal, { foreignKey: 'challengeId', as: 'relatedGoals', constraints: false });
+    // Goal.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'relatedChallenge', constraints: false });
 
     // ProgressData -> Challenges (track challenge progress)
     ProgressData.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge', constraints: false });

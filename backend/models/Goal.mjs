@@ -26,16 +26,6 @@ const Goal = db.define('Goal', {
     }
   },
 
-  challengeId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    defaultValue: null,
-    references: {
-      model: 'challenges',
-      key: 'id'
-    }
-  },
-  
   // Goal Identity
   title: {
     type: DataTypes.STRING,
