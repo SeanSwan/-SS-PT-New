@@ -656,10 +656,18 @@ class AdminClientController {
         isActive: true
       }, { transaction });
 
-      // Create client progress record
-      await ClientProgress.create({
-        userId: newClient.id
-      }, { transaction });
+      // Create client progress record (skip if table doesn't exist)
+      try {
+        const [tableCheck] = await sequelize.query(
+          `SELECT to_regclass('client_progress') AS exists`,
+          { transaction }
+        );
+        if (tableCheck?.[0]?.exists) {
+          await ClientProgress.create({ userId: newClient.id }, { transaction });
+        }
+      } catch (progressError) {
+        logger.warn(`ClientProgress record skipped for user ${newClient.id}: ${progressError.message}`);
+      }
 
       // If trainer specified, create initial sessions
       if (trainerId && availableSessions > 0) {
@@ -1311,10 +1319,18 @@ class AdminClientController {
         isActive: true
       }, { transaction });
 
-      // Create client progress record
-      await ClientProgress.create({
-        userId: newClient.id
-      }, { transaction });
+      // Create client progress record (skip if table doesn't exist)
+      try {
+        const [tableCheck] = await sequelize.query(
+          `SELECT to_regclass('client_progress') AS exists`,
+          { transaction }
+        );
+        if (tableCheck?.[0]?.exists) {
+          await ClientProgress.create({ userId: newClient.id }, { transaction });
+        }
+      } catch (progressError) {
+        logger.warn(`ClientProgress record skipped for external client ${newClient.id}: ${progressError.message}`);
+      }
 
       await transaction.commit();
 
