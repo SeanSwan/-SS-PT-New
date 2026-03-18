@@ -16,12 +16,22 @@ const Goal = db.define('Goal', {
     allowNull: false
   },
   
-  // Foreign Key
+  // Foreign Keys
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
+      key: 'id'
+    }
+  },
+
+  challengeId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    defaultValue: null,
+    references: {
+      model: 'challenges',
       key: 'id'
     }
   },
