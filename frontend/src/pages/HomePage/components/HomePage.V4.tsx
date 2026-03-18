@@ -1449,7 +1449,7 @@ const HomePageV4: React.FC = () => {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >
-                <Share2 size={14} />
+                <img src="/Logo.png" alt="" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
                 SwanStudios Social
               </CapsuleButton>
               <CapsuleButton
