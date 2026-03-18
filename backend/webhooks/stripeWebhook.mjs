@@ -34,10 +34,12 @@ if (isStripeEnabled()) {
 // --- End Conditional Initialization ---
 
 /**
- * POST /webhook
- * Handles Stripe webhook events
+ * Stripe webhook handler
+ * Mounted at:
+ *   POST /webhook   (legacy: /webhooks/stripe/webhook)
+ *   POST /          (alias:  /api/webhook/stripe — matches Stripe dashboard config)
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+const stripeWebhookHandler = async (req, res) => {
   // Verify webhook signature
   let event;
   try {
@@ -232,7 +234,14 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     logger.error(`Error processing webhook: ${err.message}`);
     res.status(500).send(`Webhook processing error: ${err.message}`);
   }
-});
+};
+
+const rawBodyMiddleware = express.raw({ type: 'application/json' });
+
+// Legacy path: /webhooks/stripe/webhook
+router.post('/webhook', rawBodyMiddleware, stripeWebhookHandler);
+// Stripe dashboard path: /api/webhook/stripe (mounted at /api/webhook/stripe, handler at '/')
+router.post('/', rawBodyMiddleware, stripeWebhookHandler);
 
 /**
  * Process actions needed after an order is completed

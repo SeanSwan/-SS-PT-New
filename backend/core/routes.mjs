@@ -519,6 +519,8 @@ export const setupRoutes = async (app) => {
 
   // ===================== WEBHOOKS =====================
   app.use('/webhooks/stripe', stripeWebhookRouter);
+  // Alias: Stripe dashboard is configured to POST /api/webhook/stripe
+  app.use('/api/webhook/stripe', stripeWebhookRouter);
 
   // ===================== DEVELOPMENT ROUTES =====================
   if (!isProduction) {
