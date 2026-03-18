@@ -135,7 +135,13 @@ function summarizeFullHistory(sessions) {
 export async function buildMasterPromptFromUserData(targetUser) {
   if (!targetUser) return null;
 
-  const models = getAllModels();
+  let models;
+  try {
+    models = getAllModels();
+  } catch (err) {
+    logger.warn('getAllModels() failed in masterPromptBuilder', { error: err.message });
+    models = {};
+  }
   const {
     WaiverRecord,
     MovementAnalysis,
@@ -153,76 +159,79 @@ export async function buildMasterPromptFromUserData(targetUser) {
 
   const userId = targetUser.id;
 
-  // Gather all data sources in parallel
-  const [
-    waiver,
-    movementAnalysis,
-    equipmentProfiles,
-    recentSessions,
-    baseline,
-    questionnaire,
-    painEntries,
-    bodyMeasurements,
-    trainerNotes,
-    goals,
-  ] = await Promise.all([
-    WaiverRecord?.findOne({
-      where: { userId, status: 'linked' },
-      order: [['signedAt', 'DESC']],
-    }).catch(() => null) ?? null,
+  // Gather all data sources in parallel — each query wrapped safely
+  let waiver = null, movementAnalysis = null, equipmentProfiles = [];
+  let recentSessions = [], baseline = null, questionnaire = null;
+  let painEntries = [], bodyMeasurements = [], trainerNotes = [], goals = [];
 
-    MovementAnalysis?.findOne({
-      where: { userId, status: ['completed', 'linked'] },
-      order: [['assessmentDate', 'DESC']],
-    }).catch(() => null) ?? null,
+  try {
+    const results = await Promise.all([
+      WaiverRecord?.findOne({
+        where: { userId, status: 'linked' },
+        order: [['signedAt', 'DESC']],
+      }).catch(() => null) ?? Promise.resolve(null),
 
-    EquipmentProfile?.findAll({
-      where: { trainerId: userId, isActive: true },
-      include: EquipmentItem ? [{ model: EquipmentItem, as: 'items' }] : [],
-      limit: 10,
-    }).catch(() => []) ?? [],
+      MovementAnalysis?.findOne({
+        where: { userId, status: ['completed', 'linked'] },
+        order: [['assessmentDate', 'DESC']],
+      }).catch(() => null) ?? Promise.resolve(null),
 
-    // Fetch ALL workout sessions — no limit, AI needs full history for best plans
-    WorkoutSession?.findAll({
-      where: { userId },
-      order: [['date', 'DESC']],
-      include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
-    }).catch(() => []) ?? [],
+      EquipmentProfile?.findAll({
+        where: { trainerId: userId, isActive: true },
+        include: EquipmentItem ? [{ model: EquipmentItem, as: 'items' }] : [],
+        limit: 10,
+      }).catch(() => []) ?? Promise.resolve([]),
 
-    ClientBaselineMeasurements?.findOne({
-      where: { userId },
-      order: [['takenAt', 'DESC']],
-    }).catch(() => null) ?? null,
+      // Fetch ALL workout sessions — no limit, AI needs full history for best plans
+      WorkoutSession?.findAll({
+        where: { userId },
+        order: [['date', 'DESC']],
+        include: WorkoutLog ? [{ model: WorkoutLog, as: 'logs' }] : [],
+      }).catch(() => []) ?? Promise.resolve([]),
 
-    ClientOnboardingQuestionnaire?.findOne({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
-    }).catch(() => null) ?? null,
+      ClientBaselineMeasurements?.findOne({
+        where: { userId },
+        order: [['takenAt', 'DESC']],
+      }).catch(() => null) ?? Promise.resolve(null),
 
-    // ALL pain entries sorted by severity — no limits, AI needs full picture
-    ClientPainEntry?.findAll({
-      where: { userId },
-      order: [['painLevel', 'DESC']],
-    }).catch(() => []) ?? [],
+      ClientOnboardingQuestionnaire?.findOne({
+        where: { userId },
+        order: [['createdAt', 'DESC']],
+      }).catch(() => null) ?? Promise.resolve(null),
 
-    // ALL body measurements for complete trend tracking
-    BodyMeasurement?.findAll({
-      where: { userId },
-      order: [['measuredAt', 'DESC']],
-    }).catch(() => []) ?? [],
+      // ALL pain entries sorted by severity — no limits, AI needs full picture
+      ClientPainEntry?.findAll({
+        where: { userId },
+        order: [['painLevel', 'DESC']],
+      }).catch(() => []) ?? Promise.resolve([]),
 
-    // ALL high/critical severity trainer notes
-    ClientNote?.findAll({
-      where: { userId, severity: ['critical', 'high'] },
-      order: [['createdAt', 'DESC']],
-    }).catch(() => []) ?? [],
+      // ALL body measurements for complete trend tracking
+      BodyMeasurement?.findAll({
+        where: { userId },
+        order: [['measuredAt', 'DESC']],
+      }).catch(() => []) ?? Promise.resolve([]),
 
-    // ALL active goals with progress
-    Goal?.findAll({
-      where: { userId, status: ['active', 'in_progress'] },
-      order: [['createdAt', 'DESC']],
-    }).catch(() => []) ?? [],
-  ]);
+      // ALL high/critical severity trainer notes
+      ClientNote?.findAll({
+        where: { userId, severity: ['critical', 'high'] },
+        order: [['createdAt', 'DESC']],
+      }).catch(() => []) ?? Promise.resolve([]),
+
+      // ALL active goals with progress
+      Goal?.findAll({
+        where: { userId, status: ['active', 'in_progress'] },
+        order: [['createdAt', 'DESC']],
+      }).catch(() => []) ?? Promise.resolve([]),
+    ]);
+
+    [waiver, movementAnalysis, equipmentProfiles, recentSessions, baseline,
+     questionnaire, painEntries, bodyMeasurements, trainerNotes, goals] = results;
+  } catch (queryErr) {
+    logger.warn('masterPromptBuilder: data queries failed, using empty defaults', {
+      userId,
+      error: queryErr.message,
+    });
+  }
 
   // Build the master prompt JSON (v4.0 schema)
   const masterPrompt = {
