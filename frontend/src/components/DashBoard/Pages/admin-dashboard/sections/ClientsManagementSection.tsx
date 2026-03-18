@@ -47,6 +47,8 @@ import ClientBodyMapModal from '../../admin-clients/components/ClientBodyMapModa
 import ClientSessionsModal from '../../admin-clients/components/ClientSessionsModal';
 import ClientWorkoutsModal from '../../admin-clients/components/ClientWorkoutsModal';
 import ClientPostsModal from '../../admin-clients/components/ClientPostsModal';
+import CreateClientModal from '../../admin-clients/CreateClientModal';
+import adminClientService from '../../../../../services/adminClientService';
 import GlowButton from '../../../../ui/buttons/GlowButton';
 
 // === STYLED COMPONENTS ===
@@ -606,6 +608,7 @@ const ClientsManagementSection: React.FC = () => {
   const [showSessions, setShowSessions] = useState(false);
   const [showWorkouts, setShowWorkouts] = useState(false);
   const [showPosts, setShowPosts] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [actionClient, setActionClient] = useState<{ id: number; name: string } | null>(null);
 
   // Helper function to check if data is loading
@@ -961,6 +964,25 @@ const ClientsManagementSection: React.FC = () => {
     setActiveActionMenu(null);
   };
 
+  // Handle creating a new client via the Create Client modal
+  const handleCreateClient = useCallback(async (data: any) => {
+    try {
+      const isExternal = data.clientSource && data.clientSource !== 'swanstudios';
+      const response = isExternal
+        ? await adminClientService.createExternalClient(data)
+        : await adminClientService.createClient(data);
+      if (response.success) {
+        setShowCreateModal(false);
+        fetchClients();
+      } else {
+        throw new Error(response.message || 'Failed to create client');
+      }
+    } catch (error: any) {
+      console.error('Error creating client:', error);
+      throw error;
+    }
+  }, [fetchClients]);
+
   // Phase 1C: Open onboarding panel for a client
   const openOnboarding = (client: Client) => {
     setActionClient({ id: Number(client.id), name: client.name });
@@ -1159,6 +1181,7 @@ const ClientsManagementSection: React.FC = () => {
             variant="cosmic"
             size="medium"
             leftIcon={<UserPlus size={16} />}
+            onClick={() => setShowCreateModal(true)}
           >
             Add Client
           </GlowButton>
@@ -1620,6 +1643,13 @@ const ClientsManagementSection: React.FC = () => {
           }}
         />
       )}
+
+      {/* Create Client Modal */}
+      <CreateClientModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateClient}
+      />
     </ManagementContainer>
   );
 };
