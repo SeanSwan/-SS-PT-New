@@ -40,10 +40,10 @@ import {
 import { useAuth } from '../../../../../context/AuthContext';
 import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
 import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModal';
-import WorkoutCopilotPanel from '../../admin-clients/components/WorkoutCopilotPanel';
-import ClientMeasurementPanel from '../../admin-clients/components/ClientMeasurementPanel';
-import ClientWeighInPanel from '../../admin-clients/components/ClientWeighInPanel';
-import ClientBodyMapModal from '../../admin-clients/components/ClientBodyMapModal';
+const WorkoutCopilotPanel = React.lazy(() => import('../../admin-clients/components/WorkoutCopilotPanel'));
+const ClientMeasurementPanel = React.lazy(() => import('../../admin-clients/components/ClientMeasurementPanel'));
+const ClientWeighInPanel = React.lazy(() => import('../../admin-clients/components/ClientWeighInPanel'));
+const ClientBodyMapModal = React.lazy(() => import('../../admin-clients/components/ClientBodyMapModal'));
 import ClientSessionsModal from '../../admin-clients/components/ClientSessionsModal';
 import ClientWorkoutsModal from '../../admin-clients/components/ClientWorkoutsModal';
 import ClientPostsModal from '../../admin-clients/components/ClientPostsModal';
@@ -781,9 +781,14 @@ const ClientsManagementSection: React.FC = () => {
 
   // Refresh all data
   const refreshAllData = useCallback(async () => {
-    console.log('🔄 Refreshing all client data...');
-    await fetchClients();
-    console.log('✅ All client data refreshed');
+    try {
+      console.log('🔄 Refreshing all client data...');
+      await fetchClients();
+      console.log('✅ All client data refreshed');
+    } catch (error) {
+      console.error('❌ Failed to refresh:', error);
+      setErrors(prev => ({ ...prev, clients: 'Failed to refresh data' }));
+    }
   }, [fetchClients]);
 
   // Load clients on component mount
@@ -1026,7 +1031,8 @@ const ClientsManagementSection: React.FC = () => {
   };
 
   const getUserInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (!name || typeof name !== 'string') return '?';
+    return name.split(' ').filter(n => n.length > 0).map(n => n[0]).join('').toUpperCase() || '?';
   };
 
   const formatDate = (dateString: string) => {
@@ -1256,128 +1262,6 @@ const ClientsManagementSection: React.FC = () => {
                   </ActionButton>
 
                 </ActionMenu>
-                {activeActionMenu === client.id && ReactDOM.createPortal(
-                  <ActionDropdown
-                    data-action-menu
-                    $top={menuPos.top}
-                    $left={menuPos.left}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.12 }}
-                  >
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => handleViewClient(client.id)}
-                    >
-                      <Eye size={14} />
-                      View Details
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => handleEditClient(client.id)}
-                    >
-                      <Edit3 size={14} />
-                      Edit Client
-                    </ActionItem>
-                    <MenuDivider />
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => handleViewSessions(client)}
-                    >
-                      <Calendar size={14} />
-                      View Sessions
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => handleViewRevenue(client)}
-                    >
-                      <DollarSign size={14} />
-                      View Revenue
-                    </ActionItem>
-                    <MenuDivider />
-                    <ActionItem
-                      data-testid={`menu-set-client-photo-${client.id}`}
-                      whileHover={{ x: 4 }}
-                      onClick={() => handleSetClientPhoto(client)}
-                    >
-                      <ImagePlus size={14} />
-                      Set Profile Photo
-                    </ActionItem>
-                    <MenuDivider />
-                    <ActionItem
-                      data-testid="menu-start-onboarding"
-                      whileHover={{ x: 4 }}
-                      onClick={() => openOnboarding(client)}
-                    >
-                      <ClipboardList size={14} />
-                      Start Onboarding
-                    </ActionItem>
-                    <ActionItem
-                      data-testid="menu-log-workout"
-                      whileHover={{ x: 4 }}
-                      onClick={() => openWorkoutLogger(client)}
-                    >
-                      <Dumbbell size={14} />
-                      Log Workout
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => openMeasurements(client)}
-                    >
-                      <Ruler size={14} />
-                      Measurements
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => openBodyMap(client)}
-                    >
-                      <HeartPulse size={14} />
-                      Body Map
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => {
-                        setActiveActionMenu(null);
-                        navigate(`/dashboard/people/movement-screen/new/${client.id}`);
-                      }}
-                    >
-                      <Activity size={14} />
-                      Movement Screen
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => openWeighIn(client)}
-                    >
-                      <Scale size={14} />
-                      Weigh-In
-                    </ActionItem>
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => openCopilot(client)}
-                    >
-                      <Sparkles size={14} />
-                      Workout Intelligence
-                    </ActionItem>
-                    <MenuDivider />
-                    <ActionItem
-                      whileHover={{ x: 4 }}
-                      onClick={() => handlePromoteToTrainer(client.id)}
-                    >
-                      <UserCheck size={14} />
-                      Promote to Trainer
-                    </ActionItem>
-                    <ActionItem
-                      $danger
-                      whileHover={{ x: 4 }}
-                      onClick={() => handleDeactivateClient(client.id)}
-                    >
-                      <UserX size={16} />
-                      Deactivate
-                    </ActionItem>
-                  </ActionDropdown>,
-                  document.body
-                )}
               </ClientHeader>
 
               {/* Assigned Trainer */}
@@ -1511,7 +1395,72 @@ const ClientsManagementSection: React.FC = () => {
           ))}
         </AnimatePresence>
       </ClientsGrid>
-      
+
+      {/* Single action dropdown portal — outside map loop to prevent memory leaks */}
+      {activeActionMenu && (() => {
+        const menuClient = filteredClients.find(c => c.id === activeActionMenu);
+        if (!menuClient) return null;
+        return ReactDOM.createPortal(
+          <ActionDropdown
+            data-action-menu
+            $top={menuPos.top}
+            $left={menuPos.left}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.12 }}
+          >
+            <ActionItem whileHover={{ x: 4 }} onClick={() => handleViewClient(menuClient.id)}>
+              <Eye size={14} /> View Details
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => handleEditClient(menuClient.id)}>
+              <Edit3 size={14} /> Edit Client
+            </ActionItem>
+            <MenuDivider />
+            <ActionItem whileHover={{ x: 4 }} onClick={() => handleViewSessions(menuClient)}>
+              <Calendar size={14} /> View Sessions
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => handleViewRevenue(menuClient)}>
+              <DollarSign size={14} /> View Revenue
+            </ActionItem>
+            <MenuDivider />
+            <ActionItem data-testid={`menu-set-client-photo-${menuClient.id}`} whileHover={{ x: 4 }} onClick={() => handleSetClientPhoto(menuClient)}>
+              <ImagePlus size={14} /> Set Profile Photo
+            </ActionItem>
+            <MenuDivider />
+            <ActionItem data-testid="menu-start-onboarding" whileHover={{ x: 4 }} onClick={() => openOnboarding(menuClient)}>
+              <ClipboardList size={14} /> Start Onboarding
+            </ActionItem>
+            <ActionItem data-testid="menu-log-workout" whileHover={{ x: 4 }} onClick={() => openWorkoutLogger(menuClient)}>
+              <Dumbbell size={14} /> Log Workout
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => openMeasurements(menuClient)}>
+              <Ruler size={14} /> Measurements
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => openBodyMap(menuClient)}>
+              <HeartPulse size={14} /> Body Map
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => { setActiveActionMenu(null); navigate(`/dashboard/people/movement-screen/new/${menuClient.id}`); }}>
+              <Activity size={14} /> Movement Screen
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => openWeighIn(menuClient)}>
+              <Scale size={14} /> Weigh-In
+            </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => openCopilot(menuClient)}>
+              <Sparkles size={14} /> Workout Intelligence
+            </ActionItem>
+            <MenuDivider />
+            <ActionItem whileHover={{ x: 4 }} onClick={() => handlePromoteToTrainer(menuClient.id)}>
+              <UserCheck size={14} /> Promote to Trainer
+            </ActionItem>
+            <ActionItem $danger whileHover={{ x: 4 }} onClick={() => handleDeactivateClient(menuClient.id)}>
+              <UserX size={16} /> Deactivate
+            </ActionItem>
+          </ActionDropdown>,
+          document.body
+        );
+      })()}
+
       {filteredClients.length === 0 && !isLoadingData('clients') && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -1555,57 +1504,60 @@ const ClientsManagementSection: React.FC = () => {
         />
       )}
 
-      {/* Phase 5B: AI Workout Copilot */}
-      {actionClient && (
-        <WorkoutCopilotPanel
-          open={showCopilot}
-          onClose={() => {
-            setShowCopilot(false);
-            setActionClient(null);
-          }}
-          clientId={actionClient.id}
-          clientName={actionClient.name}
-          onSuccess={() => fetchClients()}
-        />
-      )}
+      {/* Lazy-loaded heavy components wrapped in Suspense */}
+      <React.Suspense fallback={null}>
+        {/* Phase 5B: AI Workout Copilot */}
+        {actionClient && (
+          <WorkoutCopilotPanel
+            open={showCopilot}
+            onClose={() => {
+              setShowCopilot(false);
+              setActionClient(null);
+            }}
+            clientId={actionClient.id}
+            clientName={actionClient.name}
+            onSuccess={() => fetchClients()}
+          />
+        )}
 
-      {/* Phase 11C: Client Measurement Panel */}
-      {showMeasurements && actionClient && (
-        <ClientMeasurementPanel
-          clientId={actionClient.id}
-          clientName={actionClient.name}
-          onClose={() => {
-            setShowMeasurements(false);
-            setActionClient(null);
-          }}
-          onUpdate={() => fetchClients()}
-        />
-      )}
+        {/* Phase 11C: Client Measurement Panel */}
+        {showMeasurements && actionClient && (
+          <ClientMeasurementPanel
+            clientId={actionClient.id}
+            clientName={actionClient.name}
+            onClose={() => {
+              setShowMeasurements(false);
+              setActionClient(null);
+            }}
+            onUpdate={() => fetchClients()}
+          />
+        )}
 
-      {/* Phase 11C: Client Weigh-In Panel */}
-      {showWeighIn && actionClient && (
-        <ClientWeighInPanel
-          clientId={actionClient.id}
-          clientName={actionClient.name}
-          onClose={() => {
-            setShowWeighIn(false);
-            setActionClient(null);
-          }}
-          onUpdate={() => fetchClients()}
-        />
-      )}
+        {/* Phase 11C: Client Weigh-In Panel */}
+        {showWeighIn && actionClient && (
+          <ClientWeighInPanel
+            clientId={actionClient.id}
+            clientName={actionClient.name}
+            onClose={() => {
+              setShowWeighIn(false);
+              setActionClient(null);
+            }}
+            onUpdate={() => fetchClients()}
+          />
+        )}
 
-      {/* Body Map Modal */}
-      {showBodyMap && actionClient && (
-        <ClientBodyMapModal
-          clientId={actionClient.id}
-          clientName={actionClient.name}
-          onClose={() => {
-            setShowBodyMap(false);
-            setActionClient(null);
-          }}
-        />
-      )}
+        {/* Body Map Modal */}
+        {showBodyMap && actionClient && (
+          <ClientBodyMapModal
+            clientId={actionClient.id}
+            clientName={actionClient.name}
+            onClose={() => {
+              setShowBodyMap(false);
+              setActionClient(null);
+            }}
+          />
+        )}
+      </React.Suspense>
 
       {/* Clickable Stats Modals */}
       {showSessions && actionClient && (
