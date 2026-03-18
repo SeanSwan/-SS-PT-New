@@ -1444,13 +1444,13 @@ const HomePageV4: React.FC = () => {
             {/* Quick-Nav Capsule Buttons */}
             <QuickNavRow variants={reveal}>
               <CapsuleButton
-                $variant="wingPurple"
-                onClick={() => navigate('/trainer-dashboard')}
+                $variant="royalDepth"
+                onClick={() => navigate('/user-dashboard')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >
-                <LayoutDashboard size={14} />
-                Trainer Dashboard
+                <Share2 size={14} />
+                SwanStudios Social
               </CapsuleButton>
               <CapsuleButton
                 $variant="arcticCyan"
@@ -1479,13 +1479,13 @@ const HomePageV4: React.FC = () => {
                 Waiver
               </CapsuleButton>
               <CapsuleButton
-                $variant="royalDepth"
-                onClick={() => navigate('/user-dashboard')}
+                $variant="wingPurple"
+                onClick={() => navigate('/trainer-dashboard')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >
-                <Share2 size={14} />
-                SwanStudios Social
+                <LayoutDashboard size={14} />
+                Trainer Dashboard
               </CapsuleButton>
             </QuickNavRow>
           </HeroContent>
