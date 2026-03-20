@@ -157,6 +157,10 @@ import mcpRoutes from '../routes/mcpRoutes.mjs';
 import aiMonitoringRoutes from '../routes/aiMonitoringRoutes.mjs';
 import aiRoutes from '../routes/aiRoutes.mjs';
 import aiChatRoutes from '../routes/aiChatRoutes.mjs';
+import aiCommandRoutes from '../routes/aiCommandRoutes.mjs';
+import aiDebateRoutes from '../routes/aiDebateRoutes.mjs';
+import aiBffRoutes from '../routes/aiBffRoutes.mjs';
+import aiVillageRoutes from '../routes/aiVillageRoutes.mjs';
 import dailyMacroRoutes from '../routes/dailyMacroRoutes.mjs';
 import freeApiRoutes from '../routes/freeApiRoutes.mjs';
 import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
@@ -489,6 +493,10 @@ export const setupRoutes = async (app) => {
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);
   app.use('/api/ai-chat', aiChatRoutes);
+  app.use('/api/ai-command', aiCommandRoutes);
+  app.use('/api/ai/debate', aiDebateRoutes);
+  app.use('/api/admin/ai-bff', aiBffRoutes);
+  app.use('/api/ai-village', aiVillageRoutes);
   app.use('/api/macros', dailyMacroRoutes);
   app.use('/api/free', freeApiRoutes);
   app.use('/api/mcp', mcpRoutes);

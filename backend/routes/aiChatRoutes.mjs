@@ -18,7 +18,7 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
-import { transcribeAudio, isAudioFile } from '../services/voiceTranscriptionService.mjs';
+import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { processAIDataUpdates } from '../services/aiDataWriteService.mjs';
@@ -394,8 +394,8 @@ router.delete('/conversations/:id', async (req, res) => {
 
 /**
  * POST /api/ai-chat/transcribe
- * Transcribe an uploaded audio file using OpenAI Whisper.
- * Rate limited to 10 requests per hour per user.
+ * Transcribe an uploaded audio file using Gemini Flash multimodal.
+ * Rate limited to 10 transcriptions per hour per user.
  */
 router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (req, res) => {
   try {
@@ -403,11 +403,22 @@ router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (re
       return res.status(400).json({ success: false, error: 'No audio file provided' });
     }
 
+    // Atomic check-and-record: prevents race condition between check and record
+    const { allowed, remaining } = checkAndRecordTranscription(req.user.id);
+    if (!allowed) {
+      return res.status(429).json({
+        success: false,
+        error: 'Transcription rate limit reached (10/hour). Please try again later.',
+        remaining: 0,
+      });
+    }
+
     logger.info('[AI Chat] Transcription request', {
       userId: req.user?.id,
       filename: req.file.originalname,
       size: req.file.size,
       mimetype: req.file.mimetype,
+      remaining,
     });
 
     const transcript = await transcribeAudio(req.file.buffer, req.file.originalname);
@@ -415,10 +426,10 @@ router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (re
     return res.json({
       success: true,
       text: transcript,
+      remaining,
       metadata: {
         filename: req.file.originalname,
         size: req.file.size,
-        duration: null, // Whisper doesn't return duration in text mode
       },
     });
   } catch (err) {

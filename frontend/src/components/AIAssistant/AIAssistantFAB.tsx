@@ -123,12 +123,12 @@ const CmdKBar = styled.button`
   align-items: center;
   gap: 10px;
   padding: 12px 20px;
-  background: rgba(0, 32, 96, 0.6);
+  background: rgba(0, 32, 96, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 14px;
-  color: rgba(224, 236, 244, 0.6);
+  color: #E0ECF4;
   cursor: pointer;
   font-size: 14px;
   font-family: inherit;
@@ -167,12 +167,13 @@ const KbdStyle = styled.kbd`
   align-items: center;
   gap: 3px;
   padding: 3px 7px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: rgba(0, 48, 128, 0.9);
+  border: 1px solid rgba(96, 192, 240, 0.5);
   border-radius: 6px;
   font-size: 12px;
   font-family: inherit;
-  color: #8B5CF6;
+  color: #FFFFFF;
+  font-weight: 600;
   line-height: 1;
 `;
 
@@ -208,23 +209,31 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
   const lowEnd = useMemo(() => isLowEndDevice(), []);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
 
-  const setOpen = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
-    const newVal = typeof val === 'function' ? val(open) : val;
-    setInternalOpen(newVal);
-    onOpenChange?.(newVal);
-  }, [open, onOpenChange]);
+  // Use ref for open state in keyboard handler to avoid listener churn
+  const openRef = React.useRef(open);
+  React.useEffect(() => { openRef.current = open; }, [open]);
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  React.useEffect(() => { onOpenChangeRef.current = onOpenChange; }, [onOpenChange]);
 
-  // Cmd+K / Ctrl+K keyboard shortcut
+  const setOpen = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+    setInternalOpen(prev => {
+      const newVal = typeof val === 'function' ? val(prev) : val;
+      onOpenChangeRef.current?.(newVal);
+      return newVal;
+    });
+  }, []);
+
+  // Cmd+K / Ctrl+K keyboard shortcut (stable — no deps that change)
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
       setOpen((prev: boolean) => !prev);
     }
     // Escape to close
-    if (e.key === 'Escape' && open) {
+    if (e.key === 'Escape' && openRef.current) {
       setOpen(false);
     }
-  }, [open, setOpen]);
+  }, [setOpen]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);

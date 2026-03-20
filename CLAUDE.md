@@ -198,6 +198,13 @@ Before every commit, mentally verify:
 5. All model FKs reference tables that exist in production
 6. Error states exist for every data fetch
 
+## Deployment — Render (Paid Professional Plan)
+- **Plan:** Render Professional ($19/month + usage) — NOT free tier
+- **Services:** SS-PT-New (web service ~$14/mo), SwanStudios PostgreSQL ($6/mo), 500GB bandwidth included
+- **Billing:** ~$55-60/month total, billed to ogpswan@yahoo.com
+- **No cold starts** — Professional plan keeps services running (do NOT assume free-tier cold start behavior)
+- **Pipeline minutes:** 500 included, overage at $5/1000 min — be mindful of excessive rebuilds
+
 ## Common Gotchas
 - `transform: translateZ(0)` creates CSS stacking contexts - add `position: relative; z-index` to parent if dropdowns are trapped
 - Vite env vars (`VITE_*`) are build-time only - not changeable at runtime without redeploy

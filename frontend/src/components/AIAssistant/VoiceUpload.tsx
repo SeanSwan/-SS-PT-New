@@ -98,6 +98,12 @@ const VoiceUpload: React.FC<VoiceUploadProps> = ({ onTranscript, disabled = fals
         body: formData,
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Request failed' }));
+        onTranscript(`[Transcription failed: ${errorData.error || res.statusText}]`);
+        return;
+      }
+
       const data = await res.json();
       if (data.success && data.text) {
         onTranscript(data.text);

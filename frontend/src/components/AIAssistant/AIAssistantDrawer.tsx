@@ -163,12 +163,12 @@ const ContextPill = styled.button<{ $active: boolean }>`
   padding: 8px 6px;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid ${({ $active }) => $active ? CS.wingPurple : CS.borderSubtle};
-  background: ${({ $active }) => $active ? CS.activePillBg : 'rgba(0, 32, 96, 0.3)'};
-  color: ${({ $active }) => $active ? CS.wingPurple : CS.textSecondary};
+  border: 1px solid ${({ $active }) => $active ? CS.wingPurple : 'rgba(224, 236, 244, 0.2)'};
+  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0, 32, 96, 0.85)'};
+  color: ${({ $active }) => $active ? CS.wingPurple : '#E0ECF4'};
   font-family: ${FONTS.ui};
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: ${({ $active }) => $active ? 600 : 500};
   letter-spacing: 0.03em;
   cursor: pointer;
   white-space: nowrap;
@@ -183,9 +183,10 @@ const ContextPill = styled.button<{ $active: boolean }>`
   /* Mobile: icon + short label stacked */
   @media (max-width: 479px) {
     border-radius: 12px;
-    padding: 8px 4px;
-    font-size: 0.65rem;
-    gap: 3px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    gap: 4px;
+    min-width: 64px;
   }
 
   /* Tablet+: horizontal pill */
@@ -801,11 +802,11 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     }
   }, [onClose]);
 
-  // Get target client ID — prefer state-based picker, fallback to sessionStorage
+  // Get target client ID — state-based picker only (no sessionStorage — AI Village security fix)
   const getTargetClientId = useCallback(() => {
     if (userRole !== 'admin' && userRole !== 'trainer') return null;
     if (selectedClient) return String(selectedClient.id);
-    try { return sessionStorage.getItem('ai_target_client_id') || null; } catch { return null; }
+    return null;
   }, [userRole, selectedClient]);
 
   const handleSend = useCallback(async () => {
