@@ -1,170 +1,184 @@
-# Gemini 3.1 Pro — Plan Review
+# Gemini 3.1 Pro — Design Consultation
 
-> **Generated:** 3/17/2026, 12:58:21 AM
-> **Mode:** plan
-> **Duration:** 37.8s
-> **Tokens:** 3762 in / 2182 out
+> **Generated:** 3/20/2026, 9:26:06 AM
+> **Mode:** ask
+> **Duration:** 35.8s
+> **Tokens:** 832 in / 1606 out
 
 ---
 
 ## Input
 
-# AI Village Consensus: Critical Fixes + Nutrition Enhancement
+CTO (Gemini), this is Claude Opus 4.6, CEO — Round 4 (FINAL).
 
-## Context
-The 11-Brain AI Village validation identified critical fixes and enhancements across the Workout System and Nutrition Tab. All 11 brains PASSED but flagged: hardcoded colors, silent API failures, a 2059-line monolithic component, race conditions, and missing nutrition features. The backend already has USDA + CalorieNinjas APIs, barcode scanning, and Sequelize transactions — we're wiring up unused infrastructure and har
+CONSENSUS ACHIEVED — with one correction.
+
+You said "the aesthetic is undeniably premium Galaxy-Swan" and used rgba(10,10,26,0.4) (Galaxy Core #0a0a1a) in your code sample. The Galaxy-Swan theme is RETIRED per CLAUDE.md. This is the THIRD time I have corrected this.
+
+For the record, the correct glass background for Crystalline Swan is:
+- rgba(0, 32, 96, 0.85) — Midnight Sapphire glass (strong, for text-bearing)
+- rgba(0, 32, 96, 0.4)
 
 ---
 
 ## Gemini 3.1 Pro Response
 
-As the Lead UI/UX Design Authority for SwanStudios, I have reviewed your implementation plan. 
+Message received loud and clear, Claude. I own the oversight on the retired Galaxy-Swan tokens. You are absolutely right—we are fully committed to the **Crystalline Swan** aesthetic. Midnight Sapphire (`rgba(0, 32, 96, X)`), Wing Purple (`#8B5CF6`), and the Sora typeface are the immutable foundation of this platform. 
 
-Your architectural logic, component decomposition, and backend wiring are exactly what we need to stabilize the platform. The 11-Brain AI Village consensus is correct on the technical debt. However, from a premium design and UX perspective, the plan currently lacks the visual polish, micro-interactions, and mobile-first rigor required for a top-tier fitness SaaS. We are not building a generic dashboard; we are building a Crystalline Swan experience.
+Thank you for keeping the guardrails strict. As your Design Co-Orchestrator, I am locking in these final rulings. 
 
-Here is my authoritative design direction. **Execute your plan, but integrate the following design specifications exactly as written.**
+Here is the exact, production-ready styled-components specification to execute your final rulings. Copy, paste, and let’s ship this.
 
----
+### 1. Crystalline Swan (CS) Token Extraction
+First, let's formalize these into our styled-components theme object so we never have this discrepancy again.
 
-### 1. Design Gaps (What You Missed)
-
-*   **Mobile-First `SetTable` Failure:** A traditional `<table>` for the Workout Logger will catastrophically break on our 320px, 375px, and 430px breakpoints. You cannot squeeze Weight, Reps, Tempo, RPE, Rest, and Form into a mobile row.
-*   **Error State Blandness:** Simply adding `aria-invalid` and a red span is "AI slop." Premium apps use haptic-visual feedback. Errors need to command attention without breaking the cosmic aesthetic.
-*   **NLP Quick Add "Spinner":** A standard loading spinner during debounced natural language processing feels cheap. We need skeleton loaders that mimic the shape of the incoming macro data.
-*   **Barcode Scanner Overlay:** If we execute the stretch goal, a raw camera feed is unacceptable. It requires a targeting reticle and a scanning animation to guide the user's eye.
-
-### 2. Enhancement Opportunities (Elevating to Premium)
-
-*   **The "Magic" NLP Input:** The Quick Add Food input shouldn't look like a standard text field. When focused, it should emit a subtle, pulsing `Cosmic Purple` to `Swan Cyan` aura, signaling to the user that the AI is "listening" and processing their natural language.
-*   **NASM Protocol Accordion:** The warmup/balance/cooldown checklist needs buttery-smooth expand/collapse mechanics. Do not use JS height calculations; use modern CSS Grid transitions (`grid-template-rows: 0fr -> 1fr`).
-*   **Macro Color Coding:** In the Food Search Panel, macros must be color-coded using our tokens to allow trainers to parse data at a glance: 
-    *   Protein: Swan Cyan (`#00FFFF`)
-    *   Carbs: Cosmic Purple (`#7851A9`)
-    *   Fats: Warning/Gold (e.g., `#FFB800` to contrast with the dark theme)
-
-### 3. Architecture Recommendations (Component Structure)
-
-*   **Strict Styled-Component Namespacing:** To keep the 7 new WorkoutLogger files clean, namespace your styled components. Export them from `WorkoutLoggerSharedStyles.ts` as `S` (e.g., `<S.GlassCard>`, `<S.Grid>`).
-*   **Animation Strategy:** Keep the bundle light. Do not introduce Framer Motion for this phase. Use pure CSS keyframes and transitions within styled-components.
-*   **Theme Token Injection:** Ensure all gradients and shadows use the `theme.colors` object. Never hardcode a hex value in the new components.
-
----
-
-### 4. Implementation Directives (Exact Specs for Claude)
-
-Follow these exact CSS values and interaction patterns during your implementation:
-
-#### A. Premium Glassmorphism (Use for Food Search Cards & Exercise Cards)
-```css
-background: rgba(10, 10, 26, 0.6); /* Galaxy Core with opacity */
-backdrop-filter: blur(16px);
--webkit-backdrop-filter: blur(16px);
-border: 1px solid rgba(0, 255, 255, 0.12); /* Subtle Swan Cyan edge */
-border-radius: 16px;
-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.2s ease;
-
-/* Hover State for interactive cards */
-&:hover {
-  transform: translateY(-2px);
-  border-color: rgba(120, 81, 169, 0.4); /* Cosmic Purple edge on hover */
-}
+```typescript
+// theme.ts
+export const csTokens = {
+  colors: {
+    midnightSapphire: {
+      strong: 'rgba(0, 32, 96, 0.85)',     // Text-bearing glass
+      decorative: 'rgba(0, 32, 96, 0.4)',  // Base pill/surface glass
+    },
+    wingPurple: {
+      base: '#8B5CF6',                     // Active borders, icons
+      glow: 'rgba(139, 92, 246, 0.5)',     // Drop-shadows, pulses
+    },
+    iceWing: {
+      active: 'rgba(255, 255, 255, 0.1)',  // Active pill background
+    },
+    frostWhite: '#FFFFFF',
+  },
+  typography: {
+    ui: "'Sora', sans-serif",
+    weights: {
+      medium: 500,
+    }
+  },
+  animation: {
+    smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  }
+};
 ```
 
-#### B. The "Magic" NLP Input Field (`QuickAddFood.tsx`)
-```css
-min-height: 48px; /* Exceeds 44px min touch target */
-background: rgba(255, 255, 255, 0.03);
-border: 1px solid rgba(255, 255, 255, 0.1);
-border-radius: 24px;
-padding: 0 20px;
-color: ${theme.colors.text.primary};
-font-size: 16px; /* Prevents iOS auto-zoom */
-transition: all 0.3s ease;
+### 2. DictationOrb Breathing Pulse (`crystallinePulse`)
+For the DictationOrb, we need a premium, organic breathing effect using Wing Purple. We will use a scale and opacity fade on a pseudo-element to avoid layout thrashing.
 
-&:focus {
-  outline: none;
-  background: rgba(10, 10, 26, 0.8);
-  border-color: ${theme.colors.brand.cyan};
-  box-shadow: 0 0 0 1px ${theme.colors.brand.cyan}, 
-              0 0 20px rgba(120, 81, 169, 0.4); /* Cyan/Purple cosmic glow */
-}
+```typescript
+import styled, { keyframes } from 'styled-components';
+
+const crystallinePulse = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(139, 92, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+`;
+
+export const DictationOrb = styled.button`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: ${csTokens.colors.midnightSapphire.strong};
+  border: 1px solid ${csTokens.colors.wingPurple.base};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  
+  /* The Breathing Pulse */
+  animation: ${crystallinePulse} 2.5s infinite ${csTokens.animation.smooth};
+  
+  /* Glassmorphism */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  svg {
+    color: ${csTokens.colors.frostWhite};
+    width: 24px;
+    height: 24px;
+  }
+`;
 ```
 
-#### C. Error State Animation (The "Denial Shake")
-Inject this keyframe into your global styles or shared styles, and apply it to inputs when `aria-invalid="true"`.
-```css
-@keyframes errorShake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-4px); }
-  40%, 80% { transform: translateX(4px); }
+### 3. Context Pills (Final Architecture)
+Implementing the exact rulings: Sora font, 500 weight, 44px touch targets, Ice Wing active bg, and the Wing Purple drop-shadow icon tint.
+
+```typescript
+interface ContextPillProps {
+  $isActive?: boolean;
 }
 
-/* Apply to invalid inputs */
-&[aria-invalid="true"] {
-  border-color: ${theme.colors.semantic.error}; /* e.g., #FF4B4B */
-  box-shadow: 0 0 8px rgba(255, 75, 75, 0.25);
-  animation: errorShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-}
+export const ContextPill = styled.button<ContextPillProps>`
+  /* Typography */
+  font-family: ${csTokens.typography.ui};
+  font-weight: ${csTokens.typography.weights.medium};
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  color: ${csTokens.colors.frostWhite};
+  
+  /* Layout & Touch Target (Ruling #4) */
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  
+  /* Glass Backgrounds (Rulings #2 & #3) */
+  background: ${({ $isActive }) => 
+    $isActive 
+      ? csTokens.colors.iceWing.active 
+      : csTokens.colors.midnightSapphire.decorative};
+      
+  /* Borders */
+  border: 1px solid ${({ $isActive }) => 
+    $isActive 
+      ? csTokens.colors.wingPurple.base 
+      : 'transparent'};
+      
+  /* Glassmorphism */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  /* Smooth Transitions */
+  transition: all 0.3s ${csTokens.animation.smooth};
+
+  /* Icon Styling (Ruling #6) */
+  svg {
+    width: 18px;
+    height: 18px;
+    color: ${({ $isActive }) => 
+      $isActive ? csTokens.colors.wingPurple.base : csTokens.colors.frostWhite};
+    
+    filter: ${({ $isActive }) => 
+      $isActive ? `drop-shadow(0 0 6px ${csTokens.colors.wingPurple.glow})` : 'none'};
+      
+    transition: all 0.3s ${csTokens.animation.smooth};
+  }
+
+  /* Hover State (Subtle lift for non-active) */
+  &:hover {
+    background: ${({ $isActive }) => 
+      $isActive 
+        ? csTokens.colors.iceWing.active 
+        : 'rgba(255, 255, 255, 0.05)'};
+  }
+`;
 ```
 
-#### D. Responsive `SetTable` Strategy (Crucial)
-In `SetTable.tsx`, implement a container query or media query at `768px`.
-*   **< 768px (Mobile):** Render each set as a stacked card. `Grid-template-columns: 1fr 1fr;` (e.g., Weight and Reps side-by-side, Tempo and RPE below).
-*   **>= 768px (Tablet/Desktop):** Render as a dense, professional data table. `Grid-template-columns: 0.5fr 1fr 1fr 1fr 1fr 1fr 2fr;` (Set #, Weight, Reps, Tempo, RPE, Rest, Form Notes).
-*   **Touch Targets:** Every input inside the set table MUST have a `min-height` of `44px` on mobile. On desktop (>1024px), you can reduce this to `36px` for data density, as trainers will be using a mouse.
+### Final Acknowledgment of Backlog
+*   **Ruling #4 (44px touch targets):** Verified and baked into the `min-height` above.
+*   **Ruling #5 (Circuit breaker UX with Gilded Fern):** Acknowledged. I will prep the Figma flows and error-state animations for the post-launch sprint backlog so they are ready when you pick up the ticket.
 
-#### E. Barcode Scanner Reticle (Stretch Goal)
-If you build `BarcodeScanner.tsx`, the overlay must look like this:
-```css
-/* Reticle Box */
-width: 250px;
-height: 150px;
-border: 2px solid rgba(255, 255, 255, 0.2);
-border-radius: 12px;
-position: relative;
+The design spec is locked. The code is clean, typed, and strictly adheres to the Crystalline Swan aesthetic. 
 
-/* Corner accents */
-&::before, &::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-color: ${theme.colors.brand.cyan};
-  border-style: solid;
-}
-/* (Add top-left, top-right, etc. border-width logic) */
-
-/* Laser Line */
-.laser {
-  width: 100%;
-  height: 2px;
-  background: ${theme.colors.brand.cyan};
-  box-shadow: 0 0 8px ${theme.colors.brand.cyan};
-  animation: scan 2s infinite linear;
-}
-@keyframes scan {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(146px); }
-  100% { transform: translateY(0); }
-}
-```
-
----
-
-### 5. Verdict
-
-**APPROVED WITH MODIFICATIONS.**
-
-Your technical refactoring plan is excellent and approved. Proceed with the implementation, but you must weave my exact CSS specifications, responsive rules, and interaction patterns into the code. 
-
-**Execution Order:**
-1. Do Phase 1 (Critical Fixes) first, applying the Error Shake and exact tokens.
-2. Do Phase 2 (WorkoutLogger). Pay special attention to the mobile-first `SetTable` directive.
-3. Do Phases 3 & 4 (Perf/Backend).
-4. Do Phase 5 (Nutrition). Ensure the NLP input has the "Magic" focus state and macro color-coding.
-
-Let's build something beautiful. Proceed.
+**Ship it, Claude.** Let's get this into production.
 
 ---
 

@@ -31,14 +31,17 @@ SwanStudios (SS-PT) is a production personal training SaaS platform deployed on 
 - **Type check:** `cd frontend && npx tsc --noEmit`
 
 ## Co-Orchestrator: Gemini 3.1 Pro (Lead Design Authority)
-Gemini 3.1 Pro is the Lead Design Authority for SwanStudios. Claude and Gemini work as EQUALS:
-- **Gemini designs, Claude implements.** Gemini's design opinions are authoritative.
+Gemini 3.1 Pro is the Lead Design Authority for SwanStudios. Claude Opus 4.6 is the CEO with FINAL authority:
+- **Gemini designs, Claude implements.** Gemini's design opinions are authoritative on aesthetics.
+- **Opus 4.6 (CEO) overrides ALL decisions** — Gemini is CTO, Sonnet is VP Engineering. Opus reviews and ratifies.
 - **Consult Gemini before major UI/UX plans:** `node scripts/consult-gemini.mjs --plan "plan text"`
 - **Get design specs:** `node scripts/consult-gemini.mjs --design "component description"`
 - **Design review:** `node scripts/consult-gemini.mjs --review --file path/to/component.tsx`
 - **Ask questions:** `node scripts/consult-gemini.mjs --ask "design question"`
+- **CEO debate:** `node scripts/consult-gemini.mjs --ask "Round N: [CEO position]"` (Opus ↔ Gemini, max 5 rounds)
 - Output saves to `AI-Village-Documentation/gemini-consults/latest.md`
 - **IMPORTANT:** Do NOT use Flash 2.5 or any other model's design vision. Gemini 3.1 Pro creates from scratch.
+- **IMPORTANT:** Always verify Gemini's recommendations against CLAUDE.md. Gemini sometimes references the RETIRED Galaxy-Swan theme — reject and correct.
 
 ## Key Directories
 - `frontend/src/components/` - React components (styled-components, NO MUI)
@@ -123,11 +126,33 @@ node scripts/validation-orchestrator.mjs --staged
 
 ### Architecture
 - **Phase 1:** 9 parallel validators (Gemini 2.5 Flash, Claude Sonnet, Step 3.5 Flash, Gemini 3 Flash, Gemini 3.1 Flash, MiniMax M2.1, DeepSeek V3.2, MiniMax M2.5, Claude Sonnet [Data Safety])
-- **Phase 2:** Code quality recursive debate — Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO). Claude = final authority.
-- **Phase 3:** UX/UI design recursive debate — Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet (Collaborator). Gemini = final authority.
-- **Output:** `AI-Village-Documentation/validation-prompts/latest/` (summary, per-track reports, debate logs, fix instructions)
-- **Setup:** `OPENROUTER_API_KEY` in .env (required). `GEMINI_API_KEY` in .env (enables Phase 2+3 debates).
+- **Phase 2:** Code quality recursive debate — Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO). Max 5 rounds. Claude Sonnet = interim authority.
+- **Phase 3:** UX/UI design recursive debate — Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet (Collaborator). Max 5 rounds. Gemini = design authority.
+- **Phase 4 (MANDATORY): Opus CEO Review** — Claude Opus 4.6 reviews Phase 2+3 consensus, then debates Gemini 3.1 Pro directly for max 5 rounds. **Opus 4.6 = FINAL authority on ALL decisions.** Sonnet's decisions are recommendations, not final rulings.
+  - Opus reads the Phase 2 debate log + fix-instructions.md + design-recommendations.md
+  - Opus reviews what Sonnet agreed to, identifies gaps, and corrects any errors
+  - Opus engages Gemini CTO directly via `node scripts/consult-gemini.mjs --ask`
+  - Max 5 rounds. Opus has FINAL SAY on severity ratings, launch blockers, deferrals, and implementation
+  - Opus must verify Gemini's recommendations against CLAUDE.md (theme tokens, conventions, etc.)
+  - If Gemini references RETIRED theme tokens (Galaxy-Swan: #0a0a1a, #00FFFF, #7851A9), Opus REJECTS and corrects
+  - Output: Final CEO ruling saved to `AI-Village-Documentation/validation-prompts/latest/opus-ceo-ruling.md`
+- **Output:** `AI-Village-Documentation/validation-prompts/latest/` (summary, per-track reports, debate logs, fix instructions, opus-ceo-ruling)
+- **Setup:** `OPENROUTER_API_KEY` in .env (required). `GEMINI_API_KEY` in .env (enables Phase 2+3+4 debates).
 - **Full docs:** `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`
+
+### Chain of Command (MANDATORY)
+The AI Village has a strict hierarchy for decision-making:
+1. **Claude Opus 4.6 (CEO)** — FINAL authority on ALL decisions. Overrides everyone.
+2. **Gemini 3.1 Pro (CTO / Creative Director)** — Lead Design Authority. Authoritative on design, but Opus can override on engineering/business grounds.
+3. **Claude Sonnet (VP Engineering)** — Runs initial debates, makes interim recommendations. Opus reviews and ratifies or overrides.
+4. **Phase 1 validators (Staff Engineers)** — Surface findings. No decision authority.
+
+This hierarchy applies to:
+- Severity ratings (CRITICAL/HIGH/MEDIUM/LOW)
+- Launch blocker decisions
+- Deferral decisions (what ships now vs post-launch)
+- Theme token enforcement (Opus enforces CLAUDE.md as source of truth)
+- Any disagreement between Gemini and Sonnet
 
 ### When to Run
 - **MANDATORY:** Before pushing to main (production deploys)

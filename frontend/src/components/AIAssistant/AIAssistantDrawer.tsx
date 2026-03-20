@@ -164,18 +164,23 @@ const ContextPill = styled.button<{ $active: boolean }>`
   min-height: 44px;
   border-radius: 12px;
   border: 1px solid ${({ $active }) => $active ? CS.wingPurple : 'rgba(224, 236, 244, 0.2)'};
-  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0, 32, 96, 0.85)'};
-  color: ${({ $active }) => $active ? CS.wingPurple : '#E0ECF4'};
+  background: ${({ $active }) => $active ? 'rgba(96, 192, 240, 0.1)' : 'rgba(0, 32, 96, 0.85)'};
+  color: #E0ECF4;
   font-family: ${FONTS.ui};
   font-size: 0.8rem;
-  font-weight: ${({ $active }) => $active ? 600 : 500};
+  font-weight: 500;
   letter-spacing: 0.03em;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-direction: column;
 
-  svg { flex-shrink: 0; }
+  svg {
+    flex-shrink: 0;
+    color: ${({ $active }) => $active ? CS.wingPurple : '#E0ECF4'};
+    filter: ${({ $active }) => $active ? 'drop-shadow(0 0 6px rgba(139, 92, 246, 0.5))' : 'none'};
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
   &:hover { border-color: ${CS.wingPurple}; color: ${CS.wingPurple}; }
   &:focus-visible { outline: 2px solid ${CS.wingPurple}; outline-offset: 2px; }

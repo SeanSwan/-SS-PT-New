@@ -45,9 +45,11 @@ const CS = {
 
 // ── Animations ─────────────────────────────────────────────────────────────
 
-const pulse = keyframes`
-  0%, 100% { box-shadow: 0 0 8px ${CS.wingPurpleAlpha04Pulse}; }
-  50% { box-shadow: 0 0 24px ${CS.wingPurpleAlpha08Pulse}, 0 0 48px ${CS.wingPurpleAlpha03}; }
+// Opus CEO Ruling: crystallinePulse breathing animation (Gemini consensus Round 4)
+const crystallinePulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6); }
+  70% { box-shadow: 0 0 0 16px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 `;
 
 const waveBar = keyframes`
@@ -84,7 +86,7 @@ const OrbButton = styled.button<{ $listening: boolean }>`
   touch-action: manipulation;
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${({ $listening }) => $listening ? css`${pulse} 1.5s ease-in-out infinite` : 'none'};
+    animation: ${({ $listening }) => $listening ? css`${crystallinePulse} 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite` : 'none'};
   }
 
   &:hover:not(:disabled) {
