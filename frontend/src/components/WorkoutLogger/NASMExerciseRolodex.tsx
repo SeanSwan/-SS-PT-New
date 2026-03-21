@@ -25,8 +25,8 @@
  */
 
 import React, { memo, useCallback, useState, useRef, useEffect, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { List } from 'react-window';
+import styled, { keyframes, type CSSProperties } from 'styled-components';
+import { List, useListRef } from 'react-window';
 import { Search, Loader } from 'lucide-react';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import ExerciseFilterChips from './ExerciseFilterChips';
@@ -122,7 +122,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<List>(null);
+  const listRef = useListRef();
 
   // ── Section-aware filtering (applied on top of search/category results) ──
   const filteredResults = useMemo(() => {
@@ -176,14 +176,14 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       e.preventDefault();
       setHighlightIndex(prev => {
         const next = prev < filteredResults.length - 1 ? prev + 1 : 0;
-        listRef.current?.scrollToItem(next, 'smart');
+        listRef.current?.scrollToRow({ index: next, align: 'smart' });
         return next;
       });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightIndex(prev => {
         const next = prev > 0 ? prev - 1 : filteredResults.length - 1;
-        listRef.current?.scrollToItem(next, 'smart');
+        listRef.current?.scrollToRow({ index: next, align: 'smart' });
         return next;
       });
     } else if (e.key === 'Enter' && highlightIndex >= 0 && filteredResults[highlightIndex]) {
@@ -198,8 +198,9 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     onClose();
   }, [onSelectExercise, setQuery, onClose]);
 
-  // ── Row renderer for react-window ──
-  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+  // ── Row renderer for react-window v2 ──
+  // v2 passes { index, style, ariaAttributes } + any rowProps
+  const RowComponent = useCallback(({ index, style }: { index: number; style: React.CSSProperties; ariaAttributes?: Record<string, unknown> }) => {
     const ex = filteredResults[index];
     if (!ex) return null;
     return (
@@ -250,21 +251,20 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         categoryCounts={categoryCounts}
       />
 
-      {/* Virtualized Results */}
+      {/* Virtualized Results (react-window v2 API) */}
       {filteredResults.length > 0 ? (
         <ListContainer>
           <List
-            ref={listRef}
-            height={listHeight || ROW_HEIGHT}
-            itemCount={filteredResults.length}
-            itemSize={ROW_HEIGHT}
-            width="100%"
+            listRef={listRef}
+            rowComponent={RowComponent}
+            rowCount={filteredResults.length}
+            rowHeight={ROW_HEIGHT}
+            rowProps={{}}
+            style={{ height: listHeight || ROW_HEIGHT }}
             id="exercise-rolodex-list"
             role="listbox"
             aria-label="Exercise search results"
-          >
-            {Row}
-          </List>
+          />
         </ListContainer>
       ) : !isLoading && (
         <EmptyState>
