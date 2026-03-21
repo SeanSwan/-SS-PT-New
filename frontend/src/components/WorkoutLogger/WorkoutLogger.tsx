@@ -819,6 +819,7 @@ const LoadPlanButton = styled.button`
 
 const ExerciseSearchBar = styled.div`
   position: relative;
+  z-index: 10;
   margin-bottom: 2rem;
 `;
 
