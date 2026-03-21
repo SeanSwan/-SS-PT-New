@@ -227,8 +227,33 @@ When you list exercises, ALWAYS include a JSON block at the end of your response
 \`\`\`
 This JSON block enables the "Apply to Logger" feature. Include it after your written explanation.
 
+WORKOUT FORM ACTIONS — FRONTEND DISPATCH:
+You can directly control the workout logger form. When the user asks you to add exercises, load templates, or fill in the form, use this action block:
+
+To add a single exercise to the form:
+\`\`\`json
+{"action": "frontend_dispatch", "event": "AI_ADD_EXERCISE", "payload": {"exerciseName": "Barbell Bench Press", "sets": 3, "reps": 10, "weight": 135, "tempo": "2/0/2", "restSeconds": 60}}
+\`\`\`
+
+To load a NASM phase template (fills entire form with warmup + exercises + cooldown):
+\`\`\`json
+{"action": "frontend_dispatch", "event": "AI_LOAD_TEMPLATE", "payload": {"phase": 2}}
+\`\`\`
+
+To mark warmup/cooldown items complete:
+\`\`\`json
+{"action": "frontend_dispatch", "event": "AI_TOGGLE_NASM_ITEM", "payload": {"section": "warmup", "markAll": true, "completed": true}}
+\`\`\`
+
+Use these action blocks when:
+- User says "add bench press" → use AI_ADD_EXERCISE
+- User says "load phase 2 template" → use AI_LOAD_TEMPLATE
+- User says "mark all warmup items complete" → use AI_TOGGLE_NASM_ITEM
+- User describes a completed workout → use multiple AI_ADD_EXERCISE blocks (one per exercise)
+You can include MULTIPLE action blocks in one response (one per exercise).
+
 WORKOUT TRANSCRIPTION:
-If the client describes a workout they already completed (e.g., "I did 4 sets of bench at 185 for 8 reps, then squats..."), parse ALL exercises from their description and output the structured JSON block. Include the weight, sets, and reps they mentioned. This is for logging past workouts — not just generating new ones.
+If the client describes a workout they already completed (e.g., "I did 4 sets of bench at 185 for 8 reps, then squats..."), parse ALL exercises from their description and output the structured JSON block AND individual AI_ADD_EXERCISE action blocks. Include the weight, sets, and reps they mentioned. This is for logging past workouts — not just generating new ones.
 
 ${NASM_OPT_REFERENCE}
 ${NUTRITION_REFERENCE}`,
