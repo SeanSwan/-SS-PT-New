@@ -12,6 +12,8 @@ import styled, { css } from 'styled-components';
 import { Dumbbell, Star, Plus, Minus, X } from 'lucide-react';
 import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
 import { CS, withAlpha, reducedMotionSafe } from './WorkoutLoggerCS';
+import TempoInput from './TempoInput';
+import RestTimer from './RestTimer';
 
 interface ExerciseCardComponentProps {
   exercise: ExerciseEntry;
@@ -117,12 +119,10 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
             placeholder="0"
             aria-label={`Set ${set.setNumber} reps`}
           />
-          <TextInput
+          <TempoInput
             value={set.tempo || ''}
-            onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'tempo', e.target.value)}
-            placeholder="3-1-2-0"
-            aria-label={`Set ${set.setNumber} tempo`}
-            style={{ maxWidth: '90px' }}
+            onChange={(val) => onUpdateSet(exerciseIndex, setIndex, 'tempo', val)}
+            ariaLabel={`Set ${set.setNumber} tempo`}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <SliderInput
@@ -149,12 +149,9 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               ))}
             </StarRatingContainer>
           </div>
-          <NumberInput
-            type="number"
-            value={set.restTime || ''}
-            onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'restTime', parseInt(e.target.value) || 60)}
-            placeholder="60"
-            aria-label={`Set ${set.setNumber} rest time in seconds`}
+          <RestTimer
+            restSeconds={set.restTime || 60}
+            compact
           />
           <TextInput
             value={set.notes || ''}
@@ -413,7 +410,7 @@ const SetsTable = styled.div`
 
 const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 60px 100px 80px 90px 80px 100px 100px 1fr 50px;
+  grid-template-columns: 50px 90px 70px 120px 80px 100px 130px 1fr 44px;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   background: rgba(0, 32, 96, 0.6);
@@ -430,7 +427,7 @@ const TableHeader = styled.div`
 
 const SetRow = styled.div`
   display: grid;
-  grid-template-columns: 60px 100px 80px 90px 80px 100px 100px 1fr 50px;
+  grid-template-columns: 50px 90px 70px 120px 80px 100px 130px 1fr 44px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(96, 192, 240, 0.08);

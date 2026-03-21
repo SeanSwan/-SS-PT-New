@@ -2,14 +2,13 @@
  * WorkoutLoggerModal
  * ==================
  * Admin modal for logging workouts on behalf of a client.
- * Follows CreateClientModal patterns (styled-components, lucide-react, Galaxy-Swan).
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass surfaces)
+ * Theme: Enchanted Apex — Crystalline Swan
  * Touch targets: 44px minimum on all interactive elements
  */
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect, useRef, Component, type ErrorInfo, type ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, Plus, Trash2, Dumbbell, Save, Mic, Shield } from 'lucide-react';
 import { createAdminClientService } from '../../../../../services/adminClientService';
@@ -19,10 +18,42 @@ import ExerciseAutocomplete from '../../../../WorkoutLogger/ExerciseAutocomplete
 
 const VoiceMemoUpload = lazy(() => import('../../../../WorkoutLogger/VoiceMemoUpload'));
 
-/* ─────────────────────── Theme Tokens ─────────────────────── */
+/* ─────────────────────── ErrorBoundary for VoiceMemoUpload ─────────────────────── */
 
-const SWAN_CYAN = '#8B5CF6';
-const GALAXY_CORE = '#002060';
+class VoiceUploadErrorBoundary extends Component<{ children: ReactNode; onReset: () => void }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[VoiceUpload] Error:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '24px', textAlign: 'center', color: '#E0ECF4' }}>
+          <p style={{ marginBottom: '12px' }}>Voice upload failed to load.</p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); this.props.onReset(); }}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(224,236,244,0.3)', background: 'rgba(0,32,96,0.85)', color: '#E0ECF4', cursor: 'pointer', minHeight: '44px' }}
+          >
+            Switch to Manual Entry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ─────────────────────── Theme Tokens (Crystalline Swan) ─────────────────────── */
+
+const WING_PURPLE = '#8B5CF6';
+const MIDNIGHT_SAPPHIRE = '#002060';
+const ROYAL_DEPTH = '#003080';
+const ICE_WING = '#60C0F0';
+const FROST_WHITE = '#E0ECF4';
+const GILDED_FERN = '#C6A84B';
+
+// Legacy aliases — kept for backward compat, mapped to correct tokens
+const SWAN_CYAN = WING_PURPLE;
+const GALAXY_CORE = MIDNIGHT_SAPPHIRE;
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -38,21 +69,29 @@ const ModalOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 32, 96, 0.85);
+  backdrop-filter: blur(8px);
+
+  @supports not (backdrop-filter: blur(8px)) {
+    background: rgba(0, 32, 96, 0.95);
+  }
 `;
 
 const ModalPanel = styled.div`
-  background: rgba(29, 31, 43, 0.98);
+  background: ${ROYAL_DEPTH};
   border-radius: 12px;
   max-width: 720px;
   width: 95%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(96, 192, 240, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
+
+  @supports not (backdrop-filter: blur(12px)) {
+    background: rgba(0, 48, 128, 0.98);
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -60,13 +99,14 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: #252742;
+  background: ${MIDNIGHT_SAPPHIRE};
   border-radius: 12px 12px 0 0;
   flex-shrink: 0;
 `;
 
 const ModalTitle = styled.h2`
-  color: ${SWAN_CYAN};
+  color: ${FROST_WHITE};
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -119,27 +159,28 @@ const FormGroup = styled.div<{ $fullWidth?: boolean }>`
 const Label = styled.label`
   font-size: 0.85rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: ${FROST_WHITE};
+  font-family: 'Sora', sans-serif;
 `;
 
 const Input = styled.input`
   padding: 10px 14px;
   min-height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(224, 236, 244, 0.5);
   background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  color: ${FROST_WHITE};
   font-size: 0.95rem;
   transition: border-color 0.2s;
 
   &:focus {
     outline: none;
-    border-color: ${SWAN_CYAN};
+    border-color: ${WING_PURPLE};
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.5);
   }
 `;
 
@@ -260,8 +301,8 @@ const ExerciseMetaRow = styled.div`
 `;
 
 const CoreSectionCard = styled.div`
-  background: rgba(139, 92, 246, 0.05);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(198, 168, 75, 0.05);
+  border: 1px solid rgba(198, 168, 75, 0.25);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
@@ -272,7 +313,7 @@ const CoreSectionHeader = styled.div`
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  color: #8B5CF6;
+  color: ${GILDED_FERN};
   font-weight: 600;
   font-size: 0.9rem;
 `;
@@ -284,15 +325,16 @@ const CoreBadge = styled.span`
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8B5CF6;
+  background: rgba(198, 168, 75, 0.15);
+  color: ${MIDNIGHT_SAPPHIRE};
   letter-spacing: 0.05em;
 `;
 
 const SetLabel = styled.span`
   font-size: 0.8rem;
   font-weight: 700;
-  color: #64748b;
+  font-family: 'Fira Code', monospace;
+  color: ${ICE_WING};
   min-width: 24px;
   text-align: center;
 `;
@@ -342,15 +384,15 @@ const SubmitButton = styled.button`
   font-weight: 600;
   font-size: 0.95rem;
   border: none;
-  background: linear-gradient(135deg, ${SWAN_CYAN}, #00aadd);
-  color: ${GALAXY_CORE};
+  background: ${WING_PURPLE};
+  color: #FFFFFF;
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 6px 24px rgba(96, 192, 240, 0.4);
   }
 
   &:disabled {
@@ -460,6 +502,39 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<'manual' | 'voice'>('manual');
 
+  // Focus trap + Escape key handler
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+
+      const focusable = modalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const first = focusable[0] as HTMLElement;
+      const last = focusable[focusable.length - 1] as HTMLElement;
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    // Focus first input on open
+    const firstInput = modalRef.current?.querySelector('input') as HTMLElement;
+    firstInput?.focus();
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const validate = (): boolean => {
@@ -523,8 +598,8 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
           rest: ex.rest ? Number(ex.rest) : undefined,
           sets: ex.sets.map((set) => ({
             setNumber: set.setNumber,
-            reps: set.reps ? Number(set.reps) : 0,
-            weight: set.weight ? Number(set.weight) : 0,
+            reps: set.reps ? Number(set.reps) : null,
+            weight: set.weight ? Number(set.weight) : null,
           })),
         })),
       };
@@ -567,68 +642,73 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
   };
 
   const addExercise = () => {
-    setExercises([...exercises, { name: '', sets: [{ setNumber: 1, reps: '', weight: '' }] }]);
+    setExercises(prev => [...prev, { name: '', sets: [{ setNumber: 1, reps: '', weight: '' }] }]);
   };
 
   const removeExercise = (index: number) => {
-    if (exercises.length <= 1) return;
-    setExercises(exercises.filter((_, i) => i !== index));
+    setExercises(prev => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const updateExerciseName = (index: number, name: string) => {
-    const updated = [...exercises];
-    updated[index] = { ...updated[index], name };
-    setExercises(updated);
+    setExercises(prev => prev.map((ex, i) => i === index ? { ...ex, name } : ex));
   };
 
   const addSet = (exerciseIndex: number) => {
-    const updated = [...exercises];
-    const ex = updated[exerciseIndex];
-    ex.sets = [...ex.sets, { setNumber: ex.sets.length + 1, reps: '', weight: '' }];
-    setExercises(updated);
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIndex) return ex;
+      return { ...ex, sets: [...ex.sets, { setNumber: ex.sets.length + 1, reps: '', weight: '' }] };
+    }));
   };
 
   const removeSet = (exerciseIndex: number, setIndex: number) => {
-    const updated = [...exercises];
-    const ex = updated[exerciseIndex];
-    if (ex.sets.length <= 1) return;
-    ex.sets = ex.sets.filter((_, i) => i !== setIndex).map((s, i) => ({ ...s, setNumber: i + 1 }));
-    setExercises(updated);
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIndex) return ex;
+      if (ex.sets.length <= 1) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.filter((_, si) => si !== setIndex).map((s, si) => ({ ...s, setNumber: si + 1 })),
+      };
+    }));
   };
 
   const updateSet = (exerciseIndex: number, setIndex: number, field: 'reps' | 'weight', value: string) => {
-    const updated = [...exercises];
-    updated[exerciseIndex].sets[setIndex] = {
-      ...updated[exerciseIndex].sets[setIndex],
-      [field]: value,
-    };
-    setExercises(updated);
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIndex) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.map((s, si) => si === setIndex ? { ...s, [field]: value } : s),
+      };
+    }));
   };
 
   const updateExerciseMeta = (index: number, field: 'tempo' | 'rest', value: string) => {
-    const updated = [...exercises];
-    updated[index] = { ...updated[index], [field]: value };
-    setExercises(updated);
+    setExercises(prev => prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex));
   };
 
   const updateCoreExercise = (index: number, field: 'tempo' | 'rest', value: string) => {
-    const updated = [...coreExercises];
-    updated[index] = { ...updated[index], [field]: value };
-    setCoreExercises(updated);
+    setCoreExercises(prev => prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex));
   };
 
   const updateCoreSet = (exIndex: number, setIndex: number, field: 'reps' | 'weight', value: string) => {
-    const updated = [...coreExercises];
-    updated[exIndex].sets[setIndex] = {
-      ...updated[exIndex].sets[setIndex],
-      [field]: value,
-    };
-    setCoreExercises(updated);
+    setCoreExercises(prev => prev.map((ex, i) => {
+      if (i !== exIndex) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.map((s, si) => si === setIndex ? { ...s, [field]: value } : s),
+      };
+    }));
   };
 
   return (
     <ModalOverlay onClick={onClose}>
       <ModalPanel
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Log Workout for ${clientName}`}
         data-testid="workout-logger-modal"
         onClick={(e) => e.stopPropagation()}
       >
@@ -655,7 +735,8 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
           </ModeToggle>
 
           {mode === 'voice' ? (
-            <Suspense fallback={<p style={{ color: '#94a3b8' }}>Loading...</p>}>
+            <VoiceUploadErrorBoundary onReset={() => setMode('manual')}>
+            <Suspense fallback={<p style={{ color: FROST_WHITE }}>Loading voice upload...</p>}>
               <VoiceMemoUpload
                 clientId={clientId}
                 clientName={clientName}
@@ -680,6 +761,7 @@ const WorkoutLoggerModal: React.FC<WorkoutLoggerModalProps> = ({
                 onCancel={() => setMode('manual')}
               />
             </Suspense>
+            </VoiceUploadErrorBoundary>
           ) : (
           <>
           <FormGrid>

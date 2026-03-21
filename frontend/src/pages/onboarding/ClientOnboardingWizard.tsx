@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeContext";
@@ -6,19 +6,26 @@ import { useNavigate } from "react-router-dom";
 import apiService from "../../services/api.service";
 import { grantConsent } from "../../services/aiConsentService";
 
-import BasicInfo from "./components/BasicInfoSection";
-import HealthSection from "./components/HealthSection";
-import GoalsSection from "./components/GoalsSection";
-import NutritionSection from "./components/NutritionSection";
-import LifestyleSection from "./components/LifestyleSection";
-import TrainingSection from "./components/TrainingSection";
-import ConsentSection from "./components/ConsentSection";
-import SummarySection from "./components/SummarySection";
+/* ── Lazy-loaded wizard sections (code-split for FCP) ── */
+const BasicInfo = React.lazy(() => import("./components/BasicInfoSection"));
+const HealthSection = React.lazy(() => import("./components/HealthSection"));
+const GoalsSection = React.lazy(() => import("./components/GoalsSection"));
+const NutritionSection = React.lazy(() => import("./components/NutritionSection"));
+const LifestyleSection = React.lazy(() => import("./components/LifestyleSection"));
+const TrainingSection = React.lazy(() => import("./components/TrainingSection"));
+const ConsentSection = React.lazy(() => import("./components/ConsentSection"));
+const SummarySection = React.lazy(() => import("./components/SummarySection"));
 
-/* ── Galaxy-Swan theme tokens ── */
-const GALAXY_CORE = "#002060";
-const SWAN_CYAN = "#8B5CF6";
-const COSMIC_PURPLE = "#8B5CF6";
+/* ── Crystalline Swan theme tokens ── */
+const MIDNIGHT_SAPPHIRE = "#002060";
+const ROYAL_DEPTH = "#003080";
+const WING_PURPLE = "#8B5CF6";
+const ICE_WING = "#60C0F0";
+const FROST_WHITE = "#E0ECF4";
+/* Legacy aliases for downstream references */
+const GALAXY_CORE = MIDNIGHT_SAPPHIRE;
+const SWAN_CYAN = WING_PURPLE;
+const COSMIC_PURPLE = WING_PURPLE;
 
 const cyanPulse = keyframes`
   0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
@@ -30,7 +37,8 @@ const WizardContainer = styled.div<{ $embedded?: boolean }>`
   background: ${(props) =>
     props.$embedded
       ? "transparent"
-      : `linear-gradient(135deg, ${GALAXY_CORE} 0%, #1a1a2e 50%, #0f0f23 100%)`};
+      : `radial-gradient(circle at top right, rgba(96, 192, 240, 0.1) 0%, transparent 40%),
+         linear-gradient(135deg, ${MIDNIGHT_SAPPHIRE} 0%, ${ROYAL_DEPTH} 100%)`};
   padding: ${(props) => (props.$embedded ? "0" : "2rem")};
   display: flex;
   justify-content: center;
@@ -38,15 +46,23 @@ const WizardContainer = styled.div<{ $embedded?: boolean }>`
 `;
 
 const WizardCard = styled(motion.div)`
-  background: rgba(15, 15, 35, 0.92);
+  background: rgba(0, 48, 128, 0.7);
   border-radius: 20px;
   box-shadow: 0 8px 40px rgba(139, 92, 246, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(96, 192, 240, 0.2);
   padding: 2.5rem;
   max-width: 900px;
   width: 100%;
   backdrop-filter: blur(20px);
   animation: ${cyanPulse} 4s ease-in-out infinite;
+
+  @supports not (backdrop-filter: blur(20px)) {
+    background: rgba(0, 48, 128, 0.92);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 
   @media (max-width: 768px) {
     padding: 1.5rem 1.25rem;
@@ -65,7 +81,7 @@ const ProgressBarContainer = styled.div`
 
 const ProgressBar = styled(motion.div)`
   height: 100%;
-  background: linear-gradient(90deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
+  background: linear-gradient(90deg, #50A0F0, ${WING_PURPLE});
   border-radius: 10px;
   box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
 `;
@@ -105,10 +121,23 @@ const Step = styled.div<{ $active: boolean; $completed: boolean }>`
   }};
   cursor: ${(props) => (props.$completed ? "pointer" : "default")};
   transition: all 0.3s ease;
-  ${(props) => props.$active && `box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);`}
+  will-change: box-shadow;
+  ${(props) => props.$active && `
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
+    border-color: ${WING_PURPLE};
+  `}
+  ${(props) => props.$completed && `
+    border-color: ${ICE_WING};
+    color: ${ICE_WING};
+  `}
 
   &:hover {
     transform: ${(props) => (props.$completed ? "scale(1.12)" : "none")};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    will-change: auto;
   }
 
   @media (max-width: 768px) {
@@ -157,23 +186,24 @@ const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
   ${(props) =>
     props.$variant === "primary"
       ? `
-    background: linear-gradient(135deg, ${SWAN_CYAN}, #00aadd);
-    color: ${GALAXY_CORE};
+    background: ${WING_PURPLE};
+    color: #FFFFFF;
+    font-weight: 600;
     box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
+      box-shadow: 0 6px 24px rgba(96, 192, 240, 0.4);
     }
   `
       : `
     background: rgba(255, 255, 255, 0.06);
-    color: ${SWAN_CYAN};
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: ${FROST_WHITE};
+    border: 1px solid rgba(96, 192, 240, 0.3);
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
-      border-color: ${SWAN_CYAN};
+      border-color: ${ICE_WING};
     }
   `}
 
@@ -189,13 +219,15 @@ const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
 const Title = styled.h1`
   font-size: 2.2rem;
   font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
+  background: linear-gradient(135deg, #FFFFFF, ${FROST_WHITE}, ${ICE_WING});
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-align: center;
   letter-spacing: -0.02em;
+  filter: drop-shadow(0 0 8px rgba(96, 192, 240, 0.3));
 
   @media (max-width: 768px) {
     font-size: 1.6rem;
@@ -204,7 +236,9 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  color: ${ICE_WING};
   text-align: center;
   margin-bottom: 1.5rem;
 `;
@@ -233,24 +267,33 @@ const ModalOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 32, 96, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 2rem;
+
+  @supports not (backdrop-filter: blur(8px)) {
+    background: rgba(0, 32, 96, 0.95);
+  }
 `;
 
 const ModalContent = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(15, 15, 35, 0.98) 0%, rgba(25, 25, 55, 0.98) 100%);
+  background: ${ROYAL_DEPTH};
   border-radius: 20px;
   padding: 2.5rem;
   max-width: 600px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.25);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(96, 192, 240, 0.2);
   backdrop-filter: blur(20px);
   text-align: center;
+
+  @supports not (backdrop-filter: blur(20px)) {
+    background: rgba(0, 48, 128, 0.98);
+  }
 
   @media (max-width: 768px) {
     padding: 2rem 1.5rem;
@@ -260,11 +303,13 @@ const ModalContent = styled(motion.div)`
 const ModalTitle = styled.h2`
   font-size: 1.8rem;
   font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
+  background: linear-gradient(135deg, #FFFFFF, ${FROST_WHITE}, ${ICE_WING});
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 0 6px rgba(96, 192, 240, 0.3));
 `;
 
 const ModalText = styled.p`
@@ -276,13 +321,13 @@ const ModalText = styled.p`
 
 const HighlightText = styled.span`
   font-weight: 700;
-  color: ${SWAN_CYAN};
+  color: ${ICE_WING};
   font-size: 1.2rem;
 `;
 
 const CredentialsBox = styled.div`
-  background: rgba(139, 92, 246, 0.06);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: rgba(0, 32, 96, 0.5);
+  border: 1px solid rgba(96, 192, 240, 0.25);
   border-radius: 12px;
   padding: 1.5rem;
   margin: 1.5rem 0;
@@ -308,9 +353,9 @@ const CredLabel = styled.span`
 `;
 
 const CredValue = styled.span`
-  font-family: "Courier New", monospace;
+  font-family: "Fira Code", "Courier New", monospace;
   font-size: 1rem;
-  color: ${SWAN_CYAN};
+  color: ${ICE_WING};
 `;
 
 interface ClientOnboardingWizardProps {
@@ -341,7 +386,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   onFormDataChange,
   skipSuccessModal = false,
 }) => {
-  // Force dark mode for this wizard (Galaxy-Swan is always dark)
+  // Force dark mode for this wizard (Crystalline Swan is always dark)
   const _themeCtx = useUniversalTheme();
   void _themeCtx; // consumed but we always render dark
   const navigate = useNavigate();
@@ -514,7 +559,9 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.25 }}
           >
-            <CurrentSection formData={formData} updateFormData={updateFormData} />
+            <Suspense fallback={<div style={{ textAlign: 'center', padding: '2rem', color: FROST_WHITE }}>Loading...</div>}>
+              <CurrentSection formData={formData} updateFormData={updateFormData} />
+            </Suspense>
           </motion.div>
         </AnimatePresence>
 

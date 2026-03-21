@@ -6,6 +6,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { User, Calendar, Activity, Clock, BarChart3 } from 'lucide-react';
 import { CS } from './WorkoutLoggerCS';
+import OPTPhaseIndicator from './OPTPhaseIndicator';
 
 interface WorkoutLoggerHeaderProps {
   clientFirstName: string;
@@ -13,6 +14,10 @@ interface WorkoutLoggerHeaderProps {
   availableSessions: number;
   totalSets: number;
   estimatedDuration: number;
+  /** Current NASM OPT phase (1-5). Defaults to 1 if not provided. */
+  currentOPTPhase?: number;
+  /** Called when trainer changes the OPT phase */
+  onOPTPhaseChange?: (newPhase: number) => void;
 }
 
 const WorkoutLoggerHeader: React.FC<WorkoutLoggerHeaderProps> = React.memo(({
@@ -21,13 +26,24 @@ const WorkoutLoggerHeader: React.FC<WorkoutLoggerHeaderProps> = React.memo(({
   availableSessions,
   totalSets,
   estimatedDuration,
+  currentOPTPhase = 1,
+  onOPTPhaseChange,
 }) => (
   <Header>
     <ClientInfo>
-      <h2>
-        <User size={24} />
-        Logging Workout for: {clientFirstName} {clientLastName}
-      </h2>
+      <HeaderRow>
+        <h2>
+          <User size={24} />
+          Logging Workout for: {clientFirstName} {clientLastName}
+        </h2>
+        {onOPTPhaseChange && (
+          <OPTPhaseIndicator
+            currentPhase={currentOPTPhase}
+            onPhaseChange={onOPTPhaseChange}
+            clientName={`${clientFirstName} ${clientLastName}`}
+          />
+        )}
+      </HeaderRow>
       <SessionInfo>
         <InfoBadge type="info">
           <Calendar size={16} />
@@ -92,6 +108,19 @@ const Header = styled.div`
     padding: 1.25rem;
     margin-bottom: 1.25rem;
     border-radius: 1rem;
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
   }
 `;
 

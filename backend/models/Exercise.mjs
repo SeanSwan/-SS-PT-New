@@ -220,7 +220,99 @@ Exercise.init(
       type: DataTypes.FLOAT,
       allowNull: true,
       comment: 'Expected progression rate when performing this exercise regularly'
-    }
+    },
+
+    // ─── V2 Fields (CEO Ruling V2.0) ────────────────────────────
+
+    // Immutable unique slug — replaces name-based findOrCreate
+    // Format: "nasm-barbell-bench-press", "freedb-3-4-sit-up", "custom-my-exercise"
+    exercise_key: {
+      type: DataTypes.STRING(255),
+      allowNull: true, // Nullable for backward compat until backfill runs
+      unique: true,
+      comment: 'Immutable unique slug for idempotent upserts',
+    },
+
+    // Source tracking for multi-database exercises
+    source: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'nasm',
+      comment: 'Origin: nasm, free-exercise-db, wrkout, p90x, custom',
+    },
+
+    // Biomechanical classification
+    force: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment: 'push, pull, static, or null for flexibility/cardio',
+    },
+    mechanic: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment: 'compound, isolation, or null',
+    },
+
+    // Search enhancement — alternate names
+    aliases: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      get() {
+        const rawValue = this.getDataValue('aliases');
+        return rawValue ? JSON.parse(rawValue) : [];
+      },
+      set(value) {
+        this.setDataValue('aliases', JSON.stringify(value));
+      },
+      comment: 'JSON array of alternate exercise names for fuzzy search',
+    },
+
+    // NASM OPT phase compatibility
+    optPhases: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      get() {
+        const rawValue = this.getDataValue('optPhases');
+        return rawValue ? JSON.parse(rawValue) : [];
+      },
+      set(value) {
+        this.setDataValue('optPhases', JSON.stringify(value));
+      },
+      comment: 'JSON array of NASM OPT phase numbers (1-5) this exercise fits',
+    },
+
+    // NASM movement pattern classification
+    nasmMovementPattern: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: 'NASM movement: squat, hinge, push, pull, press, rotation, gait',
+    },
+
+    // Visual reference for rolodex
+    thumbnailUrl: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      comment: 'URL to exercise GIF or thumbnail image',
+    },
+
+    // Default training parameters
+    defaultTempo: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+      comment: 'Default tempo notation, e.g. "4/2/1"',
+    },
+    defaultRestSeconds: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Default rest period in seconds',
+    },
+
+    // Mobile-friendly filter category (maps to 10 filter chips)
+    bodyPartCategory: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+      comment: 'Mobile filter: chest, back, shoulders, arms, legs, core, full_body, recovery, cardio',
+    },
   },
   {
     sequelize,

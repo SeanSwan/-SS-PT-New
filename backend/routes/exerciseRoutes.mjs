@@ -6,6 +6,7 @@
  */
 
 import express from 'express';
+import { apiLimiter } from '../middleware/rateLimiter.mjs';
 import { protect, authorize, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import workoutController from '../controllers/workoutController.mjs';
 import { getExercise } from '../models/index.mjs';
@@ -181,6 +182,59 @@ router.get('/categories', protect, trainerOrAdminOnly, async (req, res) => {
       message: 'Failed to fetch exercise categories',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+});
+
+/**
+ * @route GET /api/exercises/all
+ * @desc Lightweight list of all exercises for client-side search cache.
+ *       Returns minimal fields to keep payload small (~500 exercises ≈ 40KB).
+ * @access Private (Trainer/Admin only)
+ */
+router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => {
+  try {
+    const Exercise = getExercise();
+    if (!Exercise) {
+      return res.status(503).json({ success: false, message: 'Exercise model not available' });
+    }
+
+    // Gracefully handle missing V2 columns (isActive, exercise_key, bodyPartCategory)
+    let exercises;
+    try {
+      exercises = await Exercise.findAll({
+        attributes: [
+          'id', 'name', 'exerciseType', 'primaryMuscles',
+          'exercise_key', 'bodyPartCategory', 'difficulty',
+        ],
+        where: { isActive: true },
+        order: [['name', 'ASC']],
+        raw: true,
+      });
+    } catch {
+      // Fallback if V2 columns don't exist yet (migration not run)
+      exercises = await Exercise.findAll({
+        attributes: ['id', 'name', 'exerciseType', 'primaryMuscles', 'difficulty'],
+        order: [['name', 'ASC']],
+        raw: true,
+      });
+    }
+
+    const formatted = exercises.map(ex => ({
+      id: ex.id,
+      name: ex.name,
+      exerciseKey: ex.exercise_key || '',
+      exerciseType: ex.exerciseType || '',
+      bodyPartCategory: ex.bodyPartCategory || 'Full Body',
+      primaryMuscles: ex.primaryMuscles || [],
+      difficulty: ex.difficulty || 0,
+    }));
+
+    // Cache for 5 minutes — exercise list doesn't change often
+    res.set('Cache-Control', 'private, max-age=300');
+    res.json({ success: true, exercises: formatted, count: formatted.length });
+  } catch (error) {
+    logger.error('Exercise list error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch exercises' });
   }
 });
 

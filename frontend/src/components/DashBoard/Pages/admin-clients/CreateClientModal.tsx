@@ -3,12 +3,12 @@
  * Form for adding new clients to the system
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass surfaces)
+ * Theme: Enchanted Apex — Crystalline Swan
  * Touch targets: 44px minimum on all interactive elements
  * Responsive: CSS Grid 2-col → 1-col at 640px
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, Save, XCircle } from 'lucide-react';
 import { CreateClientRequest, ClientSource, CLIENT_SOURCE_LABELS, CLIENT_SOURCE_COLORS } from '../../../../services/adminClientService';
@@ -29,21 +29,29 @@ const ModalOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 32, 96, 0.85);
+  backdrop-filter: blur(8px);
+
+  @supports not (backdrop-filter: blur(8px)) {
+    background: rgba(0, 32, 96, 0.95);
+  }
 `;
 
 const ModalPanel = styled.div`
-  background: rgba(29, 31, 43, 0.98);
+  background: #003080;
   border-radius: 12px;
   max-width: 600px;
   width: 95%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(96, 192, 240, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
+
+  @supports not (backdrop-filter: blur(12px)) {
+    background: rgba(0, 48, 128, 0.98);
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -51,12 +59,13 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: #252742;
+  background: #002060;
   border-radius: 12px 12px 0 0;
 `;
 
 const ModalTitle = styled.h2`
-  color: #60C0F0;
+  color: #E0ECF4;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -119,7 +128,8 @@ const FullWidthCell = styled.div`
 /* ─────────────────────── Section Headers ─────────────────────── */
 
 const SectionTitle = styled.h3`
-  color: #60C0F0;
+  color: #E0ECF4;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -140,17 +150,18 @@ const FieldGroup = styled.div`
 `;
 
 const FieldLabel = styled.label`
-  color: #94a3b8;
+  color: #E0ECF4;
+  font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 const StyledInput = styled.input<{ $error?: boolean }>`
   min-height: 44px;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
-  border: 1px solid ${({ $error }) => ($error ? '#f44336' : 'rgba(255, 255, 255, 0.2)')};
+  color: #E0ECF4;
+  border: 1px solid ${({ $error }) => ($error ? '#ff6b6b' : 'rgba(224, 236, 244, 0.5)')};
   border-radius: 8px;
   font-size: 0.95rem;
   outline: none;
@@ -160,11 +171,12 @@ const StyledInput = styled.input<{ $error?: boolean }>`
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
-    border-color: ${({ $error }) => ($error ? '#f44336' : 'rgba(139, 92, 246, 0.5)')};
+    border-color: ${({ $error }) => ($error ? '#ff6b6b' : 'rgba(139, 92, 246, 0.5)')};
   }
 
   &:focus {
-    border-color: ${({ $error }) => ($error ? '#f44336' : '#60C0F0')};
+    border-color: ${({ $error }) => ($error ? '#ff6b6b' : '#8B5CF6')};
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
   &:disabled {
@@ -173,7 +185,7 @@ const StyledInput = styled.input<{ $error?: boolean }>`
   }
 
   &::placeholder {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.5);
   }
 `;
 
@@ -243,8 +255,8 @@ const NativeSelect = styled.select<{ $error?: boolean }>`
 `;
 
 const FieldError = styled.span`
-  color: #f44336;
-  font-size: 0.75rem;
+  color: #ff6b6b;
+  font-size: 0.8rem;
   min-height: 1em;
 `;
 
@@ -303,13 +315,13 @@ const PrimaryButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-  background: linear-gradient(135deg, #60C0F0, #00c8ff);
-  color: #002060;
+  background: #8B5CF6;
+  color: #FFFFFF;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #00e6ff, #00b3ff);
+    background: #7c3aed;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(96, 192, 240, 0.4);
   }
 
   &:disabled {
@@ -447,7 +459,9 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     if (!isExternal) {
       if (!formData.username.trim()) errors.username = 'Username is required';
       if (!formData.password.trim()) errors.password = 'Password is required';
-      if (formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
+      else if (!/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(formData.password)) {
+        errors.password = 'Password must be 8+ characters with at least one letter and one number';
+      }
     }
 
     // Email validation
@@ -534,11 +548,37 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     }
   };
 
+  // Focus trap + Escape key handler
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { handleClose(); return; }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+      const focusable = modalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const first = focusable[0] as HTMLElement;
+      const last = focusable[focusable.length - 1] as HTMLElement;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    const firstInput = modalRef.current?.querySelector('input') as HTMLElement;
+    firstInput?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   if (!open) return null;
 
   return (
     <ModalOverlay onClick={handleClose}>
-      <ModalPanel onClick={(e) => e.stopPropagation()}>
+      <ModalPanel ref={modalRef} role="dialog" aria-modal="true" aria-label={isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'} onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>{isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'}</ModalTitle>
           <CloseButton onClick={handleClose} disabled={loading} aria-label="Close">
@@ -599,24 +639,28 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 <FieldLabel htmlFor="ccm-firstName">First Name *</FieldLabel>
                 <StyledInput
                   id="ccm-firstName"
+                  autoComplete="given-name"
                   $error={!!fieldErrors.firstName}
+                  aria-describedby={fieldErrors.firstName ? 'ccm-firstName-error' : undefined}
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   disabled={loading}
                 />
-                {fieldErrors.firstName && <FieldError>{fieldErrors.firstName}</FieldError>}
+                {fieldErrors.firstName && <FieldError id="ccm-firstName-error">{fieldErrors.firstName}</FieldError>}
               </FieldGroup>
 
               <FieldGroup>
                 <FieldLabel htmlFor="ccm-lastName">Last Name *</FieldLabel>
                 <StyledInput
                   id="ccm-lastName"
+                  autoComplete="family-name"
                   $error={!!fieldErrors.lastName}
+                  aria-describedby={fieldErrors.lastName ? 'ccm-lastName-error' : undefined}
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   disabled={loading}
                 />
-                {fieldErrors.lastName && <FieldError>{fieldErrors.lastName}</FieldError>}
+                {fieldErrors.lastName && <FieldError id="ccm-lastName-error">{fieldErrors.lastName}</FieldError>}
               </FieldGroup>
 
               <FieldGroup>
@@ -624,12 +668,14 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 <StyledInput
                   id="ccm-email"
                   type="email"
+                  autoComplete="email"
                   $error={!!fieldErrors.email}
+                  aria-describedby={fieldErrors.email ? 'ccm-email-error' : undefined}
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   disabled={loading}
                 />
-                {fieldErrors.email && <FieldError>{fieldErrors.email}</FieldError>}
+                {fieldErrors.email && <FieldError id="ccm-email-error">{fieldErrors.email}</FieldError>}
               </FieldGroup>
 
               {!isExternal && (
@@ -637,12 +683,14 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                   <FieldLabel htmlFor="ccm-username">Username *</FieldLabel>
                   <StyledInput
                     id="ccm-username"
+                    autoComplete="off"
                     $error={!!fieldErrors.username}
+                    aria-describedby={fieldErrors.username ? 'ccm-username-error' : undefined}
                     value={formData.username}
                     onChange={(e) => handleInputChange('username', e.target.value)}
                     disabled={loading}
                   />
-                  {fieldErrors.username && <FieldError>{fieldErrors.username}</FieldError>}
+                  {fieldErrors.username && <FieldError id="ccm-username-error">{fieldErrors.username}</FieldError>}
                 </FieldGroup>
               )}
 
@@ -652,12 +700,14 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                   <StyledInput
                     id="ccm-password"
                     type="password"
+                    autoComplete="new-password"
                     $error={!!fieldErrors.password}
+                    aria-describedby={fieldErrors.password ? 'ccm-password-error' : undefined}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     disabled={loading}
                   />
-                  {fieldErrors.password && <FieldError>{fieldErrors.password}</FieldError>}
+                  {fieldErrors.password && <FieldError id="ccm-password-error">{fieldErrors.password}</FieldError>}
                 </FieldGroup>
               )}
 

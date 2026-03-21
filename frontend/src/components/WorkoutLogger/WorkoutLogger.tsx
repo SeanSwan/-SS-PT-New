@@ -15,9 +15,9 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
-import { Plus, Search, Download, Heart, Shield, RotateCcw } from 'lucide-react';
+import { Plus, Download, Heart, Shield, RotateCcw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -44,6 +44,8 @@ import NASMProtocolSection, { type NASMItem } from './NASMProtocolSection';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
+import NASMExerciseRolodex from './NASMExerciseRolodex';
+import type { ExerciseSlim } from './useExerciseSearch';
 
 // ==================== INTERFACES ====================
 
@@ -90,16 +92,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [client, setClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
-  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
-  const [popularExercises, setPopularExercises] = useState<Exercise[]>([]);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(true);
-  const [searchHighlightIndex, setSearchHighlightIndex] = useState(-1);
+  const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
 
   // ── NASM Protocol State (stable IDs for React reconciliation) ──
   const [warmupItems, setWarmupItems] = useState<NASMItem[]>([
@@ -138,50 +136,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     i === index ? { ...item, completed: !item.completed } : item
   )), []);
 
-  // ── Exercise Search ──
-  const loadExercises = useCallback(async (query: string) => {
-    if (!query || query.trim().length < 2) {
-      setAvailableExercises(popularExercises);
-      return;
-    }
-    setIsLoadingExercises(true);
-    try {
-      const api = new ApiService();
-      const response = await api.get(`/api/exercises/search?q=${encodeURIComponent(query)}&limit=10`);
-      setAvailableExercises(response.success && response.exercises ? response.exercises : []);
-    } catch (error) {
-      console.error('Failed to search exercises:', error);
-      setAvailableExercises([]);
-      toast.error('Failed to search exercises. Please try again.');
-    } finally {
-      setIsLoadingExercises(false);
-    }
-  }, [popularExercises]);
-
-  const loadPopularExercises = useCallback(async () => {
-    try {
-      const api = new ApiService();
-      const response = await api.get('/api/exercises/search?q=squat&limit=5');
-      if (response.success && response.exercises) {
-        setPopularExercises(response.exercises);
-        setAvailableExercises(response.exercises);
-      }
-    } catch (error) {
-      console.error('Failed to load popular exercises:', error);
-    }
-  }, []);
-
-  // ── Load client + popular exercises on mount ──
+  // ── Load client on mount ──
   useEffect(() => {
     loadClientData();
-    loadPopularExercises();
-  }, [clientId, loadPopularExercises]);
-
-  // ── Debounced exercise search ──
-  useEffect(() => {
-    const timeoutId = setTimeout(() => loadExercises(searchQuery), 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, loadExercises]);
+  }, [clientId]);
 
   // ── AI-to-Logger prefill ──
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
@@ -340,7 +298,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     setNumber, weight: 0, reps: 0, rpe: 5, tempo: '', restTime: 60, formQuality: 3, notes: ''
   }), []);
 
-  const addExercise = useCallback((exercise: Exercise) => {
+  const addExercise = useCallback((exercise: Exercise | ExerciseSlim) => {
     setExercises(prev => [...prev, {
       exerciseId: exercise.id,
       exerciseName: exercise.name,
@@ -349,7 +307,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       painLevel: 0,
       performanceNotes: ''
     }]);
-    setSearchQuery('');
     setShowExerciseSearch(false);
     toast.success(`Added ${exercise.name} to workout`);
   }, [createEmptySet]);
@@ -393,30 +350,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
     toast.info('Exercise removed from workout');
   }, []);
-
-  // ── Keyboard navigation for search dropdown ──
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!showExerciseSearch || availableExercises.length === 0) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSearchHighlightIndex(prev =>
-        prev < availableExercises.length - 1 ? prev + 1 : 0
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSearchHighlightIndex(prev =>
-        prev > 0 ? prev - 1 : availableExercises.length - 1
-      );
-    } else if (e.key === 'Enter' && searchHighlightIndex >= 0) {
-      e.preventDefault();
-      addExercise(availableExercises[searchHighlightIndex]);
-      setSearchHighlightIndex(-1);
-    } else if (e.key === 'Escape') {
-      setShowExerciseSearch(false);
-      setSearchHighlightIndex(-1);
-    }
-  }, [showExerciseSearch, availableExercises, searchHighlightIndex, addExercise]);
 
   // ── Export PDF ──
   const handleExportPDF = useCallback(() => {
@@ -578,6 +511,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           availableSessions={client.availableSessions}
           totalSets={totalSets}
           estimatedDuration={estimatedDuration}
+          currentOPTPhase={currentOPTPhase}
+          onOPTPhaseChange={setCurrentOPTPhase}
         />
 
         {/* NASM Warmup */}
@@ -600,59 +535,19 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           </LoadPlanRow>
 
           <ExerciseSearchBar>
-            <SearchIcon />
-            <SearchInput
-              type="text"
-              placeholder="Search exercises by name, type, or muscle group..."
-              aria-label="Search exercises"
+            <RolodexTrigger
+              onClick={() => setShowExerciseSearch(prev => !prev)}
+              aria-label="Search and add exercises"
               aria-expanded={showExerciseSearch}
-              aria-controls="exercise-search-dropdown"
-              aria-activedescendant={searchHighlightIndex >= 0 ? `search-result-${searchHighlightIndex}` : undefined}
-              role="combobox"
-              aria-autocomplete="list"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setSearchHighlightIndex(-1); }}
-              onFocus={() => setShowExerciseSearch(true)}
-              onKeyDown={handleSearchKeyDown}
+            >
+              <Plus size={18} />
+              Search & Add Exercise
+            </RolodexTrigger>
+            <NASMExerciseRolodex
+              isOpen={showExerciseSearch}
+              onClose={() => setShowExerciseSearch(false)}
+              onSelectExercise={addExercise}
             />
-            <AnimatePresence>
-              {showExerciseSearch && (
-                <SearchDropdown
-                  id="exercise-search-dropdown"
-                  role="listbox"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                  {isLoadingExercises ? (
-                    <DropdownMessage>
-                      <LoadingSpinner style={{ margin: '0 auto' }} />
-                      <div style={{ marginTop: '0.5rem' }}>Searching exercises...</div>
-                    </DropdownMessage>
-                  ) : availableExercises.length > 0 ? (
-                    availableExercises.map((exercise, idx) => (
-                      <SearchResultItem
-                        key={exercise.id}
-                        id={`search-result-${idx}`}
-                        role="option"
-                        aria-selected={idx === searchHighlightIndex}
-                        $highlighted={idx === searchHighlightIndex}
-                        onClick={() => addExercise(exercise)}
-                      >
-                        <SearchResultName>{exercise.name}</SearchResultName>
-                        <SearchResultMeta>
-                          {exercise.exerciseType} • {exercise.muscleGroups.join(', ')}
-                        </SearchResultMeta>
-                      </SearchResultItem>
-                    ))
-                  ) : (
-                    <DropdownMessage>
-                      {searchQuery.length >= 2 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
-                    </DropdownMessage>
-                  )}
-                </SearchDropdown>
-              )}
-            </AnimatePresence>
           </ExerciseSearchBar>
 
           {exercises.length === 0 ? (
@@ -826,80 +721,35 @@ const ExerciseSearchBar = styled.div`
   margin-bottom: 2rem;
 `;
 
-const SearchInput = styled.input`
+const RolodexTrigger = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  padding: 1rem 1rem 1rem 3.25rem;
+  min-height: 52px;
+  padding: 1rem 1.25rem;
   background: ${CS.inputBg};
   backdrop-filter: blur(12px);
   border: 2px solid ${CS.glassBorder};
   border-radius: 1rem;
-  color: ${CS.text};
-  font-size: 1rem;
+  color: ${CS.textSecondary};
+  font-size: 0.95rem;
   font-family: 'Sora', sans-serif;
-  min-height: 52px;
-  box-sizing: border-box;
-  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
 
-  &:focus {
+  &:hover {
+    border-color: ${CS.glow};
+    color: ${CS.text};
+  }
+
+  &:focus-visible {
     outline: none;
     border-color: ${CS.glow};
-    box-shadow: 0 0 0 3px rgba(80, 160, 240, 0.15), 0 0 24px rgba(80, 160, 240, 0.1);
+    box-shadow: 0 0 0 3px rgba(80, 160, 240, 0.15);
   }
-  &::placeholder { color: rgba(224, 236, 244, 0.65); }
-`;
 
-const SearchIcon = styled(Search)`
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${CS.gaming};
-  pointer-events: none;
-`;
-
-const SearchDropdown = styled(motion.div)`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: ${CS.card};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${CS.glassBorder};
-  border-radius: 1rem;
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 1000;
-  margin-top: 0.25rem;
-`;
-
-const DropdownMessage = styled.div`
-  padding: 1.5rem;
-  text-align: center;
-  color: ${CS.textSecondary};
-`;
-
-const SearchResultItem = styled.div<{ $highlighted?: boolean }>`
-  padding: 1rem;
-  cursor: pointer;
-  border-bottom: 1px solid ${CS.glassBorder};
-  transition: background 0.2s ease;
-  background: ${props => props.$highlighted ? 'rgba(139, 92, 246, 0.18)' : 'transparent'};
-
-  &:hover { background: rgba(139, 92, 246, 0.12); }
-`;
-
-const SearchResultName = styled.div`
-  font-weight: 600;
-  color: ${CS.text};
-  font-family: 'Plus Jakarta Sans', sans-serif;
-`;
-
-const SearchResultMeta = styled.div`
-  font-size: 0.8rem;
-  color: ${CS.textSecondary};
-  margin-top: 4px;
-  font-family: 'Sora', sans-serif;
+  svg { color: ${CS.gaming}; flex-shrink: 0; }
 `;
 
 const AddExerciseButton = styled(motion.button)`
