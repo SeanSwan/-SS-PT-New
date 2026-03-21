@@ -92,9 +92,20 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
     try {
       const api = new ApiService();
       const res = await api.get('/api/exercises/all');
-      const data = res?.data ?? res; // AxiosResponse wraps in .data
-      if (data?.success && data.exercises) {
-        const exercises: ExerciseSlim[] = data.exercises;
+      // ApiService returns AxiosResponse — unwrap .data safely
+      const payload = res?.data ?? res;
+      const body = (typeof payload === 'object' && payload !== null) ? payload : {};
+      if (body.success && Array.isArray(body.exercises)) {
+        // Sanitize each exercise to guarantee ExerciseSlim shape
+        const exercises: ExerciseSlim[] = body.exercises.map((ex: Record<string, unknown>) => ({
+          id: String(ex?.id ?? ''),
+          name: String(ex?.name ?? 'Unknown Exercise'),
+          exerciseKey: String(ex?.exerciseKey ?? ex?.id ?? ''),
+          exerciseType: String(ex?.exerciseType ?? 'exercise'),
+          bodyPartCategory: String(ex?.bodyPartCategory ?? 'Full Body'),
+          primaryMuscles: Array.isArray(ex?.primaryMuscles) ? ex.primaryMuscles as string[] : [],
+          difficulty: Number(ex?.difficulty) || 1,
+        }));
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);
         lastFetchRef.current = Date.now();
