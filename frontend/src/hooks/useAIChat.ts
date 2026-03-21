@@ -207,6 +207,13 @@ export function useAIChat() {
         };
       });
 
+      // Dispatch FRONTEND_DISPATCH actions as CustomEvents for WorkoutLogger
+      if (data.frontendActions?.length) {
+        for (const action of data.frontendActions) {
+          window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
+        }
+      }
+
       return data.assistantMessage;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return null;
@@ -303,6 +310,14 @@ export function useAIChat() {
           lastMessageAt: data.assistantMessage.timestamp,
         };
       });
+
+      // Dispatch FRONTEND_DISPATCH actions as CustomEvents for WorkoutLogger
+      if (data.frontendActions?.length) {
+        for (const action of data.frontendActions) {
+          window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
+        }
+      }
+
       return data.assistantMessage;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return null;

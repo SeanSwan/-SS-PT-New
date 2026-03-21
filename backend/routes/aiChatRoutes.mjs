@@ -319,6 +319,36 @@ router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
       }
     }
 
+    // Extract FRONTEND_DISPATCH action blocks (AI_ADD_EXERCISE, AI_LOAD_TEMPLATE, etc.)
+    // These are passed back to the frontend which dispatches them as CustomEvents
+    let frontendActions = [];
+    if (aiResult.content) {
+      try {
+        const dispatchRegex = /```json\s*(\{[\s\S]*?"action"\s*:\s*"frontend_dispatch"[\s\S]*?\})\s*```/g;
+        let match;
+        while ((match = dispatchRegex.exec(aiResult.content)) !== null) {
+          try {
+            const parsed = JSON.parse(match[1]);
+            if (parsed.event && parsed.payload) {
+              // Whitelist allowed events for security
+              const ALLOWED_EVENTS = [
+                'AI_ADD_EXERCISE', 'AI_LOAD_TEMPLATE', 'AI_UPDATE_SET',
+                'AI_TOGGLE_NASM_ITEM', 'AI_SUBMIT_WORKOUT',
+              ];
+              if (ALLOWED_EVENTS.includes(parsed.event)) {
+                frontendActions.push({ event: parsed.event, payload: parsed.payload });
+              }
+            }
+          } catch { /* skip malformed individual blocks */ }
+        }
+        if (frontendActions.length > 0) {
+          logger.info('[AIChatRoutes] Extracted %d frontend dispatch actions', frontendActions.length);
+        }
+      } catch (parseErr) {
+        logger.warn('[AIChatRoutes] Failed to parse frontend dispatch actions:', parseErr.message);
+      }
+    }
+
     return res.json({
       success: true,
       userMessage: userMsg,
@@ -326,6 +356,7 @@ router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
       conversationId: conversation.id,
       messageCount: updatedMessages.length,
       dataUpdateResult,
+      frontendActions: frontendActions.length > 0 ? frontendActions : undefined,
     });
   } catch (err) {
     logger.error('[AIChatRoutes] Send message error:', err.message);
