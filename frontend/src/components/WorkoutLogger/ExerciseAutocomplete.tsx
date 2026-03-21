@@ -16,9 +16,9 @@ import { ApiService } from '../../services/api.service';
 
 /* ─── Crystalline Swan Palette ─── */
 const CS = {
-  bg: '#002060',
-  surface: '#003080',
-  card: 'rgba(0, 32, 96, 0.85)',
+  bg: '#141419',
+  surface: '#1A1A24',
+  card: 'rgba(20, 20, 25, 0.85)',
   gaming: '#60C0F0',
   glow: '#50A0F0',            // Arctic Cyan — GLOW ACCENT
   glowLight: '#7CB8F4',       // Arctic Cyan Light (WCAG AA)
@@ -62,7 +62,7 @@ const StyledInput = styled.input<{ $error?: boolean }>`
   padding: 12px 16px 12px 42px;
   border-radius: 0.75rem;
   border: 1.5px solid ${({ $error }) => ($error ? '#ef4444' : CS.glassBorder)};
-  background: rgba(0, 48, 128, 0.4);
+  background: rgba(20, 20, 25, 0.6);
   backdrop-filter: blur(12px);
   color: ${CS.text};
   font-size: 0.95rem;
@@ -98,7 +98,7 @@ const Dropdown = styled.ul`
   margin: 0;
   padding: 6px 0;
   border-radius: 1rem;
-  background: rgba(0, 24, 72, 0.95);
+  background: rgba(20, 20, 25, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(80, 160, 240, 0.2);

@@ -38,7 +38,7 @@ import {
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
 // Sub-components
-import { CS, shimmer, getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION, reducedMotionSafe } from './WorkoutLoggerCS';
+import { CS, withAlpha, shimmer, getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION, reducedMotionSafe } from './WorkoutLoggerCS';
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import NASMProtocolSection, { type NASMItem } from './NASMProtocolSection';
 import ExerciseCardComponent from './ExerciseCardComponent';
@@ -46,6 +46,14 @@ import SessionSummaryForm from './SessionSummaryForm';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
+import {
+  DEFAULT_WARMUP_ITEMS,
+  DEFAULT_BALANCE_CORE_ITEMS,
+  DEFAULT_COOLDOWN_ITEMS,
+} from './NASMProtocolDefaults';
+import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
+import NASMPhaseGuide from './NASMPhaseGuide';
+import { getPhaseTemplate } from './NASMPhaseTemplates';
 
 // ==================== INTERFACES ====================
 
@@ -99,28 +107,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isLoadingClient, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
 
-  // ── NASM Protocol State (stable IDs for React reconciliation) ──
-  const [warmupItems, setWarmupItems] = useState<NASMItem[]>([
-    { id: 'warmup-1', name: 'Foam Roll — IT Band / TFL', completed: false },
-    { id: 'warmup-2', name: 'Foam Roll — Calves', completed: false },
-    { id: 'warmup-3', name: 'Static Stretch — Hip Flexors (30s each)', completed: false },
-    { id: 'warmup-4', name: 'Static Stretch — Chest / Anterior Deltoid (30s)', completed: false },
-    { id: 'warmup-5', name: 'Dynamic Warmup — Leg Swings (10 each)', completed: false },
-    { id: 'warmup-6', name: 'Dynamic Warmup — Arm Circles (10 each direction)', completed: false },
-  ]);
-  const [balanceCoreItems, setBalanceCoreItems] = useState<NASMItem[]>([
-    { id: 'balance-1', name: 'Single-Leg Balance — 30s each side', completed: false },
-    { id: 'balance-2', name: 'Single-Leg Balance Reach — 10 each side', completed: false },
-    { id: 'balance-3', name: 'Plank Hold — 30-60s', completed: false },
-    { id: 'balance-4', name: 'Dead Bug — 10 each side', completed: false },
-    { id: 'balance-5', name: 'Pallof Press — 10 each side', completed: false },
-  ]);
-  const [cooldownItems, setCooldownItems] = useState<NASMItem[]>([
-    { id: 'cooldown-1', name: 'Static Stretch — Hamstrings (30s each)', completed: false },
-    { id: 'cooldown-2', name: 'Static Stretch — Quadriceps (30s each)', completed: false },
-    { id: 'cooldown-3', name: 'Static Stretch — Chest & Shoulders (30s each)', completed: false },
-    { id: 'cooldown-4', name: 'Deep Breathing — 5 breaths, box pattern', completed: false },
-  ]);
+  // ── NASM Protocol State — Full exercise lists from NASMProtocolDefaults ──
+  const [warmupItems, setWarmupItems] = useState<NASMItem[]>(DEFAULT_WARMUP_ITEMS);
+  const [balanceCoreItems, setBalanceCoreItems] = useState<NASMItem[]>(DEFAULT_BALANCE_CORE_ITEMS);
+  const [cooldownItems, setCooldownItems] = useState<NASMItem[]>(DEFAULT_COOLDOWN_ITEMS);
   const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<string, boolean>>({
     warmup: true, balanceCore: false, cooldown: false,
   });
@@ -135,6 +125,49 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   ) => setter(prev => prev.map((item, i) =>
     i === index ? { ...item, completed: !item.completed } : item
   )), []);
+
+  // ── Load Phase Template ──
+  const loadPhaseTemplate = useCallback((phase: number) => {
+    const template = getPhaseTemplate(phase);
+    if (!template) return;
+
+    // Pre-fill exercises from template
+    const templateExercises: ExerciseEntry[] = template.exercises.map((ex, i) => ({
+      exerciseId: `template-${phase}-${i}-${Date.now()}`,
+      exerciseName: ex.name,
+      sets: Array.from({ length: ex.sets }, (_, s) => ({
+        setNumber: s + 1,
+        weight: 0,
+        reps: ex.reps,
+        rpe: 5,
+        tempo: ex.tempo,
+        restTime: ex.restSeconds,
+        formQuality: 3,
+        notes: ex.notes || '',
+      })),
+      formRating: 3,
+      painLevel: 0,
+      performanceNotes: '',
+    }));
+
+    // Mark warmup items matching template as completed
+    setWarmupItems(prev => prev.map(item => ({
+      ...item,
+      completed: template.warmupIds.includes(item.id),
+    })));
+    setBalanceCoreItems(prev => prev.map(item => ({
+      ...item,
+      completed: template.balanceCoreIds.includes(item.id),
+    })));
+    setCooldownItems(prev => prev.map(item => ({
+      ...item,
+      completed: template.cooldownIds.includes(item.id),
+    })));
+
+    setExercises(templateExercises);
+    setCurrentOPTPhase(phase);
+    toast.success(`Loaded Phase ${phase} template — ${templateExercises.length} exercises, ${templateExercises.reduce((s, e) => s + e.sets.length, 0)} sets`);
+  }, []);
 
   // ── Load client on mount ──
   useEffect(() => {
@@ -176,6 +209,63 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     window.addEventListener(APPLY_WORKOUT_EVENT, handler);
     return () => window.removeEventListener(APPLY_WORKOUT_EVENT, handler);
   }, [convertAIExercises]);
+
+  // ── AI-as-Operator Event Listeners ──
+  useEffect(() => {
+    const onLoadTemplate = (e: Event) => {
+      const { phase } = (e as CustomEvent).detail || {};
+      if (phase >= 1 && phase <= 5) loadPhaseTemplate(phase);
+    };
+    const onAddExercise = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d?.exerciseName) return;
+      const entry: ExerciseEntry = {
+        exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        exerciseName: d.exerciseName,
+        sets: Array.from({ length: d.sets || 3 }, (_, i) => ({
+          setNumber: i + 1,
+          weight: d.weight || 0,
+          reps: d.reps || 10,
+          rpe: 5,
+          tempo: d.tempo || '',
+          restTime: d.restSeconds || 60,
+          formQuality: 3,
+          notes: d.notes || '',
+        })),
+        formRating: 3,
+        painLevel: 0,
+        performanceNotes: '',
+      };
+      setExercises(prev => [...prev, entry]);
+      toast.success(`Added ${d.exerciseName}`);
+    };
+    const onToggleItem = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d?.section) return;
+      const setter = d.section === 'warmup' ? setWarmupItems
+        : d.section === 'balance_core' ? setBalanceCoreItems
+        : setCooldownItems;
+      if (d.markAll) {
+        setter(prev => prev.map(item => ({ ...item, completed: d.completed ?? true })));
+        toast.success(`Marked all ${d.section} items ${d.completed === false ? 'incomplete' : 'complete'}`);
+      } else if (d.itemName) {
+        const name = d.itemName.toLowerCase();
+        setter(prev => prev.map(item =>
+          item.name.toLowerCase().includes(name)
+            ? { ...item, completed: d.completed ?? true }
+            : item
+        ));
+      }
+    };
+    window.addEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
+    window.addEventListener('AI_ADD_EXERCISE', onAddExercise);
+    window.addEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
+    return () => {
+      window.removeEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
+      window.removeEventListener('AI_ADD_EXERCISE', onAddExercise);
+      window.removeEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
+    };
+  }, [loadPhaseTemplate]);
 
   // Check sessionStorage on mount for pending AI plan
   useEffect(() => {
@@ -483,7 +573,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // ── Render ──
   return (
-    <>
+    <NASMLearningProvider>
       <WorkoutLoggerContainer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -513,6 +603,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           estimatedDuration={estimatedDuration}
           currentOPTPhase={currentOPTPhase}
           onOPTPhaseChange={setCurrentOPTPhase}
+        />
+
+        {/* Learning Mode Toggle */}
+        <LearningModeToggle />
+
+        {/* NASM Phase Guide — Education card with Load Template */}
+        <NASMPhaseGuide
+          phase={currentOPTPhase}
+          onLoadTemplate={loadPhaseTemplate}
         />
 
         {/* NASM Warmup */}
@@ -636,7 +735,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           showGenerateSummary={!!submittedFormId}
         />
       </WorkoutLoggerContainer>
-    </>
+    </NASMLearningProvider>
   );
 };
 
@@ -650,7 +749,9 @@ const spin = keyframes`
 
 const WorkoutLoggerContainer = styled(motion.div)`
   min-height: 100vh;
-  background: linear-gradient(165deg, ${CS.bg} 0%, #001040 40%, #001848 100%);
+  background: ${CS.bgDeep};
+  background-image: radial-gradient(circle at 80% 20%, ${withAlpha(CS.secondary, 0.08)} 0%, transparent 40%),
+                    radial-gradient(circle at 20% 80%, ${withAlpha(CS.glow, 0.04)} 0%, transparent 40%);
   padding: 2rem;
   color: ${CS.text};
   font-family: 'Sora', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -662,7 +763,7 @@ const WorkoutLoggerContainer = styled(motion.div)`
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.04;
+    opacity: 0.03;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 256px 256px;
@@ -728,9 +829,9 @@ const RolodexTrigger = styled.button`
   width: 100%;
   min-height: 52px;
   padding: 1rem 1.25rem;
-  background: ${CS.inputBg};
-  backdrop-filter: blur(12px);
-  border: 2px solid ${CS.glassBorder};
+  background: ${CS.inputBgDark};
+  backdrop-filter: blur(16px);
+  border: 2px solid ${withAlpha(CS.glow, 0.12)};
   border-radius: 1rem;
   color: ${CS.textSecondary};
   font-size: 0.95rem;

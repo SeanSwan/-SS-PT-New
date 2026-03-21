@@ -1,6 +1,25 @@
 /**
- * SessionSummaryForm — Intensity slider, notes, and workout stats
- * Extracted from WorkoutLogger monolith
+ * ┌─── SUB-COMPONENT: SessionSummaryForm ──────────────────────┐
+ * │ PARENT: WorkoutLogger                                       │
+ * │ PURPOSE: Session summary with intensity slider, notes,      │
+ * │          and real-time workout stats (exercises, sets, time) │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────────────┐                │
+ * │ │ Session Summary                          │                │
+ * │ │ ┌─ Intensity ──────────────────────────┐ │                │
+ * │ │ │ [●━━━━━━━━━━━━━━━━━━━━━━━] 7/10      │ │                │
+ * │ │ └──────────────────────────────────────┘ │                │
+ * │ │ ┌─ Notes ──────────────────────────────┐ │                │
+ * │ │ │ [textarea]                           │ │                │
+ * │ │ └──────────────────────────────────────┘ │                │
+ * │ │ [Exercises: 5] [Sets: 18] [~45 min]     │                │
+ * │ └──────────────────────────────────────────┘                │
+ * │ Props: {                                                    │
+ * │   overallIntensity, onIntensityChange,                      │
+ * │   sessionNotes, onNotesChange,                              │
+ * │   exerciseCount, totalSets, estimatedDuration               │
+ * │ }                                                           │
+ * └─────────────────────────────────────────────────────────────┘
  */
 import React from 'react';
 import styled from 'styled-components';
@@ -177,7 +196,7 @@ const TextArea = styled.textarea`
   width: 100%;
   min-height: 100px;
   padding: 1rem;
-  background: rgba(0, 48, 128, 0.4);
+  background: rgba(20, 20, 25, 0.7);
   border: 1px solid ${CS.glassBorder};
   border-radius: 0.75rem;
   color: ${CS.text};

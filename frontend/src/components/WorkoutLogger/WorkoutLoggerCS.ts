@@ -18,10 +18,10 @@ export const withAlpha = (hex: string, opacity: number): string => {
 
 export const CS = {
   // ── Base Semantic Colors ──
-  bg: '#002060',             // Midnight Sapphire
-  surface: '#003080',         // Royal Depth
-  card: 'rgba(0, 32, 96, 0.75)',  // Glass
-  cardSolid: '#00275a',
+  bg: '#141419',             // Carbon — primary dark bg (black theme)
+  surface: '#1A1A24',         // Graphite — elevated surfaces (black theme)
+  card: 'rgba(20, 20, 25, 0.75)',  // Carbon glass (black theme)
+  cardSolid: '#141419',
   accent: '#C6A84B',          // Gilded Fern (luxury)
   gaming: '#60C0F0',          // Ice Wing
   glow: '#50A0F0',            // Arctic Cyan — GLOW ACCENT
@@ -31,13 +31,20 @@ export const CS = {
   tertiary: '#4070C0',        // Swan Lavender
   text: '#E0ECF4',            // Frost White
   textSecondary: '#c8d6e5',
+  textMuted: '#94a3b8',       // WCAG AA safe muted text on dark
   border: 'rgba(80, 160, 240, 0.2)',
   borderSolid: '#4a6382',
   glassBorder: 'rgba(80, 160, 240, 0.15)',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
-  inputBg: 'rgba(0, 48, 128, 0.5)',
+  inputBg: 'rgba(20, 20, 25, 0.7)',  // Carbon glass for inputs (black theme)
+
+  // ── Obsidian Black Palette (Primary Backgrounds) ──
+  bgDeep: '#0A0A0F',          // Obsidian Black — primary dark background
+  cardDark: '#141419',         // Carbon — card/panel backgrounds
+  surfaceDark: '#1A1A24',      // Graphite — elevated surfaces, modals
+  inputBgDark: 'rgba(20, 20, 25, 0.7)',  // Carbon glass for inputs
 
   // ── Derived Badge Tokens (calculated once at module load) ──
   warningBg: withAlpha('#f59e0b', 0.12),

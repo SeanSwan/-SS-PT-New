@@ -140,6 +140,7 @@ export function useBootcampAPI() {
     spaceProfileId?: number;
     equipmentProfileId?: number;
     name?: string;
+    optPhase?: number;
   }): Promise<GeneratedBootcamp> => {
     const data = await apiFetch<{ success: boolean; bootcamp: GeneratedBootcamp }>(
       '/api/bootcamp/generate',

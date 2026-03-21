@@ -15,6 +15,9 @@ SwanStudios (SS-PT) is a production personal training SaaS platform deployed on 
   - Swan Lavender `#4070C0` (Tertiary — logo mid-body purple-blue)
   - Wing Purple `#8B5CF6` (Glow Accent — purple button bg, glow on blue buttons, focus rings, hover states)
   - Abyssal Navy `#001840` (WCAG Dark — compliant dark backgrounds)
+  - Obsidian Black `#0A0A0F` (Deep Dark — primary dark background, replaces heavy blue gradients)
+  - Carbon `#141419` (Card Dark — card/panel backgrounds on dark surfaces)
+  - Graphite `#1A1A24` (Surface Dark — elevated surfaces, modals, drawers)
 - **Dual-Button Glow System:**
   - Blue buttons (`#002060` bg) → Wing Purple `#8B5CF6` glow
   - Purple buttons (`#8B5CF6` bg) → Ice Wing Cyan `#60C0F0` glow

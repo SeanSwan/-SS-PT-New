@@ -56,5 +56,5 @@ export function initializeRegistry() {
 
   initialized = true;
 
-  logger.info(`[CommandRegistry] Initialized with 94 commands across 12 categories`);
+  logger.info(`[CommandRegistry] Initialized with 99 commands across 12 categories`);
 }

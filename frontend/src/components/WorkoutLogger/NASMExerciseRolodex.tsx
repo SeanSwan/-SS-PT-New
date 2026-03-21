@@ -21,7 +21,7 @@
  * │ 59 exercises · 12 matching                 │
  * └────────────────────────────────────────────┘
  *
- * Props: { onSelectExercise, isOpen, onClose }
+ * Props: { onSelectExercise, isOpen, onClose, sectionContext? }
  */
 
 import React, { memo, useCallback, useState, useRef, useEffect, useMemo } from 'react';
@@ -34,6 +34,9 @@ import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
 
 // ─── Types ──────────────────────────────────────────────────
 
+/** Section context for pre-filtering exercises by workout section */
+type SectionContext = 'warmup' | 'balance_core' | 'cooldown' | 'main';
+
 interface NASMExerciseRolodexProps {
   /** Called when user picks an exercise */
   onSelectExercise: (exercise: ExerciseSlim) => void;
@@ -41,6 +44,8 @@ interface NASMExerciseRolodexProps {
   isOpen: boolean;
   /** Close the dropdown */
   onClose: () => void;
+  /** Pre-filter exercises by workout section context */
+  sectionContext?: SectionContext;
 }
 
 // ─── Constants ──────────────────────────────────────────────
@@ -50,10 +55,58 @@ const MAX_VISIBLE_ROWS = 6;
 
 // ─── Component ──────────────────────────────────────────────
 
+// ─── Section Context Filters ─────────────────────────────
+// Pre-filter patterns for each workout section. Matched against
+// lowercased exercise name, bodyPartCategory, and exerciseType.
+
+const SECTION_PATTERNS: Record<Exclude<SectionContext, 'main'>, {
+  categories: string[];
+  types: string[];
+  nameKeywords: RegExp;
+}> = {
+  warmup: {
+    categories: ['recovery'],
+    types: ['flexibility'],
+    nameKeywords: /foam roll|stretch|dynamic|warmup|warm up|corrective/i,
+  },
+  balance_core: {
+    categories: ['core'],
+    types: [],
+    nameKeywords: /balance|plank|stability|bird dog|dead bug|pallof/i,
+  },
+  cooldown: {
+    categories: ['recovery'],
+    types: [],
+    nameKeywords: /stretch|foam roll|breathing|cool down|cooldown|recovery/i,
+  },
+};
+
+/**
+ * Filters exercises by section context. Returns true if the exercise
+ * belongs to the given section, or if no section context is set.
+ */
+function matchesSectionContext(ex: ExerciseSlim, ctx?: SectionContext): boolean {
+  if (!ctx || ctx === 'main') return true;
+  const pattern = SECTION_PATTERNS[ctx];
+  if (!pattern) return true;
+
+  const cat = (ex.bodyPartCategory || '').toLowerCase();
+  const type = (ex.exerciseType || '').toLowerCase();
+
+  if (pattern.categories.some(c => cat === c)) return true;
+  if (pattern.types.some(t => type === t)) return true;
+  if (pattern.nameKeywords.test(ex.name)) return true;
+
+  return false;
+}
+
+// ─── Component ──────────────────────────────────────────────
+
 const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   onSelectExercise,
   isOpen,
   onClose,
+  sectionContext,
 }) => {
   const {
     results,
@@ -71,15 +124,27 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<List>(null);
 
-  // ── Category counts (memoized) ──
+  // ── Section-aware filtering (applied on top of search/category results) ──
+  const filteredResults = useMemo(() => {
+    if (!sectionContext || sectionContext === 'main') return results;
+    return results.filter(ex => matchesSectionContext(ex, sectionContext));
+  }, [results, sectionContext]);
+
+  // ── Section-aware allExercises (for accurate counts) ──
+  const filteredAllExercises = useMemo(() => {
+    if (!sectionContext || sectionContext === 'main') return allExercises;
+    return allExercises.filter(ex => matchesSectionContext(ex, sectionContext));
+  }, [allExercises, sectionContext]);
+
+  // ── Category counts (memoized, uses section-filtered list) ──
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: allExercises.length };
-    for (const ex of allExercises) {
+    const counts: Record<string, number> = { All: filteredAllExercises.length };
+    for (const ex of filteredAllExercises) {
       const cat = ex.bodyPartCategory || 'Full Body';
       counts[cat] = (counts[cat] || 0) + 1;
     }
     return counts;
-  }, [allExercises]);
+  }, [filteredAllExercises]);
 
   // ── Focus input when opened ──
   useEffect(() => {
@@ -110,22 +175,22 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlightIndex(prev => {
-        const next = prev < results.length - 1 ? prev + 1 : 0;
+        const next = prev < filteredResults.length - 1 ? prev + 1 : 0;
         listRef.current?.scrollToItem(next, 'smart');
         return next;
       });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightIndex(prev => {
-        const next = prev > 0 ? prev - 1 : results.length - 1;
+        const next = prev > 0 ? prev - 1 : filteredResults.length - 1;
         listRef.current?.scrollToItem(next, 'smart');
         return next;
       });
-    } else if (e.key === 'Enter' && highlightIndex >= 0 && results[highlightIndex]) {
+    } else if (e.key === 'Enter' && highlightIndex >= 0 && filteredResults[highlightIndex]) {
       e.preventDefault();
-      handleSelect(results[highlightIndex]);
+      handleSelect(filteredResults[highlightIndex]);
     }
-  }, [results, highlightIndex, onClose]);
+  }, [filteredResults, highlightIndex, onClose]);
 
   const handleSelect = useCallback((exercise: ExerciseSlim) => {
     onSelectExercise(exercise);
@@ -135,7 +200,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
   // ── Row renderer for react-window ──
   const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const ex = results[index];
+    const ex = filteredResults[index];
     if (!ex) return null;
     return (
       <ExerciseRow
@@ -152,11 +217,11 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         </ExMeta>
       </ExerciseRow>
     );
-  }, [results, highlightIndex, handleSelect]);
+  }, [filteredResults, highlightIndex, handleSelect]);
 
   if (!isOpen) return null;
 
-  const listHeight = Math.min(results.length, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
+  const listHeight = Math.min(filteredResults.length, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
 
   return (
     <Wrapper ref={wrapperRef}>
@@ -172,7 +237,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
           autoComplete="off"
           aria-label="Search exercises"
           role="combobox"
-          aria-expanded={results.length > 0}
+          aria-expanded={filteredResults.length > 0}
           aria-controls="exercise-rolodex-list"
         />
         {(isSearching || isLoading) && <SpinnerIcon size={16} />}
@@ -186,12 +251,12 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       />
 
       {/* Virtualized Results */}
-      {results.length > 0 ? (
+      {filteredResults.length > 0 ? (
         <ListContainer>
           <List
             ref={listRef}
             height={listHeight || ROW_HEIGHT}
-            itemCount={results.length}
+            itemCount={filteredResults.length}
             itemSize={ROW_HEIGHT}
             width="100%"
             id="exercise-rolodex-list"
@@ -211,9 +276,10 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
       {/* Status Bar */}
       <StatusBar>
-        {allExercises.length} exercises
-        {query && ` · ${results.length} matching`}
+        {filteredAllExercises.length} exercises
+        {query && ` · ${filteredResults.length} matching`}
         {category && category !== 'All' && ` · ${category}`}
+        {sectionContext && sectionContext !== 'main' && ` · ${sectionContext.replace('_', ' ')}`}
       </StatusBar>
     </Wrapper>
   );
@@ -240,10 +306,10 @@ const Wrapper = styled.div`
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(0, 24, 72, 0.96);
+  background: rgba(20, 20, 25, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid ${CS.border};
+  border: 1px solid ${withAlpha(CS.glow, 0.15)};
   border-radius: 1rem;
   padding: 12px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 40px ${withAlpha(CS.glow, 0.06)};

@@ -1,6 +1,18 @@
 /**
- * WorkoutLoggerFooter — Action buttons (Cancel, Export PDF, Complete & Save, Generate Summary)
- * Extracted from WorkoutLogger monolith
+ * ┌─── SUB-COMPONENT: WorkoutLoggerFooter ─────────────────────┐
+ * │ PARENT: WorkoutLogger                                       │
+ * │ PURPOSE: Action bar with Cancel, Export PDF, Submit, and    │
+ * │          optional Generate Summary buttons                  │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────────────┐                │
+ * │ │ [← Cancel] [📄 PDF] [💬 Summary] [Save] │                │
+ * │ └──────────────────────────────────────────┘                │
+ * │ Props: {                                                    │
+ * │   onCancel, onExportPDF, onSubmit, onGenerateSummary?,      │
+ * │   hasExercises, isSubmitting, isGeneratingSummary,           │
+ * │   showGenerateSummary                                       │
+ * │ }                                                           │
+ * └─────────────────────────────────────────────────────────────┘
  */
 import React from 'react';
 import styled, { keyframes, css } from 'styled-components';

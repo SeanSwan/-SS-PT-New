@@ -1,6 +1,21 @@
 /**
- * WorkoutLoggerHeader — Client info, date, session count, stats
- * Extracted from WorkoutLogger monolith
+ * ┌─── SUB-COMPONENT: WorkoutLoggerHeader ─────────────────────┐
+ * │ PARENT: WorkoutLogger                                       │
+ * │ PURPOSE: Displays client name, date, session count, quick   │
+ * │          stats (sets, duration), and OPT phase selector     │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────────────┐                │
+ * │ │ 👤 Client: Jane Doe    📅 Mar 21, 2026  │                │
+ * │ │ Sessions: 12  |  Sets: 18  |  ~45 min    │                │
+ * │ │ [OPTPhaseIndicator ─── Phase 2 ▼]        │                │
+ * │ └──────────────────────────────────────────┘                │
+ * │ Props: {                                                    │
+ * │   clientFirstName, clientLastName,                          │
+ * │   availableSessions, totalSets, estimatedDuration,          │
+ * │   currentOPTPhase?, onOPTPhaseChange?                       │
+ * │ }                                                           │
+ * │ Children: OPTPhaseIndicator                                 │
+ * └─────────────────────────────────────────────────────────────┘
  */
 import React from 'react';
 import styled from 'styled-components';

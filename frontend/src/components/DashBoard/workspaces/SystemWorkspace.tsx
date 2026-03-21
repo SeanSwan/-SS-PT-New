@@ -4,6 +4,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
+import AITerminalPanel from '../../Shared/AITerminalPanel';
 
 const allTabs: WorkspaceTab[] = [
   { id: 'health', label: 'Health', icon: <Monitor size={18} />, path: '/dashboard/system' },
@@ -18,11 +19,21 @@ const allTabs: WorkspaceTab[] = [
 const tabs = import.meta.env.DEV ? allTabs : allTabs.filter(t => t.id !== 'security');
 
 const SystemWorkspace: React.FC = () => (
-  <WorkspaceContainer
-    title="System"
-    subtitle="System health, security, and administrative settings"
-    tabs={tabs}
-  />
+  <>
+    <div style={{ padding: '24px 24px 0' }}>
+      <AITerminalPanel
+        context="general"
+        label="System Assistant"
+        emptyHint="Ask about health, security, automation..."
+        defaultOpen={false}
+      />
+    </div>
+    <WorkspaceContainer
+      title="System"
+      subtitle="System health, security, and administrative settings"
+      tabs={tabs}
+    />
+  </>
 );
 
 export default SystemWorkspace;

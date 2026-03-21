@@ -167,6 +167,100 @@ const commands = [
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: true, category: 'B',
   },
+
+  // ─── AI-as-Operator Commands (dispatch to frontend form) ───
+  {
+    type: 'load_phase_template',
+    description: 'Load a NASM OPT phase template into the workout logger form',
+    naturalLanguagePatterns: ['load phase {phase} template', 'use phase {phase}', 'start with phase {phase} workout'],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_LOAD_TEMPLATE',
+    inputSchema: z.object({
+      phase: NASMPhaseSchema,
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_LOAD_TEMPLATE',
+  },
+  {
+    type: 'add_exercise_to_form',
+    description: 'Add an exercise to the current workout form with optional set details',
+    naturalLanguagePatterns: [
+      'add {exercise} to the workout', 'add {sets} sets of {exercise} at {weight}',
+      'put {exercise} in', 'include {exercise}',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_ADD_EXERCISE',
+    inputSchema: z.object({
+      exerciseName: z.string().min(1),
+      sets: z.number().int().min(1).max(20).default(3),
+      reps: z.number().int().min(1).max(100).default(10),
+      weight: z.number().min(0).optional(),
+      tempo: z.string().max(10).optional(),
+      restSeconds: z.number().int().min(0).max(600).optional(),
+      notes: z.string().max(500).optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_ADD_EXERCISE',
+  },
+  {
+    type: 'update_set_data',
+    description: 'Update weight, reps, or RPE for a specific set in the workout logger',
+    naturalLanguagePatterns: [
+      'set {exercise} weight to {weight}', 'RPE {rpe} for {exercise}',
+      '{client} did {reps} at {weight} on {exercise}',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_UPDATE_SET',
+    inputSchema: z.object({
+      exerciseName: z.string().min(1),
+      setNumber: z.number().int().min(1).optional(),
+      weight: z.number().min(0).optional(),
+      reps: z.number().int().min(1).optional(),
+      rpe: z.number().min(1).max(10).optional(),
+      tempo: z.string().max(10).optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_UPDATE_SET',
+  },
+  {
+    type: 'toggle_nasm_item',
+    description: 'Check or uncheck a warmup, cooldown, or balance/core item',
+    naturalLanguagePatterns: [
+      'mark {item} complete', 'check off {item}', 'mark all warmup complete',
+      'done with {item}', 'finish {section}',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_TOGGLE_NASM_ITEM',
+    inputSchema: z.object({
+      section: z.enum(['warmup', 'balance_core', 'cooldown']),
+      itemName: z.string().min(1).optional(),
+      markAll: z.boolean().default(false),
+      completed: z.boolean().default(true),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_TOGGLE_NASM_ITEM',
+  },
+  {
+    type: 'submit_workout_form',
+    description: 'Submit the current workout form (requires confirmation)',
+    naturalLanguagePatterns: [
+      'submit this workout', 'save the workout', 'done with the session',
+      'complete and save', 'finish workout',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_SUBMIT_WORKOUT',
+    inputSchema: z.object({
+      intensity: z.number().int().min(1).max(10).optional(),
+      notes: z.string().max(1000).optional(),
+    }),
+    destructive: false, requiresConfirmation: true,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_SUBMIT_WORKOUT',
+  },
 ];
 
 export function register() {

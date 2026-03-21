@@ -5,6 +5,7 @@ import {
   ClipboardList, Ruler, Target,
 } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
+import AITerminalPanel from '../../Shared/AITerminalPanel';
 
 const tabs: WorkspaceTab[] = [
   { id: 'clients', label: 'Clients', icon: <Users size={18} />, path: '/dashboard/people' },
@@ -21,11 +22,21 @@ const tabs: WorkspaceTab[] = [
 ];
 
 const ClientsWorkspace: React.FC = () => (
-  <WorkspaceContainer
-    title="Clients & Team"
-    subtitle="Manage clients, trainers, and team operations"
-    tabs={tabs}
-  />
+  <>
+    <div style={{ padding: '24px 24px 0' }}>
+      <AITerminalPanel
+        context="client_review"
+        label="Client Assistant"
+        emptyHint="Ask about client management, progress, onboarding..."
+        defaultOpen={false}
+      />
+    </div>
+    <WorkspaceContainer
+      title="Clients & Team"
+      subtitle="Manage clients, trainers, and team operations"
+      tabs={tabs}
+    />
+  </>
 );
 
 export default ClientsWorkspace;

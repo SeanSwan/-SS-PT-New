@@ -29,7 +29,7 @@ const PageWrapper = styled.div<{ $floorMode?: boolean }>`
   padding: 20px;
   ${({ $floorMode }) => $floorMode
     ? css`background: #000; color: #F8F9FA;`
-    : css`background: linear-gradient(180deg, #002060 0%, #001040 100%); color: #e0ecf4;`
+    : css`background: #0A0A0F; color: #e0ecf4;`
   }
 
   @media (max-width: 430px) {
@@ -101,7 +101,7 @@ const ThreePane = styled.div`
 `;
 
 const Panel = styled.div`
-  background: rgba(0, 32, 96, 0.4);
+  background: rgba(20, 20, 25, 0.6);
   border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 12px;
   padding: 16px;
@@ -198,7 +198,7 @@ const SectionDivider = styled.div`
 `;
 
 const StationCard = styled.div`
-  background: rgba(0, 32, 96, 0.5);
+  background: rgba(20, 20, 25, 0.7);
   border: 1px solid rgba(96, 192, 240, 0.2);
   border-radius: 8px;
   padding: 12px;
@@ -349,6 +349,7 @@ const BootcampBuilderPage: React.FC = () => {
   const [targetDuration, setTargetDuration] = useState('50');
   const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
+  const [optPhase, setOptPhase] = useState(1);
 
   // State
   const [bootcamp, setBootcamp] = useState<GeneratedBootcamp | null>(null);
@@ -372,6 +373,7 @@ const BootcampBuilderPage: React.FC = () => {
         expectedParticipants: parseInt(expectedParticipants, 10) || 12,
         name: className || undefined,
         equipmentProfileId: equipmentProfileId || undefined,
+        optPhase,
       });
       setBootcamp(result);
     } catch (err) {
@@ -465,6 +467,17 @@ const BootcampBuilderPage: React.FC = () => {
               {DAY_TYPES.map(d => (
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
+            </Select>
+          </FormGroup>
+
+          <FormGroup>
+            <Label>NASM OPT Phase</Label>
+            <Select value={optPhase} onChange={e => setOptPhase(Number(e.target.value))}>
+              <option value={1}>Phase 1 — Stabilization Endurance</option>
+              <option value={2}>Phase 2 — Strength Endurance</option>
+              <option value={3}>Phase 3 — Hypertrophy</option>
+              <option value={4}>Phase 4 — Maximal Strength</option>
+              <option value={5}>Phase 5 — Power</option>
             </Select>
           </FormGroup>
 

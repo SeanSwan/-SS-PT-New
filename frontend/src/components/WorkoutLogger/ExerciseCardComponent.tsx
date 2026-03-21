@@ -104,68 +104,86 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
       </TableHeader>
       {exercise.sets.map((set, setIndex) => (
         <SetRow key={setIndex}>
-          <SetNumber>{set.setNumber}</SetNumber>
-          <NumberInput
-            type="number"
-            value={set.weight || ''}
-            onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
-            placeholder="0"
-            aria-label={`Set ${set.setNumber} weight in lbs`}
-          />
-          <NumberInput
-            type="number"
-            value={set.reps || ''}
-            onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-            placeholder="0"
-            aria-label={`Set ${set.setNumber} reps`}
-          />
-          <TempoInput
-            value={set.tempo || ''}
-            onChange={(val) => onUpdateSet(exerciseIndex, setIndex, 'tempo', val)}
-            ariaLabel={`Set ${set.setNumber} tempo`}
-          />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <SliderInput
-              type="range"
-              min={1}
-              max={10}
-              value={set.rpe}
-              onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))}
+          <SetCell data-label="Set">
+            <SetNumber>{set.setNumber}</SetNumber>
+          </SetCell>
+          <SetCell data-label="Weight">
+            <NumberInput
+              type="number"
+              value={set.weight ?? ''}
+              onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+              aria-label={`Set ${set.setNumber} weight in lbs`}
             />
-            <SliderValue>{set.rpe}</SliderValue>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <StarRatingContainer>
-              {[1, 2, 3, 4, 5].map((rating) => (
-                <StarButton
-                  key={rating}
-                  $filled={rating <= set.formQuality}
-                  onClick={() => onUpdateSet(exerciseIndex, setIndex, 'formQuality', rating)}
-                  aria-label={`Set ${set.setNumber} form quality: ${rating} stars`}
-                  aria-pressed={rating === set.formQuality}
-                >
-                  <Star size={16} />
-                </StarButton>
-              ))}
-            </StarRatingContainer>
-          </div>
-          <RestTimer
-            restSeconds={set.restTime || 60}
-            compact
-          />
-          <TextInput
-            value={set.notes || ''}
-            onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'notes', e.target.value)}
-            placeholder="Form notes..."
-            aria-label={`Set ${set.setNumber} notes`}
-          />
-          <RemoveSetButton
-            onClick={() => onRemoveSet(exerciseIndex, setIndex)}
-            disabled={exercise.sets.length <= 1}
-            aria-label={`Remove set ${set.setNumber}`}
-          >
-            <Minus size={16} />
-          </RemoveSetButton>
+          </SetCell>
+          <SetCell data-label="Reps">
+            <NumberInput
+              type="number"
+              value={set.reps ?? ''}
+              onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+              placeholder="0"
+              aria-label={`Set ${set.setNumber} reps`}
+            />
+          </SetCell>
+          <SetCell data-label="Tempo">
+            <TempoInput
+              value={set.tempo || ''}
+              onChange={(val) => onUpdateSet(exerciseIndex, setIndex, 'tempo', val)}
+              ariaLabel={`Set ${set.setNumber} tempo`}
+            />
+          </SetCell>
+          <SetCell data-label="RPE">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <SliderInput
+                type="range"
+                min={1}
+                max={10}
+                value={set.rpe}
+                onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))}
+              />
+              <SliderValue>{set.rpe}</SliderValue>
+            </div>
+          </SetCell>
+          <SetCell data-label="Form">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <StarRatingContainer>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <StarButton
+                    key={rating}
+                    $filled={rating <= set.formQuality}
+                    onClick={() => onUpdateSet(exerciseIndex, setIndex, 'formQuality', rating)}
+                    aria-label={`Set ${set.setNumber} form quality: ${rating} stars`}
+                    aria-pressed={rating === set.formQuality}
+                  >
+                    <Star size={16} />
+                  </StarButton>
+                ))}
+              </StarRatingContainer>
+            </div>
+          </SetCell>
+          <SetCell data-label="Rest">
+            <RestTimer
+              restSeconds={set.restTime || 60}
+              compact
+            />
+          </SetCell>
+          <SetCell data-label="Notes">
+            <TextInput
+              value={set.notes || ''}
+              onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'notes', e.target.value)}
+              placeholder="Form notes..."
+              aria-label={`Set ${set.setNumber} notes`}
+            />
+          </SetCell>
+          <SetCell data-label="">
+            <RemoveSetButton
+              onClick={() => onRemoveSet(exerciseIndex, setIndex)}
+              disabled={exercise.sets.length <= 1}
+              aria-label={`Remove set ${set.setNumber}`}
+            >
+              <Minus size={16} />
+            </RemoveSetButton>
+          </SetCell>
         </SetRow>
       ))}
     </SetsTable>
@@ -187,14 +205,14 @@ export default ExerciseCardComponent;
 // ── Styled Components ──
 
 const CardContainer = styled(motion.div)`
-  background: ${CS.card};
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(20, 20, 25, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 1.5rem;
   padding: 2rem;
   margin-bottom: 1.5rem;
-  border: 1px solid ${CS.glassBorder};
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 60px rgba(96, 192, 240, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(80, 160, 240, 0.02);
   position: relative;
   overflow: hidden;
   transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -401,11 +419,11 @@ const RemoveExerciseBtn = styled.button`
 /* ── Set Table — Mobile-first per Gemini directive ── */
 
 const SetsTable = styled.div`
-  background: rgba(0, 16, 48, 0.5);
+  background: rgba(10, 10, 15, 0.6);
   border-radius: 1rem;
   overflow: hidden;
   margin-bottom: 1.5rem;
-  border: 1px solid ${CS.glassBorder};
+  border: 1px solid rgba(255, 255, 255, 0.04);
 `;
 
 const TableHeader = styled.div`
@@ -413,7 +431,7 @@ const TableHeader = styled.div`
   grid-template-columns: 50px 90px 70px 120px 80px 100px 130px 1fr 44px;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
-  background: rgba(0, 32, 96, 0.6);
+  background: rgba(26, 26, 36, 0.8);
   font-weight: 700;
   font-size: 0.7rem;
   color: ${CS.gaming};
@@ -437,22 +455,56 @@ const SetRow = styled.div`
   &:last-child { border-bottom: none; }
   &:hover { background: rgba(80, 160, 240, 0.06); }
 
-  /* Mobile: stacked card layout per Gemini directive */
+  /* Mobile: card layout per Gemini directive */
   @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 12px;
+    display: block;
+    margin: 8px;
+    border-radius: 8px;
+    background: rgba(20, 20, 25, 0.5);
+    padding: 4px 0;
+    border-bottom: none;
 
-    & > *:first-child {
-      grid-column: 1 / -1;
-      font-size: 0.9rem;
+    &:last-child { margin-bottom: 4px; }
+  }
+`;
+
+const SetCell = styled.div`
+  display: contents;
+
+  /* Mobile: flex row with data-label pseudo-element */
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+
+    &::before {
+      content: attr(data-label);
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: ${CS.textMuted};
+      min-width: 60px;
+      flex-shrink: 0;
+      font-family: 'Sora', sans-serif;
+    }
+
+    /* Hide empty labels (e.g., remove button column) */
+    &[data-label=""]::before {
+      display: none;
+    }
+
+    /* Let inputs fill remaining space */
+    & > input,
+    & > div {
+      flex: 1;
+      min-width: 0;
     }
   }
 
   @media (max-width: 430px) {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 10px;
+    padding: 6px 10px;
   }
 `;
 
@@ -468,7 +520,7 @@ const SetNumber = styled.div`
 const NumberInput = styled.input`
   width: 100%;
   padding: 0.5rem;
-  background: rgba(0, 48, 128, 0.4);
+  background: rgba(20, 20, 25, 0.6);
   border: 1px solid ${CS.glassBorder};
   border-radius: 0.5rem;
   color: ${CS.text};
@@ -493,6 +545,10 @@ const NumberInput = styled.input`
   }
   &[type=number] { -moz-appearance: textfield; }
 
+  @media (max-width: 768px) {
+    min-height: 48px;
+  }
+
   @media (max-width: 430px) {
     font-size: 16px;
     padding: 10px;
@@ -502,7 +558,7 @@ const NumberInput = styled.input`
 const TextInput = styled.input`
   width: 100%;
   padding: 0.5rem;
-  background: rgba(0, 48, 128, 0.4);
+  background: rgba(20, 20, 25, 0.6);
   border: 1px solid ${CS.glassBorder};
   border-radius: 0.5rem;
   color: ${CS.text};
@@ -519,6 +575,10 @@ const TextInput = styled.input`
   }
 
   &::placeholder { color: rgba(224, 236, 244, 0.4); }
+
+  @media (max-width: 768px) {
+    min-height: 48px;
+  }
 
   @media (max-width: 430px) { font-size: 16px; }
 `;

@@ -5,8 +5,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { ChevronDown } from 'lucide-react';
-import { CS } from './WorkoutLoggerCS';
+import { ChevronDown, Plus } from 'lucide-react';
+import { CS, withAlpha } from './WorkoutLoggerCS';
 
 export interface NASMItem {
   id: string;
@@ -22,6 +22,8 @@ interface NASMProtocolSectionProps {
   isOpen: boolean;
   onToggleOpen: () => void;
   onToggleItem: (index: number) => void;
+  /** Optional callback to add an exercise to this section */
+  onAddExercise?: () => void;
 }
 
 const NASMProtocolSection: React.FC<NASMProtocolSectionProps> = React.memo(({
@@ -31,6 +33,7 @@ const NASMProtocolSection: React.FC<NASMProtocolSectionProps> = React.memo(({
   isOpen,
   onToggleOpen,
   onToggleItem,
+  onAddExercise,
 }) => {
   const completedCount = items.filter(i => i.completed).length;
 
@@ -40,6 +43,16 @@ const NASMProtocolSection: React.FC<NASMProtocolSectionProps> = React.memo(({
         {icon}
         {title}
         <Badge>{completedCount}/{items.length}</Badge>
+        {onAddExercise && (
+          <AddExerciseButton
+            onClick={(e) => { e.stopPropagation(); onAddExercise(); }}
+            aria-label={`Add exercise to ${title}`}
+            title="Add exercise"
+            type="button"
+          >
+            <Plus size={18} />
+          </AddExerciseButton>
+        )}
         <ChevronDown size={18} />
       </SectionHeader>
       <AnimatePresence>
@@ -72,10 +85,10 @@ export default NASMProtocolSection;
 // ── Styled Components ──
 
 const SectionCard = styled.div`
-  background: rgba(0, 48, 128, 0.92);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(96, 192, 240, 0.25);
-  box-shadow: inset 0 1px 0 0 rgba(224, 236, 244, 0.1);
+  background: rgba(20, 20, 25, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid ${withAlpha(CS.glow, 0.12)};
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
   border-radius: 16px;
   margin-bottom: 1rem;
   overflow: hidden;
@@ -148,4 +161,37 @@ const Badge = styled.span`
   background: rgba(139, 92, 246, 0.15);
   color: #A78BFA;
   font-weight: 600;
+`;
+
+// 44px min touch target per CLAUDE.md Build Hardening rules
+const AddExerciseButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1.5px solid ${withAlpha(CS.gaming, 0.25)};
+  border-radius: 12px;
+  background: ${withAlpha(CS.gaming, 0.08)};
+  color: ${CS.gaming};
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    background: ${withAlpha(CS.gaming, 0.18)};
+    border-color: ${CS.gaming};
+    box-shadow: 0 0 12px ${withAlpha(CS.gaming, 0.2)};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.gaming};
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 `;

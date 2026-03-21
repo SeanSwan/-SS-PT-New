@@ -146,7 +146,7 @@ const PainFlag = styled.span`
 
 const TranscriptBox = styled.details`
   margin-top: 16px;
-  background: rgba(0, 32, 96, 0.6);
+  background: rgba(20, 20, 25, 0.7);
   border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   overflow: hidden;
