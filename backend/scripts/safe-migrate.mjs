@@ -44,7 +44,7 @@ function isAlreadyAppliedError(stderr) {
 }
 
 /** Get a Sequelize connection using the same config as sequelize-cli */
-function getSequelize() {
+async function getSequelize() {
   if (env === 'production' && process.env.DATABASE_URL) {
     return new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
