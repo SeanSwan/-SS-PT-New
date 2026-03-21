@@ -47,6 +47,31 @@ async function start() {
         // Seeder failure is non-fatal — server can still start
         console.warn('Achievement seeder failed (non-fatal):', seedErr.message);
       }
+
+      // Run exercise seeders (idempotent — uses ON CONFLICT DO NOTHING / findOrCreate)
+      console.log('Running exercise seeders...');
+      try {
+        // NASM seeder uses Sequelize CLI format (up/down exports)
+        await run('npx', [
+          'sequelize-cli', 'db:seed',
+          '--seed', '20260228-seed-nasm-comprehensive-exercises.mjs',
+          '--config', 'config/config.cjs',
+          '--seeders-path', 'seeders',
+          '--models-path', 'models',
+          '--env', 'production'
+        ]);
+        console.log('NASM exercise seeder completed (200+ exercises)');
+      } catch (exSeedErr) {
+        console.warn('NASM exercise seeder failed (non-fatal):', exSeedErr.message);
+      }
+
+      try {
+        // Expanded seeder is a standalone script (imports Exercise model directly)
+        await run('node', ['seeders/20260321-seed-expanded-exercises.mjs']);
+        console.log('Expanded exercise seeder completed (300+ exercises)');
+      } catch (exSeedErr) {
+        console.warn('Expanded exercise seeder failed (non-fatal):', exSeedErr.message);
+      }
     } catch (err) {
       // Migration failure is non-fatal — let the server start so we can debug
       console.error('WARNING: Migration failed (non-fatal):', err.message);

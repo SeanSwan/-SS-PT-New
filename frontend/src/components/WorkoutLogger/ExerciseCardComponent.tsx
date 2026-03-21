@@ -532,7 +532,7 @@ const NumberInput = styled.input`
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: ${CS.glow};
     box-shadow: 0 0 0 2px rgba(80, 160, 240, 0.15);
@@ -568,7 +568,7 @@ const TextInput = styled.input`
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 
-  &:focus {
+  &:focus-visible {
     outline: none;
     border-color: ${CS.glow};
     box-shadow: 0 0 0 2px rgba(80, 160, 240, 0.15);
@@ -605,6 +605,12 @@ const AddSetButton = styled(motion.button)`
     border-color: rgba(80, 160, 240, 0.5);
     border-style: solid;
     transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.glow};
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(80, 160, 240, 0.15);
   }
 `;
 
