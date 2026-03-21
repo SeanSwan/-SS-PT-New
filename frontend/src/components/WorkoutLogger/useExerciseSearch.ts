@@ -92,8 +92,9 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
     try {
       const api = new ApiService();
       const res = await api.get('/api/exercises/all');
-      if (res?.success && res.exercises) {
-        const exercises: ExerciseSlim[] = res.exercises;
+      const data = res?.data ?? res; // AxiosResponse wraps in .data
+      if (data?.success && data.exercises) {
+        const exercises: ExerciseSlim[] = data.exercises;
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);
         lastFetchRef.current = Date.now();
