@@ -39,7 +39,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { Dumbbell, Clock, Flame, TrendingUp, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -415,7 +415,7 @@ const RetryButton = styled.button`
   }
 `;
 
-const shimmer = styled.keyframes`
+const shimmer = keyframes`
   0% { background-position: -200px 0; }
   100% { background-position: calc(200px + 100%) 0; }
 `;
