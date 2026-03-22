@@ -57,6 +57,13 @@ export const CS = {
   activePillBg: 'rgba(139, 92, 246, 0.2)',
   userBubbleBg: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(96, 192, 240, 0.08))',
   assistantBubbleBg: 'rgba(0, 32, 96, 0.5)',
+  // ── Obsidian Black Variant Tokens ──
+  obsidianBlack: '#0A0A0F',
+  carbon: '#141419',
+  graphite: '#1A1A24',
+  rgbObsidianBlack: '10, 10, 15',
+  rgbCarbon: '20, 20, 25',
+  rgbGraphite: '26, 26, 36',
 } as const;
 
 // ── Typography ──

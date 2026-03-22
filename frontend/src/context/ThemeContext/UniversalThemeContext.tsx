@@ -616,6 +616,112 @@ const frozenAurora = {
   },
 };
 
+/**
+ * OBSIDIAN BLACK THEME — "Obsidian Black"
+ * Pure black background with minimal accents. Workout logger dark aesthetic —
+ * mostly black/dark with subtle Wing Purple accents and Ice Wing for data only.
+ * Background: #0A0A0F (Obsidian Black from CLAUDE.md)
+ * Card surface: #141419 (Carbon)
+ * Elevated: #1A1A24 (Graphite)
+ * Primary accent: #8B5CF6 (Wing Purple) — minimal usage
+ * Data accent: #60C0F0 (Ice Wing) — charts/data only
+ */
+const obsidianBlack = {
+  id: 'obsidian-black' as const,
+  name: 'Obsidian Black',
+  fonts,
+  effects: {
+    glassmorphism: false,
+    glowIntensity: 'subtle' as const,
+    cardStyle: 'solid' as const,
+    borderGlow: false,
+  },
+  colors: {
+    deepSpace: '#0A0A0F',
+    stardust: '#141419',
+    void: '#050508',
+
+    // Midnight Sapphire as primary button color per CLAUDE.md
+    primary: '#002060',
+    primaryBlue: '#003080',
+    primaryDeep: '#001840',
+    primaryLight: '#004090',
+    primaryNeon: '#002060',
+
+    // Wing Purple as secondary accent
+    secondary: '#8B5CF6',
+    secondaryLight: '#A78BFA',
+    secondaryDeep: '#7C3AED',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#8B5CF6',
+    wingPurpleLight: '#A78BFA',
+    wingPurpleDeep: '#7C3AED',
+
+    // Ice Wing for gaming/data accents
+    iceWing: '#60C0F0',
+
+    white: '#E0ECF4',
+    silver: '#E0ECF4',
+    muted: 'rgba(224, 236, 244, 0.5)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    // Cosmic Nebula gradient for premium CTAs
+    primary: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
+    secondary: 'linear-gradient(135deg, #141419, #1A1A24)',
+    cosmic: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
+    hero: 'radial-gradient(ellipse at 30% 40%, rgba(139,92,246,0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(96,192,240,0.03) 0%, transparent 50%), radial-gradient(ellipse at center, #141419 0%, #0A0A0F 70%)',
+    card: 'linear-gradient(135deg, #141419, #1A1A24)',
+    accent: 'linear-gradient(135deg, #0A0A0F, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #8B5CF6 0%, #60C0F0 100%)',
+    swanCosmic: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
+    glass: 'linear-gradient(135deg, rgba(20, 20, 25, 0.9), rgba(139, 92, 246, 0.03))',
+  },
+  shadows: {
+    // Wing Purple glow on blue buttons per dual-button glow system
+    primary: '0 0 20px rgba(139, 92, 246, 0.15)',
+    secondary: '0 0 15px rgba(96, 192, 240, 0.1)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 92, 246, 0.08)',
+    accent: '0 0 15px rgba(198, 168, 75, 0.3)',
+    elevation: '0 10px 30px rgba(0, 0, 0, 0.7)',
+    glow: '0 0 15px currentColor',
+    glass: '0 4px 16px rgba(0, 0, 0, 0.5)',
+    button: '0 4px 16px rgba(139, 92, 246, 0.25)',
+  },
+  borders: {
+    subtle: 'rgba(139, 92, 246, 0.08)',
+    elegant: 'rgba(139, 92, 246, 0.15)',
+    prominent: 'rgba(139, 92, 246, 0.25)',
+    glass: '1px solid rgba(139, 92, 246, 0.12)',
+    card: '1px solid rgba(139, 92, 246, 0.1)',
+    focus: '2px solid #60C0F0',
+    glow: '1px solid rgba(139, 92, 246, 0.15)',
+  },
+  background: {
+    primary: '#0A0A0F',
+    secondary: '#141419',
+    // Graphite for surfaces and elevated panels/modals
+    surface: '#1A1A24',
+    elevated: '#1A1A24',
+  },
+  text: {
+    primary: '#E0ECF4',
+    secondary: '#94a3b8',
+    muted: 'rgba(148, 163, 184, 0.6)',
+    heading: '#E0ECF4',
+    subheading: 'rgba(224, 236, 244, 0.9)',
+    body: '#94a3b8',
+    label: 'rgba(148, 163, 184, 0.7)',
+    accent: '#8B5CF6',
+  },
+};
+
 // === THEME MAPPING ===
 export const themes = {
   'crystalline-default': crystallineDefault,
@@ -624,6 +730,7 @@ export const themes = {
   'crystalline-mono': crystallineMono,
   'cinematic-ember': cinematicEmber,
   'frozen-aurora': frozenAurora,
+  'obsidian-black': obsidianBlack,
 } as const;
 
 export type ThemeId = keyof typeof themes;
@@ -684,7 +791,7 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
   const toggleTheme = () => {
     const cycle: ThemeId[] = [
       'crystalline-default', 'crystalline-light', 'crystalline-dark',
-      'crystalline-mono', 'cinematic-ember', 'frozen-aurora',
+      'crystalline-mono', 'cinematic-ember', 'frozen-aurora', 'obsidian-black',
     ];
     const currentIndex = cycle.indexOf(currentTheme);
     const nextIndex = (currentIndex + 1) % cycle.length;
@@ -745,6 +852,8 @@ export const getGlowButtonVariant = (themeId: ThemeId): string => {
       return 'cosmic'; // Deep ice glow
     case 'crystalline-mono':
       return 'ghost'; // Thin white border, no gradient
+    case 'obsidian-black':
+      return 'cosmic'; // Subtle purple glow
     default:
       return 'primary';
   }

@@ -31,6 +31,14 @@ export interface UserProfile {
   preferences?: string;
   bannerPhoto?: string;
   bio?: string;
+  city?: string;
+  state?: string;
+  socialLinks?: {
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+  };
+  chartVisibility?: Record<string, boolean>;
   points?: number;
   level?: number;
   tier?: 'bronze' | 'silver' | 'gold' | 'platinum';

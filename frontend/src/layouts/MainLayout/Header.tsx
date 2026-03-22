@@ -1,15 +1,32 @@
+/**
+ * ============================================================================
+ * FILE: Header.tsx
+ * PURPOSE: Main site header with navigation, auth, cart, and theme toggle
+ * AUTHOR: SwanStudios Team | LAST MODIFIED: 2026-03-22
+ * AI VILLAGE VALIDATED: 2026-03-22
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Renders the fixed site header with logo, desktop nav,
+ * mobile hamburger menu, portals dropdown, cart badge, auth button, and the
+ * UniversalThemeToggle for switching between all 7 theme variants.
+ *
+ * HOW IT FITS IN THE APP: MainLayout → Header (top of every page)
+ * KEY DECISIONS: Theme toggle placed in RightSection next to cart/auth for
+ * maximum discoverability. 44px touch target enforced per CLAUDE.md.
+ */
+
 import React, { useState, useEffect } from 'react';
 import styled, { css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Menu, 
-  X, 
-  ChevronDown, 
-  LayoutDashboard, 
-  Users, 
-  Shield, 
-  User, 
+import {
+  Menu,
+  X,
+  ChevronDown,
+  LayoutDashboard,
+  Users,
+  Shield,
+  User,
   Dumbbell,
   ShoppingCart,
   LogOut,
@@ -17,11 +34,14 @@ import {
 } from 'lucide-react';
 
 // Assets
-import logo from '../../assets/Logo.png'; 
+import logo from '../../assets/Logo.png';
 
 // Hooks (Assumed paths based on project structure)
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../context/CartContext';
+
+// Theme Toggle
+import UniversalThemeToggle from '../../context/ThemeContext/UniversalThemeToggle';
 
 // --- Styled Components ---
 
@@ -517,6 +537,30 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
         <NavLink to="/contact">Contact</NavLink>
       </DesktopNav>
 
+      {/* Right Section: Theme Toggle + Cart + Auth */}
+      <RightSection>
+        <UniversalThemeToggle size="medium" showTooltip />
+
+        {isAuthenticated && (
+          <IconButton to="/shop" aria-label="Shopping cart">
+            <ShoppingCart size={22} />
+            {cartItems && cartItems.length > 0 && (
+              <CartBadge>{cartItems.length}</CartBadge>
+            )}
+          </IconButton>
+        )}
+
+        {isAuthenticated ? (
+          <AuthButton onClick={() => logout()}>
+            <LogOut size={18} /> Logout
+          </AuthButton>
+        ) : (
+          <AuthButton as={Link as any} to="/login" style={{ textDecoration: 'none' }}>
+            <LogIn size={18} /> Login
+          </AuthButton>
+        )}
+      </RightSection>
+
       {/* Mobile Menu Button */}
       <MobileMenuBtn onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
         {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -562,6 +606,13 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
               ))}
             </div>
             
+            {/* Theme Toggle — mobile */}
+            <MobileSectionTitle>Theme</MobileSectionTitle>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+              <UniversalThemeToggle size="medium" showTooltip />
+              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>Tap to cycle themes</span>
+            </div>
+
             {isAuthenticated && (
               <div style={{ marginTop: '2rem' }}>
                 <AuthButton onClick={() => { logout(); setMobileMenuOpen(false); }} style={{ width: '100%', justifyContent: 'center' }}>

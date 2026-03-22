@@ -7,11 +7,14 @@
  * AI Village 9-Brain Consensus (2026-03-15): Galaxy-Swan purge,
  * Midnight Sapphire backgrounds, Royal Depth surfaces, Frost White text.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { ArrowLeft, MapPin, Calendar, Award, Lock } from 'lucide-react';
 import api from '../../services/api';
+import { useAppSelector } from '../../store';
+import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
+import type { ChartVisibility } from './components/ChartVisibilityToggle';
 
 // ── Crystalline Swan Tokens ──
 const TOKENS = {
@@ -55,6 +58,8 @@ interface UserProfile {
   showBadges?: boolean;
   showStats?: boolean;
   showLevel?: boolean;
+  showCharts?: boolean;
+  chartVisibility?: Partial<ChartVisibility>;
 }
 
 interface UserPost {
@@ -462,6 +467,13 @@ const UserProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
 
+  // Detect if the viewer is viewing their own profile
+  const currentUser = useAppSelector(state => state.auth?.user);
+  const isOwnProfile = useMemo(() => {
+    if (!currentUser || !userId) return false;
+    return String(currentUser.id) === String(userId);
+  }, [currentUser, userId]);
+
   useEffect(() => {
     if (!userId) return;
 
@@ -537,6 +549,7 @@ const UserProfilePage: React.FC = () => {
   const canShowStats = profile.showStats !== false;
   const canShowLevel = profile.showLevel !== false;
   const canShowBadges = profile.showBadges !== false;
+  const canShowCharts = profile.showCharts !== false || isOwnProfile;
 
   return (
     <PageWrapper>
@@ -644,6 +657,14 @@ const UserProfilePage: React.FC = () => {
                 ))}
               </BadgesGrid>
             </>
+          )}
+
+          {canShowCharts && (
+            <ProfileChartsGrid
+              userId={profile.id}
+              chartVisibility={profile.chartVisibility}
+              isOwnProfile={isOwnProfile}
+            />
           )}
 
           <SectionTitle>Posts</SectionTitle>

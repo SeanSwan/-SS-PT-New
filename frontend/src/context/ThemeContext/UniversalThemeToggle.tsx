@@ -17,7 +17,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Zap, Moon, Flame, Snowflake } from 'lucide-react';
+import { Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast } from 'lucide-react';
 import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
@@ -68,6 +68,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '2px solid rgba(245, 158, 11, 0.4)';
       case 'frozen-aurora':
         return '2px solid rgba(99, 102, 241, 0.3)';
+      case 'obsidian-black':
+        return '2px solid rgba(139, 92, 246, 0.3)';
       default:
         return '2px solid transparent';
     }
@@ -86,6 +88,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return 'linear-gradient(135deg, #1A0F0A, #F59E0B)';
       case 'frozen-aurora':
         return 'linear-gradient(135deg, #E2E8F0, #6366F1)';
+      case 'obsidian-black':
+        return '#0A0A0F';
       default:
         return 'linear-gradient(135deg, #001545, #60C0F0)';
     }
@@ -112,6 +116,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '#FFF5EB';
       case 'frozen-aurora':
         return '#4F46E5';
+      case 'obsidian-black':
+        return '#8B5CF6';
       default:
         return '#E0ECF4';
     }
@@ -132,6 +138,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(225, 29, 72, 0.2)';
       case 'frozen-aurora':
         return '0 2px 12px rgba(99, 102, 241, 0.2)';
+      case 'obsidian-black':
+        return '0 0 12px rgba(139, 92, 246, 0.2)';
       default:
         return '0 0 20px rgba(96, 192, 240, 0.4)';
     }
@@ -158,7 +166,7 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
     border-radius: 50%;
     animation: ${orbitingParticles} 3s linear infinite;
     opacity: ${({ $currentTheme }) =>
-      ['crystalline-light', 'crystalline-mono', 'frozen-aurora'].includes($currentTheme) ? '0' : '0.8'
+      ['crystalline-light', 'crystalline-mono', 'frozen-aurora', 'obsidian-black'].includes($currentTheme) ? '0' : '0.8'
     };
   }
 
@@ -184,14 +192,14 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
     animation: ${orbitingParticles} 4s linear infinite reverse;
     animation-delay: -1s;
     opacity: ${({ $currentTheme }) =>
-      ['crystalline-light', 'crystalline-mono', 'frozen-aurora'].includes($currentTheme) ? '0' : '0.6'
+      ['crystalline-light', 'crystalline-mono', 'frozen-aurora', 'obsidian-black'].includes($currentTheme) ? '0' : '0.6'
     };
   }
 
   &:hover {
     transform: scale(1.1);
     animation: ${({ $currentTheme }) =>
-      ['crystalline-light', 'crystalline-mono', 'frozen-aurora'].includes($currentTheme) ? 'none' : stellarPulse
+      ['crystalline-light', 'crystalline-mono', 'frozen-aurora', 'obsidian-black'].includes($currentTheme) ? 'none' : stellarPulse
     } 2s ease-in-out infinite;
     box-shadow: ${({ $currentTheme }) => {
       switch ($currentTheme) {
@@ -207,6 +215,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(225, 29, 72, 0.3)';
         case 'frozen-aurora':
           return '0 4px 16px rgba(99, 102, 241, 0.3)';
+        case 'obsidian-black':
+          return '0 0 20px rgba(139, 92, 246, 0.35)';
         default:
           return '0 0 30px rgba(96, 192, 240, 0.6)';
       }
@@ -228,6 +238,8 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '#E11D48';
         case 'frozen-aurora':
           return '#6366F1';
+        case 'obsidian-black':
+          return '#60C0F0';
         default:
           return '#C6A84B';
       }
@@ -338,6 +350,8 @@ const getThemeIcon = (themeId: ThemeId, size = 20) => {
       return <Flame size={size} />;
     case 'frozen-aurora':
       return <Snowflake size={size} />;
+    case 'obsidian-black':
+      return <Contrast size={size} />;
     default:
       return <Sparkles size={size} />;
   }
@@ -357,6 +371,8 @@ const getThemeDescription = (themeId: ThemeId) => {
       return 'Obsidian Ember';
     case 'frozen-aurora':
       return 'Frozen Aurora';
+    case 'obsidian-black':
+      return 'Obsidian Black';
     default:
       return 'Crystalline Swan';
   }

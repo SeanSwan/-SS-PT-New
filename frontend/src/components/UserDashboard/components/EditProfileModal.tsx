@@ -1,190 +1,137 @@
 /**
- * EditProfileModal
- * Simple modal for editing user profile fields
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: EditProfileModal                                  ║
+ * ║  PURPOSE: Full-featured profile edit dialog with all fields   ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-22                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────────┐
+ * │  Edit Profile                                       [X] │
+ * │  ─────────────── Basic Info ──────────────────────────── │
+ * │  First Name  [_______________]  Last Name [___________]  │
+ * │  Bio         [___________________________________]       │
+ * │  ─────────── Location & Goals ────────────────────────── │
+ * │  City [___________]  State [___________]                 │
+ * │  Fitness Goals [________________________________]        │
+ * │  Phone [_______________]                                 │
+ * │  ─────────── Social Links ────────────────────────────── │
+ * │  [@] Instagram  [_______________]                        │
+ * │  [X] Twitter/X  [_______________]                        │
+ * │  [♪] TikTok     [_______________]                        │
+ * │  ─────────── Chart Visibility ────────────────────────── │
+ * │  [x] Weight Progression  [x] Workout Heatmap            │
+ * │  [x] Muscle Group Radar  [x] Goal Progress              │
+ * │  [ ] Body Fat Trend      [ ] Strength 1RM               │
+ * │  [ ] Calorie Burn        [ ] Session Frequency           │
+ * │  ────────────────────────────────────────────────────────│
+ * │              [ Save Changes ]                            │
+ * └──────────────────────────────────────────────────────────┘
+ *
+ * MERMAID ARCHITECTURE:
+ * graph TD
+ *   A[EditProfileModal] --> B[EditProfileSocialFields]
+ *   A --> C[EditProfileChartToggles]
+ *   A --> D[useEditProfileForm hook]
+ *   A --> E[EditProfileModalStyles]
+ *
+ * CLICK-OUTCOME FLOWCHART:
+ * [X] / Escape / Overlay -> onClose() -> returns focus to trigger
+ * [Input change] -> setField(key, value) -> local state
+ * [Social link change] -> setSocialLink(platform, value) -> local state
+ * [Chart toggle] -> toggleChart(chartKey) -> flips boolean
+ * [Save Changes] -> handleSubmit() -> onSave(data) -> PUT /api/profile
+ *
+ * DATA FLOW:
+ * Props In:  { profile, onClose, onSave }
+ * State:     useEditProfileForm hook (all fields + isSaving)
+ * API Calls: onSave triggers PUT /api/profile in parent
+ * Children:  EditProfileSocialFields, EditProfileChartToggles
  */
-import React, { useState } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { X, Save } from 'lucide-react';
-import { UserProfile } from '../../../services/profileService';
+import { useEditProfileForm } from '../hooks/useEditProfileForm';
+import EditProfileSocialFields from './EditProfileSocialFields';
+import EditProfileChartToggles from './EditProfileChartToggles';
+import {
+  Overlay,
+  ModalContainer,
+  Header,
+  Title,
+  CloseButton,
+  FormGroup,
+  Label,
+  Input,
+  TextArea,
+  CharCount,
+  RowGroup,
+  SectionHeading,
+  SaveButton,
+} from './EditProfileModalStyles';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Types
+// ─────────────────────────────────────────────────────────────
 
 interface EditProfileModalProps {
-  profile: UserProfile | null;
+  profile: Record<string, unknown> | null;
   onClose: () => void;
-  onSave: (data: Partial<UserProfile>) => Promise<void>;
+  onSave: (data: Record<string, unknown>) => Promise<void>;
 }
 
-const fadeIn = keyframes`
-  from { opacity: 0; }
-  to { opacity: 1; }
-`;
+// ─────────────────────────────────────────────────────────────
+// SECTION: Component
+// PURPOSE: Orchestrates form sections with a11y focus management
+// WHY: role="dialog" + aria-modal per CLAUDE.md, Escape to close,
+//      focus returns to trigger on unmount
+// ─────────────────────────────────────────────────────────────
 
-const Overlay = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
+const EditProfileModal: React.FC<EditProfileModalProps> = ({
+  profile,
+  onClose,
+  onSave,
+}) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-const Modal = styled(motion.div)`
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-`;
+  const {
+    form,
+    isSaving,
+    setField,
+    setSocialLink,
+    toggleChart,
+    handleSubmit,
+  } = useEditProfileForm(profile, onSave);
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-`;
+  // Focus management: capture on mount, restore on unmount
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    dialogRef.current?.focus();
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, []);
 
-const Title = styled.h2`
-  color: var(--text-primary);
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-`;
+  // Escape key closes the modal
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
 
-const CloseButton = styled.button`
-  background: var(--bg-surface, var(--bg-elevated));
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: var(--danger, #FF6B6B);
-    color: white;
-  }
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const Label = styled.label`
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: var(--bg-base);
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-  box-sizing: border-box;
-
-  &:focus {
-    border-color: var(--accent-primary);
-  }
-
-  &::placeholder {
-    color: var(--text-muted);
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: var(--bg-base);
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-  resize: vertical;
-  min-height: 100px;
-  font-family: inherit;
-  box-sizing: border-box;
-
-  &:focus {
-    border-color: var(--accent-primary);
-  }
-
-  &::placeholder {
-    color: var(--text-muted);
-  }
-`;
-
-const SaveButton = styled(motion.button)`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6));
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
-
-const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, onSave }) => {
-  const [firstName, setFirstName] = useState(profile?.firstName || '');
-  const [lastName, setLastName] = useState(profile?.lastName || '');
-  const [bio, setBio] = useState(profile?.bio || '');
-  const [fitnessGoal, setFitnessGoal] = useState(profile?.fitnessGoal || '');
-  const [phone, setPhone] = useState(profile?.phone || '');
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      await onSave({ firstName, lastName, bio, fitnessGoal, phone });
-    } catch (err) {
-      console.error('Failed to save profile:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Prevent background scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   return (
     <AnimatePresence>
@@ -194,67 +141,125 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
         exit={{ opacity: 0 }}
         onClick={onClose}
       >
-        <Modal
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        <ModalContainer
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit profile"
+          tabIndex={-1}
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
           onClick={(e) => e.stopPropagation()}
         >
           <Header>
             <Title>Edit Profile</Title>
-            <CloseButton onClick={onClose}>
-              <X size={20} />
+            <CloseButton onClick={onClose} aria-label="Close">
+              <X size={18} />
             </CloseButton>
           </Header>
 
           <form onSubmit={handleSubmit}>
-            <FormGroup>
-              <Label>First Name</Label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Enter your first name"
-              />
-            </FormGroup>
+            {/* ── Basic Info ── */}
+            <SectionHeading>Basic Info</SectionHeading>
+            <RowGroup>
+              <FormGroup>
+                <Label htmlFor="edit-firstName">First Name</Label>
+                <Input
+                  id="edit-firstName"
+                  value={form.firstName}
+                  onChange={(e) => setField('firstName', e.target.value)}
+                  placeholder="First name"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label htmlFor="edit-lastName">Last Name</Label>
+                <Input
+                  id="edit-lastName"
+                  value={form.lastName}
+                  onChange={(e) => setField('lastName', e.target.value)}
+                  placeholder="Last name"
+                />
+              </FormGroup>
+            </RowGroup>
 
             <FormGroup>
-              <Label>Last Name</Label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Enter your last name"
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Bio</Label>
+              <Label htmlFor="edit-bio">Bio</Label>
               <TextArea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                id="edit-bio"
+                value={form.bio}
+                onChange={(e) => setField('bio', e.target.value)}
                 placeholder="Tell the community about yourself..."
+                maxLength={280}
+                rows={3}
+              />
+              <CharCount $near={form.bio.length > 240}>
+                {form.bio.length}/280
+              </CharCount>
+            </FormGroup>
+
+            {/* ── Location & Goals ── */}
+            <SectionHeading>Location &amp; Goals</SectionHeading>
+            <RowGroup>
+              <FormGroup>
+                <Label htmlFor="edit-city">City</Label>
+                <Input
+                  id="edit-city"
+                  value={form.city}
+                  onChange={(e) => setField('city', e.target.value)}
+                  placeholder="City"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label htmlFor="edit-state">State</Label>
+                <Input
+                  id="edit-state"
+                  value={form.state}
+                  onChange={(e) => setField('state', e.target.value)}
+                  placeholder="State"
+                />
+              </FormGroup>
+            </RowGroup>
+
+            <FormGroup>
+              <Label htmlFor="edit-goals">Fitness Goals</Label>
+              <TextArea
+                id="edit-goals"
+                value={form.fitnessGoals}
+                onChange={(e) => setField('fitnessGoals', e.target.value)}
+                placeholder="What are you working toward? e.g., Build muscle, improve golf swing..."
                 maxLength={500}
+                rows={3}
               />
+              <CharCount $near={form.fitnessGoals.length > 420}>
+                {form.fitnessGoals.length}/500
+              </CharCount>
             </FormGroup>
 
             <FormGroup>
-              <Label>Fitness Goal</Label>
+              <Label htmlFor="edit-phone">Phone</Label>
               <Input
-                value={fitnessGoal}
-                onChange={(e) => setFitnessGoal(e.target.value)}
-                placeholder="e.g., Build muscle, Lose weight, Stay active"
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Phone</Label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter your phone number"
+                id="edit-phone"
                 type="tel"
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+                placeholder="(555) 123-4567"
               />
             </FormGroup>
 
+            {/* ── Social Links (sub-component) ── */}
+            <EditProfileSocialFields
+              socialLinks={form.socialLinks}
+              onChange={setSocialLink}
+            />
+
+            {/* ── Chart Visibility (sub-component) ── */}
+            <EditProfileChartToggles
+              chartVisibility={form.chartVisibility}
+              onToggle={toggleChart}
+            />
+
+            {/* ── Submit ── */}
             <SaveButton
               type="submit"
               disabled={isSaving}
@@ -265,7 +270,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
               {isSaving ? 'Saving...' : 'Save Changes'}
             </SaveButton>
           </form>
-        </Modal>
+        </ModalContainer>
       </Overlay>
     </AnimatePresence>
   );

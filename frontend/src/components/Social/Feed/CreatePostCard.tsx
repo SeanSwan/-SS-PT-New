@@ -1,1276 +1,244 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import {
-  Image,
-  Send,
-  X,
-  User,
-  Users,
-  Globe,
-  Plus,
-  Dumbbell,
-  Camera,
-  Trophy,
-  Target,
-  Star,
-  Music2,
-  Mic2,
-  Palette,
-  Gamepad2,
-  Mic,
-  Laugh,
-  Sparkles,
-  History,
-  ChevronDown,
-  BarChart3
-} from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
-import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
-import { useToast } from '../../../hooks/use-toast';
-import styled, { keyframes } from 'styled-components';
-
-// ── Strict TypeScript interfaces for workout API (Issue #4) ─────────
-interface WorkoutSession {
-  id: string;
-  name?: string;
-  workoutName?: string;
-  title?: string;
-  duration?: number;
-  durationMinutes?: number;
-  exerciseCount?: number;
-  exercises?: unknown[];
-  totalWeight?: number;
-  volumeLoad?: number;
-  caloriesBurned?: number;
-  calories?: number;
-  date?: string;
-  sessionDate?: string;
-  createdAt?: string;
-}
-
-interface WorkoutSessionsResponse {
-  data: WorkoutSession[];
-  meta?: { total: number; page: number };
-}
-
-// ── CSS spinner keyframe ──────────────────────────────────────────────
-const spin = keyframes`
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-// ── Styled components (all native HTML – zero MUI) ───────────────────
-
-const CreatePostCardWrapper = styled.div`
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  background: rgba(0, 32, 96, 0.85);
-  color: #e0e0e0;
-`;
-
-const CardBody = styled.div`
-  padding: 16px;
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-`;
-
-const Heading6 = styled.h6`
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #ffffff;
-`;
-
-const BodyText = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-`;
-
-const AvatarCircle = styled.div`
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 1rem;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-`;
-
-const PostInputWrapper = styled.div`
-  display: flex;
-  gap: 12px;
-`;
-
-const FlexColumn = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const StyledTextarea = styled.textarea<{ $rows?: number }>`
-  width: 100%;
-  min-height: ${props => (props.$rows || 3) * 24}px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 20, 64, 0.6);
-  color: #e0e0e0;
-  font-family: inherit;
-  font-size: 0.95rem;
-  resize: vertical;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease;
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  &:focus {
-    border-color: #8B5CF6;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const StyledInput = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 20, 64, 0.6);
-  color: #e0e0e0;
-  font-family: inherit;
-  font-size: 0.875rem;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease;
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  &:focus {
-    border-color: #8B5CF6;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
-  }
-`;
-
-const StyledInputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const InputLabel = styled.label`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-`;
-
-const MediaPreviewWrapper = styled.div`
-  position: relative;
-  margin-top: 16px;
-  border-radius: 8px;
-  overflow: hidden;
-  max-height: 200px;
-`;
-
-const MediaPreview = styled.img`
-  width: 100%;
-  max-height: 200px;
-  object-fit: cover;
-`;
-
-const RemoveMediaButton = styled.button`
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  min-height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-  }
-`;
-
-const FormFooter = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
-const FooterLeft = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
-const FooterRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const VisibilitySelectWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-left: 8px;
-`;
-
-const NativeSelect = styled.select`
-  appearance: none;
-  min-width: 120px;
-  padding: 6px 28px 6px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 20, 64, 0.6)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
-    no-repeat right 8px center;
-  color: #e0e0e0;
-  font-family: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-  outline: none;
-  min-height: 44px;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    border-color: #8B5CF6;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  option {
-    background: #001840;
-    color: #e0e0e0;
-  }
-`;
-
-const SelectHelperText = styled.span`
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 2px;
-`;
-
-const PostTypeSelector = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-`;
-
-const PostTypeChip = styled.button<{ $selected?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.8125rem;
-  font-family: inherit;
-  cursor: pointer;
-  user-select: none;
-  min-height: 44px;
-  border: 2px solid ${props => props.$selected ? '#8B5CF6' : 'rgba(255, 255, 255, 0.2)'};
-  background: ${props => props.$selected ? 'rgba(139, 92, 246, 0.12)' : 'transparent'};
-  color: ${props => props.$selected ? '#8B5CF6' : '#e0e0e0'};
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
-  }
-`;
-
-const PointPreviewChip = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 0.8125rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, #C6A84B, #d4b85a);
-  color: #000B18;
-  white-space: nowrap;
-`;
-
-const FloatingCreateButton = styled.button`
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 56px;
-  height: 56px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
-  transition: transform 0.2s ease, background 0.2s ease;
-
-  &:hover {
-    background: linear-gradient(135deg, #6a44a0, #00e0e0);
-    transform: scale(1.1);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
-
-const TransformationImageContainer = styled.div`
-  display: flex;
-  gap: 16px;
-  margin-top: 16px;
-`;
-
-const TransformationImageBox = styled.button`
-  flex: 1;
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  cursor: pointer;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #8B5CF6;
-    background-color: rgba(139, 92, 246, 0.04);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
-  }
-`;
-
-const WorkoutHistoryBtnRow = styled.div`
-  display: flex;
-  margin-top: 12px;
-`;
-
-const WorkoutHistoryBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  background: rgba(139, 92, 246, 0.05);
-  color: #60C0F0;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  min-height: 40px;
-  transition: all 0.2s ease;
-  &:hover:not(:disabled) { background: rgba(139, 92, 246, 0.12); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const WorkoutHistoryList = styled.div`
-  margin-top: 8px;
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.2);
-`;
-
-const WorkoutHistoryItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: background 0.15s;
-  &:hover { background: rgba(139, 92, 246, 0.08); }
-  &:last-child { border-bottom: none; }
-`;
-
-const WorkoutHistoryInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const WorkoutHistoryName = styled.div`
-  font-size: 0.8125rem;
-  color: #e2e8f0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const WorkoutHistoryDate = styled.div`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-`;
-
-const WorkoutHistoryEmpty = styled.div`
-  padding: 16px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.8125rem;
-`;
-
-const WorkoutStatsContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 16px;
-`;
-
-const OutlinedButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: transparent;
-  color: #e0e0e0;
-  font-family: inherit;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  min-height: 44px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  white-space: nowrap;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    border-color: #8B5CF6;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ContainedButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 20px;
-  border-radius: 6px;
-  border: none;
-  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
-  color: white;
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-  transition: opacity 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
-
-  &:hover {
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const Spinner = styled.span`
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: ${spin} 0.6s linear infinite;
-`;
-
-const DescriptionRow = styled.div`
-  margin-bottom: 16px;
-`;
-
-const PlaceholderContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  opacity: 0.6;
-`;
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: CreatePostCard                                    ║
+ * ║  PURPOSE: Orchestrator for creating social feed posts         ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-22                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────┐
+ * │ [Quick Post / Create Post]          [+25 points chip]  │
+ * │ [PostTypeSelector chips — 11 types]                    │
+ * │ [CategoryOverrideSelector — AI suggestion + override]  │
+ * │ [CreatePostForm — avatar + textarea + workout stats]   │
+ * │ [CreatePostMediaUpload — images/video/transformation]  │
+ * │ ┌──────────────────────────────────────────────────┐   │
+ * │ │ [More Options] [Add Media] [Visibility ▼]        │   │
+ * │ │                     [Simple Mode] [Post button]  │   │
+ * │ └──────────────────────────────────────────────────┘   │
+ * └────────────────────────────────────────────────────────┘
+ * [FloatingCreateButton — fixed bottom-right FAB]
+ *
+ * MERMAID ARCHITECTURE:
+ * graph TD
+ *   A[CreatePostCard] --> B[CreatePostTypeSelector]
+ *   A --> C[CategoryOverrideSelector]
+ *   A --> D[CreatePostForm]
+ *   A --> E[CreatePostMediaUpload]
+ *   A --> F[useCreatePostForm hook]
+ *   D --> D1[WorkoutHistorySection]
+ *   D --> D2[WorkoutStatsGrid]
+ *   E --> E1[TransformationUpload]
+ *   E --> E2[GeneralMediaPreview]
+ *
+ * CLICK-OUTCOME FLOWCHART:
+ * [FAB] -> scrolls to card + expands options
+ * [More Options] -> shows type selector + extra fields
+ * [Simple Mode] -> collapses back to quick post
+ * [Add Media] -> opens file picker -> preview shows
+ * [Visibility select] -> sets post privacy level
+ * [Post button] -> validates -> POST /api/social/posts -> resets form
+ * [Type chip] -> sets postType -> adjusts form fields + placeholder
+ *
+ * DATA FLOW:
+ * Props In:  (none — uses auth context via useCreatePostForm hook)
+ * State:     All state managed by useCreatePostForm hook
+ * API Calls: POST /api/social/posts, GET /api/v1/workouts/sessions
+ * Events:    createPost (via useSocialFeed), triggerFromResult (celebration)
+ * Children:  CreatePostTypeSelector, CategoryOverrideSelector,
+ *            CreatePostForm, CreatePostMediaUpload
+ *
+ * GAMIFICATION HOOKS:
+ * - Post creation -> useSocialFeed.createPost -> backend awards points
+ * - Points awarded -> triggerFromResult fires celebration animation
+ * - Point preview chip shows expected XP before posting
+ */
 
 /**
- * CreatePostCard Component
- * Allows users to create new posts for the social feed
+ * ============================================================================
+ * FILE: CreatePostCard.tsx
+ * PURPOSE: Thin render shell for the multi-type social post creation card
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
+ * AI VILLAGE VALIDATED: 2026-03-22
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Renders the create-post UI by composing sub-components
+ * and wiring them to state/callbacks from the useCreatePostForm hook.
+ *
+ * HOW IT FITS IN THE APP: SocialFeed -> CreatePostCard -> sub-components
+ * KEY DECISIONS: All state and handlers extracted to useCreatePostForm.ts
+ * to satisfy the 300-line no-monolith rule. This file is render-only.
  */
+
+import React from 'react';
+import {
+  User, Users, Globe, Plus, Dumbbell, Camera, Trophy, Target, Star,
+  Music2, Mic2, Palette, Gamepad2, Mic, Laugh, Image, Send,
+} from 'lucide-react';
+
+// Sub-components
+import CreatePostTypeSelector from './components/CreatePostTypeSelector';
+import CategoryOverrideSelector from './components/CategoryOverrideSelector';
+import CreatePostForm from './components/CreatePostForm';
+import CreatePostMediaUpload from './components/CreatePostMediaUpload';
+
+// Hook
+import { useCreatePostForm } from './hooks/useCreatePostForm';
+
+// Styles
+import {
+  CreatePostCardWrapper, CardBody, CardHeader, Heading6,
+  PointPreviewChip, FormFooter, FooterLeft, FooterRight,
+  OutlinedButton, ContainedButton, Spinner,
+  FloatingCreateButton, VisibilitySelectWrapper, NativeSelect,
+  SelectHelperText, FlexColumn,
+} from './styles/CreatePostStyles';
+
+// Types
+import type { PostTypeOption, VisibilityOption } from './types/CreatePostTypes';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Static Config
+// PURPOSE: Post type and visibility option definitions
+// ─────────────────────────────────────────────────────────────
+
+const POST_TYPE_OPTIONS: PostTypeOption[] = [
+  { value: 'general', label: 'General Post', icon: <User size={16} />, points: 10, description: 'Share your thoughts or updates' },
+  { value: 'workout', label: 'Workout Share', icon: <Dumbbell size={16} />, points: 25, description: 'Share your completed workout' },
+  { value: 'transformation', label: 'Transformation', icon: <Camera size={16} />, points: 50, description: 'Before & after progress photos' },
+  { value: 'achievement', label: 'Achievement', icon: <Trophy size={16} />, points: 30, description: 'Celebrate a fitness milestone' },
+  { value: 'challenge', label: 'Challenge', icon: <Target size={16} />, points: 20, description: 'Create or complete a challenge' },
+  { value: 'dance', label: 'Dance', icon: <Music2 size={16} />, points: 20, description: 'Share a dance or movement video' },
+  { value: 'music', label: 'Music Production', icon: <Mic2 size={16} />, points: 20, description: 'Making songs, playing instruments, producing beats' },
+  { value: 'singing', label: 'Singing', icon: <Mic size={16} />, points: 20, description: 'Vocal performances, covers, and original songs' },
+  { value: 'art', label: 'Art', icon: <Palette size={16} />, points: 20, description: 'Share artwork, digital art, photography, and creative projects' },
+  { value: 'gaming', label: 'Gaming', icon: <Gamepad2 size={16} />, points: 15, description: 'Gaming builds, streams, and fitness crossover content' },
+  { value: 'comedy', label: 'Comedy', icon: <Laugh size={16} />, points: 15, description: 'Standup, skits, memes, and funny content' },
+];
+
+const VISIBILITY_OPTIONS: VisibilityOption[] = [
+  { value: 'public', label: 'Public', icon: <Globe size={16} /> },
+  { value: 'friends', label: 'Friends', icon: <Users size={16} /> },
+  { value: 'private', label: 'Only Me', icon: <User size={16} /> },
+];
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Main Component
+// PURPOSE: Render shell — all state lives in useCreatePostForm
+// ─────────────────────────────────────────────────────────────
+
 const CreatePostCard: React.FC = () => {
-  const { user } = useAuth();
-  const { createPost, isCreatingPost } = useSocialFeed();
-  const { triggerFromResult } = useCelebrationTriggers();
-  const { error: toastError } = useToast();
-  const [postContent, setPostContent] = useState('');
-  const [media, setMedia] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('friends');
-  const [postType, setPostType] = useState<'general' | 'workout' | 'transformation' | 'achievement' | 'challenge' | 'dance' | 'music' | 'singing' | 'art' | 'gaming' | 'comedy'>('general');
-  const [showCreateOptions, setShowCreateOptions] = useState(false);
-  const createCardRef = useRef<HTMLDivElement>(null);
-  const [beforeImage, setBeforeImage] = useState<File | null>(null);
-  const [afterImage, setAfterImage] = useState<File | null>(null);
-  const [beforePreview, setBeforePreview] = useState<string | null>(null);
-  const [afterPreview, setAfterPreview] = useState<string | null>(null);
-  const [workoutStats, setWorkoutStats] = useState({
-    duration: '',
-    exerciseCount: '',
-    totalWeight: '',
-    caloriesBurned: ''
-  });
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const beforeImageRef = useRef<HTMLInputElement>(null);
-  const afterImageRef = useRef<HTMLInputElement>(null);
-
-  // Workout history state
-  const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
-  const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  const { authAxios } = useAuth();
-
-  // AbortController ref for cancelling in-flight workout history requests
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Cleanup blob URLs + pending fetches on unmount (Issue #1: Memory Leak)
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-      if (mediaPreview && mediaPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(mediaPreview);
-      }
-      if (beforePreview && beforePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(beforePreview);
-      }
-      if (afterPreview && afterPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(afterPreview);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchWorkoutHistory = useCallback(async () => {
-    if (workoutHistory.length > 0) { setShowWorkoutHistory(true); return; }
-
-    // Cancel any previous in-flight request
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setIsLoadingHistory(true);
-    try {
-      const res = await authAxios.get<WorkoutSessionsResponse>(
-        '/api/v1/workouts/sessions',
-        {
-          params: { limit: 20, status: 'completed' },
-          signal: controller.signal,
-        }
-      );
-      setWorkoutHistory(res.data.data);
-      setShowWorkoutHistory(true);
-    } catch (err: any) {
-      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
-      console.error('Failed to fetch workout history:', err);
-      setWorkoutHistory([]);
-      setShowWorkoutHistory(true);
-    } finally { setIsLoadingHistory(false); }
-  }, [authAxios, workoutHistory.length]);
-
-  const selectWorkoutFromHistory = (workout: WorkoutSession) => {
-    const dur = workout.duration || workout.durationMinutes || '';
-    const exercises = workout.exerciseCount || workout.exercises?.length || '';
-    const weight = workout.totalWeight || workout.volumeLoad || '';
-    const calories = workout.caloriesBurned || workout.calories || '';
-    setWorkoutStats({
-      duration: String(dur),
-      exerciseCount: String(exercises),
-      totalWeight: String(weight),
-      caloriesBurned: String(calories)
-    });
-    const date = workout.date || workout.sessionDate || workout.createdAt;
-    const dateStr = date ? new Date(date).toLocaleDateString() : '';
-    const workoutName = workout.name || workout.workoutName || workout.title || 'Workout';
-    setPostContent(`Just completed: ${workoutName}${dateStr ? ` on ${dateStr}` : ''}! ${dur ? `${dur} min` : ''} ${exercises ? `| ${exercises} exercises` : ''} ${weight ? `| ${weight} lbs lifted` : ''}`);
-    setShowWorkoutHistory(false);
-  };
-
-  // Visibility options with icons
-  const visibilityOptions = [
-    { value: 'public', label: 'Public', icon: <Globe size={16} /> },
-    { value: 'friends', label: 'Friends', icon: <Users size={16} /> },
-    { value: 'private', label: 'Only Me', icon: <User size={16} /> }
-  ];
-
-  // Post type options with icons and point values
-  const postTypeOptions = [
-    {
-      value: 'general',
-      label: 'General Post',
-      icon: <User size={16} />,
-      points: 10,
-      description: 'Share your thoughts or updates'
-    },
-    {
-      value: 'workout',
-      label: 'Workout Share',
-      icon: <Dumbbell size={16} />,
-      points: 25,
-      description: 'Share your completed workout'
-    },
-    {
-      value: 'transformation',
-      label: 'Transformation',
-      icon: <Camera size={16} />,
-      points: 50,
-      description: 'Before & after progress photos'
-    },
-    {
-      value: 'achievement',
-      label: 'Achievement',
-      icon: <Trophy size={16} />,
-      points: 30,
-      description: 'Celebrate a fitness milestone'
-    },
-    {
-      value: 'challenge',
-      label: 'Challenge',
-      icon: <Target size={16} />,
-      points: 20,
-      description: 'Create or complete a challenge'
-    },
-    {
-      value: 'dance',
-      label: 'Dance',
-      icon: <Music2 size={16} />,
-      points: 20,
-      description: 'Share a dance or movement video'
-    },
-    {
-      value: 'music',
-      label: 'Music Production',
-      icon: <Mic2 size={16} />,
-      points: 20,
-      description: 'Making songs, playing instruments, producing beats'
-    },
-    {
-      value: 'singing',
-      label: 'Singing',
-      icon: <Mic size={16} />,
-      points: 20,
-      description: 'Vocal performances, covers, and original songs'
-    },
-    {
-      value: 'art',
-      label: 'Art',
-      icon: <Palette size={16} />,
-      points: 20,
-      description: 'Share artwork, digital art, photography, and creative projects'
-    },
-    {
-      value: 'gaming',
-      label: 'Gaming',
-      icon: <Gamepad2 size={16} />,
-      points: 15,
-      description: 'Gaming builds, streams, and fitness crossover content'
-    },
-    {
-      value: 'comedy',
-      label: 'Comedy',
-      icon: <Laugh size={16} />,
-      points: 15,
-      description: 'Standup, skits, memes, and funny content'
-    }
-  ];
-
-  // Get current post type info
-  const currentPostType = postTypeOptions.find(type => type.value === postType) || postTypeOptions[0];
-
-  // Handle visibility change
-  const handleVisibilityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setVisibility(event.target.value as 'public' | 'friends' | 'private');
-  };
-
-  // Handle file selection (images + videos)
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      const isVideo = file.type.startsWith('video/');
-      const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB video, 10MB image
-
-      if (file.size > maxSize) {
-        toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
-        return;
-      }
-
-      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-        toastError('Only image and video files are allowed');
-        return;
-      }
-
-      // Revoke previous blob URL to prevent memory leak (Issue #1)
-      if (mediaPreview && mediaPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(mediaPreview);
-      }
-
-      setMedia(file);
-
-      // Create preview URL
-      if (isVideo) {
-        setMediaPreview(URL.createObjectURL(file));
-      } else {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setMediaPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  };
-
-  // Handle remove media — revoke blob URL to prevent leak (Issue #1)
-  const handleRemoveMedia = () => {
-    if (mediaPreview && mediaPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(mediaPreview);
-    }
-    setMedia(null);
-    setMediaPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Handle remove before image (Issue #3)
-  const handleRemoveBeforeImage = () => {
-    if (beforePreview && beforePreview.startsWith('blob:')) {
-      URL.revokeObjectURL(beforePreview);
-    }
-    setBeforeImage(null);
-    setBeforePreview(null);
-    if (beforeImageRef.current) {
-      beforeImageRef.current.value = '';
-    }
-  };
-
-  // Handle remove after image (Issue #3)
-  const handleRemoveAfterImage = () => {
-    if (afterPreview && afterPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(afterPreview);
-    }
-    setAfterImage(null);
-    setAfterPreview(null);
-    if (afterImageRef.current) {
-      afterImageRef.current.value = '';
-    }
-  };
-
-  // Handle before image for transformation posts
-  const handleBeforeImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      setBeforeImage(file);
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        setBeforePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Handle after image for transformation posts
-  const handleAfterImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      setAfterImage(file);
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        setAfterPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Handle workout stats change
-  const handleWorkoutStatsChange = (field: string, value: string) => {
-    setWorkoutStats(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Reset form to initial state — revoke all blob URLs (Issue #1)
-  const resetForm = () => {
-    if (mediaPreview && mediaPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(mediaPreview);
-    }
-    if (beforePreview && beforePreview.startsWith('blob:')) {
-      URL.revokeObjectURL(beforePreview);
-    }
-    if (afterPreview && afterPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(afterPreview);
-    }
-    setPostContent('');
-    setMedia(null);
-    setMediaPreview(null);
-    setBeforeImage(null);
-    setAfterImage(null);
-    setBeforePreview(null);
-    setAfterPreview(null);
-    setPostType('general');
-    setWorkoutStats({
-      duration: '',
-      exerciseCount: '',
-      totalWeight: '',
-      caloriesBurned: ''
-    });
-    setShowCreateOptions(false);
-
-    // Clear file inputs
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (beforeImageRef.current) beforeImageRef.current.value = '';
-    if (afterImageRef.current) afterImageRef.current.value = '';
-  };
-
-  // Handle post submission
-  const handleCreatePost = async () => {
-    // Validation based on post type
-    if (postType === 'transformation') {
-      if (!postContent.trim() && !beforeImage && !afterImage) {
-        return; // Transformation posts need content or images
-      }
-    } else if (postType === 'workout') {
-      if (!postContent.trim() && !Object.values(workoutStats).some(stat => stat.trim())) {
-        return; // Workout posts need content or stats
-      }
-    } else {
-      if (!postContent.trim() && !media) {
-        return; // Regular posts need content or media
-      }
-    }
-
-    // Prepare post data based on type
-    let postData: any = {
-      content: postContent,
-      type: postType,
-      visibility
-    };
-
-    // Handle different post types
-    if (postType === 'transformation') {
-      // For transformation posts, we'll use the before image as the main media
-      // and include metadata about the transformation
-      if (beforeImage) {
-        postData.media = beforeImage;
-      }
-      postData.transformationData = {
-        hasBeforeImage: !!beforeImage,
-        hasAfterImage: !!afterImage,
-        // In a real implementation, you'd upload both images separately
-        // For now, we'll include the transformation info in metadata
-      };
-    } else if (postType === 'workout') {
-      if (media) {
-        postData.media = media;
-      }
-      postData.workoutData = workoutStats;
-    } else {
-      if (media) {
-        postData.media = media;
-      }
-    }
-
-    const result = await createPost(postData);
-
-    // Fire celebration effect when points are earned from posting
-    if (result && result.pointsAwarded) {
-      triggerFromResult(result);
-    }
-
-    // Reset form
-    resetForm();
-  };
+  const form = useCreatePostForm();
+  const currentPostType = POST_TYPE_OPTIONS.find(t => t.value === form.postType) || POST_TYPE_OPTIONS[0];
 
   return (
     <>
-      <CreatePostCardWrapper ref={createCardRef}>
+      <CreatePostCardWrapper ref={form.createCardRef}>
         <CardBody>
           <CardHeader>
-            <Heading6>
-              {showCreateOptions ? 'Create Post' : 'Quick Post'}
-            </Heading6>
+            <Heading6>{form.showCreateOptions ? 'Create Post' : 'Quick Post'}</Heading6>
             <PointPreviewChip>
               <Star size={14} />
               +{currentPostType.points} points
             </PointPreviewChip>
           </CardHeader>
 
-          {showCreateOptions && (
-            <PostTypeSelector>
-              {postTypeOptions.map((option) => (
-                <PostTypeChip
-                  key={option.value}
-                  type="button"
-                  $selected={postType === option.value}
-                  aria-pressed={postType === option.value}
-                  onClick={() => setPostType(option.value as any)}
-                >
-                  {option.icon}
-                  {option.label}
-                </PostTypeChip>
-              ))}
-            </PostTypeSelector>
+          {form.showCreateOptions && (
+            <CreatePostTypeSelector
+              postType={form.postType}
+              onPostTypeChange={form.setPostType}
+              postTypeOptions={POST_TYPE_OPTIONS}
+              currentDescription={currentPostType.description}
+            />
           )}
 
-          {showCreateOptions && (
-            <DescriptionRow>
-              <BodyText>
-                {currentPostType.description}
-              </BodyText>
-            </DescriptionRow>
+          {form.showCreateOptions && (
+            <CategoryOverrideSelector
+              suggestion={form.categorySuggestion}
+              currentType={form.postType}
+              onOverride={form.setPostType}
+              postTypeOptions={POST_TYPE_OPTIONS}
+            />
           )}
 
-          <PostInputWrapper>
-            <AvatarCircle>
-              {user?.photo ? (
-                <img src={user.photo} alt={user?.firstName || 'User'} />
-              ) : (
-                user?.firstName?.[0] || 'U'
-              )}
-            </AvatarCircle>
+          <CreatePostForm
+            postContent={form.postContent}
+            onContentChange={form.setPostContent}
+            postType={form.postType}
+            showCreateOptions={form.showCreateOptions}
+            isCreatingPost={form.isCreatingPost}
+            userName={form.user?.firstName}
+            userPhoto={form.user?.photo}
+            workoutStats={form.workoutStats}
+            onWorkoutStatsChange={(field, value) => form.setWorkoutStats(prev => ({ ...prev, [field]: value }))}
+            onFetchWorkoutHistory={form.fetchWorkoutHistory}
+            isLoadingHistory={form.isLoadingHistory}
+            showWorkoutHistory={form.showWorkoutHistory}
+            workoutHistory={form.workoutHistory}
+            onSelectWorkout={form.selectWorkoutFromHistory}
+          />
 
-            <FlexColumn>
-              <StyledTextarea
-                $rows={showCreateOptions ? 4 : 3}
-                placeholder={
-                  postType === 'workout' ? `Share your workout achievements...` :
-                  postType === 'transformation' ? `Tell your transformation story...` :
-                  postType === 'achievement' ? `What milestone did you reach?` :
-                  postType === 'challenge' ? `Describe your challenge...` :
-                  `What's on your mind, ${user?.firstName || 'there'}?`
-                }
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                disabled={isCreatingPost}
-              />
+          <FlexColumn>
+            <CreatePostMediaUpload
+              postType={form.postType}
+              showCreateOptions={form.showCreateOptions}
+              isCreatingPost={form.isCreatingPost}
+              media={form.media}
+              mediaPreview={form.mediaPreview}
+              onFileSelect={form.handleFileSelect}
+              onRemoveMedia={form.handleRemoveMedia}
+              fileInputRef={form.fileInputRef}
+              beforePreview={form.beforePreview}
+              afterPreview={form.afterPreview}
+              beforeImageRef={form.beforeImageRef}
+              afterImageRef={form.afterImageRef}
+              onBeforeImageSelect={form.handleBeforeImageSelect}
+              onAfterImageSelect={form.handleAfterImageSelect}
+              onRemoveBeforeImage={form.handleRemoveBeforeImage}
+              onRemoveAfterImage={form.handleRemoveAfterImage}
+            />
 
-              {/* Workout Stats Section */}
-              {showCreateOptions && postType === 'workout' && (
-                <>
-                  <WorkoutHistoryBtnRow>
-                    <WorkoutHistoryBtn
-                      onClick={fetchWorkoutHistory}
-                      disabled={isLoadingHistory}
-                    >
-                      <History size={16} />
-                      {isLoadingHistory ? 'Loading...' : 'Pull from Workout History'}
-                    </WorkoutHistoryBtn>
-                  </WorkoutHistoryBtnRow>
-
-                  {showWorkoutHistory && (
-                    <WorkoutHistoryList>
-                      {workoutHistory.length === 0 ? (
-                        <WorkoutHistoryEmpty>No completed workouts found</WorkoutHistoryEmpty>
-                      ) : (
-                        workoutHistory.slice(0, 10).map((w: WorkoutSession, i: number) => {
-                          const name = w.name || w.workoutName || w.title || 'Workout Session';
-                          const date = w.date || w.sessionDate || w.createdAt;
-                          const dateStr = date ? new Date(date).toLocaleDateString() : '';
-                          return (
-                            <WorkoutHistoryItem key={w.id || i} onClick={() => selectWorkoutFromHistory(w)}>
-                              <Dumbbell size={16} style={{ flexShrink: 0, color: '#60C0F0' }} />
-                              <WorkoutHistoryInfo>
-                                <WorkoutHistoryName>{name}</WorkoutHistoryName>
-                                {dateStr && <WorkoutHistoryDate>{dateStr}</WorkoutHistoryDate>}
-                              </WorkoutHistoryInfo>
-                              <ChevronDown size={14} style={{ transform: 'rotate(-90deg)', color: 'rgba(255,255,255,0.3)' }} />
-                            </WorkoutHistoryItem>
-                          );
-                        })
-                      )}
-                    </WorkoutHistoryList>
-                  )}
-
-                  <WorkoutStatsContainer>
-                    <StyledInputGroup>
-                      <InputLabel>Duration (min)</InputLabel>
-                      <StyledInput
-                        value={workoutStats.duration}
-                        onChange={(e) => handleWorkoutStatsChange('duration', e.target.value)}
-                        type="number"
-                        placeholder="0"
-                      />
-                    </StyledInputGroup>
-                    <StyledInputGroup>
-                      <InputLabel>Exercises</InputLabel>
-                      <StyledInput
-                        value={workoutStats.exerciseCount}
-                        onChange={(e) => handleWorkoutStatsChange('exerciseCount', e.target.value)}
-                        type="number"
-                        placeholder="0"
-                      />
-                    </StyledInputGroup>
-                    <StyledInputGroup>
-                      <InputLabel>Total Weight (lbs)</InputLabel>
-                      <StyledInput
-                        value={workoutStats.totalWeight}
-                        onChange={(e) => handleWorkoutStatsChange('totalWeight', e.target.value)}
-                        type="number"
-                        placeholder="0"
-                      />
-                    </StyledInputGroup>
-                    <StyledInputGroup>
-                      <InputLabel>Calories Burned</InputLabel>
-                      <StyledInput
-                        value={workoutStats.caloriesBurned}
-                        onChange={(e) => handleWorkoutStatsChange('caloriesBurned', e.target.value)}
-                        type="number"
-                        placeholder="0"
-                      />
-                    </StyledInputGroup>
-                  </WorkoutStatsContainer>
-                </>
-              )}
-
-              {/* Transformation Images Section */}
-              {showCreateOptions && postType === 'transformation' && (
-                <TransformationImageContainer>
-                  <input
-                    ref={beforeImageRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={handleBeforeImageSelect}
-                  />
-                  <input
-                    ref={afterImageRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={handleAfterImageSelect}
-                  />
-
-                  <MediaPreviewWrapper style={{ flex: 1, marginTop: 0 }}>
-                    <TransformationImageBox onClick={() => beforeImageRef.current?.click()}>
-                      {beforePreview ? (
-                        <img src={beforePreview} alt="Before" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
-                      ) : (
-                        <PlaceholderContent>
-                          <Camera size={32} />
-                          <BodyText>Before Photo</BodyText>
-                        </PlaceholderContent>
-                      )}
-                    </TransformationImageBox>
-                    {beforePreview && (
-                      <RemoveMediaButton onClick={handleRemoveBeforeImage} aria-label="Remove before image">
-                        <X size={16} />
-                      </RemoveMediaButton>
-                    )}
-                  </MediaPreviewWrapper>
-
-                  <MediaPreviewWrapper style={{ flex: 1, marginTop: 0 }}>
-                    <TransformationImageBox onClick={() => afterImageRef.current?.click()}>
-                      {afterPreview ? (
-                        <img src={afterPreview} alt="After" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }} />
-                      ) : (
-                        <PlaceholderContent>
-                          <Camera size={32} />
-                          <BodyText>After Photo</BodyText>
-                        </PlaceholderContent>
-                      )}
-                    </TransformationImageBox>
-                    {afterPreview && (
-                      <RemoveMediaButton onClick={handleRemoveAfterImage} aria-label="Remove after image">
-                        <X size={16} />
-                      </RemoveMediaButton>
-                    )}
-                  </MediaPreviewWrapper>
-                </TransformationImageContainer>
-              )}
-
-              {mediaPreview && (
-                <MediaPreviewWrapper>
-                  {media?.type.startsWith('video/') ? (
-                    <video
-                      src={mediaPreview}
-                      controls
-                      style={{ width: '100%', maxHeight: '300px', borderRadius: '8px', objectFit: 'contain', background: '#000' }}
-                    />
-                  ) : (
-                    <MediaPreview src={mediaPreview} alt="Upload preview" />
-                  )}
-                  <RemoveMediaButton onClick={handleRemoveMedia} aria-label="Remove attached media">
-                    <X size={16} />
-                  </RemoveMediaButton>
-                </MediaPreviewWrapper>
-              )}
-
-              <FormFooter>
-                <FooterLeft>
-                  {!showCreateOptions && (
-                    <OutlinedButton
-                      onClick={() => setShowCreateOptions(true)}
-                      disabled={isCreatingPost}
-                    >
-                      <Plus size={16} />
-                      More Options
+            <FormFooter>
+              <FooterLeft>
+                {!form.showCreateOptions && (
+                  <OutlinedButton onClick={() => form.setShowCreateOptions(true)} disabled={form.isCreatingPost}>
+                    <Plus size={16} /> More Options
+                  </OutlinedButton>
+                )}
+                {form.showCreateOptions && form.postType !== 'transformation' && (
+                  <>
+                    <input ref={form.fileInputRef} type="file" accept="image/*,video/mp4,video/mov,video/webm" style={{ display: 'none' }} onChange={form.handleFileSelect} />
+                    <OutlinedButton onClick={() => form.fileInputRef.current?.click()} disabled={form.isCreatingPost}>
+                      <Image size={16} /> Add Media
                     </OutlinedButton>
-                  )}
-
-                  {(showCreateOptions && postType !== 'transformation') && (
-                    <>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,video/mp4,video/mov,video/webm"
-                        style={{ display: 'none' }}
-                        onChange={handleFileSelect}
-                      />
-                      <OutlinedButton
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isCreatingPost}
-                      >
-                        <Image size={16} />
-                        Add Media
-                      </OutlinedButton>
-                    </>
-                  )}
-
-                  <VisibilitySelectWrapper>
-                    <NativeSelect
-                      value={visibility}
-                      onChange={handleVisibilityChange}
-                      disabled={isCreatingPost}
-                    >
-                      {visibilityOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                    <SelectHelperText>Who can see your post</SelectHelperText>
-                  </VisibilitySelectWrapper>
-                </FooterLeft>
-
-                <FooterRight>
-                  {showCreateOptions && (
-                    <OutlinedButton
-                      onClick={() => setShowCreateOptions(false)}
-                      disabled={isCreatingPost}
-                    >
-                      Simple Mode
-                    </OutlinedButton>
-                  )}
-
-                  <ContainedButton
-                    onClick={handleCreatePost}
-                    disabled={
-                      isCreatingPost ||
-                      (
-                        postType === 'transformation' ?
-                          (!postContent.trim() && !beforeImage && !afterImage) :
-                        postType === 'workout' ?
-                          (!postContent.trim() && !Object.values(workoutStats).some(stat => stat.trim())) :
-                          (!postContent.trim() && !media)
-                      )
-                    }
-                  >
-                    {isCreatingPost ? 'Posting...' : `Post (+${currentPostType.points} pts)`}
-                    {isCreatingPost ? <Spinner /> : <Send size={16} />}
-                  </ContainedButton>
-                </FooterRight>
-              </FormFooter>
-            </FlexColumn>
-          </PostInputWrapper>
+                  </>
+                )}
+                <VisibilitySelectWrapper>
+                  <NativeSelect value={form.visibility} onChange={(e) => form.setVisibility(e.target.value as any)} disabled={form.isCreatingPost}>
+                    {VISIBILITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </NativeSelect>
+                  <SelectHelperText>Who can see your post</SelectHelperText>
+                </VisibilitySelectWrapper>
+              </FooterLeft>
+              <FooterRight>
+                {form.showCreateOptions && (
+                  <OutlinedButton onClick={() => form.setShowCreateOptions(false)} disabled={form.isCreatingPost}>Simple Mode</OutlinedButton>
+                )}
+                <ContainedButton onClick={form.handleCreatePost} disabled={form.isSubmitDisabled}>
+                  {form.isCreatingPost ? 'Posting...' : `Post (+${currentPostType.points} pts)`}
+                  {form.isCreatingPost ? <Spinner /> : <Send size={16} />}
+                </ContainedButton>
+              </FooterRight>
+            </FormFooter>
+          </FlexColumn>
         </CardBody>
       </CreatePostCardWrapper>
 
-      {/* Floating Create Button */}
-      {!showCreateOptions && (
+      {!form.showCreateOptions && (
         <FloatingCreateButton
-          onClick={() => {
-            setShowCreateOptions(true);
-            setTimeout(() => {
-              createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-          }}
-          disabled={isCreatingPost}
+          onClick={() => { form.setShowCreateOptions(true); setTimeout(() => form.createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}
+          disabled={form.isCreatingPost}
           title="Create an enhanced post with more options"
         >
           <Plus size={24} />
