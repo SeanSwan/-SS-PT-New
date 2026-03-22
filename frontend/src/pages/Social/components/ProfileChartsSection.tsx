@@ -19,7 +19,7 @@
  */
 import React, { lazy, Suspense, useMemo } from 'react';
 import styled from 'styled-components';
-import SkeletonChart from '../../../components/UI/SkeletonChart';
+import ChartSkeleton from '../../../components/SkeletonLoaders/ChartSkeleton';
 import type { ChartVisibility } from './ChartVisibilityToggle';
 
 // Lazy-load chart components (per CLAUDE.md — all charts MUST be lazy)
@@ -110,7 +110,7 @@ const ProfileChartsSection: React.FC<ProfileChartsSectionProps> = ({
         {visibleCharts.map(({ key, label, Component, height }) => (
           <ChartSlot key={key}>
             <ChartLabel>{label}</ChartLabel>
-            <Suspense fallback={<SkeletonChart height={height || 280} />}>
+            <Suspense fallback={<ChartSkeleton height={height || 280} />}>
               <Component userId={userId} />
             </Suspense>
           </ChartSlot>
