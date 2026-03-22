@@ -10,7 +10,7 @@ import React from 'react';
 import { VictoryChart, VictoryArea, VictoryLine, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
 import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
-import SkeletonChart from '../../../UI/SkeletonChart';
+import SkeletonChart from '../../../ui/SkeletonChart';
 
 interface Props { userId: number | string; }
 

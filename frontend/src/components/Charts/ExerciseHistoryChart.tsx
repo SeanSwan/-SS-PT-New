@@ -25,7 +25,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import apiService from '../../services/api.service';
-import SkeletonChart from '../UI/SkeletonChart';
+import SkeletonChart from '../ui/SkeletonChart';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types

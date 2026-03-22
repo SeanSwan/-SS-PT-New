@@ -11,7 +11,7 @@ import React from 'react';
 import { VictoryPie, VictoryTooltip } from 'victory';
 import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, MACRO_PALETTE, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
-import SkeletonChart from '../../../UI/SkeletonChart';
+import SkeletonChart from '../../../ui/SkeletonChart';
 
 interface Props { userId: number | string; }
 
