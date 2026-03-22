@@ -1,9 +1,9 @@
-import { getWorkoutSession, getWorkoutExercise, getModel, Op } from '../models/index.mjs';
+import { getWorkoutSession, getModel, Op } from '../models/index.mjs';
 
 // Models resolved at call time (after initializeModelsCache() runs at startup)
 const getModels = () => ({
   WorkoutSession: getWorkoutSession(),
-  WorkoutExercise: getWorkoutExercise(),
+  WorkoutExercise: getModel('WorkoutExercise'),
   Set: getModel('Set'),
 });
 
