@@ -34,10 +34,10 @@
  * │ Props: { userId, compact? }                                   │
  * └───────────────────────────────────────────────────────────────┘
  */
-import React, { lazy, Suspense } from 'react';
+import React, { lazy } from 'react';
 import styled from 'styled-components';
 import { useDashboardAnalytics, usePersonalRecords } from '../../hooks/useAnalytics';
-import SkeletonChart from '../UI/SkeletonChart';
+import { SafeChart } from '../Charts/SafeChart';
 
 // Lazy-load all charts (per CLAUDE.md — all charts MUST use React.lazy)
 const ExerciseHistoryChart = lazy(() => import('../Charts/ExerciseHistoryChart'));
@@ -91,15 +91,21 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({ userId, com
     },
   ];
 
-  const skeleton = <SkeletonChart height={320} />;
+  const isLoading = dashLoading || prLoading;
 
   return (
     <PanelContainer $compact={compact}>
       {/* KPI cards row */}
-      <KPIGrid>
+      <KPIGrid role="group" aria-label="Key performance indicators">
         {kpis.map((kpi) => (
-          <KPICard key={kpi.label} $loading={dashLoading || prLoading}>
-            <KPIValue>{dashLoading || prLoading ? '…' : kpi.value}</KPIValue>
+          <KPICard
+            key={kpi.label}
+            $loading={isLoading}
+            role="status"
+            aria-label={`${kpi.label}: ${isLoading ? 'loading' : kpi.value}`}
+            aria-busy={isLoading}
+          >
+            <KPIValue>{isLoading ? '…' : kpi.value}</KPIValue>
             <KPILabel>{kpi.label}</KPILabel>
           </KPICard>
         ))}
@@ -107,23 +113,21 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({ userId, com
 
       {/* Victory Charts Grid — 2 columns on desktop, 1 on mobile */}
       <ChartGrid>
-        <Suspense fallback={skeleton}><WorkoutFrequencyBar userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><WeightProgressionLive userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><MuscleGroupFocusRadar userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><MacroSplitDonut userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><CardioEnduranceLine userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><BodyFatTrendLine userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><SessionFrequencyArea userId={userId} /></Suspense>
-        <Suspense fallback={skeleton}><MuscleRecoveryHeatmap userId={userId} /></Suspense>
+        <SafeChart chartName="Workout Frequency"><WorkoutFrequencyBar userId={userId} /></SafeChart>
+        <SafeChart chartName="Weight Progression"><WeightProgressionLive userId={userId} /></SafeChart>
+        <SafeChart chartName="Muscle Group Focus"><MuscleGroupFocusRadar userId={userId} /></SafeChart>
+        <SafeChart chartName="Macro Split"><MacroSplitDonut userId={userId} /></SafeChart>
+        <SafeChart chartName="Cardio Endurance"><CardioEnduranceLine userId={userId} /></SafeChart>
+        <SafeChart chartName="Body Fat Trend"><BodyFatTrendLine userId={userId} /></SafeChart>
+        <SafeChart chartName="Session Frequency"><SessionFrequencyArea userId={userId} /></SafeChart>
+        <SafeChart chartName="Muscle Recovery"><MuscleRecoveryHeatmap userId={userId} /></SafeChart>
       </ChartGrid>
 
       {/* RPE chart spans full width */}
-      <Suspense fallback={skeleton}><RPEByExerciseScatter userId={userId} /></Suspense>
+      <SafeChart chartName="Exercise Intensity (RPE)"><RPEByExerciseScatter userId={userId} /></SafeChart>
 
       {/* Exercise History CSS bars */}
-      <Suspense fallback={<SkeletonChart height={compact ? 250 : 400} />}>
-        <ExerciseHistoryChart userId={userId} />
-      </Suspense>
+      <SafeChart chartName="Exercise History"><ExerciseHistoryChart userId={userId} /></SafeChart>
     </PanelContainer>
   );
 };

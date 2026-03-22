@@ -122,14 +122,16 @@ export function useAnalytics<T = unknown>(
         inflightRef.current = null;
       }
     }
-  }, [userId, endpoint, enabled, cacheKey]);
+  }, [userId, endpoint, enabled]);
 
   useEffect(() => {
     fetchData();
 
     return () => {
+      // Always abort and null the controller on unmount/dep change
       if (inflightRef.current) {
         inflightRef.current.abort();
+        inflightRef.current = null;
       }
     };
   }, [fetchData]);
@@ -199,7 +201,20 @@ export const useExerciseHistory = (userId?: number | string) =>
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Cache utilities
+// PURPOSE: Eviction + invalidation for the in-memory analytics cache
 // ─────────────────────────────────────────────────────────────
+
+// Periodically evict expired entries to prevent unbounded memory growth
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of analyticsCache.entries()) {
+      if (now - (entry as CacheEntry<unknown>).timestamp > CACHE_TTL) {
+        analyticsCache.delete(key);
+      }
+    }
+  }, CACHE_TTL);
+}
 
 /** Invalidate a specific cache entry (e.g., after workout save) */
 export const invalidateAnalyticsCache = (userId: number | string, endpoint?: string) => {

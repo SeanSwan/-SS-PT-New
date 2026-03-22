@@ -26,13 +26,20 @@ const safeQuery = async (sequelize, sql, replacements) => {
   } catch { return []; }
 };
 
+// Validate userId is a positive integer — returns parsed int or null
+const parseUserId = (raw) => {
+  const id = parseInt(raw, 10);
+  return Number.isInteger(id) && id > 0 ? id : null;
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: 1. Workout Frequency — bar chart (workouts per week, last 12 weeks)
 // ─────────────────────────────────────────────────────────────
 
 export async function getWorkoutFrequencyChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -59,7 +66,8 @@ export async function getWorkoutFrequencyChart(req, res) {
 
 export async function getWeightProgressionChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -85,7 +93,8 @@ export async function getWeightProgressionChart(req, res) {
 
 export async function getMuscleGroupFocusChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -120,7 +129,8 @@ export async function getMuscleGroupFocusChart(req, res) {
 
 export async function getMacroSplitChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -157,7 +167,8 @@ export async function getMacroSplitChart(req, res) {
 
 export async function getCardioEnduranceChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -214,7 +225,8 @@ export async function getCardioEnduranceChart(req, res) {
 
 export async function getSessionFrequencyChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -242,7 +254,8 @@ export async function getSessionFrequencyChart(req, res) {
 
 export async function getBodyFatTrendChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -268,7 +281,8 @@ export async function getBodyFatTrendChart(req, res) {
 
 export async function getMuscleRecoveryChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -307,7 +321,8 @@ export async function getMuscleRecoveryChart(req, res) {
 
 export async function getRPEByExerciseChart(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = parseUserId(req.params.userId);
+    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
     // Get the last 24 completed sessions
