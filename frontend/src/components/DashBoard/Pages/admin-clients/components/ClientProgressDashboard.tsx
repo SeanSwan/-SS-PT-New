@@ -1,11 +1,25 @@
 /**
- * Client Progress Dashboard Component
- * 7-Star AAA Personal Training & Social Media App
+ * ┌─── SUB-COMPONENT: ClientProgressDashboard ─────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView (Progress tab)    │
+ * │ PURPOSE: Visual progress tracking — charts, milestones, body│
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        │
+ * └─────────────────────────────────────────────────────────────┘
  *
- * Comprehensive progress tracking with visual indicators, milestone tracking,
- * body composition analysis, and achievement celebration
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ [📊 Weight Trend] [💪 Strength] [📈 Body Comp]     │ ChartCards
+ * │ [Line chart — weight over time]                      │
+ * │ [Milestones: ★ PR Bench 185lbs  ★ Lost 10lbs]      │
+ * │ [Body comp radial: Fat% / Muscle% / Water%]          │
+ * └──────────────────────────────────────────────────────┘
  *
- * Architecture: styled-components + lucide-react (Galaxy-Swan theme, zero MUI)
+ * DATA FLOW:
+ * Props In:  { clientId, progressData }
+ * State:     { chartView, dateRange, milestones[] }
+ * Charts:    Currently Recharts (TODO: migrate to Victory per CLAUDE.md)
+ *
+ * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * NOTE: 1,256 lines — exceeds 300-line rule. TODO: extract chart sections
  */
 
 import React, { useState, useMemo } from 'react';

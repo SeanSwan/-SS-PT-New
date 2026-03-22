@@ -1,18 +1,29 @@
 /**
- * Communication Center Component
- * 7-Star AAA Personal Training & Social Media App
+ * ┌─── SUB-COMPONENT: CommunicationCenter ─────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView (Comms tab)       │
+ * │ PURPOSE: Multi-channel messaging hub for client comms       │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        │
+ * └─────────────────────────────────────────────────────────────┘
  *
- * Advanced communication hub featuring:
- * - Multi-channel messaging (SMS, email, app notifications)
- * - Video calling and screen sharing
- * - Voice notes and media sharing
- * - Automated follow-ups and reminders
- * - Group messaging and broadcasts
- * - AI-powered response suggestions
- * - Communication analytics and insights
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ [SMS|Email|Video|Voice|Group|Broadcast]               │ ChannelTabs
+ * ├──────────────────────────────────────────────────────┤
+ * │ ┌─ Message Thread ────────────────────────────────┐ │
+ * │ │ Trainer: Hey Jackie, how's the knee?            │ │
+ * │ │ Client: Much better! Ready for Phase 2          │ │
+ * │ │ [AI Suggestion: "Great progress! Let's..."]     │ │
+ * │ └────────────────────────────────────────────────┘ │
+ * │ [Type a message...                          ] [➤]  │
+ * └──────────────────────────────────────────────────────┘
  *
- * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass panels)
+ * DATA FLOW:
+ * Props In:  { clientId, clientName }
+ * State:     { activeChannel, messages[], draft }
+ * API Calls: GET/POST /api/communications/:clientId
+ *
+ * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * NOTE: 1,445 lines — CRITICAL monolith. TODO: extract channel components
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';

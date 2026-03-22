@@ -1,9 +1,52 @@
 /**
- * Create Client Modal
- * Form for adding new clients to the system
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: CreateClientModal                                ║
+ * ║  PURPOSE: Admin form for adding new clients (SwanStudios      ║
+ * ║           or Move Fitness) to the system                      ║
+ * ║  OWNER: Claude Opus 4.6                                      ║
+ * ║  LAST VALIDATED: 2026-03-22 (AI Village Phase 2+3+4)        ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [X] Create New Client                                      │
+ * │                                                            │
+ * │ Source: [SwanStudios] [Move Fitness]                        │
+ * │                                                            │
+ * │ ┌──────────────┐  ┌──────────────┐                        │
+ * │ │ First Name*  │  │ Last Name*   │                        │
+ * │ └──────────────┘  └──────────────┘                        │
+ * │ ┌──────────────┐  ┌──────────────┐                        │
+ * │ │ Email*       │  │ Phone        │                        │
+ * │ └──────────────┘  └──────────────┘                        │
+ * │ ┌──────────────┐  ┌──────────────┐                        │
+ * │ │ Username*    │  │ Password*    │  (SwanStudios only)    │
+ * │ └──────────────┘  └──────────────┘                        │
+ * │ ┌────────────────────────────────┐                        │
+ * │ │ Fitness Goal / Health Concerns │                        │
+ * │ └────────────────────────────────┘                        │
+ * │                                                            │
+ * │              [Cancel]  [Create Client]                     │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * CLICK-OUTCOME FLOWCHART:
+ * [Source chip] → Sets clientSource state → Shows/hides username/password fields
+ * [Create Client] → Validates form → POST /api/admin/clients → onClose() + onSubmit()
+ * [Cancel/X/Escape] → handleClose() → Clears errors → Calls onClose()
+ *
+ * DATA FLOW:
+ * Props In:  { open, onClose, onSubmit, trainers[] }
+ * State:     { formData, clientSource, loading, error, fieldErrors }
+ * API Calls: onSubmit prop delegates to parent (POST /api/admin/clients)
+ * Events:    None
+ * Children:  None (self-contained modal)
+ *
+ * GAMIFICATION HOOKS:
+ * - Client creation triggers server-side onboarding badge check
+ * - forcePasswordChange=true set for new clients (password flow on first login)
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Enchanted Apex — Crystalline Swan
+ * Theme: Enchanted Apex — Crystalline Swan (NOT Galaxy-Swan — RETIRED)
  * Touch targets: 44px minimum on all interactive elements
  * Responsive: CSS Grid 2-col → 1-col at 640px
  */
@@ -161,7 +204,7 @@ const StyledInput = styled.input<{ $error?: boolean }>`
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.05);
   color: #E0ECF4;
-  border: 1px solid ${({ $error }) => ($error ? '#ff6b6b' : 'rgba(224, 236, 244, 0.5)')};
+  border: 1px solid ${({ $error }) => ($error ? '#fca5a5' : 'rgba(224, 236, 244, 0.5)')};
   border-radius: 8px;
   font-size: 0.95rem;
   outline: none;
@@ -171,11 +214,11 @@ const StyledInput = styled.input<{ $error?: boolean }>`
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
-    border-color: ${({ $error }) => ($error ? '#ff6b6b' : 'rgba(139, 92, 246, 0.5)')};
+    border-color: ${({ $error }) => ($error ? '#fca5a5' : 'rgba(139, 92, 246, 0.5)')};
   }
 
   &:focus {
-    border-color: ${({ $error }) => ($error ? '#ff6b6b' : '#8B5CF6')};
+    border-color: ${({ $error }) => ($error ? '#fca5a5' : '#8B5CF6')};
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
@@ -249,13 +292,13 @@ const NativeSelect = styled.select<{ $error?: boolean }>`
   }
 
   option {
-    background: #1d1f2b;
-    color: #e2e8f0;
+    background: #002060;
+    color: #E0ECF4;
   }
 `;
 
 const FieldError = styled.span`
-  color: #ff6b6b;
+  color: #fca5a5;
   font-size: 0.8rem;
   min-height: 1em;
 `;
@@ -504,7 +547,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
       await onSubmit(cleanData);
 
-      // Reset form on success
+      // Close modal + reset form on success
+      onClose();
       setClientSource('swanstudios');
       setFormData({
         firstName: '',
@@ -600,7 +644,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 <SectionTitle>Client Type</SectionTitle>
                 <SectionDivider />
                 <SourceSelectorRow>
-                  {(Object.entries(CLIENT_SOURCE_LABELS) as [ClientSource, string][]).map(([key, label]) => (
+                  {(Object.entries(CLIENT_SOURCE_LABELS) as [ClientSource, string][]).filter(([key]) => key !== 'external').map(([key, label]) => (
                     <SourceChip
                       key={key}
                       type="button"

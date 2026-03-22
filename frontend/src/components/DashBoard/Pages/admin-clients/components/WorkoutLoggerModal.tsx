@@ -1,11 +1,46 @@
 /**
- * WorkoutLoggerModal
- * ==================
- * Admin modal for logging workouts on behalf of a client.
+ * ┌─── SUB-COMPONENT: WorkoutLoggerModal ──────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView                   │
+ * │ PURPOSE: Admin modal for logging workouts on behalf of client│
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        │
+ * └─────────────────────────────────────────────────────────────┘
  *
- * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Enchanted Apex — Crystalline Swan
- * Touch targets: 44px minimum on all interactive elements
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ Log Workout for [Client Name]                   [✕] │ Header
+ * ├──────────────────────────────────────────────────────┤
+ * │ OPT Phase: [Phase 2 ▾]  Date: [2026-03-21]         │
+ * │ ┌─ Exercise Entry ────────────────────────────────┐ │
+ * │ │ [🔍 Exercise Autocomplete (736 exercises)]      │ │
+ * │ │ Sets: [3]  Reps: [10]  Weight: [135lbs]         │ │
+ * │ │ Tempo: [2/0/2]  Rest: [60s]                     │ │
+ * │ │ [+ Add Set] [🗑 Remove]                         │ │
+ * │ └────────────────────────────────────────────────┘ │
+ * │ [+ Add Exercise]                                    │
+ * │ [🎤 Voice Memo] [🛡 NASM Validation]               │
+ * │ [💾 Save Workout]                                   │
+ * └──────────────────────────────────────────────────────┘
+ *
+ * CLICK OUTCOMES:
+ * Exercise autocomplete → opens NASMExerciseRolodex (736 exercises)
+ * + Add Set → adds set row to current exercise
+ * + Add Exercise → adds new exercise entry block
+ * Voice Memo → opens VoiceMemoUpload (lazy-loaded)
+ * Save → POST /api/workouts + awards gamification XP
+ *
+ * GAMIFICATION HOOKS:
+ * - Saving workout awards 50 XP
+ * - Each exercise logged awards 10 XP
+ * - PR detection awards 100 XP bonus
+ *
+ * DATA FLOW:
+ * Props In:  { clientId, clientName, isOpen, onClose, onSaved }
+ * State:     { exercises[], phase, date, saving }
+ * API Calls: POST /api/admin/clients/:id/workouts
+ * Children:  ExerciseAutocomplete, VoiceMemoUpload (lazy)
+ *
+ * Theme: Crystalline Swan, 44px minimum touch targets
+ * NOTE: 1,035 lines — exceeds 300-line rule
  */
 
 import React, { useState, lazy, Suspense, useEffect, useRef, Component, type ErrorInfo, type ReactNode } from 'react';

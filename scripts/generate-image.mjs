@@ -76,6 +76,7 @@ function parseArgs() {
   const opts = {
     prompt: '',
     output: null,
+    input: null,
     style: SWANSTUDIOS_STYLE,
     model: 'flash',
     noStyle: false,
@@ -85,6 +86,8 @@ function parseArgs() {
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--output' || args[i] === '-o') {
       opts.output = args[++i];
+    } else if (args[i] === '--input' || args[i] === '-i') {
+      opts.input = args[++i];
     } else if (args[i] === '--style' || args[i] === '-s') {
       opts.style = args[++i];
     } else if (args[i] === '--pro') {
@@ -128,15 +131,31 @@ function printHelp() {
 // Image Generation
 // ─────────────────────────────────────────────
 
-async function generateImage(apiKey, model, prompt) {
+async function generateImage(apiKey, model, prompt, inputImagePath) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  // Build parts array — text prompt + optional input image
+  const parts = [{ text: prompt }];
+  if (inputImagePath) {
+    const imageData = readFileSync(inputImagePath);
+    const ext = inputImagePath.toLowerCase();
+    const mimeType = ext.endsWith('.png') ? 'image/png'
+      : ext.endsWith('.jpg') || ext.endsWith('.jpeg') ? 'image/jpeg'
+      : ext.endsWith('.webp') ? 'image/webp' : 'image/png';
+    parts.push({
+      inlineData: {
+        mimeType,
+        data: imageData.toString('base64'),
+      },
+    });
+  }
 
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{
-        parts: [{ text: prompt }],
+        parts,
       }],
       generationConfig: {
         responseModalities: ['IMAGE', 'TEXT'],
@@ -221,6 +240,7 @@ async function main() {
   console.log('  SwanStudios AI Image Generator');
   console.log(`  Model:  ${model}`);
   console.log(`  Prompt: "${opts.prompt}"`);
+  if (opts.input) console.log(`  Input:  ${opts.input}`);
   if (!opts.noStyle) console.log(`  Style:  SwanStudios Galaxy-Swan theme applied`);
   console.log(`  Output: ${outputPath}`);
   console.log('');
@@ -229,7 +249,7 @@ async function main() {
   const start = Date.now();
 
   try {
-    const result = await generateImage(apiKey, model, fullPrompt);
+    const result = await generateImage(apiKey, model, fullPrompt, opts.input);
 
     // Ensure output directory exists
     mkdirSync(dirname(outputPath), { recursive: true });

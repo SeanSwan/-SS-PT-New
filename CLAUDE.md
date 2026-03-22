@@ -142,15 +142,38 @@ The AI assistant is **embedded into every admin dashboard tab** at the top of th
 | NASM Exercises | `exercise_library` | `/dashboard/nasm-exercises` |
 | Reports | `data_analysis` | `/dashboard/reports` |
 
-### NASM Exercise Database (V2 — 530+ Exercises)
-- **75 official NASM exercises** from nasm.org + **455+ exercises** from free-exercise-db, P90X, Tae Bo, Squat University, manual curation
+### NASM Exercise Database (V3 — 840+ Exercises)
+- **840 production exercises** across 12 sources:
+  | Source | Count | Content |
+  |--------|-------|---------|
+  | `free-exercise-db` | 501 | Chest, back, shoulders, arms, legs, core, olympic, cardio, full body, stretching |
+  | `nasm-advanced` | 140 | Sliders/gliding discs, mini-bands, long bands, stability ball, BOSU, medicine ball, corrective exercises |
+  | `nasm` | 55 | Core NASM OPT protocol exercises |
+  | `beachbody` | 26 | Original Insanity/T25 signature moves |
+  | `beachbody-insanity` | 36 | Insanity Pure Cardio, Plyometric Cardio, Max Interval |
+  | `beachbody-t25` | 19 | Focus T25 Alpha/Beta/Gamma |
+  | `beachbody-max30` | 15 | Insanity Max:30 |
+  | `beachbody-hiphopabs` | 10 | Hip Hop Abs |
+  | `beachbody-transform20` | 10 | Cize + Transform 20 |
+  | `p90x` | 15 | P90X / P90X3 |
+  | `taebo` | 10 | Tae Bo martial arts cardio |
+  | `squat-university` | 3 | Mobility/squat mechanics |
 - **10 filter chips:** All, Chest, Back, Shoulders, Arms, Legs, Core, Full Body, Cardio, Recovery
-- **12 equipment categories:** Barbell, Dumbbell, Cable, Machine, Bodyweight, Kettlebell, Resistance Band, Stability Ball, Medicine Ball, Landmine, Cardio Equipment, None
-- **3 difficulty levels + source tracking:** Each exercise tagged with source (nasm, free-exercise-db, custom, p90x, taebo, squat-university)
-- Autocomplete rolodex UI with react-window virtualization for 530+ exercises
+- **15+ equipment categories:** Barbell, Dumbbell, Cable, Machine, Bodyweight, Kettlebell, Resistance Band, Mini Band, Stability Ball, Medicine Ball, BOSU Ball, Sliders, Landmine, TRX/Suspension Trainer, Cardio Equipment, None
+- **Difficulty scale:** 50-900 (50=beginner stretching, 500=intermediate, 900=elite/advanced)
+- **Source tracking:** Every exercise tagged with origin source for audit trail
+- **Autocomplete Rolodex UI:** `frontend/src/components/DashBoard/Pages/admin-exercises/` — react-window virtualized, ExerciseSearchBar with dropdown z-index fix
 - **Draft Mode RBAC:** Admin creates = active+global. Trainer creates = draft+trainer. Drafts blocked from production logs until approved.
-- **Admin custom exercise management:** Only admins can create/edit/soft-delete custom exercises. NASM exercises are read-only.
-- Full database in: `docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md` (Appendix C)
+- **Admin custom exercise management:** Only admins can create/edit/soft-delete custom exercises. Seeded exercises are read-only.
+- **Seeder files (run in order):**
+  1. `backend/seeders/20250503-seed-nasm-exercises.mjs` (13 original)
+  2. `backend/seeders/20260228-seed-nasm-comprehensive-exercises.mjs` (55 NASM)
+  3. `backend/seeders/20260321-seed-expanded-exercises.mjs` (85 Beachbody/Tae Bo/bands/KB)
+  4. `backend/seeders/20260321-seed-free-exercise-db.mjs` (501 comprehensive)
+  5. `backend/seeders/20260322-seed-nasm-advanced-equipment.mjs` (151 sliders/bands/BOSU/corrective)
+  6. `backend/seeders/20260322-seed-beachbody-expanded.mjs` (106 Insanity/T25/Max30/P90X/HipHopAbs/Transform20)
+- **Exercise → Gamification link:** Every exercise has `experiencePointsEarned` (default 10 XP). Completing exercises in workouts triggers the gamification engine for point awards.
+- Full database spec: `docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md` (Appendix C)
 
 ---
 
@@ -254,6 +277,335 @@ All workout generation, logging, and planning MUST follow the NASM Optimum Perfo
 ### NASM Calculators
 4 built-in calculators (no leaving the app): 1RM, Calorie/TDEE, Body Fat %, BMI
 - Full specs: `docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md` (Sections 6-7)
+
+---
+
+## Gamification & Badge System (MANDATORY)
+
+SwanStudios has a production-grade gamification engine built on the **Octalysis Framework**. Every workout, social action, and milestone triggers point awards that drive leveling, badges, and tier progression.
+
+### Leveling Algorithm
+- **Formula:** `level = floor(0.1 × sqrt(totalPoints))`
+- **Inverse:** `pointsForLevel = ceil((level / 0.1)²)`
+- **Implementation:** `backend/utils/levelingAlgorithm.mjs`
+
+### 5-Tier Progression System
+| Tier | Name | Levels | Points Required | Theme Color |
+|------|------|--------|-----------------|-------------|
+| 1 | Bronze Forge | 1-10 | 100 – 10,000 | `#CD7F32` |
+| 2 | Silver Edge | 11-25 | 10,000 – 62,500 | `#C0C0C0` |
+| 3 | Titanium Core | 26-50 | 62,500 – 250,000 | `#878681` |
+| 4 | Obsidian Warrior | 51-99 | 250,000 – 1,000,000 | Obsidian Black `#0A0A0F` |
+| 5 | Crystalline Swan | 100+ | 1,000,000+ | Animated gradient (sapphire→purple→cyan→gold) |
+
+### Point Awards (Configurable via GamificationSettings)
+| Action | Base Points | Context |
+|--------|-------------|---------|
+| Complete Workout | 50 | Per logged workout session |
+| Complete Exercise | 10 | Per exercise in workout log |
+| Personal Record | 100 | New 1RM or volume PR |
+| Daily Login | 10 | Once per day |
+| 3-Day Streak | 25 | Bonus on streak milestone |
+| 7-Day Streak | 75 | Bonus on streak milestone |
+| 30-Day Streak | 300 | Bonus on streak milestone |
+| 90-Day Streak | 1,000 | Bonus on streak milestone |
+| 365-Day Streak | 5,000 | Bonus on streak milestone |
+| Social Post | 15 | Creating content on social feed |
+| Review/Comment | 15 | Engaging with community |
+| Referral | 200 | Bringing new users |
+| Education Module | 50 | Completing NASM learning content |
+
+### Badge & Achievement System
+- **4 rarity levels** with visual glow mapping:
+  | Rarity | Color | Glow | XP Multiplier |
+  |--------|-------|------|----------------|
+  | Common | Swan Lavender `#4070C0` | Subtle pulse | 1.0x |
+  | Rare | Gilded Fern `#C6A84B` | Gold shimmer | 1.5x |
+  | Epic | Wing Purple `#8B5CF6` | Purple aurora | 2.0x |
+  | Legendary | Animated gradient | Full particle burst | 3.0x |
+- **6 skill trees:** Awakening, Forge NASM, Iron & Gravity, The Tribe (social), Free Spirit, The Unbroken (streaks)
+- **6 achievement categories:** fitness, social, streak, milestone, special, community
+- **Badge art:** 20+ styles in `frontend/public/badges/` (claymation, glass, metallic, crystal, holographic, neon, steampunk, etc.)
+- **Badge manifest:** `frontend/public/badge-manifest.json` + `frontend/public/badges/achievements/achievement-badge-manifest.json`
+
+### Level-Up Animation Protocol (MANDATORY)
+When a user levels up or earns a badge, the UI MUST trigger:
+1. **Background glow pulse** — Tier-colored radial gradient expands from center over 2s (`@keyframes tierGlowPulse`)
+2. **Particle burst** — 12-20 particles in rarity color emit from badge icon, fade over 1.5s
+3. **Badge entrance** — Scale from 0→1.1→1.0 with 0.6s spring easing + rarity-colored box-shadow glow
+4. **XP counter animation** — Count-up from previous XP to new XP with `requestAnimationFrame`
+5. **Streak fire** — On streak milestones (7, 30, 90, 365), animated fire/ice particles around streak counter
+- Animation components: `frontend/src/components/DashBoard/Pages/admin-exercises/styles/gamificationAnimations.ts`
+- Celebration component: `frontend/src/components/DashBoard/Pages/admin-exercises/components/AdminAchievementCelebration.tsx`
+- **Performance:** All animations MUST use `transform` and `opacity` only (GPU-composited). No `width`/`height`/`top`/`left` animations.
+
+### Backend Architecture
+| Layer | File | Purpose |
+|-------|------|---------|
+| Model | `backend/models/Achievement.mjs` | Achievement definitions (484 lines) |
+| Model | `backend/models/UserAchievement.mjs` | User progress tracking (541 lines) |
+| Model | `backend/models/Gamification.mjs` | Per-user XP/level/tier state |
+| Model | `backend/models/GamificationSettings.mjs` | Singleton config (point values, multipliers) |
+| Engine | `backend/services/gamification/GamificationEngine.mjs` | Core points/achievement/tier logic |
+| Persistence | `backend/services/gamification/GamificationPersistence.mjs` | DB persistence layer |
+| Ethics | `backend/services/gamification/EthicalGamification.mjs` | Prevents exploitative patterns |
+| Controller | `backend/controllers/gamificationController.mjs` | 25+ API endpoints |
+| Routes | `backend/routes/gamificationRoutes.mjs` | REST API routes |
+
+### Frontend Architecture
+| Layer | File | Purpose |
+|-------|------|---------|
+| Redux | `frontend/src/redux/slices/gamificationSlice.ts` | State management |
+| Types | `frontend/src/types/gamification.ts` | TierName, SkillTree, Rarity enums |
+| Hub | `frontend/src/components/AdvancedGamification/AdvancedGamificationHub.tsx` | Main gamification UI |
+| Badge Gallery | `frontend/src/components/BadgeGallery/BadgeArtGallery.tsx` | Admin badge browser |
+| Admin | `frontend/src/components/DashBoard/Pages/admin-gamification/` | Admin gamification management |
+| Client | `frontend/src/components/DashBoard/Pages/client-gamification/` | Client gamification view |
+| Trainer | `frontend/src/components/DashBoard/Pages/trainer-gamification/` | Trainer gamification view |
+
+### Gamification Integration Rules (MANDATORY)
+- **Workout logging MUST trigger gamification:** When a workout is saved, call `GamificationEngine.awardPoints()` with action type and exercise count
+- **Social posts MUST trigger gamification:** Creating a post, comment, or like awards social points
+- **Badge checks run after every point award:** The engine checks if any achievement criteria are newly met
+- **Leaderboards refresh on point changes:** Global, friends, category leaderboards update in real-time
+- **Admin can adjust all point values** via GamificationSettings without code changes
+- **Never award points for the same action twice** — use idempotency keys (userId + actionType + timestamp)
+
+---
+
+## Chart & Analytics System (MANDATORY)
+
+SwanStudios uses **Victory** (v37.3.6) as the sole charting library for cross-platform compatibility (React web → React Native for App Store/Google Play).
+
+### Library: Victory Only
+| Library | Version | Purpose |
+|---------|---------|---------|
+| **Victory** | 37.3.6 | ALL charts — gallery, dashboards, analytics, profiles |
+- **Why Victory:** Identical API between `victory` (web) and `victory-native` (React Native) — critical for mobile app roadmap
+- **No Recharts for new work** — Legacy Recharts charts should be migrated to Victory over time
+
+### 50-Chart Victory Gallery
+Located in `frontend/src/components/Charts/` with bento-box layout:
+
+| Category | Charts | Types |
+|----------|--------|-------|
+| Line | 5 | Weight progression, strength 1RM, cardio, session frequency, body fat trend |
+| Bar | 5 | Weekly volume, exercise comparison, monthly revenue, client retention, trainer workload |
+| Radar | 6 | Muscle group balance, fitness assessment, client engagement, nutrition, trainer skills |
+| Pie/Donut | 5 | Macros, session types, revenue source, demographics, exercise types |
+| Heatmap | 5 | Workout calendar (GitHub-style), hourly activity, muscle recovery, check-ins, intensity |
+| Area | 5 | Training load, body composition, revenue stream, workout duration, calorie burn |
+| Stream | 5 | Exercise frequency, client flow, mood/energy, OPT phase progression, nutrient intake |
+| Funnel | 5 | Sales conversion, client onboarding, session booking, goal achievement, completion rates |
+| Scatter | 5 | Volume vs intensity, attendance vs progress, price vs retention, age vs performance, rest vs recovery |
+| Bullet/Gauge | 5 | Goal progress, session quota, revenue target, client capacity, nutrition goal |
+
+- **Theme file:** `frontend/src/components/Charts/chartTheme.ts` (Crystalline Swan palette)
+- **Error boundary:** `frontend/src/components/Charts/SafeChart.tsx` (per-chart isolation)
+- **Animation config:** 800ms, cubicInOut easing
+- **Color palettes:** `FULL_PALETTE`, `MACRO_PALETTE`, `STREAM_PALETTE`
+
+### Chart → Profile Integration (NOT YET CONNECTED)
+**TODO: Charts must be connected to client and user profile dashboards.**
+- User profiles MUST display selected workout charts (since this is a social media platform)
+- Each user/client can **toggle which charts are visible** on their public profile via privacy settings
+- Chart visibility settings stored in user preferences: `chartVisibility: { [chartId]: boolean }`
+- Default visible charts for new users: Weight Progression, Workout Heatmap, Muscle Group Radar, Goal Progress Gauge
+- Admin can see ALL charts for any client regardless of client privacy settings
+- Chart data comes from workout logs → analytics service → Victory/Recharts components
+
+### Chart Visibility Toggle UI
+```
+┌─ Profile Settings → Chart Visibility ──────────────┐
+│ ☑ Weight Progression    ☑ Workout Heatmap           │
+│ ☑ Muscle Group Radar    ☐ Body Fat Trend            │
+│ ☑ Goal Progress         ☐ Strength 1RM              │
+│ ☐ Calorie Burn          ☑ Session Frequency          │
+│                                                      │
+│ [Save] [Preview Profile]                             │
+└──────────────────────────────────────────────────────┘
+```
+
+### Recharts Dashboard Analytics
+Located across dashboard pages — admin-specific panels that do NOT appear on public profiles:
+- `frontend/src/components/ClientProgressCharts/` — Strength, body comp, 1RM, volume, form quality, consistency heatmap
+- `frontend/src/components/FitnessStats/` — Bar progress, radar, area charts
+- `frontend/src/components/Reports/` — Report analytics, data visualization, metrics panels
+- `frontend/src/components/UniversalMasterSchedule/Charts/` — Trainer performance, session distribution, revenue
+- `frontend/src/pages/workout/components/progress/` — Weekday bar, skill radar, intensity trend, muscle group, exercise type
+
+---
+
+## Social Media Platform (MANDATORY)
+
+SwanStudios is NOT just a PT app — it is a **fitness social media platform**. Every feature must consider the social layer.
+
+### Core Social Features
+| Feature | Frontend | Backend Model | Status |
+|---------|----------|---------------|--------|
+| Social Feed | `frontend/src/components/Social/Feed/` | `backend/models/social/SocialPost.mjs` | Built |
+| Posts (text, workout, achievement, milestone) | `CreatePostCard.tsx`, `PostCard.tsx` | `SocialPost.mjs` | Built |
+| Likes/Reactions (thumbs_up, heart, swan) | In PostCard | `backend/models/social/SocialLike.mjs` | Built |
+| Comments | In PostCard | `backend/models/social/SocialComment.mjs` | Built |
+| Friends/Requests | `frontend/src/components/Social/Friends/` | `backend/models/social/Friendship.mjs` | Built |
+| Following (6 types) | Social hooks | `backend/models/UserFollow.mjs` | Built |
+| Challenges | `frontend/src/components/Social/Challenges/` | `backend/models/social/Challenge.mjs` | Built |
+| Vertical Reels | `frontend/src/components/Social/Reels/VerticalReels.tsx` | — | Built |
+| User Profiles | `frontend/src/pages/Social/UserProfilePage.tsx` | `backend/controllers/profileController.mjs` | Built |
+| Community | `frontend/src/components/DashBoard/Pages/community/` | `backend/models/social/enhanced/Community.mjs` | Built |
+| Direct Messaging | — | `backend/models/social/enhanced/Messaging.mjs` | Model only |
+| Live Streaming | — | `backend/models/social/enhanced/LiveStreaming.mjs` | Model only |
+| Creator Economy | — | `backend/models/social/enhanced/CreatorEconomy.mjs` | Model only |
+
+### Social → Gamification Integration (MANDATORY)
+- **Social post creation** → awards 15 points (social category)
+- **Comments/reviews** → awards 15 points
+- **Referrals** → awards 200 points
+- **Challenge participation** → awards variable points based on difficulty
+- **Achievement sharing** → increases `shareCount` on UserAchievement, tracked for social engagement metrics
+- All social gamification points feed into the same leveling/tier system as workout points
+
+### User Profile = Social Profile + Fitness Dashboard
+Every user profile page MUST contain:
+1. **Profile header** — Photo, name, tier badge, level, streak count
+2. **Achievement showcase** — Top 3-6 badges with rarity glow
+3. **Chart section** — User-selected Victory charts (toggle-able visibility)
+4. **Social feed** — User's recent posts and workout logs
+5. **Stats summary** — Total workouts, longest streak, current OPT phase, XP to next level
+6. **Friends/followers count** — Social proof metrics
+
+### Privacy Controls
+- Post visibility: public / friends-only / private
+- Chart visibility: per-chart toggle (see Chart Visibility Toggle above)
+- Profile visibility: public / friends-only / private
+- Granular per-relationship settings: share workouts, achievements, progress, allow DMs, allow challenges
+
+### Content Moderation
+- `backend/models/social/PostReport.mjs` — User flagging
+- `backend/models/social/ModerationAction.mjs` — Admin actions
+- Auto-moderation confidence scoring on posts/comments
+- Admin panel: `frontend/src/components/DashBoard/Pages/admin-dashboard/components/SocialMediaCommand/`
+
+---
+
+## Enhanced Blueprint-First Protocol (MANDATORY — UPGRADED)
+
+The original blueprint protocol is extended with **parent-child mapping, click-outcome flowcharts, and Mermaid diagrams** to eliminate vibe coding.
+
+### Parent Component Blueprint (REQUIRED for all top-level dashboard pages)
+Every parent/page component MUST include ALL of the following before any code is written:
+```
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: [Name]                                           ║
+ * ║  PURPOSE: [One-line description]                              ║
+ * ║  OWNER: [AI/person who last modified]                         ║
+ * ║  LAST VALIDATED: [Date of last AI Village run]                ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Header: Title + Actions]                                   │
+ * ├──────────┬─────────────────────────────────────────────────┤
+ * │ Sidebar  │  [Main Content Area]                             │
+ * │          │  ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+ * │          │  │ Widget 1 │ │ Widget 2 │ │ Widget 3 │           │
+ * │          │  └─────────┘ └─────────┘ └─────────┘           │
+ * │          │  [Detail Panel / Modal Area]                      │
+ * └──────────┴─────────────────────────────────────────────────┘
+ *
+ * MERMAID ARCHITECTURE:
+ * graph TD
+ *   A[ParentPage] --> B[HeaderBar]
+ *   A --> C[SidebarNav]
+ *   A --> D[ContentArea]
+ *   D --> E[WidgetGrid]
+ *   D --> F[DetailPanel]
+ *   E --> G[Widget1]
+ *   E --> H[Widget2]
+ *
+ * CLICK-OUTCOME FLOWCHART:
+ * [Button: "Add Client"] → Opens AddClientModal → POST /api/users → Refreshes client list
+ * [Tab: "Schedule"] → Sets AI context to 'scheduling' → Loads ScheduleTab → GET /api/sessions
+ * [Card: Client Name] → Opens ClientDetailPanel → GET /api/users/:id → Shows profile + charts
+ * [Badge Icon] → Opens AchievementModal → Shows badge art + XP reward + share button
+ *
+ * DATA FLOW:
+ * Props In:  { user: User, role: 'admin' | 'trainer' | 'client' }
+ * State:     { activeTab, selectedClient, isModalOpen }
+ * API Calls: GET /api/users, GET /api/sessions, POST /api/workouts
+ * Events:    onClientSelect, onTabChange, onWorkoutLog
+ * Children:  HeaderBar, SidebarNav, ContentArea, DetailPanel
+ *
+ * GAMIFICATION HOOKS:
+ * - Workout save → GamificationEngine.awardPoints('completeWorkout', userId)
+ * - Achievement unlock → trigger tierGlowPulse animation
+ * - Level up → particle burst + XP counter animation
+ */
+```
+
+### Child Component Blueprint (REQUIRED for all sub-components)
+```
+/**
+ * ┌─── SUB-COMPONENT: [Name] ──────────────────────────────────┐
+ * │ PARENT: [ParentComponent]                                    │
+ * │ PURPOSE: [What it does for the parent]                       │
+ * │ WIREFRAME:                                                   │
+ * │ ┌──────────────────────────┐                                 │
+ * │ │ [Visual layout]          │                                 │
+ * │ └──────────────────────────┘                                 │
+ * │ Props: { ... }                                               │
+ * │ CLICK-OUTCOMES:                                              │
+ * │ [Action] → [Result] → [API Call] → [UI Update]              │
+ * │ GAMIFICATION: [What XP/badge events this triggers]           │
+ * └──────────────────────────────────────────────────────────────┘
+ */
+```
+
+### Enforcement Rules (UPGRADED)
+- **No component >100 lines may exist without a blueprint header** — includes wireframe + Mermaid + click-outcomes
+- **Parent components MUST list ALL children** with their purpose
+- **Every clickable element MUST have a documented outcome** in the click-outcome flowchart
+- **Gamification hooks MUST be documented** if the component triggers point awards or animations
+- **Chart components MUST document** which data source feeds them and which profile visibility toggle controls them
+- **When modifying a component, update its blueprint FIRST**
+- **Before creating a new parent component:** Research 3+ competitor sites for the same feature type, document findings in blueprint
+- **AI Village validation checks for blueprint completeness** (wireframe + Mermaid + click-outcomes + data flow)
+
+### Competitor Research Protocol (BEFORE building new features)
+Before building any new page or major feature:
+1. **Identify 3+ competitor/reference sites** that implement the same feature
+2. **Screenshot key interactions** from each reference
+3. **Document in blueprint:** What they do well, what we can improve, how our Crystalline Swan theme differentiates
+4. **Examples:** For social feed → study Instagram, Strava, Fitocracy. For workout logger → study Strong, JEFIT, Hevy. For gamification → study Duolingo, Habitica, Nike Run Club.
+
+---
+
+## Dashboard Architecture (MANDATORY Reference)
+
+### Admin Dashboard (19 specialty pages)
+All under `frontend/src/components/DashBoard/Pages/`:
+
+| Page | Key Component | AI Context | Gamification |
+|------|---------------|------------|--------------|
+| Overview | `admin-dashboard-view.tsx` | `general` | Dashboard KPIs |
+| Clients | `ClientManagementDashboard.tsx` | `client_review` | Client XP/tier display |
+| Sessions | `admin-sessions-view.tsx` | `scheduling` | Session completion points |
+| Exercises | `AdminExerciseCommandCenter.tsx` | `exercise_library` | Exercise XP values |
+| Gamification | `admin-gamification-view.tsx` | `gamification` | Full admin controls |
+| Packages | `admin-packages-view.tsx` | `store` | Purchase rewards |
+| Video Studio | `VideoStudioManager.tsx` | `content` | View completion XP |
+| Onboarding | `UnifiedOnboardingWizard.tsx` | `onboarding` | Onboarding milestone badges |
+| Movement Analysis | `MovementAnalysisWizard.tsx` | `assessment` | Assessment completion |
+| Reports | `ReportAnalyticsDashboard.tsx` | `data_analysis` | — |
+
+### 9 Workspace Containers
+Located in `frontend/src/components/DashBoard/workspaces/`:
+Dashboard, Clients, Scheduling, Workouts, Store, Content, Gamification, Analytics, System
+
+### Client Dashboard
+`frontend/src/components/ClientDashboard/` — Sections: GamificationSection, SocialProfileSection, CommunitySection, ProfileSection
+`frontend/src/components/DashBoard/Pages/client-dashboard/` — AchievementsCard, ScheduledSessionsCard, NasmCategoryProgress, ChallengesCard, RewardsCard
 
 ---
 
@@ -422,8 +774,58 @@ Before every commit, mentally verify:
 - **No cold starts** — Professional plan keeps services running (do NOT assume free-tier cold start behavior)
 - **Pipeline minutes:** 500 included, overage at $5/1000 min — be mindful of excessive rebuilds
 
+## Design System Handoff (AI Village Consensus — Approved 2026-03-22)
+
+### Error State: Crimson Frost
+- **Error toast:** Graphite bg `rgba(26,26,36,0.95)` + 4px Crimson Frost `#C92A54` left border + Frost White `#E0ECF4` text
+- **Success toast:** Gilded Fern `#C6A84B` accent
+- **Warning toast:** Metallic Gold `#D4AF37` accent
+- **Info toast:** Ice Wing `#60C0F0` accent
+- **MANDATORY:** Error text is ALWAYS Frost White, never Crimson. Crimson is border-only.
+
+### Global Focus Ring
+```css
+*:focus-visible {
+  outline: 2px solid #60C0F0; /* Ice Wing */
+  outline-offset: 4px;
+  box-shadow: 0 0 16px rgba(96,192,240,0.4), inset 0 0 0 1px rgba(139,92,246,0.2);
+}
+```
+
+### Frost Shimmer Skeleton Loaders
+- MANDATORY on all data-fetching components
+- Arctic Cyan shimmer at 10% opacity on surface color
+- Hardware mirrors/treadmills: 18% opacity, 1.5s duration
+- `role="status" aria-live="polite" aria-label="Loading content"`
+
+### Hardware-Adaptive Touch Targets
+| Context | Min Touch Target | Font Scale |
+|---------|-----------------|------------|
+| Desktop | 48px | 1.0x |
+| Mobile (<768px) | 56px | 1.0x |
+| Treadmill Console (2560×1600) | 64px | 1.125x |
+| Hardware Mirror (1080×1920 portrait) | 64px | 1.125x |
+
+### Glassmorphism Fallback
+- Always provide `@supports not (backdrop-filter)` fallback with opaque bg + box-shadow
+- TV casting: 5vh/5vw padding for overscan safe areas
+
+### Event-Driven Architecture (Phase 2 Consensus — Future Sprint)
+The AI Village reached consensus on migrating optional services (gamification, analytics) to event-driven:
+- Core services emit domain events after transaction commit
+- Optional modules subscribe via Event Bus with retry + DLQ
+- **Transactional Outbox pattern** approved for guaranteed delivery
+- Cross-module associations use **soft references** (UUID columns, no Sequelize FK constraints)
+- **Current state:** Direct calls (will migrate incrementally)
+- **Pattern to adopt:** `EventOutbox.create()` in same transaction → poller publishes to bus
+
+---
+
 ## Common Gotchas
 - `transform: translateZ(0)` creates CSS stacking contexts - add `position: relative; z-index` to parent if dropdowns are trapped
 - Vite env vars (`VITE_*`) are build-time only - not changeable at runtime without redeploy
 - Render deploys take 2-5 minutes after push; users may see cached old bundles
 - Windows dev environment - use forward slashes in imports, `.cjs` extension for CommonJS migrations
+- **Gamification double-award:** Always use idempotency keys (userId + actionType + ISO timestamp) to prevent duplicate point awards
+- **Chart lazy loading:** All 50 Victory charts MUST use `React.lazy()` + `SafeChart` error boundary — never eagerly load the full gallery
+- **Social feed pagination:** Use cursor-based pagination (not offset) for social feed queries to prevent missing/duplicate posts during scroll

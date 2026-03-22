@@ -34,6 +34,7 @@ import { useWorkoutHistory } from '../../hooks/useWorkoutHistory';
 import { useClientStats } from '../../hooks/useClientStats';
 import { useAuth } from '../../hooks/useAuth';
 import OnboardingStatusCard from './OnboardingStatusCard';
+import TrainerCredentialsCard from './sections/TrainerCredentialsCard';
 
 // === KEYFRAMES ===
 const stellarPulse = keyframes`
@@ -873,6 +874,9 @@ const EnhancedOverviewGalaxy: React.FC = () => {
           )}
         </AnimatePresence>
       </AchievementsSection>
+
+      {/* Trainer trust signal */}
+      <TrainerCredentialsCard />
     </OverviewContainer>
   );
 };

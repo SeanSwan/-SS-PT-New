@@ -1,17 +1,35 @@
 /**
- * Gamification Overview Component
- * 7-Star AAA Personal Training & Social Media App
+ * ┌─── SUB-COMPONENT: GamificationOverview ────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView (Gamification tab)│
+ * │ PURPOSE: Client gamification dashboard — XP, badges, ranks  │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        │
+ * └─────────────────────────────────────────────────────────────┘
  *
- * Comprehensive gamification system featuring:
- * - Achievement tracking and celebration
- * - Progressive level system with rewards
- * - Badge collection and rarity system
- * - Leaderboards and competitive elements
- * - Challenge creation and participation
- * - Social aspects and community engagement
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ [Level Badge ★5] [XP: 2,450/3,000] [Tier: Silver]  │ LevelBar
+ * ├──────────────────────────────────────────────────────┤
+ * │ [Achievements|Badges|Leaderboard|Challenges]         │ TabBar
+ * ├──────────────────────────────────────────────────────┤
+ * │ Achievements: recent unlocks + progress bars         │
+ * │ Badges: collection grid (Common/Rare/Epic/Legendary) │
+ * │ Leaderboard: ranked list with user position          │
+ * │ Challenges: active + available challenges            │
+ * └──────────────────────────────────────────────────────┘
  *
- * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, glass panels, cyan accents)
+ * GAMIFICATION PROTOCOL (Octalysis Framework):
+ * - Leveling: level = floor(0.1 × sqrt(totalPoints))
+ * - Tiers: Bronze Forge → Silver Glacier → Gold Summit → Diamond Apex → Crystalline Swan
+ * - Points: workout=50, exercise=10, PR=100, social=15, referral=200
+ * - Rarity: Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient
+ *
+ * DATA FLOW:
+ * Props In:  { clientId, gamificationData }
+ * State:     { activeTab, achievements[], badges[], challenges[] }
+ * API Calls: GET /api/gamification/user/:id
+ *
+ * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * NOTE: 1,641 lines — CRITICAL monolith. TODO: extract each tab section
  */
 
 import React, { useState, useMemo } from 'react';

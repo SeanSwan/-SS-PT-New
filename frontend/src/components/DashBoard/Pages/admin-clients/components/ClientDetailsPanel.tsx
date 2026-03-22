@@ -1,19 +1,39 @@
 /**
- * Client Details Panel - Comprehensive Client Profile Management
- * ===========================================================
+ * ┌─── SUB-COMPONENT: ClientDetailsPanel ──────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView                   │
+ * │ PURPOSE: Full client profile view + edit + management       │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        │
+ * └─────────────────────────────────────────────────────────────┘
  *
- * Complete client profile view and management interface
- * Allows admins to view, edit, and manage all aspects of a client
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ [📷 Avatar] Name  [Source Badge]  [Edit] [✕]        │ Header
+ * │ Email | Phone | Joined: date | OPT Phase: N         │
+ * ├──────────────────────────────────────────────────────┤
+ * │ [Profile|Sessions|Payments|Trainer|Health|Photos]    │ TabBar
+ * ├──────────────────────────────────────────────────────┤
+ * │ [Active tab content...]                              │ TabContent
+ * │ - Profile: personal info, goals, injuries, notes     │
+ * │ - Sessions: booking history, upcoming sessions       │
+ * │ - Payments: billing history, subscription status     │
+ * │ - Trainer: assigned trainer, reassign controls       │
+ * │ - Health: screening, fitness assessment, pain map    │
+ * │ - Photos: progress photos with date comparison       │
+ * └──────────────────────────────────────────────────────┘
  *
- * FEATURES:
- * - Comprehensive client profile display
- * - Edit client information interface
- * - Session history and progress tracking
- * - Payment history and billing management
- * - Trainer assignment and scheduling
- * - Health screening and fitness assessment review
- * - Communication center for notes and messages
- * - Progress photos and measurements tracking
+ * CLICK OUTCOMES:
+ * Edit button → toggles edit mode for profile fields
+ * Tab switch → loads corresponding section
+ * Source badge → shows clientSource (SwanStudios/Move Fitness/External)
+ * Close (✕) → closes panel, returns to client list
+ *
+ * DATA FLOW:
+ * Props In:  { client, onClose, onUpdate }
+ * State:     { activeTab, editMode, formData }
+ * API Calls: PUT /api/admin/clients/:id, GET /api/admin/clients/:id/sessions
+ *
+ * NOTE: 1,390 lines — exceeds 300-line rule. TODO: extract each tab
+ * into its own component (ProfileTab, SessionsTab, PaymentsTab, etc.)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -54,6 +74,10 @@ import { useToast } from '../../../../hooks/use-toast';
 
 // P0: Billing & Sessions Card
 import BillingSessionsCard from './BillingSessionsCard';
+
+// Client source logos for identification
+import MoveFitLogo3D from '../../../../../assets/MoveFitLogo-3d.png';
+import SwanStudiosLogo from '../../../../../assets/Logo.png';
 
 // ============================================================
 // Styled Components - Galaxy-Swan Theme
@@ -1279,11 +1303,18 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
             )}
           </AvatarCircle>
           <div>
-            <HeaderTitle>
-              {client.firstName} {client.lastName}
-            </HeaderTitle>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <HeaderTitle>
+                {client.firstName} {client.lastName}
+              </HeaderTitle>
+              {isMoveFitness ? (
+                <img src={MoveFitLogo3D} alt="Move Fitness" style={{ height: 24, width: 'auto', borderRadius: 3, flexShrink: 0 }} />
+              ) : (!client.clientSource || client.clientSource === 'swanstudios') ? (
+                <img src={SwanStudiosLogo} alt="SwanStudios" style={{ height: 24, width: 24, borderRadius: '50%', flexShrink: 0, objectFit: 'cover' }} />
+              ) : null}
+            </div>
             <HeaderSubtitle>
-              Client Details &amp; Management
+              {isMoveFitness ? 'Move Fitness Client' : 'Client Details & Management'}
             </HeaderSubtitle>
           </div>
         </HeaderLeft>

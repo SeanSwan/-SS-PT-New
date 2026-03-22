@@ -1,518 +1,558 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 58.7s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx, frontend/src/components/WorkoutLogger/ExerciseFilterChips.tsx, frontend/src/components/WorkoutLogger/WorkoutLoggerCS.ts, frontend/src/components/WorkoutLogger/NASMProtocolSection.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
-> **Generated:** 3/21/2026, 1:37:25 AM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 59.7s
+> **Files:** docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md
+> **Generated:** 3/21/2026, 10:29:39 PM
 
 ---
 
-# Code Review: WorkoutLogger Component Suite
+# CODE REVIEW: ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md
 
-## Executive Summary
-**Overall Quality:** HIGH — Well-architected, decomposed system with strong TypeScript usage and theme adherence. Several critical performance and type safety issues require immediate attention.
+## Overall Assessment
+This is a **specification document**, not executable code. However, it contains **code examples and architectural decisions** that can be reviewed for quality, security, and best practices.
 
 ---
 
-## 🔴 CRITICAL Issues
+## 1. TYPESCRIPT BEST PRACTICES
 
-### 1. Race Condition in Submit Handler
-**File:** `WorkoutLogger.tsx` (lines 238-280)  
-**Severity:** CRITICAL
+### ❌ CRITICAL: Missing Discriminated Union for Communication Drafts
+**Location:** Section 5.3 - CommunicationDrafts Model
 
-```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) return;
-  isSubmittingRef.current = true; // ❌ Still has race window
-  setIsSubmitting(true);
-  // ...
+```typescript
+// Current schema allows type confusion
+type VARCHAR(10) NOT NULL CHECK (type IN ('email', 'sms'))
+```
+
+**Issue:** The model doesn't enforce type-specific fields. Email needs `subject`, SMS doesn't. This will cause runtime errors.
+
+**Fix:** Use discriminated unions in TypeScript layer:
+```typescript
+type EmailDraft = {
+  type: 'email';
+  subject: string;
+  body: string;
+  recipientAddress: string;
+  // email-specific fields
+};
+
+type SmsDraft = {
+  type: 'sms';
+  body: string;
+  recipientAddress: string;
+  // no subject field
+};
+
+type CommunicationDraft = EmailDraft | SmsDraft;
+```
+
+**Rating:** 🔴 **CRITICAL**
+
+---
+
+### ❌ HIGH: Unsafe `any` Usage in Hook Example
+**Location:** Section 2.1 - useAnalytics Hook
+
+```typescript
+// Specification says "Returns loading/error/data states"
+// But no type signature provided
+```
+
+**Issue:** Without explicit return types, this will default to `any` inference.
+
+**Fix:**
+```typescript
+interface AnalyticsData {
+  strengthProfile?: StrengthProfileData;
+  volumeProgression?: VolumeData[];
+  sessionUsage?: SessionUsageData;
+  // ... other fields
+}
+
+interface UseAnalyticsReturn {
+  data: AnalyticsData | null;
+  loading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+}
+
+export const useAnalytics = (userId: number): UseAnalyticsReturn => {
+  // implementation
+};
+```
+
+**Rating:** 🟠 **HIGH**
+
+---
+
+### ⚠️ MEDIUM: Missing Zod/Validation Schema for API Responses
+**Location:** Section 3.1 - Exercise History Endpoint
+
+```json
+{
+  "exercises": [...],
+  "totalUniqueExercises": 72,
+  "varietyScore": 8.57
 }
 ```
 
-**Problem:** The ref check and set are not atomic. Two rapid clicks can both pass the check before either sets the ref.
+**Issue:** No runtime validation for API responses. Malformed data will cause silent failures.
+
+**Fix:**
+```typescript
+import { z } from 'zod';
+
+const ExerciseHistorySchema = z.object({
+  exercises: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    timesPerformed: z.number(),
+    // ... other fields
+  })),
+  totalUniqueExercises: z.number().int().nonnegative(),
+  varietyScore: z.number().min(0).max(100),
+});
+
+type ExerciseHistoryResponse = z.infer<typeof ExerciseHistorySchema>;
+```
+
+**Rating:** 🟡 **MEDIUM**
+
+---
+
+## 2. REACT PATTERNS
+
+### ❌ HIGH: Inline Function Creation in Virtualized List
+**Location:** Section 3.2 - ExerciseRolodexPage Component
+
+```tsx
+// CSS gradient bars — GPU-composited, 60fps native
+const FrequencyBar = styled.div<{ $width: number }>`
+  width: ${({ $width }) => $width}%;
+`;
+```
+
+**Issue:** When used in `react-window`, creating styled components inline will cause **massive re-renders** (virtualized lists render 100s of items).
 
 **Fix:**
 ```tsx
-const handleSubmit = async () => {
-  // Atomic check-and-set
-  if (isSubmittingRef.current) return;
-  const wasSubmitting = isSubmittingRef.current;
-  isSubmittingRef.current = true;
-  if (wasSubmitting) return;
-  
-  setIsSubmitting(true);
-  // ... rest of logic
-}
+// Define OUTSIDE component
+const FrequencyBar = styled.div<{ $width: number }>`
+  width: ${({ $width }) => $width}%;
+`;
+
+// Inside virtualized row renderer:
+const Row = memo(({ index, style, data }: ListChildComponentProps) => {
+  const exercise = data[index];
+  return (
+    <div style={style}>
+      <FrequencyBar $width={exercise.frequency} />
+    </div>
+  );
+});
 ```
 
-**Better approach:** Use a proper mutex or disable the button in UI:
-```tsx
-<button disabled={isSubmitting || isSubmittingRef.current}>
-```
+**Rating:** 🟠 **HIGH**
 
 ---
 
-### 2. Missing Error Boundary
-**File:** All components  
-**Severity:** CRITICAL
+### ⚠️ MEDIUM: Missing Memoization for Chart Data Transformation
+**Location:** Section 2.2 - Victory Chart Props
 
-**Problem:** No error boundary wrapping the WorkoutLogger. A single runtime error in any sub-component will crash the entire workout session, losing user data.
+```typescript
+// Spec says "With useMemo for data transformation"
+// But no example provided
+```
 
-**Fix:** Add error boundary wrapper:
+**Issue:** Chart libraries like Victory re-render on ANY prop change. Without memoization, charts will re-render on every parent update.
+
+**Fix:**
+```typescript
+const WeightProgressionLine: FC<Props> = ({ data, loading }) => {
+  const chartData = useMemo(() => {
+    if (!data) return [];
+    return data.map((point, index) => ({
+      x: index,
+      y: point.weight,
+      label: format(point.date, 'MMM dd'),
+    }));
+  }, [data]);
+
+  if (loading) return <SkeletonLoader />;
+  
+  return <VictoryLine data={chartData} />;
+};
+```
+
+**Rating:** 🟡 **MEDIUM**
+
+---
+
+### ⚠️ MEDIUM: Potential Stale Closure in useAnalytics Hook
+**Location:** Section 2.1 - useAnalytics Hook
+
+**Issue:** If the hook uses `useEffect` with missing dependencies, it will capture stale `userId`.
+
+**Fix:**
+```typescript
+export const useAnalytics = (userId: number) => {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  
+  useEffect(() => {
+    let cancelled = false;
+    
+    const fetchData = async () => {
+      const result = await api.getAnalytics(userId);
+      if (!cancelled) setData(result);
+    };
+    
+    fetchData();
+    
+    return () => { cancelled = true; };
+  }, [userId]); // ✅ userId in deps
+  
+  return { data };
+};
+```
+
+**Rating:** 🟡 **MEDIUM**
+
+---
+
+## 3. STYLED-COMPONENTS
+
+### ❌ HIGH: Hardcoded Color Values in Skeleton Loader
+**Location:** Section 2.3 - Frost Shimmer Skeleton
+
+```css
+/* Arctic Cyan shimmer at 10% opacity */
+background: linear-gradient(90deg, transparent, rgba(80,160,240,0.1), transparent);
+```
+
+**Issue:** Hardcoded `rgba(80,160,240,0.1)` instead of using theme token `${({ theme }) => theme.colors.arcticCyan}`.
+
+**Fix:**
+```typescript
+const SkeletonLoader = styled.div`
+  background: linear-gradient(
+    90deg,
+    transparent,
+    ${({ theme }) => hexToRgba(theme.colors.arcticCyan, 0.1)},
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+`;
+```
+
+**Rating:** 🟠 **HIGH**
+
+---
+
+### ⚠️ MEDIUM: Missing Theme Token for Frequency Bar Gradient
+**Location:** Section 3.2 - FrequencyBar Component
+
 ```tsx
-// WorkoutLoggerErrorBoundary.tsx
-class WorkoutLoggerErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
+background: linear-gradient(90deg, #8B5CF6, #60C0F0);
+```
+
+**Issue:** Hardcoded hex values instead of `wingPurple` and `iceWing` theme tokens.
+
+**Fix:**
+```typescript
+const FrequencyBar = styled.div<{ $width: number }>`
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.wingPurple},
+    ${({ theme }) => theme.colors.iceWing}
+  );
+`;
+```
+
+**Rating:** 🟡 **MEDIUM**
+
+---
+
+## 4. DRY VIOLATIONS
+
+### ⚠️ MEDIUM: Duplicated Draft Creation Logic
+**Location:** Section 5.3 & 5.4 - Email/SMS Draft Creation
+
+```javascript
+// Email draft
+await CommunicationDraft.create({
+  type: 'email',
+  clientId: update.data.clientId,
+  trainerId: req.user.id,
+  subject: DOMPurify.sanitize(update.data.subject).slice(0, 200),
+  body: DOMPurify.sanitize(update.data.html),
+  recipientAddress: client.email,
+  status: 'pending_approval'
+});
+
+// SMS draft (nearly identical)
+await CommunicationDraft.create({
+  type: 'sms',
+  clientId: update.data.clientId,
+  trainerId: req.user.id,
+  body: update.data.message.slice(0, 160),
+  recipientAddress: client.phone,
+  status: 'pending_approval'
+});
+```
+
+**Fix:**
+```typescript
+const createCommunicationDraft = async (
+  type: 'email' | 'sms',
+  clientId: number,
+  trainerId: number,
+  content: { subject?: string; body: string }
+) => {
+  const client = await User.findByPk(clientId);
+  const recipientAddress = type === 'email' ? client.email : client.phone;
+  
+  if (!recipientAddress) {
+    throw new Error(`Client ${type} not found`);
+  }
+  
+  return CommunicationDraft.create({
+    type,
+    clientId,
+    trainerId,
+    ...(type === 'email' && { subject: DOMPurify.sanitize(content.subject).slice(0, 200) }),
+    body: DOMPurify.sanitize(content.body).slice(0, type === 'sms' ? 160 : undefined),
+    recipientAddress,
+    status: 'pending_approval',
+  });
+};
+```
+
+**Rating:** 🟡 **MEDIUM**
+
+---
+
+## 5. ERROR HANDLING
+
+### ❌ CRITICAL: No Error Boundary for Chart Components
+**Location:** Section 2.2 - Victory Chart Updates
+
+**Issue:** Spec mentions "SafeChart error boundary" in Section 6 but doesn't define it. Charts will crash the entire page if data is malformed.
+
+**Fix:**
+```typescript
+class ChartErrorBoundary extends React.Component<
+  { children: ReactNode; fallback?: ReactNode },
+  { hasError: boolean }
 > {
-  state = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  state = { hasError: false };
+  
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('WorkoutLogger Error:', error, errorInfo);
-    toast.error('An error occurred. Your workout data has been saved locally.');
-    // Save to localStorage as backup
-    try {
-      localStorage.setItem('workout_backup', JSON.stringify({
-        exercises: this.props.exercises,
-        timestamp: Date.now()
-      }));
-    } catch {}
+  
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Chart error:', error, info);
+    // Log to error tracking service
   }
-
+  
   render() {
     if (this.state.hasError) {
-      return <FallbackUI error={this.state.error} />;
+      return this.props.fallback || (
+        <ErrorCard>
+          <p>Unable to load chart data</p>
+          <Button onClick={() => this.setState({ hasError: false })}>
+            Retry
+          </Button>
+        </ErrorCard>
+      );
     }
     return this.props.children;
   }
 }
 ```
 
+**Rating:** 🔴 **CRITICAL**
+
 ---
 
-### 3. Uncontrolled AbortController Cleanup
-**File:** `WorkoutLogger.tsx` (lines 255-280)  
-**Severity:** CRITICAL
+### ❌ HIGH: Missing Try/Catch in Analytics Hook
+**Location:** Section 2.1 - useAnalytics Hook
 
-```tsx
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-try {
-  // ... submit logic
-} finally {
-  clearTimeout(timeoutId); // ❌ Controller never cleaned up
-  isSubmittingRef.current = false;
-}
-```
-
-**Problem:** 
-- `controller.abort()` is called but the controller itself is never cleaned up
-- If component unmounts during submission, timeout continues running
-- Memory leak on repeated submissions
+**Issue:** No error handling specified for API calls.
 
 **Fix:**
-```tsx
-const handleSubmit = async () => {
-  // ... validation ...
+```typescript
+export const useAnalytics = (userId: number) => {
+  const [error, setError] = useState<Error | null>(null);
   
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await api.getAnalytics(userId);
+        setData(result);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Unknown error'));
+        // Show user-facing toast notification
+        toast.error('Unable to load analytics. Please try again.');
+      }
+    };
+    
+    fetchData();
+  }, [userId]);
   
-  // Cleanup on unmount
-  const cleanup = () => {
-    clearTimeout(timeoutId);
-    controller.abort(); // Ensure abort is called
-  };
-  
-  try {
-    const response = await dailyWorkoutFormService.submitWorkoutForm(
-      formData,
-      { signal: controller.signal } // ❌ Missing signal prop!
-    );
-    // ...
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      toast.error('Submission timed out');
-    }
-  } finally {
-    cleanup();
-    isSubmittingRef.current = false;
-    setIsSubmitting(false);
-  }
+  return { data, loading, error };
 };
-
-// Add useEffect cleanup
-useEffect(() => {
-  return () => {
-    if (isSubmittingRef.current) {
-      // Cancel ongoing submission on unmount
-    }
-  };
-}, []);
 ```
+
+**Rating:** 🟠 **HIGH**
 
 ---
 
-## 🟠 HIGH Priority Issues
+### ⚠️ MEDIUM: No User-Facing Error Messages for Draft Approval
+**Location:** Section 5.3 - Draft Approval Endpoint
 
-### 4. Missing Keys in NASM Item Arrays
-**File:** `WorkoutLogger.tsx` (lines 42-66)  
-**Severity:** HIGH
-
-```tsx
-const [warmupItems, setWarmupItems] = useState<NASMItem[]>([
-  { id: 'warmup-1', name: '...', completed: false }, // ✅ Has stable ID
-  // ...
-]);
-```
-
-**Problem:** While IDs exist, they're hardcoded strings. If items are reordered or dynamically loaded, React reconciliation will break.
-
-**Fix:** Use UUID or nanoid for truly stable IDs:
-```tsx
-import { nanoid } from 'nanoid';
-
-const [warmupItems] = useState<NASMItem[]>(() => [
-  { id: nanoid(), name: 'Foam Roll — IT Band / TFL', completed: false },
-  // ...
-]);
-```
-
----
-
-### 5. Inline Function Creation in Render
-**File:** `ExerciseCardComponent.tsx` (lines 30-150)  
-**Severity:** HIGH
-
-```tsx
-{exercise.sets.map((set, setIndex) => (
-  <SetRow key={setIndex}> {/* ❌ Using index as key */}
-    <NumberInput
-      onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
-      // ❌ New function created on every render
-    />
-  </SetRow>
-))}
-```
-
-**Problems:**
-1. Using array index as key (breaks on reorder)
-2. Inline arrow functions prevent React.memo optimization
-3. `parseFloat(e.target.value) || 0` returns `0` for empty string (should be `''`)
+**Issue:** Spec doesn't mention error handling for approval failures (e.g., email service down).
 
 **Fix:**
-```tsx
-// Add stable ID to ExerciseSet interface
-interface ExerciseSet {
-  id: string; // Add this
-  setNumber: number;
-  // ...
-}
-
-// In component
-const handleWeightChange = useCallback((setIndex: number, value: string) => {
-  const numValue = value === '' ? 0 : parseFloat(value);
-  onUpdateSet(exerciseIndex, setIndex, 'weight', isNaN(numValue) ? 0 : numValue);
-}, [exerciseIndex, onUpdateSet]);
-
-// In render
-{exercise.sets.map((set, setIndex) => (
-  <SetRow key={set.id}> {/* ✅ Stable key */}
-    <NumberInput
-      onChange={(e) => handleWeightChange(setIndex, e.target.value)}
-    />
-  </SetRow>
-))}
-```
-
----
-
-### 6. Type Safety Violations
-**File:** `WorkoutLogger.tsx` (lines 145-165)  
-**Severity:** HIGH
-
-```tsx
-const axiosResponse = await api.get(infoUrl);
-const data = axiosResponse?.data ?? axiosResponse; // ❌ Unsafe type coercion
-
-if (data.success && data.client) { // ❌ No type guard
-  setClient({
-    id: data.client.id, // Could be undefined
-    // ...
+```typescript
+try {
+  await emailService.send(draft);
+  await draft.update({ status: 'sent', sentAt: new Date() });
+  res.json({ success: true, message: 'Email sent successfully' });
+} catch (error) {
+  await draft.update({ status: 'failed', error: error.message });
+  res.status(500).json({
+    success: false,
+    message: 'Failed to send email. The draft has been saved and you can retry later.',
   });
 }
 ```
 
-**Problem:** No runtime type validation. If API returns unexpected shape, app crashes.
+**Rating:** 🟡 **MEDIUM**
+
+---
+
+## 6. PERFORMANCE ANTI-PATTERNS
+
+### ❌ HIGH: No Pagination for Exercise History
+**Location:** Section 3.1 - Exercise History Endpoint
+
+```sql
+SELECT ... FROM "WorkoutExercises" we
+-- No LIMIT or OFFSET
+```
+
+**Issue:** A user with 5 years of data could have **10,000+ exercise records**. Loading all at once will:
+- Timeout the query
+- Crash the browser
+- Consume massive bandwidth
+
+**Fix:**
+```typescript
+GET /api/analytics/:userId/exercise-history?page=1&limit=50&sortBy=frequency
+
+// Backend
+const { page = 1, limit = 50 } = req.query;
+const offset = (page - 1) * limit;
+
+const { rows, count } = await db.query(`
+  SELECT ... 
+  ORDER BY times_performed DESC
+  LIMIT :limit OFFSET :offset
+`, { limit, offset });
+
+res.json({
+  exercises: rows,
+  pagination: {
+    page,
+    limit,
+    total: count,
+    pages: Math.ceil(count / limit),
+  },
+});
+```
+
+**Rating:** 🟠 **HIGH**
+
+---
+
+### ❌ HIGH: Materialized View Refresh Strategy is Inefficient
+**Location:** Phase 1, Step 5 - UserExerciseStats_MV
+
+```
+15-min refresh + post-workout refresh
+```
+
+**Issue:** 15-minute refresh is **too aggressive** for analytics data. This will hammer the database with expensive aggregation queries every 15 minutes for ALL users.
+
+**Fix:**
+```sql
+-- Refresh only when user views their Exercise Rolodex
+-- Use ON-DEMAND refresh triggered by user action
+
+-- Or use incremental refresh (PostgreSQL 13+)
+CREATE MATERIALIZED VIEW UserExerciseStats_MV AS ...
+WITH DATA;
+
+-- Refresh only changed rows
+REFRESH MATERIALIZED VIEW CONCURRENTLY UserExerciseStats_MV;
+```
+
+**Better approach:** Cache in Redis with 1-hour TTL, invalidate on workout completion.
+
+**Rating:** 🟠 **HIGH**
+
+---
+
+### ⚠️ MEDIUM: Missing Keys in Virtualized List
+**Location:** Section 3.2 - ExerciseRolodexPage
+
+**Issue:** Spec doesn't mention `key` prop for virtualized list items.
 
 **Fix:**
 ```tsx
-interface ClientInfoResponse {
-  success: boolean;
-  client?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    availableSessions: number;
-    phone?: string;
-    hasWorkoutToday?: boolean;
-  };
-  message?: string;
-}
-
-const isClientInfoResponse = (data: unknown): data is ClientInfoResponse => {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'success' in data &&
-    typeof (data as any).success === 'boolean'
-  );
-};
-
-// In loadClientData
-const data = axiosResponse?.data ?? axiosResponse;
-if (!isClientInfoResponse(data)) {
-  throw new Error('Invalid response format from server');
-}
-
-if (data.success && data.client) {
-  setClient({ ...data.client }); // Now type-safe
-}
+<FixedSizeList
+  itemCount={exercises.length}
+  itemSize={80}
+  itemKey={(index) => exercises[index].id} // ✅ Stable key
+>
+  {Row}
+</FixedSizeList>
 ```
+
+**Rating:** 🟡 **MEDIUM**
 
 ---
 
-### 7. Unhandled Promise Rejection
-**File:** `WorkoutLogger.tsx` (lines 195-210)  
-**Severity:** HIGH
+### ⚠️ MEDIUM: Inline Object Creation in Chart Props
+**Location:** Section 2.2 - Chart Props Pattern
 
-```tsx
-useEffect(() => {
-  try {
-    const pending = sessionStorage.getItem(PENDING_WORKOUT_KEY);
-    if (pending) {
-      const plan: WorkoutPlanTransfer = JSON.parse(pending); // ❌ Can throw
-      // ...
-    }
-  } catch { /* ignore parse errors */ } // ❌ Silent failure
-}, [convertAIExercises]);
-```
-
-**Problem:** Silent failures hide bugs. User has no idea their AI plan failed to load.
+**Issue:** If chart components receive inline objects as props, they'll re-render on every parent render.
 
 **Fix:**
 ```tsx
-useEffect(() => {
-  try {
-    const pending = sessionStorage.getItem(PENDING_WORKOUT_KEY);
-    if (pending) {
-      const plan: WorkoutPlanTransfer = JSON.parse(pending);
-      if (plan.exercises?.length) {
-        const converted = convertAIExercises(plan.exercises);
-        setExercises(prev => [...prev, ...converted]);
-        toast.success(`Loaded ${converted.length} exercises from AI plan`);
-        sessionStorage.removeItem(PENDING_WORKOUT_KEY);
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load pending AI plan:', error);
-    toast.warning('Could not restore AI workout plan from previous session');
-    try { sessionStorage.removeItem(PENDING_WORKOUT_KEY); } catch {}
-  }
-}, [convertAIExercises]);
-```
-
----
-
-## 🟡 MEDIUM Priority Issues
-
-### 8. Hardcoded Color Values
-**File:** `NASMProtocolSection.tsx` (line 39)  
-**Severity:** MEDIUM
-
-```tsx
-icon={<Shield size={18} style={{ color: '#8B5CF6' }} />}
-// ❌ Hardcoded Wing Purple instead of CS.secondary
-```
-
-**Fix:**
-```tsx
-icon={<Shield size={18} style={{ color: CS.secondary }} />}
-```
-
-**Also found in:**
-- `WorkoutLogger.tsx` line 405: `style={{ color: CS.gaming }}` ✅ Correct
-- `WorkoutLogger.tsx` line 419: `style={{ color: '#8B5CF6' }}` ❌ Should be `CS.secondary`
-
----
-
-### 9. Missing Memoization
-**File:** `NASMExerciseRolodex.tsx` (lines 60-68)  
-**Severity:** MEDIUM
-
-```tsx
-const categoryCounts = useMemo(() => {
-  const counts: Record<string, number> = { All: allExercises.length };
-  for (const ex of allExercises) {
-    const cat = ex.bodyPartCategory || 'Full Body';
-    counts[cat] = (counts[cat] || 0) + 1;
-  }
-  return counts;
-}, [allExercises]); // ✅ Correctly memoized
-```
-
-**Good!** But missing in `WorkoutLogger.tsx`:
-
-```tsx
-// ❌ Recalculated on every render
-const totalSets = useMemo(() =>
-  exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0), [exercises]);
-
-const estimatedDuration = useMemo(() =>
-  Math.min(totalSets * MINUTES_PER_SET, MAX_WORKOUT_DURATION), [totalSets]);
-```
-
-**These are fine** — cheap calculations. But this is NOT memoized:
-
-```tsx
-// In WorkoutLoggerHeader (not shown in provided code)
-// If this exists, it should be memoized:
-const workoutStats = {
-  totalVolume: exercises.reduce((sum, ex) => 
-    sum + ex.sets.reduce((s, set) => s + (set.weight * set.reps), 0), 0
-  ),
-  // ... other expensive calculations
-};
-```
-
----
-
-### 10. Accessibility: Missing ARIA Labels
-**File:** `ExerciseCardComponent.tsx` (lines 50-80)  
-**Severity:** MEDIUM
-
-```tsx
-<SliderInput
-  type="range"
-  min={0}
-  max={10}
-  value={exercise.painLevel}
-  onChange={(e) => onUpdateExercise(exerciseIndex, 'painLevel', parseInt(e.target.value))}
-  // ❌ Missing aria-label
+// ❌ BAD
+<WeightProgressionLine 
+  config={{ animate: true, theme: 'dark' }} // New object every render
 />
+
+// ✅ GOOD
+const chartConfig = useMemo(() => ({ 
+  animate: true, 
+  theme: 'dark' 
+}), []);
+
+<WeightProgressionLine config={chartConfig} />
 ```
 
-**Fix:**
-```tsx
-<SliderInput
-  type="range"
-  min={0}
-  max={10}
-  value={exercise.painLevel}
-  onChange={(e) => onUpdateExercise(exerciseIndex, 'painLevel', parseInt(e.target.value))}
-  aria-label={`Pain level for ${exercise.exerciseName}: ${exercise.painLevel} out of 10`}
-  aria-valuemin={0}
-  aria-valuemax={10}
-  aria-valuenow={exercise.painLevel}
-/>
-```
+**Rating:** 🟡 **MEDIUM**
 
 ---
 
-### 11. DRY Violation: Repeated Star Rating Logic
-**File:** `ExerciseCardComponent.tsx` (lines 55, 95, 130)  
-**Severity:** MEDIUM
+## 7. SECURITY ISSUES
 
-**Problem:** Star rating UI duplicated 3 times (form rating, set form quality).
-
-**Fix:** Extract to shared component:
-```tsx
-// StarRating.tsx
-interface StarRatingProps {
-  value: number;
-  max?: number;
-  onChange: (value: number) => void;
-  ariaLabel: string;
-}
-
-const StarRating: React.FC<StarRatingProps> = memo(({ 
-  value, 
-  max = 5, 
-  onChange, 
-  ariaLabel 
-}) => (
-  <StarRatingContainer role="radiogroup" aria-label={ariaLabel}>
-    {Array.from({ length: max }, (_, i) => i + 1).map((rating) => (
-      <StarButton
-        key={rating}
-        $filled={rating <= value}
-        onClick={() => onChange(rating)}
-        role="radio"
-        aria-checked={rating === value}
-        aria-label={`${rating} out of ${max}`}
-      >
-        <Star size={16} />
-      </StarButton>
-    ))}
-  </StarRatingContainer>
-));
-
-// Usage
-<StarRating
-  value={exercise.formRating}
-  onChange={(val) => onUpdateExercise(exerciseIndex, 'formRating', val)}
-  ariaLabel={`Form rating for ${exercise.exerciseName}`}
-/>
-```
-
----
-
-### 12. Performance: Unnecessary Re-renders
-**File:** `WorkoutLogger.tsx` (lines 305-320)  
-**Severity:** MEDIUM
-
-```tsx
-const toggleNasmItem = useCallback((
-  setter: React.Dispatch<React.SetStateAction<NASMItem[]>>,
-  index: number,
-) => setter(prev => prev.map((item, i) =>
-  i === index ? { ...item, completed: !item.completed } : item
-)), []); // ✅ Correctly memoized
-
-// But called like this:
-onToggleItem={(idx) => toggleNasmItem(setWarmupItems, idx)}
-// ❌ New inline function on every render
-```
-
-**Fix:**
-```tsx
-const toggleWarmupItem = useCallback((idx: number) => 
-  toggleNasmItem(setWarmupItems, idx), [toggleNasmItem]);
-
-const toggleBalanceItem = useCallback((idx: number) => 
-  toggleNasmItem(setBalanceCoreItems, idx), [toggleNasmItem]);
-
-// In render:
-<NASMProtocolSection
-  onToggleItem={toggleWarmupItem} // ✅ Stable reference
-/>
-```
-
----
-
-## 🟢 LOW Priority Issues
-
-### 13. Magic Numbers
-**File:** `NASMExerciseRolodex.tsx` (lines 35-36)  
-**Severity:** LOW
-
-```tsx
-const ROW_HEIGHT
+### ❌ CRITICAL: SQL Injection Risk in Exercise History Query
+**Location:** Section 3.1 -
 
 ---
 

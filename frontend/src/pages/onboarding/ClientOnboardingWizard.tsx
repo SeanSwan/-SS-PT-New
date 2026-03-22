@@ -16,6 +16,18 @@ const TrainingSection = React.lazy(() => import("./components/TrainingSection"))
 const ConsentSection = React.lazy(() => import("./components/ConsentSection"));
 const SummarySection = React.lazy(() => import("./components/SummarySection"));
 
+/* ── Step definitions (outside component to avoid re-creation on every render) ── */
+const WIZARD_STEPS = [
+  { id: 1, label: "Basic Info", component: BasicInfo },
+  { id: 2, label: "Goals", component: GoalsSection },
+  { id: 3, label: "Health", component: HealthSection },
+  { id: 4, label: "Nutrition", component: NutritionSection },
+  { id: 5, label: "Lifestyle", component: LifestyleSection },
+  { id: 6, label: "Training", component: TrainingSection },
+  { id: 7, label: "AI Consent", component: ConsentSection },
+  { id: 8, label: "Summary", component: SummarySection },
+] as const;
+
 /* ── Crystalline Swan theme tokens ── */
 const MIDNIGHT_SAPPHIRE = "#002060";
 const ROYAL_DEPTH = "#003080";
@@ -94,7 +106,7 @@ const StepIndicator = styled.div`
   gap: 0;
 `;
 
-const Step = styled.div<{ $active: boolean; $completed: boolean }>`
+const Step = styled.button<{ $active: boolean; $completed: boolean }>`
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -103,6 +115,7 @@ const Step = styled.div<{ $active: boolean; $completed: boolean }>`
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
+  padding: 0;
   border: 2px solid
     ${(props) => {
       if (props.$completed) return SWAN_CYAN;
@@ -397,17 +410,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const steps = [
-    { id: 1, label: "Basic Info", component: BasicInfo },
-    { id: 2, label: "Goals", component: GoalsSection },
-    { id: 3, label: "Health", component: HealthSection },
-    { id: 4, label: "Nutrition", component: NutritionSection },
-    { id: 5, label: "Lifestyle", component: LifestyleSection },
-    { id: 6, label: "Training", component: TrainingSection },
-    { id: 7, label: "AI Consent", component: ConsentSection },
-    { id: 8, label: "Summary", component: SummarySection },
-  ];
-
+  const steps = WIZARD_STEPS;
   const CurrentSection = steps[currentStep].component;
   const progress = ((currentStep + 1) / steps.length) * 100;
 
@@ -540,7 +543,9 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
                 $active={index === currentStep}
                 $completed={index < currentStep}
                 onClick={() => handleJumpToStep(index)}
-                title={step.label}
+                aria-label={`Go to step ${index + 1}: ${step.label}`}
+                aria-current={index === currentStep ? 'step' : undefined}
+                type="button"
               >
                 {index < currentStep ? "\u2713" : index + 1}
               </Step>

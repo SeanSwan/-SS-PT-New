@@ -43,6 +43,7 @@ import { useUserChallenges } from '../../hooks/useUserChallenges';
 import { useUserGoals } from '../../hooks/useUserGoals';
 import GoalProgressChart from './charts/GoalProgressChart';
 import ChallengeActivityChart from './charts/ChallengeActivityChart';
+import ProgressChartsSection from './sections/ProgressChartsSection';
 import StreakCalendarChart from './charts/StreakCalendarChart';
 import AiConsentPanel from './AiConsentPanel';
 import ClientProgressSnapshot from './ClientProgressSnapshot';
@@ -360,6 +361,7 @@ export const ProgressConstellation: React.FC = () => {
       transition={{ duration: 0.5 }}
     >
       <ClientProgressPanel />
+      <ProgressChartsSection />
       {goals.length > 0 && <GoalProgressChart goals={goals} />}
       {challenges.length > 0 ? (
         <ChallengeActivityChart challenges={challenges} />

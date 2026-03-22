@@ -429,9 +429,20 @@ Use the action block format to update any client's data:
   {"type": "goal", "data": {...}},
   {"type": "client_note", "data": {...}},
   {"type": "macro_log", "data": {...}},
-  {"type": "progress_level", "data": {...}}
+  {"type": "progress_level", "data": {...}},
+  {"type": "draft_email", "data": {"subject": "...", "body": "..."}},
+  {"type": "draft_sms", "data": {"body": "..." (max 160 chars)}}
 ]}
 \`\`\`
+
+COMMUNICATION DRAFTS (Trainer/Admin only):
+- You can draft emails or SMS to a client using "draft_email" or "draft_sms" update types.
+- Drafts are NEVER sent automatically — they go to a review queue.
+- The trainer must manually approve each draft before it is sent.
+- Recipient address is auto-populated from client profile (you cannot override it).
+- Max 10 drafts per client per day (rate limited).
+- Email body max: 5000 chars. SMS body max: 160 chars.
+- Write professional, encouraging messages aligned with the client's goals and progress.
 
 When data is included below, analyze it thoroughly. Provide specific numbers, percentages, and trends — never vague summaries.
 
@@ -899,8 +910,38 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       dataParts.push(`\n--- BUSINESS KPIs (Platform) ---\nActive Clients: ${bk.activeClients || 0} | New This Month: ${bk.newClientsThisMonth || 0}\nRevenue (30d): $${Number(bk.revenueThisMonth || 0).toLocaleString()} | Platform Workouts (7d): ${bk.platformWorkouts7d || 0}`);
     }
 
+    // ── 21. ANALYTICS: Exercise history + variety (from MV or direct query) ──
+    try {
+      const [exerciseStats] = await Promise.all([
+        safeQuery(
+          `SELECT "exerciseName", "timesPerformed"::int, "maxWeight"::numeric, "totalVolume"::numeric
+           FROM "UserExerciseStats_MV"
+           WHERE "userId" = :userId
+           ORDER BY "timesPerformed" DESC LIMIT 10`, { userId })
+          .catch(() => safeQuery(
+            `SELECT e.name AS "exerciseName",
+                    COUNT(DISTINCT we."workoutSessionId")::int AS "timesPerformed",
+                    COALESCE(MAX(s."weightUsed"), 0)::numeric AS "maxWeight",
+                    COALESCE(SUM(s."weightUsed" * s."repsCompleted"), 0)::numeric AS "totalVolume"
+             FROM "WorkoutExercises" we
+             JOIN "Exercises" e ON we."exerciseId" = e.id
+             JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
+             LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
+             WHERE ws."userId" = :userId AND ws.status = 'completed'
+             GROUP BY e.id, e.name
+             ORDER BY "timesPerformed" DESC LIMIT 10`, { userId })),
+      ]);
+
+      if (exerciseStats.length > 0) {
+        const lines = exerciseStats.map(e =>
+          `${e.exerciseName}: ${e.timesPerformed}× | Max: ${Number(e.maxWeight)}lbs | Vol: ${(Number(e.totalVolume) / 1000).toFixed(1)}k lbs`
+        );
+        dataParts.push(`\n--- EXERCISE ANALYTICS (Top ${exerciseStats.length}) ---\n${lines.join('\n')}`);
+      }
+    } catch { /* MV or tables may not exist yet — non-fatal */ }
+
     if (dataParts.length === 0) return '';
-    return '\n\n=== CLIENT DATA (20 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
+    return '\n\n=== CLIENT DATA (21 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
   } catch (err) {
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';

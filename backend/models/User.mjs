@@ -353,6 +353,25 @@ User.init(
       comment: 'Whether level and XP are visible on public profile'
     },
 
+    // Per-chart visibility toggles (privacy-first: all default OFF)
+    chartVisibility: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {
+        weightProgression: false,
+        workoutHeatmap: false,
+        muscleRadar: false,
+        goalProgress: false,
+        exerciseRolodex: false,
+        strengthProgression: false,
+        bodyComposition: false,
+        volumeProgression: false,
+        sessionFrequency: false,
+        nasmProgress: false,
+      },
+      comment: 'Per-chart visibility on public profile (opt-in, all default false)'
+    },
+
     // ========== STRIPE INTEGRATION FIELDS ==========
     // Stripe customer ID for payment processing
     stripeCustomerId: {

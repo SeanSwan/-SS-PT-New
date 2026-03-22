@@ -1,240 +1,116 @@
-# Opus CEO Final Ruling — V2.0 Master Blueprint
+# Phase 4: Opus CEO Ruling — Enhanced Chart Analytics & AI Integration
 
-> **Authority:** Claude Opus 4.6 (CEO) — FINAL authority on ALL decisions
-> **Date:** 2026-03-21
-> **Blueprint:** `docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md`
-> **AI Village Run:** 11/9 validators passed, Phase 2 (4 rounds), Phase 3 (5 rounds), Cost: $0.40
-> **Status:** APPROVED WITH AMENDMENTS
-> **Predecessor:** V1.0 ruling (same file, previous run) — all V1.0 rulings still in effect
-
----
-
-## Phase 2 Code Quality Debate — CEO Review
-
-Sonnet (VP Engineering) reached consensus with Gemini CTO on 3 issues in 4 rounds. All resolved correctly. Here are my rulings:
-
-### Issue #1: 1RM Calculation Crash for >10 Reps — ✅ RATIFIED
-
-**CTO flagged:** `calculate1RM()` throws for reps >10, but Phase 1 requires 12-20 reps. Backend crash.
-**Sonnet's consensus:** Try/catch with `UNKNOWN_REQUIRE_TESTING` fallback for new users.
-
-**CEO:** Correct. The 1RM calculation should ONLY run on data where reps ≤ 10. Phase 1 workout logging (12-20 reps) does NOT trigger 1RM recalculation — it only saves the set data. The 1RM is calculated during dedicated assessment sessions where the client does low-rep tests. Sonnet's error handling is the right approach.
-
-**Additional directive:** Add a clear comment in the calculate1RM function:
-```typescript
-// IMPORTANT: This function is for ASSESSMENT data only (reps 1-10).
-// Regular workout logging (Phase 1: 12-20 reps) does NOT call this function.
-// 1RM is assessed separately during scheduled reassessment sessions.
-```
-
-### Issue #2: Destructive Seeder Pattern — ✅ RATIFIED WITH REFINEMENT
-
-**CTO flagged:** `findOrCreate by name` is dangerous if upstream API corrects exercise names.
-**Sonnet's consensus:** Use immutable `exercise_key` slug (from upstream ID or slugified name).
-
-**CEO:** Correct. The `exercise_key` approach is superior to name-based matching. However, I add:
-- Use `exercise_key` column (not `nasm_slug` from V1.0 — `exercise_key` is more general for 500+ exercises from multiple sources)
-- The V1.0 `nasm_slug` column is now a subset of `exercise_key` — NASM exercises get `nasm-[slugified-name]`, free-exercise-db gets their native ID, custom gets `custom-[slugified-name]`
-- Backfill migration is MANDATORY before running the expanded seeder
-- `exercise_key` must be `VARCHAR(255) UNIQUE NOT NULL`
-
-### Issue #3: LLM Math Hallucination — ✅ RATIFIED
-
-**CTO flagged:** AI shouldn't do arithmetic (1RM × intensity %). LLMs hallucinate numbers.
-**Sonnet's consensus:** AI outputs `targetIntensity` as integer percentage. Backend calculates weight.
-
-**CEO:** Absolutely correct. This is a critical safety issue — incorrect training loads violate NASM protocol and risk injury. The backend MUST be the sole authority on weight calculations.
-
-**Final rule:**
-- AI outputs: `{ exerciseKey, sets, reps, targetIntensity (integer %), tempo, restSeconds }`
-- Backend calculates: `targetWeight = Math.round((client1RM * targetIntensity / 100) / 5) * 5`
-- Frontend displays: calculated weight with "(AI suggested)" label
-- Trainer can override the calculated weight before confirming
-
-### Issue #4: Body Fat Formula Unit Mismatch — ✅ RATIFIED
-
-**CTO flagged:** Navy body fat constants are for inches only. Blueprint supports metric but doesn't convert.
-**Sonnet's consensus:** Document both imperial and metric formula variants.
-
-**CEO:** Correct. Both formula variants must be implemented. The UI must clearly show which unit system is active. Default to imperial (this is an American-based fitness app per CLAUDE.md feedback: "App is American-based").
-
-### Issue #5: Missing DB Index — ✅ RATIFIED
-
-**CTO flagged:** `exercise_id` on `workout_logs` has no index.
-**Sonnet's consensus:** Add composite index `(client_id, exercise_id)`.
-
-**CEO:** Correct. Add BOTH:
-```sql
-CREATE INDEX idx_workout_logs_exercise_id ON workout_logs(exercise_id);
-CREATE INDEX idx_workout_logs_client_exercise ON workout_logs(client_id, exercise_id);
-```
-
-### Issue #6: Tempo Regex — ✅ RATIFIED
-
-**CTO flagged:** Regex `\d` only matches single digit. "10/0/1" fails validation.
-**Sonnet's consensus:** Use `\d+` for multi-digit support.
-
-**CEO:** Correct. Updated regex: `/^\d+\/\d+\/\d+$|^[Xx]\/\d+\/[Xx]$/`
+> **Reviewer:** Claude Opus 4.6 (CEO, FINAL authority)
+> **Date:** 2026-03-22
+> **Scope:** Enhanced Chart Analytics, AI Integration, Exercise Rolodex, Sports Goals
+> **Phase 2 Consensus:** YES (2 rounds, Gemini CTO ↔ Sonnet VP)
+> **Phase 3 Consensus:** YES (6 rounds, Gemini Creative Dir ↔ Sonnet Collaborator)
 
 ---
 
-## Phase 3 Design Debate — CEO Review
+## CEO VERDICT: APPROVED WITH MANDATORY SECURITY FIXES
 
-Design debate reached full consensus in 5 rounds. Gemini (Creative Director) has final design authority on aesthetics.
-
-### Design Directive #1: OPT Phase Change Modal Focus — ✅ RATIFIED
-`initialFocus={cancelButtonRef}` to prevent accidental phase changes. Safe default.
-
-### Design Directive #2: Crimson Ember Semantic Color — ✅ RATIFIED WITH CORRECTION
-**Gemini:** Use Frost White `#E0ECF4` on Crimson Ember `#E05050` (5.5:1 contrast). Ban pure `#FFFFFF`.
-**CEO:** Correct on the color. However, the `#FFFFFF` ban should be a SOFT rule, not absolute. Screen reader text, `sr-only` content, and non-visible elements can use `#FFFFFF`. The ban applies to **visible UI text and backgrounds only**.
-
-### Design Directive #3: Web Worker Search Fallback — ✅ RATIFIED
-Graceful degradation from Web Worker to main-thread throttled search with `isSearching` loading state. Ice Wing pulsing indicator during fallback search.
-
-### Typography — ⚠️ CARRY FORWARD FROM V1.0
-Gemini did NOT repeat the "Fira Code deprecated" error in this run. Good. V1.0 correction stands:
-- Headings: Plus Jakarta Sans
-- UI text: Sora
-- Numeric data (reps, weight, RPE, 1RM, tempo): Fira Code with `font-variant-numeric: tabular-nums`
-- Drama text: Cormorant Garamond Italic
-
-### Dark Theme — ⚠️ CARRY FORWARD FROM V1.0
-Gemini did NOT propose light-only in this run. Good. Crystalline Swan dark theme stays.
+I have reviewed the Phase 2 code quality consensus and Phase 3 design consensus for the Enhanced Chart Analytics & AI Integration Master Prompt. The feature vision is excellent. Three security items are **LAUNCH BLOCKERS** that must be implemented before any feature work.
 
 ---
 
-## Security Report — CEO Directives (V2.0)
+## LAUNCH BLOCKERS (Phase 0 — Must Implement First)
 
-Step 3.5 Flash flagged 4 CRITICAL, 6 HIGH, 5 MEDIUM. Here are my rulings:
+### 1. CRITICAL: AI Communication → Draft-and-Approve Pattern
+**Phase 2 Consensus: AGREED. CEO: RATIFIED.**
 
-### CRITICAL: Broken Access Control (Placeholder Auth) — MUST FIX IN BLUEPRINT
-The blueprint uses `Auth: [Required role]` as placeholders. During implementation, every endpoint MUST have concrete middleware:
-```typescript
-// MANDATORY pattern for all /api/clients/:id/* routes
-app.use('/api/clients/:id/*', protect, authorizeClientAccess);
-```
-The existing `adminWorkoutLoggerController.mjs` already checks trainer-client assignment. Extend this pattern to all new endpoints (1RM, OPT plan, calculators).
+- No AI shall directly execute email or SMS sends
+- New `CommunicationDrafts` table required (id, type, clientId, trainerId, subject, body, status, createdAt)
+- `POST /api/trainer/drafts/:draftId/approve` (trainer-only)
+- Rate limit: Max 10 drafts per client per day
+- AI actions: `draft_email` and `draft_sms` replace `send_email` and `send_sms`
 
-### CRITICAL: AI Prompt Injection — CARRY FORWARD FROM V1.0
-Already addressed in V1.0 ruling. Input sanitization, system prompt hardening, Zod validation, audit logging. No changes needed.
+### 2. CRITICAL: IDOR Prevention Middleware
+**Phase 2 Consensus: AGREED. CEO: RATIFIED.**
 
-### CRITICAL: SQL Injection — ALREADY MITIGATED
-Sequelize ORM with parameterized queries. The `pg_trgm` `LIKE` patterns are safe. No action needed.
+- New middleware: `requireOwnershipOrTrainer(req, res, next)`
+- Applied to ALL `/api/analytics/:userId/*` endpoints
+- Separate route for social: `/api/social/profile/:userId/charts` with `chartVisibility` enforcement
+- Logic: `req.user.id === params.userId || req.user.role in ['trainer', 'admin']`
 
-### CRITICAL: Incomplete Input Validation — ADDRESSED BY ZOD SCHEMAS
-The Phase 2 consensus adds comprehensive Zod schemas for all AI responses and workout inputs. This resolves the input validation gap.
+### 3. CRITICAL: Privacy-First Chart Visibility Defaults
+**Phase 2 Consensus: AGREED. CEO: RATIFIED.**
 
-### HIGH: Rate Limiting — CARRY FORWARD FROM V1.0
-AI: 30/min, Search: 60/min, Voice: 10/min, **Calculators: 120/min** (calculators are cheap, allow generous rate).
-
-### HIGH: CORS/CSP — IMPLEMENTATION DETAIL
-Add to implementation checklist. CSP must allow Web Workers for exercise search.
-
-### HIGH: Data Exposure in API Responses — ADD TO IMPLEMENTATION
-Never return `createdById` or trainer email in client-facing API responses. Use DTO pattern.
-
-### HIGH: File Upload (Voice) — CARRY FORWARD FROM V1.0
-Max 25MB, audio formats only, virus scan if available, temporary storage with TTL.
-
-### MEDIUM: Error Leakage — ADD TO IMPLEMENTATION
-Production error responses must NOT include stack traces or SQL errors. Use generic error messages with error codes.
+- `chartVisibility` JSONB defaults to ALL false
+- Onboarding adds "Social Profile Setup" step for opt-in
+- Server-side filtering enforced — API never returns charts where visibility is false
 
 ---
 
-## Performance Report — CEO Directives (V2.0)
+## CEO RULINGS — Outstanding Disputes
 
-### CRITICAL: Voice Pipeline Must Be Stateless — ✅ ACCEPTED
-Gemini 3 Flash correctly identified: voice processing must be a single atomic request, no server-side state. The `POST /api/ai-terminal/voice-command` endpoint receives the full audio payload and returns structured JSON in one round-trip. No Redis needed for this use case.
+### Dispute 1: Rolodex Rendering — Canvas vs CSS
 
-### HIGH: Bundle Size (530+ exercises) — ✅ ALREADY RESOLVED
-V2.0 blueprint already specifies: API + React Query + IndexedDB. No static import. react-window virtualization for the rolodex. pg_trgm backend search.
+**CEO RULING: CSS-only frequency bars.**
 
-### HIGH: Fuzzy Search Indexes — ✅ ACCEPTED
-```sql
-CREATE INDEX idx_exercise_search ON exercises USING gin (name gin_trgm_ops);
-CREATE INDEX idx_exercise_key ON exercises(exercise_key);
-```
-Also add GIN index on `aliases` if stored as a JSONB array column.
+- CSS `linear-gradient` backgrounds + `width` transitions = GPU-composited, 60fps native
+- Adding `react-canvas-draw` is unnecessary complexity for colored rectangles
+- Crystalline Swan gradient aesthetic achieved via CSS `background: linear-gradient(90deg, #8B5CF6, #60C0F0)`
+- `prefers-reduced-motion` fallback works identically
+- Victory charts reserved for expanded detail view of individual exercises only
 
-### MEDIUM: Workout Logger Re-renders — ✅ ACCEPTED
-Use React Hook Form with `Controller` for set inputs. `React.memo` on `ExerciseCard` and `SetRow` with custom comparators. Debounce AI parsing at 300ms.
+### Dispute 2: Dashboard API Strategy — BFF vs Separate Endpoints
 
-### MEDIUM: N+1 AI Context Fetching — ✅ ACCEPTED
-Create aggregated endpoint: `GET /api/clients/:id/ai-context` that returns client profile, 1RMs, last 5 workouts, OPT plan, pain entries in a single response. Cache with React Query (5min stale time).
+**CEO RULING: Keep 6 separate endpoints. Add optional batch endpoint.**
 
-### LOW: Rest Timer Cleanup — ✅ ACCEPTED
-Custom `useTimer` hook with cleanup in `useEffect`. Web Worker for background precision.
+- Progressive loading (charts appear as data arrives) > all-or-nothing loading
+- Render paid plan supports HTTP/2 multiplexing — 6 concurrent requests are fine
+- Individual endpoints allow granular cache invalidation (weight update doesn't bust heatmap cache)
+- Optional `POST /api/analytics/:userId/batch` for future mobile app optimization
+- No BFF aggregate — cache invalidation complexity not justified at current user base
 
 ---
 
-## V1.0 Rulings Still In Effect
+## RATIFIED — Phase 2 Consensus Items
 
-All V1.0 CEO rulings are carried forward unchanged:
-- ✅ Delete static exercise file (use API only)
-- ✅ Single voice endpoint consolidation
-- ✅ AITerminalContext (not Zustand)
-- ✅ Draft Mode exercise RBAC
-- ✅ Dual-Layer Glow focus states
-- ✅ Fira Code NOT deprecated
-- ✅ Dark theme stays
-- ✅ Haptics: navigator.vibrate(50) only
-- ✅ prefers-reduced-motion global disable
+| # | Item | Severity | Ruling |
+|---|------|----------|--------|
+| 4 | Materialized View `UserExerciseStats_MV` for exercise history | HIGH | APPROVED. 15-min cron refresh + post-workout concurrent refresh. |
+| 5 | AI Action Authorization Matrix (role-based action whitelist) | HIGH | APPROVED. client: read_own_data + fill_form. trainer: + read_client_data + draft_email. admin: + read_all_data. |
+| 6 | Input sanitization before AI processing (DOMPurify on HTML) | HIGH | APPROVED. |
 
 ---
 
-## Final Amended V2.0 Blueprint Checklist
+## RATIFIED — Phase 3 Design Consensus
 
-All items below must be incorporated before implementation:
-
-### From Phase 2 Consensus (NEW)
-- [ ] 1RM function: assessment-only with UNKNOWN_REQUIRE_TESTING fallback
-- [ ] Replace `nasm_slug` with `exercise_key VARCHAR(255) UNIQUE NOT NULL`
-- [ ] AI outputs targetIntensity %, backend calculates weight
-- [ ] Body fat calculator: both imperial and metric formulas
-- [ ] Add composite index on workout_logs(client_id, exercise_id)
-- [ ] Tempo regex: support multi-digit values (`\d+`)
-- [ ] Nested Zod schema for AI workout generation (WorkoutExerciseSchema + GeneratedWorkoutSchema)
-- [ ] Backfill migration for exercise_key on existing exercises
-
-### From Phase 3 Consensus (NEW)
-- [ ] OPT Phase Change Modal: focus on Cancel button by default
-- [ ] Crimson Ember `#E05050` for destructive actions, Frost White text
-- [ ] Web Worker exercise search with main-thread graceful fallback
-- [ ] `isSearching` loading state with Ice Wing pulsing indicator
-
-### From Security Report (NEW)
-- [ ] Concrete `authorizeClientAccess` middleware on all /clients/:id routes
-- [ ] DTO pattern: never expose createdById or internal IDs in client-facing responses
-- [ ] Production error responses: generic messages, no stack traces
-- [ ] CSP headers must allow Web Workers
-
-### From Performance Report (NEW)
-- [ ] Aggregated AI context endpoint: GET /api/clients/:id/ai-context
-- [ ] GIN indexes on exercises(name, exercise_key)
-- [ ] React Hook Form with Controller for set inputs
-- [ ] Custom useTimer hook for RestTimer cleanup
-- [ ] font-display: swap on Cormorant Garamond
-
-### Carried Forward from V1.0
-- [x] Delete static exercise file
-- [x] Single voice endpoint
-- [x] AITerminalContext (not Zustand)
-- [x] Draft Mode RBAC
-- [x] Zod schemas for AI actions
-- [x] Fira Code for data
-- [x] Dark theme
-- [x] Rate limiting
-- [x] Audit logging
-- [x] pg_trgm index
-- [x] react-window virtualization
-- [x] React.memo on ExerciseCard + SetRow
-- [x] Debounce AI parsing 300ms
-- [x] role="status" for AI thinking state
+| # | Component | Ruling |
+|---|-----------|--------|
+| 1 | SkeletonChart loader (Arctic Cyan shimmer, `aria-live="polite"`) | APPROVED |
+| 2 | FilterChip (asymmetric hover: 150ms in / 300ms out, `cubic-bezier(0.25, 0.8, 0.25, 1)`) | APPROVED |
+| 3 | AIAuthorizationCard (`role="alertdialog"`, Gilded Fern left border) | APPROVED |
+| 4 | ChartEmptyState (Ice Wing dashed border, pulse glow CTA) | APPROVED |
+| 5 | Dyslexia mode toggle (Cormorant Garamond → Plus Jakarta Sans) | APPROVED |
+| 6 | Theme token enforcement — No retired Galaxy-Swan tokens detected | VERIFIED |
 
 ---
 
-**Claude Opus 4.6 — CEO RULING COMPLETE (V2.0)**
-**Status: APPROVED FOR IMPLEMENTATION WITH ABOVE AMENDMENTS**
-*All decisions are final. V2.0 blueprint is production-ready with the listed amendments.*
-*Proceed to implementation following the 9-phase plan in V2.0 Section 16.*
+## IMPLEMENTATION PRIORITY ORDER
+
+| Phase | Scope | Priority |
+|-------|-------|----------|
+| **Phase 0** | Security: IDOR middleware + AI draft system + privacy defaults | P0 LAUNCH BLOCKER |
+| **Phase 1** | Data Pipeline: Materialized views + analytics API → Victory chart binding | P1 |
+| **Phase 2** | Exercise Rolodex: Full-page virtualized list + CSS frequency bars + gamification | P1 |
+| **Phase 3** | AI Assistant: Chart data read access + draft email/SMS + TTS | P2 |
+| **Phase 4** | Sports Goals (25+) + Social profile charts + chart visibility toggles | P2 |
+| **Phase 5** | Trainer/Admin panel: Client chart panel view + admin analytics | P2 |
+
+---
+
+## CLAUDE.md UPDATES REQUIRED
+
+1. Add Exercise Rolodex section with data model and endpoint docs
+2. Add AI Assistant capabilities matrix (what it can/cannot do per role)
+3. Add CommunicationDrafts model to backend architecture
+4. Add `requireOwnershipOrTrainer` middleware to security conventions
+5. Verify all 10 skills are referenced in build hardening checklist
+
+---
+
+*Opus CEO Review complete. This ruling is FINAL and supersedes all Phase 2/3 interim decisions.*
+*SwanStudios 11-Brain Recursive Consensus System v11.0 — Phase 4*

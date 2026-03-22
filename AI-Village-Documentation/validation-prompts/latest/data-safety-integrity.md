@@ -1,409 +1,400 @@
 # Data Safety & Integrity — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 66.8s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx, frontend/src/components/WorkoutLogger/ExerciseFilterChips.tsx, frontend/src/components/WorkoutLogger/WorkoutLoggerCS.ts, frontend/src/components/WorkoutLogger/NASMProtocolSection.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
-> **Generated:** 3/21/2026, 1:37:25 AM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 69.8s
+> **Files:** docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md
+> **Generated:** 3/21/2026, 10:29:39 PM
 
 ---
 
-# 🚨 DATA SAFETY AUDIT REPORT — WorkoutLogger Component Suite
+# 🚨 DATA SAFETY AUDIT REPORT — ENHANCED CHART ANALYTICS MASTER PROMPT
 
-## EXECUTIVE SUMMARY
-
-**OVERALL RISK LEVEL:** 🟢 **LOW** (No critical data destruction vulnerabilities found)
-
-This is a **frontend-only** component suite with **zero direct database operations**. All destructive operations (delete workout, remove exercise) are UI state changes that only affect the current session until the user explicitly submits. The actual database writes happen server-side via API calls.
-
-**Key Finding:** The code is **remarkably safe** from a data destruction perspective. The primary risks are **UX/data integrity issues** (race conditions, incomplete submissions) rather than catastrophic data loss.
+**Audit Date:** 2026-03-22  
+**Auditor:** DATA SAFETY AUDITOR  
+**Platform:** SwanStudios (Production SaaS)  
+**Document:** `ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md`
 
 ---
 
-## FINDINGS
+## ⚠️ EXECUTIVE SUMMARY
 
-### 1. ⚠️ **MEDIUM** — Double-Submit Race Condition (Partial Fix Incomplete)
+**CRITICAL FINDINGS:** 3  
+**HIGH FINDINGS:** 5  
+**MEDIUM FINDINGS:** 4  
+**LOW FINDINGS:** 2
 
-**File:** `WorkoutLogger.tsx:456-510`  
-**Data at Risk:** Duplicate workout entries, double session deduction, double points award  
-**Blast Radius:** 1 user per incident (but could affect many users over time)
+**OVERALL RISK LEVEL:** 🔴 **HIGH — DEPLOYMENT BLOCKER**
+
+This blueprint contains **multiple data destruction vectors** that could wipe user workout history, corrupt authentication data, or expose PII. The most dangerous issues are:
+
+1. **Materialized View refresh pattern could lock tables during production traffic**
+2. **No transaction wrappers around multi-table analytics queries**
+3. **AI email/SMS draft system lacks rate limiting enforcement at DB level**
+4. **Migration for `chartVisibility` JSONB field has no rollback safety**
+5. **Bulk exercise seeding could duplicate/corrupt exercise library**
+
+---
+
+## 🔴 CRITICAL FINDINGS
+
+### CRITICAL-1: Materialized View Refresh Could Lock Production Tables
+
+**Severity:** CRITICAL  
+**Data at Risk:** All workout data (WorkoutSessions, WorkoutExercises, Sets)  
+**Blast Radius:** ALL USERS — platform-wide outage during refresh  
+**Location:** Section 12, Phase 1, Step 5
 
 **What's Wrong:**
-```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) return;
-  isSubmittingRef.current = true; // ✅ Set IMMEDIATELY after check
-  setIsSubmitting(true);
-  // ... validation ...
+
+The blueprint specifies creating a `UserExerciseStats_MV` Materialized View with "15-min refresh + post-workout refresh":
+
+```sql
+-- Implied implementation (not shown in doc, but standard pattern):
+CREATE MATERIALIZED VIEW "UserExerciseStats_MV" AS
+SELECT ... FROM "WorkoutExercises" we
+JOIN "WorkoutSessions" ws ...
+JOIN "Sets" s ...
 ```
 
-The code **attempts** to prevent double-submit with `isSubmittingRef`, but has a **critical gap**:
+**THE DANGER:**
+- `REFRESH MATERIALIZED VIEW` in PostgreSQL takes an **EXCLUSIVE LOCK** on the view
+- If the underlying query is slow (joins across WorkoutSessions + WorkoutExercises + Sets for ALL users), the refresh could take 10-30+ seconds
+- During refresh, **ALL queries reading from the MV are blocked**
+- If you trigger refresh "post-workout" (after every workout log), you could trigger 50+ refreshes/hour during peak times
+- **CONCURRENT REFRESH** requires a UNIQUE index, which isn't specified
 
-1. **Validation errors reset the guard too early:**
-   ```tsx
-   if (exercises.length === 0) { 
-     toast.error('Please add at least one exercise'); 
-     isSubmittingRef.current = false; // ❌ Resets guard
-     setIsSubmitting(false); 
-     return; 
-   }
-   ```
-   If a user rapidly clicks "Submit" twice, the second click could pass the `isSubmittingRef` check before the first click reaches validation, then **both** requests proceed to the API call.
-
-2. **No server-side idempotency key:** The API endpoint `/api/workout-forms` (not shown) likely lacks duplicate detection for same-day submissions.
+**Worst Case Scenario:**
+1. User logs workout → triggers MV refresh
+2. Refresh takes 20 seconds due to table size
+3. 50 other users try to load Exercise Rolodex → all blocked
+4. Queries pile up → connection pool exhausted
+5. **Platform-wide outage**
 
 **Fix:**
-```tsx
-const handleSubmit = async () => {
-  // ✅ Check + Set must be atomic
-  if (isSubmittingRef.current) return;
-  isSubmittingRef.current = true;
-  setIsSubmitting(true);
 
-  // ✅ Move validation BEFORE setting guard (or keep guard set during validation)
-  if (exercises.length === 0) { 
-    toast.error('Please add at least one exercise'); 
-    // ❌ DO NOT reset here — keep guard active
-    setTimeout(() => {
-      isSubmittingRef.current = false;
-      setIsSubmitting(false);
-    }, 500); // Debounce window
-    return; 
-  }
+```sql
+-- Migration: Create MV with CONCURRENTLY-safe structure
+CREATE MATERIALIZED VIEW "UserExerciseStats_MV" AS
+SELECT
+  ws."userId",
+  e.id as "exerciseId",
+  e.name as "exerciseName",
+  e."primaryMuscles",
+  COUNT(DISTINCT we."workoutSessionId") as times_performed,
+  MAX(s."weightUsed") as max_weight,
+  MAX(s."repsCompleted") as max_reps,
+  SUM(s."weightUsed" * s."repsCompleted") as total_volume,
+  MAX(ws.date) as last_performed,
+  MIN(ws.date) as first_performed
+FROM "WorkoutExercises" we
+JOIN "Exercises" e ON we."exerciseId" = e.id
+JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
+LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
+WHERE ws.status = 'completed'
+GROUP BY ws."userId", e.id, e.name, e."primaryMuscles";
 
-  // ... rest of validation with same pattern ...
+-- CRITICAL: Add unique index to enable CONCURRENT refresh
+CREATE UNIQUE INDEX idx_user_exercise_stats_unique 
+ON "UserExerciseStats_MV" ("userId", "exerciseId");
 
+-- Refresh strategy (in cron job, NOT post-workout):
+-- Use CONCURRENTLY to avoid blocking reads
+REFRESH MATERIALIZED VIEW CONCURRENTLY "UserExerciseStats_MV";
+```
+
+**Backend Service Pattern:**
+```javascript
+// analyticsService.mjs
+const refreshExerciseStats = async () => {
   try {
-    const formData = {
-      clientId,
-      date: new Date().toISOString().split('T')[0],
-      exercises,
-      sessionNotes,
-      overallIntensity,
-      // ✅ ADD: Idempotency key for server-side deduplication
-      idempotencyKey: `${clientId}-${new Date().toISOString().split('T')[0]}-${Date.now()}`
-    };
-
-    const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
-    // ...
-  } finally {
-    // ✅ Always reset in finally block
-    isSubmittingRef.current = false;
-    setIsSubmitting(false);
+    // CONCURRENTLY = no exclusive lock
+    await sequelize.query(
+      'REFRESH MATERIALIZED VIEW CONCURRENTLY "UserExerciseStats_MV"',
+      { raw: true }
+    );
+    logger.info('Exercise stats MV refreshed successfully');
+  } catch (error) {
+    // NEVER throw — log and continue
+    // Stale data is better than blocking all users
+    logger.error('MV refresh failed (non-fatal):', error);
   }
+};
+
+// Cron: Every 15 minutes (NOT post-workout)
+cron.schedule('*/15 * * * *', refreshExerciseStats);
+```
+
+**REMOVE post-workout refresh entirely** — it's a DoS vector.
+
+---
+
+### CRITICAL-2: No Transaction Wrappers Around Multi-Table Analytics Queries
+
+**Severity:** CRITICAL  
+**Data at Risk:** Inconsistent analytics data (counts/sums don't match reality)  
+**Blast Radius:** ALL USERS — analytics show wrong data  
+**Location:** Section 3.1, SQL query for exercise-history endpoint
+
+**What's Wrong:**
+
+The proposed SQL query joins 4 tables without a transaction:
+
+```sql
+SELECT
+  e.id, e.name, e.primaryMuscles, e.category,
+  COUNT(DISTINCT we."workoutSessionId") as times_performed,
+  MAX(s."weightUsed") as max_weight,
+  ...
+FROM "WorkoutExercises" we
+JOIN "Exercises" e ON we."exerciseId" = e.id
+JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
+LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
+WHERE ws."userId" = :userId AND ws.status = 'completed'
+GROUP BY e.id, e.name, e.primaryMuscles, e.category
+ORDER BY times_performed DESC;
+```
+
+**THE DANGER:**
+- If a user is actively logging a workout WHILE this query runs:
+  - `WorkoutSession` is created (status='in_progress')
+  - Query reads it (status filter might not apply yet due to timing)
+  - `WorkoutExercises` are inserted
+  - Query reads partial data
+  - User completes workout → status='completed'
+  - **Analytics now show phantom exercises or wrong counts**
+
+- Without `REPEATABLE READ` isolation, you can get:
+  - `times_performed` = 47 (counted WorkoutExercises)
+  - `total_volume` = 42 workouts worth (Sets inserted after WorkoutExercises were counted)
+  - **Mismatched aggregates**
+
+**Fix:**
+
+```javascript
+// backend/services/analyticsService.mjs
+const getExerciseHistory = async (userId) => {
+  // Wrap in transaction with REPEATABLE READ isolation
+  return await sequelize.transaction(
+    { isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ },
+    async (t) => {
+      const exercises = await sequelize.query(`
+        SELECT
+          e.id, e.name, e."primaryMuscles", e.category,
+          COUNT(DISTINCT we."workoutSessionId") as times_performed,
+          MAX(s."weightUsed") as max_weight,
+          MAX(s."repsCompleted") as max_reps,
+          SUM(s."weightUsed" * s."repsCompleted") as total_volume,
+          MAX(ws.date) as last_performed,
+          MIN(ws.date) as first_performed
+        FROM "WorkoutExercises" we
+        JOIN "Exercises" e ON we."exerciseId" = e.id
+        JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
+        LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
+        WHERE ws."userId" = :userId 
+          AND ws.status = 'completed'  -- CRITICAL: Only completed workouts
+          AND ws."deletedAt" IS NULL   -- CRITICAL: Respect soft deletes
+        GROUP BY e.id, e.name, e."primaryMuscles", e.category
+        ORDER BY times_performed DESC
+      `, {
+        replacements: { userId },
+        type: QueryTypes.SELECT,
+        transaction: t  // CRITICAL: Use transaction
+      });
+
+      // Calculate totals in same transaction snapshot
+      const totals = await sequelize.query(`
+        SELECT
+          COUNT(DISTINCT e.id) as "totalUniqueExercises",
+          (SELECT COUNT(*) FROM "Exercises" WHERE "deletedAt" IS NULL) as "totalAvailableExercises"
+        FROM "WorkoutExercises" we
+        JOIN "Exercises" e ON we."exerciseId" = e.id
+        JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
+        WHERE ws."userId" = :userId 
+          AND ws.status = 'completed'
+          AND ws."deletedAt" IS NULL
+      `, {
+        replacements: { userId },
+        type: QueryTypes.SELECT,
+        transaction: t
+      });
+
+      return {
+        exercises,
+        ...totals[0],
+        varietyScore: (totals[0].totalUniqueExercises / totals[0].totalAvailableExercises * 100).toFixed(2)
+      };
+    }
+  );
 };
 ```
 
-**Server-side fix required (not in scope but critical):**
+**Why This Matters:**
+- `REPEATABLE READ` ensures all queries see the same snapshot of data
+- If workout is being logged during query, it's either fully visible or fully invisible (no partial state)
+- Aggregates are guaranteed consistent
+
+---
+
+### CRITICAL-3: AI Email/SMS Draft System Has No DB-Level Rate Limiting
+
+**Severity:** CRITICAL  
+**Data at Risk:** Email/SMS spam, Twilio/SendGrid account suspension  
+**Blast Radius:** ALL TRAINERS — could lose email/SMS capability platform-wide  
+**Location:** Section 5.3, CommunicationDrafts model
+
+**What's Wrong:**
+
+The blueprint specifies:
+> **Rate Limit:** Max 10 drafts per client per day (prevents AI spam loops)
+
+But the `CommunicationDrafts` table has **NO UNIQUE CONSTRAINT** to enforce this at the database level:
+
 ```sql
--- Add unique constraint to prevent duplicate same-day submissions
-ALTER TABLE daily_workout_forms 
-ADD CONSTRAINT unique_client_date 
-UNIQUE (client_id, date);
+CREATE TABLE "CommunicationDrafts" (
+  id SERIAL PRIMARY KEY,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('email', 'sms')),
+  "clientId" INTEGER REFERENCES "Users"(id),
+  "trainerId" INTEGER REFERENCES "Users"(id),
+  subject VARCHAR(200),
+  body TEXT NOT NULL,
+  "recipientAddress" VARCHAR(255) NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending_approval',
+  "createdAt" TIMESTAMP DEFAULT NOW(),
+  ...
+);
+-- NO CONSTRAINT ON drafts per client per day!
 ```
 
----
+**THE DANGER:**
+1. AI Assistant has a bug in prompt loop detection
+2. Trainer says "Send Jackie her workout summary"
+3. AI creates draft
+4. AI misinterprets response, thinks it failed
+5. AI retries 100 times in 10 seconds
+6. **100 draft emails queued**
+7. Trainer approves one → accidentally triggers mass send
+8. **SendGrid flags account for spam → ALL email disabled**
 
-### 2. ⚠️ **MEDIUM** — Unprotected State Mutation During Async Operations
-
-**File:** `WorkoutLogger.tsx:362-390` (`loadTodaysPlan`)  
-**Data at Risk:** User's current workout-in-progress could be overwritten  
-**Blast Radius:** 1 user per incident
-
-**What's Wrong:**
-```tsx
-const loadTodaysPlan = useCallback(async () => {
-  setIsLoadingPlan(true);
-  try {
-    // ... fetch plan ...
-    setExercises(prev => [...prev, ...prefilled]); // ❌ No confirmation if exercises exist
-    toast.success(`Loaded ${prefilled.length} exercises from ${todayName}'s plan`);
-  } catch (error: unknown) {
-    // ...
-  } finally {
-    setIsLoadingPlan(false);
-  }
-}, [clientId]);
-```
-
-**Scenario:**
-1. Trainer logs 5 exercises manually (30 minutes of work)
-2. Trainer accidentally clicks "Load Today's Plan"
-3. Plan exercises are **appended** (not replaced), but if the plan is empty or fails, the user might think their work was lost
-4. More critically: If the user **intended** to replace, they now have duplicate exercises
+**Worst Case:**
+- Twilio/SendGrid account suspended
+- **ALL users lose password reset emails, booking confirmations, etc.**
+- Platform effectively broken until account restored (24-48 hours)
 
 **Fix:**
-```tsx
-const loadTodaysPlan = useCallback(async () => {
-  // ✅ Warn if exercises already exist
-  if (exercises.length > 0) {
-    const confirmed = window.confirm(
-      `You have ${exercises.length} exercise(s) already logged. Loading the plan will ADD to your current workout. Continue?`
-    );
-    if (!confirmed) return;
-  }
 
-  setIsLoadingPlan(true);
-  try {
-    // ... existing logic ...
-  } finally {
-    setIsLoadingPlan(false);
-  }
-}, [clientId, exercises.length]);
-```
-
----
-
-### 3. 🟡 **LOW** — No Confirmation for Exercise Removal
-
-**File:** `WorkoutLogger.tsx:428-431`  
-**Data at Risk:** Accidentally deleted exercise with all set data  
-**Blast Radius:** 1 exercise per incident (user can re-add, but loses set data)
-
-**What's Wrong:**
-```tsx
-const removeExercise = useCallback((exerciseIndex: number) => {
-  setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
-  toast.info('Exercise removed from workout'); // ❌ No undo, no confirmation
-}, []);
-```
-
-**Fix:**
-```tsx
-const removeExercise = useCallback((exerciseIndex: number) => {
-  const exercise = exercises[exerciseIndex];
-  const hasSets = exercise.sets.some(s => s.weight > 0 || s.reps > 0);
+```sql
+-- Migration: Add DB-level rate limit constraint
+CREATE TABLE "CommunicationDrafts" (
+  id SERIAL PRIMARY KEY,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('email', 'sms')),
+  "clientId" INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
+  "trainerId" INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
+  subject VARCHAR(200),
+  body TEXT NOT NULL,
+  "recipientAddress" VARCHAR(255) NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending_approval' 
+    CHECK (status IN ('pending_approval', 'approved', 'sent', 'rejected')),
+  "createdAt" TIMESTAMP DEFAULT NOW(),
+  "approvedAt" TIMESTAMP,
+  "sentAt" TIMESTAMP,
   
-  if (hasSets) {
-    const confirmed = window.confirm(
-      `Remove "${exercise.exerciseName}" with ${exercise.sets.length} logged sets? This cannot be undone.`
-    );
-    if (!confirmed) return;
-  }
+  -- CRITICAL: Prevent spam at DB level
+  CONSTRAINT chk_daily_draft_limit CHECK (
+    (SELECT COUNT(*) 
+     FROM "CommunicationDrafts" cd2 
+     WHERE cd2."clientId" = "clientId" 
+       AND cd2."trainerId" = "trainerId"
+       AND cd2."createdAt" >= NOW() - INTERVAL '24 hours'
+       AND cd2.status != 'rejected'
+    ) <= 10
+  )
+);
 
-  setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
-  toast.info('Exercise removed from workout');
-}, [exercises]);
+-- Partial index for fast rate limit checks
+CREATE INDEX idx_drafts_rate_limit 
+ON "CommunicationDrafts" ("clientId", "trainerId", "createdAt") 
+WHERE status != 'rejected';
+```
+
+**Backend Enforcement (Defense in Depth):**
+```javascript
+// aiDataWriteService.mjs
+case 'draft_email':
+case 'draft_sms':
+  // Check rate limit BEFORE attempting insert
+  const draftCount = await CommunicationDraft.count({
+    where: {
+      clientId: update.data.clientId,
+      trainerId: req.user.id,
+      createdAt: { [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      status: { [Op.ne]: 'rejected' }
+    }
+  });
+  
+  if (draftCount >= 10) {
+    throw new Error(
+      'Daily draft limit reached for this client (10/day). ' +
+      'This prevents accidental spam. Try again tomorrow or contact support.'
+    );
+  }
+  
+  // Proceed with draft creation...
+  break;
+```
+
+**Additional Safety:**
+```javascript
+// Approve endpoint MUST check draft age
+router.post('/api/trainer/drafts/:draftId/approve', requireTrainer, async (req, res) => {
+  const draft = await CommunicationDraft.findByPk(req.params.draftId);
+  
+  // CRITICAL: Reject drafts older than 24 hours
+  const ageHours = (Date.now() - draft.createdAt) / (1000 * 60 * 60);
+  if (ageHours > 24) {
+    return res.status(400).json({ 
+      error: 'Draft expired (>24h old). Please regenerate.' 
+    });
+  }
+  
+  // CRITICAL: Verify trainer owns this draft
+  if (draft.trainerId !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Not your draft' });
+  }
+  
+  // Send email/SMS...
+});
 ```
 
 ---
 
-### 4. 🟡 **LOW** — AI Plan Prefill Race Condition
+## 🟠 HIGH FINDINGS
 
-**File:** `WorkoutLogger.tsx:136-170`  
-**Data at Risk:** AI-generated exercises could be lost if user navigates away during load  
-**Blast Radius:** 1 user per incident
+### HIGH-1: chartVisibility Migration Has No Rollback Safety
+
+**Severity:** HIGH  
+**Data at Risk:** User privacy settings (could expose weight/body composition data)  
+**Blast Radius:** ALL USERS  
+**Location:** Section 12, Phase 0, Step 0f
 
 **What's Wrong:**
-```tsx
-// Listen for live custom event
-useEffect(() => {
-  const handler = (e: Event) => {
-    const detail = (e as CustomEvent<WorkoutPlanTransfer>).detail;
-    if (detail?.exercises?.length) {
-      const converted = convertAIExercises(detail.exercises);
-      setExercises(prev => [...prev, ...converted]); // ❌ No validation of detail structure
-      toast.success(`Applied ${converted.length} exercises from AI plan`);
-      try { sessionStorage.removeItem(PENDING_WORKOUT_KEY); } catch { /* ignore */ }
-    }
-  };
-  window.addEventListener(APPLY_WORKOUT_EVENT, handler);
-  return () => window.removeEventListener(APPLY_WORKOUT_EVENT, handler);
-}, [convertAIExercises]);
+
+The blueprint specifies adding a `chartVisibility: JSONB` column with "ALL-FALSE defaults", but provides no migration code. A naive implementation could:
+
+```sql
+-- DANGEROUS: No default value specified
+ALTER TABLE "Users" ADD COLUMN "chartVisibility" JSONB;
+
+-- If you then try to set defaults in application code:
+UPDATE "Users" SET "chartVisibility" = '{...}' WHERE "chartVisibility" IS NULL;
+-- This could TIMEOUT on large Users table, leaving some users with NULL
 ```
 
-**Issues:**
-1. No validation that `detail.exercises` is an array
-2. No error handling if `convertAIExercises` throws
-3. `sessionStorage.removeItem` happens **before** confirming exercises were added to state
+**THE DANGER:**
+- If migration fails halfway through (timeout, connection drop), some users have NULL `chartVisibility`
+- Application code assumes it's an object: `user.chartVisibility.weightProgression`
+- **TypeError: Cannot read property 'weightProgression' of null**
+- **All chart pages crash for affected users**
 
-**Fix:**
-```tsx
-useEffect(() => {
-  const handler = (e: Event) => {
-    try {
-      const detail = (e as CustomEvent<WorkoutPlanTransfer>).detail;
-      
-      // ✅ Validate structure
-      if (!detail?.exercises || !Array.isArray(detail.exercises) || detail.exercises.length === 0) {
-        console.warn('Invalid AI workout plan structure:', detail);
-        return;
-      }
-
-      const converted = convertAIExercises(detail.exercises);
-      
-      // ✅ Validate conversion succeeded
-      if (converted.length === 0) {
-        toast.error('Failed to convert AI exercises');
-        return;
-      }
-
-      setExercises(prev => [...prev, ...converted]);
-      toast.success(`Applied ${converted.length} exercises from AI plan`);
-      
-      // ✅ Only remove after successful state update
-      try { 
-        sessionStorage.removeItem(PENDING_WORKOUT_KEY); 
-      } catch (err) { 
-        console.error('Failed to clear pending workout:', err); 
-      }
-    } catch (error) {
-      console.error('Failed to apply AI workout plan:', error);
-      toast.error('Failed to load AI-generated exercises');
-    }
-  };
-  window.addEventListener(APPLY_WORKOUT_EVENT, handler);
-  return () => window.removeEventListener(APPLY_WORKOUT_EVENT, handler);
-}, [convertAIExercises]);
-```
-
----
-
-### 5. 🟢 **INFO** — Missing Unsaved Changes Warning
-
-**File:** `WorkoutLogger.tsx:onCancel` (line 23)  
-**Data at Risk:** User loses 30+ minutes of workout logging if they accidentally click Cancel  
-**Blast Radius:** 1 user per incident
-
-**What's Wrong:**
-```tsx
-<WorkoutLoggerFooter
-  onCancel={onCancel} // ❌ No confirmation if exercises exist
-  // ...
-/>
-```
-
-**Fix:**
-```tsx
-const handleCancel = useCallback(() => {
-  if (exercises.length > 0) {
-    const confirmed = window.confirm(
-      `You have ${exercises.length} exercise(s) logged. Are you sure you want to cancel? All data will be lost.`
-    );
-    if (!confirmed) return;
-  }
-  onCancel();
-}, [exercises.length, onCancel]);
-
-// Then pass handleCancel instead of onCancel to footer
-```
-
----
-
-### 6. 🟢 **INFO** — No Local Draft Persistence
-
-**File:** `WorkoutLogger.tsx` (entire component)  
-**Data at Risk:** All workout data lost if browser crashes or user accidentally closes tab  
-**Blast Radius:** 1 user per incident
-
-**What's Missing:**
-No `localStorage` or `sessionStorage` backup of `exercises` state during logging.
-
-**Fix:**
-```tsx
-// Add auto-save to localStorage every 30 seconds
-useEffect(() => {
-  if (exercises.length === 0) return;
-
-  const draftKey = `workout-draft-${clientId}-${new Date().toISOString().split('T')[0]}`;
-  const interval = setInterval(() => {
-    try {
-      localStorage.setItem(draftKey, JSON.stringify({
-        exercises,
-        sessionNotes,
-        overallIntensity,
-        timestamp: Date.now(),
-      }));
-    } catch (err) {
-      console.error('Failed to save workout draft:', err);
-    }
-  }, 30000); // Every 30 seconds
-
-  return () => clearInterval(interval);
-}, [exercises, sessionNotes, overallIntensity, clientId]);
-
-// On mount, check for draft
-useEffect(() => {
-  const draftKey = `workout-draft-${clientId}-${new Date().toISOString().split('T')[0]}`;
-  try {
-    const draft = localStorage.getItem(draftKey);
-    if (draft) {
-      const parsed = JSON.parse(draft);
-      const age = Date.now() - parsed.timestamp;
-      if (age < 24 * 60 * 60 * 1000) { // Less than 24 hours old
-        const confirmed = window.confirm(
-          `Found unsaved workout from ${new Date(parsed.timestamp).toLocaleTimeString()}. Restore it?`
-        );
-        if (confirmed) {
-          setExercises(parsed.exercises);
-          setSessionNotes(parsed.sessionNotes);
-          setOverallIntensity(parsed.overallIntensity);
-          toast.success('Draft restored');
-        } else {
-          localStorage.removeItem(draftKey);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Failed to restore workout draft:', err);
-  }
-}, [clientId]);
-```
-
----
-
-## NON-ISSUES (False Alarms)
-
-### ✅ Exercise/Set Removal is Safe
-- `removeExercise` and `removeSet` only modify **local React state**
-- No database writes until user clicks "Submit Workout"
-- User can undo by re-adding exercises before submission
-
-### ✅ No SQL Injection Risk
-- This is a **frontend component** — all database operations happen server-side
-- All user input is passed as JSON to API endpoints (validated server-side)
-
-### ✅ No Cascade Delete Risk
-- No direct database operations in this code
-- The `dailyWorkoutFormService.submitWorkoutForm` call (line 496) is a black box, but the frontend cannot trigger cascading deletes
-
-### ✅ NASM Protocol State is Safe
-- `warmupItems`, `balanceCoreItems`, `cooldownItems` are **UI-only checklists**
-- Not persisted to database (based on code context)
-- Even if they were, toggling checkboxes doesn't delete data
-
----
-
-## RECOMMENDATIONS
-
-### Immediate (Before Next Deploy)
-1. **Add server-side unique constraint** on `(client_id, date)` in `daily_workout_forms` table
-2. **Add idempotency key** to workout submission payload
-3. **Fix double-submit guard** to not reset during validation
-
-### Short-Term (Next Sprint)
-4. **Add confirmation dialogs** for:
-   - Exercise removal (if sets have data)
-   - "Load Today's Plan" (if exercises exist)
-   - Cancel button (if exercises exist)
-5. **Add localStorage draft auto-save** (every 30 seconds)
-
-### Long-Term (Technical Debt)
-6. **Add optimistic locking** to workout forms (version field + conflict detection)
-7. **Add audit log** for workout submissions (who, when, what changed)
-8. **Add "Undo" functionality** for exercise removal (keep deleted exercises in memory for 30 seconds)
-
----
-
-## CONCLUSION
-
-**This code is production-safe from a data destruction perspective.** The primary risks are **UX issues** (accidental data loss via UI actions) rather than catastrophic database corruption. The double-submit race condition is the only **MEDIUM** severity issue that could cause real financial harm (double session deduction).
-
-**Recommended Action:** Deploy with confidence, but prioritize the double-submit fix and server-side unique constraint in the next patch.
-
----
-
-**Audit Completed By:** DATA SAFETY AUDITOR  
-**Date:** 2026-03-20  
-**Confidence Level:** 95% (remaining 5% depends on unseen backend code in `dailyWorkoutFormService` and API endpoints)
+**Worse:** If default is accidentally set to `{}` (empty object) instead
 
 ---
 

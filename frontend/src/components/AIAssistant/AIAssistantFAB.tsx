@@ -1,17 +1,41 @@
 /**
- * AIAssistantFAB (Floating Action Button)
- * ========================================
- * Renders the AI assistant trigger button + drawer.
- * Drop this into any dashboard — it manages its own state.
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AIAssistantFAB (Floating Action Button)          ║
+ * ║  PURPOSE: Global AI entry point — FAB (mobile) + Cmd+K bar   ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * Desktop (1024px+):
+ * ┌──────────────────────────────────────────────────────┐
+ * │                                    [⌘K AI Assistant] │ CmdKBar (fixed bottom-right)
+ * └──────────────────────────────────────────────────────┘
+ *
+ * Mobile/Tablet (<1024px):
+ * ┌──────────────────────────────────────────────────────┐
+ * │                                           [🦢 FAB]   │ Swan logo (fixed bottom-right)
+ * │                                           ↑ nebula   │ Breathing glow animation
+ * └──────────────────────────────────────────────────────┘
+ *
+ * CLICK OUTCOMES:
+ * FAB tap / Cmd+K → opens AIAssistantDrawer (lazy-loaded)
+ * Escape → closes drawer
+ *
+ * DATA FLOW:
+ * Props In:  { userRole, defaultContext?, onOpenChange? }
+ * State:     { isOpen }
+ * Children:  AIAssistantDrawer (lazy)
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   FAB[AIAssistantFAB] -->|lazy| Drawer[AIAssistantDrawer]
+ *   FAB -->|Cmd+K| Drawer
+ *   FAB -->|Escape| Close
  *
  * Gemini 3.1 Pro design specs:
- *   - Desktop (1024px+): Cmd+K / Ctrl+K keyboard shortcut bar (bottom-right)
- *   - Mobile/Tablet: Swan logo FAB with Nebula Glow (bottom-right, above taskbar)
- *   - "Nebula Glow" = breathing box-shadow using Swan Cyan + Cosmic Purple
+ *   - "Nebula Glow" = breathing box-shadow using Wing Purple + Ice Wing
  *   - Idle: subtle float animation
  *   - Listening/Processing: pulsing nebula glow
- *
- * Also exported: openAIAssistant callback for sidebar integration.
  *
  * Usage:
  *   <AIAssistantFAB userRole="client" />

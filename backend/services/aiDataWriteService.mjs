@@ -66,6 +66,20 @@ export async function processAIDataUpdates(targetUserId, updates, performedBy, s
           results.successful++;
           break;
 
+        // ─────────────────────────────────────────────────────────────
+        // AI Village CRITICAL: Draft-and-approve pattern for communications
+        // AI creates drafts — trainer must approve before sending
+        // ─────────────────────────────────────────────────────────────
+        case 'draft_email':
+          await createCommunicationDraft(targetUserId, performedBy, 'email', update.data, sequelize);
+          results.successful++;
+          break;
+
+        case 'draft_sms':
+          await createCommunicationDraft(targetUserId, performedBy, 'sms', update.data, sequelize);
+          results.successful++;
+          break;
+
         default:
           results.errors.push({ type: update.type, message: `Unknown update type: ${update.type}` });
       }
@@ -342,4 +356,60 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
 
   logger.info('[AIDataWrite] Workout form created for client %d by trainer %d: %d exercises',
     clientId, trainerId, sanitizedExercises.length);
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Communication Draft Creator
+// PURPOSE: AI creates draft email/SMS — trainer must approve before sending
+// WHY: AI Village CRITICAL security mandate — prevents AI prompt injection
+//      from sending spam/phishing via email or racking up Twilio costs
+// ─────────────────────────────────────────────────────────────
+async function createCommunicationDraft(clientId, trainerId, type, data, sequelize) {
+  // Rate limit: max 10 drafts per client per day
+  const [countResult] = await sequelize.query(
+    `SELECT COUNT(*) as count FROM "CommunicationDrafts"
+     WHERE "clientId" = :clientId AND "createdAt" > NOW() - INTERVAL '24 hours'`,
+    { replacements: { clientId }, type: sequelize.QueryTypes.SELECT }
+  ).catch(() => [{ count: 0 }]);
+
+  if (parseInt(countResult?.count || 0) >= 10) {
+    throw new Error('Daily draft limit reached for this client (max 10 per day)');
+  }
+
+  // Get client contact info — AI cannot override recipient address
+  const [client] = await sequelize.query(
+    `SELECT email, phone FROM "Users" WHERE id = :clientId`,
+    { replacements: { clientId }, type: sequelize.QueryTypes.SELECT }
+  );
+
+  if (!client) {
+    throw new Error('Client not found');
+  }
+
+  const recipientAddress = type === 'email' ? client.email : client.phone;
+  if (!recipientAddress) {
+    throw new Error(`Client has no ${type === 'email' ? 'email' : 'phone number'} on file`);
+  }
+
+  // Sanitize content — strip HTML tags from SMS, limit lengths
+  const subject = type === 'email'
+    ? String(data.subject || 'Message from SwanStudios').slice(0, 200)
+    : null;
+
+  const body = String(data.body || data.html || data.message || '').slice(0, type === 'sms' ? 160 : 5000);
+
+  if (!body.trim()) {
+    throw new Error('Draft body cannot be empty');
+  }
+
+  await sequelize.query(
+    `INSERT INTO "CommunicationDrafts" (type, "clientId", "trainerId", subject, body, "recipientAddress", status, "createdAt", "updatedAt")
+     VALUES (:type, :clientId, :trainerId, :subject, :body, :recipientAddress, 'pending_approval', NOW(), NOW())`,
+    {
+      replacements: { type, clientId, trainerId, subject, body, recipientAddress },
+      type: sequelize.QueryTypes.INSERT,
+    }
+  );
+
+  logger.info('[AIDataWrite] Communication draft created: %s for client %d by trainer %d', type, clientId, trainerId);
 }

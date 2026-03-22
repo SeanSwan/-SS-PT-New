@@ -1,9 +1,27 @@
 /**
- * Client Analytics Panel Component
- * 7-Star AAA Personal Training & Social Media App
+ * ┌─── SUB-COMPONENT: ClientAnalyticsPanel ────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView (Analytics tab)   │
+ * │ PURPOSE: AI-powered analytics — predictions, metrics, trends│
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        │
+ * └─────────────────────────────────────────────────────────────┘
  *
- * Advanced analytics dashboard with real-time insights, AI predictions,
- * and comprehensive performance metrics for client management
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ [📊 Engagement Score: 87%] [🧠 AI Prediction: ↑]   │ KPI Cards
+ * │ [📈 Multi-chart dashboard]                           │
+ * │ - Line: attendance trend                             │
+ * │ - Radar: fitness dimensions (strength/cardio/flex)   │
+ * │ - Bar: workout volume by week                        │
+ * │ - Pie: exercise category distribution                │
+ * │ [🤖 AI Insights: "Client trending toward Phase 3"]  │
+ * └──────────────────────────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  { clientId, analyticsData }
+ * State:     { dateRange, chartFilter, aiInsights }
+ * Charts:    Currently Recharts (TODO: migrate to Victory per CLAUDE.md)
+ *
+ * NOTE: 881 lines — exceeds 300-line rule. TODO: extract chart components
  */
 
 import React, { useState, useEffect, useMemo } from 'react';

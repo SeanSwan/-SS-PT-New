@@ -1,199 +1,107 @@
 # UX & Accessibility — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 19.8s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx, frontend/src/components/WorkoutLogger/ExerciseFilterChips.tsx, frontend/src/components/WorkoutLogger/WorkoutLoggerCS.ts, frontend/src/components/WorkoutLogger/NASMProtocolSection.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
-> **Generated:** 3/21/2026, 1:37:25 AM
+> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 13.6s
+> **Files:** docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md
+> **Generated:** 3/21/2026, 10:29:39 PM
 
 ---
 
-Here's a comprehensive UX and accessibility audit of the provided code, focusing on WCAG 2.1 AA compliance, mobile UX, design consistency, user flow friction, and loading states.
+This document is a master prompt for AI, not actual code. Therefore, a direct review of WCAG compliance, mobile UX, design consistency, user flow friction, and loading states based on *code execution* is not possible.
+
+However, as a UX and accessibility expert auditor, I can review the *specifications and instructions* within this document for potential impacts on these areas, and identify where the prompt itself demonstrates good practices or introduces risks.
+
+I will interpret "code to review" as "specifications to review" and assess the UX and accessibility implications of the proposed features and implementation details.
 
 ---
 
-## UX and Accessibility Audit: SwanStudios WorkoutLogger
+## UX and Accessibility Audit: ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md
 
-**Theme:** Enchanted Apex: Crystalline Swan
-**Palette:** Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent).
-**Typography:** Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming).
-
----
+This master prompt outlines significant enhancements to the SwanStudios platform. Overall, the prompt demonstrates a strong awareness of security, data-driven features, and gamification. From a UX and accessibility perspective, there are many positive instructions, but also areas where more explicit guidance or consideration is needed.
 
 ### 1. WCAG 2.1 AA Compliance
 
-#### Color Contrast
+**Overall Assessment:** The prompt explicitly mentions `aria-live="polite"` and `role="status"` for skeleton loaders, which is excellent. It also mandates privacy-first defaults for sensitive data, aligning with ethical UX. However, color contrast, keyboard navigation, and comprehensive focus management are not explicitly addressed beyond the skeleton loader.
 
-*   **CRITICAL:** Many text elements and interactive components likely fail WCAG AA contrast ratios, especially against the dark backgrounds.
-    *   `CS.textSecondary` (`#c8d6e5`) on `CS.bg` (`#002060`) or `CS.surface` (`#003080`) or `CS.card` (`rgba(0, 32, 96, 0.75)`). This is a common issue for secondary text.
-    *   `CS.textSecondary` (`#c8d6e5`) on `CS.inputBg` (`rgba(0, 48, 128, 0.5)`). Placeholder text in `SearchInput` also uses `rgba(224, 236, 244, 0.4)`, which is almost certainly too low.
-    *   `Badge` text (`#A78BFA`) on its background (`rgba(139, 92, 246, 0.15)`).
-    *   `TypeBadge` text (`#7CB8F4`) on its background (`withAlpha(CS.glow, 0.12)`).
-    *   `StatusBar` text (`withAlpha(CS.textSecondary, 0.6)`) on `Wrapper` background (`rgba(0, 24, 72, 0.96)`).
-    *   `LoadPlanButton` text (`#8B5CF6`) on its background (`rgba(139, 92, 246, 0.12)`).
-    *   `RolodexTrigger` text (`CS.textSecondary`) on `CS.inputBg`.
-    *   **Recommendation:** Use a tool like WebAIM Contrast Checker or Lighthouse to systematically check all text/background and interactive element contrast ratios. Adjust `CS.textSecondary` and other low-contrast colors to meet at least 4.5:1 for normal text and 3:1 for large text. Ensure sufficient contrast for disabled states.
-
-#### Aria Labels & Semantics
-
-*   **HIGH:** `WorkoutLogger.tsx`:
-    *   `EquipmentProfilePicker` and `AITerminalPanel` are included but their internal accessibility is not visible here. Assume they are handled correctly.
-    *   `RolodexTrigger`: Has `aria-label="Search and add exercises"` and `aria-expanded`. Good.
-    *   `AddExerciseButton`: Lacks `aria-label` when it's the initial "Add Your First Exercise" button. It should describe its purpose for screen reader users.
-    *   `LiveRegion`: Good use of `role="status"` and `aria-live="polite"`.
-*   **HIGH:** `NASMExerciseRolodex.tsx`:
-    *   `SearchInput`: Has `aria-label="Search exercises"`, `role="combobox"`, `aria-expanded`, `aria-controls`. Good.
-    *   `ExerciseRow`: Has `role="option"` and `aria-selected`. Good.
-    *   `List`: Has `id="exercise-rolodex-list"` and `aria-label="Exercise search results"`. Good.
-*   **HIGH:** `ExerciseFilterChips.tsx`:
-    *   `ChipRow`: Has `role="radiogroup"` and `aria-label="Filter exercises by body part"`. Good.
-    *   `Chip`: Has `role="radio"` and `aria-checked`. Good.
-*   **HIGH:** `NASMProtocolSection.tsx`:
-    *   `SectionHeader`: Has `aria-expanded`. Good.
-    *   `Checkbox`: Standard HTML checkbox, generally accessible.
-*   **HIGH:** `ExerciseCardComponent.tsx`:
-    *   `StarButton`: Has `aria-label` and `aria-pressed`. Good.
-    *   `SliderInput`: Lacks `aria-label` or `aria-labelledby` to associate it with its visual label. This is a common oversight for custom-styled range inputs.
-    *   `RemoveExerciseBtn`: Has `aria-label`. Good.
-    *   `NumberInput`: Has `aria-label`. Good.
-    *   `TempoInput`: Has `ariaLabel` prop, assuming it's passed through.
-    *   `RemoveSetButton`: Has `aria-label`. Good.
-    *   **Recommendation:** Ensure all interactive elements have clear, descriptive `aria-label`s or are correctly associated with visible labels using `id`/`for` or `aria-labelledby`. Specifically, add `aria-label` to `AddExerciseButton` when it's the initial one, and to `SliderInput` in `ExerciseCardComponent`.
-
-#### Keyboard Navigation & Focus Management
-
-*   **HIGH:** `WorkoutLogger.tsx`:
-    *   The overall flow seems to support keyboard navigation, but specific focus order needs to be tested.
-    *   `RolodexTrigger` is a button, which is good.
-    *   `AddExerciseButton` is a button.
-    *   `LoadPlanButton` is a button.
-    *   **Recommendation:** Conduct thorough keyboard-only testing. Ensure logical tab order, all interactive elements are reachable, and focus indicators are always visible.
-*   **HIGH:** `NASMExerciseRolodex.tsx`:
-    *   Keyboard navigation (ArrowUp/Down, Enter, Escape) is explicitly implemented for the search results, which is excellent.
-    *   `inputRef.current?.focus()` on open is good.
-    *   **Recommendation:** Ensure the focus returns to the `RolodexTrigger` button when the rolodex closes (either by selection or Escape key). Currently, it just closes.
-*   **HIGH:** `ExerciseFilterChips.tsx`:
-    *   `Chip` elements are styled buttons, which is good for keyboard interaction.
-    *   `focus-visible` styling is present. Good.
-    *   **Recommendation:** Ensure `role="radiogroup"` and `role="radio"` are correctly implemented for keyboard navigation within the group (e.g., arrow keys to move between chips, spacebar to select). Currently, it uses `onClick` for selection, which is fine, but native radio group behavior would be better.
-*   **HIGH:** `NASMProtocolSection.tsx`:
-    *   `SectionHeader` is a button, which is good.
-    *   `Checkbox` is a native input.
-    *   `focus-visible` styling is present. Good.
-*   **HIGH:** `ExerciseCardComponent.tsx`:
-    *   Interactive elements (`StarButton`, `NumberInput`, `SliderInput`, `TextInput`, `RemoveExerciseBtn`, `RemoveSetButton`, `AddSetButton`) are generally accessible via keyboard.
-    *   `StarButton` has `aria-pressed`.
-    *   **Recommendation:** Test the tab order within a single exercise card and across multiple cards. Ensure it's logical. The `SliderInput` needs a visible focus indicator.
-
-#### Focus Indicators
-
-*   **MEDIUM:** `WorkoutLogger.tsx`:
-    *   `LoadPlanButton`: Has `&:focus-visible` styling. Good.
-    *   `RolodexTrigger`: Has `&:focus-visible` styling. Good.
-    *   `AddExerciseButton`: As a `motion.button`, it needs explicit `focus-visible` styling if not inherited. The current `box-shadow` on hover might not be sufficient for focus.
-*   **MEDIUM:** `NASMExerciseRolodex.tsx`:
-    *   `SearchInput`: Has `&:focus` styling. Good.
-    *   `ExerciseRow`: The `$highlighted` prop provides a visual indicator for keyboard navigation. Good.
-*   **MEDIUM:** `ExerciseFilterChips.tsx`:
-    *   `Chip`: Has `&:focus-visible` styling. Good.
-*   **MEDIUM:** `NASMProtocolSection.tsx`:
-    *   `SectionHeader`: Has `&:focus-visible` styling. Good.
-*   **MEDIUM:** `ExerciseCardComponent.tsx`:
-    *   `NumberInput`, `TextInput`: Standard inputs, usually have default focus styles.
-    *   `SliderInput`: Needs explicit `focus-visible` styling.
-    *   `StarButton`, `RemoveExerciseBtn`, `RemoveSetButton`, `AddSetButton`: Need explicit `focus-visible` styling.
-    *   **Recommendation:** Systematically check all interactive elements for clear and consistent `focus-visible` styles that meet WCAG contrast requirements.
-
----
+*   **CRITICAL:** None directly from the prompt's instructions, but potential for issues if not explicitly addressed during implementation.
+*   **HIGH:** None.
+*   **MEDIUM:**
+    *   **Color Contrast (Implicit Risk):** The prompt defines a comprehensive color palette but does not explicitly mandate WCAG AA contrast ratios for text, interactive elements, and graphical objects. While the palette seems to have distinct colors, combinations (e.g., text on background, button text on button color) need to be checked.
+        *   **Recommendation:** Add a specific instruction to ensure all text and interactive elements meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text and graphical objects). This should be part of the `ui-ux-pro-max` skill or a new `accessibility-audit` skill.
+    *   **Keyboard Navigation & Focus Management (Implicit Risk):** The prompt details new components (e.g., `ExerciseRolodexPage.tsx`, `ClientChartsPanel.tsx`, `SportGoalChips.tsx`) and interactive elements (filters, sort, search, buttons, tabs). There's no explicit mention of ensuring these are fully keyboard navigable, that focus order is logical, and that focus indicators are visible.
+        *   **Recommendation:** Add a specific instruction under "New Frontend Components Required" or "CLAUDE.MD Updates Required" to ensure all new interactive components are fully keyboard navigable, have logical tab order, and clear focus indicators. This should be part of the `web-design-guidelines` or `ui-ux-pro-max` skills.
+    *   **ARIA Labels (Partial):** While `aria-label="Loading chart data"` is specified, comprehensive ARIA labeling for all new interactive elements, charts, and regions is not explicitly mandated. For example, the "Filter chips" and "Sort options" in the Exercise Rolodex, or the "Tab bar" in the ClientChartsPanel, would benefit from appropriate ARIA attributes.
+        *   **Recommendation:** Expand the `web-design-guidelines` or `ui-ux-pro-max` skills to include a checklist for comprehensive ARIA attribute usage on all new interactive and informational components.
+*   **LOW:** None.
 
 ### 2. Mobile UX
 
-#### Touch Targets (must be 44px min)
+**Overall Assessment:** The prompt shows some awareness of responsiveness (e.g., `ClientChartsPanel` responsive grid) and efficiency (virtualized list). However, explicit touch target sizes and gesture support are not mentioned.
 
-*   **HIGH:** `WorkoutLogger.tsx`:
-    *   `LoadPlanButton`: `min-height: 44px`. Good.
-    *   `RolodexTrigger`: `min-height: 52px`. Good.
-    *   `AddExerciseButton`: `min-height: 52px`. Good.
-*   **HIGH:** `NASMExerciseRolodex.tsx`:
-    *   `SearchInput`: `min-height: 44px`. Good.
-    *   `ExerciseRow`: `ROW_HEIGHT = 56`. Good.
-*   **HIGH:** `ExerciseFilterChips.tsx`:
-    *   `Chip`: `min-height: 44px`. Good.
-*   **HIGH:** `NASMProtocolSection.tsx`:
-    *   `SectionHeader`: `min-height: 56px`. Good.
-    *   `ItemRow`: `min-height: 44px`. Good.
-    *   `Checkbox`: Standard size, usually sufficient.
-*   **HIGH:** `ExerciseCardComponent.tsx`:
-    *   `StarButton`: Needs to be explicitly checked. Visually, it looks small. If the `Star` icon is 16px, the button itself needs padding to reach 44px.
-    *   `RemoveExerciseBtn`: Needs to be explicitly checked.
-    *   `RemoveSetButton`: Needs to be explicitly checked.
-    *   `AddSetButton`: Looks good.
-    *   `NumberInput`, `TextInput`, `SliderInput`: These are typically large enough or have sufficient padding.
-    *   **Recommendation:** Verify `StarButton`, `RemoveExerciseBtn`, `RemoveSetButton` in `ExerciseCardComponent` meet the 44px minimum touch target size.
-
-#### Responsive Breakpoints
-
-*   **MEDIUM:** `WorkoutLogger.tsx`:
-    *   `WorkoutLoggerContainer`: Has `@media (max-width: 768px)` and `@media (max-width: 430px)` for padding. Good.
-*   **MEDIUM:** `NASMExerciseRolodex.tsx`:
-    *   No explicit media queries, but the component is a dropdown, so its width is relative to its parent.
-*   **MEDIUM:** `ExerciseFilterChips.tsx`:
-    *   `ChipRow`: Uses `overflow-x: auto` and `scrollbar-width: none` for horizontal scrolling on small screens. Good for mobile.
-*   **MEDIUM:** `NASMProtocolSection.tsx`:
-    *   No explicit media queries, but content should adapt.
-*   **HIGH:** `ExerciseCardComponent.tsx`:
-    *   `ExerciseHeader`: `flex-direction: column` on `max-width: 768px`. Good.
-    *   `CardContainer`: Padding and border-radius adjustments on `max-width: 430px`. Good.
-    *   **CRITICAL:** The `SetsTable` is described as "mobile-first SetTable < 768px: stacked cards with 1fr 1fr grid". However, the provided code for `SetsTable` and `SetRow` (truncated) *does not show this implementation*. It appears to be a single row structure. This is a **critical mobile UX failure** if not implemented. A wide table on mobile requires horizontal scrolling, which is poor UX.
-    *   **Recommendation:** Implement the described mobile-first stacked card layout for `SetsTable` in `ExerciseCardComponent`. This is crucial for usability on smaller screens.
-
-#### Gesture Support
-
-*   **LOW:** `WorkoutLogger.tsx`:
-    *   `motion` from `framer-motion` is used, which can enable some gesture-like animations, but explicit gesture support (e.g., swipe to dismiss) is not apparent.
-*   **LOW:** `NASMExerciseRolodex.tsx`:
-    *   No explicit gesture support.
-*   **LOW:** `ExerciseFilterChips.tsx`:
-    *   Horizontal scrolling is a form of gesture, but no advanced gestures.
-*   **LOW:** `NASMProtocolSection.tsx`:
-    *   No explicit gesture support.
-*   **LOW:** `ExerciseCardComponent.tsx`:
-    *   No explicit gesture support.
-    *   **Recommendation:** Consider adding swipe gestures for actions like removing an exercise or set on mobile, as this can enhance efficiency.
-
----
+*   **CRITICAL:** None.
+*   **HIGH:** None.
+*   **MEDIUM:**
+    *   **Touch Targets (Implicit Risk):** The prompt does not explicitly mandate a minimum touch target size (e.g., 44x44px) for interactive elements like filter chips, sort options, buttons, and chart interactions. This is crucial for mobile users, especially those with motor impairments.
+        *   **Recommendation:** Add a specific instruction under "New Frontend Components Required" or `web-design-guidelines` to ensure all interactive elements have a minimum touch target size of 44x44px.
+    *   **Gesture Support (Missing):** With "full-page scrollable charts" and potentially complex chart interactions, gesture support (e.g., pinch-to-zoom, swipe for navigation) could enhance mobile UX. This is not mentioned.
+        *   **Recommendation:** Consider adding a requirement to explore and implement relevant gesture support for charts and scrollable lists where appropriate, especially for the `ExerciseRolodexPage`.
+    *   **Responsive Breakpoints (Partial):** While `ClientChartsPanel` mentions 3-col desktop → 2-col tablet → 1-col mobile, this is specific. A general guideline for all new components to be designed with mobile-first responsiveness in mind, and explicit breakpoints for key elements, would be beneficial.
+        *   **Recommendation:** Generalize the responsive design requirement to all new components, ensuring they adapt gracefully across various screen sizes, not just specific column layouts.
+*   **LOW:** None.
 
 ### 3. Design Consistency
 
-#### Theme Tokens Usage
+**Overall Assessment:** The prompt explicitly defines a theme, active palette, and typography, and even calls out a retired theme to avoid. It also mandates CSS-only frequency bars with a gradient using theme colors, which is a good example of token usage. The `Frost Shimmer Skeleton Loaders` also use a specific theme color. This indicates a strong intent for consistency.
 
-*   **HIGH:** `WorkoutLoggerCS.ts` centralizes all color tokens, which is excellent for consistency.
-*   **HIGH:** The components generally use `CS.<token>` for colors, borders, and shadows.
-*   **MEDIUM:** Typography:
-    *   `WorkoutLoggerContainer` sets `font-family: 'Sora', 'Plus Jakarta Sans', ...`.
-    *   `RolodexTrigger` uses `font-family: 'Sora', sans-serif;`.
-    *   `AddExerciseButton` uses `font-family: 'Plus Jakarta Sans', sans-serif;`.
-    *   `NASMExerciseRolodex` uses `font-family: 'Sora', sans-serif;` for `SearchInput`, `ExMeta`, `EmptyState`, and `font-family: 'Plus Jakarta Sans', sans-serif;` for `ExName`. `StatusBar` uses `Fira Code`.
-    *   `ExerciseFilterChips` uses `font-family: 'Sora', sans-serif;`.
-    *   `NASMProtocolSection` uses `font-family: 'Plus Jakarta Sans', sans-serif;`.
-    *   `ExerciseCardComponent` uses `font-family: 'Plus Jakarta Sans', sans-serif;` for `h3`.
-    *   **Observation:** The typography usage is generally consistent with the defined roles (Sora for UI/gaming, Plus Jakarta Sans for headings/main text, Fira Code for data). This is good.
-*   **LOW:** Border radii and shadows: While colors are tokenized, specific border-radius values (e.g., `1rem`, `1.5rem`, `16px`) and shadow values are hardcoded.
-    *   **Recommendation:** Consider creating a `CS.borderRadius` and `CS.boxShadow` object in `WorkoutLoggerCS.ts` for common values to further enhance consistency and maintainability.
+*   **CRITICAL:** None.
+*   **HIGH:** None.
+*   **MEDIUM:**
+    *   **Hardcoded Colors (Potential Risk):** While the prompt specifies theme colors for the skeleton loader and frequency bar, it doesn't explicitly forbid hardcoded colors elsewhere in the new components. Without strict enforcement, developers might use literal hex values instead of styled-components theme tokens.
+        *   **Recommendation:** Add a general rule under "CLAUDE.MD Updates Required" or `ui-ux-pro-max` skill that all colors, fonts, and spacing in new components MUST use styled-components theme tokens. Flagging hardcoded values during code review should be a priority.
+    *   **Typography Consistency:** The prompt lists several fonts (Plus Jakarta Sans, Cormorant Garamond Italic, Fira Code, Sora). It specifies their general use (headings, drama, data, UI/gaming) but doesn't provide a detailed typographic scale (e.g., font sizes, line heights, weights for different semantic elements). This could lead to inconsistencies in implementation.
+        *   **Recommendation:** Expand the design system guidelines to include a detailed typographic scale mapping specific font families, sizes, weights, and line heights to semantic elements (e.g., H1, H2, body text, captions, button text).
+*   **LOW:** None.
 
-#### Hardcoded Colors
+### 4. User Flow Friction
 
-*   **LOW:** `WorkoutLogger.tsx`:
-    *   `WorkoutLoggerContainer` `background: linear-gradient(165deg, ${CS.bg} 0%, #001040 40%, #001848 100%);` — `#001040` and `#001848` are hardcoded. These should ideally be derived from `CS.bg` or `CS.surface` with `withAlpha` or new tokens.
-    *   `LoadPlanButton` `color: #8B5CF6;` and `background: rgba(139, 92, 246, 0.12);` — `#8B5CF6` is `CS.secondary`. Should use the token.
-    *   `NASMProtocolSection` icon color for Balance/Core: `style={{ color: '#8B5CF6' }}` — `#8B5CF6` is `CS.secondary`. Should use the token.
-*   **LOW:** `NASMExerciseRolodex.tsx`:
-    *   `Wrapper` `background: rgba(0, 24, 72, 0.96);` — This is a hardcoded dark blue. Should be derived from `CS.bg` or `CS.surface`.
-*   **LOW:** `NASMProtocolSection.tsx`:
-    *   `SectionCard` `background: rgba(0, 48, 128, 0.92);` — This is a hardcoded dark blue. Should be derived from `CS.surface` or `CS.card`.
-    *   `SectionCard` `border: 1px solid rgba(96, 192, 240, 0.25);` — This is `CS.gaming` with alpha, but hardcoded. Should use `withAlpha(CS.gaming, 0.25)`.
-    *   `Badge` `background: rgba(139, 92, 246, 0.15);` and `color: #A78BFA;` — These are `CS.secondary` and `CS.secondaryLight`. Should use tokens.
-*   **LOW:** `ExerciseCardComponent.tsx`:
-    *   `CardContainer` `background: ${CS.card};` is good. `border: 1px solid ${CS.glassBorder};` is good.
-    *   `box-shadow: 0 8px 32px rgba(0, 0, 
+**Overall Assessment:** The prompt identifies and addresses several friction points (hardcoded charts, limited goals, AI limitations). The proposed solutions generally aim to improve user experience by providing more data, better tools, and more options. The "draft-and-approve" for AI communications is a good balance between automation and control.
+
+*   **CRITICAL:** None.
+*   **HIGH:** None.
+*   **MEDIUM:**
+    *   **Exercise Rolodex Filters/Sort (Potential Friction):** While filters and sort options are provided, the sheer volume of "ALL exercises ever performed" could still be overwhelming. The default sort (frequency) is good, but ensuring the filtering and sorting mechanisms are highly performant and intuitive will be key to avoiding friction.
+        *   **Recommendation:** Emphasize the need for highly responsive and intuitive filter/sort interactions for the `ExerciseRolodexPage`, perhaps with debouncing for search and clear visual feedback for active filters.
+    *   **AI Assistant Context Switching:** The AI Assistant can now read chart data and fill various forms. While powerful, the prompt doesn't explicitly detail how the user (or AI) will manage context switching between these capabilities. For example, if a user asks "What exercises has Jackie done the most?" and then "Fill out her goal form," how seamlessly does the AI transition?
+        *   **Recommendation:** Add a requirement for clear conversational flow and context management for the AI Assistant, ensuring smooth transitions between different capabilities and providing explicit feedback to the user about what the AI is doing.
+    *   **Communication Drafts Approval Flow:** The "draft-and-approve" mechanism is excellent for security but introduces an extra step for trainers. The UI for reviewing and approving/rejecting drafts needs to be extremely efficient and clear to minimize friction for trainers.
+        *   **Recommendation:** Specify that the UI for `CommunicationDrafts` approval must be highly optimized for efficiency, allowing trainers to quickly review, edit, and approve/reject multiple drafts with minimal clicks.
+*   **LOW:**
+    *   **Onboarding for Chart Visibility:** The prompt mentions "Users opt-in during onboarding Step 4 ('Social Profile Setup') or via Settings." This is a good approach for privacy-first defaults. Ensure the onboarding step clearly explains the benefits of sharing and the privacy implications.
+        *   **Recommendation:** Ensure the onboarding prompt for chart visibility is clear, concise, and persuasive, explaining the value proposition of sharing progress while respecting privacy.
+
+### 5. Loading States
+
+**Overall Assessment:** The prompt explicitly mandates and details skeleton loaders for charts, including specific CSS, `role="status"`, and `aria-live="polite"`. This is an excellent and comprehensive approach to loading states for charts.
+
+*   **CRITICAL:** None.
+*   **HIGH:** None.
+*   **MEDIUM:**
+    *   **Error Boundaries (Partial):** The prompt mentions "Each chart wrapped in `SafeChart` error boundary." This is good for individual charts. However, a broader strategy for error boundaries across all new components and pages (e.g., for the `ExerciseRolodexPage` or `ClientChartsPanel`) is not explicitly detailed. What happens if the `useAnalytics` hook fails for an entire section?
+        *   **Recommendation:** Extend the error boundary requirement to cover all major new components and data-intensive sections, providing graceful fallback UIs (e.g., "Failed to load data, please try again").
+    *   **Empty States (Partial):** The prompt mentions "If a user has no data, show an empty state with CTA: 'Log your first workout to see your progress!'" for charts. This is excellent. Ensure this principle is applied consistently to all new data-driven components, such as the `ExerciseRolodexPage` if a user has no exercises logged, or the `CommunicationDrafts` list if there are no pending drafts.
+        *   **Recommendation:** Explicitly mandate well-designed empty states with clear calls to action for all new data-driven components where no data might be present.
+*   **LOW:** None.
+
+---
+
+### Summary of Key Recommendations:
+
+1.  **WCAG AA Compliance:** Explicitly mandate WCAG 2.1 AA contrast ratios for all UI elements and comprehensive keyboard navigation/focus management for all interactive components.
+2.  **Mobile UX:** Enforce a minimum 44x44px touch target size for all interactive elements.
+3.  **Design Consistency:** Strictly enforce the use of styled-components theme tokens for all colors, fonts, and spacing. Provide a detailed typographic scale.
+4.  **User Flow Friction:** Optimize the UI for `CommunicationDrafts` approval for trainer efficiency and ensure clear context management for the AI Assistant.
+5.  **Loading States:** Extend error boundary and empty state requirements to all new data-driven components, not just individual charts.
+
+The prompt is very detailed and well-structured, providing a solid foundation. Addressing these points will further strengthen the UX and accessibility of the SwanStudios platform.
 
 ---
 

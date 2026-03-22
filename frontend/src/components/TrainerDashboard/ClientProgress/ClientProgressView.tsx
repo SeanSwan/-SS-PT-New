@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useClientProgress, ProgressMeasurement } from '../../UniversalMasterSchedule/hooks/useClientProgress';
 import theme from '../../../theme/tokens';
 import ClientProgressCharts from '../../ClientProgressCharts/ClientProgressCharts';
+import ClientAnalyticsPanel from '../../ClientProgressCharts/ClientAnalyticsPanel';
 
 const Page = styled.div`
   padding: ${theme.spacing.xl};
@@ -379,6 +380,11 @@ const ClientProgressView: React.FC = () => {
               their NASM assessments.
             </EmptyState>
           </Section>
+
+          {/* Analytics Panel — KPI cards + Exercise History bars */}
+          {resolvedClientId && (
+            <ClientAnalyticsPanel userId={resolvedClientId} />
+          )}
 
           {/* Advanced Progress Charts */}
           <ClientProgressCharts

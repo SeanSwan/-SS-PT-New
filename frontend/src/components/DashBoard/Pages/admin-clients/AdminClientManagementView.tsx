@@ -1,9 +1,16 @@
 /**
- * Admin Client Management View
- * Comprehensive client management interface for administrators
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AdminClientManagementView (V1 — POSSIBLY DEAD)   ║
+ * ║  PURPOSE: Original client management view — may be superseded ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ╚══════════════════════════════════════════════════════════════╝
  *
- * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic gradients, glass surfaces, swan motifs)
+ * ⚠️ STATUS: This may be the V1 version superseded by
+ * EnhancedAdminClientManagementView.tsx. VERIFY before adding features.
+ * If confirmed dead code, schedule for removal.
+ *
+ * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * NOTE: 1,375 lines — exceeds 300-line rule
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';

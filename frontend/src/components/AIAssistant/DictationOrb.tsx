@@ -7,19 +7,50 @@ declare global {
 }
 
 /**
- * DictationOrb — Voice-First Input (V3)
- * =======================================
- * Voice-to-text input with two modes:
- *   1. Tap-to-toggle — tap to start/stop continuous listening
- *   2. Hold-to-talk — press and hold, release to stop + send
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: DictationOrb — Voice-First Input (V3)            ║
+ * ║  PURPOSE: Voice-to-text via Web Speech API for AI chat input  ║
+ * ║  PARENT: AIAssistantDrawer (InputArea)                        ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌─── Idle ──────────┐  ┌─── Listening ──────────────────────┐
+ * │ [🎤] 44px orb     │  │ [🎤✨] pulsing crystalline glow   │
+ * └───────────────────┘  │ ┌─ Interim Bubble ──────────────┐ │
+ *                        │ │ "the quick brown fox..."       │ │
+ *                        │ └────────────────────────────────┘ │
+ *                        └────────────────────────────────────┘
+ *
+ * TWO MODES:
+ * 1. Tap-to-toggle — tap to start/stop continuous listening
+ * 2. Hold-to-talk — press and hold, release to stop + send
+ *
+ * CLICK OUTCOMES:
+ * Tap orb → toggle listening on/off
+ * Long press → hold-to-talk mode (release sends accumulated text)
+ * Cmd/Ctrl+Shift+K → keyboard shortcut to toggle
+ *
+ * DATA FLOW:
+ * Props In:  { onTranscript, disabled?, holdToTalk? }
+ * State:     { listening, supported, interim }
+ * API:       Web Speech API (SpeechRecognition)
+ * Events:    onTranscript(finalText)
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   Drawer[AIAssistantDrawer] --> Orb[DictationOrb]
+ *   Orb -->|Web Speech API| Browser
+ *   Orb -->|onTranscript| Drawer
  *
  * V3 Fixes:
  * - Memory leak: nullify recognitionRef + clean all handlers on unmount
- * - Hold-to-talk mode for quick voice commands
  * - Interim transcript preview bubble
  * - ARIA live regions for screen reader announcements
  * - prefers-reduced-motion respected
- * - Keyboard shortcut: Cmd/Ctrl+Shift+K to toggle
+ *
+ * NOTE: 387 lines — exceeds 300-line rule. TODO: extract styled
+ * components to DictationOrbStyles.ts and hook to useDictation.ts
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';

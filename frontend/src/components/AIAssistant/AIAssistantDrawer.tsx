@@ -2,7 +2,7 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: AIAssistantDrawer (Orchestrator)                 ║
  * ║  PURPOSE: Slide-in AI chat drawer — orchestrates sub-parts   ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-20        ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21        ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * WIREFRAME:
@@ -292,7 +292,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                   const isActive = activeConversation.context === ctx;
                   return (
                     <ContextPill key={ctx} $active={isActive} onClick={() => {}} aria-pressed={isActive}
-                      style={{ opacity: isActive ? 1 : 0.4, cursor: 'default' }}>
+                      style={{ color: isActive ? '#E0ECF4' : '#4070C0', cursor: 'default' }}>
                       <Icon size={14} />
                       {cfg.label}
                     </ContextPill>

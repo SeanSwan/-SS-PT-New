@@ -160,7 +160,9 @@ export const updateUserProfile = async (req, res) => {
       'dateOfBirth', 'gender', 'weight', 'height',
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
       'emailNotifications', 'smsNotifications', 'preferences',
-      'notificationPreferences'
+      'notificationPreferences',
+      'profileVisibility', 'showBadges', 'showAchievements', 'showStats',
+      'showWorkoutHistory', 'showLevel', 'chartVisibility'
     ];
 
     if (updateData.notificationPreferences !== undefined) {
@@ -172,6 +174,23 @@ export const updateUserProfile = async (req, res) => {
           message: 'notificationPreferences must be an object'
         });
       }
+    }
+
+    // Validate chartVisibility — only allow known keys with boolean values
+    if (updateData.chartVisibility !== undefined) {
+      const cv = updateData.chartVisibility;
+      const validKeys = [
+        'workoutFrequency', 'weightProgression', 'muscleRadar', 'macroSplit',
+        'cardioEndurance', 'sessionFrequency', 'bodyFatTrend', 'muscleRecovery',
+        'rpeByExercise', 'exerciseRolodex', 'workoutHeatmap', 'goalProgress'
+      ];
+      if (typeof cv !== 'object' || cv === null || Array.isArray(cv)) {
+        return res.status(400).json({ success: false, message: 'chartVisibility must be an object' });
+      }
+      // Strip unknown keys and coerce values to boolean
+      updateData.chartVisibility = Object.fromEntries(
+        validKeys.map(k => [k, cv[k] === true])
+      );
     }
 
     // Filter out fields that are not allowed to be updated

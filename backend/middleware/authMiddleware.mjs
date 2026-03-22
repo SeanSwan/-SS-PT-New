@@ -723,3 +723,103 @@ export const rateLimiter = (options = {}) => {
     next();
   };
 };
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Analytics Ownership Middleware
+// PURPOSE: IDOR prevention for /api/analytics/:userId/* endpoints
+// WHY: AI Village CRITICAL finding — users could access other users' data
+//      by changing :userId in the URL. This middleware enforces:
+//      - Owner can access own data
+//      - Trainers can access assigned clients' data
+//      - Admins can access any data
+// ─────────────────────────────────────────────────────────────
+export const requireOwnershipOrTrainer = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const targetUserId = req.params.userId;
+
+    // Admins always have access
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    // Owner can access own data (string comparison — both are strings via toStringId)
+    if (String(req.user.id) === String(targetUserId)) {
+      return next();
+    }
+
+    // Trainers can access their assigned clients
+    if (req.user.role === 'trainer') {
+      try {
+        const [assignments] = await import('../models/index.mjs')
+          .then(m => m.default?.sequelize || m.sequelize)
+          .then(seq => seq.query(
+            `SELECT 1 FROM "ClientTrainerAssignments"
+             WHERE "trainerId" = :trainerId AND "clientId" = :clientId AND status = 'active'
+             LIMIT 1`,
+            { replacements: { trainerId: req.user.id, clientId: targetUserId } }
+          ));
+
+        if (assignments && assignments.length > 0) {
+          return next();
+        }
+      } catch (assignmentError) {
+        // Table may not exist — fall through to deny
+        logger.warn('Trainer assignment check failed', {
+          error: assignmentError.message,
+          trainerId: req.user.id,
+          clientId: targetUserId
+        });
+      }
+    }
+
+    // Deny access
+    logger.warn('IDOR attempt blocked on analytics endpoint', {
+      userId: req.user.id,
+      role: req.user.role,
+      targetUserId,
+      path: req.path,
+      method: req.method
+    });
+
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: You do not have permission to view this data'
+    });
+  } catch (error) {
+    logger.error('Ownership check error', {
+      error: error.message,
+      path: req.path
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error checking data ownership'
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: AI Action Authorization Matrix
+// PURPOSE: Role-based action whitelist for AI assistant actions
+// WHY: AI Village CRITICAL — prevents AI prompt injection from escalating privileges
+// ─────────────────────────────────────────────────────────────
+export const AI_ACTION_PERMISSIONS = {
+  user: ['fill_own_forms', 'read_own_data', 'read_own_charts'],
+  client: ['fill_own_forms', 'read_own_data', 'read_own_charts'],
+  trainer: ['fill_own_forms', 'fill_client_forms', 'read_client_data', 'read_client_charts', 'draft_email', 'draft_sms'],
+  admin: ['fill_own_forms', 'fill_any_forms', 'read_all_data', 'read_all_charts', 'draft_email', 'draft_sms']
+};
+
+/**
+ * Check if a user role is authorized for a specific AI action.
+ * @param {string} role - User role (user, client, trainer, admin)
+ * @param {string} action - AI action to check
+ * @returns {boolean}
+ */
+export const isAIActionAllowed = (role, action) => {
+  const allowed = AI_ACTION_PERMISSIONS[role] || AI_ACTION_PERMISSIONS.user;
+  return allowed.includes(action);
+};

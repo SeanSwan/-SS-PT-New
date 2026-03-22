@@ -131,6 +131,10 @@ import adminOrdersRoutes from '../routes/adminOrdersRoutes.mjs';
 // 🔍 Data Verification and Debugging
 import adminDataVerificationRoutes from '../routes/adminDataVerificationRoutes.mjs';
 
+// ===================== CLIENT ANALYTICS & COMMUNICATION DRAFTS =====================
+import analyticsRoutes from '../routes/analyticsRoutes.mjs';
+import communicationDraftRoutes from '../routes/communicationDraftRoutes.mjs';
+
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
 import movementAnalysisRoutes from '../routes/movementAnalysisRoutes.mjs';
@@ -316,6 +320,10 @@ export const setupRoutes = async (app) => {
   app.use('/api/workout-builder', workoutBuilderRoutes);
   app.use('/api/bootcamp', bootcampRoutes);
   app.use('/api/workout-logs', workoutLogUploadRoutes);
+
+  // ===================== CLIENT ANALYTICS (IDOR-PROTECTED) =====================
+  app.use('/api/analytics', analyticsRoutes);             // Client workout analytics (owner/trainer/admin)
+  app.use('/api/trainer/drafts', communicationDraftRoutes); // AI communication draft approval
 
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
   // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)

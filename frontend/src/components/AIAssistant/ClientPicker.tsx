@@ -1,8 +1,44 @@
 /**
- * ClientPicker
- * ============
- * Searchable client dropdown for trainer/admin use in the AI drawer.
- * Fetches client list and allows selection of a target client for AI context.
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: ClientPicker                                      ║
+ * ║  PURPOSE: Searchable client dropdown for AI context targeting ║
+ * ║  PARENT: AIAssistantDrawer                                    ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌─── Collapsed ──────────────────────────────────────┐
+ * │ [👤 Jackie Smith              ▾ ] [✕]              │ SelectedClient button
+ * └────────────────────────────────────────────────────┘
+ * ┌─── Expanded ───────────────────────────────────────┐
+ * │ [🔍 Search clients...                        ] [✕] │ SearchInput
+ * │ ┌──────────────────────────────────────────────┐   │
+ * │ │ [📷] Jackie Smith  jackie@email.com          │   │ ClientItem (scrollable list)
+ * │ │ [📷] Sean Swan     sean@swanstudios.com      │   │
+ * │ │ ... (max-height: 240px, overflow scroll)     │   │
+ * │ └──────────────────────────────────────────────┘   │
+ * └────────────────────────────────────────────────────┘
+ *
+ * CLICK OUTCOMES:
+ * SelectedClient tap → expands dropdown
+ * ClientItem tap → selects client, collapses, fires onSelect
+ * Clear (✕) → deselects client, fires onSelect(null)
+ * Search input → filters client list by name/email
+ *
+ * DATA FLOW:
+ * Props In:  { onSelect, selectedClient, userRole }
+ * State:     { clients[], search, isOpen, loading }
+ * API Calls: GET /api/admin/clients (on mount, cached)
+ * Events:    onSelect(client | null)
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   Drawer[AIAssistantDrawer] --> Picker[ClientPicker]
+ *   Picker -->|fetch| API[/api/admin/clients]
+ *   Picker -->|onSelect| Drawer
+ *
+ * NOTE: 346 lines — exceeds 300-line rule. TODO: extract styled
+ * components to ClientPickerStyles.ts
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styled from 'styled-components';

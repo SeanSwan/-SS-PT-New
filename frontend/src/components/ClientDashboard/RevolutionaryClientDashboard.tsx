@@ -327,32 +327,10 @@ const sectionDescriptions: Record<string, string> = {
   account: 'Session credits, profile, and account settings',
 };
 
-// === MAIN COMPONENT ===
-const RevolutionaryClientDashboard: React.FC = () => {
-  // Apply tab migration on initial hydration (handles stale localStorage values)
-  const [activeSection, setActiveSection] = useState(() => {
-    try {
-      const stored = localStorage.getItem('clientDashboardTab');
-      return stored ? migrateTabId(stored) : 'overview';
-    } catch {
-      return 'overview';
-    }
-  });
+// === PARTICLE BACKGROUND (isolated to prevent parent re-renders) ===
+const ParticleBackground = React.memo(() => {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);
-  const { user } = useAuth();
-  const navigate = useNavigate();
 
-  // Listen for internal tab navigation events (from child components)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const tabId = (e as CustomEvent).detail;
-      if (typeof tabId === 'string') handleSectionChange(tabId);
-    };
-    window.addEventListener('dashboard:navigate', handler);
-    return () => window.removeEventListener('dashboard:navigate', handler);
-  }, []);
-
-  // Generate particles for background effect
   useEffect(() => {
     const generateParticles = () => {
       const newParticles = Array.from({ length: 30 }, (_, i) => ({
@@ -369,14 +347,61 @@ const RevolutionaryClientDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  return (
+    <ParticleField>
+      {particles.map((particle) => (
+        <Particle
+          key={particle.id}
+          initial={{ x: `${particle.x}%`, y: `${particle.y}%`, opacity: 0 }}
+          animate={{
+            x: `${particle.x + 20}%`,
+            y: `${particle.y - 20}%`,
+            opacity: [0, 1, 0]
+          }}
+          transition={{
+            duration: 12,
+            delay: particle.delay,
+            repeat: Infinity,
+            repeatDelay: Math.random() * 10
+          }}
+        />
+      ))}
+    </ParticleField>
+  );
+});
+
+// === MAIN COMPONENT ===
+const RevolutionaryClientDashboard: React.FC = () => {
+  // Apply tab migration on initial hydration (handles stale localStorage values)
+  const [activeSection, setActiveSection] = useState(() => {
+    try {
+      const stored = localStorage.getItem('clientDashboardTab');
+      return stored ? migrateTabId(stored) : 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   // Handle section change with migration
-  const handleSectionChange = (sectionId: string) => {
+  const handleSectionChange = React.useCallback((sectionId: string) => {
     const migrated = migrateTabId(sectionId);
     setActiveSection(migrated);
     try {
       localStorage.setItem('clientDashboardTab', migrated);
     } catch { /* ignore storage errors */ }
-  };
+  }, []);
+
+  // Listen for internal tab navigation events (from child components)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tabId = (e as CustomEvent).detail;
+      if (typeof tabId === 'string') handleSectionChange(tabId);
+    };
+    window.addEventListener('dashboard:navigate', handler);
+    return () => window.removeEventListener('dashboard:navigate', handler);
+  }, [handleSectionChange]);
 
   // Resolve section with fallback — prevents blank panels from unknown tab IDs
   const resolvedSection = activeSection in sectionComponents ? activeSection : 'overview';
@@ -387,26 +412,8 @@ const RevolutionaryClientDashboard: React.FC = () => {
   return (
     <ThemeProvider theme={galaxyTheme}>
       <GalaxyContainer>
-        {/* Background Particles */}
-        <ParticleField>
-          {particles.map((particle) => (
-            <Particle
-              key={particle.id}
-              initial={{ x: `${particle.x}%`, y: `${particle.y}%`, opacity: 0 }}
-              animate={{ 
-                x: `${particle.x + 20}%`, 
-                y: `${particle.y - 20}%`, 
-                opacity: [0, 1, 0] 
-              }}
-              transition={{
-                duration: 12,
-                delay: particle.delay,
-                repeat: Infinity,
-                repeatDelay: Math.random() * 10
-              }}
-            />
-          ))}
-        </ParticleField>
+        {/* Background Particles (isolated component prevents parent re-renders) */}
+        <ParticleBackground />
         
         {/* Achievement Constellations */}
         <AchievementConstellation

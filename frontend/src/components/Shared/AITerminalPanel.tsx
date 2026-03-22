@@ -1,11 +1,56 @@
 /**
- * AITerminalPanel — Embeddable AI Chat for All Dashboard Tabs
- * ============================================================
- * Context-aware AI chat panel using useAIChat hook.
- * Embeds in: Workout Logger, Bootcamp, Scheduling, Clients & Teams,
- * Admin Overview, Client Dashboard, Trainer Dashboard, Canada Immigration.
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AITerminalPanel                                   ║
+ * ║  PURPOSE: Embeddable AI chat for ALL dashboard tabs           ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ╚══════════════════════════════════════════════════════════════╝
  *
- * Crystalline Swan theme: Midnight Sapphire, Ice Wing, 44px touch targets.
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────┐
+ * │ [🤖 SwanStudios AI] [context badge]    [▲/▼] [✕]   │ PanelHeader (collapsible)
+ * ├──────────────────────────────────────────────────────┤
+ * │ ┌── Messages Area (scrollable) ──────────────────┐  │
+ * │ │ 🤖 AI: Welcome! How can I help with [context]? │  │
+ * │ │ 👤 User: Generate a workout for Jackie         │  │
+ * │ │ 🤖 AI: Here's a Phase 2 workout...             │  │
+ * │ │ ... (auto-scroll, smart near-bottom detection)  │  │
+ * │ └────────────────────────────────────────────────┘  │
+ * │ [Error bar] ← on API error (CS.errorText tokens)   │
+ * │ [Type a message...                          ] [➤]   │ InputArea
+ * └──────────────────────────────────────────────────────┘
+ *
+ * EMBEDS IN (auto-context per tab):
+ * | Dashboard Tab      | AI Context          | Route                    |
+ * |-------------------|---------------------|--------------------------|
+ * | Overview          | general             | /dashboard/default       |
+ * | Schedule          | scheduling          | /dashboard/schedule      |
+ * | Training Sessions | workout_generation  | /dashboard/admin-sessions|
+ * | Client Progress   | progress_analysis   | /dashboard/client-progress|
+ * | Client Management | client_review       | /dashboard/client-management|
+ * | NASM Exercises    | exercise_library    | /dashboard/nasm-exercises|
+ * | Reports           | data_analysis       | /dashboard/reports       |
+ *
+ * CLICK OUTCOMES:
+ * Header chevron → toggle panel collapse/expand
+ * Close (✕) → hide panel entirely
+ * Send (➤) → send message via useAIChat
+ * Error retry → clear error + retry last message
+ *
+ * DATA FLOW:
+ * Props In:  { context, title?, clientId?, onClose? }
+ * State:     { collapsed, inputText }
+ * Hook:      useAIChat (conversations, messages, send, create)
+ * Events:    CustomEvent('ai-workout-generated') for WorkoutLogger integration
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   Tab[Dashboard Tab] --> Panel[AITerminalPanel]
+ *   Panel --> Hook[useAIChat]
+ *   Hook --> API[/api/ai-chat/*]
+ *   Panel -->|CustomEvent| Logger[WorkoutLogger]
+ *
+ * NOTE: 453 lines — exceeds 300-line rule. TODO: extract styled
+ * components to AITerminalPanelStyles.ts, types to shared AITypes.ts
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
@@ -363,15 +408,15 @@ const ErrorBar = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: rgba(255, 71, 87, 0.1);
-  border-top: 1px solid rgba(255, 71, 87, 0.2);
-  color: #ff6b6b;
+  background: rgba(153, 27, 27, 0.3);
+  border-top: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
   font-size: 12px;
 
   button {
     background: none;
     border: none;
-    color: #ff6b6b;
+    color: #fca5a5;
     cursor: pointer;
     padding: 2px;
   }

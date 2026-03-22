@@ -1,17 +1,64 @@
 /**
- * Enhanced Admin Client Management View
- * 7-Star AAA Personal Training & Social Media App
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: EnhancedAdminClientManagementView (Parent)       ║
+ * ║  PURPOSE: Master admin client management — all client ops     ║
+ * ║  ROUTE: /dashboard/client-management                          ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ╚══════════════════════════════════════════════════════════════╝
  *
- * Features:
- * - Advanced client profiles with photos and detailed assessments
- * - Real-time analytics and insights
- * - AI-powered features and recommendations
- * - Gamification integration
- * - Social features
- * - Professional assessment tools
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────────────┐
+ * │ [AITerminalPanel context="client_review"]                    │ Embedded AI
+ * ├──────────────────────────────────────────────────────────────┤
+ * │ [🔍 Search] [Filter: All▾] [+ Add Client]  [Stats Cards]   │ ActionBar
+ * ├──────────────────────────────────────────────────────────────┤
+ * │ ┌─ Client List (scrollable) ──────────────────────────────┐ │
+ * │ │ [📷] Jackie Smith    Move Fitness  Active  ★ Level 5    │ │ ClientCard
+ * │ │ [📷] Bob Jones       SwanStudios   Active  ★ Level 2    │ │
+ * │ │ ... (virtualized, filtered by source/status/search)     │ │
+ * │ └────────────────────────────────────────────────────────┘ │
+ * │ ┌─ Detail Panel (slide-in) ───────────────────────────────┐ │
+ * │ │ [Tabs: Profile|Progress|Workouts|Gamification|Comms]    │ │
+ * │ │ [Active tab content...]                                 │ │
+ * │ └────────────────────────────────────────────────────────┘ │
+ * └──────────────────────────────────────────────────────────────┘
  *
- * Migrated from MUI to styled-components + lucide-react
- * Crystalline Swan theme (bg: #002060, border: rgba(96,192,240,0.2), text: #E0ECF4, accent: #60C0F0)
+ * CLICK OUTCOMES:
+ * + Add Client → opens CreateClientModal
+ * Client card tap → opens ClientDetailsPanel (slide-in)
+ * Filter chips → filter by clientSource (swanstudios/move_fitness/external)
+ * Tab switch → loads sub-panel (Progress, Workouts, Gamification, Comms, Analytics)
+ * Search → fuzzy filter client list by name/email
+ *
+ * DATA FLOW:
+ * Props In:  (none — top-level route component)
+ * State:     { clients[], selectedClient, activeTab, filters, modals }
+ * API Calls: GET /api/admin/clients, PUT /api/admin/clients/:id
+ * Context:   AuthContext (role, token)
+ * Children:  CreateClientModal, ClientDetailsPanel, ClientProgressDashboard,
+ *            WorkoutLoggerModal, GamificationOverview, CommunicationCenter,
+ *            ClientAnalyticsPanel, AITerminalPanel
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   Route[/dashboard/client-management] --> View[EnhancedAdminClientManagementView]
+ *   View --> AI[AITerminalPanel context=client_review]
+ *   View --> List[ClientList]
+ *   View --> Detail[ClientDetailsPanel]
+ *   Detail --> Progress[ClientProgressDashboard]
+ *   Detail --> Logger[WorkoutLoggerModal]
+ *   Detail --> Gamify[GamificationOverview]
+ *   Detail --> Comms[CommunicationCenter]
+ *   Detail --> Analytics[ClientAnalyticsPanel]
+ *   View --> Create[CreateClientModal]
+ *
+ * GAMIFICATION HOOKS:
+ * - Client card shows level badge + XP bar
+ * - Gamification tab in detail panel
+ * - Workout logging awards XP (50pts/workout, 10pts/exercise, 100pts/PR)
+ *
+ * Theme: Crystalline Swan (Midnight Sapphire #002060, Ice Wing #60C0F0, Frost White #E0ECF4)
+ * NOTE: 2,182 lines — CRITICAL monolith. TODO: decompose into <300-line files
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -96,6 +143,10 @@ import {
   ChevronLeft,
   ChevronDown,
 } from 'lucide-react';
+
+// Client source logos for card identification
+import MoveFitLogo3D from '../../../../assets/MoveFitLogo-3d.png';
+import SwanStudiosLogo from '../../../../assets/Logo.png';
 
 // ─── Animations ───────────────────────────────────────────────────
 const spin = keyframes`
@@ -1079,6 +1130,7 @@ interface EnhancedAdminClient {
   role: string;
   createdAt: string;
   updatedAt: string;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   // Enhanced fields
   totalWorkouts: number;
   workoutStreak: number;
@@ -1184,6 +1236,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentTab, setCurrentTab] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'swanstudios' | 'move_fitness' | 'external'>('all');
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -1368,15 +1421,23 @@ const EnhancedAdminClientManagementView: React.FC = () => {
     setSearchTerm(event.target.value);
   }, []);
 
-  // Filter clients based on search term
+  // Filter clients based on search term and source
   const filteredClients = useMemo(() => {
-    if (!searchTerm) return clients;
-    return clients.filter(client =>
-      `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.username.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [clients, searchTerm]);
+    let result = clients;
+    // Source filter
+    if (sourceFilter !== 'all') {
+      result = result.filter(client => (client.clientSource || 'swanstudios') === sourceFilter);
+    }
+    // Text search
+    if (searchTerm) {
+      result = result.filter(client =>
+        `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.username.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    return result;
+  }, [clients, searchTerm, sourceFilter]);
 
   // Handle client selection
   const handleClientSelect = (clientId: string) => {
@@ -1515,7 +1576,14 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                       <BadgeDot $active={client.isActive} />
                     </AvatarWithBadge>
                     <FlexCol $gap={2}>
-                      <ClientName>{client.firstName} {client.lastName}</ClientName>
+                      <FlexRow $gap={8} $align="center">
+                        <ClientName>{client.firstName} {client.lastName}</ClientName>
+                        {client.clientSource === 'move_fitness' ? (
+                          <img src={MoveFitLogo3D} alt="Move Fitness" style={{ height: 22, width: 'auto', borderRadius: 3, flexShrink: 0 }} />
+                        ) : (!client.clientSource || client.clientSource === 'swanstudios') ? (
+                          <img src={SwanStudiosLogo} alt="SwanStudios" style={{ height: 22, width: 22, borderRadius: '50%', flexShrink: 0, objectFit: 'cover' }} />
+                        ) : null}
+                      </FlexRow>
                       <Username>@{client.username}</Username>
                       <FlexRow $gap={6} style={{ marginTop: 4 }}>
                         <StatusChip $small $bgColor="rgba(139, 92, 246, 0.2)" $textColor="#8B5CF6">
@@ -1524,6 +1592,11 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                         <StatusChip $small $bgColor="rgba(255, 215, 0, 0.2)" $textColor="#ffd700">
                           {client.rank}
                         </StatusChip>
+                        {client.clientSource === 'external' && (
+                          <StatusChip $small $bgColor="rgba(198, 168, 75, 0.2)" $textColor="#C6A84B">
+                            External
+                          </StatusChip>
+                        )}
                       </FlexRow>
                     </FlexCol>
                   </FlexRow>
@@ -1854,6 +1927,17 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           </SearchInputWrapper>
 
           <FilterGroup>
+            <StyledSelect
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value as typeof sourceFilter)}
+              aria-label="Filter by client source"
+            >
+              <option value="all">All Sources</option>
+              <option value="swanstudios">SwanStudios</option>
+              <option value="move_fitness">Move Fitness</option>
+              <option value="external">External</option>
+            </StyledSelect>
+
             <StyledSelect
               value={filters.level || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, level: e.target.value }))}
