@@ -1,5 +1,11 @@
-import { WorkoutSession, WorkoutExercise, Set, User, Session, sequelize } from '../models/index.mjs';
-import { Op } from 'sequelize';
+import { getWorkoutSession, getWorkoutExercise, getModel, Op } from '../models/index.mjs';
+
+// Models resolved at call time (after initializeModelsCache() runs at startup)
+const getModels = () => ({
+  WorkoutSession: getWorkoutSession(),
+  WorkoutExercise: getWorkoutExercise(),
+  Set: getModel('Set'),
+});
 
 /**
  * Analytics Service
@@ -17,6 +23,7 @@ import { Op } from 'sequelize';
  */
 export async function calculateExerciseTotals(userId, options = {}) {
   try {
+    const { WorkoutSession, WorkoutExercise, Set } = getModels();
     const whereClause = {
       userId,
       status: 'completed'
@@ -187,6 +194,7 @@ function categorizeExercise(exerciseName) {
  */
 export async function calculateVolumeOverTime(userId, options = {}) {
   try {
+    const { WorkoutSession, WorkoutExercise, Set } = getModels();
     const { startDate, endDate, groupBy = 'week' } = options;
 
     const whereClause = {
@@ -325,6 +333,7 @@ function getWeekNumber(date) {
  */
 export async function calculateSessionUsageStats(userId, options = {}) {
   try {
+    const { WorkoutSession } = getModels();
     const whereClause = {
       userId,
       status: 'completed'
@@ -376,6 +385,7 @@ export async function calculateSessionUsageStats(userId, options = {}) {
  */
 export async function getPersonalRecords(userId) {
   try {
+    const { WorkoutSession, WorkoutExercise, Set } = getModels();
     const workoutSessions = await WorkoutSession.findAll({
       where: {
         userId,
@@ -442,6 +452,7 @@ export async function getPersonalRecords(userId) {
  */
 export async function getWorkoutFrequency(userId, days = 30) {
   try {
+    const { WorkoutSession } = getModels();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
