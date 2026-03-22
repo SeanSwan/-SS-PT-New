@@ -1,5 +1,11 @@
 import bcrypt from 'bcryptjs';
-import { User, Session, Package } from '../models/index.mjs';
+import { getUser, getSession, getModel } from '../models/index.mjs';
+
+const getSeederModels = () => ({
+  User: getUser(),
+  Session: getSession(),
+  Package: getModel('Package'),
+});
 
 /**
  * =============================================================================
@@ -57,6 +63,7 @@ import { User, Session, Package } from '../models/index.mjs';
  */
 
 export const up = async (queryInterface, Sequelize) => {
+  const { User, Session, Package } = getSeederModels();
   const transaction = await queryInterface.sequelize.transaction();
   try {
     // --- 1. Find an existing Trainer/Admin and a Package to assign ---

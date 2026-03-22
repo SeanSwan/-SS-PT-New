@@ -1,5 +1,12 @@
-import { WorkoutSession, WorkoutExercise, Set, User } from '../models/index.mjs';
-import { Op } from 'sequelize';
+import { getWorkoutSession, getUser, getModel, Op } from '../models/index.mjs';
+
+// Models resolved at call time (after initializeModelsCache() runs at startup)
+const getModels = () => ({
+  WorkoutSession: getWorkoutSession(),
+  WorkoutExercise: getModel('WorkoutExercise'),
+  Set: getModel('Set'),
+  User: getUser(),
+});
 
 /**
  * NASM Progression Service
@@ -98,6 +105,7 @@ const EXERCISE_CATEGORIES = {
  */
 export async function updateClientProgress(userId, workoutSessionId) {
   try {
+    const { WorkoutSession, WorkoutExercise, Set, User } = getModels();
     // Get user's current NASM level (assumes User model has nasmLevel field)
     const user = await User.findByPk(userId);
     if (!user) {
@@ -301,6 +309,7 @@ function getTargetIntensityForPhase(level) {
  */
 async function checkProgressionReadiness(userId, currentLevel, performanceAnalysis) {
   try {
+    const { WorkoutSession, WorkoutExercise, Set } = getModels();
     // Get last 6 workouts to assess consistency
     const recentWorkouts = await WorkoutSession.findAll({
       where: {

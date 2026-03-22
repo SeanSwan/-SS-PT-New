@@ -1,5 +1,5 @@
-import { User } from '../models/index.mjs';
-import { sequelize } from '../models/index.mjs';
+import { getUser } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 
 /**
  * =============================================================================
@@ -21,6 +21,7 @@ const sessionPackageController = {
    * @body { "sessions": number, "notes": string }
    */
   async addSessionsToClient(req, res) {
+    const User = getUser();
     const { clientId } = req.params;
     const { sessions, notes } = req.body;
     const adminUserId = req.user.id; // Assuming admin user is available from auth middleware

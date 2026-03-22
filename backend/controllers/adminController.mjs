@@ -1,5 +1,10 @@
-import { User } from '../models/index.mjs';
-import { sequelize } from '../models/index.mjs';
+import { getUser, getSession, getModel } from '../models/index.mjs';
+import sequelize from '../database.mjs';
+
+const getModels = () => ({
+  User: getUser(),
+  Session: getSession(),
+});
 
 /**
  * =============================================================================
@@ -20,6 +25,7 @@ const adminController = {
    * @access Private (Admin only)
    */
   async getAllClientsWithCredits(req, res) {
+    const { User } = getModels();
     try {
       const clients = await User.findAll({
         where: {
@@ -58,6 +64,7 @@ const adminController = {
    * @body { "sessionsRemaining": number }
    */
   async updateClientCredits(req, res) {
+    const { User } = getModels();
     const { clientId } = req.params;
     const { sessionsRemaining } = req.body;
 
@@ -108,7 +115,7 @@ const adminController = {
     const transaction = await sequelize.transaction();
 
     try {
-      const { Session } = await import('../models/index.mjs');
+      const { Session } = getModels();
 
       const deletedCount = await Session.destroy({
         where: { id: sessionIds },

@@ -1,5 +1,13 @@
-import { User, Order, OrderItem, StorefrontItem, TrainerCommission } from '../models/index.mjs';
-import { sequelize } from '../models/index.mjs';
+import { getUser, getModel } from '../models/index.mjs';
+import sequelize from '../database.mjs';
+
+const getCreditsModels = () => ({
+  User: getUser(),
+  Order: getModel('Order'),
+  OrderItem: getModel('OrderItem'),
+  StorefrontItem: getModel('StorefrontItem'),
+  TrainerCommission: getModel('TrainerCommission'),
+});
 import { calculateCommissionSplit, isEligibleForLoyaltyBump } from '../utils/commissionCalculator.mjs';
 import { calculateTax } from '../utils/taxCalculator.mjs';
 
@@ -32,6 +40,7 @@ const creditsController = {
    * }
    */
   async adminPurchaseAndGrant(req, res) {
+    const { User, Order, OrderItem, StorefrontItem, TrainerCommission } = getCreditsModels();
     const {
       clientId,
       storefrontItemId,
@@ -256,7 +265,7 @@ const creditsController = {
     try {
       // 1. Check if trainer is assigned to this client (unless admin)
       if (trainerRole !== 'admin') {
-        const { ClientTrainerAssignment } = await import('../models/index.mjs');
+        const ClientTrainerAssignment = getModel('ClientTrainerAssignment');
         const assignment = await ClientTrainerAssignment.findOne({
           where: {
             clientId,

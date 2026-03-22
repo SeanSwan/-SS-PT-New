@@ -1,4 +1,12 @@
-import { WorkoutSession, WorkoutExercise, Set, User, sequelize } from '../models/index.mjs';
+import { getWorkoutSession, getUser, getModel } from '../models/index.mjs';
+import sequelize from '../database.mjs';
+
+const getModels = () => ({
+  WorkoutSession: getWorkoutSession(),
+  WorkoutExercise: getModel('WorkoutExercise'),
+  Set: getModel('Set'),
+  User: getUser(),
+});
 
 const workoutSessionController = {
   /**
@@ -7,6 +15,7 @@ const workoutSessionController = {
    * @access Private (Admin/Trainer)
    */
   async createWorkoutSession(req, res) {
+    const { WorkoutSession, WorkoutExercise, Set } = getModels();
     const {
       userId,
       sessionDate,
@@ -74,6 +83,7 @@ const workoutSessionController = {
    * @access Private (Admin/Trainer)
    */
   async getWorkoutHistory(req, res) {
+    const { WorkoutSession, WorkoutExercise, Set } = getModels();
     const { userId } = req.params;
     const { limit = 10, offset = 0 } = req.query;
 

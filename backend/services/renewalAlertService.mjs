@@ -1,5 +1,12 @@
-import { RenewalAlert, User, Session, sequelize } from '../models/index.mjs';
-import { Op } from 'sequelize';
+import { getUser, getSession, getModel, Op } from '../models/index.mjs';
+import sequelize from '../database.mjs';
+
+// Models resolved at call time (after initializeModelsCache() runs at startup)
+const getModels = () => ({
+  RenewalAlert: getModel('RenewalAlert'),
+  User: getUser(),
+  Session: getSession(),
+});
 
 /**
  * Renewal Alert Service
@@ -57,6 +64,7 @@ export function calculateUrgencyScore(sessionsRemaining, daysSinceLastSession) {
  * @returns {Object} Summary of alerts created/updated
  */
 export async function checkClientsForRenewalAlerts() {
+  const { RenewalAlert, User, Session } = getModels();
   const transaction = await sequelize.transaction();
 
   try {
@@ -192,6 +200,7 @@ export async function checkClientsForRenewalAlerts() {
  * @returns {Array} Array of renewal alerts with client data
  */
 export async function getActiveRenewalAlerts(options = {}) {
+  const { RenewalAlert, User } = getModels();
   const queryOptions = {
     where: {
       status: 'active'
@@ -237,6 +246,7 @@ export async function getCriticalAlerts() {
  * @returns {Object} Updated alert
  */
 export async function markAlertAsContacted(alertId, contactedBy, notes = '') {
+  const { RenewalAlert } = getModels();
   const alert = await RenewalAlert.findByPk(alertId);
   if (!alert) {
     throw new Error('Alert not found');
@@ -260,6 +270,7 @@ export async function markAlertAsContacted(alertId, contactedBy, notes = '') {
  * @returns {Object} Updated alert
  */
 export async function markAlertAsRenewed(alertId, notes = '') {
+  const { RenewalAlert } = getModels();
   const alert = await RenewalAlert.findByPk(alertId);
   if (!alert) {
     throw new Error('Alert not found');
@@ -282,6 +293,7 @@ export async function markAlertAsRenewed(alertId, notes = '') {
  * @returns {Object} Updated alert
  */
 export async function dismissAlert(alertId, notes = '') {
+  const { RenewalAlert } = getModels();
   const alert = await RenewalAlert.findByPk(alertId);
   if (!alert) {
     throw new Error('Alert not found');
@@ -303,6 +315,7 @@ export async function dismissAlert(alertId, notes = '') {
  * @returns {Object} Statistics object
  */
 export async function getRenewalAlertStats(options = {}) {
+  const { RenewalAlert } = getModels();
   const whereClause = {};
 
   if (options.startDate) {
@@ -363,6 +376,7 @@ export async function getRenewalAlertStats(options = {}) {
  * @returns {Array} Array of renewal alerts
  */
 export async function getUserAlerts(userId, activeOnly = false) {
+  const { RenewalAlert } = getModels();
   const whereClause = { userId };
 
   if (activeOnly) {
@@ -385,6 +399,7 @@ export async function getUserAlerts(userId, activeOnly = false) {
  * @returns {Object} Created alert
  */
 export async function createManualAlert(userId, createdBy, alertData) {
+  const { RenewalAlert } = getModels();
   // Check if active alert already exists
   const existingAlert = await RenewalAlert.findOne({
     where: {
