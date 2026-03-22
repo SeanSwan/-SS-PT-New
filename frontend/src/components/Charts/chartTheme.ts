@@ -25,6 +25,10 @@ export const CHART_COLORS = {
   errorRed: '#EF4444',
   success: '#10B981',
   warning: '#F59E0B',
+  // AI Village Phase 3 consensus tokens (2026-03-22)
+  glacialMist: '#A0C8E8',     // Inactive/neutral states (5.2:1 on Royal Depth)
+  crimsonFrost: '#E14B67',    // Error/overdue status (5.8:1 on Royal Depth)
+  auroraGreen: '#00D0A0',     // Success/ready status (6.2:1 on Royal Depth)
 } as const;
 
 export const hexAlpha = (hex: string, alpha: number) =>

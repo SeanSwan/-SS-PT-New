@@ -207,7 +207,7 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
       {exercises.length === 0 ? (
         <EmptyState>No exercises logged yet. Complete a workout to see your history!</EmptyState>
       ) : (
-        <BarList>
+        <BarList aria-label="Exercise frequency ranking">
           {exercises.map((ex, idx) => {
             const pct = maxValue > 0 ? (getBarValue(ex) / maxValue) * 100 : 0;
             return (
@@ -311,7 +311,7 @@ const FilterChip = styled.button<{ $active: boolean }>`
   border-radius: 8px;
   border: 1px solid ${({ $active }) => $active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.2)'};
   background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)'};
+  color: ${({ $active }) => $active ? '#E0ECF4' : '#A0C8E8'};
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   font-weight: ${({ $active }) => $active ? 600 : 400};
@@ -355,7 +355,7 @@ const SortChip = styled.button<{ $active: boolean }>`
   }
 `;
 
-const BarList = styled.div`
+const BarList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -363,9 +363,12 @@ const BarList = styled.div`
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(96, 192, 240, 0.3) transparent;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 `;
 
-const BarRow = styled.div`
+const BarRow = styled.li`
   display: grid;
   grid-template-columns: 140px 1fr 60px;
   align-items: center;
@@ -410,14 +413,14 @@ const BarFill = styled.div<{ $pct: number; $index: number }>`
 const BarLabel = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.72rem;
-  color: rgba(224, 236, 244, 0.7);
+  color: rgba(224, 236, 244, 0.85);
   text-align: right;
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 2rem 1rem;
-  color: rgba(224, 236, 244, 0.5);
+  color: #A0C8E8;
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
 `;
@@ -446,8 +449,8 @@ const LoadMoreButton = styled.button`
 const ErrorCard = styled.div`
   background: ${({ theme }) => theme?.colors?.surface || '#1A1A24'};
   border-radius: 16px;
-  border: 1px solid rgba(201, 42, 84, 0.4);
-  border-left: 4px solid #C92A54;
+  border: 1px solid rgba(225, 75, 103, 0.4);
+  border-left: 4px solid #E14B67;
   padding: 1.5rem;
   text-align: center;
 `;

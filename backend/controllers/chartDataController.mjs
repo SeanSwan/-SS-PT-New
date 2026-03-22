@@ -19,11 +19,17 @@
 // SECTION: Helper
 // ─────────────────────────────────────────────────────────────
 
-const safeQuery = async (sequelize, sql, replacements) => {
+const safeQuery = async (sequelize, sql, replacements, context = '') => {
   try {
     const [rows] = await sequelize.query(sql, { replacements });
     return rows || [];
-  } catch { return []; }
+  } catch (error) {
+    console.error(`[Analytics Query Failed — ${context}]`, {
+      message: error?.message,
+      userId: replacements?.userId,
+    });
+    return [];
+  }
 };
 
 // Validate userId is a positive integer — returns parsed int or null

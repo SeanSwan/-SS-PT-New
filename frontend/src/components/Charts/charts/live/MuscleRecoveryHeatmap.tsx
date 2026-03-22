@@ -15,10 +15,11 @@ import SkeletonChart from '../../../UI/SkeletonChart';
 
 interface Props { userId: number | string; }
 
+// AI Village Phase 3 consensus: use Crystalline Swan semantic status tokens
 const STATUS_COLORS: Record<string, string> = {
-  recovering: CHART_COLORS.warning,
-  ready: CHART_COLORS.success,
-  overdue: CHART_COLORS.errorRed,
+  recovering: CHART_COLORS.gildedFern,    // Gilded Fern — warning/recovering
+  ready: CHART_COLORS.auroraGreen,        // Aurora Green — success/ready
+  overdue: CHART_COLORS.crimsonFrost,     // Crimson Frost — error/overdue
 };
 
 const MuscleRecoveryHeatmap: React.FC<Props> = ({ userId }) => {
