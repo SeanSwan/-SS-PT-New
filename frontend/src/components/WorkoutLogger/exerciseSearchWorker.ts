@@ -67,8 +67,13 @@ const WORKER_CODE = `
     let pool = exercises;
 
     // Filter by category first (fast)
+    // Normalize: chips send "Chest", DB stores "chest"; chips send "Full Body", DB stores "full_body"
     if (category && category !== 'All') {
-      pool = pool.filter(ex => ex.bodyPartCategory === category);
+      const norm = category.toLowerCase().replace(/\\s+/g, '_');
+      pool = pool.filter(ex => {
+        const dbCat = (ex.bodyPartCategory || '').toLowerCase().replace(/\\s+/g, '_');
+        return dbCat === norm;
+      });
     }
 
     // No query — return all in category (alphabetical)
@@ -138,7 +143,11 @@ export function searchExercisesSync(
 ): ExerciseSlim[] {
   let pool = exercises;
   if (category && category !== 'All') {
-    pool = pool.filter(ex => ex.bodyPartCategory === category);
+    const norm = category.toLowerCase().replace(/\s+/g, '_');
+    pool = pool.filter(ex => {
+      const dbCat = (ex.bodyPartCategory || '').toLowerCase().replace(/\s+/g, '_');
+      return dbCat === norm;
+    });
   }
   if (!query || query.trim().length < 1) {
     return pool.slice(0, 50);

@@ -769,7 +769,7 @@ const WorkoutLoggerContainer = styled(motion.div)`
     background-size: 256px 256px;
   }
 
-  & > * { position: relative; z-index: 1; }
+  & > * { position: relative; }
 
   @media (max-width: 768px) { padding: 1rem; }
   @media (max-width: 430px) { padding: 0.75rem; }
