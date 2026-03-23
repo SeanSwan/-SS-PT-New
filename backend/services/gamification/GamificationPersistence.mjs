@@ -701,8 +701,17 @@ class GamificationPersistence {
    */
   async getCurrentStreak(userId) {
     try {
-      const streak = await this.redis.hget(`user:${userId}:stats`, 'currentStreak');
-      return parseInt(streak) || 0;
+      // SECURITY FIX #10: PostgreSQL fallback when Redis disabled
+      if (this.redisEnabled && this.redis) {
+        const streak = await this.redis.hget(`user:${userId}:stats`, 'currentStreak');
+        return parseInt(streak) || 0;
+      }
+      // PostgreSQL fallback: query Gamification model
+      const [rows] = await sequelize.query(
+        'SELECT "streakCount" FROM "Gamifications" WHERE "userId" = :userId LIMIT 1',
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      );
+      return rows?.streakCount || 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get current streak', {
         error: error.message,
@@ -719,8 +728,17 @@ class GamificationPersistence {
    */
   async getUserLeaderboardRank(userId, period = 'weekly') {
     try {
-      const rank = await this.redis.zrevrank(`leaderboard:${period}`, userId);
-      return rank !== null ? rank + 1 : null;
+      // SECURITY FIX #10: PostgreSQL fallback when Redis disabled
+      if (this.redisEnabled && this.redis) {
+        const rank = await this.redis.zrevrank(`leaderboard:${period}`, userId);
+        return rank !== null ? rank + 1 : null;
+      }
+      // PostgreSQL fallback: count users with more XP
+      const [result] = await sequelize.query(
+        'SELECT COUNT(*) + 1 AS rank FROM "Gamifications" WHERE "totalXP" > (SELECT COALESCE("totalXP", 0) FROM "Gamifications" WHERE "userId" = :userId)',
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      );
+      return result?.rank ? parseInt(result.rank) : null;
     } catch (error) {
       piiSafeLogger.error('Failed to get user leaderboard rank', {
         error: error.message,
@@ -738,7 +756,16 @@ class GamificationPersistence {
    */
   async hasAchievement(userId, achievementId) {
     try {
-      return await this.redis.sismember(`user:${userId}:achievements`, achievementId);
+      // SECURITY FIX #10: PostgreSQL fallback when Redis disabled
+      if (this.redisEnabled && this.redis) {
+        return await this.redis.sismember(`user:${userId}:achievements`, achievementId);
+      }
+      // PostgreSQL fallback: query UserAchievements table
+      const [result] = await sequelize.query(
+        'SELECT COUNT(*) AS cnt FROM "UserAchievements" WHERE "userId" = :userId AND "achievementId" = :achievementId',
+        { replacements: { userId, achievementId }, type: sequelize.QueryTypes.SELECT }
+      );
+      return (parseInt(result?.cnt) || 0) > 0;
     } catch (error) {
       piiSafeLogger.error('Failed to check achievement', {
         error: error.message,
@@ -784,8 +811,16 @@ class GamificationPersistence {
    */
   async getUserWorkoutCount(userId) {
     try {
-      const count = await this.redis.hget(`user:${userId}:stats`, 'totalWorkouts');
-      return parseInt(count) || 0;
+      if (this.redisEnabled && this.redis) {
+        const count = await this.redis.hget(`user:${userId}:stats`, 'totalWorkouts');
+        return parseInt(count) || 0;
+      }
+      // PostgreSQL fallback
+      const [result] = await sequelize.query(
+        'SELECT "totalWorkouts" FROM "Gamifications" WHERE "userId" = :userId LIMIT 1',
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      );
+      return result?.totalWorkouts || 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get workout count', {
         error: error.message,
@@ -802,10 +837,20 @@ class GamificationPersistence {
    */
   async getActionCountToday(userId, action) {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const key = `user:${userId}:actions:${today}:${action}`;
-      const count = await this.redis.get(key);
-      return parseInt(count) || 0;
+      if (this.redisEnabled && this.redis) {
+        const today = new Date().toISOString().split('T')[0];
+        const key = `user:${userId}:actions:${today}:${action}`;
+        const count = await this.redis.get(key);
+        return parseInt(count) || 0;
+      }
+      // PostgreSQL fallback: query PointTransaction for today's count
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const [result] = await sequelize.query(
+        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = :action AND "createdAt" >= :startOfToday',
+        { replacements: { userId, action, startOfToday: startOfToday.toISOString() }, type: sequelize.QueryTypes.SELECT }
+      );
+      return parseInt(result?.cnt) || 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get action count today', {
         error: error.message,
@@ -822,8 +867,16 @@ class GamificationPersistence {
    */
   async getCommunityHelpCount(userId) {
     try {
-      const count = await this.redis.hget(`user:${userId}:stats`, 'sharedWorkouts');
-      return parseInt(count) || 0;
+      if (this.redisEnabled && this.redis) {
+        const count = await this.redis.hget(`user:${userId}:stats`, 'sharedWorkouts');
+        return parseInt(count) || 0;
+      }
+      // PostgreSQL fallback
+      const [result] = await sequelize.query(
+        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = \'helped_community\'',
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      );
+      return parseInt(result?.cnt) || 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get community help count', {
         error: error.message,

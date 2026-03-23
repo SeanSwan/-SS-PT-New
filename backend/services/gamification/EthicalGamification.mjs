@@ -303,11 +303,15 @@ export class EthicalGamification {
    * Get user's recent actions for pattern analysis
    */
   async getRecentActions(userId, minutes = 5) {
-    // This would connect to the database to get recent actions
-    // For now, returning mock data structure
+    // SECURITY FIX #8: Real DB implementation replacing stub
     try {
-      // Implementation would query user actions in last X minutes
-      return [];
+      const sequelize = (await import('../../database.mjs')).default;
+      const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+      const [rows] = await sequelize.query(
+        'SELECT * FROM "PointTransactions" WHERE "userId" = :userId AND "createdAt" >= :cutoff ORDER BY "createdAt" DESC',
+        { replacements: { userId, cutoff: cutoff.toISOString() }, type: sequelize.QueryTypes.SELECT }
+      );
+      return Array.isArray(rows) ? rows : [rows].filter(Boolean);
     } catch (error) {
       piiSafeLogger.error('Failed to get recent actions', {
         error: error.message,
@@ -317,14 +321,20 @@ export class EthicalGamification {
       return [];
     }
   }
-  
+
   /**
-   * Get daily action count for user
+   * Get daily action count for user — queries PointTransaction today
    */
   async getDailyActionCount(userId, action) {
     try {
-      // Implementation would query daily action count
-      return 0;
+      const sequelize = (await import('../../database.mjs')).default;
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const [result] = await sequelize.query(
+        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = :action AND "createdAt" >= :startOfToday',
+        { replacements: { userId, action, startOfToday: startOfToday.toISOString() }, type: sequelize.QueryTypes.SELECT }
+      );
+      return parseInt(result?.cnt) || 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get daily action count', {
         error: error.message,
@@ -334,13 +344,20 @@ export class EthicalGamification {
       return 0;
     }
   }
-  
+
   /**
-   * Get current session length for user
+   * Get current session length — estimates from last login PointTransaction
    */
   async getCurrentSessionLength(userId) {
     try {
-      // Implementation would track session start time
+      const sequelize = (await import('../../database.mjs')).default;
+      const [result] = await sequelize.query(
+        'SELECT "createdAt" FROM "PointTransactions" WHERE "userId" = :userId AND "source" = \'daily_login\' ORDER BY "createdAt" DESC LIMIT 1',
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      );
+      if (result?.createdAt) {
+        return Math.floor((Date.now() - new Date(result.createdAt).getTime()) / 60000);
+      }
       return 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get session length', {
@@ -350,14 +367,20 @@ export class EthicalGamification {
       return 0;
     }
   }
-  
+
   /**
    * Get daily login count for user
    */
   async getDailyLoginCount(userId) {
     try {
-      // Implementation would count logins today
-      return 0;
+      const sequelize = (await import('../../database.mjs')).default;
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const [result] = await sequelize.query(
+        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = \'daily_login\' AND "createdAt" >= :startOfToday',
+        { replacements: { userId, startOfToday: startOfToday.toISOString() }, type: sequelize.QueryTypes.SELECT }
+      );
+      return parseInt(result?.cnt) || 0;
     } catch (error) {
       piiSafeLogger.error('Failed to get daily login count', {
         error: error.message,

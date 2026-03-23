@@ -120,6 +120,33 @@ const authorizeClientOrTrainer = (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// SECURITY: IDOR Ownership Middleware (Fix #1 — CRITICAL)
+// PURPOSE: Prevents clients from accessing other users' gamification data
+// WHY: Without this, any authenticated client can read/modify any user's
+//      points, achievements, and transactions by changing the :userId param
+// ─────────────────────────────────────────────────────────────
+const authorizeOwnerOrAdmin = (req, res, next) => {
+  const targetUserId = parseInt(req.params.userId || req.body.userId);
+  const requesterId = req.user?.id;
+  const role = req.user?.role;
+
+  // Admins can access any user's data
+  if (role === 'admin') return next();
+
+  // Trainers can access their assigned clients' data
+  // TODO: In future sprint, verify trainer-client assignment from DB
+  if (role === 'trainer') return next();
+
+  // Clients can only access their own data
+  if (targetUserId === requesterId) return next();
+
+  return res.status(403).json({
+    success: false,
+    error: 'You can only access your own gamification data'
+  });
+};
+
 /**
  * @route   GET /api/gamification/settings
  * @desc    Get gamification settings
@@ -153,7 +180,7 @@ router.patch('/notifications/:notificationId/read', authenticate, authorizeClien
  * @desc    Get user gamification profile
  * @access  Client, Trainer, Admin
  */
-router.get('/users/:userId/profile', authenticate, authorizeClientOrTrainer, gamificationController.getUserProfile);
+router.get('/users/:userId/profile', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getUserProfile);
 
 /**
  * @route   POST /api/gamification/users/:userId/points
@@ -167,7 +194,7 @@ router.post('/users/:userId/points', authenticate, authorizeTrainer, gamificatio
  * @desc    Get user point transactions
  * @access  Client, Trainer, Admin
  */
-router.get('/users/:userId/transactions', authenticate, authorizeClientOrTrainer, gamificationController.getUserTransactions);
+router.get('/users/:userId/transactions', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getUserTransactions);
 
 /**
  * @route   POST /api/gamification/users/:userId/check-milestones
@@ -273,7 +300,7 @@ router.delete('/rewards/:id', authenticate, authorizeAdmin, gamificationControll
  * @desc    Redeem a reward for a user
  * @access  Client (self), Trainer, Admin
  */
-router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, authorizeClientOrTrainer, gamificationController.redeemReward);
+router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.redeemReward);
 
 /**
  * @route   POST /api/gamification/record-workout
@@ -330,7 +357,7 @@ router.delete('/milestones/:id', authenticate, authorizeAdmin, gamificationContr
  * @desc    Get user's streak freeze status (available, max, used)
  * @access  Client, Trainer, Admin
  */
-router.get('/streak-freeze/:userId', authenticate, authorizeClientOrTrainer, gamificationController.getStreakFreezeStatus);
+router.get('/streak-freeze/:userId', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getStreakFreezeStatus);
 
 /**
  * @route   POST /api/gamification/streak-freeze/use
@@ -338,5 +365,45 @@ router.get('/streak-freeze/:userId', authenticate, authorizeClientOrTrainer, gam
  * @access  Client, Trainer, Admin
  */
 router.post('/streak-freeze/use', authenticate, authorizeClientOrTrainer, gamificationController.useStreakFreeze);
+
+/**
+ * Weekly Recap (Spotify Wrapped-style)
+ */
+
+/**
+ * @route   GET /api/gamification/users/:userId/weekly-recap
+ * @desc    Get weekly recap stats (this week vs last week)
+ * @access  Client, Trainer, Admin
+ */
+router.get('/users/:userId/weekly-recap', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getWeeklyRecap);
+
+/**
+ * Activity Feed (polling fallback for WebSocket)
+ */
+
+/**
+ * @route   GET /api/gamification/activity-feed
+ * @desc    Get recent gamification activity for live feed (polling fallback)
+ * @access  Client, Trainer, Admin
+ */
+router.get('/activity-feed', authenticate, authorizeClientOrTrainer, gamificationController.getActivityFeed);
+
+/**
+ * Comeback Challenge routes (Re-engagement Psychology)
+ */
+
+/**
+ * @route   GET /api/gamification/comeback-challenge/:userId
+ * @desc    Get active comeback challenge for user
+ * @access  Client, Trainer, Admin
+ */
+router.get('/comeback-challenge/:userId', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getComebackChallenge);
+
+/**
+ * @route   POST /api/gamification/comeback-challenge/accept
+ * @desc    Accept a comeback challenge
+ * @access  Client, Trainer, Admin
+ */
+router.post('/comeback-challenge/accept', authenticate, authorizeClientOrTrainer, gamificationController.acceptComebackChallenge);
 
 export default router;

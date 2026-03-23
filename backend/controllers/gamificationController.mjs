@@ -409,6 +409,7 @@ import UserAchievement from '../models/UserAchievement.mjs';
 import UserReward from '../models/UserReward.mjs';
 import UserMilestone from '../models/UserMilestone.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
+import ComebackChallenge from '../models/ComebackChallenge.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 
@@ -421,6 +422,13 @@ const SAFE_USER_ACHIEVEMENT_ATTRS = [
   'id', 'userId', 'achievementId', 'earnedAt', 'progress', 'isCompleted',
   'pointsAwarded', 'notificationSent', 'createdAt', 'updatedAt'
 ];
+
+// SECURITY FIX #10: Sanitize error messages for non-admin responses
+// Only admin users see detailed error messages; everyone else gets generic
+const safeError = (req, error) => {
+  if (req.user?.role === 'admin') return error.message;
+  return 'An error occurred. Please try again.';
+};
 
 const gamificationController = {
   /**
@@ -499,7 +507,7 @@ const gamificationController = {
             platinum: 20000
           },
           levelRequirements: levelRequirements ?? null,
-          pointsMultiplier: pointsMultiplier ?? 1.0,
+          pointsMultiplier: Math.min(parseFloat(pointsMultiplier) || 1.0, 5.0),
           enableLeaderboards: enableLeaderboards ?? true,
           enableNotifications: enableNotifications ?? true,
           autoAwardAchievements: autoAwardAchievements ?? true
@@ -516,7 +524,7 @@ const gamificationController = {
         if (pointsPerReferral !== undefined) updatedFields.pointsPerReferral = pointsPerReferral;
         if (tierThresholds !== undefined) updatedFields.tierThresholds = tierThresholds;
         if (levelRequirements !== undefined) updatedFields.levelRequirements = levelRequirements;
-        if (pointsMultiplier !== undefined) updatedFields.pointsMultiplier = pointsMultiplier;
+        if (pointsMultiplier !== undefined) updatedFields.pointsMultiplier = Math.min(parseFloat(pointsMultiplier) || 1.0, 5.0);
         if (enableLeaderboards !== undefined) updatedFields.enableLeaderboards = enableLeaderboards;
         if (enableNotifications !== undefined) updatedFields.enableNotifications = enableNotifications;
         if (autoAwardAchievements !== undefined) updatedFields.autoAwardAchievements = autoAwardAchievements;
@@ -673,7 +681,9 @@ const gamificationController = {
    */
   getLeaderboard: async (req, res) => {
     try {
-      const { limit = 10, page = 1, tier } = req.query;
+      const { limit: rawLimit = 10, page = 1, tier } = req.query;
+      // SECURITY FIX #9: Cap pagination to prevent DoS via huge limit values
+      const limit = Math.min(parseInt(rawLimit) || 10, 100);
       const offset = (page - 1) * limit;
       
       const whereClause = {};
@@ -709,7 +719,7 @@ const gamificationController = {
       return res.status(500).json({
         success: false,
         message: 'Failed to get leaderboard',
-        error: error.message
+        error: safeError(req, error)
       });
     }
   },
@@ -719,18 +729,18 @@ const gamificationController = {
    */
   awardPoints: async (req, res) => {
     const transaction = await db.transaction();
-    
+
     try {
       const { userId } = req.params;
-      const { 
-        points, 
-        transactionType = 'earn', 
-        source, 
+      const {
+        points,
+        transactionType = 'earn',
+        source,
         sourceId,
         description,
         metadata
       } = req.body;
-      
+
       if (!points || !source || !description) {
         await transaction.rollback();
         return res.status(400).json({
@@ -738,9 +748,46 @@ const gamificationController = {
           message: 'Points, source, and description are required'
         });
       }
-      
-      // Get current user points
-      const user = await User.findByPk(userId, { transaction });
+
+      // ── SECURITY FIX #3: Input Validation (CRITICAL) ──
+      // Prevents point inflation via unbounded award values
+      const MAX_SINGLE_AWARD = 500;
+      const parsedPoints = parseInt(points);
+      if (!Number.isInteger(parsedPoints) || parsedPoints < 1 || parsedPoints > MAX_SINGLE_AWARD) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Points must be an integer between 1 and ${MAX_SINGLE_AWARD}`
+        });
+      }
+
+      // ── SECURITY FIX #2: Idempotency Check (CRITICAL) ──
+      // Prevents replay attacks — same user+source+sourceId on same day = reject
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const idempotencyWhere = {
+        userId,
+        source: source || 'manual',
+        createdAt: { [Op.gte]: startOfToday }
+      };
+      if (sourceId) idempotencyWhere.sourceId = sourceId;
+      const existingTransaction = await PointTransaction.findOne({
+        where: idempotencyWhere,
+        transaction
+      });
+      if (existingTransaction) {
+        await transaction.rollback();
+        return res.status(409).json({
+          success: false,
+          message: 'Points already awarded for this action today'
+        });
+      }
+
+      // Get current user points (with row-level lock for concurrency safety)
+      const user = await User.findByPk(userId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
       
       if (!user) {
         await transaction.rollback();
@@ -754,9 +801,10 @@ const gamificationController = {
       const settings = await GamificationSettings.findOne({ transaction });
       
       // Apply multiplier if settings exist and feature is enabled
-      const pointsToAward = settings && settings.isEnabled 
-        ? Math.round(points * (settings.pointsMultiplier || 1)) 
-        : points;
+      // Uses parsedPoints (validated integer) instead of raw input
+      const pointsToAward = settings && settings.isEnabled
+        ? Math.round(parsedPoints * (settings.pointsMultiplier || 1))
+        : parsedPoints;
       
       // Calculate new balance
       const newBalance = transactionType === 'earn' || transactionType === 'bonus'
@@ -861,7 +909,7 @@ const gamificationController = {
       return res.status(500).json({
         success: false,
         message: 'Failed to award points',
-        error: error.message
+        error: safeError(req, error)
       });
     }
   },
@@ -1092,21 +1140,15 @@ const gamificationController = {
         });
       }
 
-      // Delete all user achievement records
-      await UserAchievement.destroy({
-        where: { achievementId: id },
-        transaction
-      });
-      
-      // Delete the achievement
-      await achievement.destroy({ transaction });
-      
+      // SECURITY FIX #19: Soft delete preserves audit trail
+      await achievement.update({ isActive: false }, { transaction });
+
       // Commit the transaction
       await transaction.commit();
-      
+
       return res.status(200).json({
         success: true,
-        message: 'Achievement deleted successfully'
+        message: 'Achievement deactivated successfully'
       });
     } catch (error) {
       await transaction.rollback();
@@ -1893,21 +1935,15 @@ const gamificationController = {
         });
       }
       
-      // Delete all user milestone records
-      await UserMilestone.destroy({
-        where: { milestoneId: id },
-        transaction
-      });
-      
-      // Delete the milestone
-      await milestone.destroy({ transaction });
-      
+      // SECURITY FIX #20: Soft delete preserves audit trail
+      await milestone.update({ isActive: false }, { transaction });
+
       // Commit the transaction
       await transaction.commit();
-      
+
       return res.status(200).json({
         success: true,
-        message: 'Milestone deleted successfully'
+        message: 'Milestone deactivated successfully'
       });
     } catch (error) {
       await transaction.rollback();
@@ -2033,7 +2069,9 @@ const gamificationController = {
   getUserTransactions: async (req, res) => {
     try {
       const { userId } = req.params;
-      const { page = 1, limit = 20, type, source } = req.query;
+      const { page = 1, limit: rawLimit = 20, type, source } = req.query;
+      // SECURITY: Cap pagination to prevent DoS
+      const limit = Math.min(parseInt(rawLimit) || 20, 100);
       
       const whereClause = { userId };
       
@@ -2071,7 +2109,7 @@ const gamificationController = {
       return res.status(500).json({
         success: false,
         message: 'Failed to get user transactions',
-        error: error.message
+        error: safeError(req, error)
       });
     }
   },
@@ -2581,7 +2619,210 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('useStreakFreeze error:', error.message);
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Weekly Recap (Spotify Wrapped-style)
+  // PURPOSE: Weekly summary card shown on Monday login
+  // PSYCHOLOGY: Social Proof + Progress Awareness — users see their growth
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/gamification/users/:userId/weekly-recap
+   * Returns this week vs last week comparison stats.
+   */
+  getWeeklyRecap: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (!userId) {
+        return res.status(400).json({ success: false, error: 'User ID required' });
+      }
+
+      const now = new Date();
+      const thisWeekStart = new Date(now);
+      thisWeekStart.setDate(now.getDate() - now.getDay()); // Sunday
+      thisWeekStart.setHours(0, 0, 0, 0);
+
+      const lastWeekStart = new Date(thisWeekStart);
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+      // This week's stats
+      const thisWeekTx = await PointTransaction.findAll({
+        where: {
+          userId,
+          transactionType: { [Op.in]: ['earn', 'bonus'] },
+          createdAt: { [Op.gte]: thisWeekStart }
+        },
+        attributes: ['points', 'source', 'createdAt']
+      });
+
+      // Last week's stats
+      const lastWeekTx = await PointTransaction.findAll({
+        where: {
+          userId,
+          transactionType: { [Op.in]: ['earn', 'bonus'] },
+          createdAt: { [Op.gte]: lastWeekStart, [Op.lt]: thisWeekStart }
+        },
+        attributes: ['points', 'source']
+      });
+
+      const thisWeekXP = thisWeekTx.reduce((sum, t) => sum + (t.points || 0), 0);
+      const lastWeekXP = lastWeekTx.reduce((sum, t) => sum + (t.points || 0), 0);
+      const thisWeekWorkouts = thisWeekTx.filter(t => t.source === 'workout_completed').length;
+      const lastWeekWorkouts = lastWeekTx.filter(t => t.source === 'workout_completed').length;
+
+      // Surprise multipliers this week
+      const surprises = thisWeekTx.filter(t =>
+        t.source === 'workout_completed' && t.points > 50
+      ).length;
+
+      // User's current state
+      const gamRecord = await Gamification.findOne({ where: { userId } });
+
+      return res.json({
+        success: true,
+        data: {
+          thisWeek: {
+            totalXP: thisWeekXP,
+            workouts: thisWeekWorkouts,
+            surpriseMultipliers: surprises,
+          },
+          lastWeek: {
+            totalXP: lastWeekXP,
+            workouts: lastWeekWorkouts,
+          },
+          trends: {
+            xpChange: thisWeekXP - lastWeekXP,
+            workoutChange: thisWeekWorkouts - lastWeekWorkouts,
+            xpDirection: thisWeekXP >= lastWeekXP ? 'up' : 'down',
+            workoutDirection: thisWeekWorkouts >= lastWeekWorkouts ? 'up' : 'down',
+          },
+          current: {
+            streak: gamRecord?.streakCount || 0,
+            longestStreak: gamRecord?.longestStreak || 0,
+            level: gamRecord?.level || 1,
+            tier: gamRecord?.currentTier || 'bronze',
+            totalXP: gamRecord?.totalXP || 0,
+          },
+          weekStarting: thisWeekStart.toISOString(),
+        }
+      });
+    } catch (error) {
+      console.error('getWeeklyRecap error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Activity Feed (Polling Fallback for WebSocket)
+  // PURPOSE: Returns recent gamification activity for live feed display
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/gamification/activity-feed?since=<ISO timestamp>&limit=20
+   * Returns recent point transactions for social activity feed.
+   */
+  getActivityFeed: async (req, res) => {
+    try {
+      const { since, limit: rawLimit = 20 } = req.query;
+      const limit = Math.min(parseInt(rawLimit) || 20, 50);
+
+      const whereClause = {};
+      if (since) {
+        whereClause.createdAt = { [Op.gte]: new Date(since) };
+      }
+
+      // Only show earn/bonus transactions (not spends/expires)
+      whereClause.transactionType = { [Op.in]: ['earn', 'bonus'] };
+
+      const feed = await PointTransaction.findAll({
+        where: whereClause,
+        order: [['createdAt', 'DESC']],
+        limit,
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+        }]
+      });
+
+      return res.json({
+        success: true,
+        data: feed,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('getActivityFeed error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Comeback Challenge Endpoints
+  // PURPOSE: Re-engagement system for inactive users
+  // PSYCHOLOGY: Loss Aversion + Commitment/Consistency (Cialdini)
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/gamification/comeback-challenge/:userId
+   * Returns active comeback challenge for user (if any).
+   */
+  getComebackChallenge: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId || req.user?.id);
+      if (!userId) {
+        return res.status(400).json({ success: false, error: 'User ID required' });
+      }
+
+      const challenge = await ComebackChallenge.findOne({
+        where: {
+          userId,
+          status: { [Op.in]: ['pending', 'accepted'] },
+          endDate: { [Op.gte]: new Date() }
+        },
+        order: [['createdAt', 'DESC']]
+      });
+
+      return res.json({ success: true, data: challenge || null });
+    } catch (error) {
+      console.error('getComebackChallenge error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * POST /api/gamification/comeback-challenge/accept
+   * User accepts a comeback challenge.
+   */
+  acceptComebackChallenge: async (req, res) => {
+    try {
+      const userId = parseInt(req.body.userId || req.user?.id);
+      const challengeId = parseInt(req.body.challengeId);
+
+      if (!userId || !challengeId) {
+        return res.status(400).json({ success: false, error: 'User ID and Challenge ID required' });
+      }
+
+      const challenge = await ComebackChallenge.findOne({
+        where: { id: challengeId, userId, status: 'pending' }
+      });
+
+      if (!challenge) {
+        return res.status(404).json({ success: false, error: 'Challenge not found or already accepted' });
+      }
+
+      await challenge.update({ status: 'accepted', acceptedAt: new Date() });
+
+      return res.json({
+        success: true,
+        message: 'Challenge accepted! Complete your workouts to earn bonus XP.',
+        data: challenge
+      });
+    } catch (error) {
+      console.error('acceptComebackChallenge error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
     }
   }
 };

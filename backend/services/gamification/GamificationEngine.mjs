@@ -435,8 +435,26 @@ export class GamificationEngine {
     if (isWorkoutAction) {
       surpriseMultiplier = this.rollSurpriseMultiplier();
       if (surpriseMultiplier > 1.0) {
-        // Check daily surprise cap (ethical guardrail)
-        const todaySurprises = metadata._todaySurpriseCount || 0;
+        // SECURITY FIX #7: DB-level cap instead of trusting caller metadata
+        // Query actual surprise multiplier count from PointTransaction today
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        let todaySurprises = 0;
+        try {
+          const { Op } = await import('sequelize');
+          const PointTransaction = (await import('../../models/PointTransaction.mjs')).default;
+          todaySurprises = await PointTransaction.count({
+            where: {
+              userId,
+              source: 'workout_completed',
+              createdAt: { [Op.gte]: startOfToday },
+              description: { [Op.like]: '%surprise%' }
+            }
+          });
+        } catch (_e) {
+          // Fall back to metadata if DB query fails
+          todaySurprises = metadata._todaySurpriseCount || 0;
+        }
         if (todaySurprises < 2) {
           multiplier *= surpriseMultiplier;
           piiSafeLogger.trackGamificationEngagement('surprise_multiplier', userId, {
@@ -470,7 +488,10 @@ export class GamificationEngine {
    * Distribution designed to feel exciting but not exploitative.
    */
   rollSurpriseMultiplier() {
-    const roll = Math.random() * 100;
+    // SECURITY FIX #17: Use crypto.getRandomValues for fair, unpredictable rolls
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    const roll = (array[0] / 0xFFFFFFFF) * 100; // 0-100 range
     if (roll < 1) return 3.0;       // 1% — LEGENDARY
     if (roll < 5) return 2.0;       // 4% — Double XP
     if (roll < 15) return 1.5;      // 10% — Lucky
