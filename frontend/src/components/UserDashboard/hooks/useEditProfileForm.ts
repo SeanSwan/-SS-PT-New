@@ -9,19 +9,20 @@
  * WHAT THIS FILE DOES: Manages all form fields, handles submit logic, and
  * provides change handlers for the EditProfileModal component tree.
  * HOW IT FITS IN THE APP: EditProfileModal -> useEditProfileForm
- * KEY DECISIONS: Extracted to keep modal under 300 lines. Parses socialLinks
- *   and chartVisibility from the preferences JSON field on the user model.
+ * KEY DECISIONS: Extracted to keep modal under 300 lines. Parses socialLinks,
+ *   chartVisibility, and transformationSettings from user preferences.
  */
 import { useState, useCallback } from 'react';
-import type { SocialLinks } from '../components/EditProfileSocialFields';
+import type { SocialLinks, CustomSocialLink } from '../components/EditProfileSocialFields';
 import type { ProfileChartVisibility } from '../components/EditProfileChartToggles';
 import { DEFAULT_CHART_VISIBILITY } from '../components/EditProfileChartToggles';
+import type { TransformationPhotoSettings } from '../components/TransformationPhotoTypes';
+import { DEFAULT_TRANSFORMATION_SETTINGS } from '../components/TransformationPhotoTypes';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-/** Shape of the profile object passed in (from profileService or UserDashboardTypes) */
 interface ProfileInput {
   firstName?: string;
   lastName?: string;
@@ -30,8 +31,9 @@ interface ProfileInput {
   phone?: string;
   city?: string;
   state?: string;
-  socialLinks?: SocialLinks;
+  socialLinks?: Partial<SocialLinks> & { twitter?: string };
   chartVisibility?: Partial<ProfileChartVisibility>;
+  transformationSettings?: Partial<TransformationPhotoSettings>;
   [key: string]: unknown;
 }
 
@@ -45,14 +47,20 @@ export interface EditProfileFormData {
   state: string;
   socialLinks: SocialLinks;
   chartVisibility: ProfileChartVisibility;
+  transformationSettings: TransformationPhotoSettings;
 }
 
 interface UseEditProfileFormReturn {
   form: EditProfileFormData;
   isSaving: boolean;
   setField: (field: keyof EditProfileFormData, value: string) => void;
-  setSocialLink: (platform: keyof SocialLinks, value: string) => void;
+  setSocialLink: (platform: keyof Omit<SocialLinks, 'custom'>, value: string) => void;
+  setCustomLink: (field: keyof CustomSocialLink, value: string) => void;
   toggleChart: (key: keyof ProfileChartVisibility) => void;
+  setTransformationSetting: <K extends keyof TransformationPhotoSettings>(
+    key: K,
+    value: TransformationPhotoSettings[K]
+  ) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -66,6 +74,10 @@ export function useEditProfileForm(
   profile: ProfileInput | null,
   onSave: (data: Record<string, unknown>) => Promise<void>,
 ): UseEditProfileFormReturn {
+  // Migrate legacy 'twitter' field to custom link if it exists
+  const legacyTwitter = profile?.socialLinks?.twitter;
+  const existingCustom = profile?.socialLinks?.custom;
+
   const [form, setForm] = useState<EditProfileFormData>({
     firstName: profile?.firstName || '',
     lastName: profile?.lastName || '',
@@ -76,12 +88,21 @@ export function useEditProfileForm(
     state: profile?.state || '',
     socialLinks: {
       instagram: profile?.socialLinks?.instagram || '',
-      twitter: profile?.socialLinks?.twitter || '',
+      facebook: profile?.socialLinks?.facebook || '',
       tiktok: profile?.socialLinks?.tiktok || '',
+      custom: existingCustom
+        ? { label: existingCustom.label || '', url: existingCustom.url || '' }
+        : legacyTwitter
+          ? { label: 'Twitter', url: legacyTwitter }
+          : { label: '', url: '' },
     },
     chartVisibility: {
       ...DEFAULT_CHART_VISIBILITY,
       ...(profile?.chartVisibility || {}),
+    },
+    transformationSettings: {
+      ...DEFAULT_TRANSFORMATION_SETTINGS,
+      ...(profile?.transformationSettings || {}),
     },
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -90,10 +111,20 @@ export function useEditProfileForm(
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const setSocialLink = useCallback((platform: keyof SocialLinks, value: string) => {
+  const setSocialLink = useCallback((platform: keyof Omit<SocialLinks, 'custom'>, value: string) => {
     setForm((prev) => ({
       ...prev,
       socialLinks: { ...prev.socialLinks, [platform]: value },
+    }));
+  }, []);
+
+  const setCustomLink = useCallback((field: keyof CustomSocialLink, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      socialLinks: {
+        ...prev.socialLinks,
+        custom: { ...prev.socialLinks.custom, [field]: value },
+      },
     }));
   }, []);
 
@@ -103,6 +134,19 @@ export function useEditProfileForm(
       chartVisibility: {
         ...prev.chartVisibility,
         [key]: !prev.chartVisibility[key],
+      },
+    }));
+  }, []);
+
+  const setTransformationSetting = useCallback(<K extends keyof TransformationPhotoSettings>(
+    key: K,
+    value: TransformationPhotoSettings[K]
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      transformationSettings: {
+        ...prev.transformationSettings,
+        [key]: value,
       },
     }));
   }, []);
@@ -121,6 +165,7 @@ export function useEditProfileForm(
         state: form.state,
         socialLinks: form.socialLinks,
         chartVisibility: form.chartVisibility,
+        transformationSettings: form.transformationSettings,
       });
     } catch (err) {
       console.error('Failed to save profile:', err);
@@ -129,5 +174,8 @@ export function useEditProfileForm(
     }
   }, [form, onSave]);
 
-  return { form, isSaving, setField, setSocialLink, toggleChart, handleSubmit };
+  return {
+    form, isSaving, setField, setSocialLink, setCustomLink,
+    toggleChart, setTransformationSetting, handleSubmit,
+  };
 }

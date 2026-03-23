@@ -806,6 +806,73 @@ router.delete('/:postId', async (req, res) => {
 });
 
 /**
+ * Report a post
+ */
+router.post('/:postId/report', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { reason, description } = req.body;
+
+    const VALID_REASONS = [
+      'inappropriate-content', 'harassment', 'spam', 'misinformation',
+      'hate-speech', 'violence', 'self-harm', 'impersonation',
+      'copyright', 'other',
+    ];
+
+    if (!reason || !VALID_REASONS.includes(reason)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid reason. Must be one of: ${VALID_REASONS.join(', ')}`,
+      });
+    }
+
+    const post = await SocialPost.findByPk(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Cannot report your own post
+    if (post.userId === req.user.id) {
+      return res.status(400).json({ success: false, message: 'You cannot report your own post' });
+    }
+
+    // Check if PostReports table exists before inserting
+    const [check] = await sequelize.query(
+      `SELECT to_regclass('public."PostReports"') AS exists`
+    );
+    if (check?.[0]?.exists) {
+      // Check for duplicate report from same user on same post
+      const [existing] = await sequelize.query(
+        `SELECT id FROM "PostReports" WHERE "reporterId" = :uid AND "contentType" = 'post' AND "contentId" = :pid AND "status" != 'dismissed' LIMIT 1`,
+        { replacements: { uid: req.user.id, pid: postId } }
+      );
+      if (existing && existing.length > 0) {
+        return res.status(409).json({ success: false, message: 'You have already reported this post' });
+      }
+
+      await sequelize.query(
+        `INSERT INTO "PostReports" ("reporterId", "contentType", "contentId", "contentAuthorId", "reason", "description", "status", "createdAt", "updatedAt")
+         VALUES (:reporterId, 'post', :contentId, :authorId, :reason, :description, 'pending', NOW(), NOW())`,
+        {
+          replacements: {
+            reporterId: req.user.id,
+            contentId: postId,
+            authorId: post.userId,
+            reason,
+            description: description || null,
+          },
+        }
+      );
+    }
+
+    return res.status(201).json({ success: true, message: 'Report submitted successfully' });
+  } catch (error) {
+    console.error('Error reporting post:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit report', error: error.message });
+  }
+});
+
+/**
  * React to a post (thumbs_up, heart, or swan)
  */
 router.post('/:postId/like', async (req, res) => {

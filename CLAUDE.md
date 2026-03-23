@@ -821,6 +821,39 @@ The AI Village reached consensus on migrating optional services (gamification, a
 
 ---
 
+## Theme Changer Compatibility (MANDATORY)
+
+**ALL UI/UX components MUST work with the UniversalThemeContext theme changer.**
+
+### Requirements
+- Every styled-component must use **CSS custom properties** (`var(--bg-base)`, `var(--text-primary)`, `var(--accent-primary)`, etc.) with Crystalline Swan fallback values
+- The theme toggle button in the header cycles through all 14+ themes — components MUST adapt
+- **No hardcoded colors** without a `var()` wrapper. Pattern: `var(--accent-primary, #60C0F0)`
+- Theme variables are injected via `injectThemeVariables()` in `frontend/src/utils/theme/themeUtils.ts`
+- **Available CSS variables:** `--bg-base`, `--bg-elevated`, `--bg-surface`, `--text-primary`, `--text-secondary`, `--text-heading`, `--text-muted`, `--accent-primary`, `--accent-secondary`, `--accent-gold`, `--border-soft`, `--accent-primary-10` (10% opacity blend)
+- For dynamic opacity: use `color-mix(in srgb, var(--accent-primary) 15%, transparent)` instead of hardcoded rgba
+- **Test new components** with at least Crystalline Default, Void Crystal (dark), and Cyberpunk Edgerunners to verify contrast
+
+### 14 Active Themes
+| Theme | ID | Primary Vibe |
+|-------|-----|-------------|
+| Crystalline Default | `crystalline-default` | Deep navy + cyan |
+| Crystalline Light | `crystalline-light` | Arctic dawn |
+| Crystalline Dark (Void Crystal) | `crystalline-dark` | Ultra-dark frost |
+| Crystalline Monochrome | `crystalline-monochrome` | Grayscale elegant |
+| Royal Swan | `royal-swan` | Gold + sapphire |
+| Midnight Ember | `midnight-ember` | Dark + warm amber |
+| Ocean Depths | `ocean-depths` | Deep sea teal |
+| Cyberpunk Edgerunners | `cyberpunk-edgerunners` | Neon yellow + hot pink |
+| Obsidian Bloom | `obsidian-bloom` | Violet-black + pink |
+| Frozen Canopy | `frozen-canopy` | Arctic navy + emerald |
+| Ember Realm | `ember-realm` | Crimson + fire orange |
+| Twilight Lagoon | `twilight-lagoon` | Ultra-deep navy + bioluminescent |
+| Nebula Crown | `nebula-crown` | Cosmic purple + pink |
+| Enchanted Forest | `enchanted-forest` | Deep forest + emerald |
+
+---
+
 ## Common Gotchas
 - `transform: translateZ(0)` creates CSS stacking contexts - add `position: relative; z-index` to parent if dropdowns are trapped
 - Vite env vars (`VITE_*`) are build-time only - not changeable at runtime without redeploy

@@ -26,20 +26,24 @@
  *   A --> D[PostContent]
  *   A --> E[PostActions]
  *   A --> F[PostComments]
+ *   A --> G[ReportPostModal]
  *
  * CLICK-OUTCOME FLOWCHART:
  * [Reaction btn] -> handleReaction -> onReact/onRemoveReaction -> XP toast
  * [Comment toggle] -> setShowComments -> reveals PostComments
  * [Share btn] -> setShareDialogOpen -> shows share modal with copy link
- * [Menu dots] -> toggles dropdown -> Report / Delete options
+ * [Menu: Copy Link] -> copies post URL to clipboard
+ * [Menu: Mute User] -> TODO: POST /api/social/mute
+ * [Menu: Report Post] -> opens ReportPostModal -> POST /api/social/posts/:id/report
+ * [Menu: Delete Post] -> confirm -> DELETE /api/social/posts/:id -> removes from feed
  * [Send comment] -> onComment callback -> POST /api/social/comments
  *
  * DATA FLOW:
- * Props In:  PostCardProps { post, onLike, onReact, onRemoveReaction, onComment }
- * State:     { commentText, showComments, menuOpen, shareDialogOpen, toast state }
+ * Props In:  PostCardProps { post, onLike, onReact, onRemoveReaction, onComment, onDelete, onReport }
+ * State:     { commentText, showComments, menuOpen, shareDialogOpen, reportModalOpen, toast state }
  * API Calls: None directly (parent Feed handles API calls via callbacks)
- * Events:    onLike, onReact, onRemoveReaction, onComment
- * Children:  PostMediaDisplay, PostHeader, PostContent, PostActions, PostComments
+ * Events:    onLike, onReact, onRemoveReaction, onComment, onDelete, onReport
+ * Children:  PostMediaDisplay, PostHeader, PostContent, PostActions, PostComments, ReportPostModal
  *
  * GAMIFICATION HOOKS:
  * - Reaction click -> triggerFromResult celebration effect at click position
@@ -60,6 +64,7 @@ import PostHeader from './components/PostHeader';
 import PostContent from './components/PostContent';
 import PostActions from './components/PostActions';
 import PostComments from './components/PostComments';
+import ReportPostModal from './components/ReportPostModal';
 
 // Styles
 import {
@@ -83,7 +88,7 @@ import {
 // PURPOSE: Manages state and composes all sub-components
 // ─────────────────────────────────────────────────────────────
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onReport }) => {
   const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
 
@@ -95,6 +100,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   // Menu state
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Report modal state
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -109,6 +117,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   const userReactions = post.userReactions || [];
   const reactionCounts = post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 };
   const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
+  const isOwnPost = !!(user?.id && user.id === post.user.id);
 
   // Close menu on outside click
   useEffect(() => {
@@ -181,6 +190,33 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     setTimeout(() => setShowPointNotification(false), 300);
   };
 
+  // ─── Menu action handlers ─────────────────────────────────
+
+  const handleCopyLink = useCallback(() => {
+    const url = `${window.location.origin}/social/posts/${post.id}`;
+    navigator.clipboard.writeText(url).catch(() => {
+      // Fallback silent
+    });
+  }, [post.id]);
+
+  const handleMute = useCallback(() => {
+    // TODO: Wire to POST /api/social/mute/:userId when backend supports it
+    console.warn('TODO: implement mute user', post.user.id);
+  }, [post.user.id]);
+
+  const handleDeletePost = useCallback(async () => {
+    if (!onDelete) return;
+    const confirmed = window.confirm('Are you sure you want to delete this post? This cannot be undone.');
+    if (confirmed) {
+      await onDelete(post.id);
+    }
+  }, [onDelete, post.id]);
+
+  const handleReportSubmit = useCallback(async (reason: string, description?: string) => {
+    if (!onReport) return false;
+    return onReport(post.id, reason, description);
+  }, [onReport, post.id]);
+
   // ─── Render ───────────────────────────────────────────────
 
   return (
@@ -195,7 +231,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           menuOpen={menuOpen}
           menuRef={menuRef as React.RefObject<HTMLDivElement>}
           onMenuClose={() => setMenuOpen(false)}
-          currentUserId={user?.id}
+          onReport={() => setReportModalOpen(true)}
+          onDelete={handleDeletePost}
+          onCopyLink={handleCopyLink}
+          onMute={handleMute}
+          isOwnPost={isOwnPost}
         />
 
         <PostContent
@@ -261,6 +301,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           </Overlay>
         )}
       </PostCardWrapper>
+
+      {/* Report Post Modal */}
+      {reportModalOpen && (
+        <ReportPostModal
+          onClose={() => setReportModalOpen(false)}
+          onSubmit={handleReportSubmit}
+        />
+      )}
 
       {/* Point Notification Toast */}
       {showPointNotification && (

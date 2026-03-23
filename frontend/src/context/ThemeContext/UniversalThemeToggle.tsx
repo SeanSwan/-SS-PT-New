@@ -17,7 +17,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast } from 'lucide-react';
+import { Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast, Swords, Flower2, TreePine, Waves, Crown, Leaf } from 'lucide-react';
 import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
@@ -70,6 +70,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '2px solid rgba(99, 102, 241, 0.3)';
       case 'obsidian-black':
         return '2px solid rgba(139, 92, 246, 0.3)';
+      case 'cyberpunk-edgerunners':
+        return '2px solid rgba(247, 255, 0, 0.4)';
+      case 'obsidian-bloom':
+        return '2px solid rgba(255, 20, 147, 0.3)';
+      case 'frozen-canopy':
+        return '2px solid rgba(96, 192, 240, 0.3)';
+      case 'ember-realm':
+        return '2px solid rgba(255, 107, 44, 0.4)';
+      case 'twilight-lagoon':
+        return '2px solid rgba(0, 255, 178, 0.3)';
+      case 'nebula-crown':
+        return '2px solid rgba(147, 51, 234, 0.4)';
       default:
         return '2px solid transparent';
     }
@@ -90,6 +102,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return 'linear-gradient(135deg, #E2E8F0, #6366F1)';
       case 'obsidian-black':
         return '#0A0A0F';
+      case 'cyberpunk-edgerunners':
+        return 'linear-gradient(135deg, #0D0D0D, #F7FF00)';
+      case 'obsidian-bloom':
+        return 'linear-gradient(135deg, #0A0014, #FF1493)';
+      case 'frozen-canopy':
+        return 'linear-gradient(135deg, #001030, #60C0F0)';
+      case 'ember-realm':
+        return 'linear-gradient(135deg, #120808, #FF6B2C)';
+      case 'twilight-lagoon':
+        return 'linear-gradient(135deg, #060618, #00FFB2)';
+      case 'nebula-crown':
+        return 'linear-gradient(135deg, #0A0020, #9333EA)';
       default:
         return 'linear-gradient(135deg, #001545, #60C0F0)';
     }
@@ -118,6 +142,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '#4F46E5';
       case 'obsidian-black':
         return '#8B5CF6';
+      case 'cyberpunk-edgerunners':
+        return '#F7FF00';
+      case 'obsidian-bloom':
+        return '#FF1493';
+      case 'frozen-canopy':
+        return '#60C0F0';
+      case 'ember-realm':
+        return '#FF6B2C';
+      case 'twilight-lagoon':
+        return '#00FFB2';
+      case 'nebula-crown':
+        return '#9333EA';
       default:
         return '#E0ECF4';
     }
@@ -140,6 +176,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
         return '0 2px 12px rgba(99, 102, 241, 0.2)';
       case 'obsidian-black':
         return '0 0 12px rgba(139, 92, 246, 0.2)';
+      case 'cyberpunk-edgerunners':
+        return '0 0 25px rgba(247, 255, 0, 0.5), 0 0 50px rgba(255, 45, 106, 0.2)';
+      case 'obsidian-bloom':
+        return '0 0 20px rgba(255, 20, 147, 0.4), 0 0 40px rgba(147, 51, 234, 0.2)';
+      case 'frozen-canopy':
+        return '0 0 20px rgba(96, 192, 240, 0.4), 0 0 40px rgba(0, 255, 163, 0.2)';
+      case 'ember-realm':
+        return '0 0 20px rgba(255, 107, 44, 0.5), 0 0 40px rgba(220, 38, 38, 0.2)';
+      case 'twilight-lagoon':
+        return '0 0 20px rgba(0, 255, 178, 0.4), 0 0 40px rgba(0, 102, 255, 0.2)';
+      case 'nebula-crown':
+        return '0 0 25px rgba(147, 51, 234, 0.5), 0 0 50px rgba(236, 72, 153, 0.2)';
       default:
         return '0 0 20px rgba(96, 192, 240, 0.4)';
     }
@@ -159,6 +207,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '#F59E0B';
         case 'cinematic-ember':
           return '#E11D48';
+        case 'cyberpunk-edgerunners':
+          return '#FF2D6A';
+        case 'obsidian-bloom':
+          return '#9333EA';
+        case 'frozen-canopy':
+          return '#00FFA3';
+        case 'ember-realm':
+          return '#DC2626';
+        case 'twilight-lagoon':
+          return '#0066FF';
+        case 'nebula-crown':
+          return '#EC4899';
         default:
           return 'transparent';
       }
@@ -184,6 +244,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '#A78BFA';
         case 'cinematic-ember':
           return '#F59E0B';
+        case 'cyberpunk-edgerunners':
+          return '#00F0FF';
+        case 'obsidian-bloom':
+          return '#FF1493';
+        case 'frozen-canopy':
+          return '#C6A84B';
+        case 'ember-realm':
+          return '#FF6B2C';
+        case 'twilight-lagoon':
+          return '#00FFB2';
+        case 'nebula-crown':
+          return '#9333EA';
         default:
           return 'transparent';
       }
@@ -217,6 +289,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '0 4px 16px rgba(99, 102, 241, 0.3)';
         case 'obsidian-black':
           return '0 0 20px rgba(139, 92, 246, 0.35)';
+        case 'cyberpunk-edgerunners':
+          return '0 0 35px rgba(247, 255, 0, 0.7), 0 0 70px rgba(255, 45, 106, 0.3)';
+        case 'obsidian-bloom':
+          return '0 0 30px rgba(255, 20, 147, 0.6), 0 0 60px rgba(147, 51, 234, 0.3)';
+        case 'frozen-canopy':
+          return '0 0 30px rgba(96, 192, 240, 0.6), 0 0 60px rgba(0, 255, 163, 0.3)';
+        case 'ember-realm':
+          return '0 0 30px rgba(255, 107, 44, 0.7), 0 0 60px rgba(220, 38, 38, 0.3)';
+        case 'twilight-lagoon':
+          return '0 0 30px rgba(0, 255, 178, 0.6), 0 0 60px rgba(0, 102, 255, 0.3)';
+        case 'nebula-crown':
+          return '0 0 35px rgba(147, 51, 234, 0.7), 0 0 70px rgba(236, 72, 153, 0.3)';
         default:
           return '0 0 30px rgba(96, 192, 240, 0.6)';
       }
@@ -240,6 +324,18 @@ const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
           return '#6366F1';
         case 'obsidian-black':
           return '#60C0F0';
+        case 'cyberpunk-edgerunners':
+          return '#00F0FF';
+        case 'obsidian-bloom':
+          return '#9333EA';
+        case 'frozen-canopy':
+          return '#00FFA3';
+        case 'ember-realm':
+          return '#DC2626';
+        case 'twilight-lagoon':
+          return '#0066FF';
+        case 'nebula-crown':
+          return '#EC4899';
         default:
           return '#C6A84B';
       }
@@ -352,6 +448,20 @@ const getThemeIcon = (themeId: ThemeId, size = 20) => {
       return <Snowflake size={size} />;
     case 'obsidian-black':
       return <Contrast size={size} />;
+    case 'cyberpunk-edgerunners':
+      return <Swords size={size} />;
+    case 'obsidian-bloom':
+      return <Flower2 size={size} />;
+    case 'frozen-canopy':
+      return <TreePine size={size} />;
+    case 'ember-realm':
+      return <Flame size={size} />;
+    case 'twilight-lagoon':
+      return <Waves size={size} />;
+    case 'nebula-crown':
+      return <Crown size={size} />;
+    case 'enchanted-forest':
+      return <Leaf size={size} />;
     default:
       return <Sparkles size={size} />;
   }
@@ -373,6 +483,20 @@ const getThemeDescription = (themeId: ThemeId) => {
       return 'Frozen Aurora';
     case 'obsidian-black':
       return 'Obsidian Black';
+    case 'cyberpunk-edgerunners':
+      return 'Cyberpunk Edgerunners';
+    case 'obsidian-bloom':
+      return 'Obsidian Bloom';
+    case 'frozen-canopy':
+      return 'Frozen Canopy';
+    case 'ember-realm':
+      return 'Ember Realm';
+    case 'twilight-lagoon':
+      return 'Twilight Lagoon';
+    case 'nebula-crown':
+      return 'Nebula Crown';
+    case 'enchanted-forest':
+      return 'Enchanted Forest';
     default:
       return 'Crystalline Swan';
   }

@@ -37,8 +37,9 @@ export interface ProfileData {
   state?: string;
   socialLinks?: {
     instagram?: string;
-    twitter?: string;
+    facebook?: string;
     tiktok?: string;
+    custom?: { label: string; url: string };
   };
   chartVisibility?: {
     weightProgression?: boolean;
@@ -49,6 +50,10 @@ export interface ProfileData {
     strength1RM?: boolean;
     calorieBurn?: boolean;
     sessionFrequency?: boolean;
+    trainingLoad?: boolean;
+    weeklyVolume?: boolean;
+    exerciseComparison?: boolean;
+    cardioEndurance?: boolean;
   };
   [key: string]: unknown;
 }
@@ -88,12 +93,20 @@ export interface ProfileBannerProps {
   onProfileImageClick: () => void;
 }
 
+export interface ProfileSocialLinks {
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  custom?: { label: string; url: string };
+}
+
 export interface ProfileHeaderInfoProps {
   displayName: string;
   username: string;
   role: string;
   bio: string;
   stats: ProfileStats;
+  socialLinks?: ProfileSocialLinks;
   onEditProfile: () => void;
   onSettings: () => void;
   onShare: () => void;

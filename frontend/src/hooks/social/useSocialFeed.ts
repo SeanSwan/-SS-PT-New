@@ -396,10 +396,69 @@ export const useSocialFeed = () => {
     }
   }, [authAxios, user, toast, invalidateProfile]);
   
+  // Delete a post (owner or admin only)
+  const deletePost = useCallback(async (postId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      await authAxios.delete(`/api/social/posts/${postId}`);
+
+      // Remove from local state
+      setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
+
+      toast({
+        title: 'Post deleted',
+        description: 'The post has been removed.',
+        variant: 'default',
+      });
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting post:', err);
+      toast({
+        title: 'Error',
+        description: err.response?.data?.message || 'Unable to delete post.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [authAxios, user, toast]);
+
+  // Report a post
+  const reportPost = useCallback(async (
+    postId: string,
+    reason: string,
+    description?: string,
+  ): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      await authAxios.post(`/api/social/posts/${postId}/report`, {
+        reason,
+        description,
+      });
+
+      toast({
+        title: 'Report submitted',
+        description: 'Thank you. Our team will review this post.',
+        variant: 'default',
+      });
+      return true;
+    } catch (err: any) {
+      console.error('Error reporting post:', err);
+      const msg = err.response?.data?.message || 'Unable to submit report.';
+      toast({
+        title: 'Error',
+        description: msg,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [authAxios, user, toast]);
+
   // Get a single post with full details
   const getPostDetails = useCallback(async (postId: string) => {
     if (!user) return null;
-    
+
     try {
       const response = await authAxios.get(`/api/social/posts/${postId}`);
       return response.data.post;
@@ -433,6 +492,8 @@ export const useSocialFeed = () => {
     reactToPost,
     removeReaction,
     addComment,
+    deletePost,
+    reportPost,
     getPostDetails
   };
 };

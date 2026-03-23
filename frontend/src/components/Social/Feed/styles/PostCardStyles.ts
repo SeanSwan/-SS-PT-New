@@ -37,9 +37,9 @@ export const toastSlideOut = keyframes`
 `;
 
 export const breathe = keyframes`
-  0% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.03); }
-  100% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
+  0% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 0.8; transform: scale(1); }
 `;
 
 export const slideUpFade = keyframes`
@@ -126,18 +126,20 @@ export const HeroArea = styled.div<{ $bgImage?: string | null; $gradient: string
 
 export const SwanWatermark = styled.div`
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0.85;
-  animation: ${breathe} 4s ease-in-out infinite;
-  pointer-events: none;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0.9;
+  animation: ${breathe} 4s ease-in-out infinite;
+  pointer-events: none;
 
   img {
-    width: clamp(200px, 50vw, 420px);
-    height: clamp(200px, 50vw, 420px);
+    width: 85%;
+    height: 85%;
+    max-width: 560px;
+    max-height: 560px;
+    object-fit: contain;
   }
 `;
 
@@ -292,20 +294,29 @@ export const DropdownMenu = styled.div`
   margin-top: 4px;
 `;
 
-export const DropdownMenuItem = styled.button`
-  display: block;
+export const DropdownMenuItem = styled.button<{ $danger?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
   border: none;
   background: transparent;
-  padding: 8px 16px;
+  padding: 10px 16px;
   font-size: 0.875rem;
   font-family: inherit;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.8);
+  color: ${props => props.$danger ? '#ef4444' : 'rgba(255, 255, 255, 0.8)'};
   min-height: 44px;
   line-height: 1.5;
-  &:hover { background: rgba(255, 255, 255, 0.06); }
+  transition: background 0.15s ease;
+  &:hover {
+    background: ${props => props.$danger ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.06)'};
+  }
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: -2px;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────

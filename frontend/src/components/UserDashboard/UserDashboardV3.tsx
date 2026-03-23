@@ -84,6 +84,8 @@ import ProfileHeaderInfo from './components/ProfileHeaderInfo';
 import QuickStatsSidebar from './components/QuickStatsSidebar';
 import TabNavigation from './components/TabNavigation';
 import TabContent from './components/TabContent';
+import TransformationPhotoShowcase from './components/TransformationPhotoShowcase';
+import type { TransformationPhoto } from './components/TransformationPhotoTypes';
 import {
   NoiseOverlay,
   MainContentZWrapper,
@@ -195,6 +197,29 @@ const UserDashboardV3: React.FC = () => {
   const bioDisplay = profile?.bio ||
     'Spreading positive energy through fitness & wellness. SwanStudios community member. Join me on this transformation journey!';
 
+  // Transformation photos from profile (ClientPhoto model data)
+  const transformationPhotos: TransformationPhoto[] = useMemo(() => {
+    const raw = (profile as Record<string, unknown>)?.transformationPhotos;
+    if (Array.isArray(raw)) return raw as TransformationPhoto[];
+    return [];
+  }, [profile]);
+
+  const transformationVisibility = useMemo(() => {
+    const settings = (profile as Record<string, unknown>)?.transformationSettings;
+    if (settings && typeof settings === 'object' && 'defaultVisibility' in (settings as Record<string, unknown>)) {
+      return ((settings as Record<string, unknown>).defaultVisibility as string) || 'private';
+    }
+    return 'private';
+  }, [profile]);
+
+  const showTransformation = useMemo(() => {
+    const settings = (profile as Record<string, unknown>)?.transformationSettings;
+    if (settings && typeof settings === 'object' && 'showOnProfile' in (settings as Record<string, unknown>)) {
+      return !!(settings as Record<string, unknown>).showOnProfile;
+    }
+    return false;
+  }, [profile]);
+
   // ─── Loading State ───
   if (isLoading && !profile) {
     return (
@@ -258,11 +283,24 @@ const UserDashboardV3: React.FC = () => {
                 role={roleDisplay}
                 bio={bioDisplay}
                 stats={displayStats}
+                socialLinks={profile?.socialLinks}
                 onEditProfile={handleEditProfile}
                 onSettings={handleSettings}
                 onShare={handleShare}
               />
             </ProfileHeaderCard>
+
+            {/* Transformation Before/After Photos */}
+            {(showTransformation || transformationPhotos.length > 0) && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <TransformationPhotoShowcase
+                  photos={transformationPhotos}
+                  visibility={transformationVisibility as 'public' | 'friends' | 'private' | 'hidden'}
+                  isOwnProfile={true}
+                  onUpload={() => navigate('/dashboard/measurements')}
+                />
+              </div>
+            )}
 
             {/* Content Grid: Sidebar + Tabs */}
             <ContentGrid>

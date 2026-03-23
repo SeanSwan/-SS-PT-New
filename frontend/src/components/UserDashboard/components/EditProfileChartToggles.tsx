@@ -10,6 +10,8 @@
  * │ │ [x] Muscle Radar        [x] Goal Prog   │                 │
  * │ │ [ ] Body Fat Trend      [ ] Strength 1RM│                 │
  * │ │ [ ] Calorie Burn        [ ] Session Freq│                 │
+ * │ │ [ ] Training Load       [ ] Weekly Vol  │                 │
+ * │ │ [ ] Exercise Compare    [ ] Cardio End  │                 │
  * │ └──────────────────────────────────────────┘                 │
  * │ Props: { chartVisibility, onToggle }                         │
  * │ CLICK-OUTCOMES:                                              │
@@ -34,6 +36,10 @@ export interface ProfileChartVisibility {
   strength1RM: boolean;
   calorieBurn: boolean;
   sessionFrequency: boolean;
+  trainingLoad: boolean;
+  weeklyVolume: boolean;
+  exerciseComparison: boolean;
+  cardioEndurance: boolean;
 }
 
 export const DEFAULT_CHART_VISIBILITY: ProfileChartVisibility = {
@@ -45,6 +51,10 @@ export const DEFAULT_CHART_VISIBILITY: ProfileChartVisibility = {
   strength1RM: false,
   calorieBurn: false,
   sessionFrequency: false,
+  trainingLoad: false,
+  weeklyVolume: false,
+  exerciseComparison: false,
+  cardioEndurance: false,
 };
 
 const CHART_LABELS: Record<keyof ProfileChartVisibility, string> = {
@@ -56,6 +66,10 @@ const CHART_LABELS: Record<keyof ProfileChartVisibility, string> = {
   strength1RM: 'Strength 1RM',
   calorieBurn: 'Calorie Burn',
   sessionFrequency: 'Session Frequency',
+  trainingLoad: 'Training Load',
+  weeklyVolume: 'Weekly Volume',
+  exerciseComparison: 'Exercise Comparison',
+  cardioEndurance: 'Cardio Endurance',
 };
 
 interface EditProfileChartTogglesProps {
@@ -64,11 +78,11 @@ interface EditProfileChartTogglesProps {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
+// SECTION: Styled Components (theme-aware via CSS variables)
 // ─────────────────────────────────────────────────────────────
 
 const Subtitle = styled.p`
-  color: rgba(224, 236, 244, 0.45);
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
   font-size: 0.8rem;
   margin: -0.5rem 0 0.75rem;
 `;
@@ -95,27 +109,27 @@ const ToggleItem = styled.label`
   user-select: none;
 
   &:hover {
-    background: rgba(96, 192, 240, 0.06);
+    background: var(--accent-primary-10, rgba(96, 192, 240, 0.06));
   }
 `;
 
-/* Custom checkbox: 20x20 with Crystalline Swan colors */
+/* Custom checkbox using CSS variables for theme support */
 const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   appearance: none;
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
   min-width: 20px;
-  border: 2px solid rgba(96, 192, 240, 0.25);
+  border: 2px solid var(--border-soft, rgba(96, 192, 240, 0.25));
   border-radius: 4px;
-  background: ${({ theme }) => theme?.colors?.obsidianBlack || '#0A0A0F'};
+  background: var(--bg-base, #0A0A0F);
   cursor: pointer;
   position: relative;
   transition: all 0.15s ease;
 
   &:checked {
-    background: #8B5CF6;
-    border-color: #8B5CF6;
+    background: var(--accent-secondary, #8B5CF6);
+    border-color: var(--accent-secondary, #8B5CF6);
   }
 
   &:checked::after {
@@ -125,13 +139,13 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
     left: 5px;
     width: 5px;
     height: 9px;
-    border: solid #E0ECF4;
+    border: solid var(--text-heading, #E0ECF4);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 4px;
     box-shadow: 0 0 16px rgba(96, 192, 240, 0.4),
                 inset 0 0 0 1px rgba(139, 92, 246, 0.2);
@@ -139,7 +153,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
 `;
 
 const ToggleLabel = styled.span`
-  color: #E0ECF4;
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.8125rem;
   font-family: 'Sora', sans-serif;
 `;

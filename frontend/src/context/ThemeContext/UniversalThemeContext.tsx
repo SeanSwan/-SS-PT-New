@@ -314,11 +314,11 @@ const crystallineDark = {
   text: {
     primary: '#F1F5F9',
     secondary: 'rgba(241, 245, 249, 0.85)',
-    muted: 'rgba(241, 245, 249, 0.55)',
-    heading: '#F1F5F9',
-    subheading: 'rgba(241, 245, 249, 0.9)',
-    body: 'rgba(241, 245, 249, 0.85)',
-    label: 'rgba(241, 245, 249, 0.65)',
+    muted: 'rgba(241, 245, 249, 0.7)',
+    heading: '#FFFFFF',
+    subheading: 'rgba(241, 245, 249, 0.95)',
+    body: 'rgba(241, 245, 249, 0.9)',
+    label: 'rgba(241, 245, 249, 0.75)',
     accent: '#22D3EE',
   },
 };
@@ -722,6 +722,680 @@ const obsidianBlack = {
   },
 };
 
+/**
+ * CYBERPUNK EDGERUNNERS THEME — "Cyberpunk Edgerunners"
+ * Aggressive neon dark theme. Near-black bg with neon yellow + hot pink.
+ * Inspired by Night City aesthetics — sharp edges, glassmorphism, high contrast.
+ * Background: #0D0D0D (near-black)
+ * Primary accent: #F7FF00 (neon yellow)
+ * Secondary: #FF2D6A (hot pink)
+ * Cyan accent: #00F0FF
+ */
+const cyberpunkEdgerunners = {
+  id: 'cyberpunk-edgerunners' as const,
+  name: 'Cyberpunk Edgerunners',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'intense' as const,
+    cardStyle: 'neon' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#0D0D0D',
+    stardust: '#1A1A2E',
+    void: '#050505',
+
+    primary: '#F7FF00',
+    primaryBlue: '#D4DB00',
+    primaryDeep: '#B0B800',
+    primaryLight: '#FAFF66',
+    primaryNeon: '#F7FF00',
+
+    secondary: '#FF2D6A',
+    secondaryLight: '#FF6B96',
+    secondaryDeep: '#D9174E',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#FF2D6A',
+    wingPurpleLight: '#FF6B96',
+    wingPurpleDeep: '#D9174E',
+
+    white: '#FFFEF0',
+    silver: '#E8E8D8',
+    muted: 'rgba(255, 254, 240, 0.55)',
+    error: '#FF4444',
+    success: '#00FF88',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #F7FF00, #00F0FF)',
+    secondary: 'linear-gradient(135deg, #1A1A2E, #FF2D6A)',
+    cosmic: 'linear-gradient(135deg, #F7FF00, #FF2D6A)',
+    hero: 'radial-gradient(ellipse at 20% 30%, rgba(247,255,0,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(255,45,106,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #1A1A2E 0%, #0D0D0D 70%)',
+    card: 'rgba(26, 26, 46, 0.7)',
+    accent: 'linear-gradient(135deg, #0D0D0D, #00F0FF)',
+    stellar: 'linear-gradient(45deg, #F7FF00 0%, #FF2D6A 100%)',
+    swanCosmic: 'linear-gradient(135deg, #F7FF00, #00F0FF)',
+    glass: 'linear-gradient(135deg, rgba(26, 26, 46, 0.7), rgba(247, 255, 0, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 30px rgba(247, 255, 0, 0.3)',
+    secondary: '0 0 25px rgba(255, 45, 106, 0.25)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(247, 255, 0, 0.15)',
+    accent: '0 0 20px rgba(0, 240, 255, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
+    glow: '0 0 25px currentColor',
+    glass: '0 8px 32px rgba(13, 13, 13, 0.6)',
+    button: '0 4px 20px rgba(247, 255, 0, 0.3)',
+  },
+  borders: {
+    subtle: 'rgba(247, 255, 0, 0.1)',
+    elegant: 'rgba(247, 255, 0, 0.25)',
+    prominent: 'rgba(247, 255, 0, 0.45)',
+    glass: '1px solid rgba(0, 240, 255, 0.2)',
+    card: '1px solid rgba(247, 255, 0, 0.15)',
+    focus: '2px solid #00F0FF',
+    glow: '1px solid rgba(255, 45, 106, 0.25)',
+  },
+  background: {
+    primary: '#0D0D0D',
+    secondary: '#1A1A2E',
+    surface: 'rgba(26, 26, 46, 0.6)',
+    elevated: 'rgba(26, 26, 46, 0.5)',
+  },
+  text: {
+    primary: '#FFFEF0',
+    secondary: 'rgba(255, 254, 240, 0.85)',
+    muted: 'rgba(255, 254, 240, 0.55)',
+    heading: '#FFFEF0',
+    subheading: 'rgba(255, 254, 240, 0.9)',
+    body: 'rgba(255, 254, 240, 0.85)',
+    label: 'rgba(255, 254, 240, 0.65)',
+    accent: '#F7FF00',
+  },
+};
+
+/**
+ * OBSIDIAN BLOOM THEME — "Obsidian Bloom"
+ * Dark Gothic Garden aesthetic. Deep violet-black backgrounds with hot pink
+ * and purple accents. Inspired by midnight botanical gardens and dark florals.
+ * Background: #0A0014 (deep violet-black)
+ * Primary accent: #FF1493 (hot pink / gaming)
+ * Secondary: #9333EA (vivid purple)
+ * Gold accent: #C6A84B
+ */
+const obsidianBloom = {
+  id: 'obsidian-bloom' as const,
+  name: 'Obsidian Bloom',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'medium' as const,
+    cardStyle: 'elegant' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#0A0014',
+    stardust: '#150020',
+    void: '#050008',
+
+    primary: '#FF1493',
+    primaryBlue: '#E0117A',
+    primaryDeep: '#C00062',
+    primaryLight: '#FF69B4',
+    primaryNeon: '#FF1493',
+
+    secondary: '#9333EA',
+    secondaryLight: '#A855F7',
+    secondaryDeep: '#7E22CE',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#9333EA',
+    wingPurpleLight: '#A855F7',
+    wingPurpleDeep: '#7E22CE',
+
+    white: '#F5E6FF',
+    silver: '#E8D0F8',
+    muted: 'rgba(245, 230, 255, 0.55)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #9333EA, #FF1493)',
+    secondary: 'linear-gradient(135deg, #150020, #9333EA)',
+    cosmic: 'linear-gradient(135deg, #9333EA, #FF1493)',
+    hero: 'radial-gradient(ellipse at 20% 30%, rgba(255,20,147,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(147,51,234,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #150020 0%, #0A0014 70%)',
+    card: 'rgba(21, 0, 32, 0.7)',
+    accent: 'linear-gradient(135deg, #0A0014, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #FF1493 0%, #9333EA 100%)',
+    swanCosmic: 'linear-gradient(135deg, #FF1493, #9333EA)',
+    glass: 'linear-gradient(135deg, rgba(21, 0, 32, 0.7), rgba(255, 20, 147, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 30px rgba(255, 20, 147, 0.25)',
+    secondary: '0 0 25px rgba(147, 51, 234, 0.2)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(255, 20, 147, 0.12)',
+    accent: '0 0 20px rgba(198, 168, 75, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.7)',
+    glow: '0 0 25px currentColor',
+    glass: '0 8px 32px rgba(10, 0, 20, 0.6)',
+    button: '0 4px 20px rgba(255, 20, 147, 0.3)',
+  },
+  borders: {
+    subtle: 'rgba(255, 20, 147, 0.1)',
+    elegant: 'rgba(255, 20, 147, 0.25)',
+    prominent: 'rgba(255, 20, 147, 0.4)',
+    glass: '1px solid rgba(147, 51, 234, 0.2)',
+    card: '1px solid rgba(255, 20, 147, 0.15)',
+    focus: '2px solid #9333EA',
+    glow: '1px solid rgba(147, 51, 234, 0.25)',
+  },
+  background: {
+    primary: '#0A0014',
+    secondary: '#150020',
+    surface: 'rgba(21, 0, 32, 0.6)',
+    elevated: 'rgba(21, 0, 32, 0.5)',
+  },
+  text: {
+    primary: '#F5E6FF',
+    secondary: 'rgba(245, 230, 255, 0.85)',
+    muted: 'rgba(245, 230, 255, 0.55)',
+    heading: '#F5E6FF',
+    subheading: 'rgba(245, 230, 255, 0.9)',
+    body: 'rgba(245, 230, 255, 0.85)',
+    label: 'rgba(245, 230, 255, 0.65)',
+    accent: '#FF1493',
+  },
+};
+
+/**
+ * FROZEN CANOPY THEME — "Frozen Canopy"
+ * Arctic Enchanted Forest aesthetic. Deep navy-blue backgrounds with ice cyan
+ * and emerald green accents. Inspired by frozen northern forests and starlight.
+ * Background: #001030 (deep arctic navy)
+ * Primary accent: #60C0F0 (ice cyan / gaming)
+ * Secondary: #00FFA3 (emerald green)
+ * Gold accent: #C6A84B
+ */
+const frozenCanopy = {
+  id: 'frozen-canopy' as const,
+  name: 'Frozen Canopy',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'medium' as const,
+    cardStyle: 'frosted' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#001030',
+    stardust: '#001848',
+    void: '#000818',
+
+    primary: '#60C0F0',
+    primaryBlue: '#4AA8D8',
+    primaryDeep: '#3890C0',
+    primaryLight: '#80D4FF',
+    primaryNeon: '#60C0F0',
+
+    secondary: '#00FFA3',
+    secondaryLight: '#66FFc8',
+    secondaryDeep: '#00CC82',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#00FFA3',
+    wingPurpleLight: '#66FFC8',
+    wingPurpleDeep: '#00CC82',
+
+    white: '#E0F0FF',
+    silver: '#C8E0F4',
+    muted: 'rgba(224, 240, 255, 0.55)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #60C0F0, #00FFA3)',
+    secondary: 'linear-gradient(135deg, #001848, #00FFA3)',
+    cosmic: 'linear-gradient(135deg, #60C0F0, #00FFA3)',
+    hero: 'radial-gradient(ellipse at 20% 30%, rgba(96,192,240,0.1) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(0,255,163,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #001848 0%, #001030 70%)',
+    card: 'rgba(0, 24, 72, 0.7)',
+    accent: 'linear-gradient(135deg, #001030, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #60C0F0 0%, #00FFA3 100%)',
+    swanCosmic: 'linear-gradient(135deg, #60C0F0, #00FFA3)',
+    glass: 'linear-gradient(135deg, rgba(0, 24, 72, 0.7), rgba(96, 192, 240, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 30px rgba(96, 192, 240, 0.25)',
+    secondary: '0 0 25px rgba(0, 255, 163, 0.2)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(96, 192, 240, 0.15)',
+    accent: '0 0 20px rgba(198, 168, 75, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.7)',
+    glow: '0 0 25px currentColor',
+    glass: '0 8px 32px rgba(0, 16, 48, 0.5)',
+    button: '0 4px 20px rgba(96, 192, 240, 0.3)',
+  },
+  borders: {
+    subtle: 'rgba(96, 192, 240, 0.1)',
+    elegant: 'rgba(96, 192, 240, 0.25)',
+    prominent: 'rgba(0, 255, 163, 0.4)',
+    glass: '1px solid rgba(96, 192, 240, 0.2)',
+    card: '1px solid rgba(96, 192, 240, 0.15)',
+    focus: '2px solid #00FFA3',
+    glow: '1px solid rgba(0, 255, 163, 0.2)',
+  },
+  background: {
+    primary: '#001030',
+    secondary: '#001848',
+    surface: 'rgba(0, 24, 72, 0.6)',
+    elevated: 'rgba(0, 24, 72, 0.5)',
+  },
+  text: {
+    primary: '#E0F0FF',
+    secondary: 'rgba(224, 240, 255, 0.85)',
+    muted: 'rgba(224, 240, 255, 0.55)',
+    heading: '#E0F0FF',
+    subheading: 'rgba(224, 240, 255, 0.9)',
+    body: 'rgba(224, 240, 255, 0.85)',
+    label: 'rgba(224, 240, 255, 0.65)',
+    accent: '#60C0F0',
+  },
+};
+
+/**
+ * EMBER REALM THEME — "Ember Realm"
+ * Warrior Forge aesthetic. Deep crimson-black backgrounds with orange fire
+ * and red accents. Inspired by forges, volcanic landscapes, and battle arenas.
+ * Background: #120808 (deep crimson-black)
+ * Primary accent: #FF6B2C (fire orange / gaming)
+ * Secondary: #DC2626 (crimson red)
+ * Gold accent: #C6A84B
+ */
+const emberRealm = {
+  id: 'ember-realm' as const,
+  name: 'Ember Realm',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'intense' as const,
+    cardStyle: 'elegant' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#120808',
+    stardust: '#1E0E0E',
+    void: '#080404',
+
+    primary: '#FF6B2C',
+    primaryBlue: '#E05A20',
+    primaryDeep: '#C04A18',
+    primaryLight: '#FF9966',
+    primaryNeon: '#FF6B2C',
+
+    secondary: '#DC2626',
+    secondaryLight: '#EF4444',
+    secondaryDeep: '#B91C1C',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#DC2626',
+    wingPurpleLight: '#EF4444',
+    wingPurpleDeep: '#B91C1C',
+
+    white: '#FFF0E0',
+    silver: '#F0D8C0',
+    muted: 'rgba(255, 240, 224, 0.55)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #FF6B2C, #DC2626)',
+    secondary: 'linear-gradient(135deg, #1E0E0E, #DC2626)',
+    cosmic: 'linear-gradient(135deg, #FF6B2C, #DC2626)',
+    hero: 'radial-gradient(ellipse at 30% 40%, rgba(255,107,44,0.1) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(220,38,38,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #1E0E0E 0%, #120808 70%)',
+    card: 'rgba(30, 14, 14, 0.7)',
+    accent: 'linear-gradient(135deg, #120808, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #FF6B2C 0%, #DC2626 100%)',
+    swanCosmic: 'linear-gradient(135deg, #FF6B2C, #DC2626)',
+    glass: 'linear-gradient(135deg, rgba(30, 14, 14, 0.7), rgba(255, 107, 44, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 30px rgba(255, 107, 44, 0.3)',
+    secondary: '0 0 25px rgba(220, 38, 38, 0.25)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(255, 107, 44, 0.15)',
+    accent: '0 0 20px rgba(198, 168, 75, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
+    glow: '0 0 25px currentColor',
+    glass: '0 8px 32px rgba(18, 8, 8, 0.6)',
+    button: '0 4px 20px rgba(255, 107, 44, 0.35)',
+  },
+  borders: {
+    subtle: 'rgba(255, 107, 44, 0.1)',
+    elegant: 'rgba(255, 107, 44, 0.25)',
+    prominent: 'rgba(220, 38, 38, 0.4)',
+    glass: '1px solid rgba(255, 107, 44, 0.2)',
+    card: '1px solid rgba(255, 107, 44, 0.15)',
+    focus: '2px solid #DC2626',
+    glow: '1px solid rgba(220, 38, 38, 0.25)',
+  },
+  background: {
+    primary: '#120808',
+    secondary: '#1E0E0E',
+    surface: 'rgba(30, 14, 14, 0.6)',
+    elevated: 'rgba(30, 14, 14, 0.5)',
+  },
+  text: {
+    primary: '#FFF0E0',
+    secondary: 'rgba(255, 240, 224, 0.85)',
+    muted: 'rgba(255, 240, 224, 0.55)',
+    heading: '#FFF0E0',
+    subheading: 'rgba(255, 240, 224, 0.9)',
+    body: 'rgba(255, 240, 224, 0.85)',
+    label: 'rgba(255, 240, 224, 0.65)',
+    accent: '#FF6B2C',
+  },
+};
+
+/**
+ * TWILIGHT LAGOON THEME — "Twilight Lagoon"
+ * Bioluminescent Depths aesthetic. Ultra-deep navy backgrounds with aqua green
+ * and electric blue accents. Inspired by deep-sea bioluminescence and underwater caves.
+ * Background: #060618 (ultra-deep navy)
+ * Primary accent: #00FFB2 (bioluminescent green / gaming)
+ * Secondary: #0066FF (electric blue)
+ * Tertiary: #00E5FF (bright cyan)
+ */
+const twilightLagoon = {
+  id: 'twilight-lagoon' as const,
+  name: 'Twilight Lagoon',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'medium' as const,
+    cardStyle: 'glass' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#060618',
+    stardust: '#0A0A2E',
+    void: '#030310',
+
+    primary: '#00FFB2',
+    primaryBlue: '#00DDA0',
+    primaryDeep: '#00BB88',
+    primaryLight: '#66FFCF',
+    primaryNeon: '#00FFB2',
+
+    secondary: '#0066FF',
+    secondaryLight: '#3388FF',
+    secondaryDeep: '#0044CC',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#0066FF',
+    wingPurpleLight: '#3388FF',
+    wingPurpleDeep: '#0044CC',
+
+    white: '#E0FFFC',
+    silver: '#C0F0EC',
+    muted: 'rgba(224, 255, 252, 0.55)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #00FFB2, #0066FF)',
+    secondary: 'linear-gradient(135deg, #0A0A2E, #0066FF)',
+    cosmic: 'linear-gradient(135deg, #00FFB2, #00E5FF)',
+    hero: 'radial-gradient(ellipse at 20% 30%, rgba(0,255,178,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(0,102,255,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #0A0A2E 0%, #060618 70%)',
+    card: 'rgba(10, 10, 46, 0.7)',
+    accent: 'linear-gradient(135deg, #060618, #00E5FF)',
+    stellar: 'linear-gradient(45deg, #00FFB2 0%, #0066FF 100%)',
+    swanCosmic: 'linear-gradient(135deg, #00FFB2, #00E5FF)',
+    glass: 'linear-gradient(135deg, rgba(10, 10, 46, 0.7), rgba(0, 255, 178, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 30px rgba(0, 255, 178, 0.25)',
+    secondary: '0 0 25px rgba(0, 102, 255, 0.2)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 255, 178, 0.12)',
+    accent: '0 0 20px rgba(0, 229, 255, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
+    glow: '0 0 25px currentColor',
+    glass: '0 8px 32px rgba(6, 6, 24, 0.6)',
+    button: '0 4px 20px rgba(0, 255, 178, 0.3)',
+  },
+  borders: {
+    subtle: 'rgba(0, 255, 178, 0.1)',
+    elegant: 'rgba(0, 255, 178, 0.25)',
+    prominent: 'rgba(0, 102, 255, 0.4)',
+    glass: '1px solid rgba(0, 255, 178, 0.18)',
+    card: '1px solid rgba(0, 255, 178, 0.15)',
+    focus: '2px solid #0066FF',
+    glow: '1px solid rgba(0, 102, 255, 0.2)',
+  },
+  background: {
+    primary: '#060618',
+    secondary: '#0A0A2E',
+    surface: 'rgba(10, 10, 46, 0.6)',
+    elevated: 'rgba(10, 10, 46, 0.5)',
+  },
+  text: {
+    primary: '#E0FFFC',
+    secondary: 'rgba(224, 255, 252, 0.85)',
+    muted: 'rgba(224, 255, 252, 0.55)',
+    heading: '#E0FFFC',
+    subheading: 'rgba(224, 255, 252, 0.9)',
+    body: 'rgba(224, 255, 252, 0.85)',
+    label: 'rgba(224, 255, 252, 0.65)',
+    accent: '#00FFB2',
+  },
+};
+
+/**
+ * NEBULA CROWN THEME — "Nebula Crown"
+ * Cosmic Throne aesthetic. Deep purple-black backgrounds with vivid purple,
+ * pink, and indigo accents. Inspired by nebulae, crowns, and cosmic royalty.
+ * Background: #0A0020 (deep cosmic purple)
+ * Primary accent: #9333EA (vivid purple / gaming)
+ * Secondary: #EC4899 (cosmic pink)
+ * Tertiary: #6366F1 (indigo)
+ */
+const nebulaCrown = {
+  id: 'nebula-crown' as const,
+  name: 'Nebula Crown',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'intense' as const,
+    cardStyle: 'neon' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#0A0020',
+    stardust: '#120030',
+    void: '#050010',
+
+    primary: '#9333EA',
+    primaryBlue: '#7E22CE',
+    primaryDeep: '#6B21A8',
+    primaryLight: '#A855F7',
+    primaryNeon: '#9333EA',
+
+    secondary: '#EC4899',
+    secondaryLight: '#F472B6',
+    secondaryDeep: '#DB2777',
+
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+
+    wingPurple: '#EC4899',
+    wingPurpleLight: '#F472B6',
+    wingPurpleDeep: '#DB2777',
+
+    white: '#F0E6FF',
+    silver: '#E0D0F8',
+    muted: 'rgba(240, 230, 255, 0.55)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #9333EA, #EC4899)',
+    secondary: 'linear-gradient(135deg, #120030, #6366F1)',
+    cosmic: 'linear-gradient(135deg, #9333EA, #6366F1)',
+    hero: 'radial-gradient(ellipse at 20% 30%, rgba(147,51,234,0.1) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(236,72,153,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #120030 0%, #0A0020 70%)',
+    card: 'rgba(18, 0, 48, 0.7)',
+    accent: 'linear-gradient(135deg, #0A0020, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #9333EA 0%, #EC4899 100%)',
+    swanCosmic: 'linear-gradient(135deg, #9333EA, #6366F1)',
+    glass: 'linear-gradient(135deg, rgba(18, 0, 48, 0.7), rgba(147, 51, 234, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 30px rgba(147, 51, 234, 0.3)',
+    secondary: '0 0 25px rgba(236, 72, 153, 0.25)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(147, 51, 234, 0.15)',
+    accent: '0 0 20px rgba(198, 168, 75, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
+    glow: '0 0 25px currentColor',
+    glass: '0 8px 32px rgba(10, 0, 32, 0.6)',
+    button: '0 4px 20px rgba(147, 51, 234, 0.35)',
+  },
+  borders: {
+    subtle: 'rgba(147, 51, 234, 0.1)',
+    elegant: 'rgba(147, 51, 234, 0.25)',
+    prominent: 'rgba(236, 72, 153, 0.4)',
+    glass: '1px solid rgba(147, 51, 234, 0.2)',
+    card: '1px solid rgba(147, 51, 234, 0.15)',
+    focus: '2px solid #EC4899',
+    glow: '1px solid rgba(236, 72, 153, 0.25)',
+  },
+  background: {
+    primary: '#0A0020',
+    secondary: '#120030',
+    surface: 'rgba(18, 0, 48, 0.6)',
+    elevated: 'rgba(18, 0, 48, 0.5)',
+  },
+  text: {
+    primary: '#F0E6FF',
+    secondary: 'rgba(240, 230, 255, 0.85)',
+    muted: 'rgba(240, 230, 255, 0.55)',
+    heading: '#F0E6FF',
+    subheading: 'rgba(240, 230, 255, 0.9)',
+    body: 'rgba(240, 230, 255, 0.85)',
+    label: 'rgba(240, 230, 255, 0.65)',
+    accent: '#9333EA',
+  },
+};
+
+/**
+ * ENCHANTED FOREST THEME — "Enchanted Forest"
+ * Deep forest greens with golden sunlight filtering through canopy.
+ * Organic, earthy, natural — inspired by ancient enchanted woodlands.
+ * Background: #0A1A0A (deep forest black-green)
+ * Primary accent: #4ADE80 (emerald glow)
+ * Secondary: #A3E635 (lime canopy light)
+ * Gold accent: #C6A84B (sunlight through leaves)
+ */
+const enchantedForest = {
+  id: 'enchanted-forest' as const,
+  name: 'Enchanted Forest',
+  fonts,
+  effects: {
+    glassmorphism: true,
+    glowIntensity: 'medium' as const,
+    cardStyle: 'glass' as const,
+    borderGlow: true,
+  },
+  colors: {
+    deepSpace: '#0A1A0A',
+    stardust: '#0F2A10',
+    void: '#050D05',
+    primary: '#4ADE80',
+    primaryBlue: '#22C55E',
+    primaryDeep: '#16A34A',
+    primaryLight: '#86EFAC',
+    primaryNeon: '#4ADE80',
+    secondary: '#A3E635',
+    secondaryLight: '#BEF264',
+    secondaryDeep: '#84CC16',
+    accent: '#C6A84B',
+    accentLight: '#D8C478',
+    accentWarm: '#B8963A',
+    wingPurple: '#A3E635',
+    wingPurpleLight: '#BEF264',
+    wingPurpleDeep: '#84CC16',
+    white: '#E8F5E0',
+    silver: '#D4ECD0',
+    muted: 'rgba(232, 245, 224, 0.55)',
+    error: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, #16A34A, #4ADE80)',
+    secondary: 'linear-gradient(135deg, #0F2A10, #A3E635)',
+    cosmic: 'linear-gradient(135deg, #16A34A, #A3E635)',
+    hero: 'radial-gradient(ellipse at 30% 40%, rgba(74,222,128,0.1) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(163,230,53,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #0F2A10 0%, #0A1A0A 70%)',
+    card: 'rgba(15, 42, 16, 0.7)',
+    accent: 'linear-gradient(135deg, #0A1A0A, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #4ADE80 0%, #C6A84B 100%)',
+    swanCosmic: 'linear-gradient(135deg, #4ADE80, #A3E635)',
+    glass: 'linear-gradient(135deg, rgba(15, 42, 16, 0.7), rgba(74, 222, 128, 0.05))',
+  },
+  shadows: {
+    primary: '0 0 25px rgba(74, 222, 128, 0.25)',
+    secondary: '0 0 20px rgba(163, 230, 53, 0.2)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(74, 222, 128, 0.12)',
+    accent: '0 0 20px rgba(198, 168, 75, 0.4)',
+    elevation: '0 15px 35px rgba(0, 0, 0, 0.6)',
+    glow: '0 0 20px currentColor',
+    glass: '0 8px 32px rgba(10, 26, 10, 0.5)',
+    button: '0 4px 20px rgba(74, 222, 128, 0.3)',
+  },
+  borders: {
+    subtle: 'rgba(74, 222, 128, 0.1)',
+    elegant: 'rgba(74, 222, 128, 0.25)',
+    prominent: 'rgba(74, 222, 128, 0.4)',
+    glass: '1px solid rgba(74, 222, 128, 0.2)',
+    card: '1px solid rgba(74, 222, 128, 0.15)',
+    focus: '2px solid #A3E635',
+    glow: '1px solid rgba(163, 230, 53, 0.2)',
+  },
+  background: {
+    primary: '#0A1A0A',
+    secondary: '#0F2A10',
+    surface: 'rgba(15, 42, 16, 0.6)',
+    elevated: 'rgba(15, 42, 16, 0.5)',
+  },
+  text: {
+    primary: '#E8F5E0',
+    secondary: 'rgba(232, 245, 224, 0.85)',
+    muted: 'rgba(232, 245, 224, 0.55)',
+    heading: '#E8F5E0',
+    subheading: 'rgba(232, 245, 224, 0.9)',
+    body: 'rgba(232, 245, 224, 0.85)',
+    label: 'rgba(232, 245, 224, 0.65)',
+    accent: '#4ADE80',
+  },
+};
+
 // === THEME MAPPING ===
 export const themes = {
   'crystalline-default': crystallineDefault,
@@ -731,6 +1405,13 @@ export const themes = {
   'cinematic-ember': cinematicEmber,
   'frozen-aurora': frozenAurora,
   'obsidian-black': obsidianBlack,
+  'cyberpunk-edgerunners': cyberpunkEdgerunners,
+  'obsidian-bloom': obsidianBloom,
+  'frozen-canopy': frozenCanopy,
+  'ember-realm': emberRealm,
+  'twilight-lagoon': twilightLagoon,
+  'nebula-crown': nebulaCrown,
+  'enchanted-forest': enchantedForest,
 } as const;
 
 export type ThemeId = keyof typeof themes;
@@ -792,6 +1473,8 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     const cycle: ThemeId[] = [
       'crystalline-default', 'crystalline-light', 'crystalline-dark',
       'crystalline-mono', 'cinematic-ember', 'frozen-aurora', 'obsidian-black',
+      'cyberpunk-edgerunners', 'obsidian-bloom', 'frozen-canopy',
+      'ember-realm', 'twilight-lagoon', 'nebula-crown', 'enchanted-forest',
     ];
     const currentIndex = cycle.indexOf(currentTheme);
     const nextIndex = (currentIndex + 1) % cycle.length;

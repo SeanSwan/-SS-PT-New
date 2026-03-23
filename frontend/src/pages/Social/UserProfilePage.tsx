@@ -14,6 +14,8 @@ import { ArrowLeft, MapPin, Calendar, Award, Lock } from 'lucide-react';
 import api from '../../services/api';
 import { useAppSelector } from '../../store';
 import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
+import TransformationPhotoShowcase from '../../components/UserDashboard/components/TransformationPhotoShowcase';
+import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
 import type { ChartVisibility } from './components/ChartVisibilityToggle';
 
 // ── Crystalline Swan Tokens ──
@@ -658,6 +660,25 @@ const UserProfilePage: React.FC = () => {
               </BadgesGrid>
             </>
           )}
+
+          {/* Transformation Before/After Photos (respects visibility) */}
+          {(() => {
+            const settings = (profile as Record<string, unknown>)?.transformationSettings as Record<string, unknown> | undefined;
+            const photos = ((profile as Record<string, unknown>)?.transformationPhotos || []) as TransformationPhoto[];
+            const showOnProfile = settings?.showOnProfile ?? false;
+            const vis = (settings?.defaultVisibility as string) || 'private';
+            if (!showOnProfile && !isOwnProfile) return null;
+            if (photos.length === 0 && !isOwnProfile) return null;
+            return (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <TransformationPhotoShowcase
+                  photos={photos}
+                  visibility={vis as 'public' | 'friends' | 'private' | 'hidden'}
+                  isOwnProfile={isOwnProfile}
+                />
+              </div>
+            );
+          })()}
 
           {canShowCharts && (
             <ProfileChartsGrid

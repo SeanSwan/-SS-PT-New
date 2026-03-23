@@ -329,7 +329,9 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
     unlikePost,
     reactToPost,
     removeReaction,
-    addComment
+    addComment,
+    deletePost,
+    reportPost,
   } = useSocialFeed();
 
   const { profile } = useGamificationData();
@@ -499,6 +501,8 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
               onReact={reactToPost}
               onRemoveReaction={removeReaction}
               onComment={addComment}
+              onDelete={deletePost}
+              onReport={reportPost}
             />
           ))}
 

@@ -21,7 +21,7 @@ import { useSnackbar } from 'notistack';
 import MCPService from './MCPService';
 
 // ============================================================
-// Styled Components - Galaxy-Swan Theme
+// Styled Components - Crystalline Swan Theme
 // ============================================================
 
 const spinAnimation = keyframes`

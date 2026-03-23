@@ -18,7 +18,8 @@
  * │  Phone [_______________]                                 │
  * │  ─────────── Social Links ────────────────────────────── │
  * │  [@] Instagram  [_______________]                        │
- * │  [X] Twitter/X  [_______________]                        │
+ * │  [f] Facebook   [_______________]                        │
+ * │  [+] Custom: Label [____] URL [____]                    │
  * │  [♪] TikTok     [_______________]                        │
  * │  ─────────── Chart Visibility ────────────────────────── │
  * │  [x] Weight Progression  [x] Workout Heatmap            │
@@ -33,6 +34,7 @@
  * graph TD
  *   A[EditProfileModal] --> B[EditProfileSocialFields]
  *   A --> C[EditProfileChartToggles]
+ *   A --> C2[EditProfileTransformationSettings]
  *   A --> D[useEditProfileForm hook]
  *   A --> E[EditProfileModalStyles]
  *
@@ -55,6 +57,7 @@ import { X, Save } from 'lucide-react';
 import { useEditProfileForm } from '../hooks/useEditProfileForm';
 import EditProfileSocialFields from './EditProfileSocialFields';
 import EditProfileChartToggles from './EditProfileChartToggles';
+import EditProfileTransformationSettings from './EditProfileTransformationSettings';
 import {
   Overlay,
   ModalContainer,
@@ -101,7 +104,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     isSaving,
     setField,
     setSocialLink,
+    setCustomLink,
     toggleChart,
+    setTransformationSetting,
     handleSubmit,
   } = useEditProfileForm(profile, onSave);
 
@@ -251,12 +256,19 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <EditProfileSocialFields
               socialLinks={form.socialLinks}
               onChange={setSocialLink}
+              onCustomChange={setCustomLink}
             />
 
             {/* ── Chart Visibility (sub-component) ── */}
             <EditProfileChartToggles
               chartVisibility={form.chartVisibility}
               onToggle={toggleChart}
+            />
+
+            {/* ── Transformation Photo Settings (sub-component) ── */}
+            <EditProfileTransformationSettings
+              settings={form.transformationSettings}
+              onChange={setTransformationSetting}
             />
 
             {/* ── Submit ── */}

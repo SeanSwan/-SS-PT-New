@@ -75,7 +75,7 @@ import './styles/universal-theme-styles.css'; // ✨ Universal Theme Integration
 import './styles/mobile/mobile-base.css';
 import './styles/mobile/mobile-workout.css';
 // import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience (DISABLED - file removed)
-// Galaxy-Swan theme integration with Cosmic Elegance
+// Crystalline Swan theme integration with Cosmic Elegance
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';

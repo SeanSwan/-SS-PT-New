@@ -87,6 +87,8 @@ export interface PostCardProps {
   onReact?: (postId: string, reactionType: string) => void;
   onRemoveReaction?: (postId: string, reactionType: string) => void;
   onComment: (postId: string, content: string) => void;
+  onDelete?: (postId: string) => Promise<boolean>;
+  onReport?: (postId: string, reason: string, description?: string) => Promise<boolean>;
 }
 
 export interface PostHeaderProps {
@@ -96,7 +98,11 @@ export interface PostHeaderProps {
   menuOpen: boolean;
   menuRef: React.RefObject<HTMLDivElement>;
   onMenuClose: () => void;
-  currentUserId?: string;
+  onReport: () => void;
+  onDelete: () => void;
+  onCopyLink: () => void;
+  onMute: () => void;
+  isOwnPost: boolean;
 }
 
 export interface PostContentProps {

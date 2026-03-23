@@ -6,22 +6,26 @@
  * │ WIREFRAME:                                                  │
  * │ ┌────────────────────────────────────────────────────────┐  │
  * │ │ [Avatar] Name          [Type Chip] [...]               │  │
- * │ │          2 hours ago              ┌──────────┐         │  │
- * │ │                                   │ Report   │         │  │
- * │ │                                   │ Delete   │         │  │
- * │ │                                   └──────────┘         │  │
+ * │ │          2 hours ago              ┌──────────────┐     │  │
+ * │ │                                   │ Copy Link    │     │  │
+ * │ │                                   │ Mute User    │     │  │
+ * │ │                                   │ Report Post  │     │  │
+ * │ │                                   │ Delete Post  │     │  │
+ * │ │                                   └──────────────┘     │  │
  * │ └────────────────────────────────────────────────────────┘  │
  * │ Props: PostHeaderProps                                      │
  * │ CLICK-OUTCOMES:                                             │
  * │ [Menu dots] -> toggles dropdown menu                        │
- * │ [Report Post] -> closes menu (handler TBD)                  │
- * │ [Delete Post] -> closes menu (handler TBD, own-post only)   │
+ * │ [Copy Link] -> copies post URL to clipboard                 │
+ * │ [Mute User] -> mutes user's posts (future: POST /api/mute) │
+ * │ [Report Post] -> opens ReportPostModal                      │
+ * │ [Delete Post] -> confirms & deletes (own-post/admin only)   │
  * │ GAMIFICATION: None                                          │
  * └─────────────────────────────────────────────────────────────┘
  */
 
 import React from 'react';
-import { MoreVertical, User } from 'lucide-react';
+import { MoreVertical, User, Link2, VolumeX, Flag, Trash2 } from 'lucide-react';
 import type { PostHeaderProps } from '../types/PostCardTypes';
 import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
 import {
@@ -86,7 +90,11 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
   menuOpen,
   menuRef,
   onMenuClose,
-  currentUserId,
+  onReport,
+  onDelete,
+  onCopyLink,
+  onMute,
+  isOwnPost,
 }) => {
   const PostTypeIcon = postTypeIcons[post.type] || User;
 
@@ -122,11 +130,28 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
 
             {menuOpen && (
               <DropdownMenu>
-                <DropdownMenuItem onClick={() => { onMenuClose(); }}>
-                  Report Post
+                <DropdownMenuItem onClick={() => { onCopyLink(); onMenuClose(); }}>
+                  <Link2 size={16} />
+                  Copy Link
                 </DropdownMenuItem>
-                {currentUserId && currentUserId === post.user.id && (
-                  <DropdownMenuItem onClick={() => { onMenuClose(); }}>
+
+                {!isOwnPost && (
+                  <DropdownMenuItem onClick={() => { onMute(); onMenuClose(); }}>
+                    <VolumeX size={16} />
+                    Mute User
+                  </DropdownMenuItem>
+                )}
+
+                {!isOwnPost && (
+                  <DropdownMenuItem onClick={() => { onReport(); onMenuClose(); }} $danger>
+                    <Flag size={16} />
+                    Report Post
+                  </DropdownMenuItem>
+                )}
+
+                {isOwnPost && (
+                  <DropdownMenuItem onClick={() => { onDelete(); onMenuClose(); }} $danger>
+                    <Trash2 size={16} />
                     Delete Post
                   </DropdownMenuItem>
                 )}

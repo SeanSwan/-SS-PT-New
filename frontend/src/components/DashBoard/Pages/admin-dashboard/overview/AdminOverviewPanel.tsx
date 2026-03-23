@@ -8,6 +8,7 @@ import ContactNotifications from '../components/ContactNotifications';
 import OrientationIntakeWidget from '../components/OrientationIntakeWidget';
 import SocialOverviewWidget from '../components/SocialOverviewWidget';
 import ModerationWidget from '../components/ModerationWidget';
+import PostReportsWidget from '../components/PostReportsWidget';
 import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
 import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
 import ClientComplianceDashboard from '../components/ClientComplianceDashboard';
@@ -185,6 +186,7 @@ const AdminOverviewPanel: React.FC = () => {
       <ContactNotifications autoRefresh={true} showActions={true} />
       <SocialOverviewWidget />
       <ModerationWidget />
+      <PostReportsWidget />
 
       <ControlsHeader>
         <ControlsInner>
