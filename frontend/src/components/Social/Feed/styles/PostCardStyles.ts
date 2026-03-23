@@ -37,9 +37,9 @@ export const toastSlideOut = keyframes`
 `;
 
 export const breathe = keyframes`
-  0% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.02); }
-  100% { opacity: 0.5; transform: scale(1); }
+  0% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.03); }
+  100% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
 `;
 
 export const slideUpFade = keyframes`
@@ -100,7 +100,7 @@ export const HeroArea = styled.div<{ $bgImage?: string | null; $gradient: string
   position: relative;
   width: 100%;
   height: clamp(240px, 40vw, 360px);
-  background-color: #002060;
+  background-color: var(--bg-base, #002060);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,8 +119,8 @@ export const HeroArea = styled.div<{ $bgImage?: string | null; $gradient: string
       pointer-events: none;
     }
   ` : `
-    background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.15), transparent 50%),
-                radial-gradient(circle at bottom left, rgba(96, 192, 240, 0.1), transparent 50%);
+    background: ${props.$gradient},
+                var(--bg-base, #002060);
   `}
 `;
 
@@ -128,9 +128,17 @@ export const SwanWatermark = styled.div`
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.6;
+  opacity: 0.85;
   animation: ${breathe} 4s ease-in-out infinite;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: clamp(200px, 50vw, 420px);
+    height: clamp(200px, 50vw, 420px);
+  }
 `;
 
 export const PostTypeIndicator = styled.div<{ $postType: string }>`

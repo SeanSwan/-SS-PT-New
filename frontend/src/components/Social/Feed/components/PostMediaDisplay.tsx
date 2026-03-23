@@ -94,9 +94,7 @@ const PostMediaDisplay: React.FC<PostMediaDisplayProps> = React.memo(({ post, gr
           <img
             src={SWAN_LOGO_URL}
             alt=""
-            width="160"
-            height="160"
-            style={{ borderRadius: '50%', filter: 'drop-shadow(0 0 20px rgba(96, 192, 240, 0.3))' }}
+            style={{ borderRadius: '50%', filter: 'drop-shadow(0 0 30px rgba(96, 192, 240, 0.4))' }}
           />
         </SwanWatermark>
       )}
