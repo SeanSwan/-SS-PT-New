@@ -81,14 +81,20 @@ const WorkoutsTab: React.FC = () => {
   const fetchWorkouts = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await authAxios.get('/api/workout/sessions', {
-        params: { limit: 10, status: 'completed' },
+        params: { limit: 10 },
       });
-      setWorkouts(res.data?.data || []);
+      // API returns { success, data: { workouts: [...], total, page, limit, hasMore } }
+      const payload = res.data?.data;
+      const list = Array.isArray(payload?.workouts)
+        ? payload.workouts
+        : Array.isArray(payload) ? payload : [];
+      setWorkouts(list);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 404) {
-        // Route not found or no data — treat as empty, not error
+      if (status === 404 || status === 401) {
+        // Route not found or not authenticated — treat as empty, not error
         setWorkouts([]);
       } else {
         console.warn('Failed to fetch workouts:', err);

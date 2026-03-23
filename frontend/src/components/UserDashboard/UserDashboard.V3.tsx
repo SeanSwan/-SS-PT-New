@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import { useProfile } from '../../hooks/profile/useProfile';
+import { useGamificationData } from '../../hooks/gamification/useGamificationData';
 
 // All styled-components, keyframes, and ErrorBoundary extracted to styles file
 import {
@@ -49,6 +50,11 @@ import {
   ContentGrid,
   ProfileHeader,
   BackgroundSection,
+  BannerUploadButton,
+  BadgeShowcase,
+  BadgeShowcaseItem,
+  BadgeIcon,
+  BadgeName,
   ProfileImageSection,
   ProfileImageContainer,
   ProfileImage,
@@ -164,6 +170,21 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
   } = useProfile();
 
   const navigate = useNavigate();
+  const { profile: gamProfile, levelProgress } = useGamificationData();
+
+  // Top 3 badges from earned achievements (sorted by XP reward descending)
+  const topBadges = React.useMemo(() => {
+    const earned = gamProfile?.data?.achievements || [];
+    return [...earned]
+      .sort((a, b) => (b.pointsAwarded || 0) - (a.pointsAwarded || 0))
+      .slice(0, 3)
+      .map(ua => ({
+        id: ua.id,
+        name: ua.achievement?.name || 'Achievement',
+        icon: ua.achievement?.icon || '🏆',
+        rarity: ua.achievement?.tier || 'bronze',
+      }));
+  }, [gamProfile?.data?.achievements]);
 
   // Local state
   const [activeTab, setActiveTab] = useState('feed');
@@ -191,28 +212,32 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
     level: stats?.level || 1
   }), [stats]);
 
-  // File upload handlers
+  // File upload handlers — AI Village: blob URL leak fix + file validation
+  const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
   const handleFileUpload = useCallback(async (file: File, type: 'profile' | 'background') => {
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file || !ALLOWED_TYPES.includes(file.type)) return;
+    if (file.size > MAX_UPLOAD_SIZE) return;
+
+    let previewUrl: string | null = null;
 
     try {
       if (type === 'profile') {
         await uploadProfilePhoto(file);
       } else {
-        // Show optimistic preview immediately
-        const previewUrl = URL.createObjectURL(file);
+        previewUrl = URL.createObjectURL(file);
         setBackgroundImage(previewUrl);
-        // Upload to backend — profile.bannerPhoto will update via useEffect
         await uploadBannerPhoto(file);
-        // Don't revoke blob URL here — the useEffect will replace backgroundImage
-        // with the real server URL when profile.bannerPhoto updates
       }
     } catch (error) {
       console.error('Upload error:', error);
-      // Revert optimistic update on error
       if (type === 'background') {
         setBackgroundImage(profile?.bannerPhoto || null);
       }
+    } finally {
+      // Revoke blob URL to prevent memory leak
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     }
   }, [uploadProfilePhoto, uploadBannerPhoto, profile?.bannerPhoto]);
 
@@ -312,16 +337,11 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <BackgroundSection
-                $backgroundImage={backgroundImage}
-                onClick={handleBackgroundClick}
-              >
-                <div className="upload-overlay">
-                  <Camera size={48} className="upload-icon" />
-                  <div className="upload-text">
-                    {backgroundImage ? 'Change Cover Photo' : 'Add Cover Photo'}
-                  </div>
-                </div>
+              <BackgroundSection $backgroundImage={backgroundImage}>
+                <BannerUploadButton onClick={handleBackgroundClick}>
+                  <Camera size={18} />
+                  {backgroundImage ? 'Change Cover' : 'Add Cover'}
+                </BannerUploadButton>
               </BackgroundSection>
 
               <ProfileImageSection>
@@ -337,6 +357,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     onClick={handleProfileImageClick}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    aria-label="Upload profile photo"
                   >
                     <Camera size={20} />
                   </ImageUploadButton>
@@ -395,6 +416,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     onClick={handleSettings}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    aria-label="Settings"
                   >
                     <Settings size={20} />
                   </SecondaryButton>
@@ -403,10 +425,23 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     onClick={handleShare}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    aria-label="Share profile"
                   >
                     <Share2 size={20} />
                   </SecondaryButton>
                 </ActionButtons>
+
+                {/* Top 3 Earned Badges Showcase */}
+                {topBadges.length > 0 && (
+                  <BadgeShowcase>
+                    {topBadges.map((badge) => (
+                      <BadgeShowcaseItem key={badge.id}>
+                        <BadgeIcon>{badge.icon}</BadgeIcon>
+                        <BadgeName>{badge.name}</BadgeName>
+                      </BadgeShowcaseItem>
+                    ))}
+                  </BadgeShowcase>
+                )}
               </ProfileInfo>
             </ProfileHeader>
 

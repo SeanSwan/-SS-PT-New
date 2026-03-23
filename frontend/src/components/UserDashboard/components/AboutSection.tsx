@@ -92,8 +92,8 @@ const CardTitle = styled.h3`
 `;
 
 const EditButton = styled(motion.button)`
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   background: var(--bg-base);
   color: var(--text-secondary);
   border: 1px solid var(--border-soft);
@@ -384,53 +384,66 @@ const AboutSection: React.FC = () => {
       },
       {
         icon: Star,
-        label: 'Streak',
+        label: 'Workout Streak',
         value: `${profileData?.streakDays ?? 0} day${(profileData?.streakDays ?? 0) !== 1 ? 's' : ''}`,
         color: 'linear-gradient(135deg, #10B981, #059669)'
       }
     ];
   }, [user, profileData, lp]);
 
-  // Get achievements grouped by skill tree
+  // Show EARNED achievements only (from user's gamification profile)
+  const earnedAchievements = profileData?.achievements ?? [];
+
   const achievementList = useMemo(() => {
-    const raw = achievements?.data ?? [];
-    const arr = Array.isArray(raw) ? raw : [];
-    // Deduplicate by NAME (not id) — DB has duplicate rows with unique UUIDs
-    // from multiple seeder runs. Collapse by name to show diverse badges.
+    const arr = Array.isArray(earnedAchievements) ? earnedAchievements : [];
     const seen = new Set<string>();
-    const unique = arr.filter((a: any) => {
-      const key = String(a.name || a.title || a.id).toLowerCase();
+    const unique = arr.filter((ua: any) => {
+      const key = String(ua.achievement?.name || ua.id).toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-    return unique.slice(0, 12).map((a: any) => ({
-      id: a.id,
-      title: a.title || a.name || 'Achievement',
-      description: a.description || '',
-      icon: a.iconEmoji || a.icon || '🏆',
-      rarity: (a.rarity || 'common') as Rarity,
-      xpReward: a.xpReward || a.pointValue || 0,
-      skillTree: a.skillTree as SkillTree | undefined,
-      category: a.category || 'milestone',
+    return unique.slice(0, 12).map((ua: any) => ({
+      id: ua.id,
+      title: ua.achievement?.name || 'Achievement',
+      description: ua.achievement?.description || '',
+      icon: ua.achievement?.icon || ua.achievement?.iconEmoji || '🏆',
+      rarity: (ua.achievement?.rarity || 'common') as Rarity,
+      xpReward: ua.pointsAwarded || ua.achievement?.pointValue || 0,
+      skillTree: ua.achievement?.skillTree as SkillTree | undefined,
+      category: ua.achievement?.category || 'milestone',
     }));
-  }, [achievements?.data]);
+  }, [earnedAchievements]);
 
-  // Compute skill tree stats (deduplicated by name to avoid inflated counts)
+  // Compute skill tree stats: earned vs total (available) per tree
   const skillTreeStats = useMemo(() => {
-    const raw = achievements?.data ?? [];
-    const arr = Array.isArray(raw) ? raw : [];
-    const seen = new Set<string>();
-    const trees: Record<string, number> = {};
-    arr.forEach((a: any) => {
+    // Total available per tree (from all achievement definitions)
+    const allDefs = achievements?.data ?? [];
+    const defArr = Array.isArray(allDefs) ? allDefs : [];
+    const seenDef = new Set<string>();
+    const totalTrees: Record<string, number> = {};
+    defArr.forEach((a: any) => {
       const key = String(a.name || a.title || a.id).toLowerCase();
-      if (seen.has(key)) return;
-      seen.add(key);
+      if (seenDef.has(key)) return;
+      seenDef.add(key);
       const st = a.skillTree;
-      if (st) trees[st] = (trees[st] || 0) + 1;
+      if (st) totalTrees[st] = (totalTrees[st] || 0) + 1;
     });
-    return trees;
-  }, [achievements?.data]);
+
+    // Earned per tree (from user's profile achievements)
+    const earned = Array.isArray(earnedAchievements) ? earnedAchievements : [];
+    const seenEarned = new Set<string>();
+    const earnedTrees: Record<string, number> = {};
+    earned.forEach((ua: any) => {
+      const key = String(ua.achievement?.name || ua.id).toLowerCase();
+      if (seenEarned.has(key)) return;
+      seenEarned.add(key);
+      const st = ua.achievement?.skillTree || ua.achievement?.requirementType;
+      if (st) earnedTrees[st] = (earnedTrees[st] || 0) + 1;
+    });
+
+    return { total: totalTrees, earned: earnedTrees };
+  }, [achievements?.data, earnedAchievements]);
 
   if (isLoading) {
     return (
@@ -503,7 +516,9 @@ const AboutSection: React.FC = () => {
 
           <GoalsList>
             {(Object.entries(SKILL_TREE_DISPLAY) as [SkillTree, typeof SKILL_TREE_DISPLAY[SkillTree]][]).map(([key, tree]) => {
-              const count = skillTreeStats[key] || 0;
+              const total = skillTreeStats.total[key] || 0;
+              const earned = skillTreeStats.earned[key] || 0;
+              const hasProgress = earned > 0;
               return (
                 <GoalItem
                   key={key}
@@ -513,11 +528,30 @@ const AboutSection: React.FC = () => {
                 >
                   <GoalHeader>
                     <GoalTitle>{tree.emoji} {tree.name}</GoalTitle>
-                    <GoalStatus $completed={count > 0}>
-                      {count} available
+                    <GoalStatus $completed={hasProgress}>
+                      {earned}/{total} earned
                     </GoalStatus>
                   </GoalHeader>
                   <GoalDescription>{tree.description}</GoalDescription>
+                  {total > 0 && (
+                    <div style={{
+                      height: 4,
+                      borderRadius: 2,
+                      background: 'rgba(255,255,255,0.1)',
+                      marginTop: 6,
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.min(100, (earned / total) * 100)}%`,
+                        borderRadius: 2,
+                        background: hasProgress
+                          ? 'linear-gradient(90deg, #60C0F0, #8B5CF6)'
+                          : 'transparent',
+                        transition: 'width 0.6s ease',
+                      }} />
+                    </div>
+                  )}
                 </GoalItem>
               );
             })}
@@ -535,13 +569,13 @@ const AboutSection: React.FC = () => {
         <CardHeader>
           <CardTitle>
             <Trophy size={20} />
-            Achievements ({achievementList.length > 0 ? `${achievementList.length} shown` : '0'})
+            Achievements ({achievementList.length > 0 ? `${achievementList.length} earned` : 'none yet'})
           </CardTitle>
         </CardHeader>
 
         {achievementList.length === 0 ? (
           <EmptyState>
-            No achievements available yet. Complete workouts and engage with the community to earn achievements!
+            No achievements earned yet. Complete workouts and engage with the community to start unlocking badges!
           </EmptyState>
         ) : (
           <AchievementsList>

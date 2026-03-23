@@ -205,50 +205,26 @@ export const ContentGrid = styled.div`
 
 export const ProfileHeader = styled(motion.div)`
   position: relative;
-  border-radius: 24px;
   overflow: visible;
   margin-bottom: 3rem;
-  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
-  backdrop-filter: blur(24px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.3),
-    0 8px 16px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 24px 48px rgba(0, 0, 0, 0.35),
-      0 12px 24px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    /* V3: Cyan glow on hover */
-    border-color: rgba(139, 92, 246, 0.15);
-  }
+  /* Full-width: break out of ContentWrapper max-width */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
 
   @media (max-width: 768px) {
-    border-radius: 20px;
     margin-bottom: 2rem;
-
-    &:hover {
-      transform: none;
-    }
   }
 
-  /* V3: Extended breakpoints */
   @media (max-width: 320px) {
-    border-radius: 16px;
     margin-bottom: 1.5rem;
   }
 
   @media (min-width: 2560px) {
-    border-radius: 28px;
     margin-bottom: 4rem;
   }
 
   @media (min-width: 3840px) {
-    border-radius: 32px;
     margin-bottom: 5rem;
   }
 `;
@@ -256,53 +232,46 @@ export const ProfileHeader = styled(motion.div)`
 export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   height: 320px;
   position: relative;
-  border-radius: 24px 24px 0 0;
   background: ${({ $backgroundImage, theme }) =>
     $backgroundImage
-      ? `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%), url(${$backgroundImage})`
-      : theme.gradients?.hero || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+      ? `url(${$backgroundImage})`
+      : theme.gradients?.hero || 'linear-gradient(135deg, #002060 0%, #003080 40%, #4070C0 100%)'
   };
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  align-items: flex-start;
+  justify-content: flex-end;
   overflow: hidden;
 
-  /* Premium gradient overlay */
-  &::before {
+  /* Bottom gradient fade into page background */
+  &::after {
     content: '';
     position: absolute;
-    top: 0;
+    bottom: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(59, 130, 246, 0.1) 0%,
-      transparent 50%,
-      rgba(139, 69, 19, 0.05) 100%
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    height: 120px;
+    background: linear-gradient(transparent, var(--bg-base, #002060));
+    z-index: 1;
+    pointer-events: none;
   }
 
-  &:hover::before {
-    opacity: 1;
+  /* Hide the old overlay — replaced by BannerUploadButton */
+  .upload-overlay {
+    display: none;
   }
 
   @media (max-width: 768px) {
     height: 220px;
-    background-attachment: scroll;
   }
 
-  /* V3: Extended breakpoints */
-  @media (max-width: 320px) {
-    height: 180px;
-    border-radius: 16px 16px 0 0;
+  @media (max-width: 430px) {
+    height: 200px;
+  }
+
+  @media (max-width: 340px) {
+    height: 160px;
   }
 
   @media (min-width: 2560px) {
@@ -312,52 +281,123 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   @media (min-width: 3840px) {
     height: 520px;
   }
+`;
 
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 120px;
-    background: linear-gradient(transparent, var(--bg-base));
-    z-index: 1;
-  }
+// Small themed button to change cover photo (replaces full-overlay darkening)
+export const BannerUploadButton = styled.button`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 44px;
+  border: 1px solid rgba(198, 168, 75, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 32, 96, 0.65);
+  backdrop-filter: blur(16px);
+  color: #E0ECF4;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 3;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
 
-  /* Professional upload overlay */
-  .upload-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 2;
-
-    .upload-text {
-      color: white;
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin-top: 0.75rem;
-      text-align: center;
-      letter-spacing: 0.025em;
-    }
-
-    .upload-icon {
-      color: rgba(255, 255, 255, 0.9);
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-    }
-  }
-
-  &:hover .upload-overlay {
+  &:hover {
     opacity: 1;
+    background: rgba(0, 48, 128, 0.85);
+    border-color: #60C0F0;
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.3);
+    transform: translateY(-1px);
   }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  svg {
+    opacity: 0.9;
+  }
+
+  @media (max-width: 768px) {
+    top: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 0;
+    gap: 0;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+
+  @media (max-width: 340px) {
+    top: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+  }
+`;
+
+// Top 3 badge showcase below banner
+export const BadgeShowcase = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+  padding: 0 1rem;
+
+  @media (max-width: 430px) {
+    gap: 0.75rem;
+  }
+`;
+
+export const BadgeShowcaseItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+`;
+
+export const BadgeIcon = styled.div`
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: rgba(0, 32, 96, 0.6);
+  border: 2px solid rgba(96, 192, 240, 0.3);
+  box-shadow: 0 0 12px rgba(96, 192, 240, 0.15);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #60C0F0;
+    box-shadow: 0 0 20px rgba(96, 192, 240, 0.35);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 430px) {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+`;
+
+export const BadgeName = styled.span`
+  font-size: 0.7rem;
+  color: var(--text-secondary, #94a3b8);
+  text-align: center;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Sora', sans-serif;
 `;
 
 export const ProfileImageSection = styled.div`
@@ -597,8 +637,8 @@ export const ImageUploadButton = styled(motion.button)`
   }
 
   @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     bottom: 6px;
     right: 6px;
     border-width: 2px;
@@ -1202,10 +1242,10 @@ export const SecondaryButton = styled(motion.button)`
     height: 44px;
   }
 
-  /* V3: Extended breakpoints */
+  /* V3: Extended breakpoints — maintain 44px minimum */
   @media (max-width: 320px) {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 10px;
   }
 
