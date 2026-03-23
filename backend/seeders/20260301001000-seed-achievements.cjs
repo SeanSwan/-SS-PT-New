@@ -657,7 +657,9 @@ module.exports = {
     const BATCH_SIZE = 100;
     for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
       const batch = allRows.slice(i, i + BATCH_SIZE);
-      await queryInterface.bulkInsert('Achievements', batch);
+      await queryInterface.bulkInsert('Achievements', batch, {
+        ignoreDuplicates: true
+      });
       console.log(`  Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(allRows.length / BATCH_SIZE)} (${batch.length} rows)`);
     }
 

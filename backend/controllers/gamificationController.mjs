@@ -2497,7 +2497,7 @@ const gamificationController = {
         stack: error.stack?.split('\n').slice(0, 5).join('\n')
       });
     }
-  }
+  },
   // ─────────────────────────────────────────────────────────────
   // SECTION: Streak Freeze Endpoints
   // PURPOSE: Loss Aversion psychology — protect streaks from missed days
