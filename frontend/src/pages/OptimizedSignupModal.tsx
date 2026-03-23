@@ -43,12 +43,10 @@ const SignupContainer = styled(motion.div)`
   position: relative;
   width: 100%;
   max-width: 100vw;
-  min-height: 100%;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Changed from center to allow scrolling */
-  padding: 30px 10px 10px; /* Added top padding to prevent cut-off */
-  overflow-y: auto;
+  align-items: flex-start;
+  padding: 30px 10px 10px;
 `;
 
 const VideoBackground = styled.div`

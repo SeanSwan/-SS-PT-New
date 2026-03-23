@@ -13,12 +13,11 @@ import CompactFooter from '../components/Footer/CompactFooter';
 
 // Styled container for auth pages
 const AuthLayoutContainer = styled.div`
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--bg-base);
   overflow: hidden;
-  max-height: 100vh;
   position: relative;
   z-index: 1;
 `;
@@ -30,12 +29,12 @@ const ContentArea = styled.div`
   flex-direction: column;
   align-items: center;
   overflow-y: auto;
-  height: calc(100vh - 40px); /* 40px for compact footer */
+  overscroll-behavior-y: contain;
   position: relative;
   z-index: 2;
-  padding-top: 10px; /* Add padding at the top */
-  padding-bottom: 20px; /* Add padding to ensure content doesn't touch footer */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  padding-top: 10px;
+  padding-bottom: 20px;
+  -webkit-overflow-scrolling: touch;
 `;
 
 interface AuthLayoutProps {

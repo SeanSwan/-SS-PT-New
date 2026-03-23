@@ -21,13 +21,13 @@ html, body {
 /* Fix iOS 100vh bug */
 @supports (-webkit-touch-callout: none) {
   .auth-layout-container {
-    min-height: -webkit-fill-available;
-    max-height: -webkit-fill-available;
+    height: -webkit-fill-available;
   }
-  
-  .auth-layout-content {
-    height: calc(-webkit-fill-available - 40px);
-  }
+}
+
+/* Prevent scroll-chaining so upward scroll always works */
+.auth-layout-content {
+  overscroll-behavior-y: contain;
 }
 
 /* Form container adjustments */
