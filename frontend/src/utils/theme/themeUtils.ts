@@ -27,7 +27,7 @@ import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContex
  * This enables instant theme switching via CSS variables
  */
 export const generateCSSVariables = (themeId: ThemeId): string => {
-  const theme = themes[themeId];
+  const theme = themes[themeId] || themes['crystalline-default'];
 
   return `
     /* === FOUNDATION COLORS === */
@@ -371,7 +371,7 @@ export const getGlowButtonVariant = (themeId: ThemeId): string => {
  * Get theme-appropriate icon color
  */
 export const getIconColor = (themeId: ThemeId, type: 'primary' | 'secondary' | 'accent' = 'primary'): string => {
-  const theme = themes[themeId];
+  const theme = themes[themeId] || themes['crystalline-default'];
 
   switch (type) {
     case 'primary':

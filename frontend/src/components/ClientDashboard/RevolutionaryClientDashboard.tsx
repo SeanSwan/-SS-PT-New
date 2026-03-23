@@ -20,7 +20,7 @@
  * - Performance-optimized with GPU acceleration
  */
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import {
@@ -329,23 +329,16 @@ const sectionDescriptions: Record<string, string> = {
 
 // === PARTICLE BACKGROUND (isolated to prevent parent re-renders) ===
 const ParticleBackground = React.memo(() => {
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);
-
-  useEffect(() => {
-    const generateParticles = () => {
-      const newParticles = Array.from({ length: 30 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        delay: Math.random() * 5
-      }));
-      setParticles(newParticles);
-    };
-
-    generateParticles();
-    const interval = setInterval(generateParticles, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  // Static particles — generated once on mount, animation handled by Framer Motion
+  // Avoids setInterval GC spikes every 15s (AI Village Phase 2 consensus fix)
+  const particles = useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      delay: Math.random() * 5
+    })),
+  []);
 
   return (
     <ParticleField>

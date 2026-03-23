@@ -37,7 +37,7 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
       try {
         if (!user) {
           setError('Authentication required. Please log in with admin credentials.');
-        } else if (user.role !== 'admin' && user.email !== 'ogpswan@gmail.com') {
+        } else if (user.role !== 'admin') {
           setError('Administrator access required.');
         } else {
           setError(null);
