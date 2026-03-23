@@ -20,45 +20,45 @@ import { keyframes } from 'styled-components';
 // === EXERCISE COMMAND CENTER THEME ===
 export const exerciseCommandTheme = {
   colors: {
-    // Core Command Palette (inherited from admin theme)
-    deepSpace: '#0a0a0f',
-    commandBlue: '#1e3a8a',
-    stellarBlue: '#3b82f6',
-    cyberCyan: '#60C0F0',
-    stellarWhite: '#ffffff',
-    energyBlue: '#0ea5e9',
-    
+    // Core Command Palette (Variable Bridge → Crystalline Swan)
+    deepSpace: 'var(--bg-base, #0A0A0F)',
+    commandBlue: 'var(--brand-primary, #002060)',
+    stellarBlue: 'var(--accent-purple, #8B5CF6)',
+    cyberCyan: 'var(--accent-cyan, #60C0F0)',
+    stellarWhite: 'var(--text-primary, #E0ECF4)',
+    energyBlue: 'var(--accent-cyan, #60C0F0)',
+
     // Exercise-Specific Enhancements
-    exerciseGreen: '#10b981',      // Exercise completion, success states
-    formPerfect: '#00d9ff',        // Perfect form indicators
-    nasmGold: '#fbbf24',           // NASM compliance highlights
-    uploadProgress: '#6366f1',     // Upload progress indicators
-    videoPreview: '#8b5cf6',       // Video preview elements
-    
+    exerciseGreen: 'var(--success, #10b981)',
+    formPerfect: 'var(--accent-cyan, #60C0F0)',
+    nasmGold: 'var(--accent-gold, #C6A84B)',
+    uploadProgress: 'var(--accent-purple, #8B5CF6)',
+    videoPreview: 'var(--accent-purple, #8B5CF6)',
+
     // Status & Alert System
-    warningAmber: '#f59e0b',       // Warnings
-    successGreen: '#10b981',       // Success states
-    criticalRed: '#ef4444',        // Critical alerts
-    infoBlue: '#3b82f6',           // Information states
-    
+    warningAmber: 'var(--warning, #f59e0b)',
+    successGreen: 'var(--success, #10b981)',
+    criticalRed: 'var(--danger, #ef4444)',
+    infoBlue: 'var(--accent-cyan, #60C0F0)',
+
     // Content Hierarchy
-    primaryText: '#ffffff',        // Primary text
-    secondaryText: '#e5e7eb',      // Secondary text
-    tertiaryText: '#9ca3af',       // Tertiary text
-    placeholderText: '#6b7280',    // Placeholder text
-    
+    primaryText: 'var(--text-primary, #E0ECF4)',
+    secondaryText: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+    tertiaryText: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
+    placeholderText: 'rgba(224, 236, 244, 0.3)',
+
     // Background System
-    cardBackground: 'rgba(30, 58, 138, 0.1)',    // Glass cards
-    modalBackground: 'rgba(10, 10, 15, 0.95)',   // Modal overlays
-    inputBackground: 'rgba(30, 58, 138, 0.05)',  // Input fields
-    hoverBackground: 'rgba(59, 130, 246, 0.1)',  // Hover states
+    cardBackground: 'var(--bg-elevated, rgba(26, 26, 36, 0.6))',
+    modalBackground: 'rgba(10, 10, 15, 0.95)',
+    inputBackground: 'rgba(0, 32, 96, 0.05)',
+    hoverBackground: 'rgba(139, 92, 246, 0.1)',
   },
   
   gradients: {
     // Command Center Gradients
-    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60C0F0 100%)',
-    adminNebula: 'linear-gradient(45deg, #0f172a 0%, #1e3a8a 50%, #0a0a0f 100%)',
-    dataFlow: 'radial-gradient(ellipse at top, #3b82f6 0%, #1e3a8a 50%, #0a0a0f 100%)',
+    commandCenter: 'linear-gradient(135deg, var(--brand-primary, #002060) 0%, var(--accent-purple, #8B5CF6) 50%, var(--accent-cyan, #60C0F0) 100%)',
+    adminNebula: 'linear-gradient(45deg, var(--bg-surface, #141419) 0%, var(--brand-primary, #002060) 50%, var(--bg-base, #0A0A0F) 100%)',
+    dataFlow: 'radial-gradient(ellipse at top, var(--accent-purple, #8B5CF6) 0%, var(--brand-primary, #002060) 50%, var(--bg-base, #0A0A0F) 100%)',
     
     // Exercise-Specific Gradients
     exerciseCard: 'linear-gradient(135deg, rgba(30, 58, 138, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%)',

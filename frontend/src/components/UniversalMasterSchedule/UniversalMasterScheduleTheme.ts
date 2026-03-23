@@ -13,23 +13,23 @@
 // ==================== COLOR PALETTE ====================
 
 export const stellarColors = {
-  // Primary Command Center Colors
-  deepSpace: '#0a0a0f',
-  commandNavy: '#1e3a8a',
-  stellarBlue: '#3b82f6',
-  cyberBlue: '#0ea5e9',
-  arcticBlue: '#0891b2',
-  
+  // Primary Command Center Colors (Variable Bridge → Crystalline Swan)
+  deepSpace: 'var(--bg-base, #0A0A0F)',
+  commandNavy: 'var(--brand-primary, #002060)',
+  stellarBlue: 'var(--accent-purple, #8B5CF6)',
+  cyberBlue: 'var(--accent-cyan, #60C0F0)',
+  arcticBlue: 'var(--accent-cyan, #60C0F0)',
+
   // Accent Colors
-  cosmicPurple: '#8b5cf6',
-  emeraldGreen: '#10b981',
-  rubyRed: '#ef4444',
-  amberGold: '#f59e0b',
-  
+  cosmicPurple: 'var(--accent-purple, #8B5CF6)',
+  emeraldGreen: 'var(--success, #10b981)',
+  rubyRed: 'var(--danger, #ef4444)',
+  amberGold: 'var(--warning, #f59e0b)',
+
   // Neutral Colors
-  stellarWhite: '#ffffff',
-  platinumSilver: '#e5e7eb',
-  cosmicGray: '#9ca3af',
+  stellarWhite: 'var(--text-primary, #E0ECF4)',
+  platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+  cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
   darkMatter: '#374151',
   
   // Status Colors

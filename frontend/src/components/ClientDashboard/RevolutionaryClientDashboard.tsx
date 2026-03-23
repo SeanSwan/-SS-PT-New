@@ -58,26 +58,27 @@ const MessagesGalaxy: React.FC = () => (
   </Suspense>
 );
 
-// === THEME DEFINITION (Crystalline Swan) ===
+// === THEME DEFINITION (Variable Bridge → Crystalline Swan) ===
+// CSS custom properties with Crystalline Swan fallbacks for theme changer support
 const galaxyTheme = {
   colors: {
-    deepSpace: '#002060',       // Midnight Sapphire
-    nebulaPurple: '#003080',    // Royal Depth
-    cyberCyan: '#60C0F0',       // Ice Wing
-    stellarWhite: '#E0ECF4',    // Frost White
-    cosmicPurple: '#8B5CF6',    // Wing Purple
-    voidBlack: '#001040',       // Deep Sapphire
-    starGold: '#C6A84B',        // Gilded Fern
-    energyBlue: '#50A0F0',      // Arctic Cyan
-    plasmaGreen: '#60C0F0',     // Ice Wing (replaces retired green)
-    warningRed: '#ff416c'
+    deepSpace: 'var(--brand-primary, #002060)',     // Midnight Sapphire
+    nebulaPurple: 'var(--brand-secondary, #003080)', // Royal Depth
+    cyberCyan: 'var(--accent-cyan, #60C0F0)',        // Ice Wing
+    stellarWhite: 'var(--text-primary, #E0ECF4)',    // Frost White
+    cosmicPurple: 'var(--accent-purple, #8B5CF6)',   // Wing Purple
+    voidBlack: 'var(--bg-base, #0A0A0F)',            // Obsidian Black
+    starGold: 'var(--accent-gold, #C6A84B)',         // Gilded Fern
+    energyBlue: 'var(--data-cyan, #50A0F0)',         // Arctic Cyan (data only)
+    plasmaGreen: 'var(--accent-cyan, #60C0F0)',      // Ice Wing
+    warningRed: 'var(--danger, #ef4444)'
   },
   gradients: {
-    galaxy: 'radial-gradient(ellipse at center, #003080 0%, #002060 70%)',
-    nebula: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 50%, #003080 100%)',
-    stellar: 'linear-gradient(45deg, #60C0F0 0%, #C6A84B 100%)',
-    cosmic: 'radial-gradient(circle, #60C0F0 0%, #8B5CF6 70%, #002060 100%)',
-    aurora: 'linear-gradient(270deg, #60C0F0, #8B5CF6, #C6A84B, #60C0F0)',
+    galaxy: 'radial-gradient(ellipse at center, var(--brand-secondary, #003080) 0%, var(--brand-primary, #002060) 70%)',
+    nebula: 'var(--gradient-cosmic-nebula, linear-gradient(135deg, #8B5CF6 0%, #60C0F0 50%, #003080 100%))',
+    stellar: 'linear-gradient(45deg, var(--accent-cyan, #60C0F0) 0%, var(--accent-gold, #C6A84B) 100%)',
+    cosmic: 'radial-gradient(circle, var(--accent-cyan, #60C0F0) 0%, var(--accent-purple, #8B5CF6) 70%, var(--brand-primary, #002060) 100%)',
+    aurora: 'linear-gradient(270deg, var(--accent-cyan, #60C0F0), var(--accent-purple, #8B5CF6), var(--accent-gold, #C6A84B), var(--accent-cyan, #60C0F0))',
   },
   shadows: {
     stellar: '0 0 20px rgba(139, 92, 246, 0.5)',

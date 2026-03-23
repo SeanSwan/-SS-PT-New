@@ -22,14 +22,14 @@ import { keyframes } from 'styled-components';
 // ==================== CORE THEME PALETTE ====================
 
 export const workoutLoggerTheme = {
-  // Core Command Colors
+  // Core Command Colors (Variable Bridge → Crystalline Swan)
   colors: {
     // Primary Command Palette
-    deepSpace: '#0a0a0f',
-    commandNavy: '#1e3a8a',           // Primary backgrounds
-    stellarAuthority: '#3b82f6',      // Primary actions, active states
-    cyberIntelligence: '#0ea5e9',     // Data highlights, progress indicators
-    tacticalAccent: '#0891b2',        // Secondary actions, hover states
+    deepSpace: 'var(--bg-base, #0A0A0F)',
+    commandNavy: 'var(--brand-primary, #002060)',
+    stellarAuthority: 'var(--accent-purple, #8B5CF6)',
+    cyberIntelligence: 'var(--accent-cyan, #60C0F0)',
+    tacticalAccent: 'var(--accent-cyan, #60C0F0)',
     
     // NASM Phase Colors (High Contrast for Gym Use)
     foundationGreen: '#16a34a',       // Phase 1: Foundation/Activation
@@ -53,23 +53,23 @@ export const workoutLoggerTheme = {
     neutralGray: '#6b7280',           // Disabled, neutral states
     
     // Text Hierarchy
-    stellarWhite: '#ffffff',          // Primary text
-    platinumSilver: '#e5e7eb',        // Secondary text
-    cosmicGray: '#9ca3af',            // Tertiary text, placeholders
-    voidBlack: '#000000',             // Deep contrast text
-    
+    stellarWhite: 'var(--text-primary, #E0ECF4)',
+    platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+    cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
+    voidBlack: '#000000',
+
     // Interface Elements
-    commandGlass: 'rgba(30, 58, 138, 0.15)',    // Glass backgrounds
-    tacticalBorder: 'rgba(59, 130, 246, 0.3)',  // Component borders
-    energyGlow: 'rgba(59, 130, 246, 0.6)',      // Active glow effects
-    shadowDepth: 'rgba(0, 0, 0, 0.4)'           // Depth shadows
+    commandGlass: 'rgba(0, 32, 96, 0.15)',
+    tacticalBorder: 'rgba(139, 92, 246, 0.3)',
+    energyGlow: 'rgba(96, 192, 240, 0.6)',
+    shadowDepth: 'rgba(0, 0, 0, 0.4)'
   },
   
   // Advanced Gradients
   gradients: {
-    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #0891b2 100%)',
-    tacticalGlass: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%)',
-    energyFlow: 'radial-gradient(ellipse at center, #3b82f6 0%, #1e3a8a 70%, #0a0a0f 100%)',
+    commandCenter: 'linear-gradient(135deg, var(--brand-primary, #002060) 0%, var(--accent-purple, #8B5CF6) 50%, var(--accent-cyan, #60C0F0) 100%)',
+    tacticalGlass: 'linear-gradient(135deg, rgba(0, 32, 96, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%)',
+    energyFlow: 'radial-gradient(ellipse at center, var(--accent-purple, #8B5CF6) 0%, var(--brand-primary, #002060) 70%, var(--bg-base, #0A0A0F) 100%)',
     successGradient: 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)',
     warningGradient: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)',
     criticalGradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',

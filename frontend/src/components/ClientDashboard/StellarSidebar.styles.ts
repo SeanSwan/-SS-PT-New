@@ -2,25 +2,26 @@ import { motion } from 'framer-motion';
 import styled, { keyframes, css } from 'styled-components';
 import { NavStatus } from './StellarSidebar.config';
 
+// Variable Bridge → Crystalline Swan (AI Village consensus 2026-03-22)
 export const stellarTheme = {
   colors: {
-    deepSpace: '#002060',       // Midnight Sapphire
-    nebulaPurple: '#003080',    // Royal Depth
-    cyberCyan: '#60C0F0',       // Ice Wing
-    stellarWhite: '#E0ECF4',    // Frost White
-    cosmicPurple: '#8B5CF6',    // Wing Purple
-    starGold: '#C6A84B',        // Gilded Fern
-    energyBlue: '#50A0F0',      // Arctic Cyan
-    plasmaGreen: '#60C0F0',     // Ice Wing (replaces retired green)
-    warningRed: '#ff416c',
-    voidBlack: '#001040',       // Deep Sapphire
+    deepSpace: 'var(--brand-primary, #002060)',
+    nebulaPurple: 'var(--brand-secondary, #003080)',
+    cyberCyan: 'var(--accent-cyan, #60C0F0)',
+    stellarWhite: 'var(--text-primary, #E0ECF4)',
+    cosmicPurple: 'var(--accent-purple, #8B5CF6)',
+    starGold: 'var(--accent-gold, #C6A84B)',
+    energyBlue: 'var(--data-cyan, #50A0F0)',
+    plasmaGreen: 'var(--accent-cyan, #60C0F0)',
+    warningRed: 'var(--danger, #ef4444)',
+    voidBlack: 'var(--bg-base, #0A0A0F)',
   },
   gradients: {
-    stellar: 'linear-gradient(135deg, #60C0F0 0%, #8B5CF6 50%, #C6A84B 100%)',
-    nebula: 'linear-gradient(45deg, #003080 0%, #8B5CF6 50%, #002060 100%)',
-    cosmic: 'radial-gradient(ellipse at top, #60C0F0 0%, #003080 50%, #002060 100%)',
-    aurora: 'linear-gradient(270deg, #60C0F0, #8B5CF6, #C6A84B, #60C0F0)',
-    constellation: 'conic-gradient(from 0deg, #60C0F0, #8B5CF6, #C6A84B, #60C0F0)',
+    stellar: 'linear-gradient(135deg, var(--accent-cyan, #60C0F0) 0%, var(--accent-purple, #8B5CF6) 50%, var(--accent-gold, #C6A84B) 100%)',
+    nebula: 'linear-gradient(45deg, var(--brand-secondary, #003080) 0%, var(--accent-purple, #8B5CF6) 50%, var(--brand-primary, #002060) 100%)',
+    cosmic: 'radial-gradient(ellipse at top, var(--accent-cyan, #60C0F0) 0%, var(--brand-secondary, #003080) 50%, var(--brand-primary, #002060) 100%)',
+    aurora: 'linear-gradient(270deg, var(--accent-cyan, #60C0F0), var(--accent-purple, #8B5CF6), var(--accent-gold, #C6A84B), var(--accent-cyan, #60C0F0))',
+    constellation: 'conic-gradient(from 0deg, var(--accent-cyan, #60C0F0), var(--accent-purple, #8B5CF6), var(--accent-gold, #C6A84B), var(--accent-cyan, #60C0F0))',
   },
   shadows: {
     stellar: '0 0 30px rgba(139, 92, 246, 0.6)',

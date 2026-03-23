@@ -31,18 +31,19 @@ export const textGlow = keyframes`
 `;
 
 // --- Executive Command Intelligence Theme ---
+// Variable Bridge → Crystalline Swan (AI Village consensus 2026-03-22)
 const executiveTheme = {
-  deepSpace: '#0a0a0f',
-  commandNavy: '#1e3a8a',
-  stellarAuthority: '#3b82f6',
-  cyberIntelligence: '#0ea5e9',
-  executiveAccent: '#0891b2',
-  warningAmber: '#f59e0b',
-  successGreen: '#10b981',
-  criticalRed: '#ef4444',
-  stellarWhite: '#ffffff',
-  platinumSilver: '#e5e7eb',
-  cosmicGray: '#9ca3af',
+  deepSpace: 'var(--bg-base, #0A0A0F)',
+  commandNavy: 'var(--brand-primary, #002060)',
+  stellarAuthority: 'var(--accent-purple, #8B5CF6)',
+  cyberIntelligence: 'var(--accent-cyan, #60C0F0)',
+  executiveAccent: 'var(--accent-cyan, #60C0F0)',
+  warningAmber: 'var(--warning, #f59e0b)',
+  successGreen: 'var(--success, #10b981)',
+  criticalRed: 'var(--danger, #ef4444)',
+  stellarWhite: 'var(--text-primary, #E0ECF4)',
+  platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+  cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
 };
 
 // --- Styled Components ---

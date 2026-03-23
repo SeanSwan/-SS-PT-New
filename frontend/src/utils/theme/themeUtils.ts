@@ -129,6 +129,17 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --warning: ${theme.colors.warning};
     --danger: ${theme.colors.error};
     --info: ${theme.colors.primary};
+
+    /* === DASHBOARD VARIABLE BRIDGE (AI Village consensus 2026-03-22) === */
+    /* These variables unify all 3 dashboards with the 14-theme changer */
+    --brand-primary: ${theme.colors.primaryDeep || theme.colors.primary};
+    --brand-secondary: ${theme.colors.secondaryDeep || theme.colors.secondary};
+    --brand-tertiary: ${theme.colors.secondary};
+    --accent-cyan: ${theme.colors.primary};
+    --accent-purple: ${theme.colors.secondary};
+    --data-cyan: ${theme.colors.primaryLight || theme.colors.primary};
+    --gradient-cosmic-nebula: linear-gradient(135deg, ${theme.colors.secondary} 0%, ${theme.colors.primary} 100%);
+    --gradient-vault-glass: linear-gradient(180deg, rgba(20, 20, 25, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%);
   `;
 };
 

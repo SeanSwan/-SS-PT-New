@@ -1,37 +1,54 @@
+/**
+ * AdminLayoutTheme.ts — Variable Bridge Theme
+ * =============================================
+ * Maps admin dashboard theme to CSS custom properties from UniversalThemeContext.
+ * Fallback values use Crystalline Swan active palette per CLAUDE.md.
+ *
+ * AI Village Consensus (2026-03-22): Replace hardcoded Galaxy-Swan tokens with
+ * CSS variable bridge so the 14-theme changer works across all dashboards.
+ */
+
 import { createGlobalStyle } from 'styled-components';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Variable Bridge Theme
+// PURPOSE: Maps styled-components theme to CSS custom properties
+// WHY: Enables theme changer to affect admin dashboard without
+//      rewriting every individual styled-component
+// ─────────────────────────────────────────────────────────────
 
 export const executiveCommandTheme = {
   colors: {
-    deepSpace: '#0a0a0f',
-    commandNavy: '#1e3a8a',
-    stellarAuthority: '#3b82f6',
-    cyberIntelligence: '#0ea5e9',
-    executiveAccent: '#0891b2',
-    warningAmber: '#f59e0b',
-    successGreen: '#10b981',
-    criticalRed: '#ef4444',
-    stellarWhite: '#ffffff',
-    platinumSilver: '#e5e7eb',
-    cosmicGray: '#9ca3af',
+    deepSpace: 'var(--bg-base, #0A0A0F)',             // Obsidian Black
+    commandNavy: 'var(--brand-primary, #002060)',       // Midnight Sapphire
+    stellarAuthority: 'var(--accent-purple, #8B5CF6)',  // Wing Purple
+    cyberIntelligence: 'var(--accent-cyan, #60C0F0)',   // Ice Wing
+    executiveAccent: 'var(--accent-cyan, #60C0F0)',     // Ice Wing
+    warningAmber: 'var(--warning, #f59e0b)',
+    successGreen: 'var(--success, #10b981)',
+    criticalRed: 'var(--danger, #ef4444)',
+    stellarWhite: 'var(--text-primary, #E0ECF4)',       // Frost White
+    platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+    cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
     voidBlack: '#000000',
-    contentBackground: '#f8fafc',
-    cardBackground: 'rgba(30, 58, 138, 0.1)',
+    contentBackground: 'var(--bg-surface, #141419)',    // Carbon
+    cardBackground: 'var(--bg-elevated, #1A1A24)',      // Graphite
   },
   gradients: {
-    commandCenter: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #0891b2 100%)',
-    executiveGlass: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%)',
-    dataFlow: 'radial-gradient(ellipse at top, #3b82f6 0%, #1e3a8a 50%, #0a0a0f 100%)',
-    intelligenceHorizon: 'linear-gradient(270deg, #0891b2, #3b82f6, #1e3a8a)',
-    commandAurora: 'linear-gradient(45deg, #60C0F0 0%, #3b82f6 50%, #1e3a8a 100%)',
+    commandCenter: 'var(--gradient-cosmic-nebula, linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%))',
+    executiveGlass: 'var(--gradient-vault-glass, linear-gradient(180deg, rgba(20, 20, 25, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%))',
+    dataFlow: 'radial-gradient(ellipse at top, var(--accent-purple, #8B5CF6) 0%, var(--brand-primary, #002060) 50%, var(--bg-base, #0A0A0F) 100%)',
+    intelligenceHorizon: 'linear-gradient(270deg, var(--accent-cyan, #60C0F0), var(--accent-purple, #8B5CF6), var(--brand-primary, #002060))',
+    commandAurora: 'linear-gradient(45deg, var(--accent-cyan, #60C0F0) 0%, var(--accent-purple, #8B5CF6) 50%, var(--brand-primary, #002060) 100%)',
   },
   shadows: {
-    commandGlow: '0 0 30px rgba(59, 130, 246, 0.4)',
+    commandGlow: '0 0 30px rgba(139, 92, 246, 0.4)',   // Wing Purple glow
     executiveDepth: '0 20px 40px rgba(0, 0, 0, 0.3)',
-    intelligenceCard: '0 8px 32px rgba(30, 58, 138, 0.2)',
+    intelligenceCard: '0 8px 32px rgba(0, 32, 96, 0.2)', // Midnight Sapphire shadow
     systemAlert: '0 0 20px currentColor',
   },
   typography: {
-    fontFamily: '"Inter", "SF Pro Display", "Roboto", sans-serif',
+    fontFamily: "'Plus Jakarta Sans', 'Sora', -apple-system, BlinkMacSystemFont, sans-serif",
     weights: {
       light: 300,
       normal: 400,
@@ -70,8 +87,8 @@ export const ExecutiveGlobalStyles = createGlobalStyle`
 
   body {
     font-family: ${props => props.theme.typography.fontFamily};
-    color: ${props => props.theme.colors.stellarWhite};
-    background: ${props => props.theme.gradients.dataFlow};
+    color: var(--text-primary, #E0ECF4);
+    background: radial-gradient(ellipse at top, var(--accent-purple, #8B5CF6) 0%, var(--brand-primary, #002060) 50%, var(--bg-base, #0A0A0F) 100%);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -82,22 +99,22 @@ export const ExecutiveGlobalStyles = createGlobalStyle`
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.2);
+    background: var(--bg-elevated, #1A1A24);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.3);
+    background: var(--accent-cyan, rgba(96, 192, 240, 0.3));
     border-radius: 3px;
 
     &:hover {
-      background: rgba(59, 130, 246, 0.5);
+      background: rgba(96, 192, 240, 0.5);
     }
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(59, 130, 246, 0.3) rgba(10, 10, 15, 0.2);
+    scrollbar-color: rgba(96, 192, 240, 0.3) var(--bg-elevated, #1A1A24);
   }
 
   @media (max-width: 768px) {
@@ -106,12 +123,13 @@ export const ExecutiveGlobalStyles = createGlobalStyle`
     }
   }
 
-  *:focus {
-    outline: 2px solid ${props => props.theme.colors.stellarAuthority};
-    outline-offset: 2px;
+  *:focus-visible {
+    outline: 2px solid var(--accent-cyan, #60C0F0);
+    outline-offset: 4px;
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 
-  .js-focus-visible *:focus:not(.focus-visible) {
+  *:focus:not(:focus-visible) {
     outline: none;
   }
 `;
