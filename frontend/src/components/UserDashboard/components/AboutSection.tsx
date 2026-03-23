@@ -395,10 +395,11 @@ const AboutSection: React.FC = () => {
   const achievementList = useMemo(() => {
     const raw = achievements?.data ?? [];
     const arr = Array.isArray(raw) ? raw : [];
-    // Deduplicate by id (or by name if id is missing), then take first 12
+    // Deduplicate by NAME (not id) — DB has duplicate rows with unique UUIDs
+    // from multiple seeder runs. Collapse by name to show diverse badges.
     const seen = new Set<string>();
     const unique = arr.filter((a: any) => {
-      const key = String(a.id || a.name || a.title);
+      const key = String(a.name || a.title || a.id).toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -415,11 +416,16 @@ const AboutSection: React.FC = () => {
     }));
   }, [achievements?.data]);
 
-  // Compute skill tree stats
+  // Compute skill tree stats (deduplicated by name to avoid inflated counts)
   const skillTreeStats = useMemo(() => {
     const raw = achievements?.data ?? [];
+    const arr = Array.isArray(raw) ? raw : [];
+    const seen = new Set<string>();
     const trees: Record<string, number> = {};
-    (Array.isArray(raw) ? raw : []).forEach((a: any) => {
+    arr.forEach((a: any) => {
+      const key = String(a.name || a.title || a.id).toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
       const st = a.skillTree;
       if (st) trees[st] = (trees[st] || 0) + 1;
     });

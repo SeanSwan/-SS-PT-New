@@ -849,12 +849,20 @@ const gamificationController = {
    */
   getAllAchievements: async (req, res) => {
     try {
-      const { isActive, category, skillTree } = req.query;
+      const { isActive, category, skillTree, includeHidden } = req.query;
 
       const whereClause = {};
 
+      // Default to active-only unless explicitly requesting inactive
       if (isActive !== undefined) {
         whereClause.isActive = isActive === 'true';
+      } else {
+        whereClause.isActive = true;
+      }
+
+      // Hide secret/hidden achievements unless admin explicitly requests them
+      if (includeHidden !== 'true') {
+        whereClause.isHidden = false;
       }
 
       if (category) {
@@ -865,11 +873,20 @@ const gamificationController = {
         whereClause.skillTree = skillTree;
       }
 
-      const achievements = await Achievement.findAll({
+      const allAchievements = await Achievement.findAll({
         where: whereClause,
         order: [['name', 'ASC']]
       });
-      
+
+      // Deduplicate by name — multiple seeders may have created duplicate rows
+      const seen = new Set();
+      const achievements = allAchievements.filter(a => {
+        const key = (a.name || '').toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       return res.status(200).json({ success: true, achievements });
     } catch (error) {
       console.error('Error getting achievements:', error);
