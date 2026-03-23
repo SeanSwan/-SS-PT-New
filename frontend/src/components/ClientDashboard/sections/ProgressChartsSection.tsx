@@ -21,7 +21,7 @@
 
 /**
  * ┌─── SUB-COMPONENT: ProgressChartsSection ───────────────────┐
- * │ PARENT: ProgressConstellation (GalaxySections.tsx)           │
+ * │ PARENT: ProgressConstellation (CrystallineSections.tsx)           │
  * │ PURPOSE: Display Victory charts for client fitness data      │
  * │ WIREFRAME:                                                   │
  * │ ┌──────────────────────────────────────────────────────┐    │

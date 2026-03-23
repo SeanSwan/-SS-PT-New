@@ -11,7 +11,7 @@
  * on the client dashboard. Targets wealthy golf clients who expect
  * credentialed trainers.
  *
- * HOW IT FITS IN THE APP: RevolutionaryClientDashboard → OverviewGalaxy → TrainerCredentialsCard
+ * HOW IT FITS IN THE APP: RevolutionaryClientDashboard → OverviewCrystalline → TrainerCredentialsCard
  * KEY DECISIONS: Static content card, no API calls. Cert badges as pill elements.
  */
 

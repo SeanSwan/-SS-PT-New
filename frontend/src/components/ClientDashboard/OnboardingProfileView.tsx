@@ -2,7 +2,7 @@
  * OnboardingProfileView.tsx
  * =========================
  * Read-only display of a client's onboarding/master prompt data.
- * Used in both the client dashboard (OnboardingGalaxy) and admin ClientDetailsModal.
+ * Used in both the client dashboard (OnboardingCrystalline) and admin ClientDetailsModal.
  */
 
 import React from 'react';

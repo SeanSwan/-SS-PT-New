@@ -2,7 +2,7 @@
  * RevolutionaryClientDashboard.tsx (RESTORED ENHANCED VERSION)
  * ============================================================
  * 
- * Revolutionary Client Dashboard implementing "The Gamified Galaxy" concept
+ * Revolutionary Client Dashboard implementing the Crystalline Swan concept
  * Enhanced with Seraphina's Stellar Sidebar navigation system.
  * 
  * Key Features:
@@ -24,12 +24,12 @@ import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import {
-  OverviewGalaxy, WorkoutUniverse, ProgressConstellation,
-  AchievementNebula, TimeWarp, OnboardingGalaxy,
-  AccountGalaxy
-} from './GalaxySections';
+  OverviewCrystalline, WorkoutUniverse, ProgressConstellation,
+  AchievementNebula, TimeWarp, OnboardingCrystalline,
+  AccountCrystalline
+} from './CrystallineSections';
 import StellarSidebar from './StellarSidebar';
-import HealthGalaxy from './sections/HealthGalaxy';
+import HealthCrystalline from './sections/HealthCrystalline';
 import ClientWorkoutLoggerSection from './sections/ClientWorkoutLoggerSection';
 import ClientAIWorkoutCreator from './sections/ClientAIWorkoutCreator';
 import AIAssistantFAB from '../AIAssistant/AIAssistantFAB';
@@ -37,22 +37,22 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const MessagingPage = lazy(() => import('../../pages/MessagingPage'));
-const LazyFormAnalysisGalaxy = lazy(() => import('./sections/FormAnalysisGalaxy'));
+const LazyFormAnalysisCrystalline = lazy(() => import('./sections/FormAnalysisCrystalline'));
 const NutritionWorkspace = lazy(() => import('../DashBoard/workspaces/NutritionWorkspace'));
 
-const FormCheckGalaxy: React.FC = () => (
+const FormCheckCrystalline: React.FC = () => (
   <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading form analysis...</div>}>
-    <LazyFormAnalysisGalaxy />
+    <LazyFormAnalysisCrystalline />
   </Suspense>
 );
 
-const FoodIntelGalaxy: React.FC = () => (
+const FoodIntelCrystalline: React.FC = () => (
   <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading nutrition workspace...</div>}>
     <NutritionWorkspace />
   </Suspense>
 );
 
-const MessagesGalaxy: React.FC = () => (
+const MessagesCrystalline: React.FC = () => (
   <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'rgba(255,255,255,0.7)' }}>Loading messages...</div>}>
     <MessagingPage />
   </Suspense>
@@ -60,7 +60,7 @@ const MessagesGalaxy: React.FC = () => (
 
 // === THEME DEFINITION (Variable Bridge → Crystalline Swan) ===
 // CSS custom properties with Crystalline Swan fallbacks for theme changer support
-const galaxyTheme = {
+const crystallineTheme = {
   colors: {
     deepSpace: 'var(--brand-primary, #002060)',     // Midnight Sapphire
     nebulaPurple: 'var(--brand-secondary, #003080)', // Royal Depth
@@ -107,7 +107,7 @@ const particleFloat = keyframes`
 `;
 
 // === STYLED COMPONENTS ===
-const GalaxyContainer = styled.div`
+const CrystallineContainer = styled.div`
   display: flex;
   min-height: 100vh;
   background: ${props => props.theme.gradients.galaxy};
@@ -284,19 +284,19 @@ const migrateTabId = (id: string): string => TAB_MIGRATION[id] ?? id;
 
 // === SECTION MAPPING (7 tabs) ===
 const sectionComponents: Record<string, React.FC> = {
-  overview: OverviewGalaxy,
-  onboarding: OnboardingGalaxy,
+  overview: OverviewCrystalline,
+  onboarding: OnboardingCrystalline,
   schedule: TimeWarp,
   workouts: WorkoutUniverse,
   logger: ClientWorkoutLoggerSection,
   'ai-workout': ClientAIWorkoutCreator,
-  'form-check': FormCheckGalaxy,
+  'form-check': FormCheckCrystalline,
   progress: ProgressConstellation,
-  health: HealthGalaxy,
-  'food-intel': FoodIntelGalaxy,
+  health: HealthCrystalline,
+  'food-intel': FoodIntelCrystalline,
   gamification: AchievementNebula,
-  messages: MessagesGalaxy,
-  account: AccountGalaxy,
+  messages: MessagesCrystalline,
+  account: AccountCrystalline,
 };
 
 const sectionTitles: Record<string, string> = {
@@ -400,12 +400,12 @@ const RevolutionaryClientDashboard: React.FC = () => {
   // Resolve section with fallback — prevents blank panels from unknown tab IDs
   const resolvedSection = activeSection in sectionComponents ? activeSection : 'overview';
   const CurrentSectionComponent = sectionComponents[resolvedSection];
-  const currentTitle = sectionTitles[resolvedSection] ?? 'Galaxy Dashboard';
+  const currentTitle = sectionTitles[resolvedSection] ?? 'Crystalline Dashboard';
   const currentDescription = sectionDescriptions[resolvedSection] ?? 'Welcome to your cosmic fitness journey';
   
   return (
-    <ThemeProvider theme={galaxyTheme}>
-      <GalaxyContainer>
+    <ThemeProvider theme={crystallineTheme}>
+      <CrystallineContainer>
         {/* Background Particles (isolated component prevents parent re-renders) */}
         <ParticleBackground />
         
@@ -487,7 +487,7 @@ const RevolutionaryClientDashboard: React.FC = () => {
 
         {/* AI Assistant Floating Button + Drawer */}
         <AIAssistantFAB userRole="client" />
-      </GalaxyContainer>
+      </CrystallineContainer>
     </ThemeProvider>
   );
 };

@@ -1,9 +1,9 @@
 ﻿/**
- * GalaxySections.tsx
- * ==================
- * 
- * Section components for the Gamified Galaxy Dashboard
- * Each section implements the space theme with stellar styling
+ * CrystallineSections.tsx
+ * ======================
+ *
+ * Section components for the Crystalline Swan Client Dashboard
+ * Each section implements the Crystalline Swan theme with stellar styling
  */
 
 import React from 'react';
@@ -145,10 +145,10 @@ const ProgressOrb = styled.div<{ progress: number }>`
 // === SECTION COMPONENTS ===
 
 // Import the enhanced overview component
-import EnhancedOverviewGalaxy from './EnhancedOverviewGalaxy';
+import EnhancedOverviewCrystalline from './EnhancedOverviewCrystalline';
 
-export const OverviewGalaxy: React.FC = () => (
-  <EnhancedOverviewGalaxy />
+export const OverviewCrystalline: React.FC = () => (
+  <EnhancedOverviewCrystalline />
 );
 
 export const WorkoutUniverse: React.FC = () => {
@@ -1113,7 +1113,7 @@ const PackageSubscription: React.FC = () => {
 };
 
 // === ACCOUNT GALAXY (combines PackageSubscription + PersonalStarmap + AiConsent) ===
-export const AccountGalaxy: React.FC = () => (
+export const AccountCrystalline: React.FC = () => (
   <>
     <PackageSubscription />
     <PersonalStarmap />
@@ -1150,7 +1150,7 @@ const LazyClientOnboardingWizard = React.lazy(
   () => import('../../pages/onboarding/ClientOnboardingWizard')
 );
 
-export const OnboardingGalaxy: React.FC = () => {
+export const OnboardingCrystalline: React.FC = () => {
   const { user } = useAuth();
   const { data: onboardingData, loading, refetch } = useClientOnboardingData(user?.id);
   const [showWizard, setShowWizard] = React.useState(false);

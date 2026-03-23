@@ -2,7 +2,7 @@
  * StellarSidebar.tsx
  * ==================
  *
- * Revolutionary Stellar Constellation Sidebar for the Galaxy Dashboard
+ * Revolutionary Stellar Constellation Sidebar for the Crystalline Dashboard
  * Designed by Seraphina, The Digital Alchemist
  *
  * Features:

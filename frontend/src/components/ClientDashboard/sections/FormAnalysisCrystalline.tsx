@@ -1,8 +1,8 @@
 /**
- * FormAnalysisGalaxy
+ * FormAnalysisCrystalline
  * ==================
  * Dashboard-embedded form analysis section for the client dashboard.
- * Uses the same lazy-loaded tabs from FormAnalysis/ but styled for the Galaxy theme.
+ * Uses the same lazy-loaded tabs from FormAnalysis/ but styled for the Crystalline Swan theme.
  */
 import React, { lazy, Suspense, useState } from 'react';
 import styled from 'styled-components';
@@ -98,7 +98,7 @@ const InfoCard = styled.div`
   }
 `;
 
-const FormAnalysisGalaxy: React.FC = () => {
+const FormAnalysisCrystalline: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
   const ActiveComponent = TAB_COMPONENTS[activeTab];
 
@@ -140,4 +140,4 @@ const FormAnalysisGalaxy: React.FC = () => {
   );
 };
 
-export default FormAnalysisGalaxy;
+export default FormAnalysisCrystalline;

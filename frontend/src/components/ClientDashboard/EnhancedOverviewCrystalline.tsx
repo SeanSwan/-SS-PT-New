@@ -1,5 +1,5 @@
 /**
- * EnhancedOverviewGalaxy.tsx
+ * EnhancedOverviewCrystalline.tsx
  * ==========================
  * 
  * Revolutionary Overview section with real-time MCP integration
@@ -425,7 +425,7 @@ const Particle = styled(motion.div)<{ delay: number }>`
 `;
 
 // === COMPONENT ===
-const EnhancedOverviewGalaxy: React.FC = () => {
+const EnhancedOverviewCrystalline: React.FC = () => {
   const {
     gamificationData,
     stats,
@@ -881,4 +881,4 @@ const EnhancedOverviewGalaxy: React.FC = () => {
   );
 };
 
-export default EnhancedOverviewGalaxy;
+export default EnhancedOverviewCrystalline;

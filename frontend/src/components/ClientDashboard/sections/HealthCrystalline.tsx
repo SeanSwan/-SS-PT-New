@@ -1,5 +1,5 @@
 /**
- * HealthGalaxy.tsx
+ * HealthCrystalline.tsx
  * ================
  * Client-facing Pain & Injury Body Map section.
  * Allows clients to self-report pain so their trainer can see it
@@ -83,7 +83,7 @@ const InfoText = styled.p`
 
 // ── Component ───────────────────────────────────────────────────────────
 
-const HealthGalaxy: React.FC = () => {
+const HealthCrystalline: React.FC = () => {
   const { user } = useAuth() as any;
 
   if (!user?.id) {
@@ -120,4 +120,4 @@ const HealthGalaxy: React.FC = () => {
   );
 };
 
-export default HealthGalaxy;
+export default HealthCrystalline;
