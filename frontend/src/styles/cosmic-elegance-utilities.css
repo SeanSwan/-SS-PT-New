@@ -155,12 +155,12 @@
 }
 
 .bg-hero-gradient {
-  background: radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%);
+  background: radial-gradient(ellipse at center, #1A1A24 0%, #0A0A0F 70%);
 }
 
 /* Text Gradients */
 .text-cosmic-gradient {
-  background: linear-gradient(135deg, #8B5CF6, #7851A9, #FFD700);
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0, #C6A84B);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

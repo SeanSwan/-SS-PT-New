@@ -18,7 +18,7 @@
   --royal-purple-glow: rgba(120, 81, 169, 0.2);
   
   /* Background gradients */
-  --bg-gradient-primary: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  --bg-gradient-primary: linear-gradient(135deg, #0A0A0F, #1A1A24);
   --bg-gradient-card: linear-gradient(135deg, rgba(15, 15, 35, 0.7), rgba(30, 30, 60, 0.7));
   
   /* Box-shadows */
