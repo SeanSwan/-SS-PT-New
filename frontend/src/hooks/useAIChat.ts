@@ -191,6 +191,18 @@ export function useAIChat() {
         }
       );
       const data = await res.json();
+
+      // Handle 402 — subscription paywall
+      if (res.status === 402) {
+        // Remove optimistic message
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages: prev.messages.slice(0, -1),
+        } : prev);
+        setSending(false);
+        return { paywallRequired: true, ...data, originalMessage: message } as any;
+      }
+
       if (!data.success) throw new Error(data.error || 'Failed to send message');
 
       // Replace optimistic message with real response

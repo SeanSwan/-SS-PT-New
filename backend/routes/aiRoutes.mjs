@@ -2,6 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiKillSwitch } from '../middleware/aiConsent.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
+import { requireSubscription } from '../middleware/requireSubscription.mjs';
 import { generateWorkoutPlan, approveDraftPlan } from '../controllers/aiWorkoutController.mjs';
 import {
   grantAiConsent,
@@ -54,11 +55,12 @@ router.get('/health', (req, res) => {
 });
 
 // POST /api/ai/workout-generation
-// Middleware chain: auth → kill switch → rate limiter → controller (RBAC + consent inside controller)
+// Middleware chain: auth → kill switch → subscription check → rate limiter → controller
 router.post(
   '/workout-generation',
   protect,
   aiKillSwitch,
+  requireSubscription('supporter', { feature: 'generation' }),
   aiRateLimiter,
   generateWorkoutPlan
 );
@@ -78,11 +80,12 @@ router.get('/consent/status', protect, getAiConsentStatus);
 router.get('/consent/status/:userId', protect, getAiConsentStatus);
 
 // POST /api/ai/long-horizon/generate (Phase 5C-C — long-horizon plan generation)
-// Middleware chain: auth → kill switch → rate limiter → controller (RBAC + consent inside controller)
+// Middleware chain: auth → kill switch → subscription check → rate limiter → controller
 router.post(
   '/long-horizon/generate',
   protect,
   aiKillSwitch,
+  requireSubscription('supporter', { feature: 'generation' }),
   aiRateLimiter,
   generateLongHorizonPlan
 );

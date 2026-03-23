@@ -131,6 +131,30 @@ User.init(
       defaultValue: 0,
       comment: 'Number of pre-purchased sessions available'
     },
+    // Subscription tier tracking
+    subscriptionTier: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      defaultValue: 'free',
+      comment: 'Current subscription tier: free, supporter, premium'
+    },
+    aiMessagesUsedThisMonth: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'AI chat messages used in current month (free tier cap: 3)'
+    },
+    aiGenerationsUsedThisMonth: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'AI workout generations used in current month (free tier cap: 1)'
+    },
+    aiUsageResetDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Next date to reset monthly AI usage counters'
+    },
     // Measurement schedule tracking
     lastFullMeasurementDate: {
       type: DataTypes.DATE,

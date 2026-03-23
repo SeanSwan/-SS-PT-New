@@ -16,6 +16,7 @@ import express from 'express';
 import multer from 'multer';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
+import { requireSubscription } from '../middleware/requireSubscription.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
@@ -217,7 +218,7 @@ router.get('/conversations/:id', async (req, res) => {
  * POST /api/ai-chat/conversations/:id/messages
  * Send a message and get AI response
  */
-router.post('/conversations/:id/messages', aiRateLimiter, async (req, res) => {
+router.post('/conversations/:id/messages', requireSubscription('supporter', { feature: 'chat' }), aiRateLimiter, async (req, res) => {
   try {
     const { message } = req.body;
 
