@@ -179,8 +179,12 @@ const WorkoutsTab: React.FC = () => {
       {workouts.length === 0 ? (
         <EmptyState>
           <Dumbbell size={48} />
-          <p>No workouts logged yet. Start your journey!</p>
+          <p>Ready to crush your first workout?</p>
+          <p style={{ fontSize: '0.8rem', opacity: 0.6, marginTop: '-8px' }}>
+            Log a session to start tracking your progress and earning XP
+          </p>
           <LogButton onClick={() => navigate('/dashboard/admin-sessions')}>
+            <Flame size={16} />
             Log Your First Workout
           </LogButton>
         </EmptyState>

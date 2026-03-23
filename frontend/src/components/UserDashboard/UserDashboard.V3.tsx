@@ -424,25 +424,36 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     Quick Stats
                   </SidebarTitle>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Workouts</span>
-                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#60C0F0' }}>
-                        {displayStats.workouts}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Level</span>
-                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#60C0F0' }}>
-                        {displayStats.level}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Points</span>
-                      <span style={{ fontWeight: 'bold', color: theme.colors?.primary || '#60C0F0' }}>
-                        {displayStats.points}
-                      </span>
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {[
+                      { label: 'Workouts', value: displayStats.workouts, icon: <Dumbbell size={16} /> },
+                      { label: 'Level', value: displayStats.level, icon: <Crown size={16} /> },
+                      { label: 'Points', value: displayStats.points, icon: <Sparkles size={16} /> },
+                    ].map((stat) => (
+                      <div key={stat.label} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '10px',
+                        background: 'rgba(96, 192, 240, 0.04)',
+                        border: '1px solid rgba(96, 192, 240, 0.06)',
+                        transition: 'all 0.2s ease',
+                      }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(224, 236, 244, 0.7)', fontSize: '0.9rem' }}>
+                          <span style={{ color: '#60C0F0', opacity: 0.6 }}>{stat.icon}</span>
+                          {stat.label}
+                        </span>
+                        <span style={{
+                          fontFamily: "'Fira Code', monospace",
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          color: theme.colors?.primary || '#60C0F0',
+                        }}>
+                          {stat.value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </SidebarCard>
               </Sidebar>
