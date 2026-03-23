@@ -349,12 +349,15 @@ const progressController = {
         timeframe = 'all_time',
         metric = 'points',
         tier,
-        limit = 20,
+        limit: rawLimit = 20,
         page = 1,
         includeUser
       } = req.query;
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      // Security: Cap pagination limit to prevent DoS via large result sets
+      const MAX_LEADERBOARD_LIMIT = 100;
+      const limit = Math.min(parseInt(rawLimit) || 20, MAX_LEADERBOARD_LIMIT);
+      const offset = (parseInt(page) - 1) * limit;
 
       let whereClause = {};
       let orderBy;
@@ -432,7 +435,7 @@ const progressController = {
         ],
         include: includeClause,
         order: orderBy,
-        limit: parseInt(limit),
+        limit,
         offset,
         subQuery: false,
         distinct: true
@@ -483,8 +486,8 @@ const progressController = {
         pagination: {
           total,
           page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit))
+          limit,
+          pages: Math.ceil(total / limit)
         },
         filters: {
           timeframe,
@@ -498,7 +501,7 @@ const progressController = {
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch leaderboard',
-        error: error.message
+        error: req.user?.role === 'admin' ? error.message : 'An error occurred. Please try again.'
       });
     }
   },
