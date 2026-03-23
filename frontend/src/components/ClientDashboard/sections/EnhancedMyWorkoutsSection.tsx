@@ -38,7 +38,7 @@ interface ExerciseLog {
   completed: boolean;
 }
 
-/* ─── Galaxy-Swan Theme Tokens ──────────────────────────────────────── */
+/* ─── Crystalline Swan Theme Tokens ──────────────────────────────────────── */
 
 const theme = {
   bg: 'rgba(15, 23, 42, 0.95)',

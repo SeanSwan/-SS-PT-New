@@ -3,7 +3,7 @@
  * ====================
  *
  * Schedule Integration for Client Dashboard
- * Wraps UniversalSchedule with Galaxy-Swan stellar theme overrides.
+ * Wraps UniversalSchedule with Crystalline Swan stellar theme overrides.
  *
  * Features:
  * - Full schedule calendar integration (real data, no mocks)

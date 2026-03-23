@@ -31,7 +31,7 @@ interface ExerciseLibraryProps {
 }
 
 /* ───────────────────────────────────────────
-   Galaxy-Swan Design Tokens
+   Crystalline Swan Design Tokens
    ─────────────────────────────────────────── */
 
 const theme = {

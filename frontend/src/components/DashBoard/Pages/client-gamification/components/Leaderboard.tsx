@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: Leaderboard.tsx
+ * PURPOSE: Client gamification leaderboard showing rank position and competitors
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders the gamification leaderboard showing user rankings by total XP points.
+ * Highlights the current user's position, shows rank change indicators (up/down),
+ * tier badges, and crown icons for top 3 positions. Uses shimmer loading states.
+ *
+ * HOW IT FITS IN THE APP:
+ * client-gamification-view-enhanced -> Leaderboard (child component)
+ * Reads LeaderboardEntry data from useGamificationData hook.
+ * Uses useAuth to highlight the current user's row.
+ *
+ * KEY DECISIONS:
+ * - Current user row highlighted with accent border for quick identification
+ * - Crown/medal icons for top 3 (gamification engagement pattern)
+ * - framer-motion stagger for row entrance animation
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (434 lines) - styled-components could be
+ *   extracted to reduce line count
+ */
 import React, { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {

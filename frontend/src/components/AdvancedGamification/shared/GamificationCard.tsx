@@ -2,7 +2,7 @@
  * 🎨 GAMIFICATION CARD - REUSABLE CARD COMPONENT
  * ==============================================
  * Universal card component for challenges, achievements, statistics,
- * and other gamification content with Galaxy-Swan theme integration
+ * and other gamification content with Crystalline Swan theme integration
  */
 
 import React from 'react';

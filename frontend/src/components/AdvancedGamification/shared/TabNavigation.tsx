@@ -1,7 +1,7 @@
 /**
  * 🗂️ TAB NAVIGATION - GAMIFICATION TAB SWITCHING
  * ==============================================
- * Reusable tab navigation component with animations and Galaxy-Swan theming
+ * Reusable tab navigation component with animations and Crystalline Swan theming
  * for switching between gamification sections
  */
 

@@ -2,7 +2,7 @@
  * MobilityRadar — Canvas-based Radar Chart
  * ==========================================
  * Draws a radar/spider chart for per-joint mobility scores.
- * Galaxy-Swan themed: cyan lines, dark fill, glowing data points.
+ * Crystalline Swan themed: cyan lines, dark fill, glowing data points.
  */
 import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';

@@ -1,7 +1,7 @@
 /**
  * LaunchChecklist
  * ===============
- * Galaxy-Swan themed click-through checklist for launch readiness.
+ * Crystalline Swan themed click-through checklist for launch readiness.
  */
 
 import React, { useMemo, useState } from 'react';

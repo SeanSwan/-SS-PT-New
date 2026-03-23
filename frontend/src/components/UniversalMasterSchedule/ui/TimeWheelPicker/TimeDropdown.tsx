@@ -3,7 +3,7 @@
  * ============================================================
  * Positioned dropdown via React Portal (same pattern as CustomSelect.tsx).
  * Renders scrollable time slot buttons with arrow key navigation.
- * 44px minimum touch targets, Galaxy-Swan glass styling.
+ * 44px minimum touch targets, Crystalline Swan glass styling.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';

@@ -4,7 +4,7 @@
  *
  * ┌─────────────────────────────────────────────────────────┐
  * │ Architecture: Styled-components + lucide-react          │
- * │ Theme: Galaxy-Swan (Core #002060, Cyan #8B5CF6,         │
+ * │ Theme: Crystalline Swan (Core #002060, Cyan #8B5CF6,         │
  * │        Purple #8B5CF6)                                   │
  * │ Touch targets: min-height 44px on all buttons            │
  * │ MUI-free: All UI via styled-components + native HTML     │

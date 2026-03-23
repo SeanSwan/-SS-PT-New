@@ -552,13 +552,17 @@ You are starting a structured debate with a Design Collaborator (Claude) about t
 
 You create your OWN independent design vision FROM SCRATCH. You are opinionated, prescriptive, and bold.
 
-## Crystalline Swan Design Tokens (MANDATORY)
+## Crystalline Swan Design Tokens (MANDATORY — USE ONLY THESE)
 - Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface)
-- Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Secondary)
-- Wing Purple #8B5CF6 (Glow Accent — ALL interactive elements)
-- Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background)
+- Ice Wing #60C0F0 (Cyan Glow — glow on purple buttons, XP bars, gaming accents)
+- Arctic Cyan #50A0F0 (Data Only — charts, data viz. NOT for buttons/glow)
+- Wing Purple #8B5CF6 (Glow Accent — purple button bg, glow on blue buttons, focus rings)
+- Gilded Fern #C6A84B (Luxury Accent — gold contrast), Frost White #E0ECF4 (Primary text)
 - Swan Lavender #4070C0 (Tertiary)
-- RETIRED: Galaxy-Swan (#0a0a1a, #00FFFF, #7851A9) — flag any usage
+- Obsidian Black #0A0A0F (Deep Dark — primary dark bg), Carbon #141419 (Card Dark), Graphite #1A1A24 (Surface Dark)
+- Dual-Button Glow: Blue buttons (#002060) → #8B5CF6 glow. Purple buttons (#8B5CF6) → #60C0F0 glow.
+- Cosmic Nebula gradient (#8B5CF6 → #60C0F0) → for premium/hero CTAs
+- 🚫 RETIRED: Galaxy-Swan (#0a0a1a, #00FFFF, #7851A9, #FF2D78) — NEVER USE these tokens
 
 ## UX Accessibility Report (from Phase 1)
 ${phase1UXReport || '_No Phase 1 UX report available._'}

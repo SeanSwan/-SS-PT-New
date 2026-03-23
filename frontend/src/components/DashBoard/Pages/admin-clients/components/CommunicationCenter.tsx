@@ -22,7 +22,7 @@
  * State:     { activeChannel, messages[], draft }
  * API Calls: GET/POST /api/communications/:clientId
  *
- * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,445 lines — CRITICAL monolith. TODO: extract channel components
  */
 

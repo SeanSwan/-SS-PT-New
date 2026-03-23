@@ -1,18 +1,68 @@
 /**
- * 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT
- * ================================================================
- * 
- * Revolutionary gamification system that transforms fitness into
- * an engaging, social, and rewarding experience using cutting-edge
- * UX patterns and Digital Alchemist design principles.
- * 
- * Features:
- * - 🏆 Dynamic Achievement System with 3D Badge Animations
- * - 🎯 Social Challenges with Real-Time Leaderboards  
- * - ⚡ Streak Tracking with Celebration Effects
- * - 🎊 Community Events and Global Competitions
- * - 💎 Reward Marketplace with Premium Unlocks
- * - 📊 Advanced Analytics with Predictive Insights
+ * ============================================================================
+ * FILE: AdvancedGamificationHub.tsx
+ * PURPOSE: Full-featured gamification hub with achievements, challenges,
+ *          leaderboards, streaks, rewards, and community events
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders the main gamification experience for all user roles. Displays a
+ * tabbed interface with achievements, social challenges, leaderboards, streaks,
+ * community events, and a reward marketplace. Uses framer-motion animations
+ * and styled-components with the Crystalline Swan theme.
+ *
+ * HOW IT FITS IN THE APP:
+ * App -> DashBoard -> GamificationWorkspace -> AdvancedGamificationHub
+ * Consumes gamification data from Redux (gamificationSlice) and renders
+ * sub-sections as tab panels. Each tab triggers animations on mount.
+ *
+ * KEY DECISIONS:
+ * - All-in-one hub rather than separate pages to reduce navigation friction
+ * - framer-motion AnimatePresence for tab transitions (smooth UX)
+ * - Inline styled-components for co-located theming (no external style file)
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AdvancedGamificationHub                          ║
+ * ║  PURPOSE: Main gamification experience hub (tabbed layout)    ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Header: Level Badge + XP Bar + Tier Display]              │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [Achievements] [Challenges] [Leaderboard] [Streaks] ...   │
+ * ├────────────────────────────────────────────────────────────┤
+ * │                                                            │
+ * │  Tab Content Area (animated panel swap)                    │
+ * │  - Achievement grid with rarity glow                      │
+ * │  - Challenge cards with progress bars                     │
+ * │  - Leaderboard table with rank indicators                 │
+ * │  - Streak calendar with fire effects                      │
+ * │  - Community events timeline                              │
+ * │  - Reward marketplace cards                               │
+ * │                                                            │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[AdvancedGamificationHub] --> B[HeaderSection: Level+XP+Tier]
+ *   A --> C[TabNavigation]
+ *   A --> D[AnimatePresence TabContent]
+ *   D --> E[AchievementsPanel]
+ *   D --> F[ChallengesPanel]
+ *   D --> G[LeaderboardPanel]
+ *   D --> H[StreaksPanel]
+ *   D --> I[CommunityPanel]
+ *   D --> J[RewardsPanel]
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (1173 lines) - needs decomposition into
+ *   sub-components for each tab panel, extracted styled-components, and
+ *   separate animation keyframes file
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -76,7 +126,7 @@ const achievementUnlock = keyframes`
 `;
 
 // ================================================================
-// STYLED COMPONENTS WITH GALAXY-SWAN THEME
+// STYLED COMPONENTS WITH CRYSTALLINE SWAN THEME
 // ================================================================
 
 const GamificationContainer = styled(motion.div)`

@@ -4,7 +4,7 @@
  * Client-facing AI privacy consent management screen.
  * Allows clients to grant, view, or withdraw AI consent.
  *
- * Follows Galaxy-Swan design system (styled-components, 44px touch targets).
+ * Follows Crystalline Swan design system (styled-components, 44px touch targets).
  * Wired to backend /api/ai/consent/* endpoints.
  *
  * Phase 1 — Privacy Foundation (Smart Workout Logger)

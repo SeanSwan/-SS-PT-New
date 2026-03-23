@@ -142,7 +142,7 @@ import { DevToolsProvider } from './components/DevTools';
 // ===== THAT'S IT! =====
 // Your banner will now appear at the top of every page
 // Users can close it and it will remember their preference
-// It matches your Galaxy Swan theme perfectly
+// It matches your Crystalline Swan theme perfectly
 // Easy to remove when your site is complete by setting isVisible={false}
 
 export default {};

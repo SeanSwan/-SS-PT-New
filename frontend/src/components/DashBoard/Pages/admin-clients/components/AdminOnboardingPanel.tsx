@@ -6,7 +6,7 @@
  * shows admin-specific feedback (no client credentials modal).
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass surfaces)
+ * Theme: Crystalline Swan (cosmic dark, cyan accents, glass surfaces)
  * Touch targets: 44px minimum on all interactive elements
  */
 

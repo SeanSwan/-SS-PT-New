@@ -1,14 +1,50 @@
+/**
+ * ============================================================================
+ * FILE: GamificationPersistence.mjs
+ * PURPOSE: Data persistence layer for gamification (PostgreSQL + optional Redis)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Manages all gamification data storage — user points,
+ * achievements, streaks, leaderboards. Designed as Redis-first with PostgreSQL
+ * fallback, but Redis is DISABLED in production (P0 fix). Most Redis methods
+ * are stubs that fall through to PostgreSQL.
+ *
+ * HOW IT FITS IN THE APP:
+ *   GamificationEngine → GamificationPersistence → PostgreSQL (sequelize)
+ *                                                 → Redis (disabled in prod)
+ *
+ * KEY DECISIONS:
+ * - Redis disabled in production (was causing crashes) — FORCE_REDIS=true to enable
+ * - PostgreSQL-only architecture (MongoDB removed)
+ * - Has its own achievement definitions (duplicates GamificationEngine — tech debt)
+ * - calculateStatsFromDatabase() is a stub that returns zeroes (Phase 1 fix target)
+ *
+ * KNOWN ISSUES (Phase 1 Fix Targets):
+ * - calculateStatsFromDatabase() returns hardcoded zeroes
+ * - Many methods have Redis-only paths with no PostgreSQL fallback
+ * - Achievement definitions here duplicate GamificationEngine definitions
+ * - 967 lines — exceeds 300-line rule, needs decomposition in Phase 6
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[GamificationEngine] --> B[GamificationPersistence]
+ *   B --> C{Redis Enabled?}
+ *   C -->|Yes| D[Redis Cache]
+ *   C -->|No| E[PostgreSQL Fallback]
+ *   D --> E
+ *   E --> F[Sequelize Models]
+ *   F --> G[Gamification Model]
+ *   F --> H[Achievement Model]
+ *   F --> I[UserAchievement Model]
+ */
+
 // 🎯 P0 PRODUCTION FIX: Conditional Redis import to prevent crashes
 // import Redis from 'ioredis'; // REMOVED - causing production crashes
 // PostgreSQL-only architecture - MongoDB removed
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../../database.mjs';
-
-/**
- * P1: Enhanced Gamification Engine with Reliability
- * Dual persistence with Redis + MongoDB/PostgreSQL backup
- * Aligned with Master Prompt v26 Addictive Gamification Strategy
- */
 
 class GamificationPersistence {
   constructor() {

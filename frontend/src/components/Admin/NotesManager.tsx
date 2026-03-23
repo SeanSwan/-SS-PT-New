@@ -1,7 +1,7 @@
 /**
  * NotesManager
  * ============
- * Galaxy-Swan themed admin UI for managing trainer notes for a client.
+ * Crystalline Swan themed admin UI for managing trainer notes for a client.
  */
 
 import React, { useMemo, useState } from 'react';

@@ -3,7 +3,7 @@
  * ===================================================
  * Phase 9d: 3-pane layout with Context Sidebar, Workout Canvas, AI Insights.
  *
- * Galaxy-Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
+ * Crystalline Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
  * Cosmic Purple (#8B5CF6), glassmorphic panels.
  */
 import React, { useCallback, useEffect, useState } from 'react';

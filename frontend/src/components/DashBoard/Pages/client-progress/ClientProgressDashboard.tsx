@@ -57,7 +57,7 @@ const ButtonGroup = styled.div`
  * view for a consistent user experience across roles.
  *
  * MUI → UI Kit Conversion: Phase 1 Pilot (2025-10-29)
- * Converted from MUI to styled-components with Galaxy-Swan theme integration
+ * Converted from MUI to styled-components with Crystalline Swan theme integration
  */
 const ClientProgressDashboard: React.FC = () => {
   // Default to enhanced view to match the trainer view for consistency

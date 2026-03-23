@@ -2,7 +2,7 @@
  * SwanBrandShowcase.component.tsx
  * =================================
  * 
- * Example component demonstrating the Galaxy-Swan theme integration
+ * Example component demonstrating the Crystalline Swan theme integration
  * Showcases how Swan brand elements blend seamlessly with Galaxy aesthetics
  * 
  * This component serves as:
@@ -15,7 +15,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Import the new Galaxy-Swan theme system
+// Import the new Crystalline Swan theme system
 import { galaxySwanTheme, mediaQueries } from '../styles/galaxy-swan-theme';
 import { 
   SwanContainer, 
@@ -236,7 +236,7 @@ const SwanBrandShowcase: React.FC = () => {
       >
         <ShowcaseHeader>
           <SwanHeading level={1}>
-            <GalaxySwanText>Galaxy-Swan</GalaxySwanText> Theme Showcase
+            <GalaxySwanText>Crystalline Swan</GalaxySwanText> Theme Showcase
           </SwanHeading>
           <p style={{ 
             color: galaxySwanTheme.text.secondary, 
@@ -330,7 +330,7 @@ const SwanBrandShowcase: React.FC = () => {
                     Interactive Card
                   </h4>
                   <p style={{ color: galaxySwanTheme.text.secondary, fontSize: '0.9rem' }}>
-                    Hover or tap to see the Galaxy-Swan hover effects in action. 
+                    Hover or tap to see the Crystalline Swan hover effects in action. 
                     Notice how the elegant Swan styling combines with cosmic Galaxy energy.
                   </p>
                 </SwanCard>
@@ -356,7 +356,7 @@ const SwanBrandShowcase: React.FC = () => {
                   lineHeight: '1.6',
                   marginBottom: '1rem'
                 }}>
-                  The Galaxy-Swan theme creates a sophisticated visual hierarchy that enhances readability while maintaining the platform's cosmic energy.
+                  The Crystalline Swan theme creates a sophisticated visual hierarchy that enhances readability while maintaining the platform's cosmic energy.
                 </p>
                 
                 <p style={{ 
@@ -412,7 +412,7 @@ const SwanBrandShowcase: React.FC = () => {
                 overflow: 'auto'
               }}>
                 <div style={{ color: galaxySwanTheme.swan.cyan }}>
-                  {`// Import the Galaxy-Swan theme`}
+                  {`// Import the Crystalline Swan theme`}
                 </div>
                 <div style={{ color: galaxySwanTheme.text.secondary }}>
                   {`import { galaxySwanTheme } from './styles/galaxy-swan-theme';`}
@@ -443,7 +443,7 @@ const SwanBrandShowcase: React.FC = () => {
             variant="primary" 
             size="large"
             text="📚 View Full Documentation"
-            onClick={() => window.open('/GALAXY-SWAN-THEME-DOCS.md', '_blank')}
+            onClick={() => window.open('/CRYSTALLINE-SWAN-THEME-DOCS.md', '_blank')}
           />
         </div>
       </motion.div>

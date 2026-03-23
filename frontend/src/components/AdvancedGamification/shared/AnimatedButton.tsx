@@ -2,7 +2,7 @@
  * ⚡ ANIMATED BUTTON - INTERACTIVE BUTTON COMPONENT
  * =================================================
  * Reusable button component with animations, states, and effects
- * for gamification actions with Galaxy-Swan theme integration
+ * for gamification actions with Crystalline Swan theme integration
  */
 
 import React from 'react';

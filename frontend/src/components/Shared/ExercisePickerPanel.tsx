@@ -4,7 +4,7 @@
  * Autocomplete-powered exercise picker that filters by
  * equipment profile, muscle group, and difficulty.
  *
- * Galaxy-Swan theme: Midnight Sapphire, Swan Cyan, 44px touch targets.
+ * Crystalline Swan theme: Midnight Sapphire, Swan Cyan, 44px touch targets.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';

@@ -1,7 +1,7 @@
 /**
  * PhotoManager
  * ============
- * Galaxy-Swan themed admin UI for managing client progress photos.
+ * Crystalline Swan themed admin UI for managing client progress photos.
  */
 
 import React, { useMemo, useState } from 'react';

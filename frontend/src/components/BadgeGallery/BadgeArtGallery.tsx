@@ -1,18 +1,60 @@
 /**
- * BadgeArtGallery — Admin Badge Art Gallery (Full-Featured)
- * ==========================================================
- * Architecture: React 18 + TypeScript + styled-components
- * Theme: Enchanted Apex — Crystalline Swan
+ * ============================================================================
+ * FILE: BadgeArtGallery.tsx
+ * PURPOSE: Admin-facing badge art browser with filtering, search, and detail modal
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
  *
- * Features:
- * - Dual manifest loading (/badges/ + /badges/achievements/)
- * - 20 style filters, 9 category filters, 6 skill tree filters
- * - Rarity border glow based on filename pattern
- * - Focus-trapped detail modal with keyboard accessibility
- * - Skeleton shimmer loaders, lazy image loading
- * - Responsive CSS grid (375px to 3840px)
- * - 44px minimum touch targets, WCAG focus-visible rings
- * - prefers-reduced-motion support
+ * WHAT THIS FILE DOES:
+ * Renders a full-featured gallery of all badge artwork in the system. Loads
+ * dual manifests (/badges/ + /badges/achievements/), provides 20 style filters,
+ * 9 category filters, and 6 skill tree filters. Includes a focus-trapped detail
+ * modal, skeleton shimmer loaders, lazy image loading, and responsive CSS grid.
+ *
+ * HOW IT FITS IN THE APP:
+ * App -> DashBoard -> AdminBadgeGallery -> BadgeArtGallery
+ * Standalone admin tool for browsing and previewing badge art assets.
+ * Badge data comes from static JSON manifests, not the database.
+ *
+ * KEY DECISIONS:
+ * - Dual manifest loading to support both general badges and achievement badges
+ * - Rarity detection from filename patterns (not metadata) for simplicity
+ * - Focus trap on detail modal for WCAG compliance
+ * - prefers-reduced-motion support for all animations
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: BadgeArtGallery                                   ║
+ * ║  PURPOSE: Admin badge art browser with filters and detail     ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Header: "Badge Art Gallery" + badge count]                │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [Search bar] [Style filter dropdown] [Category pills]     │
+ * │ [Skill tree pills]                                        │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐            │
+ * │ │ Badge│ │ Badge│ │ Badge│ │ Badge│ │ Badge│  ...         │
+ * │ │ Card │ │ Card │ │ Card │ │ Card │ │ Card │              │
+ * │ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘             │
+ * │  (responsive CSS grid, rarity glow borders)               │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[BadgeArtGallery] --> B[SearchBar]
+ *   A --> C[FilterChips: Style/Category/SkillTree]
+ *   A --> D[BadgeGrid]
+ *   D --> E[BadgeCard x N]
+ *   A --> F[DetailModal: focus-trapped]
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (1459 lines) - needs decomposition into
+ *   BadgeCard, FilterBar, DetailModal sub-components and extracted styles
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';

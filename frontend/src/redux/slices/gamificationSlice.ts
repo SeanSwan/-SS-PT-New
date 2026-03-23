@@ -1,8 +1,31 @@
 /**
- * 🎮 GAMIFICATION SLICE - REDUX STATE MANAGEMENT
- * =============================================
- * Comprehensive Redux Toolkit slice for managing all gamification data,
- * including achievements, challenges, leaderboards, progress, and user stats
+ * ============================================================================
+ * FILE: gamificationSlice.ts
+ * PURPOSE: Redux Toolkit slice for all gamification state management
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Manages the complete gamification Redux state including achievements,
+ * challenges, leaderboards, progress snapshots, user stats (XP, level, tier,
+ * streaks), and reward marketplace data. Provides async thunks for API calls
+ * and synchronous reducers for optimistic updates.
+ *
+ * HOW IT FITS IN THE APP:
+ * Redux Store -> gamificationSlice -> consumed by AdvancedGamificationHub,
+ * client-gamification-view, trainer-gamification-view, admin-gamification-view,
+ * and any component needing XP/level/tier data.
+ *
+ * KEY DECISIONS:
+ * - Single slice for all gamification data (cohesive domain boundary)
+ * - Async thunks with loading/error states per data category
+ * - Interfaces defined inline rather than imported from types/gamification.ts
+ *   to keep Redux self-contained (some duplication is intentional)
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (807 lines) - should extract interfaces to
+ *   a shared types file, and split async thunks into separate files
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';

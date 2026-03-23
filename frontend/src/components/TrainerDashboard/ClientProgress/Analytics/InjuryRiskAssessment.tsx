@@ -21,7 +21,7 @@ import RadarProgressChart from '../../../FitnessStats/charts/RadarProgressChart'
 // Import proper type definitions
 import type { InjuryRiskAssessmentProps } from './types';
 
-/* ─── styled-components (Galaxy-Swan theme) ─── */
+/* ─── styled-components (Crystalline Swan theme) ─── */
 
 const Container = styled.div`
   display: flex;

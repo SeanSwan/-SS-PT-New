@@ -1,7 +1,7 @@
 /**
  * NutritionPlanBuilder
  * ====================
- * Galaxy-Swan themed admin UI for creating nutrition plans for clients.
+ * Crystalline Swan themed admin UI for creating nutrition plans for clients.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';

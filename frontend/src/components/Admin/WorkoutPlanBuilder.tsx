@@ -1,7 +1,7 @@
 /**
  * WorkoutPlanBuilder
  * ==================
- * Galaxy-Swan themed admin UI for creating workout plans for clients.
+ * Crystalline Swan themed admin UI for creating workout plans for clients.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';

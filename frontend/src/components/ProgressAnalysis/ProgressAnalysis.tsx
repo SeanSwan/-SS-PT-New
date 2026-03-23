@@ -3,7 +3,7 @@
  * AI-powered analysis of client progress with insights and recommendations
  *
  * Migrated from MUI to styled-components + lucide-react
- * Galaxy-Swan theme: Galaxy Core #002060, Swan Cyan #8B5CF6, Cosmic Purple #8B5CF6
+ * Crystalline Swan theme: Galaxy Core #002060, Swan Cyan #8B5CF6, Cosmic Purple #8B5CF6
  */
 
 import React, { useState, useEffect } from 'react';

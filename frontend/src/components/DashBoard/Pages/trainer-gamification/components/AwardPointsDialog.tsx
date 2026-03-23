@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * FILE: AwardPointsDialog.tsx
+ * PURPOSE: Dialog for trainers to award XP points to a client with reason
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a modal dialog allowing trainers to award a custom point amount to
+ * a client. Includes a reason dropdown (workout completion, personal record,
+ * consistency, etc.), point amount input, and optional note field.
+ *
+ * HOW IT FITS IN THE APP:
+ * trainer-gamification-view -> AwardPointsDialog (modal, opened on button click)
+ * Calls parent's onAward callback which triggers gamification API.
+ *
+ * KEY DECISIONS:
+ * - Uses ui/primitives Dialog components (legacy MUI shim layer)
+ * - Predefined point reasons for consistency in reporting
+ * - Grid layout for compact form on mobile
+ */
 import React from 'react';
 import {
   Box,

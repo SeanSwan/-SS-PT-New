@@ -22,7 +22,7 @@ import WorkoutPlanBuilder from '../../WorkoutManagement/WorkoutPlanBuilder';
 import ClientSelection from '../../WorkoutManagement/ClientSelection';
 
 /* ============================================================
-   Galaxy-Swan Theme Tokens
+   Crystalline Swan Theme Tokens
    ============================================================ */
 const theme = {
   bg: 'rgba(15,23,42,0.95)',

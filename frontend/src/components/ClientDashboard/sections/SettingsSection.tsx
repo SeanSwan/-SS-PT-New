@@ -4,7 +4,7 @@ import { Save, RotateCcw } from 'lucide-react';
 import GlowButton from '../../ui/GlowButton';
 
 // ============================================================
-// Styled Components - Galaxy-Swan Dark Theme
+// Styled Components - Crystalline Swan Dark Theme
 // ============================================================
 
 const Container = styled.div`

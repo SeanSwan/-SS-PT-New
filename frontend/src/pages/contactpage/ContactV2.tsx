@@ -12,7 +12,7 @@ import logoImg from '../../assets/Logo.png';
 /* ================================================================
  * ContactV2 — Cinematic, Theme-Aware Contact Page
  * ================================================================
- * Uses Galaxy-Swan cinematic UI kit (ParallaxHero, ScrollReveal,
+ * Uses Crystalline Swan cinematic UI kit (ParallaxHero, ScrollReveal,
  * TypewriterText, SectionDivider). Every styled token reads from
  * the active theme object for full theme-switcher support.
  * ================================================================ */

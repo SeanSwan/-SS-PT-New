@@ -14,7 +14,7 @@ import BarProgressChart from '../../../FitnessStats/charts/BarProgressChart';
 // Import proper type definitions
 import type { ComparisonAnalyticsProps, ComparisonMetric } from './types';
 
-/* ─── Galaxy-Swan Theme Tokens ─── */
+/* ─── Crystalline Swan Theme Tokens ─── */
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
   bgCard: 'rgba(29,31,43,1)',

@@ -211,7 +211,7 @@ const CheckoutView = lazyLoadWithErrorHandling(
   'Genesis Checkout'
 );
 
-// Galaxy-Swan Theme Showcase
+// Crystalline Swan Theme Showcase
 const SwanBrandShowcase = lazyLoadWithErrorHandling(
   () => import('../components/SwanBrandShowcase.component'),
   'Swan Brand Theme Showcase'
@@ -485,7 +485,7 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Galaxy-Swan Theme Showcase
+    // Crystalline Swan Theme Showcase
     {
       path: 'theme-showcase',
       element: (

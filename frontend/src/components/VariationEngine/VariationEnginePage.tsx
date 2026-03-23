@@ -4,7 +4,7 @@
  * Phase 8: NASM-aligned exercise rotation with 2-week timeline,
  * SwapCard UI, and NASM confidence badges.
  *
- * Galaxy-Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
+ * Crystalline Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
  * Cosmic Purple (#8B5CF6), glassmorphic panels.
  */
 import React, { useCallback, useEffect, useState } from 'react';

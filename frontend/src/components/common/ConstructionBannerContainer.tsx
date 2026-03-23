@@ -3,7 +3,7 @@
  * ===============================
  * 
  * Container version of the construction banner for placement between header and content
- * - Galaxy Swan themed with business professional styling
+ * - Crystalline Swan themed with business professional styling
  * - Part of document flow (not fixed positioned)
  * - Responsive design for all devices
  * - Easy to show/hide across entire site

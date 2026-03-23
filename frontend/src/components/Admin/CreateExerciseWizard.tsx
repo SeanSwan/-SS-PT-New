@@ -38,7 +38,7 @@ const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, on
       <Title>Create Exercise Wizard</Title>
       <Description>
         The exercise creation workflow is being rebuilt to align with the
-        Galaxy-Swan admin tooling and current API patterns. This placeholder
+        Crystalline Swan admin tooling and current API patterns. This placeholder
         keeps the route stable while the wizard is reconstructed.
       </Description>
       <Actions>

@@ -1,6 +1,39 @@
 /**
- * Ethical Gamification Service
- * Ensures gamification remains ethical and non-addictive
+ * ============================================================================
+ * FILE: EthicalGamification.mjs
+ * PURPOSE: Anti-addiction guardrails for the gamification system
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Prevents exploitative gamification patterns by
+ * enforcing daily point caps, action frequency limits, session length
+ * warnings, and rapid-action detection. Provides positive reinforcement
+ * messages and healthy break suggestions.
+ *
+ * HOW IT FITS IN THE APP:
+ *   GamificationEngine.awardPoints() → EthicalGamification.checkActionEthics()
+ *   If ethics check fails → point award is blocked or reduced
+ *
+ * KEY DECISIONS:
+ * - maxDailyPoints: 1000 (prevents grinding)
+ * - maxStreakBonus: 3.0x (caps multiplier abuse)
+ * - engagementCooldown: 30 minutes between same-type actions
+ * - sessionLength warning: 180 minutes (3 hours)
+ * - rapidActionSequence: 10 actions in 5 minutes triggers warning
+ *
+ * PSYCHOLOGY CONTEXT (Octalysis Framework):
+ * - Prevents "Core Drive 6: Scarcity & Impatience" exploitation
+ * - Prevents "Core Drive 8: Loss & Avoidance" dark patterns
+ * - Encourages "Core Drive 1: Epic Meaning" through positive messaging
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[GamificationEngine] --> B[EthicalGamification]
+ *   B --> C[checkActionEthics]
+ *   B --> D[getPositiveMessage]
+ *   B --> E[checkSessionHealth]
+ *   B --> F[detectRapidActions]
  */
 
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';

@@ -4,7 +4,7 @@
  * Fetched via /api/profile/:userId and /api/profile/:userId/posts
  *
  * Theme: Crystalline Swan (Enchanted Apex)
- * AI Village 9-Brain Consensus (2026-03-15): Galaxy-Swan purge,
+ * AI Village 9-Brain Consensus (2026-03-15): Crystalline Swan purge,
  * Midnight Sapphire backgrounds, Royal Depth surfaces, Frost White text.
  */
 import React, { useEffect, useState, useMemo } from 'react';

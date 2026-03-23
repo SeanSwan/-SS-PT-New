@@ -33,7 +33,7 @@ const COPY_MAP = {
 
 /**
  * MembersGateBanner -- displayed over locked content to prompt
- * authentication or subscription upgrade. Galaxy-Swan themed.
+ * authentication or subscription upgrade. Crystalline Swan themed.
  */
 const MembersGateBanner: React.FC<MembersGateBannerProps> = ({ reason }) => {
   const navigate = useNavigate();

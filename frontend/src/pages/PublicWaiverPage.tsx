@@ -2,7 +2,7 @@
  * PublicWaiverPage — Phase 5W-G
  * ===============================
  * Public waiver submission form accessible via /waiver (QR code / header link).
- * Galaxy-Swan themed, glass card layout.
+ * Crystalline Swan themed, glass card layout.
  *
  * Contract: WAIVER-CONSENT-QR-FLOW-CONTRACT.md §5, §5.2
  */

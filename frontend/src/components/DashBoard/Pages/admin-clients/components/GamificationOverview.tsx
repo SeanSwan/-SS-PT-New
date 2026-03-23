@@ -28,7 +28,7 @@
  * State:     { activeTab, achievements[], badges[], challenges[] }
  * API Calls: GET /api/gamification/user/:id
  *
- * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,641 lines — CRITICAL monolith. TODO: extract each tab section
  */
 

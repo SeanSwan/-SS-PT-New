@@ -1,8 +1,17 @@
 /**
- * Gamification Model
- * =================
- * Stores user-specific gamification data like experience points, level progress,
- * achievement tracking, and other gamification elements.
+ * ============================================================================
+ * FILE: Gamification.mjs
+ * PURPOSE: Per-user gamification state model (XP, level, tier, streaks)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Stores each user's current gamification state —
+ * total XP, current level, tier, streak count, last activity date.
+ * One row per user. FK to Users table.
+ *
+ * HOW IT FITS IN THE APP: gamificationController reads/writes this model
+ * to track user progress. levelingAlgorithm calculates level from totalPoints.
  */
 
 import { DataTypes } from 'sequelize';
@@ -87,6 +96,27 @@ const Gamification = db.define('Gamification', {
     type: DataTypes.JSON,
     allowNull: true,
     defaultValue: []
+  },
+  // ── Streak Freeze System (Loss Aversion Psychology) ──
+  // Users earn freeze tokens through consistency (1 per 7-day streak, max 3).
+  // A freeze protects the streak for 1 missed day, reducing anxiety.
+  streakFreezes: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  streakFreezesUsed: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  lastStreakFreezeUsed: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  lastStreakFreezeEarned: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   timestamps: true

@@ -1,3 +1,52 @@
+/**
+ * ============================================================================
+ * FILE: trainer-gamification-view.tsx
+ * PURPOSE: Trainer interface for awarding points and achievements to clients
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Provides trainers with a client list and tools to award XP points and
+ * achievements to their assigned clients. Shows each client's current level,
+ * tier, and streak. Includes dialogs for point awarding (with reason selection)
+ * and achievement awarding.
+ *
+ * HOW IT FITS IN THE APP:
+ * App -> DashBoard -> TrainerDashboard -> trainer-gamification-view
+ * Uses useTrainerGamification hook for client data and award actions.
+ * Children: ClientTable, AwardPointsDialog, AwardAchievementDialog, AchievementGrid.
+ *
+ * KEY DECISIONS:
+ * - V1 version (V2 exists as strangler-fig rewrite with ui-kit components)
+ * - Search-filterable client list for trainers with many clients
+ * - Shared styled-components from admin styled-gamification-system.ts
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: TrainerGamificationView                           ║
+ * ║  PURPOSE: Trainer client point/achievement awarding interface ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Title: "Client Gamification"] [Search: client name]       │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Client Table                                               │
+ * │ | Name | Level | Tier | Streak | [Award Pts] [Award Badge]│
+ * │ | ...  | ...   | ...  | ...    | [btn]       [btn]        │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Achievement Grid (all available achievements)              │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[TrainerGamificationView] --> B[ClientTable]
+ *   A --> C[AchievementGrid]
+ *   A --> D[AwardPointsDialog]
+ *   A --> E[AwardAchievementDialog]
+ */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 

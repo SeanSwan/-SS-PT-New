@@ -1,7 +1,7 @@
 /**
  * SMSLogsPanel
  * ============
- * Galaxy-Swan themed admin UI for viewing SMS delivery logs.
+ * Crystalline Swan themed admin UI for viewing SMS delivery logs.
  */
 
 import React, { useMemo, useState } from 'react';

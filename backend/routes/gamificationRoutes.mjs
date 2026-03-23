@@ -1,8 +1,17 @@
 /**
- * Gamification Routes (Complete Points, Achievements, Rewards API)
- * ==================================================================
+ * ============================================================================
+ * FILE: gamificationRoutes.mjs
+ * PURPOSE: REST API routes for gamification system with RBAC
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
  *
- * Purpose: REST API routes for gamification system with role-based access control
+ * WHAT THIS FILE DOES: Defines 25+ REST endpoints under /api/gamification/*
+ * with role-based access control (admin, trainer, client). Maps HTTP methods
+ * to gamificationController methods.
+ *
+ * HOW IT FITS IN THE APP: Express router mounted at /api/gamification
+ *   server.mjs → gamificationRoutes → gamificationController
  *
  * Blueprint Reference: SwanStudios Personal Training Platform - Gamification System
  *
@@ -311,5 +320,23 @@ router.put('/milestones/:id', authenticate, authorizeAdmin, gamificationControll
  * @access  Admin only
  */
 router.delete('/milestones/:id', authenticate, authorizeAdmin, gamificationController.deleteMilestone);
+
+/**
+ * Streak Freeze routes (Loss Aversion Psychology)
+ */
+
+/**
+ * @route   GET /api/gamification/streak-freeze/:userId
+ * @desc    Get user's streak freeze status (available, max, used)
+ * @access  Client, Trainer, Admin
+ */
+router.get('/streak-freeze/:userId', authenticate, authorizeClientOrTrainer, gamificationController.getStreakFreezeStatus);
+
+/**
+ * @route   POST /api/gamification/streak-freeze/use
+ * @desc    Use a streak freeze to protect current streak
+ * @access  Client, Trainer, Admin
+ */
+router.post('/streak-freeze/use', authenticate, authorizeClientOrTrainer, gamificationController.useStreakFreeze);
 
 export default router;

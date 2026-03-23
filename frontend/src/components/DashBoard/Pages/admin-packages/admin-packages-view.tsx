@@ -1,5 +1,5 @@
 // admin-packages-view.tsx
-// Migrated from MUI to styled-components + lucide-react (Galaxy-Swan theme)
+// Migrated from MUI to styled-components + lucide-react (Crystalline Swan theme)
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';

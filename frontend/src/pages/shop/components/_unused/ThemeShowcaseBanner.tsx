@@ -1,13 +1,13 @@
 /**
  * ThemeShowcaseBanner.tsx
  * =======================
- * Galaxy-Swan Theme Showcase Banner Component
+ * Crystalline Swan Theme Showcase Banner Component
  * 
  * Master Prompt v28.6 Compliance:
  * ✅ Single Responsibility: Only handles theme showcase banner
  * ✅ Modular Design: Reusable banner component
  * ✅ Production-Ready: Clean, efficient implementation
- * ✅ Galaxy-Swan Integration: Uses theme system properly
+ * ✅ Crystalline Swan Integration: Uses theme system properly
  */
 
 import React from 'react';
@@ -15,7 +15,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
-// Galaxy-Swan Theme Imports
+// Crystalline Swan Theme Imports
 import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 import { GalaxySwanText, ThemedGlowButton } from '../../../styles/swan-theme-utils';
 
@@ -186,7 +186,7 @@ const ThemeShowcaseBanner: React.FC<ThemeShowcaseBannerProps> = ({
       whileHover="hover"
     >
       <BannerTitle>
-        ✨ Enhanced with <GalaxySwanText>Galaxy-Swan</GalaxySwanText> Theme ✨
+        ✨ Enhanced with <GalaxySwanText>Crystalline Swan</GalaxySwanText> Theme ✨
       </BannerTitle>
       
       <BannerDescription>

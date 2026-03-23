@@ -5,7 +5,7 @@
  * indicating the payment was already processed. Displays the existing
  * order info so the admin can confirm and close safely.
  *
- * Galaxy-Swan themed: glass-pane with amber glow.
+ * Crystalline Swan themed: glass-pane with amber glow.
  */
 
 import React from 'react';

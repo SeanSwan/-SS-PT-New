@@ -1,7 +1,7 @@
 /**
  * header.tsx - REFORGED Galaxy-Themed Header Component
  * Clean orchestrator using extracted child components and centralized logic
- * Apple Phone-level architecture with "Galaxy-Swan" aesthetic preservation
+ * Apple Phone-level architecture with "Crystalline Swan" aesthetic preservation
  */
 import React, { memo } from "react";
 import styled, { keyframes } from "styled-components";

@@ -10,7 +10,7 @@
  *   - Motivation (ZenQuotes)
  *
  * Uses GlassCard for Gemini 3.1 Pro glassmorphism specs.
- * Galaxy-Swan themed, 44px touch targets, responsive grid.
+ * Crystalline Swan themed, 44px touch targets, responsive grid.
  */
 import React, { useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';

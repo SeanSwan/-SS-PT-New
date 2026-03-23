@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * FILE: GamificationSettings.mjs
+ * PURPOSE: Singleton config model — admin-adjustable point values & multipliers
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Stores global gamification config — points per workout,
+ * per exercise, per streak, multiplier cap, enabled/disabled toggle. Single
+ * row in DB. Admin edits via /api/gamification/settings endpoint.
+ *
+ * HOW IT FITS IN THE APP: gamificationController reads settings before
+ * awarding points. Admin dashboard allows editing without code changes.
+ */
+
 import { DataTypes } from 'sequelize';
 import db from '../database.mjs';
 

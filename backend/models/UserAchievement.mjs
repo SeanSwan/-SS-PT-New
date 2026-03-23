@@ -1,8 +1,25 @@
 /**
- * 🏆 USER ACHIEVEMENT MODEL - USER ACHIEVEMENT PROGRESS TRACKING
- * ==============================================================
- * Junction model tracking user achievement progress with detailed analytics,
- * social sharing, and timeline management
+ * ============================================================================
+ * FILE: UserAchievement.mjs
+ * PURPOSE: Junction model tracking user progress toward achievements
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Tracks each user's progress toward each achievement —
+ * current progress value, completion status, unlock date, share count,
+ * and display preferences. Junction between Users and Achievements.
+ *
+ * HOW IT FITS IN THE APP:
+ *   Users ←→ UserAchievement ←→ Achievement
+ *   gamificationController.awardPoints() → checks UserAchievement progress
+ *   → if criteria met → marks completed + triggers celebration UI
+ *
+ * KEY DECISIONS:
+ * - UUID primary key, FK to Users (integer) and Achievements (UUID)
+ * - Tracks progressValue / progressTarget for partial-completion badges
+ * - shareCount tracks social engagement with achievements
+ * - 540 lines — exceeds 300-line rule but acceptable for model definitions
  */
 
 import { DataTypes, Op } from 'sequelize';

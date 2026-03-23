@@ -1,6 +1,6 @@
 /**
  * SessionCard — Individual session display for ClientTimeline and BookingDrawer.
- * Galaxy-Swan Cosmic theme with glassmorphism.
+ * Crystalline Swan Cosmic theme with glassmorphism.
  * Per Gemini 3.1 Pro design authority.
  */
 

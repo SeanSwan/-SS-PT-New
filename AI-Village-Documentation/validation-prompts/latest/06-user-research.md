@@ -1,227 +1,453 @@
 # User Research & Persona Alignment — Validation Report
 
-> **Status:** PASS | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 67.9s
-> **Files:** AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/01-ux-accessibility.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/02-code-quality.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/03-security.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/04-performance.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/05-competitive-intel.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/06-user-research.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/07-architecture-bugs.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/08-code-quality-debate.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/09-design-debate.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/data-safety-integrity.md
-> **Generated:** 3/22/2026, 9:41:11 AM
+> **Status:** PASS | **Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 90.5s
+> **Files:** docs/ai-workflow/blueprints/GAMIFICATION-PSYCHOLOGY-ENHANCEMENT-MASTER-PROMPT.md
+> **Generated:** 3/22/2026, 5:43:28 PM
 
 ---
 
-# SwanStudios User Research Analysis Report
+# docs/ai-workflow/blueprints/GAMIFICATION-PSYCHOLOGY-ENHANCEMENT-MASTER-PROMPT.md (continued)
+```md
+streak) — make it VISIBLE to the user
+- **"Comeback Bonus"**: After breaking a streak, offer a "Comeback Challenge": complete 3 workouts in 5 days to restore 50% of lost streak
 
-## Executive Summary
-Based on the code analysis, SwanStudios demonstrates **strong technical foundations** with **significant persona alignment gaps**. The platform excels in trainer-focused functionality but lacks client-facing features that would drive retention and trust for the target demographics.
+### 2D. Social Proof & FOMO
+**Why it works:** Seeing others succeed creates urgency. Instagram's "X liked this" drives engagement.
 
----
+**Implementation:**
+- **Live Activity Feed**: "Jackie just completed Leg Day (+50 XP)" appearing in real-time on social feed
+- **"X people worked out today"**: Show daily active workout count on dashboard
+- **Challenge Invitations**: When a friend creates/joins a challenge, notify connected users
+- **Leaderboard Movement Alerts**: "You dropped from #3 to #5 — 47 XP to reclaim your spot!"
+- **Badge Showcase on Profiles**: Top 3-6 badges prominently displayed on social profiles (already designed, needs connection)
 
-## 1. Persona Alignment Analysis
+### 2E. Endowed Progress Effect
+**Why it works:** People given a head start are more likely to complete a task. A car wash card pre-stamped with 2/10 stamps has higher completion than an empty 8/8 card.
 
-### ✅ **Primary Persona (Working Professionals, 30-55): PARTIAL ALIGNMENT**
-**Strengths:**
-- NASM methodology integration appeals to professionals seeking evidence-based training
-- Pain tracking (`painLevel: 0-10`) addresses injury prevention concerns for older demographics
-- Clean, professional interface with premium aesthetics
+**Implementation:**
+- **Onboarding XP Gift**: New users start with 50 XP (not 0) — "Welcome to SwanStudios! Here's 50 XP to start your journey"
+- **First Workout Triple XP**: First-ever workout awards 3x normal XP
+- **Pre-seeded Skill Trees**: Show "The Awakening" tree with 1 achievement already unlocked (account creation = first badge)
+- **Tutorial Completion Rewards**: Complete profile (25 XP), upload photo (25 XP), first post (15 XP) — gives users immediate momentum
 
-**Gaps:**
-- **No client portal** - Professionals can't track progress independently
-- **Missing nutrition integration** - Critical for body transformation goals
-- **No scheduling features** - Busy professionals need calendar integration
+### 2F. Peak-End Rule
+**Why it works:** People judge experiences by their peak moment and final moment. Disney ends rides with a photo; Peloton shows your stats after class.
 
-### ❌ **Secondary Persona (Golfers): POOR ALIGNMENT**
-**Critical Missing Features:**
-- No sport-specific templates or exercises
-- No swing analysis or mobility tracking
-- No integration with golf metrics (club speed, rotation, etc.)
-
-### ⚠️ **Tertiary Persona (Law Enforcement/First Responders): MODERATE ALIGNMENT**
-**Strengths:**
-- Certification tracking potential (NASM integration)
-- Structured programming suitable for test preparation
-
-**Gaps:**
-- No specific "job readiness" metrics (VO2 max, grip strength, etc.)
-- Missing team/platoon management features
-- No department compliance reporting
-
-### ✅ **Admin Persona (Sean Swan): EXCELLENT ALIGNMENT**
-**Strengths:**
-- NASM OPT phase templates hard-coded (creates competitive moat)
-- AI-assisted programming reduces cognitive load
-- Detailed exercise logging with tempo, RPE, pain tracking
-- PDF export for client documentation
+**Implementation:**
+- **Post-Workout Celebration Screen**: Full-screen summary showing XP earned, streak count, badges unlocked, personal records, with tier-colored animations
+- **Daily Summary Push**: End-of-day notification: "Today: 2 workouts, 127 XP earned, 15-day streak! Keep going tomorrow"
+- **Weekly Recap Card**: Social-shareable weekly summary card (Instagram Stories format)
+- **Personal Record Highlights**: When a user hits a new 1RM or volume PR, trigger celebration with tier-colored animations
 
 ---
 
-## 2. Onboarding Friction Assessment
+## 3. IMPLEMENTATION ROADMAP
 
-### ✅ **Positive Aspects:**
-- `EquipmentProfilePicker` provides personalized starting point
-- AI Terminal Panel offers guided assistance
-- Empty states with clear CTAs ("Add Your First Exercise")
-- Mobile-responsive design for on-the-go logging
+### Phase 1: Fix Foundation (Current Sprint)
+1. **Fix duplicate achievements bug** — Achievements are being awarded multiple times for same criteria
+2. **Replace mock data** — Leaderboard, social feed, achievements should show real user data
+3. **Connect badge showcase** — Profile page should display user's top badges
+4. **Add progress bars everywhere** — Dashboard, profile, achievements page
+5. **Implement onboarding XP gift** — Start users at 50 XP with welcome message
 
-### ❌ **High-Friction Areas:**
-1. **No guided tour or tooltips** - Complex features like RPE sliders need explanation
-2. **Missing client onboarding flow** - `loadClientData` assumes existing client
-3. **No progressive disclosure** - All features visible immediately, overwhelming for new users
-4. **Session storage conflicts** - Multi-tab usage could corrupt data
+### Phase 2: Core Psychology (Next 2 Sprints)
+1. **Variable Ratio Reinforcement** — Random XP multipliers, mystery badges
+2. **Loss Aversion** — Streak freeze items, decay warnings, comeback bonus
+3. **Zeigarnik Effect** — "Almost there" notifications, incomplete task highlighting
+4. **Social Proof** — Live activity feed, challenge invitations, leaderboard alerts
 
-### 🎯 **Critical Fix:**
-```typescript
-// Add onboarding wizard
-const OnboardingWizard = () => {
-  // Step 1: Client goals (weight loss, muscle gain, sport-specific)
-  // Step 2: Equipment availability
-  // Step 3: Injury history
-  // Step 4: Generate first week's workout automatically
-}
+### Phase 3: Advanced Features (Q2 2026)
+1. **Seasonal Challenges** — 90-day themed events with exclusive rewards
+2. **Guild System** — Team-based challenges, group leaderboards
+3. **Marketplace** — Spend XP on digital/physical rewards
+4. **AI Coach** — Personalized achievement suggestions based on user patterns
+
+### Phase 4: Ecosystem (Q3 2026)
+1. **Wearable Integration** — Apple Health, Fitbit, Garmin
+1. **Social Media Sync** — Auto-post achievements to Instagram/Twitter
+2. **Family Accounts** — Parent-child fitness challenges
+3. **Corporate Wellness** — Team leaderboards for companies
+
+---
+
+## 4. TECHNICAL SPECIFICATIONS
+
+### 4A. Database Schema Updates
+```sql
+-- Add streak freeze tracking
+ALTER TABLE users ADD COLUMN streak_freeze_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN last_streak_freeze_used DATE;
+
+-- Add mystery achievement pool
+CREATE TABLE mystery_achievements (
+  id SERIAL PRIMARY KEY,
+  achievement_id INTEGER REFERENCES achievements(id),
+  rarity VARCHAR(20) DEFAULT 'common', -- common, rare, epic, legendary
+  weight INTEGER DEFAULT 100 -- for random selection
+);
+
+-- Add variable XP multiplier log
+CREATE TABLE xp_multiplier_events (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  multiplier DECIMAL(3,2) NOT NULL,
+  reason VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 4B. Frontend Components
+```tsx
+// New components needed:
+// 1. CelebrationScreen.tsx - Post-workout celebration
+// 2. ProgressRing.tsx - Circular progress indicator
+// 3. StreakFreezeModal.tsx - Purchase/use streak freeze
+// 4. LiveActivityFeed.tsx - Real-time social updates
+// 5. MysteryBadgeReveal.tsx - Animation for random achievement
+// 6. VariableXPMultiplier.tsx - Shows when random multiplier triggers
+```
+
+### 4C. Backend Services
+```javascript
+// New services needed:
+// 1. streakService.js - Calculate streak, apply freezes, send warnings
+// 2. xpMultiplierService.js - Random multiplier logic, mystery achievements
+// 3. notificationService.js - "Almost there" alerts, social proof triggers
+// 4. celebrationService.js - Generate post-workout celebration data
 ```
 
 ---
 
-## 3. Trust Signals Analysis
+## 5. SUCCESS METRICS
 
-### ❌ **Severely Underdeveloped**
-**Missing Critical Elements:**
-1. **No Sean Swan bio/certifications** - 25+ years experience not showcased
-2. **No testimonials or case studies**
-3. **No security/privacy assurances** - Health data requires HIPAA/GDPR mentions
-4. **No payment integration** - Professionals expect Stripe/PayPal for subscriptions
+### Quantitative (A/B Test)
+- **Retention**: 30-day retention increase (target: +15%)
+- **Engagement**: Daily active users (target: +20%)
+- **Workout Frequency**: Average workouts per week (target: +25%)
+- **Streak Length**: Average streak length (target: +40%)
+- **Social Actions**: Friend requests, challenge participation (target: +30%)
 
-### 🎯 **Immediate Additions Needed:**
-- "Certified by NASM" badge prominently displayed
-- Sean Swan video introduction on dashboard
-- Client success stories with before/after metrics
-- Security badges (SSL, data encryption, compliance)
+### Qualitative (User Interviews)
+- "I feel motivated to keep my streak going"
+- "The random XP bonuses make workouts exciting"
+- "I check the leaderboard daily to see my rank"
+- "The celebration screen makes me feel accomplished"
+- "I'm proud to show my badges on my profile"
 
 ---
 
-## 4. Emotional Design Evaluation
+## 6. RISK MITIGATION
 
-### ✅ **Crystalline Swan Theme: STRONG EXECUTION**
-**Premium Feel Achieved:**
-- Midnight Sapphire (#002060) conveys trust and professionalism
-- Arctic Cyan (#50A0F0) glow effects create motivating energy
-- Fira Code typography for data communicates precision
-- Glassmorphism effects align with "luxury vault" concept
+### Over-gamification Risks
+- **Risk**: Users focus on XP instead of proper form
+- **Mitigation**: Form check badges, technique videos required for certain achievements
+- **Risk**: Burnout from too many notifications
+- **Mitigation**: Notification preferences, "quiet hours" setting
+- **Risk**: Social anxiety from leaderboards
+- **Mitigation**: Private leaderboards, opt-out options
+- **Risk**: Addictive behaviors
+- **Mitigation**: Daily/weekly XP caps, wellness reminders, "take a break" suggestions
 
-### ⚠️ **Emotional Gaps:**
-1. **Too clinical** - Missing human warmth for client relationships
-2. **No achievement celebrations** - Workout completion lacks emotional reward
-3. **Limited personalization** - Clients can't customize their view
-
-### 🎯 **Emotional Enhancements:**
-```typescript
-// Add celebratory animations
-const celebrateWorkoutCompletion = () => {
-  // Confetti animation
-  // Positive reinforcement message
-  // Progress milestone recognition
-}
+### Technical Risks
+- **Risk**: Real-time activity feed performance
+- **Mitigation**: Redis caching, WebSocket connection pooling
+- **Risk**: XP multiplier abuse
+- **Mitigation**: Server-side validation, audit logging
+- **Risk**: Streak calculation edge cases
+- **Mitigation**: Comprehensive unit tests, timezone handling
 ```
 
----
+### src/components/dashboard/DashboardSidebar.tsx
+```tsx
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { 
+  Home, 
+  Dumbbell, 
+  Trophy, 
+  Users, 
+  Award, 
+  Calendar,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-## 5. Retention Hooks Assessment
+const SidebarContainer = styled.div<{ collapsed: boolean }>`
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: ${props => props.collapsed ? '80px' : '280px'};
+  background: ${props => props.collapsed ? '#003080' : 'linear-gradient(180deg, #002060 0%, #003080 100%)'};
+  color: #E0ECF4;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 20px rgba(0, 32, 96, 0.3);
+  overflow: hidden;
 
-### ✅ **Existing Strengths:**
-- **Progress tracking** via `ExerciseCardComponent` with historical data
-- **AI personalization** through `AITerminalPanel`
-- **Gamification elements** via theme's "competitive arena" aesthetic
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+    bottom: 0;
+    top: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 12px 0;
+  }
+`;
 
-### ❌ **Critical Missing Hooks:**
-1. **No streak tracking** - Daily/weekly consistency metrics
-2. **No community features** - Social proof and accountability
-3. **No challenges/competitions** - Despite "arena" theme
-4. **No client-trainer messaging** - Reduces engagement between sessions
-5. **No automated check-ins** - Missed session follow-ups
+const LogoSection = styled.div<{ collapsed: boolean }>`
+  padding: ${props => props.collapsed ? '20px 10px' : '20px 24px'};
+  border-bottom: 1px solid rgba(224, 236, 244, 0.1);
+  display: flex;
+  align-items: center;
+  gap: ${props => props.collapsed ? '0' : '12px'};
 
-### 🎯 **Retention Architecture:**
-```typescript
-// Implement retention engine
-const RetentionEngine = {
-  streakTracking: (clientId) => {/* Weekly workout streaks */},
-  milestoneCelebrations: (progress) => {/* 10th session, PRs */},
-  automatedCheckins: () => {/* 48h post-session follow-up */},
-  challengeSystem: () => {/* Monthly fitness challenges */}
-}
-```
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
 
----
+const LogoText = styled.h1<{ collapsed: boolean }>`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #60C0F0;
+  white-space: nowrap;
+  opacity: ${props => props.collapsed ? '0' : '1'};
+  transition: opacity 0.2s ease;
+`;
 
-## 6. Accessibility for Target Demographics
+const CollapseButton = styled.button<{ collapsed: boolean }>`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #E0ECF4;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 
-### ✅ **Mobile-First Design: GOOD**
-- Touch targets ≥44px (WCAG compliant)
-- Responsive breakpoints at 768px and 430px
-- Mobile-optimized tables with `data-label` pattern
+  &:hover {
+    background: rgba(224, 236, 244, 0.1);
+  }
 
-### ❌ **Age 40+ Accessibility: SIGNIFICANT ISSUES**
-**Critical WCAG Failures:**
-1. **Color contrast violations** - `CS.textSecondary` against dark backgrounds fails AA
-2. **Font size consistency** - Mixed typography may reduce readability
-3. **Complex data density** - Older users may struggle with RPE/tempo/weight/reps matrix
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
 
-### 🎯 **Accessibility Overhaul:**
-```typescript
-// Add accessibility preferences
-const AccessibilitySettings = {
-  fontSize: ['default', 'large', 'x-large'],
-  contrastMode: ['default', 'high-contrast'],
-  simplifyInterface: true // Hides advanced metrics
-}
-```
+const NavSection = styled.nav`
+  flex: 1;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 
----
+  @media (max-width: 768px) {
+    flex-direction: row;
+    padding: 0;
+    gap: 0;
+  }
+`;
 
-## Actionable Recommendations
+const NavItem = styled.div<{ active: boolean; collapsed: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.collapsed ? '0' : '12px'};
+  padding: ${props => props.collapsed ? '12px 24px' : '12px 24px'};
+  margin: 0 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: ${props => props.active ? 'rgba(96, 192, 240, 0.15)' : 'transparent'};
+  border: ${props => props.active ? '1px solid rgba(96, 192, 240, 0.3)' : '1px solid transparent'};
 
-### 🚀 **Immediate (Next Sprint)**
-1. **Add client onboarding wizard** - Reduce time-to-first-value
-2. **Implement trust signals** - Sean Swan bio, certifications, testimonials
-3. **Fix critical WCAG violations** - Color contrast, font sizes
-4. **Add workout completion celebrations** - Basic confetti + positive messaging
+  &:hover {
+    background: ${props => props.active ? 'rgba(96, 192, 240, 0.25)' : 'rgba(224, 236, 244, 0.05)'};
+  }
 
-### 📈 **Short Term (Q2)**
-1. **Build nutrition module** - Reuse `ExerciseCardComponent` pattern for meals
-2. **Implement client portal (PWA)** - Simplified view for clients
-3. **Add scheduling integration** - Calendar sync for busy professionals
-4. **Create sport-specific templates** - Golf, law enforcement test prep
+  @media (max-width: 768px) {
+    flex-direction: column;
+    padding: 8px;
+    margin: 0;
+    gap: 4px;
+  }
+`;
 
-### 🏆 **Long Term (Q3-Q4)**
-1. **Develop community features** - Client groups, challenges, leaderboards
-2. **Integrate payment processing** - Stripe for subscriptions
-3. **Add video content library** - Exercise demonstrations, form checks
-4. **Implement advanced analytics** - Progress visualization, predictive insights
+const NavIcon = styled.div<{ active: boolean }>`
+  color: ${props => props.active ? '#60C0F0' : '#E0ECF4'};
+  opacity: ${props => props.active ? '1' : '0.7'};
+  transition: all 0.2s ease;
+`;
 
-### 🎨 **Design System Refinements**
-1. **Standardize transition timings** - 0.3s for primary CTAs, 0.2s for secondary
-2. **Add `@supports` fallbacks** - Ensure glassmorphism works everywhere
-3. **Create persona-specific themes** - Golfers see green accents, LEOs see tactical styling
+const NavLabel = styled.span<{ collapsed: boolean }>`
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: ${props => props.active ? '600' : '400'};
+  white-space: nowrap;
+  opacity: ${props => props.collapsed ? '0' : '1'};
+  transition: opacity 0.2s ease;
 
----
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
+`;
 
-## Risk Assessment Matrix
+const StreakSection = styled.div<{ collapsed: boolean }>`
+  padding: 20px 24px;
+  border-top: 1px solid rgba(224, 236, 244, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| Client churn due to missing portal | High | High | Build PWA client portal |
-| Trainer burnout from manual logging | Medium | Medium | Enhance AI automation |
-| Accessibility lawsuits | High | Medium | WCAG compliance audit |
-| Competitive displacement | High | Medium | Accelerate sport-specific features |
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
 
----
+const StreakCount = styled.div`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #60C0F0;
+  text-align: center;
+`;
 
-## Success Metrics Proposal
+const StreakLabel = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  color: #E0ECF4;
+  opacity: 0.8;
+  text-align: center;
+`;
 
-1. **Onboarding completion rate** - Target: >80% complete first workout setup
-2. **Weekly active users** - Target: >60% retention week-over-week
-3. **Client-trainer interactions** - Target: >3 messages/week
-4. **Workout completion rate** - Target: >85% of scheduled sessions logged
-5. **Feature adoption** - Target: >40% use AI features weekly
+const StreakWarning = styled.div<{ visible: boolean }>`
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 0 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: #FFC107;
+  opacity: ${props => props.visible ? '1' : '0'};
+  transition: all 0.3s ease;
+  text-align: center;
+`;
 
----
+const DashboardSidebar: React.FC = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [activeNav, setActiveNav] = useState('dashboard');
+  const [streak, setStreak] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-**Conclusion:** SwanStudios has exceptional technical foundations but requires significant investment in client-facing features and trust-building elements to succeed with the target personas. The platform currently serves trainers well but doesn't fully address the needs of the paying clients themselves.
+  // Mock streak data - TODO: Replace with real API
+  useEffect(() => {
+    // In production, fetch from /api/users/streak
+    setStreak(12); // Mock 12-day streak
+  }, []);
+
+  // Check if streak is about to expire
+  useEffect(() => {
+    // In production, check last workout date
+    const checkStreak = () => {
+      // Mock logic: show warning if streak > 0 and no workout in last 24h
+      if (streak > 0) {
+        // This would be real time calculation
+        setShowWarning(true);
+      }
+    };
+
+    checkStreak();
+    const interval = setInterval(checkStreak, 3600000); // Check hourly
+    return () => clearInterval(interval);
+  }, [streak]);
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
+    { id: 'workouts', label: 'Workouts', icon: Dumbbell, path: '/workouts' },
+    { id: 'achievements', label: 'Achievements', icon: Trophy, path: '/achievements' },
+    { id: 'social', label: 'Social', icon: Users, path: '/social' },
+    { id: 'badges', label: 'Badges', icon: Award, path: '/badges' },
+    { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/calendar' },
+    { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+  ];
+
+  const handleNavClick = (id: string, path: string) => {
+    setActiveNav(id);
+    navigate(path);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  return (
+    <SidebarContainer collapsed={collapsed}>
+      <LogoSection collapsed={collapsed}>
+        <img 
+          src="/logo-crystalline-swan.svg" 
+          alt="SwanStudios" 
+          style={{ width: '40px', height: '40px' }}
+        />
+        <LogoText collapsed={collapsed}>SwanStudios</LogoText>
+      </LogoSection>
+
+      <CollapseButton 
+        collapsed={collapsed}
+        onClick={() => setCollapsed(!collapsed)}
+        style={{ 
+          position: 'absolute', 
+          top: '20px', 
+          right: collapsed ? '20px' : '260px' 
+        }}
+      >
+        {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+      </CollapseButton>
+
+      <NavSection>
+        {navItems.map((item) => (
+          <NavItem
+            key={item.id}
+            active={activeNav === item.id}
+            collapsed={collapsed}
+            onClick={() => handleNavClick(item.id, item.path)}
+          >
+            <NavIcon active={activeNav === item.id}>
+              <item.icon size={20} />
+            </NavIcon>
+            <NavLabel collapsed={collapsed}>{item.label}</NavLabel>
+          </NavItem>
+        ))}
+      </NavSection>
+
+      <StreakSection collapsed={collapsed}>
+        <StreakCount>{streak}</StreakCount>
+        <StreakLabel>Day Streak</StreakLabel>
+        {streak > 0 && (
+          <StreakWarning visible={showWarning}>
+            ⚠️ Your streak expires in 24h!
+          </StreakWarning>
+        )}
+      </StreakSection>
+
+      <NavItem
+        active={false}
+        collapsed={collapsed}
+        onClick={handleLogout}
+        style={{ marginTop: 'auto', borderTop: '1px solid rgba(224
 
 ---
 

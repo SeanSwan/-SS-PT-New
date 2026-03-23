@@ -321,6 +321,27 @@ export const getAnimationConfig = (themeId: ThemeId) => {
         intensity: 'minimal',
         glow: false,
       };
+    case 'obsidian-black':
+      return {
+        ...baseConfig,
+        duration: '0.3s',
+        intensity: 'standard',
+        glow: false,
+      };
+    case 'cinematic-ember':
+      return {
+        ...baseConfig,
+        duration: '0.35s',
+        intensity: 'enhanced',
+        glow: true,
+      };
+    case 'frozen-aurora':
+      return {
+        ...baseConfig,
+        duration: '0.3s',
+        intensity: 'standard',
+        glow: false,
+      };
     default:
       return baseConfig;
   }

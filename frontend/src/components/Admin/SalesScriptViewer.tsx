@@ -1,7 +1,7 @@
 /**
  * SalesScriptViewer
  * =================
- * Galaxy-Swan themed viewer for sales scripts and objection handling.
+ * Crystalline Swan themed viewer for sales scripts and objection handling.
  */
 
 import React, { useMemo, useState } from 'react';

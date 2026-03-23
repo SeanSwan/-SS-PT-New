@@ -1,8 +1,30 @@
 /**
- * Gamification Controller (Complete Points, Achievements, Rewards System)
- * =========================================================================
+ * ============================================================================
+ * FILE: gamificationController.mjs
+ * PURPOSE: REST API controller for all gamification endpoints (25+ methods)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
  *
- * Purpose: Comprehensive gamification engine for user engagement via points, achievements, rewards, milestones, and leaderboards
+ * WHAT THIS FILE DOES: Handles all /api/gamification/* and /api/v1/gamification/*
+ * routes — point awards, achievement queries, leaderboards, tier display, skill
+ * trees, streaks, admin settings, and user progress endpoints.
+ *
+ * HOW IT FITS IN THE APP:
+ *   gamificationRoutes.mjs → gamificationController → Sequelize models
+ *                                                    → GamificationEngine
+ *                                                    → levelingAlgorithm
+ *
+ * KEY DECISIONS:
+ * - 2480 lines — EXCEEDS 300-line rule. Phase 6 Strangler Fig decomposition planned.
+ * - Uses direct Sequelize queries rather than delegating to GamificationEngine for most ops
+ * - Achievement dedup added 2026-03-22 (name-based filtering in getAllAchievements)
+ * - Default filters: isActive=true, isHidden=false unless admin requests otherwise
+ *
+ * KNOWN ISSUES:
+ * - Monolith file (2480 lines) — decompose into route-grouped service files
+ * - Some methods duplicate logic from GamificationEngine
+ * - No idempotency keys on point award endpoints
  *
  * Blueprint Reference: SwanStudios Personal Training Platform - Gamification System
  *
@@ -2474,6 +2496,92 @@ const gamificationController = {
         error: error.message,
         stack: error.stack?.split('\n').slice(0, 5).join('\n')
       });
+    }
+  }
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Streak Freeze Endpoints
+  // PURPOSE: Loss Aversion psychology — protect streaks from missed days
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/gamification/streak-freeze/:userId
+   * Returns the user's streak freeze status (available, max, used).
+   */
+  getStreakFreezeStatus: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId || req.user?.id);
+      if (!userId) {
+        return res.status(400).json({ success: false, error: 'User ID required' });
+      }
+
+      const gamificationRecord = await Gamification.findOne({ where: { userId } });
+      if (!gamificationRecord) {
+        return res.json({
+          success: true,
+          data: { available: 0, max: 3, used: 0 }
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          available: gamificationRecord.streakFreezes || 0,
+          max: 3,
+          used: gamificationRecord.streakFreezesUsed || 0,
+          lastEarned: gamificationRecord.lastStreakFreezeEarned,
+          lastUsed: gamificationRecord.lastStreakFreezeUsed,
+          currentStreak: gamificationRecord.streakCount || 0
+        }
+      });
+    } catch (error) {
+      console.error('getStreakFreezeStatus error:', error.message);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * POST /api/gamification/streak-freeze/use
+   * Consumes one streak freeze to protect the user's streak.
+   */
+  useStreakFreeze: async (req, res) => {
+    try {
+      const userId = parseInt(req.body.userId || req.user?.id);
+      if (!userId) {
+        return res.status(400).json({ success: false, error: 'User ID required' });
+      }
+
+      const gamificationRecord = await Gamification.findOne({ where: { userId } });
+      if (!gamificationRecord) {
+        return res.status(404).json({ success: false, error: 'No gamification record found' });
+      }
+
+      const currentFreezes = gamificationRecord.streakFreezes || 0;
+      if (currentFreezes <= 0) {
+        return res.json({
+          success: false,
+          error: 'No streak freezes available',
+          data: { available: 0, streakLost: true }
+        });
+      }
+
+      await gamificationRecord.update({
+        streakFreezes: currentFreezes - 1,
+        streakFreezesUsed: (gamificationRecord.streakFreezesUsed || 0) + 1,
+        lastStreakFreezeUsed: new Date()
+      });
+
+      return res.json({
+        success: true,
+        message: 'Streak freeze used! Your streak is safe. 🛡️',
+        data: {
+          remaining: currentFreezes - 1,
+          max: 3,
+          streakPreserved: gamificationRecord.streakCount || 0
+        }
+      });
+    } catch (error) {
+      console.error('useStreakFreeze error:', error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 };

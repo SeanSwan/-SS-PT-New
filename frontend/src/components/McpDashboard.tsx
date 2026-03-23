@@ -4,7 +4,7 @@
  * A complete dashboard for managing MCP server integration
  * with all MCP-related functionality in one place.
  *
- * Uses styled-components with Galaxy-Swan theme.
+ * Uses styled-components with Crystalline Swan theme.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════
-   Galaxy-Swan Theme Tokens
+   Crystalline Swan Theme Tokens
    ═══════════════════════════════════════════════════════ */
 const GALAXY_CORE = '#002060';
 const SWAN_CYAN = '#8B5CF6';

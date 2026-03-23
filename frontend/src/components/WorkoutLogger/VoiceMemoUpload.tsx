@@ -5,7 +5,7 @@
  * Sends file to POST /api/workout-logs/upload, receives parsed exercises.
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass surfaces)
+ * Theme: Crystalline Swan (cosmic dark, cyan accents, glass surfaces)
  * Touch targets: 44px minimum on all interactive elements
  */
 

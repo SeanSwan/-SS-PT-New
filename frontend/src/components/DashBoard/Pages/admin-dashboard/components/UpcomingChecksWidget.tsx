@@ -6,7 +6,7 @@
  *
  * Phase 11D — Admin Dashboard Widget
  * Architecture: styled-components + lucide-react + framer-motion
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass surfaces)
+ * Theme: Crystalline Swan (cosmic dark, cyan accents, glass surfaces)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

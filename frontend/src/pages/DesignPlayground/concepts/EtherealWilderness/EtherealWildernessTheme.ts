@@ -39,7 +39,7 @@ export const etherealWildernessDarkTheme: ConceptTheme = {
   memorableMoment:
     'Layered mist drifts across the hero like a tropical jungle canopy. Firefly-like particles float upward through the sections. A faint holographic grid pulses beneath the organic surface. The dark/light toggle transforms every element seamlessly.',
   rationale:
-    'Blends Nature Wellness organic feel with Marble Luxury polish and SwanStudios Galaxy-Swan colors. Digital nature that looks organically real — lush tropical mist, clouds, elegant typography with just a smidge of cyberpunk. Targets wealthy clients ages 16-80 who should feel polish and quality.',
+    'Blends Nature Wellness organic feel with Marble Luxury polish and SwanStudios Crystalline Swan colors. Digital nature that looks organically real — lush tropical mist, clouds, elegant typography with just a smidge of cyberpunk. Targets wealthy clients ages 16-80 who should feel polish and quality.',
   interactionLanguage:
     'Smooth mist-drift animations and floating particles. Glass-morphism cards with warm teal glow on hover. GlowButton with pointer-tracking cyan-teal radiance. Dark/light toggle transitions all elements with a 0.4s ease. Organic curves meet precise spacing.',
 };

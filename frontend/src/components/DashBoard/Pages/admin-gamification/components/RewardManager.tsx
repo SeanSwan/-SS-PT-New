@@ -1,3 +1,49 @@
+/**
+ * ============================================================================
+ * FILE: RewardManager.tsx
+ * PURPOSE: Admin CRUD interface for managing reward/marketplace items
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Provides the admin interface for creating, editing, and managing reward items
+ * in the gamification marketplace. Rewards can be unlocked by users spending
+ * accumulated XP points. Supports categorization, point cost editing, visibility
+ * toggling, and image assignment.
+ *
+ * HOW IT FITS IN THE APP:
+ * admin-gamification-view -> RewardManager (lazy-loaded tab panel)
+ * Reads/writes reward data via gamification API endpoints.
+ *
+ * KEY DECISIONS:
+ * - Similar grid layout to AchievementManager for admin UX consistency
+ * - Tag-based categorization for flexible reward grouping
+ * - Soft-delete with visibility toggle rather than hard delete
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: RewardManager                                     ║
+ * ║  PURPOSE: Admin CRUD for gamification rewards/marketplace     ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Search] [Category Filter] [+ Add Reward]                 │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+ * │ │ Image    │ │ Image    │ │ Image    │ │ Image    │      │
+ * │ │ Name     │ │ Name     │ │ Name     │ │ Name     │      │
+ * │ │ Cost: XP │ │ Cost: XP │ │ Cost: XP │ │ Cost: XP │      │
+ * │ │ [Edit]   │ │ [Edit]   │ │ [Edit]   │ │ [Edit]   │      │
+ * │ └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (996 lines) - needs decomposition into
+ *   RewardCard, RewardEditModal, and RewardFilters sub-components
+ */
 import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
 import {
@@ -38,7 +84,7 @@ import {
   RewardBadge
 } from '../styled-gamification-system';
 
-/* ─── Galaxy-Swan Theme Tokens ─── */
+/* ─── Crystalline Swan Theme Tokens ─── */
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
   bgLight: 'rgba(30,41,59,0.8)',

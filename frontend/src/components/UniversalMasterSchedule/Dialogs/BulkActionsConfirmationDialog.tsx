@@ -10,7 +10,7 @@
  * - Detailed success/failure reporting
  * - Batch processing with error handling
  *
- * Architecture: styled-components + lucide-react (Galaxy-Swan theme, no MUI)
+ * Architecture: styled-components + lucide-react (Crystalline Swan theme, no MUI)
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';

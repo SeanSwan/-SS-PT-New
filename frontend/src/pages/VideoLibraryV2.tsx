@@ -21,7 +21,7 @@ import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
 /* ================================================================
  * VideoLibraryV2 — Cinematic, Theme-Aware Video Library
  * ================================================================
- * Uses Galaxy-Swan cinematic UI kit. All styled tokens pull from
+ * Uses Crystalline Swan cinematic UI kit. All styled tokens pull from
  * the active theme for full theme-switcher support.
  * API contract mirrors original VideoLibrary.tsx.
  * ================================================================ */

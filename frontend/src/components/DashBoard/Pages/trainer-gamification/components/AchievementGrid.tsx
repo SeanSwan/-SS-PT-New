@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * FILE: AchievementGrid.tsx
+ * PURPOSE: Trainer-facing achievement grid displaying all available achievements
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a grid of all available achievements that trainers can award to
+ * clients. Each achievement card shows its icon, name, description, XP reward,
+ * category, and rarity. Reuses styled-components from admin styled-gamification-system.
+ *
+ * HOW IT FITS IN THE APP:
+ * trainer-gamification-view -> AchievementGrid (child component)
+ * Displays achievement definitions; selection triggers AwardAchievementDialog.
+ *
+ * KEY DECISIONS:
+ * - Reuses admin styled-components for visual consistency across roles
+ * - Icon mapping shared with AchievementManager for consistent iconography
+ */
 import React from 'react';
 import styled from 'styled-components';
 import { Star, Award, Gift, TrendingUp, Trophy, Heart, Target, Zap, Calendar, Clock, Dumbbell, Medal, CheckCircle, Users, Edit } from 'lucide-react';

@@ -8,7 +8,7 @@
  * that affect both the Berry Admin components and custom dashboard components.
  */
 
-// Session status configuration — Galaxy-Swan hardcoded colors (no MUI Theme dependency)
+// Session status configuration — Crystalline Swan hardcoded colors (no MUI Theme dependency)
 export const sessionStatusConfig = {
   'available': {
     label: 'Available',

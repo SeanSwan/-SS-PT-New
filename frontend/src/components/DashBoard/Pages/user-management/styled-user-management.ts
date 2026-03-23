@@ -1,7 +1,7 @@
 import styled, { keyframes, css } from "styled-components";
 import { motion } from "framer-motion";
 
-// --- Galaxy-Swan Theme Tokens ---
+// --- Crystalline Swan Theme Tokens ---
 const theme = {
   bg: 'rgba(15, 23, 42, 0.95)',
   border: 'rgba(14, 165, 233, 0.2)',

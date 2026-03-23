@@ -1,8 +1,29 @@
 /**
- * 🏆 ACHIEVEMENT MODEL - ENHANCED GAMIFICATION ACHIEVEMENTS
- * ========================================================
- * Complete achievement system with rarity, progress tracking,
- * social sharing, and advanced business logic
+ * ============================================================================
+ * FILE: Achievement.mjs
+ * PURPOSE: Sequelize model for achievement definitions (rarity, criteria, XP)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Defines the Achievement table schema — stores all
+ * possible achievements with their criteria, rarity levels, skill trees,
+ * point values, and display metadata. Seeded by 4 seeder files.
+ *
+ * HOW IT FITS IN THE APP:
+ *   Seeders → Achievement model ← gamificationController (queries)
+ *   Achievement ← UserAchievement (junction to Users)
+ *
+ * KEY DECISIONS:
+ * - UUID primary keys (not auto-increment) for cross-system compatibility
+ * - Both `title` and `name` fields exist (legacy — `name` is the dedup key)
+ * - 6 rarity levels: common, rare, epic, legendary, mythic, secret
+ * - 6 skill trees: awakening, forge_nasm, iron_gravity, the_tribe, free_spirit, the_unbroken
+ * - 6 achievement categories: fitness, social, streak, milestone, special, community
+ *
+ * KNOWN ISSUES:
+ * - No UNIQUE constraint on `name` (Phase 1 migration target — causes duplicates)
+ * - 483 lines — exceeds 300-line rule but acceptable for model definitions
  */
 
 import { DataTypes, Op } from 'sequelize';

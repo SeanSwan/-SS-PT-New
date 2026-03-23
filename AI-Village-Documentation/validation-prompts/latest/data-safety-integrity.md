@@ -1,473 +1,477 @@
 # Data Safety & Integrity — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 55.1s
-> **Files:** AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/01-ux-accessibility.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/02-code-quality.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/03-security.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/04-performance.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/05-competitive-intel.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/06-user-research.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/07-architecture-bugs.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/08-code-quality-debate.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/09-design-debate.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/data-safety-integrity.md
-> **Generated:** 3/22/2026, 9:41:11 AM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 73.6s
+> **Files:** docs/ai-workflow/blueprints/GAMIFICATION-PSYCHOLOGY-ENHANCEMENT-MASTER-PROMPT.md
+> **Generated:** 3/22/2026, 5:43:28 PM
 
 ---
 
-# 🚨 DATA SAFETY AUDIT REPORT — CRITICAL FINDINGS
+# 🚨 DATA SAFETY AUDIT REPORT — GAMIFICATION PSYCHOLOGY ENHANCEMENT MASTER PROMPT
+
+**Auditor:** DATA SAFETY AUDITOR  
+**Date:** 2026-03-22  
+**File:** `docs/ai-workflow/blueprints/GAMIFICATION-PSYCHOLOGY-ENHANCEMENT-MASTER-PROMPT.md`  
+**Classification:** DESIGN DOCUMENT (No executable code)
+
+---
 
 ## ⚠️ EXECUTIVE SUMMARY
 
-**OVERALL RISK LEVEL:** 🟡 **MEDIUM-HIGH** 
+**OVERALL RISK LEVEL: HIGH** ⚠️
 
-**Critical Context:** These are **frontend React components** with no direct database access. However, they orchestrate data submission to backend APIs, and several patterns could enable data loss if backend validation is insufficient.
+This is a **design specification document**, not executable code. However, it contains **architectural decisions and implementation plans that WILL lead to data safety incidents** if implemented as written.
 
-**Key Concern:** The frontend assumes backend safety mechanisms exist. If those don't, these components could trigger destructive operations.
+**Critical Findings:** 4  
+**High Findings:** 3  
+**Medium Findings:** 2  
+
+**Primary Concerns:**
+1. **No transaction safety requirements** for multi-table gamification operations
+2. **Destructive database cleanup operations** planned without safeguards
+3. **Missing rollback/recovery procedures** for streak/XP corruption
+4. **Race condition vulnerabilities** in real-time XP/achievement systems
+5. **No data retention policy** for "Comeback Challenge" after streak deletion
 
 ---
 
 ## 🔴 CRITICAL FINDINGS
 
-### **C-1: No Client-Side Backup Before Destructive Actions**
-- **Severity:** CRITICAL
-- **Data at Risk:** Entire workout session (all exercises, sets, notes, ratings)
-- **Blast Radius:** Single user, single workout
-- **File & Line:** `WorkoutLogger.tsx:395-440` (entire `handleSubmit` function)
-- **What's Wrong:**
+### CRITICAL-1: Planned Destructive Database Cleanup Without Safeguards
 
-```tsx
-const handleSubmit = async () => {
-  // ... validation ...
-  
-  const formData = {
-    clientId: client.id,
-    trainerId: user?.id || 0,
-    exercises: exercises.map(ex => ({
-      exerciseName: ex.exerciseName,
-      sets: ex.sets.map(s => ({
-        weight: s.weight,
-        reps: s.reps,
-        // ... all set data
-      }))
-    })),
-    // ... more data
-  };
+**Severity:** CRITICAL  
+**Data at Risk:** All Achievement records, user badge collections, historical achievement data  
+**Blast Radius:** ALL USERS — could wipe entire achievement history  
+**Location:** Section 3, Phase 1, Task: "Clean duplicate Achievement rows in prod DB"
 
-  await dailyWorkoutFormService.submitWorkoutForm(formData, {
-    signal: controller.signal
-  });
+**What's Wrong:**
 
-  // ❌ NO BACKUP: If API fails mid-transaction, data is lost
-  setExercises([]);
-  setWarmupItems([]);
-  // ... clearing all state
+```md
+| Clean duplicate Achievement rows in prod DB | One-time SQL script | TODO |
 ```
 
-**The Problem:**
-1. User logs 45 minutes of workout data (10 exercises, 40 sets)
-2. Clicks "Submit"
-3. API request starts
-4. **Network timeout at 29 seconds** (line 418: `setTimeout(() => controller.abort(), 30000)`)
-5. Frontend clears all state (line 432: `setExercises([])`)
-6. **User's 45 minutes of work is GONE**
+This task plans to run a **one-time SQL script** to delete duplicate achievements in production. The document provides:
+- ❌ No SQL script preview
+- ❌ No WHERE clause requirements
+- ❌ No row count validation
+- ❌ No backup requirement
+- ❌ No rollback plan
+- ❌ No dry-run requirement
+- ❌ No user notification plan
 
-**Why This is Critical:**
-- No `localStorage` backup before submission
-- No "draft recovery" mechanism
-- No way to retry failed submission with original data
+**Disaster Scenario:**
+```sql
+-- Developer writes this thinking it's safe:
+DELETE FROM "Achievements" 
+WHERE id NOT IN (
+  SELECT MIN(id) FROM "Achievements" GROUP BY name
+);
 
-- **Fix:**
+-- But if the subquery fails or returns empty set:
+-- ALL ACHIEVEMENTS DELETED
+```
 
-```tsx
-// Add to WorkoutLogger.tsx
-const BACKUP_KEY = 'workout_draft_backup';
+**If this runs wrong:**
+- Every user loses their entire badge collection
+- Years of workout achievement history GONE
+- No way to restore (unless backups exist)
+- Users see empty badge galleries
+- Leaderboard XP calculations break (if tied to achievements)
 
-const createBackup = useCallback(() => {
-  const backup = {
-    timestamp: Date.now(),
-    clientId: client?.id,
-    exercises,
-    warmupItems,
-    cooldownItems,
-    sessionSummary
-  };
-  localStorage.setItem(BACKUP_KEY, JSON.stringify(backup));
-}, [client, exercises, warmupItems, cooldownItems, sessionSummary]);
+**Fix Required:**
 
-const clearBackup = useCallback(() => {
-  localStorage.removeItem(BACKUP_KEY);
-}, []);
+Add to Phase 1 task list:
 
-const restoreBackup = useCallback(() => {
-  const backup = localStorage.getItem(BACKUP_KEY);
-  if (!backup) return false;
-  
-  try {
-    const data = JSON.parse(backup);
-    if (data.clientId === client?.id) {
-      setExercises(data.exercises);
-      setWarmupItems(data.warmupItems);
-      setSessionSummary(data.sessionSummary);
-      toast.info('Restored unsaved workout data');
-      return true;
-    }
-  } catch (e) {
-    console.error('Failed to restore backup:', e);
-  }
-  return false;
-}, [client]);
+```md
+| Clean duplicate Achievement rows in prod DB | One-time SQL script | TODO |
 
-// Backup before submit
-const handleSubmit = async () => {
-  // ... validation ...
-  
-  createBackup(); // ✅ Save before network call
-  
-  try {
-    await dailyWorkoutFormService.submitWorkoutForm(formData, {
-      signal: controller.signal
-    });
-    
-    clearBackup(); // ✅ Only clear on success
-    setExercises([]);
-    // ...
-  } catch (error) {
-    // ✅ Backup still exists, user can retry
-    toast.error('Submission failed. Your data is saved - please try again.');
-  }
-};
+**SAFETY REQUIREMENTS FOR THIS TASK:**
+1. **Pre-execution backup:** `pg_dump -t Achievements -t UserAchievements > achievements_backup_$(date +%Y%m%d).sql`
+2. **Dry-run first:** Run SELECT version to preview affected rows
+3. **Row count validation:** Script must abort if affected rows > 100 OR > 10% of table
+4. **Transaction wrapper:** Entire operation in BEGIN/COMMIT with manual review before commit
+5. **Staging test:** Run on staging DB first, verify no data loss
+6. **Preserve UserAchievements:** Ensure foreign key constraints don't cascade delete user badge records
+7. **Post-execution validation:** Compare row counts before/after, verify no user lost badges
+8. **Rollback plan:** Document exact steps to restore from backup if needed
 
-// Restore on mount
-useEffect(() => {
-  restoreBackup();
-}, []);
+**SQL Script Template:**
+```sql
+BEGIN; -- DO NOT AUTO-COMMIT
+
+-- Step 1: Identify duplicates
+CREATE TEMP TABLE duplicate_achievements AS
+SELECT name, COUNT(*) as count, ARRAY_AGG(id) as ids
+FROM "Achievements"
+GROUP BY name
+HAVING COUNT(*) > 1;
+
+-- Step 2: Safety check
+DO $$
+DECLARE
+  dup_count INT;
+BEGIN
+  SELECT COUNT(*) INTO dup_count FROM duplicate_achievements;
+  IF dup_count > 50 THEN
+    RAISE EXCEPTION 'Too many duplicates (%). Aborting for safety.', dup_count;
+  END IF;
+END $$;
+
+-- Step 3: Preview what will be deleted
+SELECT * FROM duplicate_achievements;
+-- STOP HERE. MANUALLY REVIEW OUTPUT.
+
+-- Step 4: Update UserAchievements to point to kept ID
+UPDATE "UserAchievements" ua
+SET "achievementId" = (
+  SELECT ids[1] FROM duplicate_achievements da 
+  WHERE da.name = (SELECT name FROM "Achievements" WHERE id = ua."achievementId")
+)
+WHERE "achievementId" IN (
+  SELECT UNNEST(ids[2:]) FROM duplicate_achievements
+);
+
+-- Step 5: Delete duplicates (keep first ID per name)
+DELETE FROM "Achievements"
+WHERE id IN (
+  SELECT UNNEST(ids[2:]) FROM duplicate_achievements
+);
+
+-- Step 6: Verify
+SELECT 'Duplicates remaining:', COUNT(*) 
+FROM "Achievements" 
+GROUP BY name 
+HAVING COUNT(*) > 1;
+
+-- MANUAL REVIEW REQUIRED BEFORE COMMIT
+-- COMMIT; -- Uncomment only after verification
+```
 ```
 
 ---
 
-### **C-2: Session Deduction Without Transaction Guarantee**
-- **Severity:** CRITICAL
-- **Data at Risk:** User's paid session credits
-- **Blast Radius:** Single user, financial impact
-- **File & Line:** `WorkoutLogger.tsx:404-408`
-- **What's Wrong:**
+### CRITICAL-2: No Transaction Safety for Multi-Table Gamification Operations
 
-```tsx
-if (client.availableSessions <= 0 && user?.role !== 'admin') {
-  toast.error('Client has no available sessions remaining');
-  isSubmittingRef.current = false;
-  setIsSubmitting(false);
-  return;
-}
+**Severity:** CRITICAL  
+**Data at Risk:** User XP, streak counts, achievement unlocks, leaderboard positions  
+**Blast Radius:** Individual users per request, but HIGH FREQUENCY (every workout completion)  
+**Location:** Section 3, Phase 2, "Surprise XP Multiplier" + Section 2A
+
+**What's Wrong:**
+
+The document specifies complex multi-table operations with NO transaction requirements:
+
+```md
+**Surprise XP Multipliers**: After completing a workout, randomly (15% chance) 
+award a 2x-5x XP multiplier with celebration animation
 ```
 
-**The Problem:**
-1. Frontend checks `availableSessions > 0`
-2. Submits workout to backend
-3. **Backend deducts session** (assumed)
-4. **Backend fails to save workout data** (database error, validation failure, etc.)
-5. **Session is deducted but workout is lost**
+This will require:
+1. Read user's current XP
+2. Calculate workout XP
+3. Roll random multiplier (15% chance)
+4. Update user XP
+5. Create XP transaction log entry
+6. Check for level-up
+7. Update user level if threshold crossed
+8. Check for new achievements unlocked
+9. Create UserAchievement records
+10. Update leaderboard position
+11. Create notification records
 
-**Why This is Critical:**
-- Client loses a paid session
-- No workout data to show for it
-- No way to recover the session credit
-- **This is a financial transaction** — must be atomic
+**If ANY step fails mid-operation:**
+- User gets XP but no level-up (stuck at 99/100 forever)
+- User levels up but XP not recorded (leaderboard wrong)
+- Achievement unlocked but not recorded (user never sees it)
+- Notification created but achievement missing (broken link)
 
-- **Fix:**
+**Disaster Scenario:**
+```javascript
+// Developer implements without transaction:
+async function completeWorkout(userId, workoutData) {
+  const baseXP = 50;
+  const multiplier = Math.random() < 0.15 ? randomBetween(2, 5) : 1;
+  const earnedXP = baseXP * multiplier;
+  
+  // Step 1: Update XP
+  await User.increment('xp', { by: earnedXP, where: { id: userId } });
+  
+  // Step 2: Check level-up
+  const user = await User.findByPk(userId);
+  const newLevel = calculateLevel(user.xp);
+  
+  // ❌ DATABASE CONNECTION DROPS HERE
+  
+  // Step 3: Update level (NEVER RUNS)
+  await user.update({ level: newLevel });
+  
+  // Step 4: Unlock achievements (NEVER RUNS)
+  await unlockAchievements(userId, newLevel);
+}
 
-```tsx
-// Backend must implement this pattern:
-// POST /api/workouts/submit
-async function submitWorkout(req, res) {
+// RESULT: User has 1,050 XP (Level 5) but level column still shows 4
+// Leaderboard shows wrong level
+// Level-up achievements never unlock
+// User never gets celebration animation
+```
+
+**Fix Required:**
+
+Add to Section 3, Phase 2:
+
+```md
+### TRANSACTION SAFETY REQUIREMENTS (MANDATORY)
+
+ALL gamification operations that modify multiple tables MUST use transactions:
+
+**Files requiring transaction wrappers:**
+- `gamificationController.mjs` — all XP/level/achievement operations
+- `goalChallengeService.mjs` — challenge completion
+- `GamificationEngine.mjs` — streak updates, multiplier calculations
+- `GamificationPersistence.mjs` — all database writes
+
+**Transaction pattern:**
+```javascript
+const { sequelize } = require('../models');
+
+async function completeWorkout(userId, workoutData) {
   const transaction = await sequelize.transaction();
   
   try {
-    // 1. Create workout record
-    const workout = await Workout.create({
-      clientId: req.body.clientId,
-      exercises: req.body.exercises,
-      // ...
+    // All database operations here
+    const earnedXP = await calculateXP(workoutData);
+    const user = await User.findByPk(userId, { transaction, lock: true });
+    
+    user.xp += earnedXP;
+    const oldLevel = user.level;
+    user.level = calculateLevel(user.xp);
+    await user.save({ transaction });
+    
+    if (user.level > oldLevel) {
+      await unlockLevelAchievements(userId, user.level, { transaction });
+    }
+    
+    await XPTransaction.create({
+      userId,
+      amount: earnedXP,
+      source: 'workout_completion',
+      multiplier: multiplier
     }, { transaction });
     
-    // 2. Deduct session ONLY if workout save succeeded
-    await Client.update(
-      { availableSessions: sequelize.literal('available_sessions - 1') },
-      { 
-        where: { id: req.body.clientId },
-        transaction 
-      }
-    );
-    
-    // 3. Commit both operations atomically
     await transaction.commit();
     
-    return res.json({ success: true, workout });
+    // Non-critical operations AFTER commit (notifications, etc.)
+    await sendLevelUpNotification(userId, user.level);
+    
+    return { success: true, earnedXP, newLevel: user.level };
     
   } catch (error) {
-    // ✅ Rollback BOTH operations
     await transaction.rollback();
-    return res.status(500).json({ error: 'Workout save failed - no session deducted' });
+    console.error('Workout completion failed:', error);
+    throw error; // Re-throw to trigger error response
   }
 }
 ```
 
-**Frontend Change Required:**
-```tsx
-// Add explicit error handling for session deduction
-try {
-  const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
-  
-  if (response.sessionDeducted && !response.workoutSaved) {
-    // ❌ CRITICAL: Backend violated transaction guarantee
-    toast.error('CRITICAL ERROR: Session deducted but workout not saved. Contact support immediately.');
-    // Log to error tracking service
-    console.error('Transaction violation:', response);
+**Rollback testing required:**
+- Simulate database failures mid-transaction
+- Verify no partial data written
+- Verify user state unchanged after rollback
+```
+
+---
+
+### CRITICAL-3: Race Conditions in Real-Time XP/Streak Updates
+
+**Severity:** CRITICAL  
+**Data at Risk:** User XP totals, streak counts, leaderboard positions  
+**Blast Radius:** Individual users, but FREQUENT (multiple concurrent workouts)  
+**Location:** Section 3, Phase 3, "Live activity feed" + Section 2D
+
+**What's Wrong:**
+
+The document specifies real-time features with NO concurrency control:
+
+```md
+**Live Activity Feed**: "Jackie just completed Leg Day (+50 XP)" appearing in real-time
+```
+
+**Race Condition Scenario:**
+
+User completes two exercises simultaneously (e.g., superset logged via mobile app + web app):
+
+```
+Time    | Request A (Mobile)              | Request B (Web)
+--------|----------------------------------|----------------------------------
+T+0ms   | Read user.xp = 1000             | Read user.xp = 1000
+T+10ms  | Calculate: 1000 + 50 = 1050     | Calculate: 1000 + 50 = 1050
+T+20ms  | Write user.xp = 1050            |
+T+25ms  |                                  | Write user.xp = 1050 (OVERWRITES)
+--------|----------------------------------|----------------------------------
+RESULT: User earned 100 XP but only got credit for 50 XP
+```
+
+**Also affects:**
+- Streak updates (two logins same day could double-increment)
+- Achievement unlocks (same achievement unlocked twice)
+- Leaderboard positions (two users tie, both get #1)
+
+**Fix Required:**
+
+Add to Section 3, Phase 3:
+
+```md
+### CONCURRENCY CONTROL REQUIREMENTS (MANDATORY)
+
+**Row-level locking for all XP/streak updates:**
+
+```javascript
+// WRONG (race condition):
+const user = await User.findByPk(userId);
+user.xp += earnedXP;
+await user.save();
+
+// CORRECT (pessimistic lock):
+const user = await User.findByPk(userId, {
+  lock: transaction.LOCK.UPDATE, // PostgreSQL SELECT FOR UPDATE
+  transaction
+});
+user.xp += earnedXP;
+await user.save({ transaction });
+
+// ALTERNATIVE (optimistic lock with version field):
+const [updatedRows] = await User.update(
+  { 
+    xp: sequelize.literal(`xp + ${earnedXP}`),
+    version: sequelize.literal('version + 1')
+  },
+  { 
+    where: { 
+      id: userId,
+      version: currentVersion // Only update if version unchanged
+    }
   }
-  
-} catch (error) {
-  // Ensure user knows their session was NOT deducted
-  toast.error('Submission failed. No session was deducted. Please try again.');
+);
+
+if (updatedRows === 0) {
+  throw new Error('Concurrent modification detected. Retry.');
 }
 ```
 
----
+**Idempotency for achievement unlocks:**
 
-## 🟠 HIGH SEVERITY FINDINGS
+```javascript
+// Use INSERT ... ON CONFLICT DO NOTHING (PostgreSQL)
+await UserAchievement.findOrCreate({
+  where: { userId, achievementId },
+  defaults: { unlockedAt: new Date() }
+});
 
-### **H-1: Unvalidated Bulk Exercise Deletion**
-- **Severity:** HIGH
-- **Data at Risk:** All exercises in a workout session (10+ exercises, 50+ sets)
-- **Blast Radius:** Single user, single workout
-- **File & Line:** `WorkoutLogger.tsx:338-341`
-- **What's Wrong:**
-
-```tsx
-const removeExercise = useCallback((exerciseIndex: number) => {
-  setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
-  toast.info('Exercise removed from workout');
-}, []);
+// Or use unique constraint:
+// ALTER TABLE "UserAchievements" 
+// ADD CONSTRAINT unique_user_achievement 
+// UNIQUE (userId, achievementId);
 ```
 
-**Issue:** No confirmation dialog. A misclick deletes an exercise with all its sets, notes, and ratings. No undo mechanism.
-
-- **Fix:**
-
-```tsx
-const removeExercise = useCallback((exerciseIndex: number) => {
-  const exercise = exercises[exerciseIndex];
-  const setCount = exercise.sets.length;
-  const hasData = exercise.sets.some(s => s.weight > 0 || s.reps > 0 || s.notes);
-  
-  // Require confirmation if exercise has logged data
-  if (hasData || setCount > 1) {
-    const confirmed = window.confirm(
-      `Remove "${exercise.exerciseName}"?\n\n` +
-      `This will delete ${setCount} set${setCount > 1 ? 's' : ''} of logged data.\n` +
-      `This action cannot be undone.`
-    );
-    if (!confirmed) return;
-  }
-  
-  setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
-  toast.warning(`Removed ${exercise.exerciseName} (${setCount} sets)`);
-  
-  // Backup to allow manual recovery
-  const backup = { exercise, removedAt: Date.now() };
-  sessionStorage.setItem(`removed_exercise_${Date.now()}`, JSON.stringify(backup));
-}, [exercises]);
+**Distributed lock for leaderboard updates:**
+- Use Redis SETNX for leaderboard recalculation
+- Prevent multiple servers from recalculating simultaneously
 ```
 
 ---
 
-### **H-2: Race Condition in Submit Handler**
-- **Severity:** HIGH
-- **Data at Risk:** Duplicate workout submissions (double session deduction)
-- **Blast Radius:** Single user, financial impact
-- **File & Line:** `WorkoutLogger.tsx:395-398`
-- **What's Wrong:**
+### CRITICAL-4: Streak Data Loss Risk in "Comeback Challenge"
 
-```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) return;
-  isSubmittingRef.current = true; // ← Set AFTER check
+**Severity:** CRITICAL  
+**Data at Risk:** User streak history, streak milestone achievements  
+**Blast Radius:** Individual users who break streaks  
+**Location:** Section 2C, "Comeback Bonus" + Section 4, Point System
+
+**What's Wrong:**
+
+```md
+**"Comeback Bonus"**: After breaking a streak, offer a "Comeback Challenge": 
+complete 3 workouts in 5 days to restore 50% of lost streak
 ```
 
-**Race Window:** 5-10ms between check and set allows double-clicks to pass through.
+**The problem:**
+- When a streak breaks, what happens to the old streak value?
+- Is it stored in history? Or overwritten to 0?
+- If overwritten, how do you calculate "50% of lost streak"?
 
-- **Fix:**
+**Disaster Scenario:**
 
-```tsx
-const handleSubmit = async () => {
-  // Atomic check-and-set
-  if (isSubmittingRef.current) return;
+```javascript
+// Developer implements without history:
+async function checkStreak(userId) {
+  const user = await User.findByPk(userId);
+  const daysSinceLastWorkout = calculateDaysSince(user.lastWorkoutDate);
   
-  const submissionToken = `${Date.now()}-${Math.random()}`;
-  isSubmittingRef.current = submissionToken;
-  
-  // Verify we still own the lock after state update
-  await new Promise(resolve => setTimeout(resolve, 0));
-  if (isSubmittingRef.current !== submissionToken) {
-    console.warn('Submission race detected - aborting duplicate');
-    return;
+  if (daysSinceLastWorkout > user.streakGracePeriod) {
+    // ❌ STREAK DATA LOST FOREVER
+    user.currentStreak = 0;
+    await user.save();
+    
+    // ❌ Can't create comeback challenge — don't know what streak was lost!
+    // await createComebackChallenge(userId, ???);
   }
-  
-  setIsSubmitting(true);
-  
-  try {
-    // ... submission logic
-  } finally {
-    // Only clear if we still own the lock
-    if (isSubmittingRef.current === submissionToken) {
-      isSubmittingRef.current = false;
-      setIsSubmitting(false);
-    }
-  }
-};
+}
 ```
 
----
+**Also affects:**
+- "Longest streak" stat (if not tracked separately)
+- Streak milestone achievements (e.g., "Had a 90-day streak" badge)
+- Analytics/reporting (can't show streak history graph)
 
-### **H-3: Uncontrolled State Mutations in AI Event Handlers**
-- **Severity:** HIGH
-- **Data at Risk:** Workout data corruption from stale AI events
-- **Blast Radius:** Single user, single workout
-- **File & Line:** `WorkoutLogger.tsx:165-206`
-- **What's Wrong:**
+**Fix Required:**
 
-```tsx
-useEffect(() => {
-  const onAddExercise = (e: Event) => {
-    const detail = (e as CustomEvent).detail;
-    const newExercise: ExerciseEntry = {
-      exerciseName: detail.exerciseName || 'Unknown Exercise',
-      sets: [{ weight: detail.weight || 0, reps: detail.reps || 0, /* ... */ }],
-      // ...
-    };
-    setExercises(prev => [...prev, newExercise]); // ❌ No validation
-  };
-  
-  window.addEventListener('AI_ADD_EXERCISE', onAddExercise);
-  return () => window.removeEventListener('AI_ADD_EXERCISE', onAddExercise);
-}, []); // ❌ Empty deps - stale closure
+Add to Section 3, Phase 2:
+
+```md
+### STREAK DATA RETENTION REQUIREMENTS (MANDATORY)
+
+**Never delete streak history. Always archive.**
+
+**Database schema addition:**
+```sql
+CREATE TABLE "StreakHistory" (
+  id SERIAL PRIMARY KEY,
+  "userId" INTEGER NOT NULL REFERENCES "Users"(id),
+  "streakLength" INTEGER NOT NULL,
+  "startDate" DATE NOT NULL,
+  "endDate" DATE NOT NULL,
+  "endReason" VARCHAR(50), -- 'broken', 'manual_reset', 'account_deletion'
+  "restoredFromComebackChallenge" BOOLEAN DEFAULT FALSE,
+  "createdAt" TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_streak_history_user ON "StreakHistory"("userId");
 ```
 
-**Issues:**
-1. **Stale Closure:** Event listener captures initial `setExercises`, may not reflect current state
-2. **No Validation:** AI could send malformed data (missing required fields)
-3. **No Duplicate Check:** AI could add same exercise twice
-4. **No User Confirmation:** Exercises appear without user consent
-
-- **Fix:**
-
-```tsx
-// Use ref to avoid stale closures
-const exercisesRef = useRef(exercises);
-useEffect(() => {
-  exercisesRef.current = exercises;
-}, [exercises]);
-
-useEffect(() => {
-  const onAddExercise = (e: Event) => {
-    const detail = (e as CustomEvent).detail;
-    
-    // Validate required fields
-    if (!detail?.exerciseName || typeof detail.exerciseName !== 'string') {
-      console.error('Invalid AI exercise data:', detail);
-      toast.error('AI sent invalid exercise data');
-      return;
-    }
-    
-    // Check for duplicates
-    const isDuplicate = exercisesRef.current.some(
-      ex => ex.exerciseName.toLowerCase() === detail.exerciseName.toLowerCase()
-    );
-    
-    if (isDuplicate) {
-      toast.warning(`${detail.exerciseName} is already in this workout`);
-      return;
-    }
-    
-    // Sanitize and validate data
-    const newExercise: ExerciseEntry = {
-      exerciseName: detail.exerciseName.trim(),
-      sets: [{
-        weight: Math.max(0, Number(detail.weight) || 0),
-        reps: Math.max(0, Number(detail.reps) || 0),
-        tempo: detail.tempo || '2-0-2-0',
-        restSeconds: Math.max(0, Number(detail.restSeconds) || 60),
-        notes: detail.notes?.trim() || '',
-        completed: false
-      }],
-      formRating: 0,
-      painLevel: 0
-    };
-    
-    setExercises(prev => [...prev, newExercise]);
-    toast.success(`Added ${newExercise.exerciseName} from AI`);
-  };
+**Streak break logic:**
+```javascript
+async function breakStreak(userId, transaction) {
+  const user = await User.findByPk(userId, { transaction, lock: true });
   
-  window.addEventListener('AI_ADD_EXERCISE', onAddExercise);
-  return () => window.removeEventListener('AI_ADD_EXERCISE', onAddExercise);
-}, []); // Now safe - uses ref
-```
-
----
-
-## 🟡 MEDIUM SEVERITY FINDINGS
-
-### **M-1: No Data Validation Before State Updates**
-- **Severity:** MEDIUM
-- **Data at Risk:** Corrupted workout data (negative weights, invalid tempo)
-- **Blast Radius:** Single user, single workout
-- **File & Line:** `WorkoutLogger.tsx:344-360` (all update functions)
-- **What's Wrong:**
-
-```tsx
-const updateSet = useCallback((exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => {
-  setExercises(prev => {
-    const updated = [...prev];
-    updated[exerciseIndex].sets[setIndex] = {
-      ...updated[exerciseIndex].sets[setIndex],
-      [field]: value // ❌ No validation
-    };
-    return updated;
-  });
-}, []);
-```
-
-**Issue:** User can enter:
-- Negative weights: `-50`
-- Invalid reps: `999999`
-- Malformed tempo: `abc-def`
-- Dangerous rest periods: `0` seconds
-
-- **Fix:**
-
-```tsx
-const updateSet = useCallback((
-  exerciseIndex: number,
-  setIndex: number,
-  field: keyof ExerciseSet,
-  value: any
-) => {
-  // Validate based on field type
-  let sanitizedValue = value;
-  
-  switch (field) {
-    case 'weight':
-    case 'reps':
-      sanitizedValue = Math.max(0, Math.min(9999, Number(value) || 0));
-      break;
-    case 'tempo':
-      // Validate tempo format (e.g., "2-0-2-0")
-      if (!/^\d-\d-\d-\d$/.test(value)) {
-        toast.error('Invalid tempo format. Use X-X-X-X (e.g., 2-0-2-0)');
-        return;
-      }
-      break;
-    case 'restSeconds':
-      sanitizedValue = Math.max(0, Math.min(600, Number(value) || 0));
-      break;
-    case 'notes':
-      sanitizedValue = String(value).slice(0, 500); // Limit length
-      break;
-  }
-  
-  setExercises(prev => {
-    const updated = [...prev];
+  if (user.currentStreak > 0) {
+    // Archive the broken streak
+    await StreakHistory.create({
+      userId: user.id,
+      streakLength: user.currentStreak,
+      startDate: user.streakStartDate,
+      endDate: new Date(),
+      endReason: 'broken'
+    }, { transaction });
+    
+    // Create comeback challenge
+    await ComebackChallenge.create({
+      userId: user.id,
+      lostStreakLength: user.currentStreak,
+      restoreAmount: Math.floor(user.currentStreak * 0.5),
+      expiresAt: addDays(new Date(), 5),
+      requiredWorkouts: 3,
+      completedWorkouts: 0
+    }, { transaction });
+    
 
 ---
 

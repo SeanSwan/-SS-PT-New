@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * FILE: AwardAchievementDialog.tsx
+ * PURPOSE: Dialog for trainers to award a specific achievement to a client
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a modal dialog allowing trainers to select an achievement from a
+ * dropdown and award it to a specific client. Shows the selected achievement's
+ * icon, description, and XP reward before confirmation.
+ *
+ * HOW IT FITS IN THE APP:
+ * trainer-gamification-view -> AwardAchievementDialog (modal, opened on button click)
+ * Calls parent's onAward callback which triggers gamification API.
+ *
+ * KEY DECISIONS:
+ * - Uses ui/primitives Dialog components (legacy MUI shim layer)
+ * - Icon mapping consistent with AchievementGrid and AchievementManager
+ */
 import React from 'react';
 import {
   Box,

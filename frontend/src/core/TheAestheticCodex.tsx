@@ -264,7 +264,7 @@ const ButtonExample = styled.div`
   }
 `;
 
-// Styled button components based on Galaxy-Swan theme
+// Styled button components based on Crystalline Swan theme
 const PrimaryButton = styled.button`
   ${swanStudiosTheme.components.buttonBase};
   background: ${swanStudiosTheme.gradients.primaryCosmic};

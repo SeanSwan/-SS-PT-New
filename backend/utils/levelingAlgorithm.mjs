@@ -1,5 +1,25 @@
 /**
- * SwanStudios Gamification -- Logarithmic Leveling System
+ * ============================================================================
+ * FILE: levelingAlgorithm.mjs
+ * PURPOSE: Authoritative leveling formula — level = floor(0.1 × sqrt(points))
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Calculates user level from total points using a
+ * logarithmic curve. Also provides tier lookup, progress snapshots, and
+ * points-for-level calculations. THIS IS THE AUTHORITATIVE leveling source.
+ *
+ * HOW IT FITS IN THE APP:
+ *   gamificationController → levelingAlgorithm.calculateLevel(points)
+ *   GamificationEngine also has levelThresholds array (CONFLICTS — tech debt)
+ *
+ * KEY DECISIONS:
+ * - Formula: level = floor(0.1 × sqrt(totalPoints)) — AUTHORITATIVE
+ * - GamificationEngine.levelThresholds is legacy and should be removed
+ * - 5-tier system maps level ranges to tier names and colors
+ *
+ * SwanStudios Gamification — Logarithmic Leveling System
  * =======================================================
  * Based on Octalysis Framework + Self-Determination Theory
  *

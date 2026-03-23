@@ -41,7 +41,7 @@ const UnifiedOnboardingWizard: React.FC = () => {
       <Card>
         <Title>Unified Onboarding</Title>
         <Copy>
-          The unified onboarding flow is being refactored into the Galaxy-Swan
+          The unified onboarding flow is being refactored into the Crystalline Swan
           admin client tools. Use the Client Management dashboard to onboard
           clients until the consolidated wizard is restored.
         </Copy>

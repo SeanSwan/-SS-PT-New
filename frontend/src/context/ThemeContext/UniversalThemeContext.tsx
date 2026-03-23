@@ -135,7 +135,7 @@ const crystallineDefault = {
  * Icy professional light theme with subtle glass effects.
  * Background: #F4F7FB (icy off-white, not pure white — preserves glass effect)
  * Primary accent: #00B4D8 (brighter, icier cyan)
- * Legacy accent: #7851A9 (Cosmic Purple nod to roots)
+ * Legacy accent: #8B5CF6 (Wing Purple nod to roots)
  * Gold accent: #C6A84B
  */
 const crystallineLight = {

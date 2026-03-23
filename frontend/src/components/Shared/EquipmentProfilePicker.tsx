@@ -5,7 +5,7 @@
  * to use when building workouts. Embedded in Workout Logger, Bootcamp
  * Builder, and Long Horizon Builder.
  *
- * Galaxy-Swan theme: Midnight Sapphire, Swan Cyan, 44px touch targets.
+ * Crystalline Swan theme: Midnight Sapphire, Swan Cyan, 44px touch targets.
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';

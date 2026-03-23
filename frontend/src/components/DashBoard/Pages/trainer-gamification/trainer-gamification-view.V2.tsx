@@ -1,10 +1,42 @@
 /**
- * Trainer Gamification View V2
- * =============================
- * Clean rewrite using ui-kit components (MUI-free)
- * 
- * Strangler Fig Pattern - V2 Version
- * Interface for trainers to award points and achievements to clients
+ * ============================================================================
+ * FILE: trainer-gamification-view.V2.tsx
+ * PURPOSE: V2 trainer gamification view rewritten with ui-kit (MUI-free)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Strangler Fig Pattern V2 rewrite of trainer-gamification-view.tsx. Same
+ * functionality (client list, point/achievement awarding) but rebuilt with
+ * ui-kit Typography, Card, Input, and EmptyState components instead of MUI.
+ *
+ * HOW IT FITS IN THE APP:
+ * App -> DashBoard -> TrainerDashboard -> trainer-gamification-view.V2
+ * Replaces V1 when fully validated. Uses same useTrainerGamification hook.
+ *
+ * KEY DECISIONS:
+ * - Strangler fig migration: V2 coexists with V1 until fully validated
+ * - ui-kit primitives instead of MUI for consistency with rest of app
+ * - Same hook/data layer as V1 (only presentation layer changed)
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: TrainerGamificationViewV2                         ║
+ * ║  PURPOSE: MUI-free trainer gamification interface (V2)        ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [PageTitle: "Client Gamification"] [StyledInput: search]   │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Card-based client list with award actions                  │
+ * │ | Name | Level | Tier | [Award Pts] [Award Badge]         │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (355 lines) - minor, close to threshold
  */
 
 import React, { useState, useEffect } from 'react';

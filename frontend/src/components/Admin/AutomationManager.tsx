@@ -1,7 +1,7 @@
 /**
  * AutomationManager
  * =================
- * Galaxy-Swan themed admin UI for managing automation sequences.
+ * Crystalline Swan themed admin UI for managing automation sequences.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';

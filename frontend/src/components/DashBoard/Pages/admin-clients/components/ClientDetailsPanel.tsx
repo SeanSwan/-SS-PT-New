@@ -80,7 +80,7 @@ import MoveFitLogo3D from '../../../../../assets/MoveFitLogo-3d.png';
 import SwanStudiosLogo from '../../../../../assets/Logo.png';
 
 // ============================================================
-// Styled Components - Galaxy-Swan Theme
+// Styled Components - Crystalline Swan Theme
 // ============================================================
 
 const DialogHeader = styled.div`

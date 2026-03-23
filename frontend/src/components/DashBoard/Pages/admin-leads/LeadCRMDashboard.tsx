@@ -5,7 +5,7 @@
  * for managing leads from all sources: gallery, walk-in, website, referral.
  *
  * Gemini 3.1 Pro design specs applied:
- *   - Galaxy-Swan theme tokens
+ *   - Crystalline Swan theme tokens
  *   - Lead source color coding (Gallery=Purple, Walk-in=Cyan, Web=Silver, Referral=Pink)
  *   - 44px minimum touch targets
  *   - Glass blur backgrounds with cosmic depth

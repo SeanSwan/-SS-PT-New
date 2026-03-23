@@ -3,7 +3,7 @@
  * ====================
  * Animated Recharts AreaChart showing goal progress over time.
  * Data source: useUserGoals hook → /api/v1/gamification/users/:userId/goals
- * Galaxy-Swan gradient fill, 1200ms animated entry.
+ * Crystalline Swan gradient fill, 1200ms animated entry.
  */
 
 import React from 'react';

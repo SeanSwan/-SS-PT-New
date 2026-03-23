@@ -141,7 +141,7 @@ const PricingSheetPDF: React.FC = () => (
     <SheetWrapper>
       <Header>
         <Title>SwanStudios Pricing</Title>
-        <Subtitle>Galaxy-Swan training packages built for measurable results.</Subtitle>
+        <Subtitle>Crystalline Swan training packages built for measurable results.</Subtitle>
       </Header>
 
       <PackagesGrid>

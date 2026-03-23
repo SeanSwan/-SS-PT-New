@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: ActivityFeed.tsx
+ * PURPOSE: Client gamification activity feed showing recent XP events
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a chronological feed of recent gamification events for the client:
+ * point awards, achievement unlocks, streak milestones, and level-ups. Each
+ * event has an icon, description, timestamp, and XP amount with a shimmer
+ * animation on new items.
+ *
+ * HOW IT FITS IN THE APP:
+ * client-gamification-view-enhanced -> ActivityFeed (child component)
+ * Reads PointTransaction data from useGamificationData hook.
+ *
+ * KEY DECISIONS:
+ * - framer-motion stagger animation for feed items on mount
+ * - Icon mapping by action type for visual variety
+ * - Relative timestamps ("2 hours ago") for freshness feel
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (411 lines) - styled-components could be
+ *   extracted to reduce line count
+ */
 import React, { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {

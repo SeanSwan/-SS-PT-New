@@ -9,7 +9,7 @@
  * EnhancedAdminClientManagementView.tsx. VERIFY before adding features.
  * If confirmed dead code, schedule for removal.
  *
- * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,375 lines — exceeds 300-line rule
  */
 

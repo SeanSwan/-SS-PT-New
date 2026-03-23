@@ -2,7 +2,7 @@
  * SignaturePad — Phase 5W-G
  * ==========================
  * Canvas-based signature capture using signature_pad library.
- * Galaxy-Swan themed with cyan pen color, dark background.
+ * Crystalline Swan themed with cyan pen color, dark background.
  *
  * Usage:
  *   const ref = useRef<SignaturePadHandle>(null);

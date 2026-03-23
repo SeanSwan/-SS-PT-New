@@ -32,7 +32,7 @@ export const cyberpunkPremiumTheme: ConceptTheme = {
   memorableMoment:
     'A glitch transition when scrolling between sections — the viewport briefly splits into RGB channels and snaps back. Hero text types itself out like a terminal.',
   rationale:
-    'Evolves the existing Galaxy-Swan dark aesthetic into something more extreme and memorable. Appeals to tech-savvy, gaming-adjacent fitness audiences. Neon-on-dark creates unmistakable brand identity.',
+    'Evolves the existing Crystalline Swan dark aesthetic into something more extreme and memorable. Appeals to tech-savvy, gaming-adjacent fitness audiences. Neon-on-dark creates unmistakable brand identity.',
   interactionLanguage:
     'Glitch micro-interactions on hover. Buttons have scan-line effects. Cards flip with holographic sheen. Loading states use terminal-style text.',
 };

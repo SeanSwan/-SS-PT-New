@@ -7,7 +7,7 @@
  *   - Client mode: simplified form — pain level, type, side, description, movements
  *
  * Responsive: bottom-sheet on mobile (≤430px), side panel on larger screens.
- * Theme-aware with Galaxy-Swan fallbacks.
+ * Theme-aware with Crystalline Swan fallbacks.
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */

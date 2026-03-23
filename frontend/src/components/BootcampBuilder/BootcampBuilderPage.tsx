@@ -4,7 +4,7 @@
  * Phase 10f: AI-powered group fitness class generation.
  *
  * 3-pane layout: Config | Class Preview | AI Insights
- * Galaxy-Swan theme with Floor Mode toggle (high contrast for gym use).
+ * Crystalline Swan theme with Floor Mode toggle (high contrast for gym use).
  */
 import React, { useCallback, useState } from 'react';
 import styled, { css } from 'styled-components';

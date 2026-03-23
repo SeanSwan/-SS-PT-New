@@ -4,7 +4,7 @@
  * Embeddable AI privacy consent management panel for the active client dashboard.
  * Designed to live inside AccountGalaxy (GalaxySections.tsx).
  *
- * Uses the same Galaxy-Swan styling patterns as other GalaxySections components.
+ * Uses the same Crystalline Swan styling patterns as other GalaxySections components.
  * Wired to backend /api/ai/consent/* via apiService.
  *
  * Phase 1 — Privacy Foundation (Smart Workout Logger)
@@ -25,7 +25,7 @@ import {
   type ConsentStatusResponse,
 } from '../../services/aiConsentService';
 
-// ── Styled Components (Galaxy-Swan patterns from GalaxySections) ─────────────
+// ── Styled Components (Crystalline Swan patterns from GalaxySections) ─────────────
 
 const PanelCard = styled(motion.div)`
   background: rgba(30, 30, 60, 0.3);

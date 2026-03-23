@@ -25,7 +25,7 @@ import {
 } from './Analytics';
 
 /* ------------------------------------------------------------------ */
-/*  Styled Components – Galaxy-Swan theme                             */
+/*  Styled Components – Crystalline Swan theme                             */
 /* ------------------------------------------------------------------ */
 
 const PageWrapper = styled.div`

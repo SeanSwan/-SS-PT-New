@@ -1,17 +1,27 @@
 /**
- * Gamification System Types
- * =========================
- * Shared type definitions for the SwanStudios gamification system.
- * Mirrors the backend tier/level/achievement models so the frontend
- * can render progress data and compute level previews client-side.
+ * ============================================================================
+ * FILE: gamification.ts
+ * PURPOSE: Shared TypeScript type definitions for the gamification system
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
  *
- * Architecture:
- *   Backend (Sequelize) -> REST API -> These types -> React Query hooks -> UI
+ * WHAT THIS FILE DOES:
+ * Defines all shared TypeScript types, interfaces, enums, and constants for
+ * the SwanStudios gamification system. Mirrors backend Sequelize models so the
+ * frontend can render progress data and compute level previews client-side.
  *
- * Tier ladder:  bronze_forge (1-10) -> silver_edge (11-25) -> titanium_core (26-50)
- *               -> obsidian_warrior (51-99) -> crystalline_swan (100+)
+ * HOW IT FITS IN THE APP:
+ * Backend (Sequelize) -> REST API -> These types -> React Query hooks -> UI
+ * Imported by gamificationSlice.ts, useGamificationData hooks, and all
+ * gamification UI components across admin/client/trainer dashboards.
  *
- * Level formula:  level = floor(0.1 * sqrt(totalPoints))
+ * KEY DECISIONS:
+ * - Centralized type file rather than co-located types to prevent drift
+ * - TIER_DISPLAY constant co-located with TierName type for single source of truth
+ * - Level formula documented here: level = floor(0.1 * sqrt(totalPoints))
+ * - Tier ladder: bronze_forge (1-10) -> silver_edge (11-25) -> titanium_core (26-50)
+ *   -> obsidian_warrior (51-99) -> crystalline_swan (100+)
  */
 
 // ===== Tier System =====
@@ -71,7 +81,7 @@ export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 export const RARITY_COLORS: Record<Rarity, string> = {
   common:    '#4070C0',   // Swan Lavender
   rare:      '#C6A84B',   // Gilded Fern
-  epic:      '#60C0F0',   // Ice Wing
+  epic:      '#8B5CF6',   // Wing Purple
   legendary: 'linear-gradient(135deg, #002060, #60C0F0, #C6A84B)', // Animated
 };
 

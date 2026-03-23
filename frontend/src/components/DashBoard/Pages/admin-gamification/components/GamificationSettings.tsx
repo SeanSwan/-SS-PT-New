@@ -1,3 +1,53 @@
+/**
+ * ============================================================================
+ * FILE: GamificationSettings.tsx
+ * PURPOSE: Admin panel for configuring gamification point values and multipliers
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Provides an admin form for adjusting all gamification settings: point values
+ * per action type (workout completion, exercise, PR, streaks, social), XP
+ * multipliers, tier thresholds, and system-wide toggles. Saves to the
+ * GamificationSettings singleton model via API.
+ *
+ * HOW IT FITS IN THE APP:
+ * admin-gamification-view -> GamificationSettings (lazy-loaded tab panel)
+ * Reads/writes GamificationSettings singleton via PUT /api/gamification/settings.
+ *
+ * KEY DECISIONS:
+ * - Collapsible sections for point categories to reduce visual overwhelm
+ * - Warning banner for destructive changes (multiplier adjustments)
+ * - Inline help tooltips explaining each setting's impact
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: GamificationSettings                              ║
+ * ║  PURPOSE: Admin configuration panel for point values/rules    ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Warning Banner: "Changes affect all users"]               │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [v] Workout Points                                        │
+ * │     Complete Workout: [50] | Exercise: [10] | PR: [100]   │
+ * │ [v] Streak Points                                         │
+ * │     3-Day: [25] | 7-Day: [75] | 30-Day: [300]            │
+ * │ [v] Social Points                                         │
+ * │     Post: [15] | Comment: [15] | Referral: [200]          │
+ * │ [v] Multipliers                                           │
+ * │     Global: [1.0x] | Weekend: [1.5x]                     │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [Reset Defaults] [Save Changes]                            │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (879 lines) - form sections should be
+ *   extracted into PointCategorySection sub-components
+ */
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -15,7 +65,7 @@ import {
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
-/*  Styled Components – Galaxy-Swan theme                             */
+/*  Styled Components – Crystalline Swan theme                             */
 /* ------------------------------------------------------------------ */
 
 const PageWrapper = styled.div`

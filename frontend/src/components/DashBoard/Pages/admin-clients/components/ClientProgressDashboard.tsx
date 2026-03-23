@@ -18,7 +18,7 @@
  * State:     { chartView, dateRange, milestones[] }
  * Charts:    Currently Recharts (TODO: migrate to Victory per CLAUDE.md)
  *
- * Theme: Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,256 lines — exceeds 300-line rule. TODO: extract chart sections
  */
 

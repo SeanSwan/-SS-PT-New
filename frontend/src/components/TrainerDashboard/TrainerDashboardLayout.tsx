@@ -30,7 +30,7 @@ const DRAWER_WIDTH = 240;
 const DRAWER_COLLAPSED_WIDTH = 65;
 const APPBAR_HEIGHT = 64;
 
-// ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ────────────────────────────────────────────────
 const theme = {
   galaxyCore: '#002060',
   paper: 'rgba(30, 30, 60, 0.3)',

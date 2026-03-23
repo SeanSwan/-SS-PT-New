@@ -1,7 +1,7 @@
 /**
  * SearchableSelect Component
  * ==========================
- * Galaxy-Swan themed searchable dropdown with keyboard accessibility.
+ * Crystalline Swan themed searchable dropdown with keyboard accessibility.
  *
  * Architecture:
  *   [Text Input + Search Icon] --> [Filtered Dropdown List]
@@ -12,7 +12,7 @@
  *
  * ARIA: role="combobox", aria-expanded, aria-activedescendant
  * Touch targets: 44px minimum on all interactive elements
- * Theme: Galaxy-Swan (#002060 background, #00CED1 cyan accents, glass borders)
+ * Theme: Crystalline Swan (#002060 background, #00CED1 cyan accents, glass borders)
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -281,7 +281,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
 export default SearchableSelect;
 
-// ─── Styled Components — Galaxy-Swan Theme ───────────────────────────────────
+// ─── Styled Components — Crystalline Swan Theme ───────────────────────────────────
 
 const Container = styled.div`
   position: relative;

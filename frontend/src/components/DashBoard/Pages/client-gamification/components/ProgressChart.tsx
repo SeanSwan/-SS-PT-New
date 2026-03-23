@@ -1,3 +1,26 @@
+/**
+ * ============================================================================
+ * FILE: ProgressChart.tsx
+ * PURPOSE: Canvas-based progress chart showing XP and level history over time
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a custom canvas-based line chart showing the client's XP accumulation,
+ * level progression, and achievement count over time. Uses tier-colored data
+ * points and a gradient fill area. Handles resize events for responsiveness.
+ *
+ * HOW IT FITS IN THE APP:
+ * client-gamification-view-enhanced -> ProgressChart (lazy-loaded child)
+ * Receives ProgressSnapshot[] as props from parent component.
+ *
+ * KEY DECISIONS:
+ * - Custom canvas rendering instead of Victory/Recharts for lightweight bundle
+ *   (this is a simple sparkline-style chart, not worth a library import)
+ * - Tier colors from TIER_COLORS constant for data point styling
+ * - Lazy-loaded via React.lazy in parent to defer canvas initialization
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 

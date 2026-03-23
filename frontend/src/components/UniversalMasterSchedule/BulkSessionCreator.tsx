@@ -5,7 +5,7 @@
  * Essential for training businesses to set up weekly schedules
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Galaxy-Swan (cosmic dark, cyan accents, glass panels)
+ * Theme: Crystalline Swan (cosmic dark, cyan accents, glass panels)
  */
 
 import React, { useState } from 'react';

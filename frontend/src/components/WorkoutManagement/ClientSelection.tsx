@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 /* ─────────────────────────────────────────────
-   Galaxy-Swan Theme Tokens
+   Crystalline Swan Theme Tokens
    ───────────────────────────────────────────── */
 const T = {
   bg: 'rgba(15, 23, 42, 0.95)',

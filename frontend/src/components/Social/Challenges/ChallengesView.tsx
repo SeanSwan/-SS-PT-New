@@ -1,6 +1,6 @@
 /**
  * ChallengesView.tsx
- * Galaxy-Swan themed challenges UI with tabs for active/upcoming/completed.
+ * Crystalline Swan themed challenges UI with tabs for active/upcoming/completed.
  * Fetches real data from /api/v1/gamification/challenges; falls back to
  * mock data when the API is unavailable (e.g., migration not yet run).
  */

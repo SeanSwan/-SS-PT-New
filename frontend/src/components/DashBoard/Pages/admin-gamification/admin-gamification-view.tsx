@@ -1,3 +1,57 @@
+/**
+ * ============================================================================
+ * FILE: admin-gamification-view.tsx
+ * PURPOSE: Admin dashboard page for managing the gamification system
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders the admin gamification management page with tabbed navigation across
+ * four sections: System Analytics, Achievement Manager, Reward Manager, and
+ * Gamification Settings. Lazy-loads each tab panel for performance.
+ *
+ * HOW IT FITS IN THE APP:
+ * App -> DashBoard -> GamificationWorkspace -> admin-gamification-view
+ * Parent page that orchestrates all admin gamification sub-components.
+ * Uses useAuth for RBAC (admin-only access).
+ *
+ * KEY DECISIONS:
+ * - React.lazy for all tab panels (large components, only one visible at a time)
+ * - Shared styled-components from styled-gamification-system.ts
+ * - AI context set to 'gamification' for embedded AI terminal
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AdminGamificationView                             ║
+ * ║  PURPOSE: Admin gamification management dashboard page        ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Page Title: "Gamification System"]                        │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [Analytics] [Achievements] [Rewards] [Settings]            │
+ * ├────────────────────────────────────────────────────────────┤
+ * │                                                            │
+ * │  Lazy-loaded tab content (Suspense boundary)               │
+ * │                                                            │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[AdminGamificationView] --> B[TabNavigation]
+ *   A --> C[Suspense]
+ *   C --> D[SystemAnalytics - lazy]
+ *   C --> E[AchievementManager - lazy]
+ *   C --> F[RewardManager - lazy]
+ *   C --> G[GamificationSettings - lazy]
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (818 lines) - tab content and styled
+ *   components should be further extracted
+ */
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { 

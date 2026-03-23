@@ -4,7 +4,7 @@ import { Bell, Plus, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../../../../../services/api';
 
-// ─── Galaxy-Swan Theme Tokens ─────────────────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ─────────────────────────────────────────────────
 const THEME = {
   bg: 'rgba(15,23,42,0.95)',
   bgSurface: 'rgba(15,23,42,0.85)',

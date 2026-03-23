@@ -329,7 +329,7 @@ const EmptyState = styled.div`
 function getRarityGradient(rarity?: Rarity): string {
   switch (rarity) {
     case 'legendary': return 'linear-gradient(135deg, #002060, #60C0F0, #C6A84B)';
-    case 'epic':      return 'linear-gradient(135deg, #60C0F0, #50A0F0)';
+    case 'epic':      return 'linear-gradient(135deg, #8B5CF6, #7040E0)';
     case 'rare':      return 'linear-gradient(135deg, #C6A84B, #A08030)';
     default:          return 'linear-gradient(135deg, #4070C0, #3060A0)';
   }

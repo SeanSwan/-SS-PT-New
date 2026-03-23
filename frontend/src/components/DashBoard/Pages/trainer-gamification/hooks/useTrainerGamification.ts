@@ -1,3 +1,31 @@
+/**
+ * ============================================================================
+ * FILE: useTrainerGamification.ts
+ * PURPOSE: Custom hook for trainer gamification data fetching and award actions
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Provides the data layer for the trainer gamification view. Fetches the
+ * trainer's assigned client list with gamification stats (level, tier, streak,
+ * points), available achievements, and point reason options. Exposes functions
+ * to award points and achievements to specific clients via MCP API services.
+ *
+ * HOW IT FITS IN THE APP:
+ * trainer-gamification-view.tsx / V2.tsx -> useTrainerGamification hook
+ * Calls workoutMcpApi and gamificationMcpApi for data and mutations.
+ * Uses useAuth for trainer identity and useToast for success/error feedback.
+ *
+ * KEY DECISIONS:
+ * - Single hook encapsulating all trainer gamification logic (SRP for data layer)
+ * - MCP API services rather than raw fetch for consistent error handling
+ * - Exports Client, Achievement, PointReason types for consumer components
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (569 lines) - could split types into separate
+ *   file and extract API call functions
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { workoutMcpApi } from '../../../../../services/mcp/workoutMcpService';
 import { gamificationMcpApi } from '../../../../../services/mcp/gamificationMcpService';

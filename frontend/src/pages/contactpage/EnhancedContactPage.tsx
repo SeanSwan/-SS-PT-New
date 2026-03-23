@@ -19,7 +19,7 @@ import axios from "axios";
 const swanVideo = "/swan.mp4";
 
 /**
- * EnhancedContactPage — Galaxy-Swan Contact Form
+ * EnhancedContactPage — Crystalline Swan Contact Form
  * ================================================
  * Mobile-first responsive contact page with glass morphism.
  * 10-breakpoint matrix: 320–3840px. Touch targets ≥44px.

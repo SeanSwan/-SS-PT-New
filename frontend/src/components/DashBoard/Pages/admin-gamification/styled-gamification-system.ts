@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: styled-gamification-system.ts
+ * PURPOSE: Shared styled-components and tier constants for admin gamification
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Provides all shared styled-components (grids, cards, badges, forms) and
+ * Crystalline Swan tier color constants used across the admin gamification
+ * pages. Designed by Gemini 3.1 Pro (Lead Design Authority).
+ *
+ * HOW IT FITS IN THE APP:
+ * Imported by admin-gamification-view.tsx, AchievementManager, RewardManager,
+ * SystemAnalytics, trainer AchievementGrid, and any component needing
+ * gamification-themed styled primitives.
+ *
+ * KEY DECISIONS:
+ * - Centralized styles to prevent duplication across admin gamification views
+ * - Swan tier naming (Cygnus Initiate, Frostwing Ascendant, etc.) per Gemini design
+ * - CRYSTALLINE_SWAN tier uses animated gradient for level 100+ distinction
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (418 lines) - could split tier constants from
+ *   styled-components into separate files
+ */
 import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
 

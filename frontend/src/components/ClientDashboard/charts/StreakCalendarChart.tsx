@@ -3,7 +3,7 @@
  * ======================
  * Custom heatmap calendar showing workout streaks.
  * Uses styled-components grid (simpler than Recharts Treemap).
- * 30-day view, green intensity = workout day, Galaxy-Swan themed.
+ * 30-day view, green intensity = workout day, Crystalline Swan themed.
  */
 
 import React, { useMemo } from 'react';

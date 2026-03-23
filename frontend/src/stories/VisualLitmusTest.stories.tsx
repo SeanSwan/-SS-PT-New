@@ -4,7 +4,7 @@
  * Visual Litmus Test - WCAG 2.1 AA Contrast Verification
  *
  * This Storybook story provides a comprehensive visual QA tool for verifying
- * that all Galaxy-Swan Theme v2.0 color combinations meet WCAG 2.1 AA standards.
+ * that all Crystalline Swan Theme color combinations meet WCAG 2.1 AA standards.
  *
  * **WCAG 2.1 AA Requirements:**
  * - Normal text (< 18pt): Contrast ratio ≥ 4.5:1
@@ -302,7 +302,7 @@ const meta: Meta = {
         component: `
 # Visual Litmus Test - WCAG 2.1 AA Compliance
 
-This story verifies that all Galaxy-Swan Theme v2.0 color combinations meet WCAG 2.1 AA standards.
+This story verifies that all Crystalline Swan Theme color combinations meet WCAG 2.1 AA standards.
 
 ## How to Use
 1. **Green borders** = Passing combinations (approved ✓)

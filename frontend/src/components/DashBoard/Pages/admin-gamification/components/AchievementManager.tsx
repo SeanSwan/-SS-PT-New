@@ -1,3 +1,49 @@
+/**
+ * ============================================================================
+ * FILE: AchievementManager.tsx
+ * PURPOSE: Admin CRUD interface for managing achievement definitions
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Provides the admin interface for creating, editing, toggling visibility, and
+ * deleting achievement definitions. Displays achievements in a filterable grid
+ * with rarity-colored icons and XP reward badges. Includes an edit modal for
+ * modifying achievement properties.
+ *
+ * HOW IT FITS IN THE APP:
+ * admin-gamification-view -> AchievementManager (lazy-loaded tab panel)
+ * Reads/writes achievement data via gamification API endpoints.
+ *
+ * KEY DECISIONS:
+ * - Inline edit modal rather than separate page for faster admin workflow
+ * - Icon mapping from lucide-react for consistent achievement iconography
+ * - Search + category filter for large achievement lists (484+ definitions)
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AchievementManager                                ║
+ * ║  PURPOSE: Admin CRUD for achievement definitions              ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Search] [Category Filter] [+ Add Achievement]            │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+ * │ │ Icon     │ │ Icon     │ │ Icon     │ │ Icon     │      │
+ * │ │ Name     │ │ Name     │ │ Name     │ │ Name     │      │
+ * │ │ XP: 50   │ │ XP: 100  │ │ XP: 200  │ │ XP: 500  │      │
+ * │ │ [Edit]   │ │ [Edit]   │ │ [Edit]   │ │ [Edit]   │      │
+ * │ └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (959 lines) - needs decomposition into
+ *   AchievementCard, AchievementEditModal, and AchievementFilters
+ */
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {

@@ -46,7 +46,7 @@
  * - forcePasswordChange=true set for new clients (password flow on first login)
  *
  * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Enchanted Apex — Crystalline Swan (NOT Galaxy-Swan — RETIRED)
+ * Theme: Enchanted Apex — Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * Touch targets: 44px minimum on all interactive elements
  * Responsive: CSS Grid 2-col → 1-col at 640px
  */

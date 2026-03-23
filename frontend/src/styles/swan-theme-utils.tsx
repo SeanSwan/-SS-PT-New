@@ -1,6 +1,6 @@
 /**
  * swan-theme-utils.ts
- * Styled Components utilities for the Galaxy-Swan theme integration
+ * Styled Components utilities for the Crystalline Swan theme integration
  * Provides easy-to-use helpers for applying the enhanced theme throughout the platform
  * 
  * REFACTORED: Uses existing GlowButton component as the primary button system
@@ -30,7 +30,7 @@ export const swanGlide = keyframes`
   }
 `;
 
-// Galaxy-Swan shimmer effect with PRIMARY colors
+// Crystalline Swan shimmer effect with PRIMARY colors
 export const galaxySwanShimmer = keyframes`
   0% { 
     background-position: -200% 0; 
@@ -109,7 +109,7 @@ export const accessibleHover = (hoverStyles: any) => css`
 
 // === THEME-BASED STYLED COMPONENTS ===
 
-// Enhanced container with Galaxy-Swan theming
+// Enhanced container with Crystalline Swan theming
 export const SwanContainer = styled.div<{ variant?: 'primary' | 'secondary' | 'elevated' }>`
   background: ${props => {
     switch (props.variant) {
@@ -178,7 +178,7 @@ export const SwanHeading = styled.h1<{ level?: 1 | 2 | 3 | 4 }>`
   }
 `;
 
-// Galaxy-Swan gradient text effect with PRIMARY focus
+// Crystalline Swan gradient text effect with PRIMARY focus
 export const GalaxySwanText = styled.span`
   background: linear-gradient(
     to right, 
@@ -203,7 +203,7 @@ export const GalaxySwanText = styled.span`
   padding: 0 2px;
 `;
 
-// Card component with Galaxy-Swan styling
+// Card component with Crystalline Swan styling
 export const SwanCard = styled.div<{ interactive?: boolean }>`
   background: ${galaxySwanTheme.components.card.background};
   border: ${galaxySwanTheme.components.card.border};
@@ -259,7 +259,7 @@ interface ThemedGlowButtonProps {
 // === GLOW BUTTON WRAPPER ===
 
 /**
- * Enhanced GlowButton wrapper that uses the Galaxy-Swan theme
+ * Enhanced GlowButton wrapper that uses the Crystalline Swan theme
  * This replaces the old SwanButton and uses the existing GlowButton component
  * with the new theme system
  * 
@@ -339,7 +339,7 @@ export const glassMorphism = css`
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 `;
 
-// Text gradient with Galaxy-Swan colors emphasizing PRIMARY
+// Text gradient with Crystalline Swan colors emphasizing PRIMARY
 export const textGradient = (colors: string[] = [
   '#8B5CF6',
   '#00A0E3',

@@ -1,3 +1,50 @@
+/**
+ * ============================================================================
+ * FILE: SystemAnalytics.tsx
+ * PURPOSE: Gamification system analytics overview with KPI cards and trends
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders the system analytics overview tab for admin gamification. Displays
+ * KPI summary cards (total users, achievements awarded, points distributed,
+ * active challenges), trend indicators, tier distribution breakdown, and
+ * recent activity timeline. Uses Swan-themed tier labels and colors.
+ *
+ * HOW IT FITS IN THE APP:
+ * admin-gamification-view -> SystemAnalytics (lazy-loaded tab panel)
+ * Fetches aggregate stats from admin gamification API endpoints.
+ * Simpler version of EnhancedSystemAnalytics (without Recharts).
+ *
+ * KEY DECISIONS:
+ * - Pure styled-components (no charting library) for lightweight analytics
+ * - Swan tier label mapping for consistent branding
+ * - Trend arrows (up/down) with percentage change indicators
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: SystemAnalytics                                   ║
+ * ║  PURPOSE: Admin gamification KPI overview and trend display   ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+ * │ │ Users    │ │ Achieve  │ │ Points   │ │ Challen  │      │
+ * │ │ 1,234    │ │ 5,678    │ │ 2.3M     │ │ 42       │      │
+ * │ │ +12%     │ │ +8%      │ │ +15%     │ │ -3%      │      │
+ * │ └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [Tier Distribution Bar]                                    │
+ * │ [Recent Activity Timeline]                                 │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (1361 lines) - KPI cards and activity
+ *   timeline should be extracted into sub-components
+ */
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import {
@@ -25,7 +72,7 @@ const SWAN_TIER_LABELS: Record<string, string> = {
 };
 
 /* ============================================================
- *  Galaxy-Swan theme tokens
+ *  Crystalline Swan theme tokens
  * ============================================================ */
 const THEME = {
   bg: 'rgba(15,23,42,0.95)',

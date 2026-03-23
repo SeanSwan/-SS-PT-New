@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * FILE: ClientTable.tsx
+ * PURPOSE: Trainer client list table with gamification stats and award buttons
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a styled table of the trainer's assigned clients showing each client's
+ * name, avatar, level, tier badge, streak count, and total points. Each row has
+ * "Award Points" and "Award Achievement" action buttons.
+ *
+ * HOW IT FITS IN THE APP:
+ * trainer-gamification-view -> ClientTable (child component)
+ * Receives client array and award callback props from parent.
+ *
+ * KEY DECISIONS:
+ * - Styled table (not CSS grid) for semantic table data
+ * - Tier-colored badges using Swan tier system colors
+ * - 44px minimum touch targets on award buttons
+ */
 import React from 'react';
 import styled from 'styled-components';
 import { Star, Zap, Plus, Trophy } from 'lucide-react';

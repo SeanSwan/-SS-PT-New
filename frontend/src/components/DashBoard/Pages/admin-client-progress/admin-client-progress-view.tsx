@@ -35,7 +35,7 @@ import {
 // Import styled component from MainCard
 import MainCard from '../../../ui/MainCard';
 
-/* ─── Galaxy-Swan Theme Tokens ─── */
+/* ─── Crystalline Swan Theme Tokens ─── */
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
   bgDeep: '#121420',

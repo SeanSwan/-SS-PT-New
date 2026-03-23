@@ -12,7 +12,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { gridSpacing } from '../../../../store/constant';
 import MainCard from '../../../../components/ui/MainCard';
 
-// ─── Galaxy-Swan Theme Tokens ──────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ──────────────────────────────────────
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
   bgSurface: 'rgba(15,23,42,0.7)',

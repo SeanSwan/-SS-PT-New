@@ -3,7 +3,7 @@
  * =======================
  * 
  * Professional temporary banner for SwanStudios platform
- * - Galaxy Swan themed with business professional styling
+ * - Crystalline Swan themed with business professional styling
  * - Informs users about site upgrades in progress
  * - Directs to contact page and orientation scheduling
  * - Subtle design that doesn't detract from main site

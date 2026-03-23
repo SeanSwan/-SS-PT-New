@@ -1,6 +1,6 @@
 /**
  * Security Monitoring Dashboard Component
- * MUI-FREE VERSION - Galaxy-Swan Theme
+ * MUI-FREE VERSION - Crystalline Swan Theme
  * Real-time security monitoring, threat detection, and incident management
  */
 

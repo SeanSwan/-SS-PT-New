@@ -24,7 +24,7 @@ import ExerciseLibrary from './ExerciseLibrary';
 import WorkoutPlanBuilder from './WorkoutPlanBuilder';
 import ClientSelection from './ClientSelection';
 
-// ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ────────────────────────────────────────
 const theme = {
   bg: 'rgba(15,23,42,0.95)',
   bgCard: 'rgba(15,23,42,0.85)',

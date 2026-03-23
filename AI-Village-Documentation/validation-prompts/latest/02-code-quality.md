@@ -1,272 +1,529 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 45.9s
-> **Files:** AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/01-ux-accessibility.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/02-code-quality.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/03-security.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/04-performance.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/05-competitive-intel.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/06-user-research.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/07-architecture-bugs.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/08-code-quality-debate.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/09-design-debate.md, AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/data-safety-integrity.md
-> **Generated:** 3/22/2026, 9:41:11 AM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 60.8s
+> **Files:** docs/ai-workflow/blueprints/GAMIFICATION-PSYCHOLOGY-ENHANCEMENT-MASTER-PROMPT.md
+> **Generated:** 3/22/2026, 5:43:28 PM
 
 ---
 
-# CODE REVIEW REPORT: SwanStudios Workout Logger Validation Prompts
+# CODE REVIEW: GAMIFICATION-PSYCHOLOGY-ENHANCEMENT-MASTER-PROMPT.md
 
-## ⚠️ CRITICAL ISSUE: These are Markdown Documentation Files, Not Code
-
-**SEVERITY:** **CRITICAL**  
-**FINDING:** The provided files are **validation reports/documentation**, not TypeScript/React source code. They contain:
-- Audit reports from AI models
-- Markdown-formatted analysis
-- No actual `.tsx` or `.ts` code to review
+## Document Type: Blueprint/Specification
+**Reviewer:** Senior TypeScript/React Code Quality Reviewer  
+**Date:** 2026-03-22  
+**Status:** ⚠️ NOT CODE — Strategic Planning Document
 
 ---
 
-## What Was Actually Provided
+## 🔍 REVIEW SUMMARY
 
-### File Structure
-```
-AI-Village-Documentation/validation-prompts/archive/2026-03-21T20-51-47/
-├── 01-ux-accessibility.md          (UX audit report)
-├── 02-code-quality.md              (Code review report)
-├── 03-security.md                  (Security audit - empty)
-├── 04-performance.md               (Performance analysis)
-├── 05-competitive-intel.md         (Market analysis)
-├── 06-user-research.md             (Timeout error)
-├── 07-architecture-bugs.md         (Empty response)
-├── 08-code-quality-debate.md       (AI debate transcript)
-├── 09-design-debate.md             (Design discussion)
-└── data-safety-integrity.md        (Data safety audit)
-```
+This is a **strategic planning document**, not executable code. However, it references significant technical debt and proposes new features that will require code implementation. Review focuses on:
+
+1. **Architectural implications** of proposed features
+2. **Technical debt acknowledgment** accuracy
+3. **Implementation feasibility** concerns
+4. **Missing technical specifications**
 
 ---
 
-## Analysis of Documentation Quality
+## ✅ STRENGTHS
 
-### 1. **Meta-Documentation Issues**
+### 1. Comprehensive Technical Debt Audit
+The document accurately identifies critical issues:
+- Duplicate achievement bug (fixed in commit f81f91a4)
+- Missing database constraints
+- Stale mock data in hooks
+- Retired theme references
+- Blueprint compliance gaps
 
-#### CRITICAL: Inconsistent Model Responses
-**File:** `03-security.md`, `07-architecture-bugs.md`  
-**Issue:** Two validation reports contain no actual content:
-```md
-> **Status:** PASS
-(no response)
-```
+### 2. Ethical Guardrails Section
+Strong commitment to preventing dark patterns:
+- Daily XP caps (1,000/day)
+- Session length warnings (180 min)
+- No pay-to-win mechanics
+- Opt-out availability
 
-**Impact:** Security and architecture validation are **completely missing**, yet marked as "PASS". This is a **false positive** that could mask critical issues.
-
-**Rating:** **CRITICAL**
-
----
-
-#### HIGH: Timeout Failure Not Handled
-**File:** `06-user-research.md`  
-**Issue:**
-```md
-> **Status:** FAIL
-Error: The operation was aborted due to timeout
-```
-
-**Impact:** User research validation failed but is included in the archive without retry or fallback analysis.
-
-**Rating:** **HIGH**
+### 3. Clear Phase Structure
+Implementation phases are logically ordered:
+1. Fix foundation (technical debt)
+2. Core psychology features
+3. Social features
+4. Documentation compliance
 
 ---
 
-### 2. **Documentation Structure Issues**
+## 🚨 CRITICAL ISSUES
 
-#### MEDIUM: Inconsistent Severity Ratings
-**Files:** `02-code-quality.md`, `data-safety-integrity.md`  
-**Issue:** Different reports use different severity scales:
-- Code Quality: `CRITICAL / HIGH / MEDIUM / LOW`
-- Data Safety: `🔴 CRITICAL / 🟠 HIGH / 🟡 MEDIUM`
-- UX: Uses `CRITICAL / HIGH / MEDIUM / LOW` but inconsistently
+### 1. Missing Type Definitions for New Features
+**Severity:** CRITICAL  
+**Impact:** Will cause TypeScript compilation failures
 
-**Recommendation:** Standardize on a single severity taxonomy across all validation types.
+**Problem:**
+The document proposes multiple new data structures without type specifications:
 
-**Rating:** **MEDIUM**
-
----
-
-#### MEDIUM: Truncated Content
-**File:** `data-safety-integrity.md`  
-**Issue:** Report ends mid-sentence:
-```tsx
-setIsSubmitting(t
-
-// ... truncated ...
-```
-
-**Impact:** Incomplete fix recommendations could lead to incorrect implementations.
-
-**Rating:** **MEDIUM**
-
----
-
-### 3. **Content Quality Assessment**
-
-#### Positive Findings ✅
-
-1. **Comprehensive Coverage** (02-code-quality.md)
-   - 14 distinct issues identified
-   - Clear severity ratings
-   - Actionable fix recommendations with code examples
-
-2. **Strong Competitive Analysis** (05-competitive-intel.md)
-   - Feature gap matrix comparing 4 competitors
-   - Monetization strategy proposals
-   - Technical moat identification
-
-3. **Excellent Accessibility Audit** (01-ux-accessibility.md)
-   - WCAG 2.1 AA compliance checks
-   - Specific contrast ratio failures identified
-   - ARIA label recommendations
-
-4. **Sophisticated Debate Format** (08-code-quality-debate.md, 09-design-debate.md)
-   - Multi-round consensus building
-   - Technical counter-proposals with rationale
-   - Clear approval/rejection tracking
-
----
-
-#### Issues Found in Validation Logic
-
-##### HIGH: Race Condition Analysis is Correct
-**File:** `02-code-quality.md` (Issue #1)  
-**Finding:** The report correctly identifies a race condition in `handleSubmit`:
-```tsx
-if (isSubmittingRef.current) return;
-isSubmittingRef.current = true; // ❌ Set after check
-```
-
-**However:** The proposed fix in `08-code-quality-debate.md` (CEO response) is **better** than the original fix in `02-code-quality.md`:
-
-**Original Fix (02-code-quality.md):**
-```tsx
-// Validation BEFORE setting ref
-if (exercises.length === 0) { return; }
-isSubmittingRef.current = true; // Still has race window during validation
-```
-
-**CEO Counter-Proposal (08-code-quality-debate.md):**
-```tsx
-if (isSubmittingRef.current) return;
-isSubmittingRef.current = true; // Lock immediately
-try {
-  // All validation in try block
-} finally {
-  isSubmittingRef.current = false; // Guaranteed unlock
-}
-```
-
-**Assessment:** The debate process **improved** the solution. This validates the multi-brain consensus system.
-
-**Rating:** **HIGH** (positive finding)
-
----
-
-##### MEDIUM: Performance Recommendations Lack Benchmarks
-**File:** `04-performance.md`  
-**Issue:** Claims like "typing in a notes field will feel 'laggy'" are not backed by:
-- Profiler data
-- Render count measurements
-- Actual performance metrics
-
-**Recommendation:** Add React DevTools Profiler screenshots or `why-did-you-render` logs to validate claims.
-
-**Rating:** **MEDIUM**
-
----
-
-##### LOW: Design Token Violations Identified But Not Prioritized
-**File:** `01-ux-accessibility.md` (Section 3)  
-**Issue:** Hardcoded colors are flagged:
-```tsx
-color: #8B5CF6; // ❌ Should be CS.secondary
-```
-
-But rated as **LOW** severity, when it should be **MEDIUM** because:
-- Violates design system architecture
-- Blocks theme switching (dark/light mode)
-- Creates maintenance debt
-
-**Rating:** **LOW** (severity underestimated)
-
----
-
-## Recommendations for Documentation System
-
-### 1. **Add Validation Gates**
-```yaml
-validation_pipeline:
-  - name: "Content Completeness Check"
-    fail_if: response is empty or "(no response)"
-    action: retry with different model
-  
-  - name: "Timeout Handling"
-    fail_if: timeout error
-    action: retry with shorter context or fallback model
-  
-  - name: "Truncation Detection"
-    fail_if: response ends with "// ... truncated ..."
-    action: request continuation or regenerate
-```
-
-### 2. **Standardize Severity Taxonomy**
 ```typescript
-enum Severity {
-  CRITICAL = "CRITICAL", // Data loss, security breach, app crash
-  HIGH = "HIGH",         // Major UX issue, performance degradation
-  MEDIUM = "MEDIUM",     // Maintainability, minor bugs
-  LOW = "LOW"            // Style issues, nice-to-haves
+// ❌ MISSING: Type definitions for new features
+interface StreakFreeze {
+  id: string;
+  userId: string;
+  earnedAt: Date;
+  usedAt?: Date;
+  expiresAt?: Date;
+}
+
+interface SurpriseReward {
+  type: 'xp_multiplier' | 'mystery_badge' | 'bonus_xp';
+  multiplier?: number;
+  badgeId?: string;
+  bonusXp?: number;
+  triggeredAt: Date;
+}
+
+interface DailyGoal {
+  userId: string;
+  date: string; // YYYY-MM-DD
+  targetXp: number;
+  currentXp: number;
+  completed: boolean;
+}
+
+interface ComebackChallenge {
+  id: string;
+  userId: string;
+  lostStreakDays: number;
+  requiredWorkouts: number;
+  completedWorkouts: number;
+  deadline: Date;
+  rewardXp: number;
+  status: 'active' | 'completed' | 'failed';
 }
 ```
 
-### 3. **Add Metrics to Performance Reports**
-```markdown
-## Performance Issue: State Explosion
-**Measured Impact:**
-- Render count: 47 renders on single keystroke (React DevTools)
-- Time to interactive: 340ms → 89ms after fix
-- Bundle size: +32kb from framer-motion (Webpack Bundle Analyzer)
-```
-
-### 4. **Require Evidence for Empty Responses**
-If a model returns `(no response)` but marks status as `PASS`, require:
-- Explicit statement: "No issues found after reviewing X lines of code"
-- Checklist of what was verified
-- Or mark as `INCONCLUSIVE` instead of `PASS`
+**Required Action:**
+Create `frontend/src/types/gamification-psychology.ts` with all new interfaces before Phase 2 implementation.
 
 ---
 
-## Summary
+### 2. Real-Time Event Architecture Undefined
+**Severity:** CRITICAL  
+**Impact:** Performance, scalability, cost
 
-### What This Review Cannot Do
-❌ Review actual TypeScript/React code (none provided)  
-❌ Validate runtime behavior  
-❌ Test accessibility with screen readers  
-❌ Benchmark performance  
+**Problem:**
+Section 3 (Phase 3) proposes "Live activity feed" and "Leaderboard movement alerts" without specifying:
 
-### What This Review Did
-✅ Audit the **validation system itself**  
-✅ Identify gaps in the AI review process  
-✅ Verify consistency of findings across reports  
-✅ Validate the debate/consensus mechanism  
+- **Transport mechanism:** WebSocket? Server-Sent Events? Polling?
+- **State management:** Redux? React Query? Zustand?
+- **Scaling strategy:** How many concurrent users can the real-time system support?
+- **Fallback behavior:** What happens when WebSocket connection fails?
 
-### Key Takeaway
-The **11-Brain Recursive Consensus System** shows promise:
-- The debate format (Round 2 in `08-code-quality-debate.md`) **improved** the race condition fix
-- Multiple perspectives caught issues missed by individual models
-- However, **2 out of 10 validations failed** (empty responses), indicating the system needs better error handling
+**Missing Architecture Decision:**
+
+```typescript
+// ❌ UNDEFINED: Real-time event system architecture
+
+// Option A: Socket.IO (current codebase has this)
+// Pros: Bidirectional, auto-reconnect, room support
+// Cons: Heavier bundle size, requires sticky sessions
+
+// Option B: Server-Sent Events
+// Pros: Lighter, HTTP/2 multiplexing, auto-reconnect
+// Cons: Unidirectional, limited browser support
+
+// Option C: React Query with aggressive polling
+// Pros: No new infrastructure, works with existing REST API
+// Cons: Not truly real-time, higher server load
+
+// RECOMMENDATION: Socket.IO with Redis adapter for horizontal scaling
+```
+
+**Required Action:**
+Add Section 9: "Real-Time Architecture Specification" with:
+- Transport protocol choice
+- Event schema definitions
+- Connection lifecycle management
+- Error handling strategy
+- Performance benchmarks (target: <100ms event delivery)
 
 ---
 
-## Requested Action
+### 3. Random Number Generation Security Concern
+**Severity:** HIGH  
+**Impact:** Exploitability, fairness
 
-**Please provide the actual source code files** referenced in these reports:
-```
-frontend/src/components/WorkoutLogger/WorkoutLogger.tsx
-frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx
-frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
+**Problem:**
+Section 2A proposes "15% chance per workout" for surprise multipliers without specifying:
+
+- **RNG source:** `Math.random()` is NOT cryptographically secure
+- **Server-side validation:** Client could manipulate RNG
+- **Audit trail:** How to verify fairness if users complain?
+
+**Vulnerable Implementation:**
+
+```typescript
+// ❌ INSECURE: Client-side RNG can be manipulated
+const shouldAwardSurprise = Math.random() < 0.15;
+if (shouldAwardSurprise) {
+  const multiplier = Math.floor(Math.random() * 4) + 2; // 2-5x
+  awardBonusXp(baseXp * multiplier);
+}
 ```
 
-Then I can perform the requested TypeScript/React/styled-components review.
+**Secure Implementation:**
+
+```typescript
+// ✅ SECURE: Server-side RNG with audit trail
+// Backend: gamificationController.mjs
+import crypto from 'crypto';
+
+async function completeWorkout(userId, workoutData) {
+  const baseXp = calculateBaseXp(workoutData);
+  
+  // Cryptographically secure random
+  const randomValue = crypto.randomInt(0, 100);
+  const surpriseTriggered = randomValue < 15; // 15% chance
+  
+  let finalXp = baseXp;
+  let surpriseReward = null;
+  
+  if (surpriseTriggered) {
+    const multiplier = crypto.randomInt(2, 6); // 2-5 inclusive
+    finalXp = baseXp * multiplier;
+    
+    // Audit trail
+    surpriseReward = await SurpriseReward.create({
+      userId,
+      workoutId: workoutData.id,
+      randomSeed: randomValue,
+      multiplier,
+      baseXp,
+      finalXp,
+      triggeredAt: new Date()
+    });
+  }
+  
+  return { finalXp, surpriseReward };
+}
+```
+
+**Required Action:**
+Add Section 10: "Random Reward Security Specification" with:
+- Server-side RNG enforcement
+- Audit logging schema
+- Anti-cheat validation
+- Fairness verification queries
+
+---
+
+### 4. Database Migration Strategy Missing
+**Severity:** HIGH  
+**Impact:** Data loss risk, downtime
+
+**Problem:**
+Phase 1 mentions "Add unique constraint on Achievement.name" and "Clean duplicate Achievement rows" but doesn't specify:
+
+- **Migration order:** Which runs first?
+- **Rollback plan:** What if migration fails mid-execution?
+- **Data preservation:** How to handle duplicates with different metadata?
+
+**Dangerous Migration:**
+
+```sql
+-- ❌ DANGEROUS: Will fail if duplicates exist
+ALTER TABLE "Achievements" 
+ADD CONSTRAINT "unique_achievement_name" UNIQUE ("name");
+```
+
+**Safe Migration:**
+
+```javascript
+// ✅ SAFE: Multi-step migration with rollback
+// migrations/YYYYMMDDHHMMSS-deduplicate-achievements.js
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    const transaction = await queryInterface.sequelize.transaction();
+    
+    try {
+      // Step 1: Identify duplicates
+      const [duplicates] = await queryInterface.sequelize.query(`
+        SELECT name, COUNT(*) as count, ARRAY_AGG(id) as ids
+        FROM "Achievements"
+        GROUP BY name
+        HAVING COUNT(*) > 1
+      `, { transaction });
+      
+      // Step 2: Merge duplicates (keep oldest, transfer references)
+      for (const dup of duplicates) {
+        const [keepId, ...deleteIds] = dup.ids;
+        
+        // Transfer UserAchievements to kept record
+        await queryInterface.sequelize.query(`
+          UPDATE "UserAchievements"
+          SET "achievementId" = :keepId
+          WHERE "achievementId" = ANY(:deleteIds)
+        `, { 
+          replacements: { keepId, deleteIds },
+          transaction 
+        });
+        
+        // Delete duplicates
+        await queryInterface.bulkDelete('Achievements', {
+          id: deleteIds
+        }, { transaction });
+      }
+      
+      // Step 3: Add unique constraint
+      await queryInterface.addConstraint('Achievements', {
+        fields: ['name'],
+        type: 'unique',
+        name: 'unique_achievement_name',
+        transaction
+      });
+      
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  },
+  
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.removeConstraint(
+      'Achievements',
+      'unique_achievement_name'
+    );
+  }
+};
+```
+
+**Required Action:**
+Add Section 11: "Database Migration Specifications" with:
+- Step-by-step migration scripts
+- Rollback procedures
+- Data validation queries
+- Estimated downtime windows
+
+---
+
+## ⚠️ HIGH PRIORITY ISSUES
+
+### 5. Performance Impact of Variable Rewards Not Analyzed
+**Severity:** HIGH  
+**Impact:** API response time, database load
+
+**Problem:**
+Section 2A proposes random calculations on every workout completion without performance analysis:
+
+```typescript
+// ❌ POTENTIAL BOTTLENECK: Multiple random calculations per request
+async function completeWorkout(userId, workoutData) {
+  // Base XP calculation
+  const baseXp = calculateBaseXp(workoutData); // DB query
+  
+  // Surprise multiplier check (15% chance)
+  const surprise = checkSurpriseReward(); // RNG + potential DB write
+  
+  // Mystery badge check (5% chance)
+  const mysteryBadge = checkMysteryBadge(userId); // DB query + RNG
+  
+  // Combo jackpot check
+  const comboBonus = checkComboJackpot(workoutData); // Complex calculation
+  
+  // Achievement unlocks
+  const newAchievements = await checkAchievements(userId); // Multiple DB queries
+  
+  // Leaderboard update
+  await updateLeaderboard(userId, finalXp); // DB write + ranking recalc
+  
+  // Real-time event broadcast
+  await broadcastActivityFeed(userId, workoutData); // Socket.IO emit
+  
+  return response;
+}
+```
+
+**Estimated Impact:**
+- Current workout completion: ~200ms
+- With all psychology features: **~800ms-1.2s** (4-6x slower)
+
+**Optimization Strategy:**
+
+```typescript
+// ✅ OPTIMIZED: Batch operations, async non-blocking
+async function completeWorkout(userId, workoutData) {
+  const baseXp = calculateBaseXp(workoutData);
+  
+  // Parallel non-blocking operations
+  const [surprise, mysteryBadge, comboBonus] = await Promise.all([
+    checkSurpriseReward(),
+    checkMysteryBadge(userId),
+    checkComboJackpot(workoutData)
+  ]);
+  
+  const finalXp = baseXp * (surprise?.multiplier || 1) + (comboBonus || 0);
+  
+  // Critical path: Update user XP
+  await updateUserXp(userId, finalXp);
+  
+  // Non-blocking: Queue background jobs
+  await Promise.all([
+    queueAchievementCheck(userId), // Bull queue
+    queueLeaderboardUpdate(userId, finalXp), // Bull queue
+    broadcastActivityFeed(userId, workoutData) // Fire-and-forget
+  ]);
+  
+  return { finalXp, surprise, mysteryBadge };
+}
+```
+
+**Required Action:**
+Add Section 12: "Performance Budget & Optimization Plan" with:
+- Target response times per endpoint
+- Database query optimization strategies
+- Caching layer specifications (Redis)
+- Background job queue architecture (Bull/BullMQ)
+
+---
+
+### 6. Missing Error Handling Specifications
+**Severity:** HIGH  
+**Impact:** User experience, data integrity
+
+**Problem:**
+Section 2C proposes "Streak Freeze Items" but doesn't specify error scenarios:
+
+- What if streak freeze fails to apply due to DB error?
+- What if user has 0 freezes but UI shows 1 (stale state)?
+- What if streak calculation fails during midnight rollover?
+
+**Missing Error Boundaries:**
+
+```typescript
+// ❌ MISSING: Error handling for streak operations
+
+// Scenario 1: Streak freeze application fails
+async function applyStreakFreeze(userId) {
+  const freeze = await StreakFreeze.findOne({
+    where: { userId, usedAt: null }
+  });
+  
+  if (!freeze) {
+    // ❌ What error message does user see?
+    throw new Error('No streak freeze available');
+  }
+  
+  // ❌ What if this fails mid-transaction?
+  await freeze.update({ usedAt: new Date() });
+  await User.update({ streakProtectedUntil: addDays(new Date(), 1) }, {
+    where: { id: userId }
+  });
+}
+
+// Scenario 2: Streak calculation fails at midnight
+// ❌ No retry logic, no fallback, no user notification
+```
+
+**Robust Error Handling:**
+
+```typescript
+// ✅ ROBUST: Comprehensive error handling with user feedback
+
+async function applyStreakFreeze(userId: string): Promise<StreakFreezeResult> {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const freeze = await StreakFreeze.findOne({
+      where: { userId, usedAt: null, expiresAt: { [Op.gt]: new Date() } },
+      lock: true,
+      transaction
+    });
+    
+    if (!freeze) {
+      return {
+        success: false,
+        error: {
+          code: 'NO_FREEZE_AVAILABLE',
+          message: 'You don't have any streak freezes available. Earn one by maintaining a 30-day streak!',
+          userFacing: true
+        }
+      };
+    }
+    
+    await freeze.update({ usedAt: new Date() }, { transaction });
+    await User.update(
+      { streakProtectedUntil: addDays(new Date(), 1) },
+      { where: { id: userId }, transaction }
+    );
+    
+    await transaction.commit();
+    
+    return {
+      success: true,
+      data: { protectedUntil: addDays(new Date(), 1) }
+    };
+    
+  } catch (error) {
+    await transaction.rollback();
+    
+    logger.error('Streak freeze application failed', {
+      userId,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    return {
+      success: false,
+      error: {
+        code: 'FREEZE_APPLICATION_FAILED',
+        message: 'We couldn't apply your streak freeze. Please try again or contact support.',
+        userFacing: true,
+        retryable: true
+      }
+    };
+  }
+}
+
+// Midnight streak calculation with retry
+async function calculateDailyStreaks() {
+  const users = await User.findAll({ where: { isActive: true } });
+  
+  for (const user of users) {
+    try {
+      await updateUserStreak(user.id);
+    } catch (error) {
+      logger.error('Streak calculation failed', { userId: user.id, error });
+      
+      // Retry once after 5 minutes
+      await scheduleRetry('updateUserStreak', { userId: user.id }, {
+        delay: 5 * 60 * 1000,
+        attempts: 1
+      });
+    }
+  }
+}
+```
+
+**Required Action:**
+Add Section 13: "Error Handling & Recovery Specifications" with:
+- Error code taxonomy
+- User-facing error messages
+- Retry strategies
+- Fallback behaviors
+- Monitoring/alerting thresholds
+
+---
+
+### 7. Accessibility Not Addressed for New Components
+**Severity:** HIGH  
+**Impact:** WCAG 2.1 AA compliance, legal risk
+
+**Problem:**
+Section 7 mentions "Accessibility: Can all features be enjoyed by users with disabilities?" but provides no specifications.
+
+**Missing Accessibility Requirements:**
+
+```typescript
+// ❌
 
 ---
 

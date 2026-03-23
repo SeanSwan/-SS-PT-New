@@ -1,7 +1,7 @@
 /**
  * WearableDataDashboard
  * =====================
- * Comprehensive wearable health data visualization with Galaxy-Swan theme.
+ * Comprehensive wearable health data visualization with Crystalline Swan theme.
  * Displays steps, heart rate, sleep, swimming, cycling, running metrics.
  * Supports data sync from Fitbit, Apple Health, Garmin, Samsung, Whoop, Oura.
  */
@@ -23,7 +23,7 @@ import {
 import { wearableDataService, WearableRecord, WearableSummary, WearableDevice } from '../../services/wearableDataService';
 import { toast } from 'react-toastify';
 
-// Galaxy-Swan colors
+// Crystalline Swan colors
 const C = {
   deepSpace: '#002060',
   cardSurface: 'rgba(20, 24, 48, 0.85)',

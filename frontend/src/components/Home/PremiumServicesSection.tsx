@@ -2,7 +2,7 @@
  * PremiumServicesSection.tsx
  * Elite Training Services showcase component
  *
- * Uses Galaxy-Swan theme tokens for consistent styling
+ * Uses Crystalline Swan theme tokens for consistent styling
  * Mobile-first responsive design with accessibility support
  */
 

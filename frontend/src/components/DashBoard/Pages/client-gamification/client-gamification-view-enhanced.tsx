@@ -1,3 +1,60 @@
+/**
+ * ============================================================================
+ * FILE: client-gamification-view-enhanced.tsx
+ * PURPOSE: Client-facing gamification dashboard with XP, achievements, and leaderboard
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders the client's gamification experience page. Shows their current level,
+ * tier, XP progress bar, streak counter, achievement gallery, leaderboard
+ * position, activity feed, and progress chart. Uses real-time updates via
+ * useGamificationRealtime hook for live XP/level changes.
+ *
+ * HOW IT FITS IN THE APP:
+ * App -> DashBoard -> ClientDashboard -> client-gamification-view-enhanced
+ * Fetches data via useGamificationData and useGamificationRealtime hooks.
+ * Child components: Leaderboard, ActivityFeed, AchievementGallery, ProgressChart.
+ *
+ * KEY DECISIONS:
+ * - Real-time updates for instant feedback on XP changes (engagement driver)
+ * - Lazy-loaded ProgressChart (heavy canvas rendering)
+ * - framer-motion for level-up celebration animations
+ * - Crystalline Swan tier colors and naming throughout
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: ClientGamificationViewEnhanced                    ║
+ * ║  PURPOSE: Client gamification dashboard (XP, badges, ranks)   ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Level Badge] [XP: 12,450 / 15,000] [Tier: Silver Edge]  │
+ * │ [████████████████░░░░░░] 83% to Level 12                  │
+ * │ [Streak: 7 days]                                          │
+ * ├──────────────────────┬─────────────────────────────────────┤
+ * │ Achievement Gallery  │ Leaderboard                         │
+ * │ (filterable grid)    │ (rank + friends)                    │
+ * ├──────────────────────┴─────────────────────────────────────┤
+ * │ [Progress Chart - lazy loaded]                             │
+ * │ [Activity Feed - recent XP events]                         │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[ClientGamificationViewEnhanced] --> B[HeaderSection: Level+XP+Tier]
+ *   A --> C[AchievementGallery]
+ *   A --> D[Leaderboard]
+ *   A --> E[ProgressChart - lazy]
+ *   A --> F[ActivityFeed]
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (1139 lines) - header section, styled
+ *   components, and tab logic should be extracted
+ */
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';

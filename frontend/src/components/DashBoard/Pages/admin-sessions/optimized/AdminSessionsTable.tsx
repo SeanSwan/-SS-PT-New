@@ -15,7 +15,7 @@
  * - WCAG AA accessibility compliance
  * - Mobile-responsive design
  *
- * Migrated from MUI to styled-components + lucide-react (Galaxy-Swan theme)
+ * Migrated from MUI to styled-components + lucide-react (Crystalline Swan theme)
  */
 
 import React, { memo, useCallback } from 'react';

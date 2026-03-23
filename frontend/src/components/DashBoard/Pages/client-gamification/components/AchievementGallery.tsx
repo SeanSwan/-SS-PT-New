@@ -1,3 +1,48 @@
+/**
+ * ============================================================================
+ * FILE: AchievementGallery.tsx
+ * PURPOSE: Client-facing achievement gallery with rarity filters and unlock status
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders a filterable, sortable gallery of all achievements for the client.
+ * Shows locked vs unlocked status, progress bars for partial completion,
+ * rarity-colored borders, and XP reward amounts. Supports filtering by
+ * category and rarity, and sorting by date, XP, or progress.
+ *
+ * HOW IT FITS IN THE APP:
+ * client-gamification-view-enhanced -> AchievementGallery (child component)
+ * Reads achievement data from useGamificationData hook.
+ *
+ * KEY DECISIONS:
+ * - framer-motion for unlock celebration micro-animations
+ * - Rarity glow borders matching the badge system (Common/Rare/Epic/Legendary)
+ * - Memoized filter/sort logic to handle 484+ achievements without jank
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AchievementGallery                                ║
+ * ║  PURPOSE: Client achievement browser with filters and status  ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Filter: All/Fitness/Social/Streak] [Sort: Date/XP]       │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+ * │ │ Unlocked │ │ Locked   │ │ 75%      │ │ Unlocked │      │
+ * │ │ Badge    │ │ Badge    │ │ Progress │ │ Badge    │      │
+ * │ │ +50 XP   │ │ ???      │ │ +100 XP  │ │ +200 XP  │      │
+ * │ └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (1113 lines) - AchievementCard, FilterBar,
+ *   and styled-components should be extracted
+ */
 import React, { useState, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import {
@@ -16,7 +61,7 @@ import {
 import { motion } from 'framer-motion';
 import { useGamificationData, Achievement, UserAchievement } from '../../../../../hooks/gamification/useGamificationData';
 
-/* ─── Galaxy-Swan Theme Tokens ─── */
+/* ─── Crystalline Swan Theme Tokens ─── */
 const THEME = {
   bg: 'rgba(15,23,42,0.95)',
   bgCard: 'rgba(15,23,42,0.85)',

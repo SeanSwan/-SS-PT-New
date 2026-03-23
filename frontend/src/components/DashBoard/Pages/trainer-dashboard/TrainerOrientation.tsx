@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 
-// ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ────────────────────────────────────────────────
 const theme = {
   galaxyCore: '#002060',
   swanCyan: '#60C0F0',

@@ -31,7 +31,7 @@ interface ResponsiveLayoutResult {
   viewportWidth: number;
 }
 
-// Breakpoints aligned with Galaxy-Swan theme
+// Breakpoints aligned with Crystalline Swan theme
 const BREAKPOINTS = {
   mobile: 768,
   tablet: 1024,

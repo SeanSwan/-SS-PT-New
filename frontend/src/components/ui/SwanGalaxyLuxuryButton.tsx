@@ -3,14 +3,14 @@
  * ===========================
  * 
  * Premium luxury button component inspired by the training packages storefront
- * Uses Galaxy Swan theme colors with expensive, high-end styling
+ * Uses Crystalline Swan theme colors with expensive, high-end styling
  */
 
 import React from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
 
-// Galaxy Swan Theme Colors
+// Crystalline Swan Theme Colors
 const GALAXY_SWAN_COLORS = {
   primary: {
     main: '#8B5CF6', // Cyan

@@ -12,7 +12,7 @@
  * - NASM compliance integration
  *
  * Migrated from MUI to styled-components + lucide-react
- * Galaxy-Swan theme: bg rgba(15,23,42,0.95), border rgba(14,165,233,0.2),
+ * Crystalline Swan theme: bg rgba(15,23,42,0.95), border rgba(14,165,233,0.2),
  * text #e2e8f0, accent #0ea5e9
  */
 
@@ -57,7 +57,7 @@ import { clientTrainerAssignmentService } from '../../../services/clientTrainerA
 import type { Session, Client, Trainer, SessionEvent } from '../types';
 
 // =============================================================================
-// Styled Components — Galaxy-Swan Theme
+// Styled Components — Crystalline Swan Theme
 // =============================================================================
 
 const progressAnimation = keyframes`

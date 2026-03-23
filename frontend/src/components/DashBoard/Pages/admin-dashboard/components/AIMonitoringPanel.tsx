@@ -2,7 +2,7 @@
  * AI/ML Monitoring Dashboard Component
  * Comprehensive monitoring of AI models, performance metrics, and intelligent insights
  * PHASE 2B: Converted from mock data to real API integration
- * Migrated from MUI to styled-components + lucide-react (Galaxy-Swan theme)
+ * Migrated from MUI to styled-components + lucide-react (Crystalline Swan theme)
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';

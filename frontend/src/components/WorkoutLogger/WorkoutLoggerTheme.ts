@@ -16,7 +16,7 @@
  * ✅ Accessibility-first design
  */
 
-// MUI createTheme removed — Galaxy-Swan uses styled-components only
+// MUI createTheme removed — Crystalline Swan uses styled-components only
 import { keyframes } from 'styled-components';
 
 // ==================== CORE THEME PALETTE ====================

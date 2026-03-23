@@ -1,3 +1,49 @@
+/**
+ * ============================================================================
+ * FILE: EnhancedSystemAnalytics.tsx
+ * PURPOSE: Advanced analytics dashboard for the gamification system (admin)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
+ * AI VILLAGE VALIDATED: 2026-03-23
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Renders comprehensive analytics charts and KPI cards for the gamification
+ * system. Includes bar charts, line charts, pie charts (via Recharts) showing
+ * achievement distribution, point trends, tier progression, engagement metrics,
+ * and system health indicators. Supports date filtering and CSV export.
+ *
+ * HOW IT FITS IN THE APP:
+ * admin-gamification-view -> EnhancedSystemAnalytics (lazy-loaded tab panel)
+ * Fetches aggregated gamification data from admin API endpoints.
+ *
+ * KEY DECISIONS:
+ * - Recharts used here (legacy - should migrate to Victory per CLAUDE.md)
+ * - Memoized chart data transformations to avoid re-render on filter changes
+ * - KPI cards at top for quick system health overview
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: EnhancedSystemAnalytics                           ║
+ * ║  PURPOSE: Admin gamification analytics with charts and KPIs   ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Date Filter] [Export CSV]                                 │
+ * ├──────────┬──────────┬──────────┬──────────────────────────┤
+ * │ KPI Card │ KPI Card │ KPI Card │ KPI Card                 │
+ * ├──────────┴──────────┴──────────┴──────────────────────────┤
+ * │ [Bar Chart: Achievement Distribution]                      │
+ * │ [Line Chart: Point Trends]  [Pie Chart: Tier Breakdown]   │
+ * │ [Activity Timeline]                                        │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * KNOWN ISSUES:
+ * - FILE EXCEEDS 300-LINE LIMIT (1795 lines) - largest gamification file,
+ *   urgently needs decomposition into KPICards, ChartPanels, and FilterBar
+ * - Uses Recharts instead of Victory (migration needed per CLAUDE.md)
+ */
 import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import {
@@ -46,7 +92,7 @@ import {
 } from 'recharts';
 
 /* ═══════════════════════════════════════════
-   Galaxy-Swan Theme Tokens
+   Crystalline Swan Theme Tokens
    ═══════════════════════════════════════════ */
 const THEME = {
   bg: 'rgba(15,23,42,0.95)',

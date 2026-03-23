@@ -26,7 +26,7 @@ import chartData from './chart-data/bajaj-area-chart';
  * - Area chart visualization of stock performance over time
  */
 const BajajAreaChartCard: React.FC = () => {
-  // Galaxy-Swan theme: secondary.800
+  // Crystalline Swan theme: secondary.800
   const orangeDark = '#5e35b1';
 
   useEffect(() => {

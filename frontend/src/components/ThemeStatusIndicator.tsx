@@ -1,7 +1,7 @@
 /**
  * ThemeStatusIndicator.tsx
  * ========================
- * Development utility to verify Galaxy-Swan theme implementation
+ * Development utility to verify Crystalline Swan theme implementation
  * 
  * Master Prompt v28.6 Compliance:
  * ✅ Single Responsibility: Only checks theme status
@@ -90,7 +90,7 @@ const ThemeStatusIndicator: React.FC<ThemeStatusIndicatorProps> = ({
   return (
     <StatusContainer>
       <StatusTitle>
-        🌌 Galaxy-Swan Theme
+        🌌 Crystalline Swan Theme
       </StatusTitle>
       {Object.entries(themeChecks).map(([check, status]) => (
         <StatusItem key={check}>

@@ -4,7 +4,7 @@
  * A diagnostic component for monitoring MCP server health
  * and connection status. Useful for admin dashboards.
  *
- * Architecture: styled-components + lucide-react (Galaxy-Swan dark theme)
+ * Architecture: styled-components + lucide-react (Crystalline Swan dark theme)
  * No MUI dependencies.
  */
 
@@ -44,7 +44,7 @@ interface McpMonitorProps {
   onStatusChange?: (status: McpServerStatus) => void;
 }
 
-// ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────
+// ─── Crystalline Swan Theme Tokens ────────────────────────────────────────
 
 const theme = {
   bg: 'rgba(15, 23, 42, 0.95)',
