@@ -707,4 +707,58 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// ============================================================================
+// 🧊 STREAK FREEZE SYSTEM (Loss Aversion Psychology)
+// ============================================================================
+
+/**
+ * @route   GET /api/v1/gamification/streak-freeze/:userId
+ * @desc    Get user's streak freeze status (available, max, used)
+ * @access  Authenticated users (own data or staff)
+ */
+router.get('/streak-freeze/:userId', authenticate, ensureOwnerOrStaff, gamificationController.getStreakFreezeStatus);
+
+/**
+ * @route   POST /api/v1/gamification/streak-freeze/use
+ * @desc    Use a streak freeze to protect current streak
+ * @access  Authenticated users
+ */
+router.post('/streak-freeze/use', authenticate, requireUser, gamificationController.useStreakFreeze);
+
+// ============================================================================
+// 🔄 COMEBACK CHALLENGES (Re-engagement Psychology)
+// ============================================================================
+
+/**
+ * @route   GET /api/v1/gamification/comeback-challenge/:userId
+ * @desc    Get active comeback challenge for user
+ * @access  Authenticated users (own data or staff)
+ */
+router.get('/comeback-challenge/:userId', authenticate, ensureOwnerOrStaff, gamificationController.getComebackChallenge);
+
+/**
+ * @route   POST /api/v1/gamification/comeback-challenge/accept
+ * @desc    Accept a comeback challenge
+ * @access  Authenticated users
+ */
+router.post('/comeback-challenge/accept', authenticate, requireUser, gamificationController.acceptComebackChallenge);
+
+// ============================================================================
+// 📊 ACTIVITY FEED & WEEKLY RECAP (Social Psychology)
+// ============================================================================
+
+/**
+ * @route   GET /api/v1/gamification/activity-feed
+ * @desc    Get recent gamification activity for live feed (polling fallback)
+ * @access  Authenticated users
+ */
+router.get('/activity-feed', authenticate, requireUser, gamificationController.getActivityFeed);
+
+/**
+ * @route   GET /api/v1/gamification/users/:userId/weekly-recap
+ * @desc    Get weekly recap stats (this week vs last week)
+ * @access  Authenticated users (own data or staff)
+ */
+router.get('/users/:userId/weekly-recap', authenticate, ensureOwnerOrStaff, gamificationController.getWeeklyRecap);
+
 export default router;
