@@ -27,16 +27,16 @@ module.exports = {
           comment: 'FK to users table',
         },
         tier: {
-          type: Sequelize.ENUM('free', 'supporter', 'premium'),
+          type: Sequelize.STRING(20),
           allowNull: false,
           defaultValue: 'free',
-          comment: 'Current subscription tier',
+          comment: 'Current subscription tier: free, supporter, premium',
         },
         status: {
-          type: Sequelize.ENUM('active', 'trial', 'past_due', 'cancelled', 'paused'),
+          type: Sequelize.STRING(20),
           allowNull: false,
           defaultValue: 'trial',
-          comment: 'Subscription lifecycle status',
+          comment: 'Subscription lifecycle status: active, trial, past_due, cancelled, paused',
         },
         amount: {
           type: Sequelize.DECIMAL(10, 2),
@@ -84,10 +84,10 @@ module.exports = {
           comment: 'User-provided cancellation reason',
         },
         paymentMethod: {
-          type: Sequelize.ENUM('stripe', 'zelle', 'venmo', 'manual'),
+          type: Sequelize.STRING(20),
           allowNull: true,
           defaultValue: 'stripe',
-          comment: 'Payment method for subscription',
+          comment: 'Payment method: stripe, zelle, venmo, manual',
         },
         createdAt: {
           type: Sequelize.DATE,

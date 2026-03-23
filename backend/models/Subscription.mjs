@@ -64,16 +64,18 @@ Subscription.init(
       comment: 'FK to users table',
     },
     tier: {
-      type: DataTypes.ENUM('free', 'supporter', 'premium'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'free',
       comment: 'Subscription tier: free (limited AI), supporter (unlimited AI, pay-what-you-want), premium (+ human trainer)',
+      validate: { isIn: [['free', 'supporter', 'premium']] },
     },
     status: {
-      type: DataTypes.ENUM('active', 'trial', 'past_due', 'cancelled', 'paused'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'trial',
       comment: 'Subscription lifecycle status',
+      validate: { isIn: [['active', 'trial', 'past_due', 'cancelled', 'paused']] },
     },
     amount: {
       type: DataTypes.DECIMAL(10, 2),
@@ -120,9 +122,10 @@ Subscription.init(
       allowNull: true,
     },
     paymentMethod: {
-      type: DataTypes.ENUM('stripe', 'zelle', 'venmo', 'manual'),
+      type: DataTypes.STRING(20),
       allowNull: true,
       defaultValue: 'stripe',
+      validate: { isIn: [['stripe', 'zelle', 'venmo', 'manual']] },
     },
   },
   {

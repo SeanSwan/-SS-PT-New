@@ -185,6 +185,9 @@ const setupAssociations = async () => {
     const AiConversationModule = await import('./AiConversation.mjs');
     const DailyMacroLogModule = await import('./DailyMacroLog.mjs').catch(() => ({ default: null }));
 
+    // Subscription Models
+    const SubscriptionModule = await import('./Subscription.mjs').catch(() => ({ default: null }));
+
     console.log('Extracting Sequelize models...');
     
     // Extract default exports for SEQUELIZE models only
@@ -354,6 +357,9 @@ const setupAssociations = async () => {
     const AiConversation = AiConversationModule.default;
     const DailyMacroLog = DailyMacroLogModule?.default || null;
 
+    // Subscription
+    const Subscription = SubscriptionModule?.default || null;
+
     console.log('Setting up Sequelize associations only...');
     
     // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
@@ -450,6 +456,12 @@ const setupAssociations = async () => {
     // ============================================
     User.hasOne(ClientProgress, { foreignKey: 'userId', as: 'clientProgress' });
     User.hasOne(Gamification, { foreignKey: 'userId', as: 'gamification' });
+
+    // User-Subscription (soft reference — Subscription table may not exist yet)
+    if (Subscription) {
+      User.hasMany(Subscription, { foreignKey: 'userId', as: 'subscriptions', constraints: false });
+      Subscription.belongsTo(User, { foreignKey: 'userId', as: 'user', constraints: false });
+    }
     
     // USER-SESSION ASSOCIATIONS (CRITICAL FOR SCHEDULE FUNCTIONALITY)
     // ===============================================================
@@ -1262,6 +1274,9 @@ const setupAssociations = async () => {
       // AI Chat & Macro Logging Models
       AiConversation,
       ...(DailyMacroLog ? { DailyMacroLog } : {}),
+
+      // Subscription Models
+      ...(Subscription ? { Subscription } : {}),
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
