@@ -1,0 +1,165 @@
+/**
+ * ┌─── SUB-COMPONENT: GhostDataRow ──────────────────────────┐
+ * │ PARENT: ExerciseCardComponent                              │
+ * │ PURPOSE: Shows previous workout data as faded "ghost" row  │
+ * │ above each set for easy reference and PR detection          │
+ * │ WIREFRAME:                                                 │
+ * │ ┌──────────────────────────────────────────────┐           │
+ * │ │ 👻 Last: 135lbs × 10  RPE 7  Rest 60s       │           │
+ * │ └──────────────────────────────────────────────┘           │
+ * │ Props: { exerciseName, clientId, setIndex }                │
+ * │ CLICK-OUTCOMES: None (read-only display)                   │
+ * └────────────────────────────────────────────────────────────┘
+ */
+
+import React, { useEffect, useState, useRef } from 'react';
+import styled from 'styled-components';
+import { CS } from './WorkoutLoggerCS';
+
+interface GhostSet {
+  setNumber: number;
+  weight: number;
+  reps: number;
+  rpe?: number;
+  tempo?: string;
+  restTime?: number;
+}
+
+interface GhostDataRowProps {
+  exerciseName: string;
+  clientId: number;
+  setIndex: number;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
+// Cache to avoid refetching same exercise history
+const ghostCache = new Map<string, GhostSet[] | null>();
+
+const GhostDataRow: React.FC<GhostDataRowProps> = React.memo(({
+  exerciseName,
+  clientId,
+  setIndex,
+}) => {
+  const [ghostSet, setGhostSet] = useState<GhostSet | null>(null);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    const cacheKey = `${clientId}:${exerciseName}`;
+    const cached = ghostCache.get(cacheKey);
+
+    if (cached !== undefined) {
+      setGhostSet(cached?.[setIndex] || null);
+      return;
+    }
+
+    // Fetch last workout for this exercise
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${API_BASE}/api/admin/clients/${clientId}/workouts?limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data?.success || !data.workouts) {
+          ghostCache.set(cacheKey, null);
+          return;
+        }
+
+        // Find most recent workout containing this exercise
+        for (const workout of data.workouts) {
+          const logs = workout.logs || workout.exercises || [];
+          const matchingLogs = logs.filter(
+            (log: any) => log.exerciseName?.toLowerCase() === exerciseName.toLowerCase()
+          );
+
+          if (matchingLogs.length > 0) {
+            const sets: GhostSet[] = matchingLogs.map((log: any) => ({
+              setNumber: log.setNumber || 1,
+              weight: log.weight || 0,
+              reps: log.reps || 0,
+              rpe: log.rpe,
+              tempo: log.tempo,
+              restTime: log.rest || log.restTime,
+            }));
+            ghostCache.set(cacheKey, sets);
+            setGhostSet(sets[setIndex] || null);
+            return;
+          }
+        }
+
+        ghostCache.set(cacheKey, null);
+      })
+      .catch(() => {
+        ghostCache.set(cacheKey, null);
+      });
+  }, [exerciseName, clientId, setIndex]);
+
+  if (!ghostSet) return null;
+
+  return (
+    <GhostRow aria-label={`Previous: ${ghostSet.weight}lbs × ${ghostSet.reps} reps`}>
+      <GhostLabel>Last:</GhostLabel>
+      <GhostValue>{ghostSet.weight}lbs</GhostValue>
+      <GhostSep>×</GhostSep>
+      <GhostValue>{ghostSet.reps} reps</GhostValue>
+      {ghostSet.rpe && (
+        <>
+          <GhostSep>|</GhostSep>
+          <GhostValue>RPE {ghostSet.rpe}</GhostValue>
+        </>
+      )}
+      {ghostSet.tempo && (
+        <>
+          <GhostSep>|</GhostSep>
+          <GhostValue>{ghostSet.tempo}</GhostValue>
+        </>
+      )}
+    </GhostRow>
+  );
+});
+
+GhostDataRow.displayName = 'GhostDataRow';
+export default GhostDataRow;
+
+// ── Styled Components ──
+
+const GhostRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 0.25rem;
+  background: rgba(96, 192, 240, 0.04);
+  border-radius: 0.375rem;
+  border-left: 2px solid rgba(96, 192, 240, 0.15);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const GhostLabel = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.65rem;
+`;
+
+const GhostValue = styled.span`
+  color: var(--accent-primary, ${CS.glow});
+  font-weight: 500;
+`;
+
+const GhostSep = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+`;

@@ -54,6 +54,7 @@ import {
 import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
 import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
+import FloatingRestTimer from './FloatingRestTimer';
 
 // ==================== INTERFACES ====================
 
@@ -101,6 +102,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
+  const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
@@ -664,6 +666,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 key={exercise.exerciseId || exerciseIndex}
                 exercise={exercise}
                 exerciseIndex={exerciseIndex}
+                clientId={clientId}
                 onUpdateExercise={updateExercise}
                 onUpdateSet={updateSet}
                 onAddSet={addSet}
@@ -735,6 +738,22 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           showGenerateSummary={!!submittedFormId}
         />
       </WorkoutLoggerContainer>
+
+      {/* Floating PiP Rest Timer */}
+      {showFloatingTimer && (
+        <FloatingRestTimer onClose={() => setShowFloatingTimer(false)} />
+      )}
+
+      {/* Timer toggle FAB (only when exercises exist) */}
+      {exercises.length > 0 && !showFloatingTimer && (
+        <TimerFAB
+          onClick={() => setShowFloatingTimer(true)}
+          aria-label="Open floating rest timer"
+          title="Rest Timer"
+        >
+          ⏱
+        </TimerFAB>
+      )}
     </NASMLearningProvider>
   );
 };
@@ -745,6 +764,36 @@ export default WorkoutLogger;
 
 const spin = keyframes`
   to { transform: rotate(360deg); }
+`;
+
+const TimerFAB = styled.button`
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9989;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--brand-primary, #002060);
+  border: 1px solid var(--accent-primary, rgba(96, 192, 240, 0.3));
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 16px rgba(96, 192, 240, 0.15);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px 4px rgba(139, 92, 246, 0.4);
+  }
+
+  @media (max-width: 430px) {
+    bottom: 1rem;
+    right: 1rem;
+  }
 `;
 
 const WorkoutLoggerContainer = styled(motion.div)`

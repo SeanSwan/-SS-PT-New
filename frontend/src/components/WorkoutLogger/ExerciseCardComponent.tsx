@@ -14,10 +14,13 @@ import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
 import { CS, withAlpha, reducedMotionSafe } from './WorkoutLoggerCS';
 import TempoInput from './TempoInput';
 import RestTimer from './RestTimer';
+import GhostDataRow from './GhostDataRow';
 
 interface ExerciseCardComponentProps {
   exercise: ExerciseEntry;
   exerciseIndex: number;
+  clientId?: number;
+  supersetGroup?: number;
   onUpdateExercise: (exerciseIndex: number, field: keyof ExerciseEntry, value: any) => void;
   onUpdateSet: (exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => void;
   onAddSet: (exerciseIndex: number) => void;
@@ -28,6 +31,8 @@ interface ExerciseCardComponentProps {
 const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo(({
   exercise,
   exerciseIndex,
+  clientId,
+  supersetGroup,
   onUpdateExercise,
   onUpdateSet,
   onAddSet,
@@ -35,6 +40,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   onRemoveExercise,
 }) => (
   <CardContainer
+    $isSuperset={supersetGroup != null && supersetGroup > 0}
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: exerciseIndex * 0.1 }}
@@ -45,6 +51,9 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
         <h3>
           <Dumbbell size={20} />
           {exercise.exerciseName}
+          {supersetGroup != null && supersetGroup > 0 && (
+            <SupersetBadge>SS{supersetGroup}</SupersetBadge>
+          )}
         </h3>
       </ExerciseTitle>
       <ExerciseRatings>
@@ -103,7 +112,16 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
         <div></div>
       </TableHeader>
       {exercise.sets.map((set, setIndex) => (
-        <SetRow key={setIndex}>
+        <React.Fragment key={setIndex}>
+          {/* Ghost Data: previous workout reference */}
+          {clientId && setIndex === 0 && (
+            <GhostDataRow
+              exerciseName={exercise.exerciseName}
+              clientId={clientId}
+              setIndex={setIndex}
+            />
+          )}
+        <SetRow>
           <SetCell data-label="Set">
             <SetNumber>{set.setNumber}</SetNumber>
           </SetCell>
@@ -185,6 +203,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
             </RemoveSetButton>
           </SetCell>
         </SetRow>
+        </React.Fragment>
       ))}
     </SetsTable>
 
@@ -204,14 +223,15 @@ export default ExerciseCardComponent;
 
 // ── Styled Components ──
 
-const CardContainer = styled(motion.div)`
+const CardContainer = styled(motion.div)<{ $isSuperset?: boolean }>`
   background: rgba(20, 20, 25, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 1.5rem;
   padding: 2rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  margin-bottom: ${({ $isSuperset }) => $isSuperset ? '0.25rem' : '1.5rem'};
+  border: 1px solid ${({ $isSuperset }) =>
+    $isSuperset ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)'};
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(80, 160, 240, 0.02);
   position: relative;
   overflow: hidden;
@@ -646,4 +666,21 @@ const RemoveSetButton = styled.button`
   }
 
   svg { width: 18px; height: 18px; }
+`;
+
+const SupersetBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  margin-left: 0.5rem;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.15);
+  color: ${CS.gaming};
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  text-transform: uppercase;
 `;
