@@ -170,6 +170,27 @@ const MISSING_COLUMNS = [
     column: 'showLevel',
     sql: `ALTER TABLE "Users" ADD COLUMN "showLevel" BOOLEAN NOT NULL DEFAULT true;`,
   },
+  // Subscription tracking columns — added in 20260322 migration
+  {
+    table: 'Users',
+    column: 'subscriptionTier',
+    sql: `ALTER TABLE "Users" ADD COLUMN "subscriptionTier" VARCHAR(20) DEFAULT 'free';`,
+  },
+  {
+    table: 'Users',
+    column: 'aiMessagesUsedThisMonth',
+    sql: `ALTER TABLE "Users" ADD COLUMN "aiMessagesUsedThisMonth" INTEGER DEFAULT 0;`,
+  },
+  {
+    table: 'Users',
+    column: 'aiGenerationsUsedThisMonth',
+    sql: `ALTER TABLE "Users" ADD COLUMN "aiGenerationsUsedThisMonth" INTEGER DEFAULT 0;`,
+  },
+  {
+    table: 'Users',
+    column: 'aiUsageResetDate',
+    sql: `ALTER TABLE "Users" ADD COLUMN "aiUsageResetDate" TIMESTAMP WITH TIME ZONE;`,
+  },
   // Achievements enhancement columns — added in 20260315 migrations
   {
     table: 'Achievements',
