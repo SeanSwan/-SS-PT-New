@@ -1,513 +1,479 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 65.6s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/DashBoard/UnifiedAdminDashboardLayout.tsx, frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx, frontend/src/utils/theme/themeUtils.ts
-> **Generated:** 3/22/2026, 11:03:07 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 56.1s
+> **Files:** frontend/src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx
+> **Generated:** 3/23/2026, 7:36:08 PM
 
 ---
 
-# Code Review: SwanStudios React/TypeScript Components
+# Code Review: EnhancedAdminClientManagementView.tsx
 
 ## Executive Summary
-Overall code quality is **HIGH** with strong architectural patterns, comprehensive TypeScript typing, and excellent accessibility. Key issues center on performance optimizations, error handling consistency, and minor DRY violations.
+**Overall Rating: NEEDS MAJOR REFACTORING**
+
+This 2,182-line monolithic component violates fundamental React/TypeScript best practices. While the theme implementation is solid, the component architecture, performance patterns, and type safety require significant improvements.
 
 ---
 
-## 1. WorkoutLogger.tsx
+## 🔴 CRITICAL Issues
 
-### ✅ Strengths
-- **Excellent decomposition** into sub-components (<300 lines orchestrator)
-- **Strong TypeScript typing** with proper interfaces
-- **Comprehensive NASM protocol integration** with learning mode
-- **Robust AI integration** with custom events and sessionStorage fallback
-- **Accessibility**: ARIA live regions, proper button labels
+### 1. **Monolithic Component Architecture**
+**Severity: CRITICAL**
 
-### 🔴 CRITICAL Issues
-
-#### C1: Race Condition in Submit Handler (Lines 274-278)
 ```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) return;
-  isSubmittingRef.current = true; // ❌ Still has race window
-  setIsSubmitting(true);
-```
-**Issue**: Between check and set, multiple rapid clicks can still trigger duplicate submissions.
-
-**Fix**:
-```tsx
-const handleSubmit = async () => {
-  if (!isSubmittingRef.current) {
-    isSubmittingRef.current = true;
-  } else {
-    return; // Early exit if already submitting
-  }
-  setIsSubmitting(true);
-  // ... rest of logic
+// PROBLEM: 2,182 lines in a single component
+const EnhancedAdminClientManagementView: React.FC = () => {
+  // 50+ state variables
+  // 30+ styled components
+  // Complex rendering logic
+  // Multiple sub-features
 ```
 
-**Rating**: **CRITICAL** — Can cause duplicate session deductions and database corruption.
+**Issues:**
+- Violates Single Responsibility Principle
+- Unmaintainable codebase
+- Impossible to test effectively
+- High cognitive load
+- Merge conflict nightmare
+
+**Fix:**
+```tsx
+// REFACTOR INTO:
+// 1. /components/ClientManagement/
+//    - ClientManagementView.tsx (orchestrator, <300 lines)
+//    - ClientTable/ClientTable.tsx
+//    - ClientStats/StatsGrid.tsx
+//    - ClientFilters/FilterBar.tsx
+//    - MCPHealthPanel/MCPHealthPanel.tsx
+// 2. /hooks/
+//    - useClientManagement.ts (business logic)
+//    - useClientFilters.ts
+//    - useClientSelection.ts
+// 3. /styles/
+//    - ClientManagement.styles.ts (all styled components)
+```
 
 ---
 
-#### C2: Missing Error Boundary (Component Level)
-**Issue**: No error boundary wrapping sub-components. If `ExerciseCardComponent` or `NASMProtocolSection` throws, entire logger crashes.
+### 2. **Missing Error Boundaries**
+**Severity: CRITICAL**
 
-**Fix**: Wrap in `ErrorBoundary` component:
 ```tsx
-<ErrorBoundary fallback={<ErrorFallback onRetry={loadClientData} />}>
-  <WorkoutLoggerHeader ... />
-  {/* ... rest of components */}
-</ErrorBoundary>
+// PROBLEM: No error handling for component failures
+const EnhancedAdminClientManagementView: React.FC = () => {
+  // If any child component crashes, entire page crashes
+  return (
+    <PageRoot>
+      <AITerminalPanel /> {/* Could crash */}
+      {renderEnhancedClientTable()} {/* Could crash */}
+    </PageRoot>
+  );
+};
 ```
 
-**Rating**: **CRITICAL** — Production crashes lose user data.
+**Fix:**
+```tsx
+// ADD ERROR BOUNDARIES
+import { ErrorBoundary } from 'react-error-boundary';
+
+const EnhancedAdminClientManagementView: React.FC = () => {
+  return (
+    <PageRoot>
+      <ErrorBoundary
+        FallbackComponent={ClientManagementErrorFallback}
+        onError={(error, info) => {
+          logErrorToService(error, info);
+          toast({
+            title: "Component Error",
+            description: "Failed to load client management. Please refresh.",
+            variant: "destructive"
+          });
+        }}
+      >
+        <ClientManagementContent />
+      </ErrorBoundary>
+    </PageRoot>
+  );
+};
+```
 
 ---
 
-### 🟠 HIGH Issues
+### 3. **No API Error Handling**
+**Severity: CRITICAL**
 
-#### H1: Inline Function Creation in Render (Lines 379-385)
 ```tsx
-{exercises.map((exercise, exerciseIndex) => (
-  <ExerciseCardComponent
-    onUpdateExercise={updateExercise} // ❌ New reference every render
-    onUpdateSet={updateSet}
-    onAddSet={addSet}
-```
-**Issue**: All callbacks recreated on every render, causing child re-renders even with `React.memo`.
-
-**Fix**: Already using `useCallback` — ensure `ExerciseCardComponent` is memoized:
-```tsx
-export default React.memo(ExerciseCardComponent);
-```
-
-**Rating**: **HIGH** — Performance degradation with 10+ exercises.
-
----
-
-#### H2: Missing Abort Controller Cleanup (Line 284)
-```tsx
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 30000);
-```
-**Issue**: If component unmounts during submission, timeout continues running.
-
-**Fix**:
-```tsx
+// PROBLEM: Mock data with no real API integration or error handling
 useEffect(() => {
-  return () => {
-    if (isSubmittingRef.current) {
-      controller.abort(); // Cleanup on unmount
-    }
-  };
+  const mockData = generateMockClients();
+  setClients(mockData); // No try/catch, no loading states, no error states
+  setLoading(false);
 }, []);
 ```
 
-**Rating**: **HIGH** — Memory leak in SPA navigation.
-
----
-
-#### H3: Hardcoded Color Values (Lines 341, 347, 353)
+**Fix:**
 ```tsx
-icon={<Heart size={18} style={{ color: CS.gaming }} />}
-icon={<Shield size={18} style={{ color: '#8B5CF6' }} />} // ❌ Hardcoded
-icon={<RotateCcw size={18} style={{ color: CS.accent }} />}
-```
-**Issue**: `#8B5CF6` should use `CS.secondary` token.
-
-**Fix**:
-```tsx
-icon={<Shield size={18} style={{ color: CS.secondary }} />}
-```
-
-**Rating**: **HIGH** — Violates theme consistency.
-
----
-
-### 🟡 MEDIUM Issues
-
-#### M1: DRY Violation — NASM Item Toggle Logic (Lines 78-84)
-```tsx
-const toggleNasmItem = useCallback((
-  setter: React.Dispatch<React.SetStateAction<NASMItem[]>>,
-  index: number,
-) => setter(prev => prev.map((item, i) =>
-  i === index ? { ...item, completed: !item.completed } : item
-)), []);
-```
-**Issue**: Repeated in 3 places (warmup, balance, cooldown). Extract to shared utility.
-
-**Fix**: Create `useNASMProtocol` hook:
-```tsx
-const useNASMProtocol = (initialItems: NASMItem[]) => {
-  const [items, setItems] = useState(initialItems);
-  const toggleItem = useCallback((index: number) => {
-    setItems(prev => prev.map((item, i) =>
-      i === index ? { ...item, completed: !item.completed } : item
-    ));
-  }, []);
-  return { items, setItems, toggleItem };
-};
-```
-
-**Rating**: **MEDIUM** — Maintainability issue.
-
----
-
-#### M2: Missing Loading State for `loadTodaysPlan` (Line 138)
-```tsx
-const loadTodaysPlan = useCallback(async () => {
-  setIsLoadingPlan(true);
+// ADD PROPER ASYNC ERROR HANDLING
+const fetchClients = useCallback(async () => {
+  setLoading(true);
+  setError(null);
+  
   try {
-    // ... API call
+    const response = await adminClientService.getClients({
+      page: currentPage,
+      limit: rowsPerPage,
+      search: searchTerm,
+      source: sourceFilter,
+      sortBy,
+      sortOrder
+    });
+    
+    setClients(response.data);
+    setTotalCount(response.total);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to load clients';
+    setError(errorMessage);
+    
+    toast({
+      title: "Error Loading Clients",
+      description: errorMessage,
+      variant: "destructive"
+    });
+    
+    // Fallback to cached data if available
+    const cachedClients = getCachedClients();
+    if (cachedClients) {
+      setClients(cachedClients);
+      toast({
+        title: "Using Cached Data",
+        description: "Showing previously loaded clients",
+        variant: "default"
+      });
+    }
   } finally {
-    setIsLoadingPlan(false); // ✅ Good
+    setLoading(false);
   }
-}, [clientId]);
-```
-**Issue**: No visual feedback during load. Button shows "Loading..." but no spinner.
+}, [currentPage, rowsPerPage, searchTerm, sourceFilter, sortBy, sortOrder]);
 
-**Fix**: Add spinner to button:
-```tsx
-<LoadPlanButton disabled={isLoadingPlan}>
-  {isLoadingPlan ? <LoadingSpinner /> : <Download size={16} />}
-  {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
-</LoadPlanButton>
-```
-
-**Rating**: **MEDIUM** — UX improvement.
-
----
-
-#### M3: Overly Broad Error Catching (Line 215)
-```tsx
-} catch (error: unknown) {
-  console.error('Failed to load client data:', error);
-  setClient({ /* fallback */ });
-  toast.error(getErrorMessage(error, 'Failed to load client information'));
-}
-```
-**Issue**: Network errors vs. auth errors need different handling.
-
-**Fix**:
-```tsx
-} catch (error: unknown) {
-  if (axios.isAxiosError(error) && error.response?.status === 403) {
-    toast.error('Access denied. Please contact your trainer.');
-    onCancel(); // Exit logger
-  } else {
-    toast.error(getErrorMessage(error, 'Failed to load client information'));
-  }
-}
-```
-
-**Rating**: **MEDIUM** — Better error UX.
-
----
-
-### 🔵 LOW Issues
-
-#### L1: Magic Numbers (Lines 11-12 in WorkoutLoggerCS.ts)
-```tsx
-export const MINUTES_PER_SET = 3;
-export const MAX_WORKOUT_DURATION = 120;
-```
-**Issue**: Should be in config file or environment variables.
-
-**Fix**: Move to `config/workoutConstants.ts`.
-
-**Rating**: **LOW** — Minor maintainability.
-
----
-
-#### L2: Unused Import (Line 8)
-```tsx
-import { Plus, Download, Heart, Shield, RotateCcw } from 'lucide-react';
-```
-**Issue**: `Plus` used in styled component, but could be tree-shaken better.
-
-**Fix**: Import only in `ExerciseSearchBar` component.
-
-**Rating**: **LOW** — Bundle size optimization.
-
----
-
-## 2. UnifiedAdminDashboardLayout.tsx
-
-### ✅ Strengths
-- **Clean separation** of loading/error states
-- **Proper ARIA labels** on interactive elements
-- **Suspense boundaries** for lazy-loaded routes
-
-### 🟠 HIGH Issues
-
-#### H4: Missing Dependency in `useEffect` (Line 26)
-```tsx
 useEffect(() => {
-  const verifyAccess = async () => { /* ... */ };
-  setTimeout(verifyAccess, 300);
-}, [user]); // ❌ Missing logout, navigate
+  fetchClients();
+}, [fetchClients]);
 ```
-**Issue**: ESLint exhaustive-deps warning. If `logout`/`navigate` change, stale closures occur.
-
-**Fix**:
-```tsx
-}, [user, logout, navigate]);
-```
-
-**Rating**: **HIGH** — Potential stale closure bug.
 
 ---
 
-#### H5: Hardcoded Timeout (Line 48)
-```tsx
-setTimeout(verifyAccess, 300);
-```
-**Issue**: Magic number. Should be constant or removed (artificial delay).
+### 4. **Unsafe Type Assertions**
+**Severity: CRITICAL**
 
-**Fix**:
 ```tsx
-const VERIFY_ACCESS_DELAY = 300; // ms — allows UI to settle
-setTimeout(verifyAccess, VERIFY_ACCESS_DELAY);
+// PROBLEM: Using `any` in multiple places
+customFields: Record<string, any>; // ❌ Loses type safety
+filters: Record<string, any>; // ❌ Loses type safety
+quickStats: Record<string, any>; // ❌ Loses type safety
+mcpStatus: any; // ❌ Completely untyped
 ```
 
-**Rating**: **HIGH** — Code clarity.
+**Fix:**
+```tsx
+// DEFINE PROPER TYPES
+interface CustomFields {
+  preferredGym?: string;
+  workoutTime?: string;
+  musicPreference?: string;
+  dietaryRestrictions?: string;
+  fitnessGoals?: string[];
+  [key: string]: string | string[] | undefined; // Allow extension
+}
+
+interface ClientFilters {
+  source?: 'all' | 'swanstudios' | 'move_fitness' | 'external';
+  status?: 'active' | 'inactive' | 'pending';
+  engagementLevel?: 'low' | 'medium' | 'high';
+  trainerName?: string;
+  dateRange?: { start: string; end: string };
+}
+
+interface QuickStats {
+  totalClients: number;
+  activeClients: number;
+  newThisMonth: number;
+  avgProgress: number;
+  totalWorkouts: number;
+  totalRevenue: number;
+  retentionRate: number;
+  avgRating: number;
+}
+
+interface MCPServerStatus {
+  name: string;
+  status: 'online' | 'offline' | 'warning' | 'error';
+  health: number;
+  responseTime: number;
+}
+
+interface MCPStatus {
+  servers: MCPServerStatus[];
+  summary: {
+    online: number;
+    offline: number;
+    error: number;
+    warning: number;
+  };
+}
+
+// UPDATE STATE DECLARATIONS
+const [filters, setFilters] = useState<ClientFilters>({});
+const [quickStats, setQuickStats] = useState<QuickStats | null>(null);
+const [mcpStatus, setMcpStatus] = useState<MCPStatus | null>(null);
+```
 
 ---
 
-### 🟡 MEDIUM Issues
+## 🟠 HIGH Priority Issues
 
-#### M4: Inline Style Objects (Lines 63-69)
-```tsx
-<h2 style={{
-  fontSize: '1.25rem',
-  fontWeight: 500,
-  color: executiveCommandTheme.colors.platinumSilver,
-  marginBottom: '0.5rem',
-}}>
-```
-**Issue**: Recreated on every render. Extract to styled component.
+### 5. **Performance: Inline Function Creation**
+**Severity: HIGH**
 
-**Fix**:
 ```tsx
-const LoadingTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: ${props => props.theme.colors.platinumSilver};
-  margin-bottom: 0.5rem;
+// PROBLEM: Creates new functions on every render
+<RoundButton onClick={() => handleViewDetails(client)}>
+<RoundButton onClick={() => handleSendMessage(client)}>
+<RoundButton onClick={(e) => handleMenuOpen(e, client)}>
+
+// Also in styled components:
+const FlexRow = styled.div<{ $gap?: number }>`
+  gap: ${(p) => p.$gap ?? 8}px; // Recalculates on every render
 `;
 ```
 
-**Rating**: **MEDIUM** — Performance optimization.
+**Fix:**
+```tsx
+// SOLUTION 1: useCallback with stable references
+const handleViewDetailsClick = useCallback((clientId: string) => {
+  const client = clients.find(c => c.id === clientId);
+  if (client) handleViewDetails(client);
+}, [clients]);
+
+// SOLUTION 2: Use data attributes
+<RoundButton 
+  data-client-id={client.id}
+  onClick={handleActionClick}
+>
+
+const handleActionClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+  const clientId = e.currentTarget.dataset.clientId;
+  const action = e.currentTarget.dataset.action;
+  // Handle action
+}, []);
+
+// SOLUTION 3: Extract to memoized component
+const ClientActionButtons = memo<{ client: EnhancedAdminClient }>(({ client }) => {
+  const handleView = useCallback(() => handleViewDetails(client), [client]);
+  const handleMessage = useCallback(() => handleSendMessage(client), [client]);
+  
+  return (
+    <FlexRow $gap={4}>
+      <RoundButton onClick={handleView}><Eye size={18} /></RoundButton>
+      <RoundButton onClick={handleMessage}><MessageSquare size={18} /></RoundButton>
+    </FlexRow>
+  );
+});
+```
 
 ---
 
-#### M5: No Retry Limit (Line 52)
+### 6. **Missing React.memo for Expensive Components**
+**Severity: HIGH**
+
 ```tsx
-const handleRetry = () => {
-  setIsLoading(true);
-  setError(null);
-  window.location.reload(); // ❌ Infinite retry possible
+// PROBLEM: No memoization for complex renders
+const renderEnhancedClientTable = () => (
+  <GlassPanel>
+    {/* Expensive table rendering */}
+    {paginatedClients.map((client) => (
+      <Tr key={client.id}>
+        {/* Complex row with multiple calculations */}
+      </Tr>
+    ))}
+  </GlassPanel>
+);
+```
+
+**Fix:**
+```tsx
+// EXTRACT AND MEMOIZE
+interface ClientRowProps {
+  client: EnhancedAdminClient;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onViewDetails: (client: EnhancedAdminClient) => void;
+  onSendMessage: (client: EnhancedAdminClient) => void;
+  onVideoCall: (client: EnhancedAdminClient) => void;
+  onMenuOpen: (e: React.MouseEvent, client: EnhancedAdminClient) => void;
+}
+
+const ClientRow = memo<ClientRowProps>(({ 
+  client, 
+  isSelected, 
+  onSelect,
+  onViewDetails,
+  onSendMessage,
+  onVideoCall,
+  onMenuOpen
+}) => {
+  const handleSelect = useCallback(() => onSelect(client.id), [client.id, onSelect]);
+  const handleView = useCallback(() => onViewDetails(client), [client, onViewDetails]);
+  
+  return (
+    <Tr>
+      <Td $checkbox>
+        <CheckboxLabel>
+          <HiddenCheckbox checked={isSelected} onChange={handleSelect} />
+          <CheckboxBox $checked={isSelected} />
+        </CheckboxLabel>
+      </Td>
+      {/* Rest of row */}
+    </Tr>
+  );
+}, (prev, next) => {
+  // Custom comparison for performance
+  return (
+    prev.client.id === next.client.id &&
+    prev.isSelected === next.isSelected &&
+    prev.client.updatedAt === next.client.updatedAt
+  );
+});
+
+ClientRow.displayName = 'ClientRow';
+```
+
+---
+
+### 7. **Hardcoded Theme Values**
+**Severity: HIGH**
+
+```tsx
+// PROBLEM: Hardcoded colors instead of theme tokens
+const theme = {
+  bg: 'rgba(15,23,42,0.95)', // ❌ Not from design system
+  bgSolid: '#002060', // ✅ Correct (Midnight Sapphire)
+  cyan: '#60C0F0', // ✅ Correct (Ice Wing)
+  purple: '#8B5CF6', // ✅ Correct (Wing Purple)
+  success: '#4caf50', // ❌ Not from design system
+  warning: '#ff9800', // ❌ Not from design system
+  error: '#f44336', // ❌ Not from design system
+  gold: '#ffd700', // ❌ Not from design system
 };
-```
-**Issue**: User can spam retry, causing server load.
 
-**Fix**: Add retry counter:
-```tsx
-const [retryCount, setRetryCount] = useState(0);
-const MAX_RETRIES = 3;
-
-const handleRetry = () => {
-  if (retryCount >= MAX_RETRIES) {
-    toast.error('Maximum retry attempts reached. Please contact support.');
-    return;
-  }
-  setRetryCount(prev => prev + 1);
-  window.location.reload();
-};
+// Also hardcoded in components:
+background: linear-gradient(135deg, #60C0F0, #00c8ff); // ❌ #00c8ff not in palette
+color: #002060; // ✅ Correct
+border: 2px solid ${theme.surface}; // ❌ Should use theme token
 ```
 
-**Rating**: **MEDIUM** — Prevents abuse.
-
----
-
-## 3. RevolutionaryClientDashboard.tsx
-
-### ✅ Strengths
-- **Excellent theme system** with CSS custom properties
-- **Tab migration logic** handles legacy localStorage gracefully
-- **Memoized `ParticleBackground`** prevents parent re-renders
-- **Proper lazy loading** with Suspense fallbacks
-
-### 🟠 HIGH Issues
-
-#### H6: Missing Key Prop in Particle Map (Line 253)
+**Fix:**
 ```tsx
-{particles.map((particle) => (
-  <Particle
-    key={particle.id} // ✅ Has key
-```
-**Issue**: Actually correct! False alarm — keys are present.
-
-**Rating**: **N/A** — No issue.
-
----
-
-#### H7: Hardcoded Gradient Values (Lines 57-63)
-```tsx
-gradients: {
-  galaxy: 'radial-gradient(ellipse at center, #003080 0%, #002060 70%)',
-  nebula: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 50%, #003080 100%)',
-```
-**Issue**: Should use theme token references for maintainability.
-
-**Fix**:
-```tsx
-gradients: {
-  galaxy: `radial-gradient(ellipse at center, ${galaxyTheme.colors.nebulaPurple} 0%, ${galaxyTheme.colors.deepSpace} 70%)`,
-```
-
-**Rating**: **HIGH** — Theme consistency violation.
-
----
-
-### 🟡 MEDIUM Issues
-
-#### M6: DRY Violation — Section Mapping (Lines 159-191)
-```tsx
-const sectionComponents: Record<string, React.FC> = { /* ... */ };
-const sectionTitles: Record<string, string> = { /* ... */ };
-const sectionDescriptions: Record<string, string> = { /* ... */ };
-```
-**Issue**: Three separate objects for same sections. Combine into single config.
-
-**Fix**:
-```tsx
-const SECTIONS = {
-  overview: {
-    component: OverviewGalaxy,
-    title: 'Mission Control',
-    description: 'Your complete fitness command center',
+// USE CENTRALIZED THEME
+// theme/crystallineSwan.ts
+export const crystallineSwanTheme = {
+  // Primary Colors
+  primary: {
+    midnightSapphire: '#002060',
+    royalDepth: '#003080',
   },
-  // ... rest
+  // Accents
+  accent: {
+    iceWing: '#60C0F0',
+    arcticCyan: '#50A0F0',
+    gildedFern: '#C6A84B',
+    swanLavender: '#4070C0',
+    wingPurple: '#8B5CF6',
+  },
+  // Backgrounds
+  background: {
+    frostWhite: '#E0ECF4',
+    darkBase: 'rgba(0, 32, 96, 0.95)',
+    surface: 'rgba(0, 48, 128, 0.8)',
+  },
+  // Semantic Colors (derived from palette)
+  semantic: {
+    success: '#4070C0', // Swan Lavender for success
+    warning: '#C6A84B', // Gilded Fern for warnings
+    error: '#8B5CF6', // Wing Purple for errors (high contrast)
+    info: '#60C0F0', // Ice Wing for info
+  },
+  // Borders
+  border: {
+    default: 'rgba(96, 192, 240, 0.2)',
+    hover: 'rgba(96, 192, 240, 0.4)',
+    active: '#60C0F0',
+  },
+  // Text
+  text: {
+    primary: '#E0ECF4',
+    secondary: 'rgba(224, 236, 244, 0.7)',
+    disabled: 'rgba(224, 236, 244, 0.4)',
+  },
 } as const;
 
-const CurrentSectionComponent = SECTIONS[resolvedSection].component;
-```
+// USAGE
+import { crystallineSwanTheme as theme } from '@/theme/crystallineSwan';
 
-**Rating**: **MEDIUM** — Maintainability improvement.
+const ActionButton = styled.button<{ $variant?: 'contained' | 'outlined' }>`
+  ${(p) =>
+    p.$variant === 'contained'
+      ? css`
+          background: linear-gradient(135deg, ${theme.accent.iceWing}, ${theme.accent.arcticCyan});
+          color: ${theme.primary.midnightSapphire};
+        `
+      : css`
+          background-color: ${theme.background.surface};
+          color: ${theme.text.primary};
+          border: 1px solid ${theme.border.default};
+        `}
+`;
+```
 
 ---
 
-#### M7: Excessive Animation Iterations (Line 219)
-```tsx
-animate={{ rotate: 360 }}
-transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-```
-**Issue**: Infinite animations can cause performance issues on low-end devices.
+### 8. **Missing Loading States**
+**Severity: HIGH**
 
-**Fix**: Add `reducedMotion` check:
 ```tsx
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-<AchievementConstellation
-  animate={prefersReducedMotion ? {} : { rotate: 360 }}
-  transition={prefersReducedMotion ? {} : { duration: 30, repeat: Infinity }}
-/>
+// PROBLEM: No skeleton loaders during data fetch
+{loading ? (
+  <div>Loading...</div> // ❌ Poor UX
+) : (
+  renderEnhancedClientTable()
+)}
 ```
 
-**Rating**: **MEDIUM** — Accessibility compliance.
-
----
-
-### 🔵 LOW Issues
-
-#### L3: Magic Number — Particle Count (Line 238)
+**Fix:**
 ```tsx
-const newParticles = Array.from({ length: 30 }, (_, i) => ({
-```
-**Issue**: Should be constant.
-
-**Fix**:
-```tsx
-const PARTICLE_COUNT = 30;
-const newParticles = Array.from({ length: PARTICLE_COUNT }, ...);
-```
-
-**Rating**: **LOW** — Code clarity.
-
----
-
-## 4. themeUtils.ts
-
-### ✅ Strengths
-- **Comprehensive CSS custom properties** for all theme tokens
-- **Type-safe theme access** with TypeScript
-- **Performance-optimized** theme switching via CSS variables
-
-### 🟠 HIGH Issues
-
-#### H8: Missing Cleanup in `injectThemeVariables` (Line 118)
-```tsx
-export const injectThemeVariables = (themeId: ThemeId): void => {
-  let themeStyleElement = document.getElementById('theme-variables');
-  if (themeStyleElement) {
-    themeStyleElement.remove(); // ✅ Good
-  }
-```
-**Issue**: If called rapidly (e.g., theme toggle spam), can create orphaned style elements.
-
-**Fix**: Add debounce:
-```tsx
-let themeInjectionTimeout: NodeJS.Timeout;
-
-export const injectThemeVariables = (themeId: ThemeId): void => {
-  clearTimeout(themeInjectionTimeout);
-  themeInjectionTimeout = setTimeout(() => {
-    // ... injection logic
-  }, 50);
-};
-```
-
-**Rating**: **HIGH** — Prevents DOM pollution.
-
----
-
-### 🟡 MEDIUM Issues
-
-#### M8: Incomplete Type Definition (Line 144)
-```tsx
-export const themeColors = {
-  primary: ({ theme }: { theme: any }) => theme.colors.primary,
-  primaryBlue: ({ theme }: { theme: any })
-// ... truncated ...
-```
-**Issue**: Uses `any` type. Should use proper theme interface.
-
-**Fix**:
-```tsx
-import { DefaultTheme } from 'styled-components';
-
-export const themeColors = {
-  primary: ({ theme }: { theme: DefaultTheme }) => theme.colors.primary,
-```
-
-**Rating**: **MEDIUM** — TypeScript best practice.
-
----
-
-## Summary Table
-
-| Issue | Severity | Component | Impact |
-|-------|----------|-----------|--------|
-| C1: Submit race condition | **CRITICAL** | WorkoutLogger | Duplicate submissions |
-| C2: Missing error boundary | **CRITICAL** | WorkoutLogger | Production crashes |
-| H1: Inline function creation | **HIGH** | WorkoutLogger | Performance degradation |
-| H2: Abort controller cleanup | **HIGH** | WorkoutLogger | Memory leak |
-| H3: Hardcoded colors | **HIGH** | WorkoutLogger | Theme inconsistency |
-| H4: Missing useEffect deps | **HIGH** | AdminDashboard | Stale closures |
-| H5: Hardcoded timeout | **HIGH** | AdminDashboard | Code clarity |
-|
+// ADD SKELETON LOADERS
+const ClientTableSkeleton: React.FC = () => (
+  <GlassPanel $noPadding>
+    <TableWrapper>
+      <StyledTable>
+        <THead>
+          <tr>
+            <Th $checkbox><SkeletonBox $width="20px" $height="20px" /></Th>
+            <Th><SkeletonBox $width="120px" $height="16px" /></Th>
+            <Th><SkeletonBox $width="140px" $height="16px" /></Th>
+            <Th><SkeletonBox $width="140px" $height="16px" /></Th>
+            <Th><SkeletonBox $width="120px" $height="16px" /></Th>
+            <Th><SkeletonBox $width="100px" $height="16px" /></Th>
+            <Th><SkeletonBox $width="80px" $height="16px" /></Th>
+          </tr>
+        </THead>
+        <TBody>
+          {Array.from({ length: rowsPerPage }).map((_, i) => (
+            <Tr key={i}>
+              <Td $checkbox><SkeletonBox $width="20px" $height="20px" /></Td>
+              <Td>
+                <FlexRow $gap={12}>
+                  <SkeletonBox $width="56px" $height="56px" style={{ borderRadius: '50%' }} />
+                  <FlexCol $gap={4}>
 
 ---
 

@@ -17,7 +17,7 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://sswanstudios.com"
-API_BASE = f"{BASE_URL}/api"
+API_BASE = f"{BASE_URL}/api/v1/gamification"
 RESULTS = []
 
 def log_result(test_name, passed, details=""):
@@ -59,7 +59,7 @@ def run_tests():
 
         # Gamification settings (public endpoint)
         try:
-            resp = page.goto(f"{API_BASE}/gamification/settings", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/settings", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             is_json = body.startswith("{") or body.startswith("[")
             log_result("GET /api/gamification/settings", resp and resp.status == 200 and is_json, f"Status: {resp.status if resp else 'None'}")
@@ -68,7 +68,7 @@ def run_tests():
 
         # Leaderboard (public endpoint)
         try:
-            resp = page.goto(f"{API_BASE}/gamification/leaderboard?limit=5", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/leaderboard?limit=5", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             log_result("GET /api/gamification/leaderboard", resp and resp.status == 200, f"Status: {resp.status if resp else 'None'}")
         except Exception as e:
@@ -76,7 +76,7 @@ def run_tests():
 
         # Achievements (public endpoint)
         try:
-            resp = page.goto(f"{API_BASE}/gamification/achievements", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/achievements", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             log_result("GET /api/gamification/achievements", resp and resp.status == 200, f"Status: {resp.status if resp else 'None'}")
         except Exception as e:
@@ -84,7 +84,7 @@ def run_tests():
 
         # Rewards (public endpoint)
         try:
-            resp = page.goto(f"{API_BASE}/gamification/rewards", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/rewards", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             log_result("GET /api/gamification/rewards", resp and resp.status == 200, f"Status: {resp.status if resp else 'None'}")
         except Exception as e:
@@ -92,7 +92,7 @@ def run_tests():
 
         # Milestones (public endpoint)
         try:
-            resp = page.goto(f"{API_BASE}/gamification/milestones", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/milestones", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             log_result("GET /api/gamification/milestones", resp and resp.status == 200, f"Status: {resp.status if resp else 'None'}")
         except Exception as e:
@@ -104,12 +104,12 @@ def run_tests():
         print("\n--- Security: IDOR Protection Tests ---")
 
         idor_endpoints = [
-            "/gamification/users/1/profile",
-            "/gamification/users/1/transactions",
-            "/gamification/users/1/weekly-recap",
-            "/gamification/streak-freeze/1",
-            "/gamification/comeback-challenge/1",
-            "/gamification/activity-feed",
+            "/users/1/profile",
+            "/users/1/transactions",
+            "/users/1/weekly-recap",
+            "/streak-freeze/1",
+            "/comeback-challenge/1",
+            "/activity-feed",
         ]
 
         for endpoint in idor_endpoints:
@@ -126,7 +126,7 @@ def run_tests():
         # ─────────────────────────────────────────────
         print("\n--- Security: Pagination Cap Tests ---")
         try:
-            resp = page.goto(f"{API_BASE}/gamification/leaderboard?limit=9999", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/leaderboard?limit=9999", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             if resp and resp.status == 200:
                 try:
@@ -146,7 +146,7 @@ def run_tests():
         # ─────────────────────────────────────────────
         print("\n--- Security: Error Message Sanitization ---")
         try:
-            resp = page.goto(f"{API_BASE}/gamification/users/999999/profile", wait_until="domcontentloaded", timeout=15000)
+            resp = page.goto(f"{API_BASE}/users/999999/profile", wait_until="domcontentloaded", timeout=15000)
             body = page.text_content("body") or ""
             # Check response doesn't contain stack traces or SQL details
             no_leak = "SequelizeDatabaseError" not in body and "at Object." not in body and "SELECT" not in body

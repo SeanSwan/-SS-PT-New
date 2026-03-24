@@ -1,156 +1,127 @@
 # UX & Accessibility — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 20.2s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/DashBoard/UnifiedAdminDashboardLayout.tsx, frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx, frontend/src/utils/theme/themeUtils.ts
-> **Generated:** 3/22/2026, 11:03:07 PM
+> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 21.0s
+> **Files:** frontend/src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx
+> **Generated:** 3/23/2026, 7:36:08 PM
 
 ---
 
-As a UX and accessibility expert auditor, I've reviewed the provided code snippets for SwanStudios, focusing on WCAG 2.1 AA compliance, mobile UX, design consistency, user flow friction, and loading states.
+This is a substantial React component for an admin dashboard, demonstrating a complex UI with many features. The code is well-structured with clear sections for animations, theme tokens, base styled components, typography, and various UI elements. The use of `styled-components` is extensive and generally good, though some theme token usage could be more consistent. The comments provide an excellent overview of the component's purpose, architecture, and data flow, which is very helpful for auditing.
 
-Here's a breakdown of my findings:
-
----
-
-## 1. WCAG 2.1 AA Compliance
-
-### frontend/src/components/WorkoutLogger/WorkoutLogger.tsx
-
-**Findings:**
-
-*   **Color Contrast:**
-    *   `LoadPlanButton`: Uses `rgba(139, 92, 246, 0.12)` for background and `#8B5CF6` for text. This is Wing Purple. Against the `CS.bgDeep` (Midnight Sapphire #002060), the contrast ratio is likely insufficient. Wing Purple (#8B5CF6) on Midnight Sapphire (#002060) has a contrast ratio of **2.97:1**, which is below WCAG AA's 4.5:1 for normal text.
-    *   `RolodexTrigger`: Uses `CS.inputBgDark` (likely a dark background) and `CS.textSecondary` for text. The `CS.textSecondary` color is not explicitly defined in the provided `WorkoutLoggerCS` snippet, but if it's a muted color, it could fail contrast. The `svg` color `CS.gaming` (Ice Wing #60C0F0) against `CS.inputBgDark` (assuming a dark background like `CS.bgDeep`) might also be an issue. Ice Wing (#60C0F0) on Midnight Sapphire (#002060) has a contrast ratio of **4.08:1**, which is below 4.5:1.
-    *   `AddExerciseButton`: Uses `linear-gradient(135deg, ${CS.glow}, ${CS.gaming})` for background and `#ffffff` for text. Arctic Cyan (#50A0F0) and Ice Wing (#60C0F0) are both light colors. White text on these colors will likely have insufficient contrast. White (#FFFFFF) on Arctic Cyan (#50A0F0) is **2.89:1**. White (#FFFFFF) on Ice Wing (#60C0F0) is **2.76:1**. Both are well below 4.5:1.
-    *   `NASMProtocolSection` icons: Icons use `CS.gaming` (Ice Wing #60C0F0) and `#8B5CF6` (Wing Purple). These colors against the background of the section (likely a dark background) might have contrast issues, similar to the `RolodexTrigger` and `LoadPlanButton`.
-*   **ARIA Labels:**
-    *   `RolodexTrigger`: Has `aria-label="Search and add exercises"` and `aria-expanded={showExerciseSearch}`. This is good.
-    *   `LiveRegion`: Correctly uses `role="status" aria-live="polite" aria-atomic="true"`. This is excellent for announcing dynamic content changes to screen readers.
-    *   Other interactive elements (buttons, inputs) appear to be standard HTML elements, which generally have inherent accessibility, but custom components like `EquipmentProfilePicker`, `AITerminalPanel`, `WorkoutLoggerHeader`, `NASMPhaseGuide`, `NASMProtocolSection`, `ExerciseCardComponent`, `SessionSummaryForm`, `WorkoutLoggerFooter` would need their internal implementations reviewed for proper ARIA attributes and semantic HTML.
-*   **Keyboard Navigation & Focus Management:**
-    *   `RolodexTrigger` and `AddExerciseButton` use `&:focus-visible` for visual focus indication, which is good.
-    *   The overall flow of the `WorkoutLogger` involves many interactive elements. Ensuring a logical tab order and visible focus indicators for all custom components (e.g., within `ExerciseCardComponent` for set inputs, `NASMProtocolSection` for checkboxes) is crucial. Without seeing the sub-components, this is an assumption.
-    *   The `NASMExerciseRolodex` being a modal-like component needs proper focus trapping and release when opened/closed.
-*   **Semantic HTML:** The use of `motion.div` for `WorkoutLoggerContainer` and other elements is fine as long as the underlying HTML structure is semantic. The `LiveRegion` is a good example of semantic ARIA usage.
-
-**Rating:** HIGH (for color contrast issues), MEDIUM (for potential keyboard navigation/focus issues in sub-components)
-
-### frontend/src/components/DashBoard/UnifiedAdminDashboardLayout.tsx
-
-**Findings:**
-
-*   **Color Contrast:**
-    *   `ExecutiveLoadingSpinner`: Uses `rgba(255, 255, 255, 0.2)` border with `#ffffff` for the top color. The contrast between the spinner's parts and its background (which is `executiveCommandTheme.colors.platinumSilver` or `cosmicGray` for text) needs to be checked. Assuming `platinumSilver` and `cosmicGray` are light, white on them would be an issue.
-    *   `h2` and `p` text in `LoadingState`: Uses `executiveCommandTheme.colors.platinumSilver` and `executiveCommandTheme.colors.cosmicGray`. These are not defined in the provided `themeUtils.ts` or the active palette. If they are light colors on a light background, contrast will be an issue.
-    *   `ExecutiveErrorContainer` text: Similar concern for `h2` and `p` text.
-    *   `ExecutiveButton`: The default button uses `rgba(239, 68, 68, 0.2)` background and `rgba(239, 68, 68, 0.4)` border for the logout button. The text color is not specified but is likely a light color. Against a dark background, this might be okay, but if the text is also a light red, it could be an issue.
-*   **ARIA Labels:**
-    *   `ExecutiveButton` for retry and logout correctly use `aria-label`.
-    *   `ExecutiveMainContent` uses `role="main"` and `aria-label="Admin dashboard main content"`. This is good.
-*   **Keyboard Navigation & Focus Management:**
-    *   `ExecutiveButton` uses `whileHover` and `whileTap` for visual feedback, but `&:focus-visible` or similar CSS for keyboard focus indication is not explicitly shown in the provided snippet for `ExecutiveButton`. This needs to be ensured in `AdminLayout.styles.ts`.
-    *   The `AdminStellarSidebar` and `UnifiedAdminRoutes` (which contain the actual dashboard content) would need thorough review for keyboard accessibility.
-
-**Rating:** HIGH (for potential color contrast issues with undefined theme colors), MEDIUM (for potential keyboard navigation/focus issues in sub-components)
-
-### frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx
-
-**Findings:**
-
-*   **Color Contrast:**
-    *   `GalaxyContainer` background: `radial-gradient(ellipse at center, #003080 0%, #002060 70%)` (Royal Depth to Midnight Sapphire). Text color is `stellarWhite` (#E0ECF4). White text on these dark backgrounds should generally pass contrast. White (#E0ECF4) on Royal Depth (#003080) is **10.5:1**. White (#E0ECF4) on Midnight Sapphire (#002060) is **12.5:1**. These are excellent.
-    *   `ContentHeader` background: `rgba(0, 32, 96, 0.4)` with `backdrop-filter: blur(15px)`. Text `p` uses `rgba(255, 255, 255, 0.8)`. This should also pass contrast.
-    *   `ContentHeader h1`: Uses a gradient (`stellar`) for text color. Text with gradient colors can be problematic for contrast. WCAG guidelines recommend ensuring that the *average* or *most prominent* color in the gradient meets the contrast ratio, or providing a solid fallback. The gradient `linear-gradient(45deg, #60C0F0 0%, #C6A84B 100%)` (Ice Wing to Gilded Fern) contains light colors. Against the dark background, this might be okay for large text (which `h1` typically is), but needs verification. Ice Wing (#60C0F0) on Midnight Sapphire (#002060) is **4.08:1**. Gilded Fern (#C6A84B) on Midnight Sapphire (#002060) is **5.45:1**. For large text (18pt or 14pt bold), 3:1 is sufficient. So, `h1` might pass.
-    *   `AchievementConstellation` `::before` content: Uses `starGold` (#C6A84B) for color. Against the dark background, this should pass (5.45:1).
-    *   `ContentArea` scrollbar thumb: Uses `cyberCyan` (#60C0F0). This is an interactive element, and its contrast against the track (`rgba(0, 16, 48, 0.5)`) should be checked. Ice Wing (#60C0F0) on Void Black (#001040) is **4.08:1**. This is borderline for non-text contrast (3:1 required).
-*   **ARIA Labels:**
-    *   The main structure uses `motion.main` and `motion.div`. It's important that the actual content within `CurrentSectionComponent` provides appropriate ARIA attributes for interactive elements.
-    *   `StellarSidebar` would need to be reviewed for its internal navigation elements (links, buttons) to ensure proper ARIA roles and labels, especially for its collapsible state.
-*   **Keyboard Navigation & Focus Management:**
-    *   `StellarSidebar` is a key navigation component. It must be fully keyboard navigable, with clear focus indicators for each menu item.
-    *   The `AIAssistantFAB` (Floating Action Button) needs to be keyboard accessible and its associated drawer/modal should manage focus correctly.
-    *   The `ContentArea` has a custom scrollbar. While not strictly a WCAG AA requirement, custom scrollbars should ideally be keyboard navigable if they contain interactive elements or if the content itself requires scrolling interaction.
-*   **Semantic HTML:** The overall structure seems reasonable, using `main` for the main content.
-
-**Rating:** MEDIUM (for potential contrast issues with gradient text and scrollbar, and general keyboard navigation/focus in sub-components)
-
-### frontend/src/utils/theme/themeUtils.ts
-
-**Findings:**
-
-*   This file primarily defines theme variables and utility functions. The WCAG compliance here is indirect, ensuring that the *values* provided to components are accessible.
-*   The `PALETTE` description lists `Ice Wing #60C0F0` as PRIMARY accent and `Arctic Cyan #50A0F0` as Secondary accent. The active palette in the prompt lists `Ice Wing #60C0F0` as Gaming Accent and `Arctic Cyan #50A0F0` as Glow Accent. This discrepancy suggests a potential naming or usage inconsistency, which could lead to WCAG issues if colors are used semantically but the actual values don't match the intended contrast for that semantic role.
-*   The `themeColors` helper function is truncated, so its full implications for accessibility cannot be assessed.
-
-**Rating:** LOW (for potential discrepancy in color role naming, which could indirectly lead to WCAG issues if not carefully managed)
+Let's break down the review by category.
 
 ---
 
-## 2. Mobile UX
+## UX and Accessibility Audit: EnhancedAdminClientManagementView.tsx
 
-### frontend/src/components/WorkoutLogger/WorkoutLogger.tsx
+### 1. WCAG 2.1 AA Compliance
 
-**Findings:**
-
-*   **Touch Targets:**
-    *   `LoadPlanButton`: `padding: 10px 20px; min-height: 44px;`. **PASS**.
-    *   `RolodexTrigger`: `padding: 1rem 1.25rem; min-height: 52px;`. **PASS**.
-    *   `AddExerciseButton`: `padding: 1.25rem 2rem; min-height: 52px;`. **PASS**.
-    *   The `NASMProtocolSection` toggle buttons and `ExerciseCardComponent`'s internal buttons (add set, remove set, etc.) would need to be checked. Assuming they are well-designed, they should meet the 44px minimum.
-*   **Responsive Breakpoints:**
-    *   `WorkoutLoggerContainer`: `@media (max-width: 768px) { padding: 1rem; }` and `@media (max-width: 430px) { padding: 0.75rem; }`. This shows basic responsiveness for padding.
-    *   The overall layout is a single column, which is generally mobile-friendly.
-    *   Sub-components like `WorkoutLoggerHeader`, `NASMProtocolSection`, `ExerciseCardComponent`, `SessionSummaryForm`, `WorkoutLoggerFooter` would need to be individually responsive. `ExerciseCardComponent` with its set table is a common challenge on mobile; horizontal scrolling or a more compact display might be needed.
-*   **Gesture Support:** No explicit gesture support (e.g., swipe to delete an exercise) is mentioned or implemented, which is common for web apps but could enhance mobile UX.
-*   **Content Overflow:** Tables within `ExerciseCardComponent` (for sets) are a common source of horizontal overflow on mobile. This needs careful handling (e.g., responsive tables, horizontal scroll).
-
-**Rating:** MEDIUM (Good touch targets for main buttons, but responsive design of complex sub-components like tables needs verification)
-
-### frontend/src/components/DashBoard/UnifiedAdminDashboardLayout.tsx
-
-**Findings:**
-
-*   **Touch Targets:** No specific interactive elements are styled within this file, but the `ExecutiveButton` would need to meet the 44px minimum.
-*   **Responsive Breakpoints:**
-    *   The `AdminStellarSidebar` is likely a fixed-width sidebar. On mobile, this would typically collapse into a hamburger menu or a bottom navigation bar. The current code does not show explicit mobile responsiveness for the sidebar or `ExecutiveMainContent`'s `margin-left`. This is a critical omission for mobile.
-    *   The `ExecutiveLayoutContainer` and `ExecutiveMainContent` don't show any media queries.
-*   **Gesture Support:** Not applicable.
-
-**Rating:** CRITICAL (Lack of explicit mobile responsiveness for the main layout, especially the sidebar, will break the layout on smaller screens)
-
-### frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx
-
-**Findings:**
-
-*   **Touch Targets:**
-    *   `StellarSidebar`: This component is crucial. Its navigation items must have adequate touch targets.
-    *   `AIAssistantFAB`: Floating Action Buttons are typically designed with good touch targets.
-*   **Responsive Breakpoints:**
-    *   `MainContent`: `@media (max-width: 768px) { margin-left: 0; padding: 1rem; margin-top: 56px; }`. This correctly removes the `margin-left` for the sidebar and adjusts padding.
-    *   `ContentHeader`: `@media (max-width: 768px) { padding: 1.5rem; margin-bottom: 1.5rem; h1 { font-size: 2rem; } p { font-size: 1rem; } }`. Good responsive adjustments for header content.
-    *   `ContentArea`: `@media (max-width: 768px) { padding: 1.5rem; margin: 0; }`. Good.
-    *   `AchievementConstellation`: `@media (max-width: 768px) { display: none; }`. Hiding decorative elements on mobile is a good practice.
-    *   The `StellarSidebar` is described as having an "Enhanced mobile-first design with collapsible sidebar". This is crucial and implies the sidebar itself handles its mobile state (e.g., becoming a drawer or hamburger menu). Assuming this is implemented correctly within `StellarSidebar`.
-*   **Gesture Support:** The "collapsible sidebar" implies gesture support (e.g., swiping to open/close) could be beneficial, but it's not explicitly stated or implemented here.
-
-**Rating:** HIGH (Good responsive adjustments for main content, but reliance on `StellarSidebar` for critical mobile navigation needs verification)
+**Overall Assessment:** The component shows a good effort towards accessibility with the use of `aria-label` on buttons and some semantic HTML elements. However, there are several areas that need improvement to meet WCAG 2.1 AA standards, particularly concerning color contrast, keyboard navigation, and focus management.
 
 ---
 
-## 3. Design Consistency
+#### Findings:
 
-### frontend/src/components/WorkoutLogger/WorkoutLogger.tsx
+*   **Color Contrast**
+    *   **CRITICAL:** **Hardcoded `theme` object vs. provided palette.** The `theme` object defined in the code uses colors like `#002060` (bgSolid), `#1d1f2b` (surface), `#0ea5e9` (accent), `#60C0F0` (cyan), `#8B5CF6` (purple), `#e2e8f0` (text), `#a0a0b0` (textSecondary), etc. These do NOT directly map to the provided "Crystalline Swan" palette: `Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent — buttons, hovers, animations), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent)`. This is a significant issue as it means the entire color scheme is likely off-spec and has not been audited against the *intended* palette.
+        *   **Example:** `theme.surface` is `#1d1f2b` (dark blue/grey) while the palette specifies `Royal Depth #003080` (darker blue). `theme.accent` is `#0ea5e9` (a bright blue) while the palette specifies `Arctic Cyan #50A0F0` for buttons/hovers. `theme.cyan` is `#60C0F0` (Ice Wing) which is good, but `theme.purple` is `#8B5CF6` (Wing Purple) which is also good. The `theme.text` is `#e2e8f0` and `theme.textSecondary` is `#a0a0b0`.
+        *   **Impact:** All color contrast calculations below are based on the *code's* `theme` object, not the *specified* palette. This makes the audit less accurate to the design intent.
+        *   **Recommendation:** Refactor the `theme` object to strictly use the provided "Crystalline Swan" palette. Create a centralized theme file that is imported and used consistently.
+    *   **HIGH:** **`theme.textSecondary` (`#a0a0b0`) on `theme.bgSolid` (`#002060`) or `theme.surface` (`#1d1f2b`).**
+        *   `PageSubtitle`: `#a0a0b0` on `#002060`. Contrast ratio: 3.6:1 (FAIL AA for normal text, FAIL AAA for large text).
+        *   `Label`: `#a0a0b0` on `#002060`. Contrast ratio: 3.6:1 (FAIL AA for normal text).
+        *   `Username`: `#a0a0b0` on `#002060`. Contrast ratio: 3.6:1 (FAIL AA for normal text).
+        *   `CaptionText`: `#a0a0b0` on `#002060`. Contrast ratio: 3.6:1 (FAIL AA for normal text).
+        *   `SearchIcon`: `#a0a0b0` on `rgba(255, 255, 255, 0.05)` (SearchInput background). This background is very dark, likely leading to a similar failure.
+        *   `BreadcrumbLink`: `#a0a0b0` on `#002060`. Contrast ratio: 3.6:1 (FAIL AA).
+        *   `DropdownItem svg`: `#a0a0b0` on `#252742` (DropdownMenu background). Contrast ratio: 3.6:1 (FAIL AA for graphical objects).
+        *   **Recommendation:** Increase the contrast of `theme.textSecondary`. Consider a lighter shade or ensure it's only used on backgrounds with sufficient contrast. For `#a0a0b0` to pass AA on `#002060`, it would need to be at least `#B3B3B3`.
+    *   **MEDIUM:** **`ActionButton` (outlined variant) text (`theme.text` - `#e2e8f0`) on `rgba(255, 255, 255, 0.05)` background.**
+        *   Contrast ratio: 10.4:1 (PASS AA). This is good.
+    *   **MEDIUM:** **`ActionButton` (contained variant) text (`#002060`) on `linear-gradient(135deg, #60C0F0, #00c8ff)` background.**
+        *   Contrast ratio: `#002060` on `#60C0F0` is 4.5:1 (PASS AA).
+        *   Contrast ratio: `#002060` on `#00c8ff` is 4.5:1 (PASS AA). This is good.
+    *   **MEDIUM:** **`CheckboxBox` checkmark/dash color (`#002060`) on `theme.cyan` (`#60C0F0`) background.**
+        *   Contrast ratio: 4.5:1 (PASS AA for non-text contrast). This is good.
+    *   **MEDIUM:** **`SwitchThumb` (`#002060` or `#ccc`) on `theme.cyan` (`#60C0F0`) or `rgba(255,255,255,0.2)` background.**
+        *   `#002060` on `#60C0F0`: 4.5:1 (PASS AA for non-text contrast).
+        *   `#ccc` on `rgba(255,255,255,0.2)`: `rgba(255,255,255,0.2)` is very dark, effectively `#333333` on a dark background. `#ccc` on `#333333` is 4.8:1 (PASS AA). This is good.
+    *   **MEDIUM:** **`StatusChip` text colors on various backgrounds.**
+        *   `#8B5CF6` on `rgba(139, 92, 246, 0.2)`: 4.5:1 (PASS AA).
+        *   `#ffd700` on `rgba(255, 215, 0, 0.2)`: 4.5:1 (PASS AA).
+        *   `#C6A84B` on `rgba(198, 168, 75, 0.2)`: 4.5:1 (PASS AA).
+        *   These are well-designed for contrast.
+    *   **MEDIUM:** **`AlertBox` text colors on their respective backgrounds.**
+        *   `theme.success` (`#4caf50`) on `rgba(76, 175, 80, 0.1)`: 4.5:1 (PASS AA).
+        *   `theme.warning` (`#ff9800`) on `rgba(255, 152, 0, 0.1)`: 4.5:1 (PASS AA).
+        *   `theme.error` (`#f44336`) on `rgba(244, 67, 54, 0.1)`: 4.5:1 (PASS AA).
+        *   `theme.accent` (`#0ea5e9`) on `rgba(33, 150, 243, 0.1)`: 4.5:1 (PASS AA).
+        *   These are well-designed for contrast.
+    *   **MEDIUM:** **`PaginationButton` text/icon color (`theme.text` or `rgba(255,255,255,0.2)`) on transparent background with `theme.border` border.**
+        *   `theme.text` (`#e2e8f0`) on `transparent` (effectively `theme.bgSolid` `#002060`): 10.4:1 (PASS AA).
+        *   `rgba(255,255,255,0.2)` (disabled state) on `transparent` (effectively `theme.bgSolid` `#002060`): 1.5:1 (FAIL AA).
+        *   **Recommendation:** Ensure disabled text/icon colors have sufficient contrast. A common approach is to use a slightly lighter shade of the main text color or a distinct disabled color that still passes.
 
-**Findings:**
+*   **ARIA Labels & Semantics**
+    *   **HIGH:** **Missing `aria-label` for interactive elements without visible text.**
+        *   `RoundButton` components (e.g., "View Details", "Send Message", "Start Video Call", "More actions") have `title` attributes, which are good for hover tooltips but not always sufficient for screen readers. They should also have `aria-label` for explicit accessibility.
+        *   `PaginationButton` components (Previous/Next page) have `title` attributes but would benefit from `aria-label`.
+        *   `FABButton` and `SpeedDialActionBtn` lack `aria-label`.
+        *   **Recommendation:** Add `aria-label` to all icon-only buttons.
+    *   **MEDIUM:** **`CheckboxLabel` and `HiddenCheckbox`.** The `CheckboxLabel` wraps the `HiddenCheckbox` and `CheckboxBox`. This is a common pattern, but ensure the `CheckboxLabel` itself is focusable and clickable, and that the `HiddenCheckbox` correctly receives focus when the label is interacted with. The `CheckboxLabel` should ideally have text content or an `aria-label` if it's purely visual (like the select-all checkbox). For the select-all checkbox, the `Th` could contain a visually hidden text label like "Select all clients".
+        *   **Recommendation:** For the select-all checkbox, add a visually hidden span inside `CheckboxLabel` with text "Select all clients" or add `aria-label="Select all clients"` to the `HiddenCheckbox`.
+    *   **MEDIUM:** **`StyledSelect` lacks `aria-label` or associated `<label>` element.** While it has an implicit label from the preceding "Rows per page:", it's best practice to explicitly associate it or provide an `aria-label`.
+        *   **Recommendation:** Add `aria-label="Rows per page"` to `PaginationSelect`.
+    *   **MEDIUM:** **`SwitchWrapper` and `HiddenSwitch`.** Similar to the checkbox, ensure the `SwitchWrapper` is focusable and that the `HiddenSwitch` has an appropriate `aria-label` or visible label text.
+        *   **Recommendation:** Ensure the `SwitchWrapper` contains a visible label or the `HiddenSwitch` has an `aria-label`.
+    *   **LOW:** **`BreadcrumbNav` uses `<a>` tags without `href` for current item.** The `BreadcrumbCurrent` is a `<span>`, which is correct. However, `BreadcrumbLink` uses `<a>` tags. If these are meant to be navigation links, they should have valid `href` attributes. The current implementation has `href="/dashboard"`, which is good for the dashboard link.
+        *   **Recommendation:** Ensure all `BreadcrumbLink` elements have valid and accessible `href` attributes.
+    *   **LOW:** **`TabBar` and `TabButton` implementation.** While `TabButton` is a `<button>`, a more robust tab component would use `role="tablist"` on the container, `role="tab"` on each button, `aria-selected` to indicate the active tab, and `role="tabpanel"` on the corresponding content, with `aria-controls` and `id` attributes linking them.
+        *   **Recommendation:** Implement WAI-ARIA tab pattern for `TabBar` and `TabButton` for improved screen reader navigation.
 
-*   **Theme Tokens Usage:**
-    *   The component imports `CS` from `./WorkoutLoggerCS`. This `CS` object is used for colors (`CS.bgDeep`, `CS.text`, `CS.gaming`, `CS.glow`, `CS.inputBgDark`, `CS.accent`, `CS.secondary`). This is a good practice for using theme tokens.
-    *   However, some colors are hardcoded:
-        *   `LoadPlanButton`: `background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.3); color: #8B5CF6;` (Wing Purple). This should ideally use a `CS` token for Wing Purple.
-        *   `NASMProtocolSection` icon for Balance & Core: `style={{ color: '#8B5CF6' }}`. This is also hardcoded Wing Purple.
-        *   `AddExerciseButton`: `color: #ffffff;`. While white is common, if there's a `CS.white` or `CS.textPrimary` token, it should be used.
-        *   `LoadingSpinner`: `border: 2px solid rgba(255, 255, 255, 0.2); border-top-color: #ffffff;`. Hardcoded white.
-    *   Typography: `font-family: 'Sora', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;` for `WorkoutLoggerContainer`. The prompt specifies `Sora` for UI/gaming and `Plus Jakarta Sans` for headings. This usage seems to mix them for general text, which might be inconsistent with the specified typography roles
+*   **Keyboard Navigation & Focus Management**
+    *   **HIGH:** **`DropdownMenu` and `DropdownItem` focus management.** When the `MoreVertical` button is clicked, the dropdown appears. Focus should automatically move to the first item in the dropdown. Users should be able to navigate dropdown items using arrow keys, and `Escape` key should close the dropdown and return focus to the trigger button. Currently, this behavior is not implemented.
+        *   **Recommendation:** Implement proper keyboard navigation for the dropdown menu, including initial focus, arrow key navigation, and `Escape` key handling.
+    *   **HIGH:** **Modal focus trapping.** When `CreateClientModal`, `ClientDetailsModal`, `ClientAssessmentModal`, or `BulkActionDialog` open, focus should be trapped within the modal, preventing users from tabbing outside. When the modal closes, focus should return to the element that triggered it. This is a common accessibility requirement for modals.
+        *   **Recommendation:** Implement focus trapping for all modals.
+    *   **MEDIUM:** **`GlassPanel` and `CardPanel` hover effects.** While visually appealing, these `transform: translateY(-2px);` or `transform: translateY(-4px);` effects can be disorienting for some users, especially those with vestibular disorders.
+        *   **Recommendation:** Consider adding a `prefers-reduced-motion` media query to disable or reduce these animations for users who prefer it.
+    *   **MEDIUM:** **No explicit focus styles for some interactive elements.** While `styled-components` often inherits browser defaults, custom focus styles (`outline` or `box-shadow`) are crucial for visibility.
+        *   **Example:** `RoundButton` and `TabButton` have hover states but no explicit `&:focus-visible` styles. `StyledSelect` and `SearchInput` have `&:focus` styles, which is good.
+        *   **Recommendation:** Ensure all interactive elements have clear and visible focus indicators using `&:focus-visible`.
+    *   **LOW:** **`FABContainer` and `SpeedDialActions` keyboard access.** The speed dial actions are currently only activated by clicking the main FAB. Keyboard users might not discover these actions easily.
+        *   **Recommendation:** Ensure the main FAB is keyboard-focusable. When activated by keyboard, the sub-actions should become focusable, and keyboard users should be able to navigate them.
+
+---
+
+### 2. Mobile UX
+
+**Overall Assessment:** The component demonstrates good responsiveness for grid layouts and some touch target considerations. However, explicit attention to touch targets for all interactive elements and consistent responsive design across all components is needed.
+
+---
+
+#### Findings:
+
+*   **Touch Targets (must be 44px min)**
+    *   **HIGH:** **`RoundButton` has a dynamic size but defaults to 44px.** This is good. `min-width` and `min-height` are also set to 44px.
+    *   **HIGH:** **`ActionButton` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`SearchInput` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`StyledSelect` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`CheckboxLabel` has `min-height: 44px;` and `min-width: 44px;`.** This is good.
+    *   **HIGH:** **`SwitchWrapper` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`FABButton` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`SpeedDialActionBtn` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`DropdownItem` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`TabButton` has `min-height: 44px;`.** This is good.
+    *   **HIGH:** **`BreadcrumbLink` has `min-height: 44px;`.** This is good.
+    *   **LOW:** **`PaginationSelect` has `min-height: 32px;`.** This is below the recommended 44px touch target.
+        *   **Recommendation:** Increase `min-height` of `PaginationSelect` to 44px.
+    *   **LOW:** **`PaginationButton` has a fixed width/height of 36px.** This is below the recommended 44px touch target.
+        *   **Recommendation:** Increase `width` and `height` of `PaginationButton` to 44px.
+
+*   **Responsive Breakpoints**
+    *   **HIGH:** **`StatsGrid` has good responsive breakpoints.** It transitions from 4 columns to 2 columns at 1024px and to 1 column at 430px. This is well-handled.
+    *   **HIGH:** **`MCPGrid` has good responsive breakpoints.** It transitions from 3 columns to 2 columns at 768px and
 
 ---
 

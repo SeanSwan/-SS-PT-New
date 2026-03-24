@@ -50,6 +50,14 @@ data/
 .cache/
 .temp/
 
+# Test artifacts (Playwright screenshots, traces, results)
+frontend/test-results/
+playwright-report/
+test-results/
+
+# File archive vault
+.swan/archive/
+
 # Python / Flask
 venv/
 __pycache__/
