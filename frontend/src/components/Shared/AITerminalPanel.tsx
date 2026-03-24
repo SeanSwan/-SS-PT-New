@@ -91,6 +91,10 @@ const CONTEXT_LABELS: Record<string, string> = {
   workout_generation: 'Workout Builder',
   client_review: "Coach's Assistant",
   data_management: 'Data Assistant',
+  scheduling: 'Schedule Assistant',
+  progress_analysis: 'Progress Analyst',
+  exercise_library: 'Exercise Expert',
+  gamification: 'Gamification Coach',
 };
 
 const AITerminalPanel: React.FC<AITerminalPanelProps> = ({

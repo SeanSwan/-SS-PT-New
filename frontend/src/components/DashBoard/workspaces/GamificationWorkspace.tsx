@@ -12,9 +12,9 @@ const GamificationWorkspace: React.FC = () => (
   <>
     <div style={{ padding: '24px 24px 0' }}>
       <AITerminalPanel
-        context="general"
-        label="Gamification Assistant"
-        emptyHint="Ask about achievements, rewards, engagement..."
+        context="gamification"
+        label="Gamification Coach"
+        emptyHint="Ask about achievements, badges, XP system, leaderboards, and tier progression."
         defaultOpen={false}
       />
     </div>

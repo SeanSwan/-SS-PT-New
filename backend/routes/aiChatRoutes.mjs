@@ -58,8 +58,8 @@ router.get('/diagnostics', (req, res) => {
 // Context permissions by role
 const ROLE_CONTEXTS = {
   client: ['general', 'macro_logging', 'form_tips', 'workout_suggestions'],
-  trainer: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review'],
-  admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management'],
+  trainer: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'scheduling', 'progress_analysis', 'exercise_library'],
+  admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management', 'scheduling', 'progress_analysis', 'exercise_library', 'gamification'],
 };
 
 /**

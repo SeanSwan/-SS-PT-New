@@ -13,7 +13,7 @@ const SchedulingWorkspace: React.FC = () => (
   <>
     <div style={{ padding: '24px 24px 0' }}>
       <AITerminalPanel
-        context="general"
+        context="scheduling"
         label="Scheduling Assistant"
         emptyHint="I'm your Scheduling Assistant. Ask about session availability, client assignments, or schedule optimization."
         defaultOpen={false}

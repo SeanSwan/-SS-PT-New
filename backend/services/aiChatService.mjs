@@ -550,7 +550,7 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
     };
 
     // ── PARALLEL FETCH: Fire ALL 17 queries concurrently for speed ──
-    const includeNutrition = ['general', 'macro_logging', 'client_review', 'data_management', 'workout_suggestions'].includes(context);
+    const includeNutrition = ['general', 'macro_logging', 'client_review', 'data_management', 'workout_suggestions', 'progress_analysis'].includes(context);
     const isAdminOrTrainer = role === 'admin' || role === 'trainer';
 
     const [

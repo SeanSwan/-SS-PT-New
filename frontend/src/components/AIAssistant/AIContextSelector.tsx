@@ -20,7 +20,8 @@
 import React, { useMemo, memo } from 'react';
 import {
   MessageSquare, Utensils, Dumbbell, Brain,
-  Sparkles, Database, Plus,
+  Sparkles, Database, Plus, Calendar, TrendingUp,
+  BookOpen, Trophy,
 } from 'lucide-react';
 import type { AIContext, ResponseStyle } from '../../hooks/useAIChat';
 import {
@@ -52,6 +53,10 @@ export const CONTEXTS: Record<AIContext, ContextConfig> = {
   workout_generation: { label: 'Generate Plans', icon: Brain, description: 'Create structured workout plans', roles: ['trainer', 'admin'] },
   client_review: { label: 'Client Review', icon: Brain, description: 'Analyze client progress and data', roles: ['trainer', 'admin'] },
   data_management: { label: 'Data Manager', icon: Database, description: 'Review, analyze, and manage platform data', roles: ['admin'] },
+  scheduling: { label: 'Schedule', icon: Calendar, description: 'Manage sessions, availability, and booking', roles: ['trainer', 'admin'] },
+  progress_analysis: { label: 'Progress', icon: TrendingUp, description: 'Analyze client progress and chart data', roles: ['trainer', 'admin'] },
+  exercise_library: { label: 'Exercises', icon: BookOpen, description: 'Search and explore the 840+ exercise database', roles: ['trainer', 'admin'] },
+  gamification: { label: 'Gamification', icon: Trophy, description: 'Manage achievements, badges, and XP system', roles: ['admin'] },
 };
 
 export const RESPONSE_STYLES: { key: ResponseStyle; label: string; emoji: string }[] = [
