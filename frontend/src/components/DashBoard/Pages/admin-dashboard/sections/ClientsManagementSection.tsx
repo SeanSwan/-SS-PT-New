@@ -46,6 +46,7 @@ const ClientWeighInPanel = React.lazy(() => import('../../admin-clients/componen
 const ClientBodyMapModal = React.lazy(() => import('../../admin-clients/components/ClientBodyMapModal'));
 import ClientSessionsModal from '../../admin-clients/components/ClientSessionsModal';
 import ClientWorkoutsModal from '../../admin-clients/components/ClientWorkoutsModal';
+const EnhancedWorkoutsModal = React.lazy(() => import('../../admin-clients/components/EnhancedWorkoutsModal'));
 import ClientPostsModal from '../../admin-clients/components/ClientPostsModal';
 import CreateClientModal from '../../admin-clients/CreateClientModal';
 import adminClientService from '../../../../../services/adminClientService';
@@ -607,6 +608,7 @@ const ClientsManagementSection: React.FC = () => {
   const [showBodyMap, setShowBodyMap] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
   const [showWorkouts, setShowWorkouts] = useState(false);
+  const [showEnhancedWorkouts, setShowEnhancedWorkouts] = useState(false);
   const [showPosts, setShowPosts] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [actionClient, setActionClient] = useState<{ id: number; name: string } | null>(null);
@@ -960,6 +962,12 @@ const ClientsManagementSection: React.FC = () => {
   const openWorkoutsModal = (client: Client) => {
     setActionClient({ id: Number(client.id), name: client.name });
     setShowWorkouts(true);
+    setActiveActionMenu(null);
+  };
+
+  const openEnhancedWorkoutsModal = (client: Client) => {
+    setActionClient({ id: Number(client.id), name: client.name });
+    setShowEnhancedWorkouts(true);
     setActiveActionMenu(null);
   };
 
@@ -1434,6 +1442,9 @@ const ClientsManagementSection: React.FC = () => {
             <ActionItem data-testid="menu-log-workout" whileHover={{ x: 4 }} onClick={() => openWorkoutLogger(menuClient)}>
               <Dumbbell size={14} /> Log Workout
             </ActionItem>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => openEnhancedWorkoutsModal(menuClient)}>
+              <Activity size={14} /> View Workouts
+            </ActionItem>
             <ActionItem whileHover={{ x: 4 }} onClick={() => openMeasurements(menuClient)}>
               <Ruler size={14} /> Measurements
             </ActionItem>
@@ -1582,6 +1593,20 @@ const ClientsManagementSection: React.FC = () => {
             setActionClient(null);
           }}
         />
+      )}
+
+      {showEnhancedWorkouts && actionClient && (
+        <React.Suspense fallback={null}>
+          <EnhancedWorkoutsModal
+            open={showEnhancedWorkouts}
+            clientId={actionClient.id}
+            clientName={actionClient.name}
+            onClose={() => {
+              setShowEnhancedWorkouts(false);
+              setActionClient(null);
+            }}
+          />
+        </React.Suspense>
       )}
 
       {showPosts && actionClient && (
