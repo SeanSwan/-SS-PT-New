@@ -21,9 +21,15 @@ const FriendsContainer = styled.div`
 
 const CardPanel = styled.div`
   border-radius: 12px;
-  background: rgba(29, 31, 43, 0.8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background: var(--bg-elevated, rgba(0, 32, 96, 0.85));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.08);
   overflow: hidden;
+
+  @supports (backdrop-filter: blur(12px)) {
+    background: var(--bg-elevated, rgba(0, 32, 96, 0.6));
+    backdrop-filter: blur(12px);
+  }
 `;
 
 const CardBody = styled.div`

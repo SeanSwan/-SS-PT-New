@@ -324,4 +324,4 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   );
 };
 
-export default PostCard;
+export default React.memo(PostCard);

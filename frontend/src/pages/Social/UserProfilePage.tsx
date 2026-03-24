@@ -82,8 +82,8 @@ const fadeIn = keyframes`
 // ── Styled Components (Crystalline Swan) ──
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: ${TOKENS.midnightSapphire};
-  color: ${TOKENS.frostWhite};
+  background: var(--bg-base, ${TOKENS.midnightSapphire});
+  color: var(--text-primary, ${TOKENS.frostWhite});
   padding-bottom: 48px;
   font-family: 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif;
 `;
@@ -111,8 +111,9 @@ const BackButton = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid ${TOKENS.wingPurple};
-    outline-offset: 2px;
+    outline: 2px solid var(--accent-primary, ${TOKENS.iceWing});
+    outline-offset: 4px;
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 `;
 

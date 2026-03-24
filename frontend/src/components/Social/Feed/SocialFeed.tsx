@@ -83,9 +83,15 @@ const LoadMoreButton = styled.button`
 const EmptyFeedMessage = styled.div`
   padding: 24px;
   text-align: center;
-  border-radius: 8px;
-  background: rgba(0, 48, 128, 0.85);
-  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  background: var(--bg-elevated, rgba(0, 48, 128, 0.95));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  @supports (backdrop-filter: blur(12px)) {
+    background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+    backdrop-filter: blur(12px);
+    box-shadow: none;
+  }
 `;
 
 const WelcomeCard = styled.div`
@@ -157,16 +163,22 @@ const FeedStats = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: rgba(0, 48, 128, 0.85);
-  backdrop-filter: blur(12px);
+  background: var(--bg-elevated, rgba(0, 48, 128, 0.95));
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  border: 1px solid rgba(139, 92, 246, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  @supports (backdrop-filter: blur(12px)) {
+    background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+    backdrop-filter: blur(12px);
+  }
 
   &:hover {
     transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
   }
 `;
 

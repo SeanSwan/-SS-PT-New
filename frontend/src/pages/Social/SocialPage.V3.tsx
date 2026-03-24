@@ -87,8 +87,8 @@ const NoiseOverlay = styled.div`
 const PageWrapper = styled.div`
   min-height: 100vh;
   width: 100%;
-  background: #002060;
-  color: #E0ECF4;
+  background: var(--bg-base, #002060);
+  color: var(--text-primary, #E0ECF4);
   overflow-x: hidden;
   position: relative;
 `;
@@ -258,15 +258,21 @@ const MobileGamification = styled.div`
 // ─── Glass Sidebar ───────────────────────────────────────────────────
 
 const GlassSidebar = styled.div`
-  background: rgba(0, 32, 96, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(0, 32, 96, 0.85);
   border: 1px solid rgba(139, 92, 246, 0.1);
   border-radius: 1.5rem;
   padding: 20px;
   height: fit-content;
   position: sticky;
   top: 80px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  @supports (backdrop-filter: blur(20px)) {
+    background: rgba(0, 32, 96, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: none;
+  }
 `;
 
 // ─── Gamification Card ───────────────────────────────────────────────
@@ -398,9 +404,9 @@ const NavButton = styled.button<{ $active?: boolean }>`
   }
 
   &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 4px;
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 
   svg {
@@ -454,9 +460,9 @@ const QuickActionBtn = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 4px;
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 `;
 
@@ -466,13 +472,17 @@ const MobileTabBar = styled.div`
   display: flex;
   width: 100%;
   margin-bottom: 20px;
-  background: rgba(0, 32, 96, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-elevated, rgba(0, 32, 96, 0.85));
   border: 1px solid rgba(139, 92, 246, 0.08);
   border-radius: 1rem;
   padding: 4px;
   gap: 4px;
+
+  @supports (backdrop-filter: blur(16px)) {
+    background: var(--bg-elevated, rgba(0, 32, 96, 0.6));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
 
   @media (min-width: 900px) {
     display: none;
@@ -505,9 +515,9 @@ const MobileTab = styled.button<{ $active?: boolean }>`
   }
 
   &:focus-visible {
-    outline: 2px solid #8B5CF6;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 
   @media (max-width: 320px) {
@@ -519,13 +529,17 @@ const MobileTab = styled.button<{ $active?: boolean }>`
 // ─── Feed Container Glass ────────────────────────────────────────────
 
 const FeedContainer = styled.div`
-  background: rgba(0, 32, 96, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--bg-surface, rgba(0, 32, 96, 0.5));
   border: 1px solid rgba(139, 92, 246, 0.06);
   border-radius: 1.5rem;
   padding: 20px;
   min-height: 400px;
+
+  @supports (backdrop-filter: blur(8px)) {
+    background: var(--bg-surface, rgba(0, 32, 96, 0.3));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 
   @media (max-width: 768px) {
     padding: 12px;
@@ -743,7 +757,7 @@ const SocialPageV3: React.FC = () => {
                     <Trophy size={18} />
                     Challenges
                   </NavButton>
-                  <NavButton disabled style={{ opacity: 0.5 }}>
+                  <NavButton onClick={() => console.warn('TODO: implement notifications page')} style={{ opacity: 0.6 }}>
                     <Bell size={18} />
                     Notifications
                     {notificationCount > 0 && <NotifDot>{notificationCount}</NotifDot>}
@@ -758,11 +772,11 @@ const SocialPageV3: React.FC = () => {
                     <PlusCircle size={16} />
                     Create Post
                   </QuickActionBtn>
-                  <QuickActionBtn>
+                  <QuickActionBtn onClick={() => navigate('/social/challenges')}>
                     <Target size={16} />
                     Set Goal
                   </QuickActionBtn>
-                  <QuickActionBtn>
+                  <QuickActionBtn onClick={() => navigate('/dashboard/gamification')}>
                     <Award size={16} />
                     View Rewards
                   </QuickActionBtn>
