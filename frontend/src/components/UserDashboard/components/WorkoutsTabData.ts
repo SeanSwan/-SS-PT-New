@@ -42,6 +42,8 @@ export const CATEGORY_META: Record<string, { icon: string; color: string }> = {
   Core:      { icon: '🎯', color: '#50A0F0' },
   Arms:      { icon: '💪', color: '#4070C0' },
   Shoulders: { icon: '🏔️', color: '#E0ECF4' },
+  'Full Body': { icon: '🏋️', color: '#4caf50' },
+  Cardio:    { icon: '❤️‍🔥', color: '#FF6B6B' },
 };
 
 // ─────────────────────────────────────────────────────────────

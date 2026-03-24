@@ -52,12 +52,17 @@ export function calcBrzycki1RM(weight: number, reps: number): number {
 // ─────────────────────────────────────────────────────────────
 
 const MUSCLE_GROUP_KEYWORDS: Record<string, string[]> = {
-  Chest: ['bench', 'chest', 'fly', 'push-up', 'pushup', 'press', 'pec', 'dip'],
+  Chest: ['bench', 'chest', 'fly', 'push-up', 'pushup', 'pec', 'dip'],
   Back: ['row', 'pull', 'lat', 'back', 'deadlift', 'chin-up', 'pulldown'],
   Shoulders: ['shoulder', 'delt', 'overhead', 'lateral raise', 'military', 'arnold'],
   Arms: ['bicep', 'tricep', 'curl', 'extension', 'hammer', 'preacher', 'skull'],
   Legs: ['squat', 'leg', 'lunge', 'calf', 'hamstring', 'quad', 'hip', 'glute', 'step-up'],
   Core: ['plank', 'crunch', 'ab', 'core', 'oblique', 'russian twist', 'sit-up', 'hollow'],
+  Cardio: ['run', 'jog', 'sprint', 'jump', 'burpee', 'cardio', 'cycle', 'bike', 'treadmill',
+    'elliptical', 'insanity', 'hiit', 'jumping jack', 'mountain climber', 'box jump',
+    'high knees', 'skater', 'speed'],
+  'Full Body': ['clean', 'snatch', 'thruster', 'turkish get-up', 'man maker', 'bear crawl',
+    'farmer', 'kettlebell swing', 'battle rope', 'sled'],
 };
 
 export function classifyMuscleGroup(exerciseName: string): string {

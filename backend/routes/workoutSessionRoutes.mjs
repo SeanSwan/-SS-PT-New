@@ -13,6 +13,7 @@ const router = express.Router();
 
 // Import models
 import WorkoutSession from '../models/WorkoutSession.mjs';
+import WorkoutLog from '../models/WorkoutLog.mjs';
 import User from '../models/User.mjs';
 import { Op } from 'sequelize';
 
@@ -86,11 +87,16 @@ router.get('/', protect, async (req, res) => {
           model: User,
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: WorkoutLog,
+          as: 'logs',
+          attributes: ['id', 'exerciseName', 'setNumber', 'reps', 'weight', 'tempo', 'rest', 'rpe'],
         }
       ]
     });
-    
-    res.json({ 
+
+    res.json({
       success: true,
       data: {
         workouts,

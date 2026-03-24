@@ -1,9 +1,9 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: WorkoutsTab                                      ║
- * ║  PURPOSE: Overwatch-style exercise usage chart by category   ║
+ * ║  PURPOSE: Real exercise usage chart by category from logs    ║
  * ║  OWNER: Claude Opus 4.6                                      ║
- * ║  LAST VALIDATED: 2026-03-22                                   ║
+ * ║  LAST VALIDATED: 2026-03-23                                   ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * WIREFRAME:
@@ -11,45 +11,22 @@
  * │ Exercise Usage                           [Log Workout]     │
  * ├────────────────────────────────────────────────────────────┤
  * │ ┌─ Total Done ─┐ ┌─ Most Active ─┐ ┌─ Streak ──────┐    │
- * │ │   1,247       │ │   Legs         │ │   12 days     │    │
+ * │ │   1,247       │ │   Legs         │ │   5 days      │    │
  * │ └──────────────┘ └───────────────┘ └──────────────  ┘    │
  * ├────────────────────────────────────────────────────────────┤
  * │ 🫁 CHEST                                                   │
  * │ ┌──────────────────────────────────────────────────────┐   │
  * │ │ Barbell Bench Press  ████████████████████████████  47│   │
  * │ │ Incline DB Press     ██████████████████████        38│   │
- * │ │ Cable Flye           ███████████████               31│   │
- * │ │ Push-Up              ████████████                  28│   │
- * │ │ Dumbbell Pullover    █████████                     22│   │
- * │ │  ... scroll for more ...                              │   │
  * │ └──────────────────────────────────────────────────────┘   │
- * │                                                            │
- * │ 🔙 BACK                                                    │
- * │ ┌──────────────────────────────────────────────────────┐   │
- * │ │ Lat Pulldown         ████████████████████████████  52│   │
- * │ │ Barbell Deadlift     █████████████████████████     44│   │
- * │ │ ... (same pattern per category)                       │   │
- * │ └──────────────────────────────────────────────────────┘   │
+ * │ (per category, real data from workout logs + exercise DB)  │
  * └────────────────────────────────────────────────────────────┘
- *
- * MERMAID ARCHITECTURE:
- * graph TD
- *   A[WorkoutsTab] --> B[StatsRow - 3 stat cards]
- *   A --> C[CategorySection x6]
- *   C --> D[VictoryChart horizontal bars]
- *
- * CLICK-OUTCOME FLOWCHART:
- * [Log Workout] -> navigates to /dashboard/admin-sessions
- * [Category scroll] -> reveals exercises 6-10 within scrollable area
  *
  * DATA FLOW:
  * Props In:  (none — uses AuthContext)
- * State:     { categories: CategoryData[], loading, error, useMock }
- * API Calls: GET /api/workout/sessions
+ * State:     { categories, loading, error, streak }
+ * API Calls: GET /api/workout/sessions?limit=200 (includes WorkoutLog)
  * Children:  VictoryBar charts per category
- *
- * GAMIFICATION HOOKS:
- * - Displays XP-related stats from workout history
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -70,10 +47,27 @@ import {
   ChartScroll, ChartContainer,
   ErrorCard, RetryButton, ShimmerCard,
 } from './WorkoutsTabStyles';
+import { classifyMuscleGroup } from '../../../hooks/analytics/workoutAnalyticsUtils';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Muscle Group → Category Key Mapping
+// PURPOSE: Map classifyMuscleGroup output to CATEGORY_META keys
+// ─────────────────────────────────────────────────────────────
+const GROUP_TO_CATEGORY: Record<string, string> = {
+  Chest: 'Chest',
+  Back: 'Back',
+  Shoulders: 'Shoulders',
+  Arms: 'Arms',
+  Legs: 'Legs',
+  Core: 'Core',
+  Cardio: 'Cardio',
+  'Full Body': 'Full Body',
+  Other: 'Core', // Default fallback
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
-// PURPOSE: Overwatch-style exercise usage chart with Victory horizontal bars
+// PURPOSE: Real exercise usage chart from workout log data
 // ─────────────────────────────────────────────────────────────
 const WorkoutsTab: React.FC = () => {
   const { authAxios } = useAuth();
@@ -82,12 +76,17 @@ const WorkoutsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [useMock, setUseMock] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
 
   const fetchWorkouts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await authAxios.get('/api/workout/sessions', { params: { limit: 100 } });
+
+      // Fetch sessions with WorkoutLog data included
+      const res = await authAxios.get('/api/workout/sessions', {
+        params: { limit: 200, page: 1 }
+      });
       const payload = res.data?.data;
       const list = Array.isArray(payload?.workouts)
         ? payload.workouts
@@ -96,9 +95,11 @@ const WorkoutsTab: React.FC = () => {
       if (list.length === 0) {
         setUseMock(true);
         setCategories(MOCK_CATEGORIES);
+        setStreak(0);
       } else {
         setUseMock(false);
-        setCategories(transformWorkouts(list));
+        setCategories(transformWorkoutLogs(list));
+        setStreak(calcStreak(list));
       }
     } catch {
       setUseMock(true);
@@ -145,7 +146,7 @@ const WorkoutsTab: React.FC = () => {
         <StatCard>
           <StatIcon><TrendingUp size={18} /></StatIcon>
           <StatValue>{stats.totalExercises.toLocaleString()}</StatValue>
-          <StatLabel>Total Done</StatLabel>
+          <StatLabel>Total Sets</StatLabel>
         </StatCard>
         <StatCard>
           <StatIcon><Flame size={18} /></StatIcon>
@@ -154,7 +155,7 @@ const WorkoutsTab: React.FC = () => {
         </StatCard>
         <StatCard>
           <StatIcon><Dumbbell size={18} /></StatIcon>
-          <StatValue>12</StatValue>
+          <StatValue>{useMock ? '—' : streak}</StatValue>
           <StatLabel>Day Streak</StatLabel>
         </StatCard>
       </StatsRow>
@@ -196,7 +197,10 @@ const WorkoutsTab: React.FC = () => {
                     },
                     grid: { stroke: 'none' },
                   }}
-                  tickFormat={(_, i) => cat.exercises[i]?.name ?? ''}
+                  tickFormat={(_, i) => {
+                    const name = cat.exercises[i]?.name ?? '';
+                    return name.length > 22 ? name.slice(0, 20) + '…' : name;
+                  }}
                 />
                 <VictoryBar
                   data={cat.exercises.map((e, i) => ({ x: i + 1, y: e.count }))}
@@ -231,39 +235,98 @@ export default React.memo(WorkoutsTab);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Data Transformer
-// PURPOSE: Convert raw workout sessions into category buckets
+// PURPOSE: Convert workout sessions (with WorkoutLog entries) into
+//          category-grouped exercise usage counts sorted most→least
 // ─────────────────────────────────────────────────────────────
-interface RawExercise {
-  name?: string;
+
+interface LogEntry {
   exerciseName?: string;
-  bodyPartCategory?: string;
-  bodyPart?: string;
-  muscleGroup?: string;
-}
-interface RawSession {
-  exercises?: RawExercise[];
+  setNumber?: number;
+  reps?: number;
+  weight?: number;
 }
 
-function transformWorkouts(sessions: RawSession[]): CategoryData[] {
+interface RawSession {
+  logs?: LogEntry[];
+  WorkoutLogs?: LogEntry[];
+  completedAt?: string;
+  workoutDate?: string;
+  date?: string;
+}
+
+function transformWorkoutLogs(sessions: RawSession[]): CategoryData[] {
+  // Count sets per exercise name, categorized by muscle group
   const counts: Record<string, Record<string, number>> = {};
 
   for (const session of sessions) {
-    for (const ex of session.exercises ?? []) {
-      const cat = ex.bodyPartCategory || ex.bodyPart || ex.muscleGroup || 'Core';
-      const name = ex.name || ex.exerciseName || 'Unknown Exercise';
-      if (!counts[cat]) counts[cat] = {};
-      counts[cat][name] = (counts[cat][name] || 0) + 1;
+    // WorkoutLog data comes as 'logs' (alias) or 'WorkoutLogs' (model name)
+    const logs = session.logs || session.WorkoutLogs || [];
+    // Track unique exercises per session (count each exercise once per session)
+    const exercisesInSession = new Set<string>();
+
+    for (const log of logs) {
+      const name = log.exerciseName;
+      if (!name) continue;
+      exercisesInSession.add(name);
+    }
+
+    // Count each exercise once per session it appears in (usage count)
+    for (const name of exercisesInSession) {
+      const category = GROUP_TO_CATEGORY[classifyMuscleGroup(name)] || 'Core';
+      if (!counts[category]) counts[category] = {};
+      counts[category][name] = (counts[category][name] || 0) + 1;
     }
   }
 
-  return Object.entries(CATEGORY_META).map(([key, meta]) => ({
-    key,
-    label: key,
-    icon: meta.icon,
-    color: meta.color,
-    exercises: Object.entries(counts[key] || {})
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10),
-  })).filter(c => c.exercises.length > 0);
+  // Build category data sorted most → least used
+  return Object.entries(CATEGORY_META)
+    .map(([key, meta]) => ({
+      key,
+      label: key,
+      icon: meta.icon,
+      color: meta.color,
+      exercises: Object.entries(counts[key] || {})
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count),
+    }))
+    .filter(c => c.exercises.length > 0);
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Streak Calculator
+// PURPOSE: Calculate consecutive workout days from session dates
+// ─────────────────────────────────────────────────────────────
+
+function calcStreak(sessions: RawSession[]): number {
+  const dates = new Set<string>();
+  for (const s of sessions) {
+    const raw = s.completedAt || s.workoutDate || s.date;
+    if (raw) {
+      dates.add(new Date(raw).toISOString().split('T')[0]);
+    }
+  }
+  if (dates.size === 0) return 0;
+
+  const sorted = Array.from(dates).sort().reverse();
+  const today = new Date().toISOString().split('T')[0];
+
+  // Check if most recent workout is today or yesterday
+  const most = sorted[0];
+  const diffFromToday = Math.round(
+    (new Date(today).getTime() - new Date(most).getTime()) / 86400000
+  );
+  if (diffFromToday > 1) return 0; // Streak broken
+
+  let streak = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1]);
+    const curr = new Date(sorted[i]);
+    const diff = Math.round((prev.getTime() - curr.getTime()) / 86400000);
+    if (diff === 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
