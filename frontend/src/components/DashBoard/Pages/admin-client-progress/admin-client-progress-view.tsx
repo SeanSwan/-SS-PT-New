@@ -798,63 +798,16 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Fallback progress data
-  const useFallbackProgressData = (clientId: string) => {
-    const mockProgress: ClientProgressData = {
-      id: 'mock-progress-id',
-      userId: clientId,
-      overallLevel: 27,
-      experiencePoints: 65,
-      coreLevel: 35,
-      balanceLevel: 22,
-      stabilityLevel: 28,
-      flexibilityLevel: 40,
-      calisthenicsLevel: 30,
-      isolationLevel: 18,
-      stabilizersLevel: 25,
-      injuryPreventionLevel: 15,
-      injuryRecoveryLevel: 10,
-      glutesLevel: 38,
-      calfsLevel: 25,
-      shouldersLevel: 30,
-      hamstringsLevel: 35,
-      absLevel: 42,
-      chestLevel: 28,
-      bicepsLevel: 32,
-      tricepsLevel: 29,
-      tibialisAnteriorLevel: 15,
-      serratusAnteriorLevel: 18,
-      latissimusDorsiLevel: 26,
-      hipsLevel: 33,
-      lowerBackLevel: 27,
-      wristsForearmLevel: 20,
-      neckLevel: 15,
-      squatsLevel: 45,
-      lungesLevel: 32,
-      planksLevel: 40,
-      reversePlanksLevel: 28,
-      achievements: ['core-10', 'balance-10', 'flexibility-10', 'calisthenics-10', 'squats-10', 'lunges-10', 'planks-10'],
-      achievementDates: {
-        'core-10': '2024-02-15T00:00:00.000Z',
-        'balance-10': '2024-03-02T00:00:00.000Z',
-        'flexibility-10': '2024-02-20T00:00:00.000Z',
-        'calisthenics-10': '2024-03-10T00:00:00.000Z',
-        'squats-10': '2024-02-10T00:00:00.000Z',
-        'lunges-10': '2024-02-25T00:00:00.000Z',
-        'planks-10': '2024-03-05T00:00:00.000Z'
-      },
-      progressNotes: 'Client is making steady progress in all areas. Showing good form in compound movements.',
-      unlockedExercises: [],
-      workoutsCompleted: 12,
-      totalExercisesPerformed: 156,
-      streakDays: 3,
-      totalMinutes: 420,
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-04-15T00:00:00.000Z'
-    };
-
-    setClientProgress(mockProgress);
-    setEditForm(mockProgress);
+  // Empty state fallback when no progress data exists for client
+  const useFallbackProgressData = (_clientId: string) => {
+    // No mock data — show empty state so admin knows this client has no progress yet
+    setClientProgress(null);
+    setEditForm({});
+    toast({
+      title: 'No Progress Data',
+      description: 'This client has no progress data yet. Progress will populate as they complete workouts.',
+      variant: 'default'
+    });
   };
 
   // Fetch recommended exercises for client
@@ -872,54 +825,10 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Fallback exercise data
+  // Empty state fallback when no recommended exercises available
   const useFallbackExerciseData = () => {
-    const mockExercises: Exercise[] = [
-      {
-        id: '1',
-        name: 'Bodyweight Squats',
-        description: 'A fundamental lower body exercise',
-        instructions: ['Stand with feet shoulder-width apart', 'Lower body by bending knees', 'Return to standing'],
-        exerciseType: 'core',
-        primaryMuscles: ['Glutes', 'Quadriceps'],
-        secondaryMuscles: [],
-        equipment: [],
-        difficulty: 10,
-        isFeatured: true,
-        recommendedSets: 3,
-        recommendedReps: 15
-      },
-      {
-        id: '2',
-        name: 'Bird Dog',
-        description: 'Core stabilization exercise',
-        instructions: ['Start on hands and knees', 'Extend opposite arm and leg', 'Return to start position', 'Repeat on other side'],
-        exerciseType: 'core',
-        primaryMuscles: ['Core', 'Lower Back'],
-        secondaryMuscles: [],
-        equipment: [],
-        difficulty: 15,
-        isFeatured: false,
-        recommendedSets: 3,
-        recommendedReps: 10
-      },
-      {
-        id: '3',
-        name: 'Standing Hamstring Stretch',
-        description: 'Improves hamstring flexibility',
-        instructions: ['Stand tall', 'Place one foot forward with heel on ground', 'Bend forward slightly at hips', 'Hold, then switch sides'],
-        exerciseType: 'flexibility',
-        primaryMuscles: ['Hamstrings'],
-        secondaryMuscles: ['Lower Back'],
-        equipment: [],
-        difficulty: 5,
-        isFeatured: false,
-        recommendedSets: 2,
-        recommendedDuration: 30
-      }
-    ];
-
-    setRecommendedExercises(mockExercises);
+    // No mock data — empty array triggers empty state in the UI
+    setRecommendedExercises([]);
   };
 
   // Fetch leaderboard from API
@@ -937,37 +846,10 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Fallback leaderboard data
+  // Empty state fallback when leaderboard has no entries
   const useFallbackLeaderboardData = () => {
-    const mockLeaderboard: LeaderboardEntry[] = [
-      {
-        overallLevel: 52,
-        userId: 'user1',
-        client: { id: 'user1', firstName: 'Michael', lastName: 'Johnson', username: 'mjohnson' }
-      },
-      {
-        overallLevel: 48,
-        userId: 'user2',
-        client: { id: 'user2', firstName: 'Sarah', lastName: 'Williams', username: 'swilliams' }
-      },
-      {
-        overallLevel: 45,
-        userId: 'user3',
-        client: { id: 'user3', firstName: 'David', lastName: 'Brown', username: 'dbrown' }
-      },
-      {
-        overallLevel: 42,
-        userId: 'user4',
-        client: { id: 'user4', firstName: 'Emma', lastName: 'Davis', username: 'edavis' }
-      },
-      {
-        overallLevel: 38,
-        userId: 'user5',
-        client: { id: 'user5', firstName: 'James', lastName: 'Wilson', username: 'jwilson' }
-      }
-    ];
-
-    setLeaderboard(mockLeaderboard);
+    // No mock data — empty array triggers empty state in the UI
+    setLeaderboard([]);
   };
 
   // Handle tab change
@@ -1024,7 +906,9 @@ const AdminClientProgressView: React.FC = () => {
     if (!clientProgress) {
       return (
         <EmptyState>
-          <span>Select a client to view their progress</span>
+          <span>{selectedClientId
+            ? 'No progress data yet for this client. Progress will populate as they complete workouts.'
+            : 'Select a client to view their progress.'}</span>
         </EmptyState>
       );
     }
@@ -1108,6 +992,13 @@ const AdminClientProgressView: React.FC = () => {
             </tr>
           </StyledThead>
           <tbody>
+            {leaderboard.length === 0 && (
+              <tr>
+                <StyledTd colSpan={5} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted, rgba(255,255,255,0.5))' }}>
+                  No leaderboard data yet. Clients will appear here as they earn experience points.
+                </StyledTd>
+              </tr>
+            )}
             {leaderboard.map((entry, index) => (
               <StyledTr key={entry.userId}>
                 <StyledTd>

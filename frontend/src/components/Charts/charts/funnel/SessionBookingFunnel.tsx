@@ -15,7 +15,7 @@ const FunnelContainer = styled.div`
   padding: 16px;
 `;
 
-const FunnelStep = styled.div<{ $width: number; $color: string }>`
+const FunnelStep = styled.div<{ $width: number; $color: string; $isDemo: boolean }>`
   height: 36px;
   width: ${({ $width }) => $width}%;
   background: ${({ $color }) => $color};
@@ -26,6 +26,7 @@ const FunnelStep = styled.div<{ $width: number; $color: string }>`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   color: ${CHART_COLORS.frostWhite};
+  opacity: ${({ $isDemo }) => ($isDemo ? 0.5 : 1)};
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: default;
 
@@ -35,31 +36,40 @@ const FunnelStep = styled.div<{ $width: number; $color: string }>`
   }
 `;
 
-const DATA = [
+const DEMO_DATA = [
   { label: 'Available (150)',  width: 100, color: FULL_PALETTE[0] },
   { label: 'Booked (110)',     width: 73,  color: FULL_PALETTE[1] },
   { label: 'Confirmed (95)',   width: 63,  color: FULL_PALETTE[2] },
   { label: 'Attended (82)',    width: 55,  color: FULL_PALETTE[3] },
 ];
 
-const SessionBookingFunnel: React.FC = () => (
-  <ChartCard role="region" aria-label="Session booking funnel chart" tabIndex={0}>
-    <ChartHeader>
-      <div>
-        <ChartTitle>Session Booking</ChartTitle>
-        <ChartSubtitle>Available to attended conversion</ChartSubtitle>
-      </div>
-    </ChartHeader>
-    <ChartContainer>
-      <FunnelContainer>
-        {DATA.map((step, i) => (
-          <FunnelStep key={i} $width={step.width} $color={step.color}>
-            {step.label}
-          </FunnelStep>
-        ))}
-      </FunnelContainer>
-    </ChartContainer>
-  </ChartCard>
-);
+interface Props {
+  data?: Array<{ label: string; width: number; color: string }>;
+}
 
-export default SessionBookingFunnel;
+const SessionBookingFunnel: React.FC<Props> = ({ data }) => {
+  const chartData = data && data.length > 0 ? data : DEMO_DATA;
+  const isDemo = !data || data.length === 0;
+
+  return (
+    <ChartCard role="region" aria-label="Session booking funnel chart" tabIndex={0}>
+      <ChartHeader>
+        <div>
+          <ChartTitle>Session Booking{isDemo ? ' (Preview)' : ''}</ChartTitle>
+          <ChartSubtitle>Available to attended conversion</ChartSubtitle>
+        </div>
+      </ChartHeader>
+      <ChartContainer>
+        <FunnelContainer>
+          {chartData.map((step, i) => (
+            <FunnelStep key={i} $width={step.width} $color={step.color} $isDemo={isDemo}>
+              {step.label}
+            </FunnelStep>
+          ))}
+        </FunnelContainer>
+      </ChartContainer>
+    </ChartCard>
+  );
+};
+
+export default React.memo(SessionBookingFunnel);

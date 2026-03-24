@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useAuth } from '../../context/AuthContext';
+import { BarChart2 } from 'lucide-react';
+
+interface MetricDataPoint {
+  program: string;
+  performance: number;
+  satisfaction: number;
+  attendance: number;
+}
 
 interface FitnessMetricsChartProps {
   isLoading?: boolean;
+  /** Pass data directly to skip internal fetch */
+  data?: MetricDataPoint[];
 }
 
 const shimmer = keyframes`
@@ -14,7 +25,7 @@ const shimmer = keyframes`
 const CardContainer = styled.div`
   border-radius: 12px;
   height: 100%;
-  background: rgba(29, 31, 43, 0.8);
+  background: var(--bg-surface, rgba(29, 31, 43, 0.8));
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
@@ -40,13 +51,13 @@ const HeaderRow = styled.div`
 const Title = styled.h5`
   font-size: 1.5rem;
   font-weight: 600;
-  color: white;
+  color: var(--text-heading, white);
   margin: 0 0 4px;
 `;
 
 const Subtitle = styled.p`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
   margin: 0;
 `;
 
@@ -54,7 +65,7 @@ const ToggleGroup = styled.div`
   display: flex;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.15));
 `;
 
 const ToggleBtn = styled.button<{ $active: boolean }>`
@@ -62,7 +73,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   min-height: 36px;
   border: none;
   background: ${props => props.$active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
-  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-muted, rgba(255, 255, 255, 0.6))'};
   font-size: 0.8125rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -73,13 +84,13 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   }
 
   & + & {
-    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 1px solid var(--border-soft, rgba(255, 255, 255, 0.15));
   }
 `;
 
 const TabBar = styled.div`
   display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   margin-bottom: 16px;
 `;
 
@@ -88,8 +99,8 @@ const TabButton = styled.button<{ $active: boolean }>`
   min-height: 44px;
   background: none;
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#60C0F0' : 'transparent'};
-  color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.6)'};
+  border-bottom: 2px solid ${props => props.$active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
+  color: ${props => props.$active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-muted, rgba(255, 255, 255, 0.6))'};
   font-size: 0.875rem;
   font-weight: ${props => props.$active ? '600' : '400'};
   cursor: pointer;
@@ -97,7 +108,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   margin-bottom: -1px;
 
   &:hover {
-    color: ${props => props.$active ? '#60C0F0' : 'rgba(255, 255, 255, 0.9)'};
+    color: ${props => props.$active ? 'var(--accent-primary, #60C0F0)' : 'rgba(255, 255, 255, 0.9)'};
   }
 `;
 
@@ -119,9 +130,9 @@ const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $mt?: numb
 `;
 
 const TooltipBox = styled.div`
-  background: rgba(15, 15, 30, 0.95);
+  background: var(--bg-elevated, rgba(15, 15, 30, 0.95));
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 `;
@@ -150,44 +161,100 @@ const TooltipDot = styled.span<{ $color: string }>`
   flex-shrink: 0;
 `;
 
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 360px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  text-align: center;
+  gap: 12px;
+
+  h5 {
+    color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+`;
+
 /**
  * Fitness Metrics Chart Component
+ *
+ * Displays program effectiveness metrics from real dashboard data.
+ * Falls back to empty state when no session data exists.
  */
-const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = false }) => {
+const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = false, data }) => {
+  const { authAxios } = useAuth();
   const [timeRange, setTimeRange] = useState<string>('month');
   const [metricTab, setMetricTab] = useState<number>(0);
+  const [apiData, setApiData] = useState<MetricDataPoint[]>([]);
+  const [fetching, setFetching] = useState(!data);
 
-  const monthlyData = [
-    { program: 'HIIT', performance: 84, satisfaction: 92, attendance: 88 },
-    { program: 'Strength', performance: 91, satisfaction: 85, attendance: 82 },
-    { program: 'Cardio', performance: 78, satisfaction: 81, attendance: 75 },
-    { program: 'Yoga', performance: 72, satisfaction: 94, attendance: 68 },
-    { program: 'CrossFit', performance: 89, satisfaction: 78, attendance: 85 },
-  ];
+  // Fetch real metrics from dashboard API
+  useEffect(() => {
+    if (data) return; // Skip fetch when data is passed as prop
+    let cancelled = false;
 
-  const weeklyData = [
-    { program: 'HIIT', performance: 86, satisfaction: 94, attendance: 90 },
-    { program: 'Strength', performance: 93, satisfaction: 88, attendance: 84 },
-    { program: 'Cardio', performance: 81, satisfaction: 83, attendance: 79 },
-    { program: 'Yoga', performance: 75, satisfaction: 96, attendance: 72 },
-    { program: 'CrossFit', performance: 92, satisfaction: 82, attendance: 88 },
-  ];
+    const fetchMetrics = async () => {
+      try {
+        // Map timeRange to API timeframe format
+        const timeframeMap: Record<string, string> = { week: '7d', month: '30d', year: '365d' };
+        const timeframe = timeframeMap[timeRange] || '30d';
+        const response = await authAxios.get(`/api/dashboard/metrics?timeframe=${timeframe}`);
 
-  const yearlyData = [
-    { program: 'HIIT', performance: 81, satisfaction: 89, attendance: 85 },
-    { program: 'Strength', performance: 89, satisfaction: 83, attendance: 80 },
-    { program: 'Cardio', performance: 75, satisfaction: 78, attendance: 72 },
-    { program: 'Yoga', performance: 69, satisfaction: 92, attendance: 65 },
-    { program: 'CrossFit', performance: 86, satisfaction: 75, attendance: 82 },
-  ];
+        if (!cancelled && response.data && response.data.success) {
+          // Transform dashboard metrics into chart-compatible format
+          // The dashboard returns session completion rate, satisfaction, etc.
+          const d = response.data;
+          const metrics: MetricDataPoint[] = [];
 
-  const getChartData = () => {
-    switch (timeRange) {
-      case 'week': return weeklyData;
-      case 'year': return yearlyData;
-      default: return monthlyData;
-    }
-  };
+          // Build from workout completion trends if available
+          const trends = d.workoutCompletionsTrend || d.newClientsTrend || [];
+          if (trends.length > 0) {
+            // Group by session type or create a summary row
+            metrics.push({
+              program: 'Sessions',
+              performance: Math.round(d.sessionCompletion || 0),
+              satisfaction: Math.round(d.clientSatisfaction ? d.clientSatisfaction * 20 : 0), // scale 5-star to %
+              attendance: Math.round(d.sessionCompletion || 0)
+            });
+          }
+
+          // If we have enough data, add growth metric
+          if (d.growthRate !== undefined) {
+            metrics.push({
+              program: 'Growth',
+              performance: Math.max(0, Math.round(d.growthRate || 0)),
+              satisfaction: Math.round(d.clientSatisfaction ? d.clientSatisfaction * 20 : 0),
+              attendance: Math.round(d.sessionCompletion || 0)
+            });
+          }
+
+          setApiData(metrics);
+        }
+      } catch (err) {
+        console.error('Error fetching fitness metrics:', err);
+        // Graceful degradation — empty state
+        if (!cancelled) setApiData([]);
+      } finally {
+        if (!cancelled) setFetching(false);
+      }
+    };
+
+    setFetching(true);
+    fetchMetrics();
+    return () => { cancelled = true; };
+  }, [authAxios, data, timeRange]);
+
+  const chartData = useMemo(() => data || apiData, [data, apiData]);
+  const showLoading = isLoading || fetching;
 
   const getDataKeys = () => {
     switch (metricTab) {
@@ -224,7 +291,7 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
   return (
     <CardContainer>
       <CardBody>
-        {isLoading ? (
+        {showLoading ? (
           <div>
             <SkeletonBlock $width="70%" $height="40px" />
             <SkeletonBlock $width="40%" $height="25px" $mt={8} />
@@ -234,6 +301,20 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
             </div>
             <SkeletonBlock $height="320px" $mt={24} />
           </div>
+        ) : chartData.length === 0 ? (
+          <>
+            <HeaderRow>
+              <div>
+                <Title>Fitness Metrics</Title>
+                <Subtitle>Program effectiveness metrics</Subtitle>
+              </div>
+            </HeaderRow>
+            <EmptyStateContainer>
+              <BarChart2 size={48} style={{ opacity: 0.4 }} />
+              <h5>No metrics data yet</h5>
+              <p>Fitness metrics will appear as sessions are completed and rated.</p>
+            </EmptyStateContainer>
+          </>
         ) : (
           <>
             <HeaderRow>
@@ -265,7 +346,7 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={getChartData()}
+                  data={chartData}
                   margin={{ top: 5, right: 10, left: -15, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../../context/AuthContext';
+import { BarChart2 } from 'lucide-react';
 
 const shimmer = keyframes`
   0% { background-position: -100% 0; }
@@ -12,8 +14,8 @@ const ChartCard = styled.div`
   height: 100%;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  background: rgba(30, 30, 60, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-surface, rgba(30, 30, 60, 0.3));
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   overflow: hidden;
 
   &:hover {
@@ -40,33 +42,100 @@ const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $mt?: stri
 `;
 
 const TooltipBox = styled.div`
-  background: rgba(20, 20, 40, 0.95);
+  background: var(--bg-elevated, rgba(20, 20, 40, 0.95));
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 `;
 
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  text-align: center;
+  gap: 12px;
+
+  h5 {
+    color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+`;
+
+interface ProgressDataPoint {
+  month: string;
+  strength: number;
+  cardio: number;
+  flexibility: number;
+}
+
 interface ClientProgressChartProps {
   isLoading?: boolean;
+  /** Pass data directly to skip internal fetch */
+  data?: ProgressDataPoint[];
 }
 
 /**
  * Client Progress Chart Component
  *
  * Displays a line chart visualizing client fitness progress over time.
- * Charts multiple metrics like weight training, cardio performance, and attendance.
+ * Fetches real session analytics from API. Shows empty state when no data exists.
  */
-const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading = false }) => {
-  // Sample data - in a real application, this would come from an API
-  const progressData = [
-    { month: 'Jan', strength: 65, cardio: 72, flexibility: 58 },
-    { month: 'Feb', strength: 68, cardio: 74, flexibility: 61 },
-    { month: 'Mar', strength: 72, cardio: 76, flexibility: 65 },
-    { month: 'Apr', strength: 75, cardio: 78, flexibility: 68 },
-    { month: 'May', strength: 79, cardio: 80, flexibility: 71 },
-    { month: 'Jun', strength: 82, cardio: 83, flexibility: 74 }
-  ];
+const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading = false, data }) => {
+  const { authAxios } = useAuth();
+  const [apiData, setApiData] = useState<ProgressDataPoint[]>([]);
+  const [fetching, setFetching] = useState(!data);
+
+  // Fetch real session analytics if no data prop provided
+  useEffect(() => {
+    if (data) return; // Skip fetch when data is passed as prop
+    let cancelled = false;
+
+    const fetchProgress = async () => {
+      try {
+        const response = await authAxios.get('/api/sessions/analytics');
+        if (!cancelled && response.data) {
+          // Transform weekly progress into chart-compatible format
+          const weekly = response.data.weeklyProgress || [];
+          if (weekly.length > 0) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mapped: ProgressDataPoint[] = weekly.slice(-6).map((w: any, i: number) => {
+              const date = w.date ? new Date(w.date) : new Date();
+              return {
+                month: months[date.getMonth()] || `W${i + 1}`,
+                strength: w.strength ?? w.count ?? 0,
+                cardio: w.cardio ?? 0,
+                flexibility: w.flexibility ?? 0
+              };
+            });
+            setApiData(mapped);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching client progress chart data:', err);
+        // Graceful degradation — empty array shows empty state
+        setApiData([]);
+      } finally {
+        if (!cancelled) setFetching(false);
+      }
+    };
+
+    fetchProgress();
+    return () => { cancelled = true; };
+  }, [authAxios, data]);
+
+  const progressData = useMemo(() => data || apiData, [data, apiData]);
+  const showLoading = isLoading || fetching;
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -109,19 +178,30 @@ const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading = f
   return (
     <ChartCard>
       <CardContent>
-        {isLoading ? (
+        {showLoading ? (
           <div>
             <SkeletonBlock $width="70%" $height="40px" />
             <SkeletonBlock $width="40%" $height="25px" $mt="8px" />
             <SkeletonBlock $height="220px" $mt="24px" />
           </div>
-        ) : (
+        ) : progressData.length === 0 ? (
           <>
-            <h5 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: 4, color: 'white' }}>
+            <h5 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: 4, color: 'var(--text-heading, white)' }}>
               Client Progress
             </h5>
-            <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: 16 }}>
-              6-month fitness metrics
+            <EmptyStateContainer>
+              <BarChart2 size={48} style={{ opacity: 0.4 }} />
+              <h5>No progress data yet</h5>
+              <p>Progress charts will appear as clients complete workouts.</p>
+            </EmptyStateContainer>
+          </>
+        ) : (
+          <>
+            <h5 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: 4, color: 'var(--text-heading, white)' }}>
+              Client Progress
+            </h5>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, rgba(255, 255, 255, 0.6))', marginBottom: 16 }}>
+              Recent fitness metrics
             </p>
 
             <div style={{ height: 300, marginTop: 16 }}>
@@ -141,7 +221,7 @@ const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading = f
                     tick={{ fontSize: 12 }}
                     tickLine={false}
                     axisLine={{ stroke: '#E0E0E0' }}
-                    domain={[50, 100]}
+                    domain={[0, 'auto']}
                     tickFormatter={(value) => `${value}%`}
                   />
                   <Tooltip content={<CustomTooltip />} />

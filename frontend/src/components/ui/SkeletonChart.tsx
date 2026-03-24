@@ -11,7 +11,7 @@
  * │ │ │                            │   │                        │
  * │ │ └────────────────────────────┘   │                        │
  * │ └──────────────────────────────────┘                        │
- * │ Props: { height?: number }                                  │
+ * │ Props: SkeletonChartProps                                   │
  * │ CLICK-OUTCOMES: None (passive loading state)                │
  * └────────────────────────────────────────────────────────────┘
  */
@@ -20,7 +20,7 @@ import styled, { keyframes } from 'styled-components';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Frost Shimmer Animation
-// PURPOSE: Arctic Cyan shimmer at 10% opacity per CLAUDE.md design system
+// PURPOSE: Arctic Cyan shimmer at ~8% opacity per CLAUDE.md design system
 // WHY: Hardware-accelerated transform-only animation (GPU-composited)
 // ─────────────────────────────────────────────────────────────
 const shimmer = keyframes`
@@ -34,87 +34,94 @@ const pulse = keyframes`
   50% { opacity: 0.6; }
 `;
 
+const ASPECT_MAP = { '16:9': 56.25, '4:3': 75, '1:1': 100 } as const;
+
 interface SkeletonChartProps {
   height?: number;
+  aspectRatio?: '16:9' | '4:3' | '1:1';
+  variant?: 'chart' | 'card' | 'list';
+  className?: string;
 }
 
-const SkeletonChart: React.FC<SkeletonChartProps> = ({ height = 320 }) => (
-  <Card $height={height} aria-live="polite" aria-busy="true" role="status">
-    <TitleBar style={{ width: '60%' }} />
-    <SubtitleBar style={{ width: '40%' }} />
+const SkeletonChart: React.FC<SkeletonChartProps> = ({
+  height = 320,
+  aspectRatio,
+  variant = 'chart',
+  className,
+}) => (
+  <Card
+    $height={aspectRatio ? undefined : height}
+    $aspectPct={aspectRatio ? ASPECT_MAP[aspectRatio] : undefined}
+    className={className}
+    role="status"
+    aria-live="polite"
+    aria-label="Loading chart data"
+  >
+    {variant !== 'list' && <TitleBar style={{ width: '60%' }} />}
+    {variant === 'chart' && <SubtitleBar style={{ width: '40%' }} />}
     <ChartArea />
-    <SrOnly>Loading chart data, please wait</SrOnly>
   </Card>
 );
 
 export default SkeletonChart;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
+// SECTION: Styled Components — CSS custom properties with dark fallbacks
 // ─────────────────────────────────────────────────────────────
-
-const Card = styled.div<{ $height: number }>`
-  background: ${({ theme }) => theme?.colors?.surface || '#003080'};
-  border-radius: 16px;
-  border: 1px solid rgba(64, 112, 192, 0.25);
-  height: ${({ $height }) => $height}px;
+const Card = styled.div<{ $height?: number; $aspectPct?: number }>`
+  background: var(--bg-surface, #141419);
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  ${({ $aspectPct }) => $aspectPct ? `aspect-ratio: auto; padding-bottom: ${$aspectPct}%; height: 0;` : ''}
+  ${({ $height, $aspectPct }) => !$aspectPct && $height ? `height: ${$height}px;` : ''}
   width: 100%;
   position: relative;
   overflow: hidden;
-  padding: 1.25rem;
+  padding: ${({ $aspectPct }) => $aspectPct ? '0' : '1.25rem'};
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 32, 96, 0.4);
 
   &::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: linear-gradient(
       90deg,
-      transparent,
-      rgba(80, 160, 240, 0.1),
-      transparent
+      var(--bg-surface, #141419),
+      color-mix(in srgb, var(--arctic-cyan, #50A0F0) 10%, transparent),
+      var(--bg-surface, #141419)
     );
-    animation: ${shimmer} 1.5s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+    animation: ${shimmer} 1.5s ease-in-out infinite;
     pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after { animation: none; }
   }
 `;
 
 const TitleBar = styled.div`
   height: 14px;
   border-radius: 4px;
-  background: rgba(96, 192, 240, 0.15);
+  background: color-mix(in srgb, var(--arctic-cyan, #50A0F0) 25%, transparent);
   animation: ${pulse} 1.5s ease-in-out infinite;
   margin-bottom: 6px;
+  @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.5; }
 `;
 
 const SubtitleBar = styled.div`
   height: 10px;
   border-radius: 4px;
-  background: rgba(96, 192, 240, 0.1);
+  background: color-mix(in srgb, var(--arctic-cyan, #50A0F0) 15%, transparent);
   animation: ${pulse} 1.5s ease-in-out infinite;
   margin-bottom: 16px;
+  @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.4; }
 `;
 
 const ChartArea = styled.div`
   flex: 1;
   border-radius: 8px;
-  background: rgba(96, 192, 240, 0.08);
+  background: color-mix(in srgb, var(--arctic-cyan, #50A0F0) 12%, transparent);
   animation: ${pulse} 1.5s ease-in-out infinite;
-`;
-
-const SrOnly = styled.span`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+  @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.4; }
 `;

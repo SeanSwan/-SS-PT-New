@@ -5,7 +5,7 @@ import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHAR
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const WEEKS = 12;
 
-const data: number[][] = [
+const DEMO_DATA: number[][] = [
   [0,1,2,3,2,1,0,2,3,4,3,2],
   [1,0,1,2,3,2,1,0,2,3,4,3],
   [2,1,0,1,2,3,2,1,0,1,2,3],
@@ -32,9 +32,10 @@ const DayLabel = styled.span`
   justify-content: center;
 `;
 
-const Cell = styled.div<{ $intensity: number }>`
+const Cell = styled.div<{ $intensity: number; $isDemo: boolean }>`
   border-radius: 3px;
   aspect-ratio: 1;
+  opacity: ${({ $isDemo }) => ($isDemo ? 0.5 : 1)};
   background: ${({ $intensity }) =>
     $intensity === 0 ? hexAlpha(CHART_COLORS.iceWing, 0.05) :
     $intensity === 1 ? hexAlpha(CHART_COLORS.iceWing, 0.2) :
@@ -45,24 +46,33 @@ const Cell = styled.div<{ $intensity: number }>`
   &:hover { transform: scale(1.3); }
 `;
 
-const WorkoutHeatmapCalendar: React.FC = () => (
-  <ChartCard role="region" aria-label="Workout frequency heatmap calendar" tabIndex={0}>
-    <ChartHeader>
-      <div>
-        <ChartTitle>Workout Frequency</ChartTitle>
-        <ChartSubtitle>Last 12 weeks — GitHub-style calendar</ChartSubtitle>
-      </div>
-    </ChartHeader>
-    <ChartContainer>
-      <Grid>
-        {data.map((row, r) =>
-          [<DayLabel key={`d-${r}`}>{DAYS[r]}</DayLabel>].concat(
-            row.map((v, c) => <Cell key={`${r}-${c}`} $intensity={v} title={`${DAYS[r]} Wk${c + 1}: ${v} sessions`} />)
-          )
-        )}
-      </Grid>
-    </ChartContainer>
-  </ChartCard>
-);
+interface Props {
+  data?: number[][];
+}
 
-export default WorkoutHeatmapCalendar;
+const WorkoutHeatmapCalendar: React.FC<Props> = ({ data }) => {
+  const chartData = data && data.length > 0 ? data : DEMO_DATA;
+  const isDemo = !data || data.length === 0;
+
+  return (
+    <ChartCard role="region" aria-label="Workout frequency heatmap calendar" tabIndex={0}>
+      <ChartHeader>
+        <div>
+          <ChartTitle>Workout Frequency{isDemo ? ' (Preview)' : ''}</ChartTitle>
+          <ChartSubtitle>Last 12 weeks — GitHub-style calendar</ChartSubtitle>
+        </div>
+      </ChartHeader>
+      <ChartContainer>
+        <Grid>
+          {chartData.map((row, r) =>
+            [<DayLabel key={`d-${r}`}>{DAYS[r]}</DayLabel>].concat(
+              row.map((v, c) => <Cell key={`${r}-${c}`} $intensity={v} $isDemo={isDemo} title={`${DAYS[r]} Wk${c + 1}: ${v} sessions`} />)
+            )
+          )}
+        </Grid>
+      </ChartContainer>
+    </ChartCard>
+  );
+};
+
+export default React.memo(WorkoutHeatmapCalendar);

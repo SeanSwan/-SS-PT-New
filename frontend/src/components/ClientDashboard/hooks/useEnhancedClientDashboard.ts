@@ -1,22 +1,25 @@
 /**
- * useEnhancedClientDashboard.ts
- * =============================
+ * ============================================================================
+ * FILE: useEnhancedClientDashboard.ts
+ * PURPOSE: Custom hook for fetching real client dashboard + gamification data
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-24
+ * AI VILLAGE VALIDATED: 2026-03-24
+ * ============================================================================
  *
- * Custom hook for managing enhanced client dashboard data
- * Provides gamification data, stats, and real-time updates
+ * WHAT THIS FILE DOES: Fetches gamification profile, achievements, and workout
+ * stats from backend APIs. Provides loading/error states and periodic refresh.
+ * Falls back to empty new-user defaults if APIs fail (never fake data).
  *
- * ✅ REAL DATA - Integrated with backend APIs
+ * HOW IT FITS IN THE APP: ClientDashboard sections consume this hook for
+ * level, XP, streak, badges, and workout stat display.
  *
- * Features:
- * - Real-time data fetching from backend
- * - Error handling and loading states
- * - WebSocket connection management
- * - Performance optimized with caching
+ * KEY DECISIONS: Uses authAxios from AuthContext (auto-attaches JWT).
+ * Fetches from /api/v1/gamification/profile for rich profile data and
+ * /api/client/workout-stats for session stats. Graceful empty-state fallback.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import axios from 'axios';
 
 // === TYPE DEFINITIONS ===
 export interface GamificationData {
@@ -52,62 +55,32 @@ export interface ConnectionStatus {
   lastUpdate: Date;
 }
 
-// === MOCK DATA FOR DEVELOPMENT ===
-const MOCK_GAMIFICATION_DATA: GamificationData = {
-  level: 8,
-  xp: 2450,
-  totalXp: 8250,
-  xpToNextLevel: 1000,
-  streak: 12,
-  badges: [
-    {
-      id: 'consistency_champion',
-      name: 'Consistency Champion',
-      description: 'Completed 7 workouts in a row',
-      isUnlocked: true,
-      unlockedAt: new Date(Date.now() - 86400000) // 1 day ago
-    },
-    {
-      id: 'strength_warrior',
-      name: 'Strength Warrior',
-      description: 'Increased squat PR by 25 lbs',
-      isUnlocked: true,
-      unlockedAt: new Date(Date.now() - 172800000) // 2 days ago
-    },
-    {
-      id: 'early_bird',
-      name: 'Early Bird',
-      description: 'Completed 10 morning workouts',
-      isUnlocked: true,
-      unlockedAt: new Date(Date.now() - 259200000) // 3 days ago
-    },
-    {
-      id: 'goal_crusher',
-      name: 'Goal Crusher',
-      description: 'Achieve monthly fitness goal',
-      isUnlocked: false
-    },
-    {
-      id: 'social_butterfly',
-      name: 'Social Butterfly',
-      description: 'Complete 5 group sessions',
-      isUnlocked: false
-    }
-  ]
+// ─────────────────────────────────────────────────────────────
+// SECTION: Empty-state defaults
+// PURPOSE: Shown when API fails or user has no activity yet
+// WHY: New users see realistic "level 1, 0 XP" state, not fake data
+// ─────────────────────────────────────────────────────────────
+const EMPTY_GAMIFICATION: GamificationData = {
+  level: 1,
+  xp: 0,
+  totalXp: 0,
+  xpToNextLevel: 100,
+  streak: 0,
+  badges: []
 };
 
-const MOCK_STATS: DashboardStats = {
-  monthlyWorkouts: 24,
-  totalSessions: 156,
-  avgSessionDuration: 52,
-  caloriesBurned: 12450,
-  strengthGains: 18.5,
-  consistencyScore: 92
+const EMPTY_STATS: DashboardStats = {
+  monthlyWorkouts: 0,
+  totalSessions: 0,
+  avgSessionDuration: 0,
+  caloriesBurned: 0,
+  strengthGains: 0,
+  consistencyScore: 0
 };
 
 // === MAIN HOOK ===
 export const useEnhancedClientDashboard = () => {
-  const { user } = useAuth();
+  const { user, authAxios } = useAuth();
   const [gamificationData, setGamificationData] = useState<GamificationData | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,70 +91,92 @@ export const useEnhancedClientDashboard = () => {
     lastUpdate: new Date()
   });
 
-  // Fetch real dashboard data from backend APIs
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Data fetching
+  // PURPOSE: Fetches gamification profile + workout stats from real APIs
+  // WHY: authAxios auto-attaches JWT; parallel requests for speed
+  // ─────────────────────────────────────────────────────────────
   const fetchDashboardData = useCallback(async () => {
+    if (!authAxios) return;
+
     try {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('token') || localStorage.getItem('userToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const authHeaders = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-
-      // Fetch real data from backend
-      const [progressRes, achievementsRes, statsRes] = await Promise.all([
-        axios.get('/api/client/progress', authHeaders),
-        axios.get('/api/client/achievements', authHeaders),
-        axios.get('/api/client/workout-stats', authHeaders)
+      // Fetch from gamification profile (rich data: level, tier, XP,
+      // achievements with details) and workout stats in parallel
+      const [profileRes, statsRes] = await Promise.allSettled([
+        authAxios.get('/api/v1/gamification/profile'),
+        authAxios.get('/api/client/workout-stats')
       ]);
 
-      const progressData = progressRes.data?.progress || {};
-      const achievementsData = achievementsRes.data?.achievements || [];
-      const workoutStats = statsRes.data?.stats || {};
+      // --- Map gamification profile data ---
+      const profileData = profileRes.status === 'fulfilled'
+        ? profileRes.value?.data?.profile
+        : null;
 
-      // Map backend data to gamification data
-      const gamification: GamificationData = {
-        level: progressData.level || 1,
-        xp: progressData.experiencePoints || 0,
-        totalXp: progressData.totalExperiencePoints || progressData.experiencePoints || 0,
-        xpToNextLevel: progressData.xpToNextLevel || 1000,
-        streak: progressData.streakDays || 0,
-        badges: achievementsData.map((ach: any) => ({
-          id: ach.id || String(Math.random()),
-          name: ach.title || ach.name || 'Achievement',
-          description: ach.description || '',
-          isUnlocked: true,
-          unlockedAt: ach.earnedAt ? new Date(ach.earnedAt) : new Date()
-        }))
-      };
+      if (profileData) {
+        // Map earned achievements from the gamification profile
+        const userAchievements = profileData.userAchievements || [];
+        const badges: Badge[] = userAchievements
+          .filter((ua: any) => ua.isCompleted)
+          .map((ua: any) => ({
+            id: String(ua.id),
+            name: ua.achievement?.title || ua.achievement?.name || 'Achievement',
+            description: ua.achievement?.description || '',
+            isUnlocked: true,
+            unlockedAt: ua.earnedAt ? new Date(ua.earnedAt) : undefined
+          }));
 
-      // Map backend data to dashboard stats
-      const dashboardStats: DashboardStats = {
-        monthlyWorkouts: workoutStats.totalWorkouts || 0,
-        totalSessions: workoutStats.totalWorkouts || 0,
-        avgSessionDuration: workoutStats.averageDuration || 0,
-        caloriesBurned: progressData.caloriesBurned || 0,
-        strengthGains: progressData.strengthGain || 0,
-        consistencyScore: progressData.consistencyScore || 0
-      };
+        const gamification: GamificationData = {
+          level: profileData.level || 1,
+          xp: profileData.points || 0,
+          totalXp: profileData.points || 0,
+          xpToNextLevel: profileData.nextLevelPoints
+            ? profileData.nextLevelPoints - (profileData.points || 0)
+            : 100,
+          streak: profileData.streakDays || 0,
+          badges
+        };
 
-      setGamificationData(gamification);
-      setStats(dashboardStats);
+        setGamificationData(gamification);
+      } else {
+        // Gamification profile unavailable — show empty new-user state
+        setGamificationData({ ...EMPTY_GAMIFICATION });
+      }
+
+      // --- Map workout stats ---
+      const workoutStats = statsRes.status === 'fulfilled'
+        ? statsRes.value?.data?.stats
+        : null;
+
+      if (workoutStats) {
+        const dashboardStats: DashboardStats = {
+          monthlyWorkouts: workoutStats.monthlyWorkouts || workoutStats.totalWorkouts || 0,
+          totalSessions: workoutStats.totalWorkouts || 0,
+          avgSessionDuration: workoutStats.averageDuration || 0,
+          caloriesBurned: workoutStats.caloriesBurned || 0,
+          strengthGains: workoutStats.strengthGain || 0,
+          consistencyScore: workoutStats.consistencyScore || 0
+        };
+        setStats(dashboardStats);
+      } else {
+        setStats({ ...EMPTY_STATS });
+      }
 
       setConnectionStatus({
         isConnected: true,
         status: 'connected',
         lastUpdate: new Date()
       });
-      
+
     } catch (err) {
+      // Network-level failure (both requests failed)
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
       setError(errorMessage);
+      // Set empty defaults so the UI still renders
+      setGamificationData({ ...EMPTY_GAMIFICATION });
+      setStats({ ...EMPTY_STATS });
       setConnectionStatus({
         isConnected: false,
         status: 'error',
@@ -190,7 +185,7 @@ export const useEnhancedClientDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [authAxios]);
 
   // Simulate real-time updates
   const setupRealTimeUpdates = useCallback(() => {
@@ -219,22 +214,6 @@ export const useEnhancedClientDashboard = () => {
     const cleanup = setupRealTimeUpdates();
     return cleanup;
   }, [setupRealTimeUpdates]);
-
-  // Level up event simulation
-  useEffect(() => {
-    if (gamificationData && gamificationData.xp > 0) {
-      // Check if user leveled up (for demo purposes)
-      const shouldTriggerLevelUp = Math.random() < 0.1; // 10% chance on data change
-      
-      if (shouldTriggerLevelUp) {
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('gamification:level_up', {
-            detail: { newLevel: gamificationData.level + 1 }
-          }));
-        }, 2000);
-      }
-    }
-  }, [gamificationData]);
 
   // Memoized computed values
   const computedData = useMemo(() => {

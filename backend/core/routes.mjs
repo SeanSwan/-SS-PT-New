@@ -133,6 +133,7 @@ import adminDataVerificationRoutes from '../routes/adminDataVerificationRoutes.m
 
 // ===================== CLIENT ANALYTICS & COMMUNICATION DRAFTS =====================
 import analyticsRoutes from '../routes/analyticsRoutes.mjs';
+import clientAnalyticsRoutes from '../routes/clientAnalyticsRoutes.mjs';
 import communicationDraftRoutes from '../routes/communicationDraftRoutes.mjs';
 
 // ===================== SPECIALIZED FEATURES =====================
@@ -324,6 +325,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== CLIENT ANALYTICS (IDOR-PROTECTED) =====================
   app.use('/api/analytics', analyticsRoutes);             // Client workout analytics (owner/trainer/admin)
+  app.use('/api/client/analytics', clientAnalyticsRoutes); // Client-safe analytics (JWT-derived userId, no IDOR risk)
   app.use('/api/trainer/drafts', communicationDraftRoutes); // AI communication draft approval
 
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================

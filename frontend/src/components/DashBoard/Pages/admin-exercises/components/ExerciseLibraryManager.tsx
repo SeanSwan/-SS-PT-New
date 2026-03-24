@@ -20,16 +20,17 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { 
-  Search, Filter, Grid, List, MoreVertical, Eye, Edit3, 
-  Trash2, Play, Star, Calendar, Users, TrendingUp, 
+import {
+  Search, Filter, Grid, List, MoreVertical, Eye, Edit3,
+  Trash2, Play, Star, Calendar, Users, TrendingUp,
   ArrowUpDown, ChevronLeft, ChevronRight, Download,
   RefreshCw, Plus, CheckSquare, Square, X, Dumbbell,
   Target, Shield, Award, Clock, BarChart3, Video
 } from 'lucide-react';
 
+import { useAuth } from '../../../../../context/AuthContext';
 import { exerciseCommandTheme, mediaQueries } from '../styles/exerciseCommandTheme';
-import { 
+import {
   motionVariants,
   cardHover,
   fadeIn,
@@ -662,6 +663,8 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
   isLoading = false,
   className
 }) => {
+  const { authAxios } = useAuth();
+
   // State
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -671,71 +674,57 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
   const [selectedExercises, setSelectedExercises] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   // Refs
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
-  
-  // Mock exercises data (replace with actual data fetching)
-  const mockExercises: Exercise[] = useMemo(() => [
-    {
-      id: 'ex_001',
-      name: 'Push-up Progression',
-      description: 'A comprehensive push-up progression suitable for all fitness levels, focusing on proper form and gradual strength building.',
-      exerciseType: 'Strength Training',
-      primaryMuscles: ['Chest', 'Shoulders', 'Triceps'],
-      difficulty: 300,
-      thumbnailUrl: '/api/placeholder/300/160',
-      nasmScore: 95,
-      createdAt: '2025-01-15T10:00:00Z',
-      updatedAt: '2025-01-25T14:30:00Z',
-      stats: {
-        views: 1247,
-        completions: 892,
-        avgRating: 4.8,
-        lastUsed: '2025-02-01T14:30:00Z'
+
+  // Fetch exercises from real API on mount
+  useEffect(() => {
+    let cancelled = false;
+    const fetchExercises = async () => {
+      setFetchLoading(true);
+      setFetchError(null);
+      try {
+        const response = await authAxios.get('/api/exercises/all');
+        if (!cancelled && response.data) {
+          // Normalize API response — exercises may be in data.exercises or data directly
+          const rawExercises = response.data.exercises || response.data || [];
+          const mapped: Exercise[] = (Array.isArray(rawExercises) ? rawExercises : []).map((ex: any) => ({
+            id: String(ex.id),
+            name: ex.name || '',
+            description: ex.description || '',
+            exerciseType: ex.exerciseType || ex.category || 'General',
+            primaryMuscles: ex.primaryMuscles || [],
+            difficulty: ex.difficulty ?? 300,
+            videoUrl: ex.videoUrl || undefined,
+            thumbnailUrl: ex.thumbnailUrl || ex.imageUrl || undefined,
+            nasmScore: ex.nasmScore || undefined,
+            createdAt: ex.createdAt || new Date().toISOString(),
+            updatedAt: ex.updatedAt || new Date().toISOString(),
+            stats: ex.stats || undefined
+          }));
+          setExercises(mapped);
+        }
+      } catch (err) {
+        console.error('Error fetching exercises for library:', err);
+        if (!cancelled) {
+          setFetchError('Unable to load exercises. Please try again.');
+          setExercises([]);
+        }
+      } finally {
+        if (!cancelled) setFetchLoading(false);
       }
-    },
-    {
-      id: 'ex_002',
-      name: 'Deadlift Form Check',
-      description: 'Master the fundamentals of deadlifting with this detailed form-focused exercise routine.',
-      exerciseType: 'Powerlifting',
-      primaryMuscles: ['Back', 'Glutes', 'Hamstrings'],
-      difficulty: 700,
-      videoUrl: '/api/placeholder/video',
-      nasmScore: 98,
-      createdAt: '2025-01-10T09:00:00Z',
-      updatedAt: '2025-01-30T16:45:00Z',
-      stats: {
-        views: 1089,
-        completions: 743,
-        avgRating: 4.9,
-        lastUsed: '2025-02-01T13:45:00Z'
-      }
-    },
-    {
-      id: 'ex_003',
-      name: 'Core Stability Sequence',
-      description: 'Dynamic core stabilization exercises to improve functional movement and reduce injury risk.',
-      exerciseType: 'Functional',
-      primaryMuscles: ['Core', 'Abs'],
-      difficulty: 450,
-      thumbnailUrl: '/api/placeholder/300/160',
-      nasmScore: 92,
-      createdAt: '2025-01-05T11:00:00Z',
-      updatedAt: '2025-01-28T12:15:00Z',
-      stats: {
-        views: 987,
-        completions: 654,
-        avgRating: 4.7,
-        lastUsed: '2025-02-01T12:15:00Z'
-      }
-    }
-  ], []);
+    };
+    fetchExercises();
+    return () => { cancelled = true; };
+  }, [authAxios]);
   
   // Filtered and sorted exercises
   const filteredExercises = useMemo(() => {
-    let filtered = mockExercises;
+    let filtered = exercises;
     
     // Apply search filter
     if (searchQuery) {
@@ -795,7 +784,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
     });
     
     return filtered;
-  }, [mockExercises, searchQuery, filterType, sortField, sortDirection]);
+  }, [exercises, searchQuery, filterType, sortField, sortDirection]);
   
   // Pagination
   const exercisesPerPage = 12;
@@ -807,9 +796,9 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
   
   // Get unique exercise types for filter
   const exerciseTypes = useMemo(() => {
-    const types = new Set(mockExercises.map(ex => ex.exerciseType));
+    const types = new Set(exercises.map(ex => ex.exerciseType));
     return ['all', ...Array.from(types)];
-  }, [mockExercises]);
+  }, [exercises]);
   
   // Debounced search
   const handleSearch = useCallback((query: string) => {
@@ -1077,7 +1066,27 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
       
       {/* Content */}
       <LibraryContent>
-        {filteredExercises.length === 0 ? (
+        {(fetchLoading || isLoading) ? (
+          <EmptyState>
+            <RefreshCw size={48} className="empty-icon" style={{ animation: 'spin 1s linear infinite' }} />
+            <h4>Loading exercises...</h4>
+          </EmptyState>
+        ) : fetchError ? (
+          <EmptyState>
+            <Dumbbell size={64} className="empty-icon" />
+            <h4>{fetchError}</h4>
+            <p style={{ marginTop: '8px', color: 'var(--accent-primary, #60C0F0)', cursor: 'pointer' }}
+               onClick={() => window.location.reload()}>
+              Click to retry
+            </p>
+          </EmptyState>
+        ) : exercises.length === 0 ? (
+          <EmptyState>
+            <Dumbbell size={64} className="empty-icon" />
+            <h4>No exercises yet</h4>
+            <p>Add exercises to the library to get started.</p>
+          </EmptyState>
+        ) : filteredExercises.length === 0 ? (
           <EmptyState>
             <Dumbbell size={64} className="empty-icon" />
             <h4>No exercises found</h4>
