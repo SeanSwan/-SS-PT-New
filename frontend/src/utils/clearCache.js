@@ -1,9 +1,10 @@
 /**
  * Cache Clearing Utility
  * =====================
- * 
+ *
  * Provides functions to clear browser caches and fix service worker issues
  */
+import { logger } from '@/utils/logger';
 
 export const clearAllCaches = async () => {
   try {
