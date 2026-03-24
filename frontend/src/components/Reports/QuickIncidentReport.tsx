@@ -75,12 +75,12 @@ const IncidentContainer = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   grid-gap: 24px;
-  background: #ffffff;
+  background: var(--bg-surface, #141419);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   padding: 24px;
   margin-bottom: 24px;
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   transition: all 0.3s ease;
   
   &:hover {
@@ -232,7 +232,7 @@ const DeleteButton = styled.button`
   font-weight: bold;
   
   &:hover {
-    background: white;
+    background: rgba(255, 255, 255, 0.05);
   }
 `;
 

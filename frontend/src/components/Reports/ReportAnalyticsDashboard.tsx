@@ -143,20 +143,21 @@ const StyledTrigger = styled.button`
   width: 100%;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-surface, #141419);
+  color: var(--text-primary, #E0ECF4);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   border-radius: 0.375rem;
   cursor: pointer;
   transition: border-color 0.15s ease;
 
   &:hover {
-    border-color: #d1d5db;
+    border-color: var(--accent-primary, #60C0F0);
   }
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 0 2px rgba(96, 192, 240, 0.2);
   }
 `;
 
@@ -167,10 +168,10 @@ const StyledContent = styled.div<{ isOpen: boolean }>`
   width: 100%;
   max-height: 15rem;
   overflow-y: auto;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-elevated, #1A1A24);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   border-radius: 0.375rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 50;
   display: ${({ isOpen }) => (isOpen ? 'block' : 'none')};
 `;

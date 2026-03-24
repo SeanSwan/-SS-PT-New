@@ -119,10 +119,10 @@ const KPIGrid = styled.div`
 `;
 
 const KPICard = styled(motion.div)<{ $trend: 'up' | 'down' | 'stable' }>`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border-left: 4px solid ${props => {
     switch (props.$trend) {
       case 'up': return '#10b981';
@@ -199,10 +199,10 @@ const ChartsSection = styled.div`
 `;
 
 const ChartCard = styled(motion.div)`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   
   .chart-header {
     display: flex;
@@ -270,9 +270,9 @@ const ChartPlaceholder = styled.div`
 `;
 
 const ReportsTable = styled.div`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 `;
 
@@ -605,18 +605,18 @@ const PerformanceReportsPanel: React.FC = () => {
             <motion.div
               key={report.id}
               className="table-row"
-              whileHover={{ backgroundColor: '#f8fafc' }}
+              whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
               transition={{ duration: 0.2 }}
             >
               <div>
-                <div style={{ fontWeight: '500', color: '#1e40af', marginBottom: '0.25rem' }}>
+                <div style={{ fontWeight: '500', color: 'var(--accent-primary, #60C0F0)', marginBottom: '0.25rem' }}>
                   {report.name}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>
                   Size: {report.size}
                 </div>
               </div>
-              <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+              <div style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem' }}>
                 {report.type}
               </div>
               <div style={{ color: '#64748b', fontSize: '0.9rem' }}>

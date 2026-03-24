@@ -1317,8 +1317,8 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       level: 15,
       xp: 12500,
       badges: [
-        { id: '1', name: 'Iron Pumper', description: 'Lifted 1000+ lbs total', iconUrl: '/badges/iron.png', rarity: 'rare' },
-        { id: '2', name: 'Consistency Champion', description: '90% attendance rate', iconUrl: '/badges/consistent.png', rarity: 'epic' }
+        { id: '1', name: 'Iron Pumper', description: 'Lifted 1000+ lbs total', iconUrl: '/badges/achievements/bench_master_metallic.png', rarity: 'rare' },
+        { id: '2', name: 'Consistency Champion', description: '90% attendance rate', iconUrl: '/badges/achievements/balanced_week_glass.png', rarity: 'epic' }
       ],
       rank: 'Gold III',
       initialAssessment: { overall: 6.2, strength: 6.0, endurance: 6.5, flexibility: 5.8, balance: 6.3, date: '2024-01-15' },
@@ -1378,7 +1378,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       level: 8,
       xp: 4200,
       badges: [
-        { id: '3', name: 'First Steps', description: 'Started your fitness journey', iconUrl: '/badges/first.png', rarity: 'common' }
+        { id: '3', name: 'First Steps', description: 'Started your fitness journey', iconUrl: '/badges/achievements/first_workout_claymation.png', rarity: 'common' }
       ],
       rank: 'Bronze II',
       initialAssessment: { overall: 4.5, strength: 4.0, endurance: 4.8, flexibility: 5.2, balance: 4.5, date: '2024-03-20' },

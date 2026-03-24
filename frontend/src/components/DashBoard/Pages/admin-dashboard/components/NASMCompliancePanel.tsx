@@ -127,7 +127,7 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
       switch (props.$variant) {
         case 'primary': return '#2563eb';
         case 'danger': return '#dc2626';
-        default: return '#f8fafc';
+        default: return 'rgba(255, 255, 255, 0.08)';
       }
     }};
     transform: translateY(-2px);
@@ -136,10 +136,10 @@ const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' 
 `;
 
 const CertificationToggle = styled(motion.div)`
-  background: white;
+  background: var(--bg-surface, #141419);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(245, 158, 11, 0.3);
   margin-bottom: 2rem;
   
@@ -293,10 +293,10 @@ const ComplianceGrid = styled.div`
 `;
 
 const ComplianceCard = styled(motion.div)<{ $status?: 'excellent' | 'good' | 'needs-attention' | 'critical' }>`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border-left: 4px solid ${props => {
     switch (props.$status) {
       case 'excellent': return '#10b981';
@@ -396,9 +396,9 @@ const ComplianceCard = styled(motion.div)<{ $status?: 'excellent' | 'good' | 'ne
 `;
 
 const AnalyticsSection = styled.div`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   margin-bottom: 2rem;
 `;

@@ -150,9 +150,9 @@ const SettingsLayout = styled.div`
 `;
 
 const SettingsNavigation = styled.div`
-  background: white;
+  background: var(--bg-surface, #141419);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   padding: 1rem;
   height: fit-content;
   
@@ -197,9 +197,9 @@ const NavItem = styled(motion.button)<{ $active?: boolean }>`
 `;
 
 const SettingsContent = styled.div`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 `;
 
@@ -299,10 +299,11 @@ const Input = styled.input`
 const Select = styled.select`
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-soft, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
   font-size: 0.9rem;
-  background: white;
+  color: var(--text-primary, #E0ECF4);
+  background: var(--bg-surface, #141419);
   transition: all 0.3s ease;
   
   &:focus {

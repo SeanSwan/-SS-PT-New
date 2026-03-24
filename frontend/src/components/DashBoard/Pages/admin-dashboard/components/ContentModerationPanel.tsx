@@ -100,10 +100,10 @@ const StatsGrid = styled.div`
 `;
 
 const StatCard = styled(motion.div)<{ $status: 'pending' | 'approved' | 'rejected' | 'flagged' }>`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border-left: 4px solid ${props => {
     switch (props.$status) {
       case 'pending': return '#f59e0b';
@@ -163,9 +163,9 @@ const StatCard = styled(motion.div)<{ $status: 'pending' | 'approved' | 'rejecte
 `;
 
 const ContentQueue = styled.div`
-  background: white;
+  background: var(--bg-elevated, #1A1A24);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 `;
 
