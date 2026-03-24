@@ -59,6 +59,7 @@ const Actions = styled.div`
 
 const ActionButton = styled(motion.button)`
   padding: 0.5rem 0.75rem;
+  min-height: 44px;
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 6px;

@@ -356,8 +356,9 @@ html {
    P2 FIX: FOCUS VISIBLE FOR KEYBOARD NAVIGATION
    ========================================================================== */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
+  outline: 2px solid #60C0F0;
+  outline-offset: 4px;
+  box-shadow: 0 0 16px rgba(96, 192, 240, 0.4), inset 0 0 0 1px rgba(139, 92, 246, 0.2);
 }
 
 /* Remove focus outline for mouse users */

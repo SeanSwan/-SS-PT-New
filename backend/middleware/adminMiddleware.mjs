@@ -24,7 +24,7 @@ export const requireAdmin = (req, res, next) => {
     }
 
     // Check if user has admin role
-    const isAdmin = req.user.role === 'admin' || req.user.email === 'ogpswan@gmail.com';
+    const isAdmin = req.user.role === 'admin';
     
     if (!isAdmin) {
       logger.warn(`Unauthorized admin access attempt by user ${req.user.id} (${req.user.email})`);

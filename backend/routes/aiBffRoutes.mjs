@@ -174,9 +174,16 @@ router.get('/client-summary/:clientId', protect, async (req, res) => {
       return res.status(400).json({ error: 'Invalid client ID' });
     }
 
-    // Only admin/trainer can access other clients' data
+    // RBAC: clients can only access own data, trainers only assigned clients
     if (req.user.role === 'client' && req.user.id !== clientId) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    if (req.user.role === 'trainer') {
+      const { ensureClientAccess } = await import('../utils/clientAccess.mjs');
+      const access = await ensureClientAccess(req, clientId);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.message });
+      }
     }
 
     const cacheKey = `client_summary_${clientId}`;
