@@ -33,19 +33,21 @@ const ClientInfo = styled.div`
 
 const ClientName = styled.div`
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary, #E0ECF4);
   margin-bottom: 0.25rem;
 `;
 
 const ClientDetails = styled.div`
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted, #94a3b8);
 `;
 
 const ComplianceScore = styled.div`
-  font-size: 1.25rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #ef4444;
+  color: #D946EF;
+  text-shadow: 0 0 14px rgba(217, 70, 239, 0.4);
 `;
 
 const Actions = styled.div`
@@ -71,22 +73,22 @@ const ActionButton = styled(motion.button)`
   transition: all 0.2s ease-in-out;
 
   &.contact {
-    background-color: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.4);
-    color: #7dd3fc;
+    background-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+    color: var(--accent-primary, #60C0F0);
     &:hover {
-      background-color: rgba(59, 130, 246, 0.25);
-      color: #e0f2fe;
+      background-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+      color: var(--text-primary, #E0ECF4);
     }
   }
 
   &.profile {
-    background-color: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.4);
-    color: #34d399;
+    background-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent);
+    color: var(--accent-secondary, #8B5CF6);
     &:hover {
-      background-color: rgba(16, 185, 129, 0.25);
-      color: #ecfdf3;
+      background-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent);
+      color: var(--text-primary, #E0ECF4);
     }
   }
 `;
@@ -97,7 +99,7 @@ const ContactedBadge = styled.div`
   gap: 0.25rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #10b981;
+  color: var(--accent-primary, #60C0F0);
 `;
 
 const itemVariants = {
@@ -140,8 +142,8 @@ const HighRiskClientsWidget: React.FC = () => {
 
   return (
     <CommandCard style={{ padding: '2rem', height: '100%' }}>
-      <h3 style={{ color: '#f59e0b', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
-        Low Compliance Clients 
+      <h3 style={{ color: 'var(--accent-gold, #C6A84B)', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
+        Low Compliance Clients
       </h3>
       {loading ? ( <WidgetSkeleton count={3} /> ) : (
         <ClientList>
@@ -154,12 +156,14 @@ const HighRiskClientsWidget: React.FC = () => {
               transition={{ delay: index * 0.1 }}
               style={{ opacity: contactedClients.includes(client.id) ? 0.5 : 1 }}
             >
-              <AlertTriangle size={24} color="#f59e0b" />
+              <AlertTriangle size={24} color="var(--accent-gold, #C6A84B)" />
               <ClientInfo>
                 <ClientName>{client.name}</ClientName>
                 <ClientDetails>{client.details}</ClientDetails>
               </ClientInfo>
-              <ComplianceScore>{client.compliance}%</ComplianceScore>
+              <div aria-live="polite" aria-atomic="true" aria-label="Compliance score">
+                <ComplianceScore>{client.compliance}%</ComplianceScore>
+              </div>
               <Actions>
                 {contactedClients.includes(client.id) ? (
                   <ContactedBadge>
